@@ -217,6 +217,13 @@ const areaPageRules: Array<AreaPageRule> = [
     icon: IconProp.Heartbeat,
   },
   {
+    baseRoute: RouteMap[PageMap.PROFILES],
+    type: AIChatPageContextType.ProfilesExplorer,
+    noun: translationKey("profiles"),
+    chipLabel: "Profiler",
+    icon: IconProp.Fire,
+  },
+  {
     /*
      * The exceptions area has no plain base entry in RouteMap (EXCEPTIONS
      * points at /exceptions/unresolved and EXCEPTIONS_ROOT is a `/*` wildcard
@@ -862,6 +869,33 @@ export default class PageContextUtil {
             icon: IconProp.Activity,
             title: "Request rate",
             question: "Chart the request rate over the last 24 hours.",
+          },
+        ];
+      case AIChatPageContextType.ProfilesExplorer:
+        return [
+          {
+            icon: IconProp.Fire,
+            title: "Where the CPU goes",
+            question:
+              "Which functions use the most CPU time across my services in the last hour?",
+          },
+          {
+            icon: IconProp.Clock,
+            title: "Slower since the deploy",
+            question:
+              "Did any function get slower after the latest deploy? Compare the hour before it with the hour after.",
+          },
+          {
+            icon: IconProp.Code,
+            title: "In my code",
+            question:
+              "Which of my own functions take the most CPU time, and why?",
+          },
+          {
+            icon: IconProp.Cube,
+            title: "Memory",
+            question:
+              "What holds the most memory in my services right now?",
           },
         ];
       case AIChatPageContextType.ExceptionsList:

@@ -51,9 +51,9 @@ export interface FlamegraphRequest {
   profileId?: string;
   startTime?: Date;
   endTime?: Date;
-  serviceIds?: Array<ObjectID>;
+  serviceIds?: Array<ObjectID> | undefined;
   // Resources whose rows are left out whatever else matches.
-  excludedServiceIds?: Array<ObjectID>;
+  excludedServiceIds?: Array<ObjectID> | undefined;
   /**
    * Single profile type to filter on. Kept for backwards compat. When
    * `profileTypes` is also supplied, `profileTypes` wins.
@@ -116,9 +116,9 @@ export interface FunctionListRequest {
    */
   startTime?: Date;
   endTime?: Date;
-  serviceIds?: Array<ObjectID>;
+  serviceIds?: Array<ObjectID> | undefined;
   // Resources whose rows are left out whatever else matches.
-  excludedServiceIds?: Array<ObjectID>;
+  excludedServiceIds?: Array<ObjectID> | undefined;
   profileType?: string;
   profileTypes?: Array<string>;
   /** See FlamegraphRequest.traceId. */
@@ -165,9 +165,9 @@ export interface ServiceActivityRequest {
    */
   profileTypes?: Array<string>;
   // The services the caller may read (TelemetryReadScope).
-  serviceIds?: Array<ObjectID>;
+  serviceIds?: Array<ObjectID> | undefined;
   // Resources whose rows are left out whatever else matches.
-  excludedServiceIds?: Array<ObjectID>;
+  excludedServiceIds?: Array<ObjectID> | undefined;
 }
 
 export interface ServiceActivityItem {
@@ -187,9 +187,9 @@ export interface ProfileTypeActivityRequest {
   startTime: Date;
   endTime: Date;
   // The services the caller may read and picked (TelemetryReadScope).
-  serviceIds?: Array<ObjectID>;
+  serviceIds?: Array<ObjectID> | undefined;
   // Resources whose rows are left out whatever else matches.
-  excludedServiceIds?: Array<ObjectID>;
+  excludedServiceIds?: Array<ObjectID> | undefined;
 }
 
 export interface DiffFlamegraphRequest {
@@ -198,9 +198,9 @@ export interface DiffFlamegraphRequest {
   baselineEndTime: Date;
   comparisonStartTime: Date;
   comparisonEndTime: Date;
-  serviceIds?: Array<ObjectID>;
+  serviceIds?: Array<ObjectID> | undefined;
   // Resources whose rows are left out whatever else matches.
-  excludedServiceIds?: Array<ObjectID>;
+  excludedServiceIds?: Array<ObjectID> | undefined;
   profileType?: string;
   profileTypes?: Array<string>;
 }
@@ -236,9 +236,9 @@ export interface FunctionComparisonRequest {
   beforeEndTime: Date;
   afterStartTime: Date;
   afterEndTime: Date;
-  serviceIds?: Array<ObjectID>;
+  serviceIds?: Array<ObjectID> | undefined;
   // Resources whose rows are left out whatever else matches.
-  excludedServiceIds?: Array<ObjectID>;
+  excludedServiceIds?: Array<ObjectID> | undefined;
   profileType?: string;
   profileTypes?: Array<string>;
   // How many changed functions to return (default 50, at most 200).
@@ -275,9 +275,9 @@ export interface FunctionFocusRequest {
   profileId?: string;
   startTime?: Date;
   endTime?: Date;
-  serviceIds?: Array<ObjectID>;
+  serviceIds?: Array<ObjectID> | undefined;
   // Resources whose rows are left out whatever else matches.
-  excludedServiceIds?: Array<ObjectID>;
+  excludedServiceIds?: Array<ObjectID> | undefined;
   profileType?: string;
   profileTypes?: Array<string>;
   /** See FlamegraphRequest.traceId. */
@@ -329,9 +329,9 @@ export interface TracePresenceRequest {
   traceId: string;
   spanIds?: Array<string>;
   // The services the caller may read (TelemetryReadScope).
-  serviceIds?: Array<ObjectID>;
+  serviceIds?: Array<ObjectID> | undefined;
   // Resources whose rows are left out whatever else matches.
-  excludedServiceIds?: Array<ObjectID>;
+  excludedServiceIds?: Array<ObjectID> | undefined;
 }
 
 export interface TracePresenceResult {
@@ -352,9 +352,9 @@ export interface BreakdownRequest {
    * Profile attribute key and groups by that attribute's value.
    */
   breakdownBy: string;
-  serviceIds?: Array<ObjectID>;
+  serviceIds?: Array<ObjectID> | undefined;
   // Resources whose rows are left out whatever else matches.
-  excludedServiceIds?: Array<ObjectID>;
+  excludedServiceIds?: Array<ObjectID> | undefined;
   profileType?: string;
   profileTypes?: Array<string>;
   limit?: number;
@@ -1414,8 +1414,9 @@ export class ProfileAggregationService {
     }>();
 
     const activity: Array<ProfileTypeActivity> = [];
+    const rows: Array<JSONObject> = response.data || [];
 
-    for (const row of response.data || []) {
+    for (const row of rows) {
       const profileType: string = String(row["profileType"] || "");
 
       if (!profileType) {

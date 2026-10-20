@@ -79,7 +79,10 @@ import ProfileAggregationService, {
   ServiceActivityRequest,
   ServiceActivityItem,
   TracePresenceResult,
+  FunctionComparisonRequest,
+  FunctionComparisonResult,
 } from "../Services/ProfileAggregationService";
+import { ProfileTypeActivity } from "../../Utils/Profiles/ProfileTypes";
 import PprofEncoder, {
   PprofProfile,
   PprofSample,
@@ -4167,6 +4170,180 @@ router.post(
       return Response.sendJsonObjectResponse(req, res, {
         items: result.items as unknown as JSONObject,
         totalSampleCount: result.totalSampleCount,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Profile Function Comparison Endpoint ---
+
+/*
+ * The same scope in two windows - before and after a deploy, or this period
+ * and the one before - with every function's share of its own window's time
+ * on each side, the biggest change first. Answers "what got slower?" on the
+ * Profiler's compare view; the AI tools ask the same read.
+ */
+router.post(
+  "/telemetry/profiles/function-comparison",
+  ...requireProfileReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const readDate: (key: string) => Date | undefined = (
+        key: string,
+      ): Date | undefined => {
+        return body[key]
+          ? OneUptimeDate.fromString(body[key] as string)
+          : undefined;
+      };
+
+      const beforeStartTime: Date | undefined = readDate("beforeStartTime");
+      const beforeEndTime: Date | undefined = readDate("beforeEndTime");
+      const afterStartTime: Date | undefined = readDate("afterStartTime");
+      const afterEndTime: Date | undefined = readDate("afterEndTime");
+
+      if (
+        !beforeStartTime ||
+        !beforeEndTime ||
+        !afterStartTime ||
+        !afterEndTime
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "beforeStartTime, beforeEndTime, afterStartTime and afterEndTime are all required",
+          ),
+        );
+      }
+
+      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
+        ? (body["serviceIds"] as Array<string>).map((id: string) => {
+            return new ObjectID(id);
+          })
+        : undefined;
+
+      const profileTypes: Array<string> | undefined = Array.isArray(
+        body["profileTypes"],
+      )
+        ? (body["profileTypes"] as Array<string>).filter(
+            (t: unknown): t is string => {
+              return typeof t === "string" && t.length > 0;
+            },
+          )
+        : undefined;
+
+      const limit: number | undefined =
+        typeof body["limit"] === "number"
+          ? (body["limit"] as number)
+          : undefined;
+
+      const request: FunctionComparisonRequest = {
+        projectId: databaseProps.tenantId,
+        beforeStartTime,
+        beforeEndTime,
+        afterStartTime,
+        afterEndTime,
+        ...(await getProfileServiceFilter(
+          ProfileSample,
+          databaseProps,
+          serviceIds,
+        )),
+        ...(profileTypes !== undefined &&
+          profileTypes.length > 0 && { profileTypes }),
+        ...(limit !== undefined && { limit }),
+      };
+
+      const result: FunctionComparisonResult =
+        await ProfileAggregationService.getFunctionComparison(request);
+
+      return Response.sendJsonObjectResponse(req, res, {
+        changes: result.changes as unknown as JSONObject,
+        before: result.before as unknown as JSONObject,
+        after: result.after as unknown as JSONObject,
+        isFooted: result.isFooted,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Profile Types Endpoint ---
+
+/*
+ * The raw profile types a scope has data for in a window, with their unit
+ * and volume, so the Profiler offers only what there is to analyze (CPU
+ * time, memory, ...) and reads each kind in one unit.
+ */
+router.post(
+  "/telemetry/profiles/profile-types",
+  ...requireProfileReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const startTime: Date = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -1);
+
+      const endTime: Date = body["endTime"]
+        ? OneUptimeDate.fromString(body["endTime"] as string)
+        : OneUptimeDate.getCurrentDate();
+
+      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
+        ? (body["serviceIds"] as Array<string>).map((id: string) => {
+            return new ObjectID(id);
+          })
+        : undefined;
+
+      const profileTypes: Array<ProfileTypeActivity> =
+        await ProfileAggregationService.getProfileTypeActivity({
+          projectId: databaseProps.tenantId,
+          startTime,
+          endTime,
+          ...(await getProfileServiceFilter(
+            Profile,
+            databaseProps,
+            serviceIds,
+          )),
+        });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        profileTypes: profileTypes as unknown as JSONObject,
       });
     } catch (err: unknown) {
       next(err);

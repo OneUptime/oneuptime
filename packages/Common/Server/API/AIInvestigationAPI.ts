@@ -34,6 +34,13 @@ import FixPerformanceTaskTrigger, {
   PerformanceTraceSpans,
 } from "../Utils/AI/SRE/FixPerformanceTaskTrigger";
 import TelemetryImprovementTaskTrigger from "../Utils/AI/SRE/TelemetryImprovementTaskTrigger";
+import ProfileFixTaskTrigger, {
+  ProfileFixRequest,
+} from "../Utils/AI/SRE/ProfileFixTaskTrigger";
+import {
+  ProfileFixSuggestion,
+  profileFixSuggestionToJSON,
+} from "../../Utils/Suggestions/ProfileFixSuggestion";
 import PostedRootCause from "../Utils/AI/SRE/PostedRootCause";
 import KubernetesClusterAiAccessService, {
   AI_BALANCE_INSUFFICIENT_NEXT_STEP,
@@ -1541,6 +1548,220 @@ router.post(
 
       Response.sendJsonObjectResponse(req, res, {
         aiRunId: run.id!.toString(),
+      });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+// The longest window a profile fix reads, in days (the Profiler's longest).
+const PROFILE_FIX_MAX_WINDOW_DAYS: number = 7;
+
+/*
+ * A profile window off the request: two ISO timestamps, in order, at most
+ * PROFILE_FIX_MAX_WINDOW_DAYS apart.
+ */
+function readProfileWindow(
+  rawStart: unknown,
+  rawEnd: unknown,
+  what: string,
+): { startTime: Date; endTime: Date } {
+  const startTime: Date | null =
+    typeof rawStart === "string" ? new Date(rawStart) : null;
+  const endTime: Date | null =
+    typeof rawEnd === "string" ? new Date(rawEnd) : null;
+
+  if (
+    !startTime ||
+    !endTime ||
+    isNaN(startTime.getTime()) ||
+    isNaN(endTime.getTime())
+  ) {
+    throw new BadDataException(
+      `${what} needs a start and an end, as ISO timestamps.`,
+    );
+  }
+
+  if (startTime.getTime() >= endTime.getTime()) {
+    throw new BadDataException(`${what} must start before it ends.`);
+  }
+
+  if (
+    endTime.getTime() - startTime.getTime() >
+    PROFILE_FIX_MAX_WINDOW_DAYS * 24 * 60 * 60 * 1000
+  ) {
+    throw new BadDataException(
+      `${what} can be at most ${PROFILE_FIX_MAX_WINDOW_DAYS} days long.`,
+    );
+  }
+
+  return { startTime, endTime };
+}
+
+/*
+ * The body both profile-fix routes take, read and checked the same way:
+ * the project scope, the service, the function and its file, the kind of
+ * profile and the window (and the window it was compared with). The
+ * trigger reads the profile under the caller's own read scope.
+ */
+function readProfileFixRequest(
+  req: ExpressRequest,
+  props: DatabaseCommonInteractionProps,
+): ProfileFixRequest {
+  const projectId: ObjectID | undefined = props.tenantId;
+
+  if (!projectId) {
+    throw new BadDataException("A project scope is required.");
+  }
+
+  const body: JSONObject = (req.body as JSONObject) || {};
+  const serviceId: unknown = body["serviceId"];
+
+  if (typeof serviceId !== "string" || !ObjectID.isValidUUID(serviceId)) {
+    throw new BadDataException("A valid serviceId is required.");
+  }
+
+  const functionName: unknown = body["functionName"];
+
+  if (
+    typeof functionName !== "string" ||
+    functionName.length === 0 ||
+    functionName.length > 1000
+  ) {
+    throw new BadDataException("functionName is required.");
+  }
+
+  const fileName: unknown = body["fileName"];
+
+  if (
+    fileName !== undefined &&
+    fileName !== null &&
+    (typeof fileName !== "string" || fileName.length > 1000)
+  ) {
+    throw new BadDataException("fileName must be text.");
+  }
+
+  const profileType: unknown = body["profileType"];
+
+  if (
+    profileType !== undefined &&
+    profileType !== null &&
+    (typeof profileType !== "string" || profileType.length > 64)
+  ) {
+    throw new BadDataException("profileType must be a kind of profile.");
+  }
+
+  const request: ProfileFixRequest = {
+    projectId,
+    props: pinPropsToTenant(props),
+    serviceId: new ObjectID(serviceId),
+    functionName,
+    fileName: typeof fileName === "string" ? fileName : "",
+    window: readProfileWindow(
+      body["startTime"],
+      body["endTime"],
+      "The profile's time range",
+    ),
+  };
+
+  if (typeof profileType === "string" && profileType.trim()) {
+    request.profileType = profileType.trim();
+  }
+
+  if (body["beforeStartTime"] !== undefined || body["beforeEndTime"] !== undefined) {
+    request.beforeWindow = readProfileWindow(
+      body["beforeStartTime"],
+      body["beforeEndTime"],
+      "The time range it is compared with",
+    );
+  }
+
+  return request;
+}
+
+/*
+ * What the Profiler's function panel offers for "Fix with AI": the fix
+ * (Act, with the repository the function's file is in, or the ones to pick
+ * from), a set-up step in Code's own words (SetUp), the task already on its
+ * way (InProgress), or nothing (None) - decided by the gates the create
+ * route below enforces (ProfileFixTaskTrigger.getSuggestion), so the panel
+ * never offers a fix the server then refuses.
+ */
+router.post(
+  "/ai-investigation/profile-fix-suggestion",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const request: ProfileFixRequest = readProfileFixRequest(req, props);
+
+      const suggestion: ProfileFixSuggestion =
+        await ProfileFixTaskTrigger.getSuggestion(request);
+
+      Response.sendJsonObjectResponse(
+        req,
+        res,
+        profileFixSuggestionToJSON(suggestion),
+      );
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * "Fix with AI" from the Profiler: a Code task in the repository that holds
+ * the function, asking OneUptime AI to make it lighter, with the profile as
+ * its context. Body: the suggestion's, plus the person's own words
+ * (message) and the repository they picked (repositoryId) when none was
+ * found for certain. Response: { taskId } - the task in Code.
+ */
+router.post(
+  "/ai-investigation/create-profile-fix-task",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const request: ProfileFixRequest = readProfileFixRequest(req, props);
+      const body: JSONObject = (req.body as JSONObject) || {};
+
+      const repositoryId: unknown = body["repositoryId"];
+
+      if (
+        repositoryId !== undefined &&
+        repositoryId !== null &&
+        (typeof repositoryId !== "string" ||
+          !ObjectID.isValidUUID(repositoryId))
+      ) {
+        throw new BadDataException("repositoryId must be a repository's ID.");
+      }
+
+      const created: { taskId: string } =
+        await ProfileFixTaskTrigger.createFixTask({
+          ...request,
+          ...(typeof body["message"] === "string"
+            ? { message: body["message"] as string }
+            : {}),
+          ...(typeof repositoryId === "string"
+            ? { repositoryId: new ObjectID(repositoryId) }
+            : {}),
+        });
+
+      Response.sendJsonObjectResponse(req, res, {
+        taskId: created.taskId,
       });
       return;
     } catch (err) {

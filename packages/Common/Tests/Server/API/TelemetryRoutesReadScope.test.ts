@@ -761,6 +761,32 @@ const ROUTE_CASES: Array<RouteCase> = [
     true,
   ),
   aggregationCase(
+    "/telemetry/profiles/function-comparison",
+    ProfileAggregationService,
+    "getFunctionComparison",
+    {
+      beforeStartTime: LAST_HOUR["startTime"],
+      beforeEndTime: LAST_HOUR["endTime"],
+      afterStartTime: LAST_HOUR["startTime"],
+      afterEndTime: LAST_HOUR["endTime"],
+    },
+    {
+      changes: [],
+      before: { windowTotal: 0, windowSampleCount: 0, truncated: false },
+      after: { windowTotal: 0, windowSampleCount: 0, truncated: false },
+      isFooted: false,
+    },
+    true,
+  ),
+  aggregationCase(
+    "/telemetry/profiles/profile-types",
+    ProfileAggregationService,
+    "getProfileTypeActivity",
+    { ...LAST_HOUR },
+    [],
+    true,
+  ),
+  aggregationCase(
     "/telemetry/profiles/trace-presence",
     ProfileAggregationService,
     "getTracePresence",

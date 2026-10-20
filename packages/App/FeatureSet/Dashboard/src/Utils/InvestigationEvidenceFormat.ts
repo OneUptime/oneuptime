@@ -303,6 +303,31 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
       category: "Traces",
     },
   ],
+  // Continuous profiling: where the time goes, and what got slower.
+  [
+    "get_profile_hotspots",
+    {
+      description: "Read where a service spends its time",
+      icon: IconProp.Fire,
+      category: "Profiles",
+    },
+  ],
+  [
+    "compare_profiles",
+    {
+      description: "Compared profiles before and after",
+      icon: IconProp.Fire,
+      category: "Profiles",
+    },
+  ],
+  [
+    "get_profile_function",
+    {
+      description: "Read a function's profile",
+      icon: IconProp.Fire,
+      category: "Profiles",
+    },
+  ],
   [
     "recent_changes",
     {
@@ -605,6 +630,7 @@ const TARGET_PAGE_NAMES: { [key in AIChatCitationTargetType]: string } = {
   [AIChatCitationTargetType.TelemetryResources]: "Infrastructure resources",
   [AIChatCitationTargetType.TelemetryResourceView]: "Infrastructure resource",
   [AIChatCitationTargetType.ServiceView]: "Service",
+  [AIChatCitationTargetType.Profiles]: "Profiler",
   [AIChatCitationTargetType.Exceptions]: "Exceptions",
   [AIChatCitationTargetType.Incidents]: "Incidents",
   [AIChatCitationTargetType.IncidentView]: "Incident",

@@ -21,6 +21,7 @@ import {
   CodeTaskContextItem,
   CodeTaskContextType,
   DEFAULT_CODE_TASK_LOG_WINDOW_IN_HOURS,
+  DEFAULT_CODE_TASK_PROFILE_WINDOW_IN_HOURS,
 } from "../../../../Types/AI/CodeTask";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../../../Types/Date";
@@ -112,6 +113,8 @@ export default class CodeTaskContextBuilder {
         return await CodeTaskContextBuilder.buildTrace(input, context);
       case CodeTaskContextType.Logs:
         return await CodeTaskContextBuilder.buildLogs(input, context);
+      case CodeTaskContextType.Profile:
+        return await CodeTaskContextBuilder.buildProfile(input, context);
       default:
         throw new BadDataException("Unknown context type.");
     }
@@ -442,6 +445,130 @@ export default class CodeTaskContextBuilder {
     }
 
     return item;
+  }
+
+  /*
+   * One function of a service's profile, read the way the AI tools read it
+   * (get_profile_function) under the person's own permissions: its share
+   * of the time, its hottest line, who calls it and what it calls - and,
+   * with a window it was compared with, how that changed.
+   */
+  private static async buildProfile(
+    input: CodeTaskContextInput,
+    context: CodeTaskContextBuildContext,
+  ): Promise<CodeTaskContextItem> {
+    const functionName: string = input.functionName || "";
+    const window: { startTime: string; endTime: string } =
+      input.startTime && input.endTime
+        ? { startTime: input.startTime, endTime: input.endTime }
+        : CodeTaskContextBuilder.lastHours(
+            input.hours || DEFAULT_CODE_TASK_PROFILE_WINDOW_IN_HOURS,
+          );
+
+    const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+      name: "get_profile_function",
+      args: {
+        functionName: functionName,
+        serviceId: input.serviceId || "",
+        startTime: window.startTime,
+        endTime: window.endTime,
+        ...(input.fileName !== undefined ? { fileName: input.fileName } : {}),
+        ...(input.profileType ? { profileType: input.profileType } : {}),
+        ...(input.beforeStartTime && input.beforeEndTime
+          ? {
+              beforeStartTime: input.beforeStartTime,
+              beforeEndTime: input.beforeEndTime,
+            }
+          : {}),
+      },
+      ctx: { projectId: context.projectId, props: context.props },
+    });
+
+    if (!outcome.success || !outcome.result) {
+      throw new BadDataException(
+        outcome.errorMessage ||
+          "That profile could not be read. You may not have access to profiles.",
+      );
+    }
+
+    if (outcome.result.rowCount === 0) {
+      throw new BadDataException(
+        "That function took no time in this service's profiles in that time range. Pick a function the Profiler shows, or a longer time range.",
+      );
+    }
+
+    /*
+     * The service's name, for the label: only when the person may read the
+     * service (a host or a cluster is not one, and is named by its id).
+     */
+    let service: Service | null = null;
+
+    if (input.serviceId) {
+      try {
+        service = await ServiceService.findOneBy({
+          query: {
+            _id: input.serviceId,
+            projectId: context.projectId,
+          },
+          select: { name: true },
+          props: context.props,
+        });
+      } catch {
+        service = null;
+      }
+    }
+
+    const label: string = service?.name
+      ? `Profile: ${functionName} in ${service.name}`
+      : `Profile: ${functionName}`;
+
+    const item: CodeTaskContextItem = {
+      type: CodeTaskContextType.Profile,
+      label: CodeTaskContextBuilder.shorten(label, RECORD_LABEL_LENGTH),
+      functionName: functionName,
+      startTime: window.startTime,
+      endTime: window.endTime,
+      snapshot: CodeTaskContextBuilder.capSnapshot(
+        [
+          service?.name
+            ? `The continuous profile of ${service.name}, for the function below:`
+            : "The continuous profile, for the function below:",
+          outcome.result.dataForLlm,
+        ].join("\n"),
+      ),
+    };
+
+    if (input.serviceId) {
+      item.serviceId = input.serviceId;
+    }
+
+    if (input.fileName !== undefined) {
+      item.fileName = input.fileName;
+    }
+
+    if (input.profileType) {
+      item.profileType = input.profileType;
+    }
+
+    if (input.beforeStartTime && input.beforeEndTime) {
+      item.beforeStartTime = input.beforeStartTime;
+      item.beforeEndTime = input.beforeEndTime;
+    }
+
+    return item;
+  }
+
+  // The last `hours` hours, as ISO timestamps.
+  private static lastHours(hours: number): {
+    startTime: string;
+    endTime: string;
+  } {
+    const endTime: Date = OneUptimeDate.getCurrentDate();
+
+    return {
+      startTime: OneUptimeDate.addRemoveHours(endTime, -1 * hours).toISOString(),
+      endTime: endTime.toISOString(),
+    };
   }
 
   // "Incident #42: Checkout is down", "Incident: ..." when it has no number.
