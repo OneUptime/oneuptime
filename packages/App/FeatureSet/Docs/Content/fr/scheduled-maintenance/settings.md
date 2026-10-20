@@ -20,7 +20,7 @@ Ouvrez **Maintenance planifiée** depuis le menu **Produits** de la barre supér
 | **Règles d'étiquettes** | Ajoute des étiquettes aux événements qui correspondent.        |
 | **Reminder Rules** | Rappelle l'événement aux propriétaires à intervalle régulier jusqu'à ce qu'il soit achevé. |
 
-La section **Paramètres** contient **État de l'événement**, traité dans [États de la maintenance](/docs/scheduled-maintenance/states), **Modèles d'événement**, traité dans [Modèles et événements récurrents](/docs/scheduled-maintenance/templates), puis **Modèles de notes**, **Champs personnalisés**, **Mesures** et **Numérotation**, traités ci-dessous.
+La section **Paramètres** contient **État de l'événement**, traité dans [États de la maintenance](/docs/scheduled-maintenance/states), **Modèles d'événement**, traité dans [Modèles et événements récurrents](/docs/scheduled-maintenance/templates), puis **Modèles de notes**, **Champs personnalisés**, **Mesures**, **Paramètres du calendrier** et **Numérotation**. **Paramètres du calendrier** est traité dans [Calendrier de maintenance](/docs/scheduled-maintenance/calendar#calendriers-externes), le reste ci-dessous.
 
 La section **Espace de travail** contient les règles Slack et Microsoft Teams qui publient les événements dans des canaux. Voir [Slack](/docs/workspace-connections/slack#règles-de-notification) et [Microsoft Teams](/docs/workspace-connections/microsoft-teams#règles-de-notification).
 

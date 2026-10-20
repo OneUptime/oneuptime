@@ -1,9 +1,10 @@
 # Wartungskalender
 
-Der Wartungskalender zeigt Ihre geplante Wartung nach Datum: als Kalender im Dashboard, über einen geheimen Link in den Kalender-Apps Ihres Teams und in den Kalendern der Menschen, die Ihren Statusseiten folgen. Diese Seite erklärt die Kalenderansicht, den Kalenderlink des Teams, den Kalender einer Statusseite und was jeder Kalendertermin enthält.
+Der Wartungskalender zeigt Ihre geplante Wartung nach Datum: auf einer eigenen Seite im Dashboard, über einen geheimen Link in den Kalender-Apps Ihres Teams und in den Kalendern der Menschen, die Ihren Statusseiten folgen. Auf seiner Seite können neben Ihren Ereignissen auch Kalender von außerhalb des Projekts erscheinen, etwa Feiertage oder eine Änderungssperre. Diese Seite erklärt die Kalenderseite, externe Kalender, den Kalenderlink des Teams, den Kalender einer Statusseite und was jeder Kalendertermin enthält.
 
 :::cards
-- [Die Kalenderansicht](#die-kalenderansicht): Jedes Ereignis in einem Monat, einer Woche oder einem Tag, in der Farbe seines Zustands.
+- [Die Kalenderseite](#die-kalenderseite): Jedes Ereignis in einem Monat, einer Woche oder einem Tag, in der Farbe seines Zustands.
+- [Externe Kalender](#externe-kalender): Feiertage, Änderungssperren oder die Wartung eines anderen Teams, neben Ihren Ereignissen.
 - [Der Kalenderlink des Teams](#der-kalenderlink-des-teams): Jedes Ereignis des Projekts in Google Kalender, Outlook oder Apple Kalender.
 - [Der Kalender einer Statusseite](#der-kalender-einer-statusseite): Was eine Statusseite zeigt, in den Kalendern ihrer Besucher.
 - [Was ein Kalendertermin enthält](#was-ein-kalendertermin-enthält): Der Titel, das Zeitfenster, der Zustand und ein Link zurück.
@@ -18,9 +19,9 @@ flowchart TB
     page --> apps
 ```
 
-## Die Kalenderansicht
+## Die Kalenderseite
 
-Öffnen Sie **Geplante Wartung → Alle Ereignisse**. Am rechten Ende der Filterleiste wechseln **Liste** und **Kalender** zwischen der Tabelle der Ereignisse und einem Kalender davon. Ihr Browser merkt sich die Wahl, sodass die Seite beim nächsten Mal mit dem Kalender öffnet.
+Öffnen Sie **Geplante Wartung → Wartungskalender** im Abschnitt **Kalender** des Seitenmenüs. **Alle Ereignisse** zeigt dieselben Ereignisse als Liste.
 
 - Der Kalender öffnet mit diesem Monat, der heutige Tag ist markiert. **Monat**, **Woche** und **Tag** ändern, wie viel er zeigt; blättern Sie mit den Pfeilen und kehren Sie mit **Heute** zurück. Die Zeiten stehen in Ihrer eigenen Zeitzone.
 - Jedes Ereignis ist ein Block in der Farbe seines Zustands, und die Farben der Zustände sind unter dem Kalender benannt. Klicken Sie auf ein Ereignis, um es zu öffnen.
@@ -28,9 +29,41 @@ flowchart TB
 - Ein Tag, der noch bevorsteht, zeigt ein **+**, wenn Sie auf seine Woche zeigen. Es öffnet **Geplantes Wartungsereignis erstellen** mit **Beginnt am** an diesem Tag, zu der Stunde, die das Formular heute wählen würde. Sie sehen es nur, wenn Sie Ereignisse erstellen dürfen.
 - Eine Ansicht zeigt bis zu 500 Ereignisse. Ein vollerer Monat sagt es: Grenzen Sie ihn mit den Filtern ein oder sehen Sie sich eine Woche an.
 
+**Alle Ereignisse** wechselte früher zwischen einer Liste und einem Kalender. Hat Ihr Browser dort zuletzt den Kalender gezeigt, öffnet **Alle Ereignisse** einmal den **Wartungskalender** und ist danach die Liste.
+
+## Externe Kalender
+
+Die Kalenderseite kann auch die Ereignisse von Kalendern außerhalb des Projekts zeigen: Feiertage, eine Änderungssperre, die Ihr Unternehmen in einem anderen Kalender führt, oder die Wartung eines anderen Teams. OneUptime liest jeden über seinen iCalendar-Link (`.ics`) und zeichnet seine Ereignisse neben Ihre, heller und in der eigenen Farbe des Kalenders. Sie sind schreibgeschützt: Sie werden nie zu Wartungsereignissen, niemand wird über sie benachrichtigt, und sie erscheinen nie in den eigenen Kalenderlinks des Projekts.
+
+:::steps
+### Den Kalender hinzufügen
+
+Wählen Sie **Externen Kalender hinzufügen** im **⋯**-Menü des Kalenders, oder öffnen Sie **Geplante Wartung → Kalendereinstellungen** im Abschnitt **Einstellungen** des Seitenmenüs und klicken Sie auf **Externen Kalender hinzufügen**. Füllen Sie **Name** aus und fügen Sie seinen Link unter **Kalenderlink** ein. Unter **Weitere Felder** liegen seine **Farbe** und **Aktualisieren**, also wie oft er gelesen wird: **Jede Stunde**, sofern Sie nichts anderes wählen.
+
+### Prüfen, ob er gelesen wurde
+
+OneUptime liest einen neuen Kalender sofort. Sein **Status** zeigt **Funktioniert**, sobald er gelesen ist, und **Zuletzt gelesen** zeigt, wann, und wie viele Ereignisse er behalten hat. Ein fehlgeschlagener Lesevorgang zeigt **Funktioniert nicht**, mit dem Grund und dem, was zu tun ist.
+
+### Ihn ein- oder ausblenden
+
+Jeder externe Kalender hat unter dem Kalender einen Schalter mit seinem Namen. Blenden Sie einen aus, gilt das nur für Sie; Ihr Browser merkt sich die Wahl für das Projekt.
+:::
+
+Kopieren Sie den Link aus den Freigabeeinstellungen des Kalenders selbst: in Google Kalender seine private Adresse im iCal-Format, in Outlook den ICS-Link eines veröffentlichten Kalenders, in jeder anderen App seinen `.ics`- oder `webcal://`-Link. Der Link darf privat sein: OneUptime speichert ihn verschlüsselt, zeigt ihn nie wieder an, und **Link ändern** ersetzt ihn.
+
+| Aktion | Was passiert |
+| --- | --- |
+| **Jetzt lesen** | Liest den Kalender jetzt statt beim nächsten Lesevorgang. |
+| **Link ändern** | Ersetzt seinen Link. Die Ereignisse des alten Links werden verworfen, und der neue wird sofort gelesen. |
+| **Ausschalten** | Beendet das Lesen und blendet seine Ereignisse für alle aus, bis **Einschalten**. |
+
+Jeder Kalender behält seine Ereignisse von 90 Tagen zurück bis ein Jahr voraus, bis zu 2.000 davon, die heute nächsten zuerst. Ein Kalender über 5 MB wird nicht gelesen. Wiederkehrende Ereignisse, ihre Ausnahmen und ihre Zeitzonen werden so gelesen, wie die Kalender-App sie geschrieben hat, und ein ganztägiges Ereignis bleibt in jeder Zeitzone auf seinem Datum. Ein Projekt kann bis zu 20 externe Kalender haben, und eine Ansicht des Kalenders zeichnet bis zu 500 ihrer Ereignisse.
+
+Die Rollen, die geplante Wartungsereignisse erstellen, bearbeiten und löschen, fügen externe Kalender hinzu, ändern und entfernen sie, und jeder, der die Ereignisse lesen darf, sieht sie im Kalender. OneUptime liest nie eine Adresse auf seinem eigenen Server oder eine Cloud-Metadatenadresse, und OneUptime Cloud lehnt Adressen in einem privaten Netzwerk ab. Ein selbst gehosteter Server kann einen Kalender in Ihrem eigenen Netzwerk lesen, außer `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` ist `true`.
+
 ## Der Kalenderlink des Teams
 
-**Kalender abonnieren**, unter dem Kalender oder im **⋯**-Menü der Liste, öffnet den Kalenderlink des Projekts: einen geheimen iCalendar-Link (`.ics`), der jedes geplante Wartungsereignis des Projekts in Google Kalender, Outlook, Apple Kalender oder jede App bringt, die einen Kalender per URL abonniert.
+**Kalender abonnieren**, unter dem Kalender, öffnet den Kalenderlink des Projekts: einen geheimen iCalendar-Link (`.ics`), der jedes geplante Wartungsereignis des Projekts in Google Kalender, Outlook, Apple Kalender oder jede App bringt, die einen Kalender per URL abonniert.
 
 :::steps
 ### Den Link veröffentlichen
@@ -115,6 +148,10 @@ Google Kalender liest den Link von Googles Servern, daher muss der OneUptime-Ser
 
 :::details Ein Ereignis fehlt im Kalender einer Statusseite
 Der Kalender der Seite enthält, was die Seite zeigt. Prüfen Sie, dass das Ereignis die Seite nennt, dass **Auf Statusseite sichtbar** in seinen **Einstellungen** eingeschaltet ist und dass es im Verlaufszeitraum der Seite begonnen hat.
+:::
+
+:::details Ein externer Kalender zeigt Funktioniert nicht
+Der Grund steht unter **Funktioniert nicht** in seinem **Status**: kein Kalender unter dem Link, ein Link, der eine Anmeldung erfordert oder nicht mehr freigegeben ist, ein Fehler seines Servers, ein Kalender über 5 MB oder einer, der Ereignisse zu oft wiederholt, um ausgewertet zu werden. Korrigieren Sie den Link mit **Link ändern**, oder nutzen Sie **Jetzt lesen**, sobald der Kalender wieder erreichbar ist. Bis dahin zeigt der Kalender die Ereignisse seines letzten erfolgreichen Lesevorgangs.
 :::
 
 ## Nächste Schritte

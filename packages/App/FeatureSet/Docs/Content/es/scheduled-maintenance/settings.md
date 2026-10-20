@@ -20,7 +20,7 @@ Abre **Mantenimiento programado** desde el menú **Productos** de la barra super
 | **Reglas de etiquetas** | Añade etiquetas a los eventos que coinciden.                   |
 | **Reglas de recordatorio** | Recuerda a los propietarios a intervalos hasta que un evento se completa. |
 
-La sección **Ajustes** contiene **Estado del evento**, tratado en [Estados del mantenimiento](/docs/scheduled-maintenance/states), **Plantillas de eventos**, tratado en [Plantillas y eventos recurrentes](/docs/scheduled-maintenance/templates), y después **Plantillas de notas**, **Campos personalizados**, **Mediciones** y **Numeración**, que se tratan más abajo.
+La sección **Ajustes** contiene **Estado del evento**, tratado en [Estados del mantenimiento](/docs/scheduled-maintenance/states), **Plantillas de eventos**, tratado en [Plantillas y eventos recurrentes](/docs/scheduled-maintenance/templates), y después **Plantillas de notas**, **Campos personalizados**, **Mediciones**, **Ajustes del calendario** y **Numeración**. **Ajustes del calendario** se trata en [Calendario de mantenimiento](/docs/scheduled-maintenance/calendar#calendarios-externos), y el resto más abajo.
 
 La sección **Espacio de trabajo** contiene las reglas de Slack y Microsoft Teams que publican eventos en canales. Consulta [Slack](/docs/workspace-connections/slack#reglas-de-notificación) y [Microsoft Teams](/docs/workspace-connections/microsoft-teams#reglas-de-notificación).
 

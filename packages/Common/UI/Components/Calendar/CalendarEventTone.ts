@@ -16,14 +16,25 @@ import { CSSProperties } from "react";
  *     often black, grey or a pale amber: a month of solid black blocks is
  *     mostly black, and a state's colour then reads the same in the
  *     calendar as in the list beside it.
+ *   - Overlay: an event from another calendar, drawn beside a page's own -
+ *     a public holiday or a change freeze on the maintenance calendar. Pale
+ *     stripes of its colour on the card, a dashed edge, its text in a deeper
+ *     shade: there to be seen, plainly not one of the page's own events, and
+ *     nothing to open. Set on the event (CalendarEvent.appearance), so one
+ *     calendar can hold both.
  */
 export enum CalendarEventAppearance {
   Solid = "solid",
   Soft = "soft",
+  Overlay = "overlay",
 }
 
 // The class a soft block carries; Theme.css swaps in its dark tone by it.
 export const SOFT_EVENT_CLASS_NAME: string = "oneuptime-calendar-event--soft";
+
+// The class an overlay block carries; Theme.css swaps in its dark tone by it.
+export const OVERLAY_EVENT_CLASS_NAME: string =
+  "oneuptime-calendar-event--overlay";
 
 /*
  * The dark theme's tone, as custom properties on the block's inline style.
@@ -43,6 +54,26 @@ export const SOFT_EVENT_DARK_SHADOW_PROPERTY: SoftEventDarkShadowProperty =
 
 // The stripe down a soft block's left edge, in px.
 export const SOFT_EVENT_STRIPE_WIDTH_PX: number = 3;
+
+// An overlay block's dark tone, as custom properties as a soft block's is.
+export type OverlayEventDarkBackgroundProperty =
+  "--ou-calendar-overlay-dark-bg";
+export type OverlayEventDarkImageProperty = "--ou-calendar-overlay-dark-image";
+export type OverlayEventDarkTextProperty = "--ou-calendar-overlay-dark-text";
+export type OverlayEventDarkBorderProperty =
+  "--ou-calendar-overlay-dark-border";
+
+export const OVERLAY_EVENT_DARK_BACKGROUND_PROPERTY: OverlayEventDarkBackgroundProperty =
+  "--ou-calendar-overlay-dark-bg";
+export const OVERLAY_EVENT_DARK_IMAGE_PROPERTY: OverlayEventDarkImageProperty =
+  "--ou-calendar-overlay-dark-image";
+export const OVERLAY_EVENT_DARK_TEXT_PROPERTY: OverlayEventDarkTextProperty =
+  "--ou-calendar-overlay-dark-text";
+export const OVERLAY_EVENT_DARK_BORDER_PROPERTY: OverlayEventDarkBorderProperty =
+  "--ou-calendar-overlay-dark-border";
+
+// The width of an overlay block's stripes, and of the gaps between them, in px.
+export const OVERLAY_EVENT_STRIPE_PX: number = 4;
 
 // What the calendar's blocks sit on: a white card, or the dark theme's card.
 const LIGHT_SURFACE: RGB = { red: 255, green: 255, blue: 255 };
@@ -81,6 +112,45 @@ export function getOpaqueWash(wash: string, surface: RGB): string {
 
 function getShadow(stripe: string, ring: string): string {
   return `inset ${SOFT_EVENT_STRIPE_WIDTH_PX}px 0 0 ${stripe}, inset 0 0 0 1px ${ring}`;
+}
+
+// Diagonal stripes of `stripe` on `surface`.
+function getStripes(stripe: string, surface: string): string {
+  return `repeating-linear-gradient(135deg, ${stripe} 0px, ${stripe} ${OVERLAY_EVENT_STRIPE_PX}px, ${surface} ${OVERLAY_EVENT_STRIPE_PX}px, ${surface} ${OVERLAY_EVENT_STRIPE_PX * 2}px)`;
+}
+
+/*
+ * An overlay block's style: the light theme's tone inline, the dark theme's
+ * as custom properties Theme.css swaps in under html.dark - as a soft
+ * block's, so it is right in the grid and in the "+N more" list alike.
+ */
+export function getOverlayEventStyle(
+  color: Color | string | null | undefined,
+): SoftEventStyle {
+  const colors: PillColors = getPillColors(color);
+  const lightSurface: string = Color.rgbToColor(LIGHT_SURFACE)
+    .toString()
+    .toLowerCase();
+  const darkSurface: string = Color.rgbToColor(DARK_THEME_CARD)
+    .toString()
+    .toLowerCase();
+
+  return {
+    backgroundColor: lightSurface,
+    backgroundImage: getStripes(
+      getOpaqueWash(colors.light.backgroundColor, LIGHT_SURFACE),
+      lightSurface,
+    ),
+    color: colors.light.textColor,
+    border: `1px dashed ${colors.light.dotColor}`,
+    [OVERLAY_EVENT_DARK_BACKGROUND_PROPERTY]: darkSurface,
+    [OVERLAY_EVENT_DARK_IMAGE_PROPERTY]: getStripes(
+      getOpaqueWash(colors.dark.backgroundColor, DARK_THEME_CARD),
+      darkSurface,
+    ),
+    [OVERLAY_EVENT_DARK_TEXT_PROPERTY]: colors.dark.textColor,
+    [OVERLAY_EVENT_DARK_BORDER_PROPERTY]: `1px dashed ${colors.dark.dotColor}`,
+  };
 }
 
 /*

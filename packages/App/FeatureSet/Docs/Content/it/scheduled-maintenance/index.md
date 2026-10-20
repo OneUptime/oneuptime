@@ -55,15 +55,16 @@ Aprite **Manutenzione programmata** dal menu **Prodotti** nella barra superiore.
 | Sezione       | Cosa ci fate                                                                                                               |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Panoramica** | **Tutti gli eventi** ed **Eventi in corso**, il cui badge conta gli eventi in corso in questo momento.                    |
+| **Calendario** | **Calendario della manutenzione**: ogni evento su un mese, una settimana o un giorno, accanto ai calendari esterni al progetto che aggiungete. |
 | **Area di lavoro** | **Slack** e **Microsoft Teams**, a seconda di quale il progetto ha collegato, oppure **Collega Slack o Teams** se non ne ha nessuno. |
 | **Regole**    | **Regole del proprietario**, **Regole di runbook**, **Regole etichette**, **Reminder Rules**.                               |
-| **Impostazioni** | **Stato evento**, **Modelli di eventi**, **Modelli di note**, **Campi personalizzati**, **Misurazioni**, **Numerazione**. |
+| **Impostazioni** | **Stato evento**, **Modelli di eventi**, **Modelli di note**, **Campi personalizzati**, **Misurazioni**, **Impostazioni del calendario**, **Numerazione**. |
 
-**Panoramica** è aperta; **Area di lavoro**, **Regole**, **Impostazioni** e **Sviluppatori** partono chiuse, e una sezione si apre da sola quando siete su una delle sue pagine. **Sviluppatori** contiene **Terraform**, **API** e **Assistenti IA**, per gestire la manutenzione dal codice. Tutto ciò che riguarda la manutenzione si trova qui, non nelle **Impostazioni del progetto**.
+**Panoramica** e **Calendario** sono aperte; **Area di lavoro**, **Regole**, **Impostazioni** e **Sviluppatori** partono chiuse, e una sezione si apre da sola quando siete su una delle sue pagine. **Sviluppatori** contiene **Terraform**, **API** e **Assistenti IA**, per gestire la manutenzione dal codice. Tutto ciò che riguarda la manutenzione si trova qui, non nelle **Impostazioni del progetto**.
 
 L'elenco mostra **Numero della manutenzione programmata**, **Titolo**, **Stato attuale**, **Risorse interessate**, **Mostrato sulla pagina di stato**, **Inizia il**, **Durata**, **Termina il**, **Etichette** e **Proprietari**. Selezionate degli eventi per agire su più eventi alla volta: **Cambia stato**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner** o **Elimina**.
 
-**Elenco** e **Calendario**, all'estremità destra della barra dei filtri dell'elenco, mostrano gli stessi eventi come tabella oppure su un mese, una settimana o un giorno. Vedete [Calendario della manutenzione](/docs/scheduled-maintenance/calendar).
+**Calendario della manutenzione**, nella sezione **Calendario**, mostra gli stessi eventi su un mese, una settimana o un giorno, e può mostrare accanto calendari esterni al progetto. Vedete [Calendario della manutenzione](/docs/scheduled-maintenance/calendar).
 
 ## Cosa influenza un evento
 

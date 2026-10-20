@@ -55,15 +55,16 @@ Ouvrez **Maintenance planifiée** depuis le menu **Produits** de la barre supér
 | Section       | Ce que vous y faites                                                                                                       |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Vue d'ensemble** | **Tous les événements** et **Événements en cours**, dont le badge compte les événements en cours en ce moment.         |
+| **Calendrier** | **Calendrier de maintenance** : chaque événement sur un mois, une semaine ou un jour, à côté des calendriers extérieurs au projet que vous ajoutez. |
 | **Espace de travail** | **Slack** et **Microsoft Teams**, selon ce que le projet a connecté, ou **Connecter Slack ou Teams** s'il n'a ni l'un ni l'autre. |
 | **Règles**    | **Règles de propriétaire**, **Règles de runbook**, **Règles d'étiquettes**, **Reminder Rules**.                              |
-| **Paramètres** | **État de l'événement**, **Modèles d'événement**, **Modèles de notes**, **Champs personnalisés**, **Mesures**, **Numérotation**. |
+| **Paramètres** | **État de l'événement**, **Modèles d'événement**, **Modèles de notes**, **Champs personnalisés**, **Mesures**, **Paramètres du calendrier**, **Numérotation**. |
 
-**Vue d'ensemble** est ouverte ; **Espace de travail**, **Règles**, **Paramètres** et **Développeurs** sont repliées au départ, et une section s'ouvre d'elle-même quand vous êtes sur l'une de ses pages. **Développeurs** contient **Terraform**, **API** et **Assistants IA**, pour gérer la maintenance par le code. Tout ce qui concerne la maintenance se trouve ici, pas dans les **Paramètres du projet**.
+**Vue d'ensemble** et **Calendrier** sont ouvertes ; **Espace de travail**, **Règles**, **Paramètres** et **Développeurs** sont repliées au départ, et une section s'ouvre d'elle-même quand vous êtes sur l'une de ses pages. **Développeurs** contient **Terraform**, **API** et **Assistants IA**, pour gérer la maintenance par le code. Tout ce qui concerne la maintenance se trouve ici, pas dans les **Paramètres du projet**.
 
 La liste affiche **Numéro de maintenance planifiée**, **Titre**, **État actuel**, **Ressources affectées**, **Affiché sur la page de statut**, **Commence le**, **Durée**, **Se termine le**, **Étiquettes** et **Propriétaires**. Sélectionnez des événements pour agir sur plusieurs à la fois : **Modifier l'état**, **Ajouter des étiquettes**, **Remove Labels**, **Ajouter un propriétaire**, **Remove Owner** ou **Supprimer**.
 
-**Liste** et **Calendrier**, à l'extrémité droite de la barre de filtres de la liste, affichent les mêmes événements sous forme de tableau ou sur un mois, une semaine ou un jour. Voir [Calendrier de maintenance](/docs/scheduled-maintenance/calendar).
+**Calendrier de maintenance**, dans la section **Calendrier**, affiche les mêmes événements sur un mois, une semaine ou un jour, et peut afficher à côté d'eux des calendriers extérieurs au projet. Voir [Calendrier de maintenance](/docs/scheduled-maintenance/calendar).
 
 ## Ce qu'un événement affecte
 

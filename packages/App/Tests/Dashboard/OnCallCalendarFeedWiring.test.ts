@@ -1014,14 +1014,15 @@ describe("Locales", () => {
        * Each says what the old link serves - an empty calendar - which is also
        * what tells them apart from other features' sentences about an old
        * link of their own (an incident form's Reset Link, whose old link
-       * stops working at once). The rotate dialog itself only says that
+       * stops working at once; an external calendar's Change link, whose old
+       * link's events are forgotten). The rotate dialog itself only says that
        * subscribed apps go empty and need the new link.
        */
       const previousLinkKeys: Array<string> = Object.keys(json).filter(
         (key: string): boolean => {
           return (
             (key.includes("previous link") || key.includes("old link")) &&
-            key.includes("calendar")
+            key.includes("empty calendar")
           );
         },
       );
