@@ -43,6 +43,7 @@ const codes: Array<InvestigationNotStartedCode> = [
   "severity_below_threshold",
   "monitor_cooldown",
   "created_resolved",
+  "resolved_before_investigation",
   "daily_budget_exhausted",
   "budget_check_failed",
   "enqueue_failed",

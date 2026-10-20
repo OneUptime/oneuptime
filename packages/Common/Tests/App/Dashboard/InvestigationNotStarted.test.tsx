@@ -160,6 +160,14 @@ const REASONS: Array<ReasonExample> = [
     nextStep: "To look into it anyway, ask OneUptime AI below.",
   },
   {
+    code: "resolved_before_investigation",
+    title: "Resolved before the investigation started",
+    description:
+      "An investigation rule makes OneUptime AI wait 10 minutes before it investigates, and investigate only incidents still open then. This incident was resolved first, so it was not investigated.",
+    nextStep:
+      "To look into it anyway, ask OneUptime AI below. The wait is set on the investigation rules under Incidents → AI → Settings → More settings.",
+  },
+  {
     code: "daily_budget_exhausted",
     title: "The daily AI token limit was reached",
     description: "The daily token budget for this event type was exhausted.",
@@ -1055,6 +1063,8 @@ describe("which settings page each reason points at", () => {
     ["automatic_investigation_disabled"],
     // The investigation rules are under that page's More settings.
     ["no_investigation_rule_matched"],
+    // So is the rule's wait (issue #5074).
+    ["resolved_before_investigation"],
     ["severity_below_threshold"],
     ["monitor_cooldown"],
     ["daily_budget_exhausted"],

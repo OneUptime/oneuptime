@@ -158,21 +158,27 @@ export default class AIIncidentInvestigationRunner {
     // Why not, on the incident's AI card - decided after its wait, if it waited.
     const recordSkipped: (
       code: InvestigationNotStartedCode,
-      budget?: AutonomousBudgetStatus,
-      details?: InvestigationGateDetails,
+      ...rest: [
+        budget?: AutonomousBudgetStatus | undefined,
+        details?: InvestigationGateDetails | undefined,
+      ]
     ) => Promise<void> = async (
       code: InvestigationNotStartedCode,
-      budget?: AutonomousBudgetStatus,
-      details?: InvestigationGateDetails,
+      ...rest: [
+        budget?: AutonomousBudgetStatus | undefined,
+        details?: InvestigationGateDetails | undefined,
+      ]
     ): Promise<void> => {
-      await InvestigationEligibility.recordSkipped(
-        subject,
-        code,
-        budget,
-        afterWaitMinutes
-          ? { ...(details || {}), waitMinutes: afterWaitMinutes }
-          : details,
-      );
+      if (afterWaitMinutes) {
+        await InvestigationEligibility.recordSkipped(subject, code, rest[0], {
+          ...(rest[1] || {}),
+          waitMinutes: afterWaitMinutes,
+        });
+        return;
+      }
+
+      // Recorded exactly as each step always recorded it.
+      await InvestigationEligibility.recordSkipped(subject, code, ...rest);
     };
 
     try {
@@ -210,22 +216,26 @@ export default class AIIncidentInvestigationRunner {
        * shortest wait has passed since it was declared, unless that time
        * has come already (the wait ended, or it was caught up late). When
        * the wait cannot be written, it is investigated right away rather
-       * than never.
+       * than never - as a run its auto remediation waits for, like any
+       * incident that does not wait.
        */
+      let isWaitOver: boolean = false;
+
       if (gate.waitMinutes && gate.waitMinutes > 0) {
         const waitUntil: Date = getInvestigationWaitUntil(
           gate.createdAt || OneUptimeDate.getCurrentDate(),
           gate.waitMinutes,
         );
 
-        if (
-          waitUntil.getTime() > OneUptimeDate.getCurrentDate().getTime() &&
-          (await InvestigationRuleWait.startWaiting({
+        if (waitUntil.getTime() <= OneUptimeDate.getCurrentDate().getTime()) {
+          isWaitOver = true;
+        } else if (
+          await InvestigationRuleWait.startWaiting({
             lane: "Incident",
             projectId,
             subjectId: incidentId,
             waitUntil,
-          }))
+          })
         ) {
           logger.debug(
             `AI: incident ${incidentId.toString()} waits ${gate.waitMinutes} minutes, until ${waitUntil.toISOString()}, before it is investigated.`,
@@ -235,15 +245,15 @@ export default class AIIncidentInvestigationRunner {
       }
 
       /*
-       * A run after a wait (or whose rule waits, caught up late): its
-       * incident's auto remediation did not wait for it, so it says so
-       * (ruleWaitMinutes), and it is the incident's one investigation - the
+       * A run after a wait (or whose rule's wait had passed already, caught
+       * up late): the incident's auto remediation did not wait for it -
+       * nothing was queued when the incident was declared - so it says so
+       * (ruleWaitMinutes), and it is the incident's one investigation: the
        * job, Investigate now and Ask AI may all try to start it at once.
        */
       const ruleWaitMinutes: number | undefined =
-        gate.waitMinutes && gate.waitMinutes > 0
-          ? gate.waitMinutes
-          : afterWaitMinutes;
+        afterWaitMinutes ||
+        (isWaitOver && gate.waitMinutes ? gate.waitMinutes : undefined);
 
       const enqueuedRunId: ObjectID | null = await AIInvestigationQueue.enqueue(
         {

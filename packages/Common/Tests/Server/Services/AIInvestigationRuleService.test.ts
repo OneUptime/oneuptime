@@ -338,3 +338,111 @@ describe("what an investigation rule can match on", () => {
     ).toBeNull();
   });
 });
+
+/*
+ * A rule's wait (issue #5074, onlyIfOpenAfterMinutes): a whole number of
+ * minutes, at most a day, or nothing. Every caller is held to it - the form,
+ * the API, Terraform, a workflow - with a refusal that says so, rather than
+ * a wait OneUptime AI would read differently from what was written.
+ */
+describe("AIInvestigationRuleService - a rule's wait", () => {
+  describe("on create", () => {
+    it.each([[undefined], [null], [0], [1], [10], [1440], ["30"]])(
+      "accepts %p",
+      async (wait: unknown) => {
+        expect(
+          await createError({
+            triggerEntityType: AIInvestigationRuleTriggerEntity.Incident,
+            onlyIfOpenAfterMinutes: wait as number,
+          }),
+        ).toBeNull();
+      },
+    );
+
+    it.each([
+      [
+        10.5,
+        "Only If Open After (Minutes) must be a whole number of minutes. Leave it empty to investigate right away.",
+      ],
+      [
+        "ten",
+        "Only If Open After (Minutes) must be a whole number of minutes. Leave it empty to investigate right away.",
+      ],
+      [
+        -5,
+        "Only If Open After (Minutes) cannot be negative. Leave it empty to investigate right away.",
+      ],
+      [
+        1441,
+        "Only If Open After (Minutes) can be at most 1440 minutes (a day).",
+      ],
+    ])("refuses %p, saying why", async (wait: unknown, message: string) => {
+      const error: unknown = await createError({
+        triggerEntityType: AIInvestigationRuleTriggerEntity.Alert,
+        onlyIfOpenAfterMinutes: wait as number,
+      });
+
+      expect(error).toBeInstanceOf(BadDataException);
+      expect((error as Error).message).toBe(message);
+    });
+  });
+
+  describe("on update", () => {
+    it("an edit that sets a wait is judged on it, and a good one passes", async () => {
+      const good: { error: unknown } = await updateError(
+        { onlyIfOpenAfterMinutes: 30 },
+        [{ triggerEntityType: AIInvestigationRuleTriggerEntity.Incident }],
+      );
+      expect(good.error).toBeNull();
+
+      const bad: { error: unknown } = await updateError(
+        { onlyIfOpenAfterMinutes: 2000 },
+        [{ triggerEntityType: AIInvestigationRuleTriggerEntity.Incident }],
+      );
+      expect(bad.error).toBeInstanceOf(BadDataException);
+      expect((bad.error as Error).message).toContain("at most 1440");
+    });
+
+    it("clearing the wait (back to right away) is accepted", async () => {
+      expect(
+        (
+          await updateError({ onlyIfOpenAfterMinutes: null }, [
+            { triggerEntityType: AIInvestigationRuleTriggerEntity.Incident },
+          ])
+        ).error,
+      ).toBeNull();
+    });
+
+    it("an edit that leaves the wait alone is not judged on it", async () => {
+      expect(
+        (
+          await updateError({ name: "Renamed" }, [
+            { triggerEntityType: AIInvestigationRuleTriggerEntity.Incident },
+          ])
+        ).error,
+      ).toBeNull();
+    });
+  });
+
+  it("the column is the rule's own, written by who may change the AI settings, read by every member", () => {
+    const rule: AIInvestigationRule = new AIInvestigationRule();
+    const access: {
+      create?: Array<unknown>;
+      read?: Array<unknown>;
+      update?: Array<unknown>;
+    } = rule.getColumnAccessControlFor("onlyIfOpenAfterMinutes") || {};
+
+    expect(rule.getTableColumnMetadata("onlyIfOpenAfterMinutes")?.title).toBe(
+      "Only If Open After (Minutes)",
+    );
+    expect(access.create).toEqual(
+      rule.getColumnAccessControlFor("titlePattern")?.create,
+    );
+    expect(access.update).toEqual(
+      rule.getColumnAccessControlFor("titlePattern")?.update,
+    );
+    expect(access.read).toEqual(
+      rule.getColumnAccessControlFor("titlePattern")?.read,
+    );
+  });
+});

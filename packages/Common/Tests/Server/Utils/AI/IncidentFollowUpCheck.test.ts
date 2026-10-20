@@ -227,6 +227,14 @@ beforeEach(() => {
       async (findBy: FindBy<AIRun>): Promise<Array<AIRun>> => {
         const query: JSONObject = findBy.query as unknown as JSONObject;
         const runs: Array<AIRun> = [...world.runs].filter((item: AIRun) => {
+          /*
+           * The investigations an investigation rule made wait (issue
+           * #5074), as the partial index on them finds them.
+           */
+          if (query["ruleWaitMinutes"] !== undefined && !item.ruleWaitMinutes) {
+            return false;
+          }
+
           // The previous analysis: a completed first investigation.
           if (query["followUpForAlertId"] !== undefined) {
             return (
@@ -718,4 +726,219 @@ describe("isDue", () => {
       ).toBe(expected);
     },
   );
+});
+
+/*
+ * An incident an investigation rule made wait (issue #5074) is investigated
+ * when the wait ends, with every alert that opened since it was declared
+ * already in its context. Its follow-up window is counted from when that
+ * investigation finished, so an alert that opens after it is still caught -
+ * and one that opened 30 minutes after a declaration whose investigation
+ * waited 30 minutes is not lost.
+ */
+describe("the window of an incident whose investigation waited", () => {
+  function waitedRun(data: {
+    startedMinutesFromIncident: number;
+    waitMinutes: number;
+  }): AIRun {
+    const item: AIRun = run({
+      id: FIRST_RUN_ID,
+      status: AIRunStatus.Completed,
+      startedMinutesFromIncident: data.startedMinutesFromIncident,
+    });
+    item.ruleWaitMinutes = data.waitMinutes;
+    return item;
+  }
+
+  describe("getWindowEnd", () => {
+    test("with no investigation, or one that did not wait: the 30 minutes after the declaration", () => {
+      expect(
+        IncidentFollowUpCheck.getWindowEnd({ incidentCreatedAt: DECLARED_AT }),
+      ).toEqual(at(FOLLOW_UP_WINDOW_MINUTES));
+      expect(
+        IncidentFollowUpCheck.getWindowEnd({
+          incidentCreatedAt: DECLARED_AT,
+          investigation: { completedAt: at(3) },
+        }),
+      ).toEqual(at(FOLLOW_UP_WINDOW_MINUTES));
+    });
+
+    test("after an investigation that waited: the 30 minutes after it finished", () => {
+      expect(
+        IncidentFollowUpCheck.getWindowEnd({
+          incidentCreatedAt: DECLARED_AT,
+          investigation: { ruleWaitMinutes: 30, completedAt: at(33) },
+        }),
+      ).toEqual(at(33 + FOLLOW_UP_WINDOW_MINUTES));
+    });
+
+    test("a waited investigation that has not finished counts from the declaration", () => {
+      expect(
+        IncidentFollowUpCheck.getWindowEnd({
+          incidentCreatedAt: DECLARED_AT,
+          investigation: { ruleWaitMinutes: 30 },
+        }),
+      ).toEqual(at(FOLLOW_UP_WINDOW_MINUTES));
+    });
+
+    test("a finish before the declaration (a clock off) never shortens the window", () => {
+      expect(
+        IncidentFollowUpCheck.getWindowEnd({
+          incidentCreatedAt: DECLARED_AT,
+          investigation: { ruleWaitMinutes: 10, completedAt: at(-5) },
+        }),
+      ).toEqual(at(FOLLOW_UP_WINDOW_MINUTES));
+    });
+  });
+
+  test("settled after its wait, it checks again for an alert that opened while it read", async () => {
+    world.runs = [
+      waitedRun({ startedMinutesFromIncident: 30, waitMinutes: 30 }),
+    ];
+    world.laterAlerts = [newAlert(ALERT_ID, at(30.5), false)];
+
+    expect(
+      await IncidentFollowUpCheck.onInvestigationSettled({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+        aiRunId: FIRST_RUN_ID,
+      }),
+    ).toEqual(QUEUED_RUN_ID);
+  });
+
+  test("the same run, had it not waited, would have read its context after the window closed", async () => {
+    const late: AIRun = waitedRun({
+      startedMinutesFromIncident: 30,
+      waitMinutes: 30,
+    });
+    late.ruleWaitMinutes = undefined;
+    world.runs = [late];
+    world.laterAlerts = [newAlert(ALERT_ID, at(30.5), false)];
+
+    expect(
+      await IncidentFollowUpCheck.onInvestigationSettled({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+        aiRunId: FIRST_RUN_ID,
+      }),
+    ).toBeNull();
+  });
+
+  test("an alert 45 minutes after the declaration, 14 after the waited investigation finished, checks the incident again", async () => {
+    world.runs = [
+      waitedRun({ startedMinutesFromIncident: 30, waitMinutes: 30 }),
+    ];
+    world.alertOpenedAt = at(45);
+
+    expect(await alertOpens()).toEqual([QUEUED_RUN_ID]);
+    expect(enqueued[0]).toEqual(
+      expect.objectContaining({
+        subjectIncidentId: INCIDENT_ID,
+        followUpForAlertId: ALERT_ID,
+      }),
+    );
+  });
+
+  test("the incident is found through its waited investigation, declared before the usual window", async () => {
+    world.runs = [
+      waitedRun({ startedMinutesFromIncident: 30, waitMinutes: 30 }),
+    ];
+    world.alertOpenedAt = at(45);
+
+    await alertOpens();
+
+    const waitedRunRead: FindBy<AIRun> | undefined = (
+      AIRunService.findBy as unknown as SpyInstance<typeof AIRunService.findBy>
+    ).mock.calls
+      .map((call: Parameters<typeof AIRunService.findBy>): FindBy<AIRun> => {
+        return call[0];
+      })
+      .find((findBy: FindBy<AIRun>): boolean => {
+        return (
+          (findBy.query as unknown as JSONObject)["ruleWaitMinutes"] !==
+          undefined
+        );
+      });
+
+    expect(waitedRunRead).toBeDefined();
+    expect(waitedRunRead!.query).toEqual(
+      expect.objectContaining({
+        projectId: PROJECT_ID,
+        runType: AIRunType.Investigation,
+        status: AIRunStatus.Completed,
+      }),
+    );
+    expect(
+      JSON.stringify(
+        (waitedRunRead!.query as unknown as JSONObject)["completedAt"],
+      ),
+    ).toContain(
+      at(45 - FOLLOW_UP_WINDOW_MINUTES)
+        .toISOString()
+        .slice(0, 19),
+    );
+    expect(waitedRunRead!.props).toEqual({ isRoot: true });
+
+    // A second read of the incidents: only those runs' incidents, declared earlier.
+    expect(incidentReads).toHaveLength(2);
+    const waitedRead: JSONObject = incidentReads[1]!
+      .query as unknown as JSONObject;
+    expect(JSON.stringify(waitedRead["_id"])).toContain(INCIDENT_ID.toString());
+    expect(JSON.stringify(waitedRead["createdAt"])).toContain(
+      at(45 - FOLLOW_UP_WINDOW_MINUTES)
+        .toISOString()
+        .slice(0, 19),
+    );
+    expect(waitedRead["currentIncidentStateId"]).toBeDefined();
+    expect(waitedRead["hosts"]).toBeDefined();
+  });
+
+  test("the same alert after an investigation that did not wait is outside the window", async () => {
+    const notWaited: AIRun = waitedRun({
+      startedMinutesFromIncident: 30,
+      waitMinutes: 30,
+    });
+    notWaited.ruleWaitMinutes = undefined;
+    world.runs = [notWaited];
+    world.alertOpenedAt = at(45);
+
+    expect(await alertOpens()).toEqual([]);
+    expect(enqueue).not.toHaveBeenCalled();
+    // No investigation waited: one read of the incidents, as before.
+    expect(incidentReads).toHaveLength(1);
+  });
+
+  test("an alert more than 30 minutes after the waited investigation finished is not followed up", async () => {
+    world.runs = [
+      waitedRun({ startedMinutesFromIncident: 30, waitMinutes: 30 }),
+    ];
+    world.alertOpenedAt = at(31 + FOLLOW_UP_WINDOW_MINUTES + 1);
+
+    expect(await alertOpens()).toEqual([]);
+  });
+
+  test("still at most once: a waited incident already checked again is not checked a second time", async () => {
+    world.runs = [
+      waitedRun({ startedMinutesFromIncident: 30, waitMinutes: 30 }),
+    ];
+    world.alertOpenedAt = at(40);
+
+    expect(await alertOpens()).toEqual([QUEUED_RUN_ID]);
+
+    world.runs.find((item: AIRun): boolean => {
+      return item.id?.toString() === QUEUED_RUN_ID.toString();
+    })!.status = AIRunStatus.Completed;
+    world.alertOpenedAt = at(50);
+
+    expect(await alertOpens()).toEqual([]);
+  });
+
+  test("while the incident waits it is not checked again: its investigation will read the alert", async () => {
+    // A waiting incident has no investigation yet.
+    world.runs = [];
+    world.alertOpenedAt = at(5);
+
+    expect(await alertOpens()).toEqual([]);
+    expect(enqueue).not.toHaveBeenCalled();
+  });
 });
