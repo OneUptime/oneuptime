@@ -570,9 +570,11 @@ describe("FixPerformanceTaskTrigger.getSuggestionForTrace (what the trace page o
   });
 
   test.each(
-    NOT_WORTH_FIXING_TRACES.map((trace: TraceFixture) => {
-      return [trace.title, trace];
-    }),
+    NOT_WORTH_FIXING_TRACES.map(
+      (trace: TraceFixture): [string, TraceFixture] => {
+        return [trace.title, trace];
+      },
+    ),
   )(
     "not worth fixing (%s): nothing, and no repository or run is read",
     async (_title: string, trace: TraceFixture) => {

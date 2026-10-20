@@ -77,7 +77,7 @@ function finding(
 
 describe("which traces are worth Fix performance with AI", () => {
   test.each(
-    WORTH_FIXING_TRACES.map((trace: TraceFixture) => {
+    WORTH_FIXING_TRACES.map((trace: TraceFixture): [string, TraceFixture] => {
       return [trace.title, trace];
     }),
   )("worth fixing: %s", (_title: string, trace: TraceFixture) => {
@@ -87,9 +87,11 @@ describe("which traces are worth Fix performance with AI", () => {
   });
 
   test.each(
-    NOT_WORTH_FIXING_TRACES.map((trace: TraceFixture) => {
-      return [trace.title, trace];
-    }),
+    NOT_WORTH_FIXING_TRACES.map(
+      (trace: TraceFixture): [string, TraceFixture] => {
+        return [trace.title, trace];
+      },
+    ),
   )("not worth fixing: %s", (_title: string, trace: TraceFixture) => {
     expect(getFindingsWorthFixing(analyze(trace))).toEqual([]);
   });
@@ -345,9 +347,11 @@ describe("what the trace page offers", () => {
   });
 
   test.each(
-    NOT_WORTH_FIXING_TRACES.map((trace: TraceFixture) => {
-      return [trace.title, trace];
-    }),
+    NOT_WORTH_FIXING_TRACES.map(
+      (trace: TraceFixture): [string, TraceFixture] => {
+        return [trace.title, trace];
+      },
+    ),
   )(
     "nothing worth fixing (%s): nothing at all, even with AI on and a repository",
     (_title: string, trace: TraceFixture) => {
