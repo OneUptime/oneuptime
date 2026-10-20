@@ -347,19 +347,20 @@ const bestMatch: BestMatchFunction = (
 
 /* ------------------------------ Lists ------------------------------- */
 
-// Anything that is not a letter or a digit, in a section heading made into an id.
-const NOT_ID_CHARACTERS: RegExp = /[^a-z0-9]+/g;
-
-// The dashes left at either end once the rest is made into an id.
-const EDGE_DASHES: RegExp = /^-+|-+$/g;
+// A run of anything that is not a letter or a digit, in a section heading made into an id.
+const NOT_ID_CHARACTERS: RegExp = /[^a-z0-9]+/;
 
 type SectionIdFunction = (title: string) => string;
 
+// "Monitoring & APM" is "monitoring-apm": its words, joined by dashes.
 const sectionIdOf: SectionIdFunction = (title: string): string => {
   return title
     .toLowerCase()
-    .replace(NOT_ID_CHARACTERS, "-")
-    .replace(EDGE_DASHES, "");
+    .split(NOT_ID_CHARACTERS)
+    .filter((word: string): boolean => {
+      return word.length > 0;
+    })
+    .join("-");
 };
 
 type GroupFunction = <T extends TemplatePickerTemplate>(
