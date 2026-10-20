@@ -24,6 +24,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -58,9 +59,7 @@ function run(id: ObjectID, taskType: CodeFixTaskType): JSONObject {
 }
 
 let sent: Array<JSONObject>;
-let findPullRequests: jest.SpiedFunction<
-  typeof AIAgentTaskPullRequestService.findBy
->;
+let findPullRequests: SpyInstance<typeof AIAgentTaskPullRequestService.findBy>;
 
 async function getTasks(): Promise<Array<JSONObject>> {
   const req: ExpressRequest = {
