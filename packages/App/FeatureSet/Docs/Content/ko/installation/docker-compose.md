@@ -499,6 +499,13 @@ npm run logs
 `HOST`의 주소로 OneUptime을 여세요. ingress는 호스트 이름으로 요청을 라우팅합니다. 애플리케이션 전체에 도달하는 것은 `HOST`와 `localhost`뿐이고, 서버의 IP 주소처럼 다른 이름은 상태 페이지 도메인으로 처리됩니다. `HOST`를 사람들이 쓰는 이름으로 설정한 다음 `npm start`를 실행하세요.
 :::
 
+:::details 가입이나 로그인이 "Page not found"로 실패함
+가입 페이지는 열리지만, 가입은 `Page not found - /identity/signup`, 로그인은 `Page not found - /identity/login`으로 실패합니다. 요청이 `HOST`가 아닌 다른 호스트 이름으로 OneUptime에 도달해서 ingress가 이를 상태 페이지의 사용자 지정 도메인으로 라우팅했고, 그곳에서는 OneUptime 자체의 가입과 로그인이 제공되지 않습니다. 다음 두 가지를 모두 확인하세요.
+
+- `HOST`가 사람들이 여는 주소여야 합니다. 포트를 쓴다면 `oneuptime.example.com:8080`처럼 포트까지 포함하세요. 바꾼 다음 `npm start`를 실행하세요.
+- OneUptime 앞의 프록시가 브라우저가 요청한 호스트 이름을 그대로 전달해야 합니다. Caddy는 기본으로 그렇게 하고, Nginx는 [직접 운영하는 리버스 프록시 사용](#직접-운영하는-리버스-프록시-사용)에서처럼 `proxy_set_header Host $host;`로, Apache는 `ProxyPreserveHost On`으로 전달합니다.
+:::
+
 :::details PROVISION_SSL을 설정한 뒤 브라우저가 인증서 경고를 표시함
 Let's Encrypt가 인증서를 발급하기 전까지 ingress는 임시 자체 서명 인증서를 제공합니다. 몇 분이 지나도 경고가 사라지지 않으면 다음을 확인하세요.
 

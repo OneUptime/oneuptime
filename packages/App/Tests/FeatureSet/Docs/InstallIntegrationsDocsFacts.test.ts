@@ -91,6 +91,7 @@ const SOURCES: Record<string, string> = {
   response: `${COMMON_SERVER}/Utils/Response.ts`,
   startServer: `${COMMON_SERVER}/Utils/StartServer.ts`,
   serviceRoute: "packages/Common/ServiceRoute.ts",
+  accountsApiPaths: "packages/App/FeatureSet/Accounts/src/Utils/ApiPaths.ts",
   postgresMigrations: `${COMMON_SERVER}/Infrastructure/Postgres/SchemaMigrations/Index.ts`,
   postgresDataSource: `${COMMON_SERVER}/Infrastructure/Postgres/DataSourceOptions.ts`,
   chartValues: `${CHART}/values.yaml`,
@@ -1251,6 +1252,58 @@ describe("Docker Compose, against the compose files and scripts", () => {
     expect(page).toContain(
       "only `HOST` and `localhost` reach the whole application, and any other name, such as the server's IP address, is treated as a status page domain",
     );
+  });
+
+  it("under any name but HOST, sign-up and sign-in answer Page not found, and a proxy has to pass the browser's on", () => {
+    const ingress: string = readSource("ingressConfig");
+    const apiPaths: string = readSource("accountsApiPaths");
+    const entry: string = blockFrom(
+      page,
+      ':::details Signing up or signing in fails with "Page not found"',
+      "\n:::\n",
+    );
+
+    // The sign-up page signs up at /identity/signup and in at /identity/login...
+    expect(readSource("serviceRoute")).toContain(
+      'export const IdentityRoute: Route = new Route("/identity");',
+    );
+    expect(apiPaths).toMatch(
+      /SIGNUP_API_URL: URL = URL\.fromURL\(IDENTITY_URL\)\.addRoute\(\s*new Route\("\/signup"\)/,
+    );
+    expect(apiPaths).toMatch(
+      /LOGIN_API_URL: URL = URL\.fromURL\(IDENTITY_URL\)\.addRoute\(\s*new Route\("\/login"\)/,
+    );
+
+    // ...which only the primary server routes, onto the App's /api/identity...
+    expect(ingress.split("location /identity {").length).toBe(2);
+    expect(
+      blockFrom(
+        ingress,
+        "server_name localhost ingress ${HOST_WITHOUT_PORT};",
+        "\n}\n",
+      ),
+    ).toContain("rewrite ^/identity(.*)$ /api/identity$1 break;");
+
+    // ...so under any other name the App's last route answers.
+    expect(readSource("startServer")).toContain(
+      "new NotFoundException(`Page not found - ${req.url}`)",
+    );
+
+    for (const quoted of [
+      "`Page not found - /identity/signup`",
+      "`Page not found - /identity/login`",
+      "`oneuptime.example.com:8080`",
+      "`proxy_set_header Host $host;`",
+      "`ProxyPreserveHost On`",
+      "[Use your own reverse proxy](#use-your-own-reverse-proxy)",
+    ]) {
+      expect(entry).toContain(quoted);
+    }
+
+    // The Nginx example passes the Host on, as the entry says a proxy must.
+    expect(
+      fencedBlocks(page, 'nginx title="/etc/nginx/conf.d/oneuptime.conf"')[0],
+    ).toContain("proxy_set_header Host $host;");
   });
 
   it("every container's log is capped at 1000 MB", () => {

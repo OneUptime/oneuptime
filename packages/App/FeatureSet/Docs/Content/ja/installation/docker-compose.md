@@ -499,6 +499,13 @@ npm run logs
 `HOST` のアドレスで OneUptime を開いてください。ingress はホスト名でリクエストをルーティングします。アプリケーション全体に到達するのは `HOST` と `localhost` だけで、サーバーの IP アドレスなどそれ以外の名前はステータスページのドメインとして扱われます。`HOST` を実際に使う名前に設定し、`npm start` を実行してください。
 :::
 
+:::details サインアップやサインインが "Page not found" で失敗する
+サインアップページは表示されますが、サインアップは `Page not found - /identity/signup`、サインインは `Page not found - /identity/login` で失敗します。リクエストが `HOST` 以外のホスト名で OneUptime に届いたため、ingress はそれをステータスページのカスタムドメインとしてルーティングしました。そこでは OneUptime 自体のサインアップとサインインは提供されません。次の両方を確認してください。
+
+- `HOST` が、利用者が開くアドレスになっていること。ポートを使う場合は `oneuptime.example.com:8080` のようにポートも含めます。変更したら `npm start` を実行してください。
+- OneUptime の前段のプロキシが、ブラウザーが要求したホスト名をそのまま渡していること。Caddy は既定でそうします。Nginx では [独自のリバースプロキシを使う](#独自のリバースプロキシを使う) のとおり `proxy_set_header Host $host;`、Apache では `ProxyPreserveHost On` を使います。
+:::
+
 :::details PROVISION_SSL を設定したあと、ブラウザーが証明書について警告する
 Let's Encrypt が証明書を発行するまで、ingress は一時的な自己署名証明書を提供します。数分たっても警告が消えない場合は、次を確認します。
 

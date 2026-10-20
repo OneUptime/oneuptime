@@ -499,6 +499,13 @@ Cuando todos los contenedores estén en marcha, vuelve a ejecutar la comprobaci�
 Abre OneUptime en la dirección de `HOST`. El ingress dirige las solicitudes por nombre de host: solo `HOST` y `localhost` llegan a toda la aplicación, y cualquier otro nombre, como la dirección IP del servidor, se trata como un dominio de página de estado. Define `HOST` con el nombre que se usa y después ejecuta `npm start`.
 :::
 
+:::details Registrarse o iniciar sesión falla con "Page not found"
+La página de registro carga, pero el registro falla con `Page not found - /identity/signup` y el inicio de sesión con `Page not found - /identity/login`. La solicitud llegó a OneUptime con un nombre de host distinto de `HOST`, así que el ingress la dirigió como el dominio propio de una página de estado, donde el registro y el inicio de sesión de OneUptime no están disponibles. Comprueba estas dos cosas:
+
+- `HOST` es la dirección que abre la gente, con su puerto si usan uno, como `oneuptime.example.com:8080`. Ejecuta `npm start` después de cambiarlo.
+- Un proxy delante de OneUptime transmite el nombre de host que pidió el navegador. Caddy lo hace por defecto, Nginx con `proxy_set_header Host $host;` como en [Usar tu propio proxy inverso](#usar-tu-propio-proxy-inverso), y Apache con `ProxyPreserveHost On`.
+:::
+
 :::details El navegador avisa sobre el certificado después de definir PROVISION_SSL
 Hasta que Let's Encrypt emite el certificado, el ingress sirve uno autofirmado temporal. Si el aviso sigue más de unos minutos, comprueba que:
 
