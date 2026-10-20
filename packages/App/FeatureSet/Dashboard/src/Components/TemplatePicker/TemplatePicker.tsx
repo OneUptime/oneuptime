@@ -54,6 +54,7 @@ import {
   TemplatePickerViewInfo,
   templateCountText,
 } from "../../Utils/TemplatePicker/TemplatePickerUtil";
+import { isComposingKey } from "../../Utils/TemplatePicker/WizardKeys";
 
 /** A template as the picker draws its row: an icon, a name and a line of description. */
 export interface TemplatePickerRowTemplate extends TemplatePickerTemplate {
@@ -451,7 +452,8 @@ const TemplatePicker: <T extends TemplatePickerRowTemplate, C extends string>(
   const onListKeys: ListKeyDownFunction = (
     event: React.KeyboardEvent<HTMLElement>,
   ): void => {
-    if (event.nativeEvent.isComposing) {
+    // Keys an input method is still handling, a CJK search being typed, are its own.
+    if (isComposingKey(event)) {
       return;
     }
 
@@ -598,18 +600,31 @@ const TemplatePicker: <T extends TemplatePickerRowTemplate, C extends string>(
       <div className="mt-7">
         {/*
          * The heading, then search and categories, kept small: they are there
-         * for whoever needs more than the few the list opens on. One row where
-         * there is room. On a phone the select stays beside the heading and
-         * the search takes a row of its own, wide enough to read its prompt.
+         * for whoever needs more than the few the list opens on. Laid out for
+         * the room there is, so the heading stays one line in every language:
+         *
+         * - lg and up, where the dialog has all of its 48rem: one row,
+         *   heading, search, select - the longest heading and categories
+         *   (Portuguese) fit it. Narrower, the three squeezed the heading
+         *   into two or three lines.
+         * - sm to lg: the select beside the heading, the search a row of its
+         *   own.
+         * - a phone: one under the other. The select is as wide as its
+         *   longest category, so beside the heading it pushed the heading
+         *   into two lines, three in Russian.
+         *
+         * Wherever it is, the search is wide enough to read its prompt: 14.5rem
+         * holds the longest, French "Rechercher des modèles…", beside the
+         * search icon.
          */}
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2.5 sm:grid-cols-[minmax(0,1fr)_14rem_auto]">
+        <div className="grid grid-cols-1 items-center gap-y-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-x-2 lg:grid-cols-[minmax(0,1fr)_14.5rem_auto]">
           <h3
             id={ids.listHeading}
-            className="col-start-1 row-start-1 min-w-0 text-sm font-semibold text-gray-900"
+            className="min-w-0 text-sm font-semibold text-gray-900 sm:col-start-1 sm:row-start-1"
           >
             {tx("Or start from a template")}
           </h3>
-          <div className="relative col-span-2 row-start-2 min-w-0 sm:col-span-1 sm:col-start-2 sm:row-start-1">
+          <div className="relative min-w-0 sm:col-span-2 sm:row-start-2 lg:col-span-1 lg:col-start-2 lg:row-start-1">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
               <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
             </div>
@@ -638,7 +653,14 @@ const TemplatePicker: <T extends TemplatePickerRowTemplate, C extends string>(
                 setSearch(event.target.value);
               }}
               onKeyDown={onListKeys}
-              className="block w-full rounded-md border border-gray-300 bg-white py-1.5 pl-8 pr-8 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              /*
+               * Room on the right for the clear button only while it is
+               * there: kept always, it cut the prompt short ("Vorlagen
+               * durchsuchen..") in the languages whose prompt is longest.
+               */
+              className={`block w-full rounded-md border border-gray-300 bg-white py-1.5 pl-8 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+                state.search.length > 0 ? "pr-8" : "pr-3"
+              }`}
             />
             {state.search.length > 0 ? (
               <div className="absolute inset-y-0 right-0 flex items-center pr-1.5">
@@ -668,7 +690,7 @@ const TemplatePicker: <T extends TemplatePickerRowTemplate, C extends string>(
             onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
               selectView(event.target.value as TemplatePickerView<C>);
             }}
-            className="col-start-2 row-start-1 rounded-md border border-gray-300 bg-white py-1.5 pl-3 pr-8 text-sm text-gray-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:col-start-3"
+            className="w-full min-w-0 rounded-md border border-gray-300 bg-white py-1.5 pl-3 pr-8 text-sm text-gray-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:col-start-2 sm:row-start-1 sm:w-auto lg:col-start-3"
           >
             {views.map((info: TemplatePickerViewInfo<C>): ReactElement => {
               return (

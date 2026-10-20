@@ -76,6 +76,7 @@ import {
   INITIAL_DASHBOARD_TEMPLATE_PICKER_STATE,
   getDashboardPickerTemplate,
 } from "../../Utils/Dashboard/DashboardTemplatePickerUtil";
+import { isEnterToSubmit } from "../../Utils/TemplatePicker/WizardKeys";
 import ChosenTemplate from "../TemplatePicker/ChosenTemplate";
 import {
   addDashboardTemplateToMiscData,
@@ -132,6 +133,13 @@ const CreateDashboardModal: FunctionComponent<ComponentProps> = (
 
   // The dialog may close while the names are on the way.
   const isOpenRef: React.MutableRefObject<boolean> = useRef<boolean>(true);
+
+  /*
+   * Set from the moment Create is pressed until the server answers, so a
+   * second Enter in the name - or one pressed before the button greys out -
+   * makes no second dashboard.
+   */
+  const isCreatingRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
 
   useEffect(() => {
     isOpenRef.current = true;
@@ -271,6 +279,7 @@ const CreateDashboardModal: FunctionComponent<ComponentProps> = (
   type CreateFunction = () => Promise<void>;
 
   const create: CreateFunction = async (): Promise<void> => {
+    isCreatingRef.current = true;
     setIsCreating(true);
     setError("");
 
@@ -308,6 +317,7 @@ const CreateDashboardModal: FunctionComponent<ComponentProps> = (
       setError(API.getFriendlyMessage(err));
     }
 
+    isCreatingRef.current = false;
     setIsCreating(false);
 
     /*
@@ -322,6 +332,10 @@ const CreateDashboardModal: FunctionComponent<ComponentProps> = (
   type OnSubmitFunction = () => void;
 
   const onSubmit: OnSubmitFunction = (): void => {
+    if (isCreatingRef.current) {
+      return;
+    }
+
     if (name.trim().length < NAME_MIN_LENGTH) {
       setNameError("Please give this dashboard a name of at least 2 letters.");
       return;
@@ -393,6 +407,13 @@ const CreateDashboardModal: FunctionComponent<ComponentProps> = (
 
               if (nameError) {
                 setNameError("");
+              }
+            }}
+            onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
+              // Enter creates, as Create Dashboard does (isEnterToSubmit).
+              if (isEnterToSubmit(event)) {
+                event.preventDefault();
+                onSubmit();
               }
             }}
           />

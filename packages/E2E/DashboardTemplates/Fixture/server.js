@@ -33,6 +33,12 @@ const tailwind = path.join(
   repository,
   "packages/Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
 );
+// The Dashboard's locales, which the page fetches for ?lang=.
+const locales = path.join(
+  repository,
+  "packages/App/FeatureSet/Dashboard/src/Locales",
+);
+const LOCALE_PATH = /^\/locales\/([a-zA-Z]{2}(?:-[a-zA-Z]{2})?)\.json$/;
 // The Dashboard's own font, so rows and chips are measured as they are drawn.
 const font = path.join(
   repository,
@@ -57,6 +63,17 @@ async function main() {
     if (url.pathname === "/tailwind.js") {
       response.setHeader("Content-Type", "application/javascript");
       fs.createReadStream(tailwind).pipe(response);
+      return;
+    }
+    const locale = LOCALE_PATH.exec(url.pathname);
+    if (locale) {
+      const file = path.join(locales, `${locale[1]}.json`);
+      if (!fs.existsSync(file)) {
+        response.writeHead(404).end();
+        return;
+      }
+      response.setHeader("Content-Type", "application/json");
+      fs.createReadStream(file).pipe(response);
       return;
     }
     if (url.pathname === "/fonts/InterVariable.woff2") {

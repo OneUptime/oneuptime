@@ -21,7 +21,9 @@
  *   names=fail         looking the names up fails
  *   create=taken       the first create is refused, as the server refuses
  *                      a name someone took meanwhile
- *   lang=de|ja         the Dashboard's German or Japanese words
+ *   lang=de            the Dashboard's words in that language: any of its
+ *                      locales (Dashboard/src/Locales), fetched from the
+ *                      fixture server as the page opens
  *   theme=dark         dark mode
  */
 import "Common/UI/Styles/Theme.css";
@@ -38,16 +40,34 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import CreateDashboardModal from "../../../App/FeatureSet/Dashboard/src/Components/Dashboard/CreateDashboardModal";
 import CreateWorkflowModal from "../../../App/FeatureSet/Dashboard/src/Components/Workflow/CreateWorkflowModal";
-import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
-import JA from "../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 
 const PROJECT_ID = "10000000-0000-4000-8000-0000000000d1";
 const CREATED_DASHBOARD_ID = "20000000-0000-4000-8000-0000000000d2";
 const CREATED_WORKFLOW_ID = "30000000-0000-4000-8000-0000000000d3";
 
+// Every language the Dashboard has besides English (Dashboard/src/Locales).
+const LANGUAGES = [
+  "da",
+  "de",
+  "es",
+  "fa",
+  "fr",
+  "hi",
+  "it",
+  "ja",
+  "ko",
+  "nl",
+  "no",
+  "pt",
+  "ru",
+  "sv",
+  "zh-CN",
+  "zh-TW",
+];
+
 const params = new URLSearchParams(window.location.search);
 const fixturePage = params.get("page") || "create-dashboard";
-const language = ["de", "ja"].includes(params.get("lang"))
+const language = LANGUAGES.includes(params.get("lang"))
   ? params.get("lang")
   : "en";
 const namesParam = params.get("names") || "";
@@ -168,6 +188,22 @@ ModelAPI.create = async (data) => {
 };
 
 /*
+ * The language's words, as the Dashboard ships them. Fetched rather than
+ * bundled: seventeen locales of thirty thousand strings each would make the
+ * bundle the suite waits for many times larger.
+ */
+const translation =
+  language === "en"
+    ? {}
+    : await fetch(`/locales/${language}.json`).then((response) => {
+        if (!response.ok) {
+          throw new Error(`The ${language} locale could not be loaded.`);
+        }
+
+        return response.json();
+      });
+
+/*
  * The Dashboard looks every string up by its English text, so the separators
  * i18next reads in a key (the "." and ":" of a sentence) are turned off, as
  * the Dashboard's own setup does.
@@ -176,9 +212,7 @@ await i18next.use(initReactI18next).init({
   lng: language,
   fallbackLng: language,
   resources: {
-    en: { translation: {} },
-    de: { translation: DE },
-    ja: { translation: JA },
+    [language]: { translation: translation },
   },
   interpolation: { escapeValue: false },
   keySeparator: false,

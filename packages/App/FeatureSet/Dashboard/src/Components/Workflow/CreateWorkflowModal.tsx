@@ -35,6 +35,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -78,6 +79,7 @@ import {
 } from "../../Utils/Workflow/WorkflowTemplatePickerUtil";
 import WorkflowTemplatePicker from "./WorkflowTemplatePicker";
 import ChosenTemplate from "../TemplatePicker/ChosenTemplate";
+import { isEnterToSubmit } from "../../Utils/TemplatePicker/WizardKeys";
 
 export interface ComponentProps {
   onClose: () => void;
@@ -136,6 +138,13 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
   );
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+
+  /*
+   * Set from the moment Create is pressed until the workflow and its
+   * variables are written, so a second Enter in the name - or one pressed
+   * before the button greys out - writes no second workflow.
+   */
+  const isCreatingRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
 
   const selectedTemplate: WorkflowTemplate | null = useMemo(() => {
     return selectedTemplateId ? getWorkflowTemplate(selectedTemplateId) : null;
@@ -213,6 +222,7 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
   type CreateFunction = () => Promise<void>;
 
   const create: CreateFunction = async (): Promise<void> => {
+    isCreatingRef.current = true;
     setIsCreating(true);
     setError("");
 
@@ -282,6 +292,7 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
       setError(API.getFriendlyMessage(err));
     }
 
+    isCreatingRef.current = false;
     setIsCreating(false);
 
     /*
@@ -297,6 +308,10 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
   type OnSubmitFunction = () => void;
 
   const onSubmit: OnSubmitFunction = (): void => {
+    if (isCreatingRef.current) {
+      return;
+    }
+
     if (step === WizardStep.NameIt) {
       if (name.trim().length < 2) {
         setNameError("Please give this workflow a name of at least 2 letters.");
@@ -392,6 +407,13 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
 
               if (nameError) {
                 setNameError("");
+              }
+            }}
+            onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
+              // Enter goes on, as the footer's Next or Create Workflow does.
+              if (isEnterToSubmit(event)) {
+                event.preventDefault();
+                onSubmit();
               }
             }}
           />
