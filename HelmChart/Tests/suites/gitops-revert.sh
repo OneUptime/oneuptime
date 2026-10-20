@@ -444,6 +444,14 @@ retry 5 kubectl apply -n argocd --server-side --force-conflicts --request-timeou
 retry 5 kubectl apply --server-side --force-conflicts --request-timeout=120s \
     -f "https://github.com/fluxcd/flux2/releases/download/${FLUX_VERSION}/install.yaml" >/dev/null
 
+# Only Flux's source, kustomize and helm controllers and Argo CD's
+# application controller, repo server and redis take part; the rest would
+# only take CPU from a busy runner.
+for deployment in notification-controller image-reflector-controller image-automation-controller source-watcher; do
+    kubectl -n flux-system scale deployment "$deployment" --replicas=0 >/dev/null 2>&1 || true
+done
+kubectl -n argocd scale deployment argocd-applicationset-controller --replicas=0 >/dev/null 2>&1 || true
+
 kubectl create namespace "$GIT_NAMESPACE" >/dev/null 2>&1 || true
 cat >"${WORK_DIR}/gitea.yaml" <<EOF
 apiVersion: apps/v1
