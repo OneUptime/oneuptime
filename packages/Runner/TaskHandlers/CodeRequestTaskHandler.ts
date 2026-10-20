@@ -132,6 +132,23 @@ export default class CodeRequestTaskHandler extends BaseTaskHandler {
         return this.createFailureResult(message, { isError: true });
       }
 
+      /*
+       * A task the person started from a branch they picked must start
+       * there. RepositoryManager falls back to the remote's default branch
+       * when the one asked for is gone - right for a stale main branch name,
+       * wrong for a branch someone chose: the change would be written on
+       * another branch, and its pull request opened against it.
+       */
+      if (
+        !details.workingBranch &&
+        details.baseBranch &&
+        cloneResult.baseBranch !== details.baseBranch
+      ) {
+        const message: string = `The branch "${details.baseBranch}" this task starts from is no longer on the remote. It may have been merged and deleted, or renamed. Start a new task from another branch.`;
+        await this.log(context, message, "error");
+        return this.createFailureResult(message, { isError: true });
+      }
+
       const branchName: string = details.workingBranch || details.newBranchName;
 
       if (!details.workingBranch) {

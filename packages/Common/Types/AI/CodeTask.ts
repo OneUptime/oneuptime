@@ -67,6 +67,13 @@ export const CODE_TASK_LIMITS: {
   maxSnapshotLength: number;
   // A task's title, cut from the first line of its request.
   maxTitleLength: number;
+  /*
+   * A branch a task starts from, as GitHub takes one (255 bytes), and what
+   * a person types to find one.
+   */
+  maxBranchNameLength: number;
+  // The branches a repository's branch picker is sent at once.
+  maxListedBranches: number;
 } = {
   maxMessageLength: 10000,
   maxContextItems: 10,
@@ -80,6 +87,8 @@ export const CODE_TASK_LIMITS: {
   maxProfileWindowInDays: 7,
   maxSnapshotLength: 8000,
   maxTitleLength: 120,
+  maxBranchNameLength: 255,
+  maxListedBranches: 100,
 };
 
 // How far back a Logs context looks, in hours: the last hour, day or week.
@@ -160,6 +169,13 @@ export interface CodeTaskRequest {
   // As typed. The AI is given it redacted.
   message: string;
   context: Array<CodeTaskContextItem>;
+  /*
+   * The branch the task starts from, when the person picked one in Code's
+   * request box: kept on the task's first turn only, and the branch every
+   * turn works from until the task has a pull request of its own. Absent:
+   * the repository's main branch.
+   */
+  baseBranch?: string | undefined;
 }
 
 export enum CodeTaskFileStatus {
@@ -373,6 +389,18 @@ export interface CodeTaskSummaryJSON {
   pullRequest?: CodeTaskPullRequestJSON | undefined;
   turnCount: number;
   codeRepositoryId?: string | undefined;
+  /*
+   * What the task changed, added up over its turns (CodeTaskChangeStats),
+   * when it changed anything: the "+23 −1" a list row shows.
+   */
+  changes?: CodeTaskChangeStatsJSON | undefined;
+}
+
+// How much a task changed: its files, and the lines added and taken out.
+export interface CodeTaskChangeStatsJSON {
+  files: number;
+  additions: number;
+  deletions: number;
 }
 
 // A step the AI took, as the conversation shows it.
@@ -408,9 +436,16 @@ export interface CodeTaskTurnJSON {
   startedAt?: string | undefined;
   completedAt?: string | undefined;
   requestedBy?: CodeTaskPersonJSON | undefined;
-  // What the person asked (a request from Code).
+  /*
+   * What the person asked (a request from Code), and on the first turn the
+   * branch they picked for the task to start from (CodeTaskRequest).
+   */
   request?:
-    | { message: string; context: Array<CodeTaskContextItemJSON> }
+    | {
+        message: string;
+        context: Array<CodeTaskContextItemJSON>;
+        baseBranch?: string | undefined;
+      }
     | undefined;
   // What started it, for a turn nobody asked for in Code.
   origin?: CodeTaskOriginJSON | undefined;
@@ -433,6 +468,23 @@ export interface CodeTaskRepositoryJSON {
   repositoryUrl?: string | undefined;
   // Connected through the GitHub App, so AI can work in it.
   isConnected: boolean;
+}
+
+/*
+ * A repository's branches, for the branch picker of Code's request box
+ * (POST /code-task/branches/:repositoryId): its default branch first, then
+ * the others GitHub lists, or those that start with what the person typed.
+ */
+export interface CodeRepositoryBranchesJSON {
+  branches: Array<string>;
+  // The branch a task starts from when the person picks none.
+  defaultBranch: string;
+  /*
+   * Every branch that matches is in the list. GitHub answers a page at a
+   * time: a repository with more branches than one page holds is searched
+   * by what the person types instead.
+   */
+  isComplete: boolean;
 }
 
 export interface CodeRepositoryTaskStatsJSON {
@@ -500,6 +552,14 @@ export interface CodeTaskAgentDetails {
   } | null;
   // Otherwise: the branch to create from the default branch for a change.
   newBranchName: string;
+  /*
+   * The branch the person picked for the task to start from, when they
+   * picked one (repository.mainBranchName names it too, for Runners older
+   * than the pick). A Runner that cannot check it out stops, rather than
+   * fall back to the default branch the way it does for a stale main branch
+   * name: the person asked for this branch.
+   */
+  baseBranch?: string | null | undefined;
   // What is asked now.
   request: {
     message: string;
@@ -512,6 +572,133 @@ export interface CodeTaskAgentDetails {
 }
 
 const TRACE_ID_PATTERN: RegExp = /^[0-9a-f]{16}(?:[0-9a-f]{16})?$/;
+
+// Characters git never takes in a branch name (git check-ref-format).
+const BRANCH_NAME_REFUSED_CHARACTERS: string = " ~^:?*[\\";
+
+export const CODE_TASK_BRANCH_NAME_REFUSED_MESSAGE: string =
+  "That is not a branch name git takes. Pick a branch from the list.";
+
+export class CodeTaskBranchName {
+  /*
+   * A branch name a person picked, as git takes one (git check-ref-format
+   * for refs/heads/<name>): no spaces, control characters or ~ ^ : ? * [ \,
+   * no "..", "@{" or "//", no part that starts with "." or ends with
+   * ".lock", not starting with "-" or "/" and not ending with "/" or ".",
+   * and at most maxBranchNameLength characters. The name is read with a
+   * loop, never a pattern: what a person types is never backtracked over.
+   */
+  public static isValid(name: string): boolean {
+    if (
+      typeof name !== "string" ||
+      name.length === 0 ||
+      name.length > CODE_TASK_LIMITS.maxBranchNameLength ||
+      name === "@"
+    ) {
+      return false;
+    }
+
+    if (
+      name.startsWith("-") ||
+      name.startsWith("/") ||
+      name.endsWith("/") ||
+      name.endsWith(".") ||
+      name.includes("..") ||
+      name.includes("@{") ||
+      name.includes("//")
+    ) {
+      return false;
+    }
+
+    for (let index: number = 0; index < name.length; index++) {
+      const code: number = name.charCodeAt(index);
+
+      if (
+        code < 32 ||
+        code === 127 ||
+        BRANCH_NAME_REFUSED_CHARACTERS.includes(name[index]!)
+      ) {
+        return false;
+      }
+    }
+
+    for (const part of name.split("/")) {
+      if (part.startsWith(".") || part.endsWith(".lock")) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /*
+   * The branch a request asks to start from: null when it names none (an
+   * absent or empty value), the name when git takes it, and a refusal
+   * otherwise.
+   */
+  public static read(raw: unknown): string | null {
+    if (raw === undefined || raw === null) {
+      return null;
+    }
+
+    if (typeof raw !== "string") {
+      throw new BadDataException(CODE_TASK_BRANCH_NAME_REFUSED_MESSAGE);
+    }
+
+    const name: string = raw.trim();
+
+    if (name.length === 0) {
+      return null;
+    }
+
+    if (!CodeTaskBranchName.isValid(name)) {
+      throw new BadDataException(CODE_TASK_BRANCH_NAME_REFUSED_MESSAGE);
+    }
+
+    return name;
+  }
+}
+
+export class CodeTaskChangeStats {
+  /*
+   * What a task changed, added up over the outcomes of its turns: every
+   * file it touched counted once, and the lines each turn added and took
+   * out. A turn that pushed to the task's pull request again adds its own
+   * lines, so the sum can be more than the pull request's diff shows - it
+   * is what AI wrote. Null when no turn changed a file.
+   */
+  public static fromOutcomes(
+    outcomes: Array<CodeTaskOutcome | null | undefined>,
+  ): CodeTaskChangeStatsJSON | null {
+    const paths: Set<string> = new Set<string>();
+    let additions: number = 0;
+    let deletions: number = 0;
+
+    for (const outcome of outcomes) {
+      for (const file of outcome?.filesChanged || []) {
+        if (!file || typeof file.path !== "string") {
+          continue;
+        }
+
+        paths.add(file.path);
+        additions += CodeTaskChangeStats.toCount(file.additions);
+        deletions += CodeTaskChangeStats.toCount(file.deletions);
+      }
+    }
+
+    if (paths.size === 0) {
+      return null;
+    }
+
+    return { files: paths.size, additions, deletions };
+  }
+
+  private static toCount(value: unknown): number {
+    return typeof value === "number" && Number.isFinite(value) && value > 0
+      ? Math.floor(value)
+      : 0;
+  }
+}
 
 export class CodeTaskTitle {
   /*

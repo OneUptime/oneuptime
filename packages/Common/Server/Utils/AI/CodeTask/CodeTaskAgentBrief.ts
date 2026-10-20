@@ -9,7 +9,7 @@ import {
 import ToolResultSerializer from "../Toolbox/Serializer";
 import PromptText from "../../../../Utils/AI/PromptText";
 import CodeTaskOrigin, { CodeTaskOriginSubjects } from "./CodeTaskOrigin";
-import CodeTaskThread from "./CodeTaskThread";
+import CodeTaskThread, { CODE_TASK_TURN_SELECT } from "./CodeTaskThread";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
@@ -75,9 +75,21 @@ export default class CodeTaskAgentBrief {
       throw new Error("This task has no request.");
     }
 
+    /*
+     * The task is its first turn, and the conversation starts with it:
+     * read with what the turns below are read with - what was asked
+     * (taskContext) and what AI answered (taskOutcome) - or a reply's
+     * brief would tell the AI that OneUptime started the task on its own,
+     * and lose the branch the person picked.
+     */
     const task: AIRun | null = await CodeTaskThread.findTask({
       projectId,
       taskId: run.codeTaskId || run.id!,
+      select: {
+        ...CODE_TASK_TURN_SELECT,
+        taskContext: true,
+        taskOutcome: true,
+      },
     });
 
     if (!task) {
@@ -166,6 +178,15 @@ export default class CodeTaskAgentBrief {
     const taskIdShort: string = task.id!.toString().substring(0, 8);
     const turnIdShort: string = run.id!.toString().substring(0, 8);
 
+    /*
+     * The branch the task starts from: the one the person picked when they
+     * asked, kept on its first turn, or the repository's main branch. It is
+     * handed over as the main branch too, which every Runner clones and
+     * branches from - one older than the pick works from it all the same.
+     */
+    const baseBranch: string | null =
+      getCodeTaskRequest(allTurns[0]?.taskContext)?.baseBranch || null;
+
     return {
       taskType: CodeFixTaskType.CodeRequest,
       taskId: task.id!.toString(),
@@ -180,7 +201,7 @@ export default class CodeTaskAgentBrief {
         name: data.repository.name || "",
         organizationName: data.repository.organizationName || "",
         repositoryName: data.repository.repositoryName || "",
-        mainBranchName: data.repository.mainBranchName || "",
+        mainBranchName: baseBranch || data.repository.mainBranchName || "",
         setupCommand: data.repository.setupCommand || null,
         buildCommand: data.repository.buildCommand || null,
         testCommand: data.repository.testCommand || null,
@@ -195,6 +216,7 @@ export default class CodeTaskAgentBrief {
           }
         : null,
       newBranchName: `oneuptime-task-${task.taskNumber || taskIdShort}-${turnIdShort}`,
+      baseBranch,
       request: {
         message: CodeTaskAgentBrief.redact(request.message),
         context: request.context.map(
