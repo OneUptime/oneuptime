@@ -8,11 +8,13 @@ import {
   EXTERNAL_CALENDAR_MAX_REDIRECTS,
   ExternalCalendarReadError,
 } from "../../../../Types/ScheduledMaintenance/ExternalCalendar";
-import DataSourceEgressGuard, { PinnedAgents } from "../../DataSource/EgressGuard";
+import DataSourceEgressGuard, {
+  PinnedAgents,
+} from "../../DataSource/EgressGuard";
 import OutboundUserAgent from "../../OutboundUserAgent";
-import axios, { AxiosResponse } from "axios";
 import http from "http";
 import https from "https";
+import zlib from "zlib";
 
 /*
  * Reads a calendar link: one GET, and the redirects it answers with.
@@ -29,10 +31,10 @@ import https from "https";
  *
  * A redirect is not left to the HTTP client: its Location is checked and
  * pinned like the first address, at most EXTERNAL_CALENDAR_MAX_REDIRECTS
- * times. The body may be no larger than EXTERNAL_CALENDAR_MAX_BYTES - the
- * read stops when it passes it - and the whole read, redirects included, no
- * longer than EXTERNAL_CALENDAR_FETCH_TIMEOUT_IN_MS: a server that answers a
- * byte at a time is cut off all the same.
+ * times. The body may be no larger than EXTERNAL_CALENDAR_MAX_BYTES once
+ * decompressed - the read stops when it passes it - and the whole read,
+ * redirects included, no longer than EXTERNAL_CALENDAR_FETCH_TIMEOUT_IN_MS:
+ * a server that answers a byte at a time is cut off all the same.
  *
  * What failed is answered as one of ExternalCalendarReadError, never with
  * the link or what the server said: the link can be a secret, and the
@@ -128,58 +130,146 @@ export default class ExternalCalendarFetch {
   };
 
   /*
-   * The real request: axios over the pinned agents, following no redirect
-   * itself, its body cut off past maxBytes, and stopped by the signal.
+   * The real request: Node's own http client over the pinned agents - the
+   * same in every environment it runs in - following no redirect itself,
+   * its body cut off past maxBytes as it is decompressed, and stopped when
+   * the signal fires.
    */
-  public static readonly defaultTransport: ExternalCalendarTransport = async (
+  public static readonly defaultTransport: ExternalCalendarTransport = (
     request: ExternalCalendarHttpRequest,
   ): Promise<ExternalCalendarHttpResponse> => {
-    try {
-      const response: AxiosResponse<string> = await axios({
-        method: "GET",
-        url: request.url,
-        headers: request.headers,
-        maxRedirects: 0,
-        maxContentLength: request.maxBytes,
-        responseType: "text",
-        responseEncoding: "utf8",
-        transformResponse: [
-          (body: string): string => {
-            return body;
+    return new Promise<ExternalCalendarHttpResponse>(
+      (
+        resolve: (response: ExternalCalendarHttpResponse) => void,
+        reject: (error: ExternalCalendarTransportError) => void,
+      ) => {
+        const url: URL = new URL(request.url);
+        const isHttps: boolean = url.protocol === "https:";
+        let isSettled: boolean = false;
+
+        const clientRequest: http.ClientRequest = (
+          isHttps ? https : http
+        ).request(url, {
+          method: "GET",
+          headers: {
+            ...request.headers,
+            "Accept-Encoding": "gzip, deflate, br",
           },
-        ],
-        // Every status is ours to read: 3xx are followed here, by hand.
-        validateStatus: (): boolean => {
-          return true;
-        },
-        httpAgent: request.agents.httpAgent,
-        httpsAgent: request.agents.httpsAgent,
-        signal: request.signal,
-      });
+          agent: isHttps ? request.agents.httpsAgent : request.agents.httpAgent,
+        });
 
-      const headers: Dictionary<string> = {};
+        const onAbort: () => void = (): void => {
+          fail(ExternalCalendarTransportErrorKind.Timeout);
+        };
 
-      for (const key of Object.keys(response.headers || {})) {
-        const value: unknown = (response.headers as Record<string, unknown>)[
-          key
-        ];
+        const fail: (kind: ExternalCalendarTransportErrorKind) => void = (
+          kind: ExternalCalendarTransportErrorKind,
+        ): void => {
+          if (isSettled) {
+            return;
+          }
 
-        if (value !== undefined && value !== null) {
-          headers[key.toLowerCase()] = String(value);
+          isSettled = true;
+          request.signal.removeEventListener("abort", onAbort);
+          clientRequest.destroy();
+          reject(new ExternalCalendarTransportError(kind));
+        };
+
+        const finish: (response: ExternalCalendarHttpResponse) => void = (
+          response: ExternalCalendarHttpResponse,
+        ): void => {
+          if (isSettled) {
+            return;
+          }
+
+          isSettled = true;
+          request.signal.removeEventListener("abort", onAbort);
+          resolve(response);
+        };
+
+        if (request.signal.aborted) {
+          onAbort();
+          return;
         }
-      }
 
-      return {
-        statusCode: response.status,
-        headers: headers,
-        body: typeof response.data === "string" ? response.data : "",
-      };
-    } catch (error) {
-      throw ExternalCalendarFetch.toTransportError(error, request.signal);
-    }
+        request.signal.addEventListener("abort", onAbort);
+
+        clientRequest.on("response", (response: http.IncomingMessage) => {
+          const statusCode: number = response.statusCode || 0;
+          const headers: Dictionary<string> = {};
+
+          for (const [name, value] of Object.entries(response.headers)) {
+            if (value !== undefined) {
+              headers[name.toLowerCase()] = Array.isArray(value)
+                ? value.join(", ")
+                : String(value);
+            }
+          }
+
+          // A redirect's or an error's body is never read.
+          if (statusCode < 200 || statusCode >= 300) {
+            response.resume();
+            finish({ statusCode: statusCode, headers: headers, body: "" });
+            return;
+          }
+
+          const encoding: string = (headers["content-encoding"] || "")
+            .trim()
+            .toLowerCase();
+
+          let body: NodeJS.ReadableStream = response;
+
+          if (encoding === "gzip" || encoding === "x-gzip") {
+            body = response.pipe(zlib.createGunzip());
+          } else if (encoding === "deflate") {
+            body = response.pipe(zlib.createInflate());
+          } else if (encoding === "br") {
+            body = response.pipe(zlib.createBrotliDecompress());
+          }
+
+          const chunks: Array<Buffer> = [];
+          let size: number = 0;
+
+          body.on("data", (chunk: Buffer) => {
+            size += chunk.length;
+
+            // Counted once decompressed: a small compressed bomb is still too large.
+            if (size > request.maxBytes) {
+              fail(ExternalCalendarTransportErrorKind.TooLarge);
+              response.destroy();
+              return;
+            }
+
+            chunks.push(chunk);
+          });
+
+          body.on("end", () => {
+            finish({
+              statusCode: statusCode,
+              headers: headers,
+              body: Buffer.concat(chunks).toString("utf8"),
+            });
+          });
+
+          body.on("error", () => {
+            fail(ExternalCalendarTransportErrorKind.Unreachable);
+          });
+        });
+
+        clientRequest.on("error", () => {
+          fail(
+            request.signal.aborted
+              ? ExternalCalendarTransportErrorKind.Timeout
+              : ExternalCalendarTransportErrorKind.Unreachable,
+          );
+        });
+
+        clientRequest.end();
+      },
+    );
   };
 
-  // What an error from axios means for a calendar read.
+  // What an error a transport threw means for a calendar read.
   public static toTransportError(
     error: unknown,
     signal: AbortSignal,
@@ -206,7 +296,8 @@ export default class ExternalCalendarFetch {
       signal.aborted ||
       code === "ECONNABORTED" ||
       code === "ETIMEDOUT" ||
-      code === "ERR_CANCELED"
+      code === "ERR_CANCELED" ||
+      code === "ABORT_ERR"
     ) {
       return new ExternalCalendarTransportError(
         ExternalCalendarTransportErrorKind.Timeout,
@@ -248,7 +339,7 @@ export default class ExternalCalendarFetch {
 
     // One deadline for the whole read, redirects included.
     const controller: AbortController = new AbortController();
-    const timer: NodeJS.Timeout = setTimeout(
+    const timer: ReturnType<typeof setTimeout> = setTimeout(
       () => {
         controller.abort();
       },
@@ -346,10 +437,16 @@ export default class ExternalCalendarFetch {
         }
 
         if (response.statusCode === 404 || response.statusCode === 410) {
-          return failed(ExternalCalendarReadError.NotFound, response.statusCode);
+          return failed(
+            ExternalCalendarReadError.NotFound,
+            response.statusCode,
+          );
         }
 
-        return failed(ExternalCalendarReadError.ServerError, response.statusCode);
+        return failed(
+          ExternalCalendarReadError.ServerError,
+          response.statusCode,
+        );
       }
 
       return failed(ExternalCalendarReadError.TooManyRedirects);
@@ -360,7 +457,7 @@ export default class ExternalCalendarFetch {
 
   /*
    * Where a redirect points, read against the address that answered: only
-   * http(s), and never with credentials the link did not have.
+   * http(s), and never with credentials of its own.
    */
   public static getRedirectTarget(
     from: string,
@@ -391,10 +488,7 @@ export default class ExternalCalendarFetch {
     return target.toString();
   }
 
-  private static destroyAgents(agents: {
-    httpAgent: http.Agent;
-    httpsAgent: https.Agent;
-  }): void {
+  private static destroyAgents(agents: PinnedAgents): void {
     agents.httpAgent.destroy();
     agents.httpsAgent.destroy();
   }
