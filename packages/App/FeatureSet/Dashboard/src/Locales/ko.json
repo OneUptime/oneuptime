@@ -31921,5 +31921,22 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio가 {{phoneNumber}}에서 보내는 테스트 SMS를 접수했습니다. 몇 분 안에 도착합니다.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio가 테스트 SMS를 접수했습니다. 몇 분 안에 도착합니다.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio가 {{phoneNumber}}에서 전화를 걸고 있습니다. 1분 안에 전화가 울립니다.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio가 테스트 전화를 걸고 있습니다. 1분 안에 전화가 울립니다."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio가 테스트 전화를 걸고 있습니다. 1분 안에 전화가 울립니다.",
+  "Add Working Hours": "근무 시간 추가",
+  "Add at least one window of working hours.": "근무 시간대를 하나 이상 추가하세요.",
+  "Choose the time zone the working hours are in.": "근무 시간의 시간대를 선택하세요.",
+  "Each window of working hours must end at a different time than it starts.": "각 근무 시간대는 시작과 다른 시간에 끝나야 합니다.",
+  "Only during working hours": "근무 시간에만",
+  "Outside working hours, wait and page when they begin.": "근무 시간 외에는 기다렸다가 근무 시간이 시작되면 호출합니다.",
+  "Page as soon as this rule matches.": "이 규칙과 일치하면 바로 호출합니다.",
+  "Paging Starts At": "호출 시작 시각",
+  "Right away": "바로",
+  "Set the working hours to page in.": "호출할 근무 시간을 설정하세요.",
+  "The time zone the working hours are in.": "근무 시간의 시간대입니다.",
+  "These times are in {{timezone}}.": "이 시간은 {{timezone}} 기준입니다.",
+  "When this rule may page. Once paging starts, the policy escalates as usual.": "이 규칙이 호출할 수 있는 시간입니다. 호출이 시작되면 정책은 평소처럼 에스컬레이션합니다.",
+  "When to Page": "호출 시점",
+  "Working Hours": "근무 시간",
+  "Working Hours Time Zone": "근무 시간 시간대",
+  "Working hours must end at a different time than they start.": "근무 시간은 시작과 다른 시간에 끝나야 합니다."
 }

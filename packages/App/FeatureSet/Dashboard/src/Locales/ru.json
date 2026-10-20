@@ -31921,5 +31921,22 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio принял тестовое SMS с номера {{phoneNumber}}. Оно должно прийти в течение нескольких минут.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio принял тестовое SMS. Оно должно прийти в течение нескольких минут.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio звонит с номера {{phoneNumber}}. Ваш телефон должен зазвонить в течение минуты.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio совершает тестовый звонок. Ваш телефон должен зазвонить в течение минуты."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio совершает тестовый звонок. Ваш телефон должен зазвонить в течение минуты.",
+  "Add Working Hours": "Добавить рабочие часы",
+  "Add at least one window of working hours.": "Добавьте хотя бы одно окно рабочих часов.",
+  "Choose the time zone the working hours are in.": "Выберите часовой пояс рабочих часов.",
+  "Each window of working hours must end at a different time than it starts.": "Каждое окно рабочих часов должно заканчиваться в другое время, чем начинается.",
+  "Only during working hours": "Только в рабочие часы",
+  "Outside working hours, wait and page when they begin.": "Вне рабочих часов ждать и вызывать, когда они начнутся.",
+  "Page as soon as this rule matches.": "Вызывать сразу, как только это правило сработает.",
+  "Paging Starts At": "Вызов начнётся в",
+  "Right away": "Сразу",
+  "Set the working hours to page in.": "Задайте рабочие часы, в которые вызывать.",
+  "The time zone the working hours are in.": "Часовой пояс рабочих часов.",
+  "These times are in {{timezone}}.": "Это время указано в {{timezone}}.",
+  "When this rule may page. Once paging starts, the policy escalates as usual.": "Когда это правило может вызывать. Как только вызов начался, политика эскалирует как обычно.",
+  "When to Page": "Когда вызывать",
+  "Working Hours": "Рабочие часы",
+  "Working Hours Time Zone": "Часовой пояс рабочих часов",
+  "Working hours must end at a different time than they start.": "Рабочие часы должны заканчиваться в другое время, чем начинаются."
 }

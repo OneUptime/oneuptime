@@ -31921,5 +31921,22 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio har tagit emot test-SMS:et från {{phoneNumber}}. Det bör komma fram inom några minuter.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio har tagit emot test-SMS:et. Det bör komma fram inom några minuter.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio ringer från {{phoneNumber}}. Din telefon bör ringa inom en minut.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio ringer testsamtalet. Din telefon bör ringa inom en minut."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio ringer testsamtalet. Din telefon bör ringa inom en minut.",
+  "Add Working Hours": "Lägg till arbetstid",
+  "Add at least one window of working hours.": "Lägg till minst ett tidsfönster med arbetstid.",
+  "Choose the time zone the working hours are in.": "Välj tidszonen som arbetstiden gäller i.",
+  "Each window of working hours must end at a different time than it starts.": "Varje tidsfönster med arbetstid måste sluta vid en annan tid än det börjar.",
+  "Only during working hours": "Endast under arbetstid",
+  "Outside working hours, wait and page when they begin.": "Utanför arbetstid: vänta och larma när den börjar.",
+  "Page as soon as this rule matches.": "Larma så snart den här regeln matchar.",
+  "Paging Starts At": "Larmning börjar kl.",
+  "Right away": "Direkt",
+  "Set the working hours to page in.": "Ange arbetstiden då det ska larmas.",
+  "The time zone the working hours are in.": "Tidszonen som arbetstiden gäller i.",
+  "These times are in {{timezone}}.": "De här tiderna är i {{timezone}}.",
+  "When this rule may page. Once paging starts, the policy escalates as usual.": "När den här regeln får larma. När larmningen har börjat eskalerar policyn som vanligt.",
+  "When to Page": "När larma",
+  "Working Hours": "Arbetstid",
+  "Working Hours Time Zone": "Arbetstidens tidszon",
+  "Working hours must end at a different time than they start.": "Arbetstiden måste sluta vid en annan tid än den börjar."
 }

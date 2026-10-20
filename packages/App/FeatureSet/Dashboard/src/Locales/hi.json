@@ -31921,5 +31921,22 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio ने {{phoneNumber}} से टेस्ट SMS स्वीकार कर लिया। यह कुछ ही मिनटों में पहुँच जाना चाहिए।",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio ने टेस्ट SMS स्वीकार कर लिया। यह कुछ ही मिनटों में पहुँच जाना चाहिए।",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio {{phoneNumber}} से कॉल कर रहा है। आपका फ़ोन एक मिनट के भीतर बजना चाहिए।",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio टेस्ट कॉल कर रहा है। आपका फ़ोन एक मिनट के भीतर बजना चाहिए।"
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio टेस्ट कॉल कर रहा है। आपका फ़ोन एक मिनट के भीतर बजना चाहिए।",
+  "Add Working Hours": "कार्य समय जोड़ें",
+  "Add at least one window of working hours.": "कार्य समय की कम से कम एक अवधि जोड़ें।",
+  "Choose the time zone the working hours are in.": "वह टाइमज़ोन चुनें जिसमें कार्य समय है।",
+  "Each window of working hours must end at a different time than it starts.": "कार्य समय की हर अवधि शुरू होने के समय से अलग समय पर खत्म होनी चाहिए।",
+  "Only during working hours": "केवल कार्य समय में",
+  "Outside working hours, wait and page when they begin.": "कार्य समय के बाहर प्रतीक्षा करें, और कार्य समय शुरू होने पर बुलाएँ।",
+  "Page as soon as this rule matches.": "यह नियम मेल खाते ही बुलाएँ।",
+  "Paging Starts At": "बुलाना शुरू होने का समय",
+  "Right away": "तुरंत",
+  "Set the working hours to page in.": "वह कार्य समय सेट करें जिसमें बुलाना है।",
+  "The time zone the working hours are in.": "वह टाइमज़ोन जिसमें कार्य समय है।",
+  "These times are in {{timezone}}.": "ये समय {{timezone}} के हैं।",
+  "When this rule may page. Once paging starts, the policy escalates as usual.": "यह नियम कब बुला सकता है। बुलाना शुरू होने के बाद नीति हमेशा की तरह एस्केलेट होती है।",
+  "When to Page": "कब बुलाएँ",
+  "Working Hours": "कार्य समय",
+  "Working Hours Time Zone": "कार्य समय का टाइमज़ोन",
+  "Working hours must end at a different time than they start.": "कार्य समय शुरू होने के समय से अलग समय पर खत्म होना चाहिए।"
 }

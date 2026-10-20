@@ -31921,5 +31921,22 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio 已接受從 {{phoneNumber}} 發出的測試簡訊，幾分鐘內應會送達。",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio 已接受測試簡訊，幾分鐘內應會送達。",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio 正在從 {{phoneNumber}} 撥打電話，您的電話應在一分鐘內響起。",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio 正在撥打測試電話，您的電話應在一分鐘內響起。"
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio 正在撥打測試電話，您的電話應在一分鐘內響起。",
+  "Add Working Hours": "新增工作時間",
+  "Add at least one window of working hours.": "請至少新增一個工作時段。",
+  "Choose the time zone the working hours are in.": "請選擇工作時間所在的時區。",
+  "Each window of working hours must end at a different time than it starts.": "每個工作時段的結束時間必須與開始時間不同。",
+  "Only during working hours": "僅在工作時間內",
+  "Outside working hours, wait and page when they begin.": "非工作時間內等待，工作時間開始時再呼叫。",
+  "Page as soon as this rule matches.": "此規則一符合就立即呼叫。",
+  "Paging Starts At": "呼叫開始時間",
+  "Right away": "立即",
+  "Set the working hours to page in.": "請設定要呼叫的工作時間。",
+  "The time zone the working hours are in.": "工作時間所在的時區。",
+  "These times are in {{timezone}}.": "這些時間為 {{timezone}} 時間。",
+  "When this rule may page. Once paging starts, the policy escalates as usual.": "此規則可以呼叫的時間。呼叫開始後，策略照常升級。",
+  "When to Page": "何時呼叫",
+  "Working Hours": "工作時間",
+  "Working Hours Time Zone": "工作時間時區",
+  "Working hours must end at a different time than they start.": "工作時間的結束時間必須與開始時間不同。"
 }

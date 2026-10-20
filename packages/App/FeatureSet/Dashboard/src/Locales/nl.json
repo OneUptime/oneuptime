@@ -31921,5 +31921,22 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio heeft de test-sms vanaf {{phoneNumber}} geaccepteerd. Die zou binnen enkele minuten moeten aankomen.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio heeft de test-sms geaccepteerd. Die zou binnen enkele minuten moeten aankomen.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio belt vanaf {{phoneNumber}}. Uw telefoon zou binnen een minuut moeten overgaan.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio voert de testoproep uit. Uw telefoon zou binnen een minuut moeten overgaan."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio voert de testoproep uit. Uw telefoon zou binnen een minuut moeten overgaan.",
+  "Add Working Hours": "Werktijden toevoegen",
+  "Add at least one window of working hours.": "Voeg minstens één tijdvenster met werktijden toe.",
+  "Choose the time zone the working hours are in.": "Kies de tijdzone van de werktijden.",
+  "Each window of working hours must end at a different time than it starts.": "Elk tijdvenster met werktijden moet op een ander tijdstip eindigen dan het begint.",
+  "Only during working hours": "Alleen tijdens werktijden",
+  "Outside working hours, wait and page when they begin.": "Buiten werktijden wachten en oproepen zodra ze beginnen.",
+  "Page as soon as this rule matches.": "Oproepen zodra deze regel overeenkomt.",
+  "Paging Starts At": "Oproepen begint om",
+  "Right away": "Direct",
+  "Set the working hours to page in.": "Stel de werktijden in waarin wordt opgeroepen.",
+  "The time zone the working hours are in.": "De tijdzone van de werktijden.",
+  "These times are in {{timezone}}.": "Deze tijden zijn in {{timezone}}.",
+  "When this rule may page. Once paging starts, the policy escalates as usual.": "Wanneer deze regel mag oproepen. Zodra het oproepen begint, escaleert het beleid zoals gewoonlijk.",
+  "When to Page": "Wanneer oproepen",
+  "Working Hours": "Werktijden",
+  "Working Hours Time Zone": "Tijdzone van de werktijden",
+  "Working hours must end at a different time than they start.": "Werktijden moeten op een ander tijdstip eindigen dan ze beginnen."
 }

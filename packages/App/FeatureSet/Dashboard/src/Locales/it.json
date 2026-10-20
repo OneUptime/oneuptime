@@ -31921,5 +31921,22 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio ha accettato l'SMS di prova da {{phoneNumber}}. Dovrebbe arrivare entro pochi minuti.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio ha accettato l'SMS di prova. Dovrebbe arrivare entro pochi minuti.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio sta chiamando da {{phoneNumber}}. Il tuo telefono dovrebbe squillare entro un minuto.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio sta effettuando la chiamata di prova. Il tuo telefono dovrebbe squillare entro un minuto."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio sta effettuando la chiamata di prova. Il tuo telefono dovrebbe squillare entro un minuto.",
+  "Add Working Hours": "Aggiungi orario di lavoro",
+  "Add at least one window of working hours.": "Aggiungi almeno una finestra di orario di lavoro.",
+  "Choose the time zone the working hours are in.": "Scegli il fuso orario dell'orario di lavoro.",
+  "Each window of working hours must end at a different time than it starts.": "Ogni finestra dell'orario di lavoro deve finire a un orario diverso da quello in cui inizia.",
+  "Only during working hours": "Solo durante l'orario di lavoro",
+  "Outside working hours, wait and page when they begin.": "Fuori dall'orario di lavoro, attendi e chiama quando inizia.",
+  "Page as soon as this rule matches.": "Chiama appena questa regola corrisponde.",
+  "Paging Starts At": "Le chiamate iniziano alle",
+  "Right away": "Subito",
+  "Set the working hours to page in.": "Imposta l'orario di lavoro in cui chiamare.",
+  "The time zone the working hours are in.": "Il fuso orario dell'orario di lavoro.",
+  "These times are in {{timezone}}.": "Questi orari sono nel fuso {{timezone}}.",
+  "When this rule may page. Once paging starts, the policy escalates as usual.": "Quando questa regola può chiamare. Una volta iniziate le chiamate, la policy esegue l'escalation come sempre.",
+  "When to Page": "Quando chiamare",
+  "Working Hours": "Orario di lavoro",
+  "Working Hours Time Zone": "Fuso orario dell'orario di lavoro",
+  "Working hours must end at a different time than they start.": "L'orario di lavoro deve finire a un orario diverso da quello in cui inizia."
 }

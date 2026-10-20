@@ -554,7 +554,7 @@ export const getOnCallRuleActionFields: <TEntity>() => Array<Field<TEntity>> = <
       stepId: "on-call",
       fieldType: FormFieldSchemaType.RadioButton,
       // The column starts on Right away: there is always an answer.
-      required: false,
+      required: true,
       // Each answer says what it means: the column's sentence would repeat it.
       hideColumnDescription: true,
       dataTestId: "on-call-rule-when-to-page",

@@ -31921,5 +31921,22 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio hat die Test-SMS von {{phoneNumber}} angenommen. Sie sollte innerhalb weniger Minuten ankommen.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio hat die Test-SMS angenommen. Sie sollte innerhalb weniger Minuten ankommen.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio ruft von {{phoneNumber}} aus an. Ihr Telefon sollte innerhalb einer Minute klingeln.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio startet den Testanruf. Ihr Telefon sollte innerhalb einer Minute klingeln."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio startet den Testanruf. Ihr Telefon sollte innerhalb einer Minute klingeln.",
+  "Add Working Hours": "Arbeitszeiten hinzufügen",
+  "Add at least one window of working hours.": "Fügen Sie mindestens ein Zeitfenster mit Arbeitszeiten hinzu.",
+  "Choose the time zone the working hours are in.": "Wählen Sie die Zeitzone der Arbeitszeiten.",
+  "Each window of working hours must end at a different time than it starts.": "Jedes Zeitfenster der Arbeitszeiten muss zu einer anderen Uhrzeit enden, als es beginnt.",
+  "Only during working hours": "Nur während der Arbeitszeiten",
+  "Outside working hours, wait and page when they begin.": "Außerhalb der Arbeitszeiten warten und alarmieren, sobald sie beginnen.",
+  "Page as soon as this rule matches.": "Alarmieren, sobald diese Regel zutrifft.",
+  "Paging Starts At": "Alarmierung beginnt um",
+  "Right away": "Sofort",
+  "Set the working hours to page in.": "Legen Sie die Arbeitszeiten fest, in denen alarmiert wird.",
+  "The time zone the working hours are in.": "Die Zeitzone der Arbeitszeiten.",
+  "These times are in {{timezone}}.": "Diese Zeiten gelten in {{timezone}}.",
+  "When this rule may page. Once paging starts, the policy escalates as usual.": "Wann diese Regel alarmieren darf. Sobald die Alarmierung beginnt, eskaliert die Richtlinie wie gewohnt.",
+  "When to Page": "Wann alarmieren",
+  "Working Hours": "Arbeitszeiten",
+  "Working Hours Time Zone": "Zeitzone der Arbeitszeiten",
+  "Working hours must end at a different time than they start.": "Arbeitszeiten müssen zu einer anderen Uhrzeit enden, als sie beginnen."
 }

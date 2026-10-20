@@ -105,7 +105,7 @@ describe("every rule starts with what it matches", () => {
     ["a reminder", getReminderRuleActionFields<Values>("incident")],
     ["a runbook", getRunbookRuleActionFields<Values>()],
   ] as Array<[string, Array<Field<Values>>]>)(
-    "%s rule asks nothing on its Match step, and its name and description last",
+    "%s rule asks nothing on its Match step, and its name and description after what it does",
     (_kind: string, fields: Array<Field<Values>>) => {
       const stepIds: Set<string | undefined> = new Set(
         fields.map((field: Field<Values>): string | undefined => {
@@ -121,7 +121,13 @@ describe("every rule starts with what it matches", () => {
         return Object.keys(field.field || {})[0] || "";
       });
 
-      expect(keys.slice(-3)).toEqual(["name", "isEnabled", "description"]);
+      const nameAt: number = keys.indexOf("name");
+
+      expect(keys.slice(nameAt, nameAt + 3)).toEqual([
+        "name",
+        "isEnabled",
+        "description",
+      ]);
 
       const enabled: Field<Values> = fields[keys.indexOf("isEnabled")]!;
       // A rule starts on: Enabled is on the Edit form only.
@@ -131,6 +137,11 @@ describe("every rule starts with what it matches", () => {
       // Folded under More fields.
       expect(description.collapsibleSection).toBeDefined();
       expect(description.required).toBe(false);
+
+      // Whatever follows the description is folded with it: one More fields.
+      for (const field of fields.slice(nameAt + 3)) {
+        expect(field.collapsibleSection).toBe(description.collapsibleSection);
+      }
 
       const name: Field<Values> = fields[keys.indexOf("name")]!;
       expect(name.required).toBe(true);

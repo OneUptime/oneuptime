@@ -31921,5 +31921,22 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio a accepté le SMS de test depuis le {{phoneNumber}}. Il devrait arriver d'ici quelques minutes.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio a accepté le SMS de test. Il devrait arriver d'ici quelques minutes.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio appelle depuis le {{phoneNumber}}. Votre téléphone devrait sonner d'ici une minute.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio lance l'appel de test. Votre téléphone devrait sonner d'ici une minute."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio lance l'appel de test. Votre téléphone devrait sonner d'ici une minute.",
+  "Add Working Hours": "Ajouter des heures ouvrées",
+  "Add at least one window of working hours.": "Ajoutez au moins une plage d'heures ouvrées.",
+  "Choose the time zone the working hours are in.": "Choisissez le fuseau horaire des heures ouvrées.",
+  "Each window of working hours must end at a different time than it starts.": "Chaque plage d'heures ouvrées doit se terminer à une autre heure que celle où elle commence.",
+  "Only during working hours": "Uniquement pendant les heures ouvrées",
+  "Outside working hours, wait and page when they begin.": "En dehors des heures ouvrées, attendre et alerter quand elles commencent.",
+  "Page as soon as this rule matches.": "Alerter dès que cette règle correspond.",
+  "Paging Starts At": "Début des alertes",
+  "Right away": "Immédiatement",
+  "Set the working hours to page in.": "Définissez les heures ouvrées pendant lesquelles alerter.",
+  "The time zone the working hours are in.": "Le fuseau horaire des heures ouvrées.",
+  "These times are in {{timezone}}.": "Ces heures sont dans le fuseau {{timezone}}.",
+  "When this rule may page. Once paging starts, the policy escalates as usual.": "Quand cette règle peut alerter. Une fois les alertes commencées, la politique escalade comme d'habitude.",
+  "When to Page": "Quand alerter",
+  "Working Hours": "Heures ouvrées",
+  "Working Hours Time Zone": "Fuseau horaire des heures ouvrées",
+  "Working hours must end at a different time than they start.": "Les heures ouvrées doivent se terminer à une autre heure que celle où elles commencent."
 }

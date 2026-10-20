@@ -31921,5 +31921,22 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio aceptó el SMS de prueba desde {{phoneNumber}}. Debería llegar en unos minutos.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio aceptó el SMS de prueba. Debería llegar en unos minutos.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio está llamando desde {{phoneNumber}}. Tu teléfono debería sonar en menos de un minuto.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio está haciendo la llamada de prueba. Tu teléfono debería sonar en menos de un minuto."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio está haciendo la llamada de prueba. Tu teléfono debería sonar en menos de un minuto.",
+  "Add Working Hours": "Añadir horario laboral",
+  "Add at least one window of working hours.": "Añade al menos una franja de horario laboral.",
+  "Choose the time zone the working hours are in.": "Elige la zona horaria del horario laboral.",
+  "Each window of working hours must end at a different time than it starts.": "Cada franja del horario laboral debe terminar a una hora distinta de la que empieza.",
+  "Only during working hours": "Solo en horario laboral",
+  "Outside working hours, wait and page when they begin.": "Fuera del horario laboral, esperar y avisar cuando empiece.",
+  "Page as soon as this rule matches.": "Avisar en cuanto esta regla coincida.",
+  "Paging Starts At": "Los avisos empiezan a las",
+  "Right away": "De inmediato",
+  "Set the working hours to page in.": "Define el horario laboral en el que avisar.",
+  "The time zone the working hours are in.": "La zona horaria del horario laboral.",
+  "These times are in {{timezone}}.": "Estas horas están en {{timezone}}.",
+  "When this rule may page. Once paging starts, the policy escalates as usual.": "Cuándo puede avisar esta regla. Una vez que empiezan los avisos, la política escala como siempre.",
+  "When to Page": "Cuándo avisar",
+  "Working Hours": "Horario laboral",
+  "Working Hours Time Zone": "Zona horaria del horario laboral",
+  "Working hours must end at a different time than they start.": "El horario laboral debe terminar a una hora distinta de la que empieza."
 }

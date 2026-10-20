@@ -379,9 +379,13 @@ interface Resolution {
 
 const MAX_DEPTH: number = 12;
 
-// A model class whose Match Criteria step ModelForm draws as one builder.
+/*
+ * A model class whose Match Criteria step ModelForm draws as one builder: one
+ * that extends RuleBaseModel, directly or through one of the rule base models
+ * that extend it (RelationOnlyRuleBaseModel, OnCallRuleBaseModel).
+ */
 const RULE_MODEL_CLASS: RegExp =
-  /class\s+\w+\s+extends\s+(RuleBaseModel|RelationOnlyRuleBaseModel)\b/;
+  /class\s+\w+\s+extends\s+(RuleBaseModel|RelationOnlyRuleBaseModel|OnCallRuleBaseModel)\b/;
 
 const LIST_METHODS: ReadonlySet<string> = new Set<string>([
   "map",
@@ -1747,8 +1751,9 @@ export class FormStepsScanner {
 
   /*
    * Whether a modelType expression names a model class that extends
-   * RuleBaseModel (directly, or through RelationOnlyRuleBaseModel): an
-   * imported identifier whose file declares such a class.
+   * RuleBaseModel (directly, or through RelationOnlyRuleBaseModel or
+   * OnCallRuleBaseModel): an imported identifier whose file declares such a
+   * class.
    */
   private isRuleModelType(
     parsed: ParsedFile,
