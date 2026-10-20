@@ -6,6 +6,7 @@ import {
 import { NetworkDeviceTransceiver } from "../../../Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import { JSONObject } from "../../../Types/JSON";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import SnmpMonitorResponse from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
@@ -506,6 +507,82 @@ export default class PerEntityCriteriaFanOut {
     return (
       PerEntityCriteriaFanOut.getWildcardTableKeys(criteriaInstance).length > 0
     );
+  }
+
+  /**
+   * Whether this criteria fans out per disk, port or table row on its own
+   * monitor type - the "*" opt-in.
+   */
+  public static isFanOutConfigured(input: {
+    monitorType: MonitorType | undefined;
+    criteriaInstance: MonitorCriteriaInstance;
+  }): boolean {
+    if (input.monitorType === MonitorType.Server) {
+      return PerEntityCriteriaFanOut.isServerDiskFanOutConfigured(
+        input.criteriaInstance,
+      );
+    }
+
+    if (input.monitorType === MonitorType.NetworkDevice) {
+      return (
+        PerEntityCriteriaFanOut.isSnmpInterfaceFanOutConfigured(
+          input.criteriaInstance,
+        ) ||
+        PerEntityCriteriaFanOut.isSnmpTableFanOutConfigured(
+          input.criteriaInstance,
+        )
+      );
+    }
+
+    return false;
+  }
+
+  /**
+   * Whether this criteria judges the whole monitor, on a Server or Network
+   * Device monitor where some criteria fans out with "*".
+   *
+   * The "*" opt-in belongs to the criteria that names it. Every other
+   * criteria of the monitor - Device unreachable, Is Online, CPU above 90% -
+   * names no disk, port or row, so it has no entity to fan out over: it
+   * judges the device as a whole, exactly as on a monitor where no criteria
+   * names "*". Reading the opt-in for the whole monitor judged those
+   * criteria "not met" for having no entity, so a device that went down
+   * matched nothing - and the recommended network device alert pack has
+   * "*" transceiver criteria, so every monitor built from it did that.
+   */
+  public static judgesWholeMonitor(input: {
+    monitorType: MonitorType | undefined;
+    criteriaInstance: MonitorCriteriaInstance;
+  }): boolean {
+    if (
+      input.monitorType !== MonitorType.Server &&
+      input.monitorType !== MonitorType.NetworkDevice
+    ) {
+      return false;
+    }
+
+    return !PerEntityCriteriaFanOut.isFanOutConfigured(input);
+  }
+
+  /**
+   * The match of a criteria that judges the whole monitor, on a monitor
+   * that raises one alert per entity: the whole monitor as one entity of
+   * its own (MetricSeriesFingerprint.WholeMonitorFingerprint, no labels).
+   * It opens, dedupes and resolves like any entity's match - one open
+   * incident and alert for the monitor at a time, resolved once the
+   * criteria no longer matches - next to the per-disk or per-port ones.
+   */
+  public static wholeMonitorMatch(input: {
+    criteriaId: string;
+    rootCause: string;
+  }): PerSeriesCriteriaMatch {
+    return {
+      criteriaMetId: input.criteriaId,
+      fingerprint: MetricSeriesFingerprint.WholeMonitorFingerprint,
+      labels: {},
+      rootCause: input.rootCause,
+      metricContext: undefined,
+    };
   }
 
   /*

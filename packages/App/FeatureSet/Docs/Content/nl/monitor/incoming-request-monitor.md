@@ -285,14 +285,26 @@ flowchart TB
 | Value that means recovered | `resolved` | De exacte waarde die het herstel markeert |
 | Max incidents per request | `100` (standaard) | Veiligheidsgrens, zodat een veld met veel waarden geen onbegrensd aantal incidenten kan openen |
 
+Groepering hoort bij het criterium waarin ze is ingeschakeld. De andere criteria van de monitor groeperen niet: als een ervan overeenkomt met een verzoek, opent het zijn incident en waarschuwing zoals op een monitor waarop geen enkel criterium groepeert.
+
 ### Syntaxis van paden
 
-Paden moeten beginnen met het letterlijke voorvoegsel `requestBody.`. Een pad zonder dit voorvoegsel, zoals `alerts[*].labels.alertname`, komt nergens mee overeen, zonder melding. De omhulling `{{ }}` is optioneel: `requestBody.status` en `{{requestBody.status}}` gedragen zich hetzelfde.
+Paden moeten beginnen met het letterlijke voorvoegsel `requestBody.`. Een pad zonder dit voorvoegsel, zoals `alerts[*].labels.alertname`, vindt in geen enkel verzoek een waarde. De omhulling `{{ }}` is optioneel: `requestBody.status` en `{{requestBody.status}}` gedragen zich hetzelfde.
 
 - `[*]` waaiert uit over een array: één incident per **afwijkende** waarde. Twee elementen met dezelfde waarde vallen samen tot één incident, en de status daarvan (actief/opgelost) komt van het **eerste** overeenkomende element. **Alleen de eerste `[*]` in een pad is een jokerteken**; `requestBody.groups[*].alerts[*].name` komt nergens mee overeen.
 - `[0]` en `[last]` selecteren één element, en mogen na een `[*]` komen.
 - Object- en arraywaarden, lege tekenreeksen en null-waarden worden overgeslagen. `0` en `false` zijn geldige sleutels.
 - De body moet een JSON-object zijn; een payload waarvan het hoogste niveau een array is, wordt niet gegroepeerd.
+
+### Verzoeken zonder het veld
+
+Een verzoek dat overeenkomt met een gegroepeerd criterium maar geen waarde heeft op het pad ervan (het veld ontbreekt of is leeg, bevat een object of een lijst, of de body is geen JSON-object) opent toch het incident en de waarschuwing van dat criterium: één voor de hele monitor, zoals het criterium zonder groepering zou doen. Dat doet ook een gegroepeerd criterium dat overeenkomt omdat er geen verzoeken meer binnenkomen. Een titel die de groeperingsvariabele noemt, zoals `{{alertname}}`, toont die zoals hij geschreven is, omdat er geen waarde is om in te vullen.
+
+Dat incident wordt opgelost, als **Incident automatisch oplossen** aanstaat, wanneer een later verzoek zonder het veld meldt dat het hersteld is, of wanneer een later verzoek overeenkomt met een ander criterium. Zo'n herstel opent niets nieuws.
+
+Als sommige elementen van een array een waarde hebben en andere niet, opent elke waarde een eigen incident, en openen de elementen zonder waarde zelf niets.
+
+De kaart **Monitorsamenvatting** op het **Overzicht** van de monitor toont wat elk verzoek deed, ook wanneer een criterium het voor de hele monitor afhandelde of niets nieuws opende.
 
 ### Oplossen gebeurt op basis van gebeurtenissen
 
@@ -306,8 +318,11 @@ Een webhook beschrijft alleen wat in die payload staat, dus OneUptime lost een i
 > [!NOTE]
 > Krijgt één monitor sneller verzoeken binnen dan OneUptime ze toetst, dan toetst OneUptime het nieuwste en slaat het de tussenliggende over, dus een vlaag webhooks kan een actieve of een opgeloste waarschuwing ongetoetst laten. Op een zelfgehoste server zorgt `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` in de omgeving van de OneUptime-app ervoor dat elk verzoek afzonderlijk wordt getoetst.
 
+> [!NOTE]
+> Bevat **Field that signals recovery** een `[*]` maar **Open a separate incident for each…** niet, dan is een verzoek pas hersteld als elk element van die array dat zegt. Met `requestBody.alerts[*].status` en `resolved` wordt een incident dat gegroepeerd is op `requestBody.groupLabels.alertname` opgelost zodra elke waarschuwing van een verzoek is opgelost, en blijft het open zolang er nog een actief is.
+
 > [!WARNING]
-> Bevat **Field that signals recovery** een `[*]` maar **Open a separate incident for each…** niet, dan wordt er nooit iets opgelost. Gebruik `[*]` in beide, of in geen van beide. Een herstelpad zonder `[*]` wordt getoetst aan de hele payload, dus een `status: resolved` op het niveau van de payload lost elke sleutel in die payload op, ook waarschuwingen waarvan de eigen status nog actief is.
+> Een herstelpad zonder `[*]` wordt getoetst aan de hele payload, dus een `status: resolved` op het niveau van de payload lost elke sleutel in die payload op, ook waarschuwingen waarvan de eigen status nog actief is.
 
 ### De incidenten een naam geven
 

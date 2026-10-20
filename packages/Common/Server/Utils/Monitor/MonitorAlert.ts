@@ -159,6 +159,7 @@ export default class MonitorAlert {
               createdCriteriaId:
                 openAlert.createdCriteriaId?.toString() || undefined,
               criteriaInstancesById: input.criteriaInstancesById,
+              seriesFingerprint: openAlert.seriesFingerprint || undefined,
             })
           : input.rootCause;
 
@@ -171,7 +172,7 @@ export default class MonitorAlert {
 
         input.evaluationSummary?.events.push({
           type: "alert-resolved",
-          title: `Alert resolved: ${openAlert.id?.toString()}`,
+          title: `Alert resolved: ${openAlert.title || openAlert.id?.toString()}`,
           message:
             "Alert auto-resolved because autoresolve is enabled for this criteria.",
           relatedAlertId: openAlert.id?.toString(),
@@ -204,7 +205,9 @@ export default class MonitorAlert {
    * alerts for the given payload-derived fingerprints — and only those —
    * when the criteria that created them has auto-resolve enabled. Mirrors
    * MonitorIncident.resolveSeriesIncidentsByFingerprint; never resolves by
-   * absence (a webhook describes only the keys in its payload).
+   * absence (a webhook describes only the keys in its payload), and
+   * `wholeMonitor` resolves a grouped criteria's alert for the whole
+   * monitor in the same pass.
    */
   @CaptureSpan()
   public static async resolveSeriesAlertsByFingerprint(input: {
@@ -213,15 +216,26 @@ export default class MonitorAlert {
     rootCause: string;
     // What the evaluation summary says of each alert resolved here.
     resolvedMessage?: string | undefined;
+    wholeMonitor?:
+      | {
+          criteriaIds: Array<string>;
+          rootCause: string;
+        }
+      | undefined;
     dataToProcess: DataToProcess;
     autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
     evaluationSummary?: MonitorEvaluationSummary | undefined;
   }): Promise<void> {
-    if (!input.fingerprints || input.fingerprints.length === 0) {
+    const fingerprintSet: Set<string> = new Set<string>(
+      input.fingerprints || [],
+    );
+    const wholeMonitorCriteriaIds: Set<string> = new Set<string>(
+      input.wholeMonitor?.criteriaIds || [],
+    );
+
+    if (fingerprintSet.size === 0 && wholeMonitorCriteriaIds.size === 0) {
       return;
     }
-
-    const fingerprintSet: Set<string> = new Set<string>(input.fingerprints);
 
     const openAlerts: Array<Alert> = await AlertService.findBy({
       query: {
@@ -252,10 +266,6 @@ export default class MonitorAlert {
       const fingerprint: string | undefined =
         openAlert.seriesFingerprint || undefined;
 
-      if (!fingerprint || !fingerprintSet.has(fingerprint)) {
-        continue;
-      }
-
       const createdCriteriaId: string | undefined =
         openAlert.createdCriteriaId?.toString();
 
@@ -263,28 +273,44 @@ export default class MonitorAlert {
         continue;
       }
 
-      // Only auto-resolve when the creating criteria opted into it.
-      const autoResolveTemplates: Array<string> | undefined =
-        input.autoResolveCriteriaInstanceIdAlertIdsDictionary[
-          createdCriteriaId
-        ];
+      const isRecoveredValue: boolean = Boolean(
+        fingerprint && fingerprintSet.has(fingerprint),
+      );
+      const isRecoveredWholeMonitor: boolean =
+        !fingerprint && wholeMonitorCriteriaIds.has(createdCriteriaId);
 
-      if (!autoResolveTemplates || autoResolveTemplates.length === 0) {
+      if (!isRecoveredValue && !isRecoveredWholeMonitor) {
+        continue;
+      }
+
+      // Only auto-resolve when the creating criteria opted into it.
+      if (
+        !this.isAutoResolveConfiguredForAlert({
+          openAlert: openAlert,
+          autoResolveCriteriaInstanceIdAlertIdsDictionary:
+            input.autoResolveCriteriaInstanceIdAlertIdsDictionary,
+        })
+      ) {
         continue;
       }
 
       await this.resolveOpenAlert({
         openAlert: openAlert,
-        rootCause: input.rootCause,
+        rootCause:
+          isRecoveredValue || !input.wholeMonitor
+            ? input.rootCause
+            : input.wholeMonitor.rootCause,
         dataToProcess: input.dataToProcess,
       });
 
       input.evaluationSummary?.events.push({
         type: "alert-resolved",
-        title: `Alert resolved: ${openAlert.id?.toString()}`,
+        title: `Alert resolved: ${openAlert.title || openAlert.id?.toString()}`,
         message:
-          input.resolvedMessage ||
-          "Alert auto-resolved because the incoming payload reported this key as resolved.",
+          isRecoveredValue || !input.wholeMonitor
+            ? input.resolvedMessage ||
+              "Alert auto-resolved because the incoming payload reported this key as resolved."
+            : "Alert auto-resolved because a request with no value to group by reported recovered.",
         relatedAlertId: openAlert.id?.toString(),
         relatedAlertNumber: openAlert.alertNumber,
         relatedAlertNumberWithPrefix: openAlert.alertNumberWithPrefix,
@@ -484,9 +510,10 @@ export default class MonitorAlert {
     /*
      * `undefined` matchesPerSeries → legacy single-alert path. A defined
      * (even empty) array → per-series mode: iterate exactly the matches.
-     * An empty array therefore creates nothing — used by grouped
-     * incoming-request criteria on a payload with no firing key so they
-     * don't fall back to a single whole-monitor alert.
+     * An empty array therefore creates nothing — used by a grouped
+     * incoming-request criteria on a request whose values all recovered, or
+     * that the background check re-read (IncomingRequestIncidentGrouping).
+     * One with nothing to group by acts for the whole monitor instead.
      */
     const seriesToProcess: Array<PerSeriesCriteriaMatch | undefined> =
       input.matchesPerSeries !== undefined
