@@ -893,8 +893,9 @@ export default class AIAgentDataAPI {
              * The run was queued on the repository the same facts resolved
              * to then (CodeFixRunRepository), read with the same helper.
              */
-            const syntheticStackTrace: string | null =
-              getPerformanceStackTrace(taskContext.codeLocations);
+            const syntheticStackTrace: string | null = getPerformanceStackTrace(
+              taskContext.codeLocations,
+            );
 
             const serviceName: string | null = taskContext.serviceName || null;
 

@@ -24,7 +24,9 @@ export const GLOBAL_CODE_RUNNERS_PATH: string = "/global-code-runners";
  * a Runner's status in: alive now (AIAgentService.isAgentAlive), seen
  * before, or never.
  */
-export function getGlobalCodeRunnerLiveStatus(agent: AIAgent): RunnerLiveStatus {
+export function getGlobalCodeRunnerLiveStatus(
+  agent: AIAgent,
+): RunnerLiveStatus {
   if (AIAgentService.isAgentAlive(agent)) {
     return RunnerLiveStatus.Connected;
   }

@@ -58,7 +58,9 @@ export function getGlobalCodeRunnersUrl(): URL {
 }
 
 // A status the server named, or Never connected for one it did not.
-export function readGlobalCodeRunnerLiveStatus(value: unknown): RunnerLiveStatus {
+export function readGlobalCodeRunnerLiveStatus(
+  value: unknown,
+): RunnerLiveStatus {
   return Object.values(RunnerLiveStatus).includes(value as RunnerLiveStatus)
     ? (value as RunnerLiveStatus)
     : RunnerLiveStatus.NeverConnected;

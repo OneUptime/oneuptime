@@ -44,7 +44,9 @@ export const NO_RUNNER_ONLINE_FOR_PROJECT_DETAIL: string =
 export function getRepositoryRunnerOfflineDetail(
   runnerName?: string | undefined,
 ): string {
-  const runner: string = runnerName ? `The Runner "${runnerName}"` : "The Runner";
+  const runner: string = runnerName
+    ? `The Runner "${runnerName}"`
+    : "The Runner";
 
   return `${runner} this repository picks is not online. Check that its container is running, or pick another Runner in the repository's settings in Code.`;
 }

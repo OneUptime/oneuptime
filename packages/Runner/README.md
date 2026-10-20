@@ -58,8 +58,8 @@ docker run --name oneuptime-runner --restart unless-stopped \
 ```
 
 To have AI work in a code repository on this Runner as well, pick the Runner
-in the repository's settings in Code (**Settings → Edit Settings → Runner**). It
-starts claiming that repository's work on its next heartbeat.
+in that repository's settings in Code: **Edit Settings**, then its **Runner**
+step. It starts claiming that repository's work on its next heartbeat.
 
 ## Configuration
 

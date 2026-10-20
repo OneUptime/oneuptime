@@ -483,7 +483,6 @@ export default class Runner extends BaseModel {
   })
   public canRunRunbooks?: boolean = undefined;
 
-
   /*
    * Opt-in consent for AI-composed remediation commands: with this off, the
    * server never serves this Runner an AiRemediation-origin job, no matter

@@ -17,8 +17,9 @@ import {
   getRepositoryRunnerId,
   mayWorkInCodeRepository,
 } from "../../../../Types/Runner/CodeRepositoryRunner";
-import { getRunnerLiveStatus } from "../../../../Types/Runner/RunnerLiveStatus";
-import RunnerLiveStatus from "../../../../Types/Runner/RunnerLiveStatus";
+import RunnerLiveStatus, {
+  getRunnerLiveStatus,
+} from "../../../../Types/Runner/RunnerLiveStatus";
 
 /*
  * Where AI works in a repository, on the server: the facts the repository's
