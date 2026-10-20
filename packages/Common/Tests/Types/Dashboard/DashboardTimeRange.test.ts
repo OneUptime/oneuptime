@@ -85,10 +85,13 @@ describe("the ranges a dashboard may open on", () => {
     ["an object", { range: "Past 1 Day" }],
     ["null", null],
     ["nothing", undefined],
-  ])("%s is none: the next place down decides", (_what: string, value: unknown) => {
-    expect(isDashboardTimeRange(value)).toBe(false);
-    expect(parseDashboardTimeRange(value)).toBeNull();
-  });
+  ])(
+    "%s is none: the next place down decides",
+    (_what: string, value: unknown) => {
+      expect(isDashboardTimeRange(value)).toBe(false);
+      expect(parseDashboardTimeRange(value)).toBeNull();
+    },
+  );
 });
 
 describe("what a write's config may hold", () => {
@@ -178,12 +181,9 @@ describe("a link's own range", () => {
     ["Past 1 Day", TimeRange.PAST_ONE_DAY],
     ["past 3 months", TimeRange.PAST_THREE_MONTHS],
     ["Past  5   Mins", TimeRange.PAST_FIVE_MINS],
-  ])(
-    "%s is read as people type it",
-    (written: string, range: TimeRange) => {
-      expect(parseDashboardLinkTimeRange(written)).toBe(range);
-    },
-  );
+  ])("%s is read as people type it", (written: string, range: TimeRange) => {
+    expect(parseDashboardLinkTimeRange(written)).toBe(range);
+  });
 
   test.each([
     ["Custom", "Custom"],
@@ -194,9 +194,12 @@ describe("a link's own range", () => {
     ["only spaces", "   "],
     ["no value at all", null],
     ["not text", 24],
-  ])("%s is no range: the link opens as it would without it", (_what: string, value: unknown) => {
-    expect(parseDashboardLinkTimeRange(value)).toBeNull();
-  });
+  ])(
+    "%s is no range: the link opens as it would without it",
+    (_what: string, value: unknown) => {
+      expect(parseDashboardLinkTimeRange(value)).toBeNull();
+    },
+  );
 
   test("is read from an address's query string, beside the variables", () => {
     expect(getDashboardLinkTimeRangeFromSearch("?range=1d")).toBe(

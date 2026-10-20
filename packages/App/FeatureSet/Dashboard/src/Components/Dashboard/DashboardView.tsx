@@ -682,7 +682,9 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         }}
         defaultAutoRefreshInterval={viewerSettings.defaultAutoRefreshInterval}
         isOnDefaultAutoRefresh={viewerSettings.isOnDefaultAutoRefresh}
-        onDefaultAutoRefreshSelect={viewerSettings.pickDefaultAutoRefreshInterval}
+        onDefaultAutoRefreshSelect={
+          viewerSettings.pickDefaultAutoRefreshInterval
+        }
         onDashboardDefaultsChange={(defaults: {
           timeRange?: TimeRange | undefined;
           refreshInterval?: AutoRefreshInterval | undefined;

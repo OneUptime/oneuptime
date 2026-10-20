@@ -86,13 +86,16 @@ describe("what a write's config may hold", () => {
         return [interval];
       },
     ),
-  )("a default auto-refresh of %s is saved", (interval: AutoRefreshInterval) => {
-    expect(
-      refusal({
-        dashboardViewConfig: configWith({ refreshInterval: interval }),
-      }),
-    ).toBeNull();
-  });
+  )(
+    "a default auto-refresh of %s is saved",
+    (interval: AutoRefreshInterval) => {
+      expect(
+        refusal({
+          dashboardViewConfig: configWith({ refreshInterval: interval }),
+        }),
+      ).toBeNull();
+    },
+  );
 
   test("a config with neither is saved: the past hour, no auto-refresh, as before", () => {
     expect(refusal({ dashboardViewConfig: configWith({}) })).toBeNull();
@@ -117,23 +120,31 @@ describe("what a write's config may hold", () => {
     ["a link's short form", "24h"],
     ["a range no preset has", "Past 6 Hours"],
     ["a number", 24],
-  ])("a default time range that is %s is refused", (_what: string, value: unknown) => {
-    expect(
-      refusal({ dashboardViewConfig: configWith({ timeRange: value as never }) }),
-    ).toBe(DASHBOARD_TIME_RANGE_PROBLEM);
-  });
+  ])(
+    "a default time range that is %s is refused",
+    (_what: string, value: unknown) => {
+      expect(
+        refusal({
+          dashboardViewConfig: configWith({ timeRange: value as never }),
+        }),
+      ).toBe(DASHBOARD_TIME_RANGE_PROBLEM);
+    },
+  );
 
   test.each([
     ["another case", "OFF"],
     ["an interval the menu does not offer", "2m"],
     ["milliseconds", 60000],
-  ])("a default auto-refresh that is %s is refused", (_what: string, value: unknown) => {
-    expect(
-      refusal({
-        dashboardViewConfig: configWith({ refreshInterval: value as never }),
-      }),
-    ).toBe(DASHBOARD_AUTO_REFRESH_PROBLEM);
-  });
+  ])(
+    "a default auto-refresh that is %s is refused",
+    (_what: string, value: unknown) => {
+      expect(
+        refusal({
+          dashboardViewConfig: configWith({ refreshInterval: value as never }),
+        }),
+      ).toBe(DASHBOARD_AUTO_REFRESH_PROBLEM);
+    },
+  );
 
   test("a config is read the way every reader reads it: in the API reference's envelope, and as JSON text", () => {
     expect(

@@ -238,7 +238,9 @@ describe("what a dashboard opens on", () => {
     );
 
     expect(boardRange()).toBe(TimeRange.PAST_ONE_WEEK);
-    expect(current().autoRefreshInterval).toBe(AutoRefreshInterval.FIVE_MINUTES);
+    expect(current().autoRefreshInterval).toBe(
+      AutoRefreshInterval.FIVE_MINUTES,
+    );
     expect(current().isOnDefaultTimeRange).toBe(false);
     expect(window.localStorage.getItem(TIME_RANGE_KEY)).toBe(
       TimeRange.PAST_TWO_DAYS,
@@ -424,7 +426,9 @@ describe("the viewer's own picks", () => {
       current().pickDefaultTimeRange();
     });
 
-    expect(current().autoRefreshInterval).toBe(AutoRefreshInterval.FIVE_MINUTES);
+    expect(current().autoRefreshInterval).toBe(
+      AutoRefreshInterval.FIVE_MINUTES,
+    );
     expect(param("refresh")).toBe("5m");
     expect(param("range")).toBeNull();
   });
@@ -486,7 +490,9 @@ describe("an editor's save of new defaults", () => {
 
     expect(boardRange()).toBe(TimeRange.PAST_ONE_WEEK);
     expect(current().isOnDefaultTimeRange).toBe(true);
-    expect(current().autoRefreshInterval).toBe(AutoRefreshInterval.FIVE_MINUTES);
+    expect(current().autoRefreshInterval).toBe(
+      AutoRefreshInterval.FIVE_MINUTES,
+    );
     expect(current().isOnDefaultAutoRefresh).toBe(true);
     expect(window.localStorage.getItem(TIME_RANGE_KEY)).toBeNull();
     expect(window.localStorage.getItem(AUTO_REFRESH_KEY)).toBeNull();
@@ -516,7 +522,9 @@ describe("an editor's save of new defaults", () => {
     expect(window.localStorage.getItem(TIME_RANGE_KEY)).toBe(
       TimeRange.PAST_TWO_DAYS,
     );
-    expect(current().autoRefreshInterval).toBe(AutoRefreshInterval.FIVE_MINUTES);
+    expect(current().autoRefreshInterval).toBe(
+      AutoRefreshInterval.FIVE_MINUTES,
+    );
     expect(window.localStorage.getItem(AUTO_REFRESH_KEY)).toBeNull();
   });
 

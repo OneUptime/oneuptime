@@ -59,7 +59,11 @@ describe("which place decides", () => {
 
   test("a value that is falsy but real - 0, an empty text, false - still decides", () => {
     expect(
-      resolveDashboardSetting<number>({ link: 0, savedDefault: 5, fallback: 1 }),
+      resolveDashboardSetting<number>({
+        link: 0,
+        savedDefault: 5,
+        fallback: 1,
+      }),
     ).toEqual({ value: 0, source: DashboardSettingSource.Link });
     expect(
       resolveDashboardSetting<string>({ viewerPick: "", fallback: "x" }),

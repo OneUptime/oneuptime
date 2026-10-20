@@ -114,10 +114,12 @@ describe("the dashboard inside OneUptime", () => {
   });
 
   test("its toolbar's pickers go through the viewer settings", () => {
-    expect(code).toContain(
-      "viewerSettings.pickAutoRefreshInterval(interval);",
-    );
-    expect(code).toContain(
+    expect(code).toContain("viewerSettings.pickAutoRefreshInterval(interval);");
+
+    // Prettier puts a long prop's value on lines of its own, inside its braces.
+    const props: string = code.split("{ ").join("{").split(" }").join("}");
+
+    expect(props).toContain(
       "defaultAutoRefreshInterval={viewerSettings.defaultAutoRefreshInterval} isOnDefaultAutoRefresh={viewerSettings.isOnDefaultAutoRefresh} onDefaultAutoRefreshSelect={viewerSettings.pickDefaultAutoRefreshInterval}",
     );
   });
@@ -170,9 +172,7 @@ describe("the public dashboard", () => {
 
     expect(defaultChoice).toBeGreaterThan(-1);
     expect(intervals).toBeGreaterThan(defaultChoice);
-    expect(code).toContain(
-      "viewerSettings.pickDefaultAutoRefreshInterval();",
-    );
+    expect(code).toContain("viewerSettings.pickDefaultAutoRefreshInterval();");
     expect(code).toContain("viewerSettings.pickAutoRefreshInterval(interval);");
   });
 

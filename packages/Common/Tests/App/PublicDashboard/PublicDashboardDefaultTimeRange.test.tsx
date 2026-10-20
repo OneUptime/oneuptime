@@ -53,9 +53,7 @@ jest.mock(
     ) as typeof React;
     return {
       __esModule: true,
-      default: (props: {
-        dashboardStartAndEndDate: { range: string };
-      }) => {
+      default: (props: { dashboardStartAndEndDate: { range: string } }) => {
         return reactModule.createElement("div", {
           "data-testid": "canvas-stub",
           "data-range": props.dashboardStartAndEndDate.range,

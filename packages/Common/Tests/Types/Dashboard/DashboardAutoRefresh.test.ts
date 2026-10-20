@@ -123,9 +123,12 @@ describe("a link's own interval", () => {
     ["Off", AutoRefreshInterval.OFF],
     [" 30S ", AutoRefreshInterval.THIRTY_SECONDS],
     ["15M", AutoRefreshInterval.FIFTEEN_MINUTES],
-  ])("%s is read in any case, as people type it", (written: string, interval: AutoRefreshInterval) => {
-    expect(parseDashboardLinkAutoRefreshInterval(written)).toBe(interval);
-  });
+  ])(
+    "%s is read in any case, as people type it",
+    (written: string, interval: AutoRefreshInterval) => {
+      expect(parseDashboardLinkAutoRefreshInterval(written)).toBe(interval);
+    },
+  );
 
   test.each([
     ["an interval the menu does not offer", "2m"],

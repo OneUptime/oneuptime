@@ -109,9 +109,11 @@ describe("on a dashboard", () => {
       within(rail).getByTestId(DEFAULT_TIME_RANGE_OPTION_TEST_ID),
     );
     // The presets follow, then Custom: one more choice than before.
-    expect(radios.map((radio: HTMLElement) => {
-      return (radio.textContent || "").trim();
-    })).toEqual([
+    expect(
+      radios.map((radio: HTMLElement) => {
+        return (radio.textContent || "").trim();
+      }),
+    ).toEqual([
       "Default (Past 1 Day)",
       "Past 5 Minutes",
       "Past 15 Minutes",

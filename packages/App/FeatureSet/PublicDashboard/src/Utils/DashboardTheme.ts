@@ -295,11 +295,14 @@ export default class DashboardThemeUtil {
     }
 
     // A pick made, or storage cleared, in another tab of this address.
-    RememberedChoice.subscribe(DASHBOARD_VISITOR_THEME_STORAGE_KEY, (): void => {
-      DashboardThemeUtil.visitorColorScheme =
-        DashboardThemeUtil.readKeptVisitorColorScheme();
-      DashboardThemeUtil.apply();
-      DashboardThemeUtil.notify();
-    });
+    RememberedChoice.subscribe(
+      DASHBOARD_VISITOR_THEME_STORAGE_KEY,
+      (): void => {
+        DashboardThemeUtil.visitorColorScheme =
+          DashboardThemeUtil.readKeptVisitorColorScheme();
+        DashboardThemeUtil.apply();
+        DashboardThemeUtil.notify();
+      },
+    );
   }
 }

@@ -51,7 +51,6 @@ export interface ComponentProps {
 export const DEFAULT_TIME_RANGE_OPTION_TEST_ID: string =
   "time-range-default-option";
 
-
 /*
  * Quick ranges shown in the left rail, in display order. Custom is handled
  * separately below the list.

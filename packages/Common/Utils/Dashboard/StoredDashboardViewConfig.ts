@@ -206,7 +206,6 @@ function getStoredIdText(componentId: unknown): string | null {
   return null;
 }
 
-
 export default class StoredDashboardViewConfig {
   /*
    * The object the widgets are on, wherever the config was stored: the

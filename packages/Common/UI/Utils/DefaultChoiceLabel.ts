@@ -14,8 +14,9 @@ import {
  * React-free, so App's tests read the exact template; the value is a term,
  * looked up in the reader's language with the sentence.
  */
-export const DEFAULT_CHOICE_TEMPLATE: string =
-  translationKey("Default ({{value}})");
+export const DEFAULT_CHOICE_TEMPLATE: string = translationKey(
+  "Default ({{value}})",
+);
 
 export const getDefaultChoiceLabel: (data: {
   translator: Translator;

@@ -26,6 +26,7 @@ import TimeRange from "../../../Types/Time/TimeRange";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import DashboardTextComponentUtil from "../../../Utils/Dashboard/Components/DashboardTextComponent";
 import RememberedChoice from "../../../UI/Utils/RememberedChoice";
+import type { SpyInstance } from "jest-mock";
 import {
   AUTO_REFRESH_DEFAULT_CHOICE_TEST_ID,
   DASHBOARD_DEFAULTS_BAR_TEST_ID,
@@ -327,8 +328,13 @@ describe("what the dashboard opens on", () => {
         refreshInterval: AutoRefreshInterval.ONE_MINUTE,
       }),
     );
-    const setIntervalSpy: jest.SpiedFunction<typeof window.setInterval> =
-      jest.spyOn(window, "setInterval");
+    const setIntervalSpy: SpyInstance<
+      (
+        callback: (...args: Array<any>) => void,
+        delay?: number,
+        ...args: Array<any>
+      ) => NodeJS.Timeout
+    > = jest.spyOn(window, "setInterval");
 
     await renderDashboard();
 
@@ -516,7 +522,10 @@ describe("the defaults, set on purpose while editing", () => {
     expect(canvasRange()).toBe(TimeRange.PAST_TWO_HOURS);
 
     await enterEditMode();
-    await pickDefault(DEFAULT_TIME_RANGE_PICKER_TEST_ID, TimeRange.PAST_ONE_WEEK);
+    await pickDefault(
+      DEFAULT_TIME_RANGE_PICKER_TEST_ID,
+      TimeRange.PAST_ONE_WEEK,
+    );
     await pickDefault(DEFAULT_AUTO_REFRESH_PICKER_TEST_ID, "5m");
     await saveChanges();
 
@@ -539,7 +548,10 @@ describe("the defaults, set on purpose while editing", () => {
 
     await renderDashboard();
     await enterEditMode();
-    await pickDefault(DEFAULT_TIME_RANGE_PICKER_TEST_ID, TimeRange.PAST_ONE_WEEK);
+    await pickDefault(
+      DEFAULT_TIME_RANGE_PICKER_TEST_ID,
+      TimeRange.PAST_ONE_WEEK,
+    );
 
     expect(
       screen.getByTestId(DEFAULT_TIME_RANGE_PICKER_TEST_ID),

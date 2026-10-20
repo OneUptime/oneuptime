@@ -95,15 +95,13 @@ describe("the words", () => {
     expect(getAutoRefreshChoiceLabel(AutoRefreshInterval.ONE_MINUTE)).toBe(
       "1m",
     );
-    expect(
-      getAutoRefreshChoiceLabel(AutoRefreshInterval.FIFTEEN_MINUTES),
-    ).toBe("15m");
+    expect(getAutoRefreshChoiceLabel(AutoRefreshInterval.FIFTEEN_MINUTES)).toBe(
+      "15m",
+    );
   });
 
   test("are short enough for a toolbar row", () => {
-    expect(DashboardDefaultsCopy.timeRangeLabel.length).toBeLessThanOrEqual(
-      24,
-    );
+    expect(DashboardDefaultsCopy.timeRangeLabel.length).toBeLessThanOrEqual(24);
     expect(DashboardDefaultsCopy.autoRefreshLabel.length).toBeLessThanOrEqual(
       24,
     );
@@ -154,9 +152,12 @@ describe("the test ids the browser suites read", () => {
 describe("in every Dashboard language", () => {
   const english: Record<string, unknown> = readLocale("en");
 
-  test.each(SENTENCES)("%s is a key of en.json, as itself", (sentence: string) => {
-    expect(english[sentence]).toBe(sentence);
-  });
+  test.each(SENTENCES)(
+    "%s is a key of en.json, as itself",
+    (sentence: string) => {
+      expect(english[sentence]).toBe(sentence);
+    },
+  );
 
   describe.each(OTHER_LOCALES)("%s", (locale: string) => {
     const translations: Record<string, unknown> = readLocale(locale);
@@ -170,7 +171,9 @@ describe("in every Dashboard language", () => {
     });
 
     test("keeps the value Default (...) names, once", () => {
-      const translated: string = translations[DEFAULT_CHOICE_TEMPLATE] as string;
+      const translated: string = translations[
+        DEFAULT_CHOICE_TEMPLATE
+      ] as string;
 
       expect(translated.split("{{value}}").length - 1).toBe(1);
       expect(translated.includes("{{value}}")).toBe(true);

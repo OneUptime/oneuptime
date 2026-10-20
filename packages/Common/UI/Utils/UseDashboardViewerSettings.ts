@@ -130,7 +130,8 @@ function readChoices(dashboardId: string): ViewerChoices {
     refreshInterval: getChoice(
       getDashboardAutoRefreshInterval({
         linkInterval: fromLink.refreshInterval,
-        viewerInterval: DashboardViewerPicks.getAutoRefreshInterval(dashboardId),
+        viewerInterval:
+          DashboardViewerPicks.getAutoRefreshInterval(dashboardId),
       }),
     ),
   };
