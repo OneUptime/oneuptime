@@ -48,6 +48,12 @@ import TemplatePicker, {
   getTemplatePickerIds,
   templateOptionDomId,
 } from "../TemplatePicker/TemplatePicker";
+import {
+  TemplateDetails,
+  TemplateDetailsChip,
+  TemplateDetailsRow,
+  TemplateDetailsRowHolds,
+} from "../TemplatePicker/TemplateDetails";
 
 export interface ComponentProps {
   state: WorkflowTemplatePickerState;
@@ -86,44 +92,7 @@ export const workflowTemplateOptionDomId: OptionDomIdFunction = (
 
 type TranslateFunction = (value: string) => string;
 
-interface BlockChipProps {
-  block: WorkflowTemplatePreviewBlock;
-  isTrigger: boolean;
-  tx: TranslateFunction;
-}
-
-// One block as the builder's canvas names it: its icon and its title.
-const BlockChip: FunctionComponent<BlockChipProps> = (
-  props: BlockChipProps,
-): ReactElement => {
-  return (
-    <div
-      className="inline-flex max-w-full items-center gap-1.5 rounded-md bg-white px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
-      data-testid={
-        props.isTrigger
-          ? "workflow-template-details-trigger"
-          : "workflow-template-details-step"
-      }
-    >
-      <Icon
-        icon={props.block.icon}
-        className={`h-3.5 w-3.5 flex-shrink-0 ${
-          props.isTrigger ? "text-indigo-600" : "text-gray-400"
-        }`}
-      />
-      <span className="min-w-0 truncate">
-        {props.isTrigger ? (
-          <span className="sr-only">{`${props.tx("Trigger")}: `}</span>
-        ) : (
-          <></>
-        )}
-        {props.block.title}
-      </span>
-    </div>
-  );
-};
-
-interface TemplateDetailsProps {
+interface WorkflowTemplateDetailsProps {
   template: WorkflowTemplate;
   tx: TranslateFunction;
 }
@@ -132,16 +101,18 @@ interface TemplateDetailsProps {
  * What a picked template's row opens to show, before anything is created:
  * how it works - what starts it, then the kinds of block it is made of, as
  * the canvas names them - and what the next steps will ask for. Two short
- * lines, where the old preview was a column of its own.
+ * lines, where the old preview was a column of its own. Drawn with the
+ * shared details rows and chips (TemplatePicker/TemplateDetails), as a
+ * dashboard template's are.
  *
  * A template can also leave something for the Builder that no step here can
  * ask for - who a Page step pages is picked from the project's own people.
  * Its details say so (setUpInBuilder) rather than "Nothing to fill in.":
  * the workflow it creates does nothing until that is picked.
  */
-const TemplateDetails: FunctionComponent<TemplateDetailsProps> = (
-  props: TemplateDetailsProps,
-): ReactElement => {
+const WorkflowTemplateDetails: FunctionComponent<
+  WorkflowTemplateDetailsProps
+> = (props: WorkflowTemplateDetailsProps): ReactElement => {
   const preview: WorkflowTemplatePreview | null = useMemo(() => {
     return getWorkflowTemplatePreview(props.template);
   }, [props.template.id]);
@@ -155,109 +126,116 @@ const TemplateDetails: FunctionComponent<TemplateDetailsProps> = (
   const setUpInBuilder: string = (preview.template.setUpInBuilder || "").trim();
 
   return (
-    <dl className="mt-3 space-y-2.5" data-testid="workflow-template-details">
-      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-3">
-        <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500 sm:w-36 sm:flex-shrink-0 sm:pt-1">
-          {tx("How It Works")}
-        </dt>
-        <dd className="min-w-0 flex-1">
+    <TemplateDetails dataTestId="workflow-template-details">
+      <TemplateDetailsRow
+        label={tx("How It Works")}
+        holds={TemplateDetailsRowHolds.Chips}
+      >
+        <ul
+          className="flex flex-wrap items-center gap-1.5"
+          data-testid="workflow-template-details-blocks"
+        >
+          <li className="flex max-w-full items-center gap-1.5">
+            {/* One block as the builder's canvas names it: its icon and its title. */}
+            <TemplateDetailsChip
+              icon={preview.trigger.icon}
+              label={preview.trigger.title}
+              isAccent={true}
+              screenReaderPrefix={`${tx("Trigger")}: `}
+              dataTestId="workflow-template-details-trigger"
+            />
+            <Icon
+              icon={IconProp.ArrowRight}
+              className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+            />
+          </li>
+          {preview.steps.map(
+            (block: WorkflowTemplatePreviewBlock): ReactElement => {
+              return (
+                <li key={block.componentId} className="flex max-w-full">
+                  <TemplateDetailsChip
+                    icon={block.icon}
+                    label={block.title}
+                    dataTestId="workflow-template-details-step"
+                  />
+                </li>
+              );
+            },
+          )}
+        </ul>
+      </TemplateDetailsRow>
+
+      <TemplateDetailsRow
+        label={tx("What you'll need")}
+        holds={TemplateDetailsRowHolds.Text}
+      >
+        {preview.settings.length > 0 ? (
           <ul
-            className="flex flex-wrap items-center gap-1.5"
-            data-testid="workflow-template-details-blocks"
+            className="flex flex-wrap gap-x-4 gap-y-1"
+            data-testid="workflow-template-details-settings"
           >
-            <li className="flex max-w-full items-center gap-1.5">
-              <BlockChip block={preview.trigger} isTrigger={true} tx={tx} />
-              <Icon
-                icon={IconProp.ArrowRight}
-                className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
-              />
-            </li>
-            {preview.steps.map(
-              (block: WorkflowTemplatePreviewBlock): ReactElement => {
+            {preview.settings.map(
+              (variable: WorkflowTemplateVariable): ReactElement => {
                 return (
-                  <li key={block.componentId} className="flex max-w-full">
-                    <BlockChip block={block} isTrigger={false} tx={tx} />
+                  <li
+                    key={variable.name}
+                    className="flex items-center gap-1.5 text-sm text-gray-700"
+                    data-testid={`workflow-template-details-setting-${variable.name}`}
+                  >
+                    {/* A lock marks a secret. */}
+                    {variable.isSecret ? (
+                      <Icon
+                        icon={IconProp.Lock}
+                        className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+                      />
+                    ) : (
+                      <></>
+                    )}
+                    <span className="min-w-0">
+                      {variable.title}
+                      {variable.isSecret ? (
+                        <span className="sr-only">{`, ${tx("Secret")}`}</span>
+                      ) : (
+                        <></>
+                      )}
+                      {variable.required ? (
+                        <></>
+                      ) : (
+                        <span className="ml-1 text-gray-400">
+                          ({tx("Optional")})
+                        </span>
+                      )}
+                    </span>
                   </li>
                 );
               },
             )}
           </ul>
-        </dd>
-      </div>
-
-      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-3">
-        <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500 sm:w-36 sm:flex-shrink-0 sm:pt-0.5">
-          {tx("What you'll need")}
-        </dt>
-        <dd className="min-w-0 flex-1 space-y-1">
-          {preview.settings.length > 0 ? (
-            <ul
-              className="flex flex-wrap gap-x-4 gap-y-1"
-              data-testid="workflow-template-details-settings"
-            >
-              {preview.settings.map(
-                (variable: WorkflowTemplateVariable): ReactElement => {
-                  return (
-                    <li
-                      key={variable.name}
-                      className="flex items-center gap-1.5 text-sm text-gray-700"
-                      data-testid={`workflow-template-details-setting-${variable.name}`}
-                    >
-                      {/* A lock marks a secret. */}
-                      {variable.isSecret ? (
-                        <Icon
-                          icon={IconProp.Lock}
-                          className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
-                        />
-                      ) : (
-                        <></>
-                      )}
-                      <span className="min-w-0">
-                        {variable.title}
-                        {variable.isSecret ? (
-                          <span className="sr-only">{`, ${tx("Secret")}`}</span>
-                        ) : (
-                          <></>
-                        )}
-                        {variable.required ? (
-                          <></>
-                        ) : (
-                          <span className="ml-1 text-gray-400">
-                            ({tx("Optional")})
-                          </span>
-                        )}
-                      </span>
-                    </li>
-                  );
-                },
-              )}
-            </ul>
-          ) : (
-            <></>
-          )}
-          {setUpInBuilder ? (
-            <p
-              className="text-sm text-gray-600"
-              data-testid="workflow-template-details-in-builder"
-            >
-              {setUpInBuilder}
-            </p>
-          ) : (
-            <></>
-          )}
-          {preview.settings.length === 0 && !setUpInBuilder ? (
-            <p
-              className="text-sm text-gray-600"
-              data-testid="workflow-template-details-no-settings"
-            >
-              {tx("Nothing to fill in.")}
-            </p>
-          ) : (
-            <></>
-          )}
-        </dd>
-      </div>
-    </dl>
+        ) : (
+          <></>
+        )}
+        {setUpInBuilder ? (
+          <p
+            className="text-sm text-gray-600"
+            data-testid="workflow-template-details-in-builder"
+          >
+            {setUpInBuilder}
+          </p>
+        ) : (
+          <></>
+        )}
+        {preview.settings.length === 0 && !setUpInBuilder ? (
+          <p
+            className="text-sm text-gray-600"
+            data-testid="workflow-template-details-no-settings"
+          >
+            {tx("Nothing to fill in.")}
+          </p>
+        ) : (
+          <></>
+        )}
+      </TemplateDetailsRow>
+    </TemplateDetails>
   );
 };
 
@@ -282,7 +260,7 @@ const WorkflowTemplatePicker: FunctionComponent<ComponentProps> = (
         "Begin with an empty canvas and add your own trigger and steps.",
       )}
       renderDetails={(template: WorkflowTemplate): ReactElement => {
-        return <TemplateDetails template={template} tx={tx} />;
+        return <WorkflowTemplateDetails template={template} tx={tx} />;
       }}
     />
   );
