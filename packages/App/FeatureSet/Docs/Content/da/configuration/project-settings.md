@@ -34,7 +34,7 @@ flowchart LR
 | **Arbejdsområde** | **Slack**, **Microsoft Teams**, **Video Calls** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Videoopkald](/docs/workspace-connections/video-calls) |
 | **Telemetri og APM** | **Indtagelsesnøgler**, **Dataopbevaring** | [Indtagelsesnøgler](/docs/telemetry/ingestion-keys), [Dataopbevaring](/docs/telemetry/data-retention) |
 | **Notifikationer** | **Notifikationsindstillinger**, **Notifikationslogs**, **Mobilapps** | [Notifikationer](#notifikationer) |
-| **AI** | **AI Features**, **LLM-udbydere**, **AI-kreditter**, **AI-logs**, **MCP-server** | [LLM-udbydere](/docs/ai/llm-provider), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#omkostningsstyring) |
+| **AI** | **AI Features**, **LLM-udbydere**, **Eksterne MCP-servere**, **AI-kreditter**, **AI-logs**, **MCP-server** | [LLM-udbydere](/docs/ai/llm-provider), [Eksterne MCP-servere](/docs/ai/external-mcp-servers), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#omkostningsstyring) |
 | **Avanceret** | **Domæner**, **API-nøgler**, **Funktionsflag**, **Importér fra et andet værktøj** | [Egne domæner](/docs/status-pages/branding-and-domains#brugerdefinerede-domæner), [API-nøgler](/docs/permissions/index#api-nøgler), [Funktionsflag](#funktionsflag), [Skift fra Opsgenie](/docs/moving-to-oneuptime/opsgenie) og de andre flyttevejledninger |
 | **Sikkerhed** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fakturering og fakturaer** | **Fakturering**, **Brugshistorik**, **Fakturaer** | [Fakturering og forbrug](/docs/configuration/billing) |

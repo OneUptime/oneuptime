@@ -34,7 +34,7 @@ flowchart LR
 | **Arbeitsbereich** | **Slack**, **Microsoft Teams**, **Videoanrufe** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Videoanrufe](/docs/workspace-connections/video-calls) |
 | **Telemetrie & APM** | **Ingestion-Schlüssel**, **Datenaufbewahrung** | [Ingestion-Schlüssel](/docs/telemetry/ingestion-keys), [Datenaufbewahrung](/docs/telemetry/data-retention) |
 | **Benachrichtigungen** | **Benachrichtigungseinstellungen**, **Benachrichtigungsprotokolle**, **Mobile Apps** | [Benachrichtigungen](#benachrichtigungen) |
-| **KI** | **KI-Funktionen**, **LLM-Anbieter**, **KI-Guthaben**, **KI-Protokolle**, **MCP-Server** | [LLM-Anbieter](/docs/ai/llm-provider), [MCP-Server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostenkontrollen) |
+| **KI** | **KI-Funktionen**, **LLM-Anbieter**, **Externe MCP-Server**, **KI-Guthaben**, **KI-Protokolle**, **MCP-Server** | [LLM-Anbieter](/docs/ai/llm-provider), [Externe MCP-Server](/docs/ai/external-mcp-servers), [MCP-Server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostenkontrollen) |
 | **Erweitert** | **Domänen**, **API-Schlüssel**, **Feature-Flags**, **Import aus anderem Tool** | [Eigene Domains](/docs/status-pages/branding-and-domains#eigene-domains), [API-Schlüssel](/docs/permissions/index#api-schlüssel), [Feature-Flags](#feature-flags), [Wechsel von Opsgenie](/docs/moving-to-oneuptime/opsgenie) und die anderen Umzugsanleitungen |
 | **Sicherheit** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Abrechnung und Rechnungen** | **Abrechnung**, **Nutzungsverlauf**, **Rechnungen** | [Abrechnung & Nutzung](/docs/configuration/billing) |
