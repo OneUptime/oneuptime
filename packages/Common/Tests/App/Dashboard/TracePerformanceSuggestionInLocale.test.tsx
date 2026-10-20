@@ -39,6 +39,64 @@ function readLocale(locale: string): Record<string, string> {
   ) as Record<string, string>;
 }
 
+// Every language the Dashboard is translated into.
+const LANGUAGES: Array<string> = fs
+  .readdirSync(LOCALES_DIR)
+  .filter((file: string): boolean => {
+    return file.endsWith(".json") && file !== "en.json";
+  })
+  .map((file: string): string => {
+    return path.basename(file, ".json");
+  });
+
+/*
+ * The strip's own words around the finding: its button, its tooltip, its
+ * links and its states. A language left any of them in English drew an
+ * English button in a strip of its own words.
+ */
+const STRIP_ACTION_KEYS: Array<string> = [
+  "Fix performance with AI",
+  "OneUptime AI opens a pull request that fixes this, for you to review.",
+  "Connect GitHub to fix this with AI",
+  "OneUptime AI is working on a fix.",
+  "View task progress",
+  "Show them",
+  "Show it",
+  "Could not start the fix: {{reason}}",
+];
+
+// Characters a wide script draws about twice as wide as a Latin letter.
+const WIDE_CHARACTER: RegExp =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+
+// A mark drawn on the letter before it (a Devanagari vowel sign, a nukta).
+const COMBINING_MARK: RegExp = /\p{M}/u;
+
+/*
+ * How wide a label draws, in Latin letters: one per letter, none for the
+ * marks drawn on a letter, two for a Chinese, Japanese or Korean character.
+ */
+function labelWidth(label: string): number {
+  let width: number = 0;
+
+  for (const character of Array.from(label)) {
+    if (COMBINING_MARK.test(character)) {
+      continue;
+    }
+    width += WIDE_CHARACTER.test(character) ? 2 : 1;
+  }
+
+  return width;
+}
+
+/*
+ * On a 390px phone the fix button spans the strip, and its label has about
+ * 25 Latin letters of room before it breaks in two: the room "Åtgärda
+ * prestandan med AI" (25) fills, measured in a browser with the product's
+ * Inter, where "Corregir el rendimiento con IA" (30) broke.
+ */
+const PHONE_BUTTON_LABEL_ROOM: number = 25;
+
 const FINDING: PerformanceFinding = {
   findingType: PerformanceFindingType.NPlusOneQuery,
   headline: "",
@@ -151,6 +209,31 @@ describe("the finding strip in the reader's language", () => {
       "Повторов одного и того же запроса к базе данных в ReportService.build: 40",
     );
   });
+
+  test.each(LANGUAGES)(
+    "%s words the strip's button, links and states itself",
+    (language: string) => {
+      const locale: Record<string, string> = readLocale(language);
+
+      for (const key of STRIP_ACTION_KEYS) {
+        expect(locale[key]).toBeTruthy();
+        expect({ key, value: locale[key] }).not.toEqual({ key, value: key });
+      }
+    },
+  );
+
+  test.each(["en", ...LANGUAGES])(
+    "%s: the fix button's label fits a phone's full-width button on one line",
+    (language: string) => {
+      const label: string = readLocale(language)["Fix performance with AI"]!;
+
+      // The label is in the comparison, so a failure names it.
+      expect({
+        label,
+        fitsOnOneLine: labelWidth(label) <= PHONE_BUTTON_LABEL_ROOM,
+      }).toEqual({ label, fitsOnOneLine: true });
+    },
+  );
 
   test("English, for a language with no translation of the sentence yet", async () => {
     await renderIn("en");

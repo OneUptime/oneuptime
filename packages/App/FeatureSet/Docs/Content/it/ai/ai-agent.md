@@ -98,11 +98,11 @@ Ogni esecuzione è soggetta a budget che il server impone: al massimo **40 chiam
 | La pagina **AI Assistance** di un'eccezione | **Generate Regression Test** | Aggiunge un test che riproduce l'eccezione e fallisce finché il bug non è corretto. |
 | La pagina **AI Assistance** di un'eccezione | **Migliora la gestione degli errori** | Per un errore previsto, come un input non valido: toglie i dati utente dal messaggio, convalida l'input prima e contrassegna l'errore come gestito, senza cambiare il comportamento. |
 | La scheda **AI Investigation** di un incidente o di un avviso | **Open Fix PR from this analysis** | Corregge la causa principale pubblicata dall'indagine (vedi [Correzioni di codice automatiche dalle indagini](#correzioni-di-codice-automatiche-dalle-indagini)). |
-| Una traccia che vale la pena correggere | **Fix performance with AI** | Corregge lo schema lento indicato dal pulsante, come una query N+1 o chiamate che potrebbero procedere in parallelo. |
+| Una traccia che vale la pena correggere | **Velocizza con l'IA** | Corregge lo schema lento indicato dal pulsante, come una query N+1 o chiamate che potrebbero procedere in parallelo. |
 | La pagina **Registri** di un servizio | **Migliora i log** | Rende i log del servizio strutturati, con la severità giusta e collegati alle sue tracce, senza cambiare il comportamento. |
 | La pagina **Tracce** di un servizio | **Migliora il tracciamento** | Aggiunge span e attributi dove manca il tracing del servizio, senza cambiare il comportamento. |
 
-Questi pulsanti compaiono solo dove possono avviare un'attività. Con l'IA disattivata per il progetto, non ne compare nessuno e il menu laterale di un'eccezione non ha **AI Assistance**. **Migliora i log** e **Migliora il tracciamento** compaiono appena è collegato un repository, e **Fix performance with AI** solo su una traccia che vale la pena correggere (vedere [Esploratore tracce](/docs/telemetry/traces-explorer)).
+Questi pulsanti compaiono solo dove possono avviare un'attività. Con l'IA disattivata per il progetto, non ne compare nessuno e il menu laterale di un'eccezione non ha **AI Assistance**. **Migliora i log** e **Migliora il tracciamento** compaiono appena è collegato un repository, e **Velocizza con l'IA** solo su una traccia che vale la pena correggere (vedere [Esploratore tracce](/docs/telemetry/traces-explorer)).
 
 Per aprire la pagina **AI Assistance** di un'eccezione, apri l'eccezione in **Prodotti → Osservabilità → Eccezioni** e scegli **AI Assistance** nel suo menu laterale. Un'eccezione risolta o archiviata deve prima essere contrassegnata come non risolta.
 

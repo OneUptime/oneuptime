@@ -89,7 +89,7 @@ Klik på et span i en vilkårlig visning for at åbne dets panel med faner for d
 Et stort spor indlæser 500 spans ad gangen. Klik på knappen nederst i sporet for at indlæse flere eller dem alle.
 
 > [!TIP]
-> **Fix performance with AI** vises kun på et spor, der er værd at rette: et med en N+1-forespørgsel, kald efter hinanden, der kunne køre parallelt, eller ét kald, der tager det meste af anmodningen, når det koster reel tid (100 ms eller mere for kaldene tilsammen, 500 ms eller mere for et enkelt kald og mindst en tiendedel af anmodningen). Den nævner, hvad den fandt, for eksempel "Den samme databaseforespørgsel kørte 40 gange i ReportService.build", og starter en AI-opgave, der åbner en pull request med rettelsen. Se [Kode](/docs/ai/ai-agent).
+> **Ret ydeevnen med AI** vises kun på et spor, der er værd at rette: et med en N+1-forespørgsel, kald efter hinanden, der kunne køre parallelt, eller ét kald, der tager det meste af anmodningen, når det koster reel tid (100 ms eller mere for kaldene tilsammen, 500 ms eller mere for et enkelt kald og mindst en tiendedel af anmodningen). Den nævner, hvad den fandt, for eksempel "Den samme databaseforespørgsel kørte 40 gange i ReportService.build", og starter en AI-opgave, der åbner en pull request med rettelsen. Se [Kode](/docs/ai/ai-agent).
 
 ## Vis dine spans i diagrammer
 

@@ -98,11 +98,11 @@ Cada execução fica dentro de orçamentos que o servidor impõe: no máximo **4
 | A página **AI Assistance** de uma exceção | **Generate Regression Test** | Adiciona um teste que reproduz a exceção e falha até o bug ser corrigido. |
 | A página **AI Assistance** de uma exceção | **Melhorar o tratamento de erros** | Para um erro esperado, como uma entrada inválida: tira os dados do usuário da mensagem, valida a entrada mais cedo e marca o erro como tratado, sem mudar o comportamento. |
 | O cartão **AI Investigation** de um incidente ou de um alerta | **Open Fix PR from this analysis** | Corrige a causa raiz que a investigação publicou (veja [Correções de código automáticas a partir de investigações](#correções-de-código-automáticas-a-partir-de-investigações)). |
-| Um trace que vale a pena corrigir | **Fix performance with AI** | Corrige o padrão lento que o botão indica, como uma consulta N+1 ou chamadas que poderiam rodar em paralelo. |
+| Um trace que vale a pena corrigir | **Acelerar com IA** | Corrige o padrão lento que o botão indica, como uma consulta N+1 ou chamadas que poderiam rodar em paralelo. |
 | A página **Registros** de um serviço | **Melhorar os registros** | Torna os logs do serviço estruturados, com a severidade certa e ligados aos traces dele, sem mudar o comportamento. |
 | A página **Traços** de um serviço | **Melhorar o rastreamento** | Adiciona spans e atributos onde falta tracing no serviço, sem mudar o comportamento. |
 
-Esses botões só aparecem onde podem iniciar uma tarefa. Com a IA desativada para o projeto, nenhum deles aparece e o menu lateral de uma exceção não tem **AI Assistance**. **Melhorar os registros** e **Melhorar o rastreamento** aparecem assim que um repositório é conectado, e **Fix performance with AI** só em um trace que vale a pena corrigir (veja [Explorador de traços](/docs/telemetry/traces-explorer)).
+Esses botões só aparecem onde podem iniciar uma tarefa. Com a IA desativada para o projeto, nenhum deles aparece e o menu lateral de uma exceção não tem **AI Assistance**. **Melhorar os registros** e **Melhorar o rastreamento** aparecem assim que um repositório é conectado, e **Acelerar com IA** só em um trace que vale a pena corrigir (veja [Explorador de traços](/docs/telemetry/traces-explorer)).
 
 Para abrir a página **AI Assistance** de uma exceção, abra a exceção em **Produtos → Observabilidade → Exceções** e escolha **AI Assistance** no menu lateral. Uma exceção resolvida ou arquivada precisa primeiro ser marcada como não resolvida.
 
