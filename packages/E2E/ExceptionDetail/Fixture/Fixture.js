@@ -607,9 +607,9 @@ function aiReadiness() {
         {
           id: "agentAvailable",
           ok: false,
-          title: "AI agent online",
+          title: "Runner online",
           detail:
-            "No agent is available for this project. Install a OneUptime Runner and enable Runs AI Code Fixes on it (Runbooks > Runners).",
+            "No Runner is online to work in this project's repositories. Each repository works on the Runner it picks in its settings in Code, or on a global Runner when it picks none.",
         },
       ],
     };
@@ -633,7 +633,7 @@ function aiReadiness() {
       {
         id: "agentAvailable",
         ok: true,
-        title: "AI agent online: runner-eu-1",
+        title: "Runner online: runner-eu-1",
         detail: "Connected and polling for tasks.",
       },
     ],

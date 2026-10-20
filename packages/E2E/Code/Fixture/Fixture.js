@@ -38,6 +38,12 @@
  *                       seen queued first and then moves one stage a poll)
  *   - refuse=create|reply  the server refuses that send (its sentence)
  *   - fail=repositories|repository|list|task  that read fails
+ *   - runner=prod|gone  the Runner checkout-api picks in its settings:
+ *                       prod-eu-west-1, or one the project no longer has;
+ *                       by default none (a global Runner)
+ *   - uses=0            the project turned global Runners off
+ *   - global=0          the server runs no global Runner for code;
+ *                       gstatus=disconnected: it is not heard from
  *   - delay=<ms>        how long each request takes
  *   - lang=de|ja        the Dashboard's German or Japanese words
  *   - theme=dark        dark mode (server.js)
@@ -68,6 +74,8 @@ import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Project from "Common/Models/DatabaseModels/Project";
+import Runner from "Common/Models/DatabaseModels/Runner";
 import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import AIRunEventType from "Common/Types/AI/AIRunEventType";
@@ -128,8 +136,25 @@ const RECORD_IDS = {
   service: "50000000-0000-4000-8000-0000000000e5",
 };
 
+/*
+ * The project's own Runners a repository may pick, alphabetically as the
+ * picker reads them, and the in-cluster Runner the Kubernetes agent chart
+ * installed, which no repository may pick.
+ */
+const RUNNER_IDS = {
+  office: "60000000-0000-4000-8000-0000000000f2",
+  prod: "60000000-0000-4000-8000-0000000000f1",
+  agent: "60000000-0000-4000-8000-0000000000f3",
+  gone: "60000000-0000-4000-8000-0000000000f9",
+};
+
 const params = new URLSearchParams(window.location.search);
 const role = params.get("role") || "owner";
+const runnerParam = params.get("runner");
+const usesGlobalRunners = params.get("uses") !== "0";
+const globalCodeRunnerStatus =
+  params.get("gstatus") === "disconnected" ? "disconnected" : "connected";
+const hasGlobalCodeRunner = params.get("global") !== "0";
 const reposParam = params.get("repos") || "some";
 const blockerParam = params.get("blocker");
 const aiParam = params.get("ai") || "done";
@@ -240,8 +265,40 @@ for (const repository of repositories) {
     setupCommand: "npm ci",
     buildCommand: "npm run build",
     testCommand: "npm test",
+    // The Runner AI works in it on: none picked, a global Runner.
+    runnerId: null,
   };
 }
+
+if (
+  runnerParam &&
+  RUNNER_IDS[runnerParam] &&
+  settingsByRepository[REPOSITORY_IDS.checkout]
+) {
+  settingsByRepository[REPOSITORY_IDS.checkout].runnerId =
+    RUNNER_IDS[runnerParam];
+}
+
+function runnerModel(id, name, lastAlive, hostInfo) {
+  const model = new Runner();
+  model._id = id;
+  model.id = new ObjectID(id);
+  model.projectId = new ObjectID(PROJECT_ID);
+  model.name = name;
+  model.lastAlive = lastAlive;
+  if (hostInfo) {
+    model.hostInfo = hostInfo;
+  }
+  return model;
+}
+
+const PROJECT_RUNNERS = [
+  runnerModel(RUNNER_IDS.agent, "kubernetes-agent/prod-us", minutesAgo(1), {
+    kubernetes: { inCluster: true, clusterIdentifier: "prod-us" },
+  }),
+  runnerModel(RUNNER_IDS.office, "office-runner", minutesAgo(180)),
+  runnerModel(RUNNER_IDS.prod, "prod-eu-west-1", minutesAgo(0.5)),
+];
 
 // ---- tasks: each a conversation of turns -----------------------------------
 
@@ -753,7 +810,11 @@ const BLOCKER_MESSAGES = {
   [CodeTaskBlockerType.DailyLimitReached]:
     "This project used its daily AI token limit of 2,000,000 tokens. AI starts again at midnight UTC.",
   [CodeTaskBlockerType.NoAgent]:
-    "No Runner with Runs AI Code Fixes is online. Turn it on for a Runner in Runbooks > Runners.",
+    "No global Runner is online to work in this repository. Pick one of your Runners for it in the repository's settings in Code, or try again once the global Runner is back.",
+  [CodeTaskBlockerType.RunnerNotOnline]:
+    'The Runner "prod-eu-west-1" this repository picks is not online. Check that its container is running, or pick another Runner in the repository\'s settings in Code.',
+  [CodeTaskBlockerType.GlobalRunnersOff]:
+    "This project does not use global Runners, and this repository picks no Runner of its own. Pick one of your Runners for it in the repository's settings in Code, or turn global Runners on under Runbooks → Runners.",
 };
 
 function blockerFor(repository) {
@@ -1364,6 +1425,18 @@ API.post = async (options) => {
   if (log >= 0) {
     return logOf(url.substring(log + "/code-fix-run/logs/".length));
   }
+  // The global Runners for code, by how each is doing (RunnerAPI).
+  if (url.includes("/runner/global-code-runners")) {
+    return new HTTPResponse(
+      200,
+      {
+        globalRunners: hasGlobalCodeRunner
+          ? [{ liveStatus: globalCodeRunnerStatus }]
+          : [],
+      },
+      {},
+    );
+  }
   return refused(404, `The fixture does not model ${url}.`);
 };
 
@@ -1475,6 +1548,13 @@ ModelAPI.getItem = async (options) => {
   if (options.modelType === CodeRepository) {
     return readRepositoryModel(idOf(options.id));
   }
+  // Whether the project uses global Runners (Project.useGlobalRunners).
+  if (options.modelType === Project) {
+    const project = new Project();
+    project._id = PROJECT_ID;
+    project.useGlobalRunners = usesGlobalRunners;
+    return project;
+  }
   return null;
 };
 
@@ -1498,6 +1578,15 @@ ModelAPI.getList = async (options) => {
   if (options.modelType === Label) {
     return { data: [], count: 0, skip: 0, limit: 10 };
   }
+  // The project's own Runners, for a repository's Runner picker.
+  if (options.modelType === Runner) {
+    return {
+      data: PROJECT_RUNNERS,
+      count: PROJECT_RUNNERS.length,
+      skip: 0,
+      limit: 10,
+    };
+  }
   return { data: [], count: 0, skip: 0, limit: 10 };
 };
 
@@ -1520,6 +1609,46 @@ ModelAPI.updateById = async (options) => {
     Object.assign(settingsByRepository[id], data);
   }
   return new HTTPResponse(200, {}, {});
+};
+
+/*
+ * A repository's Settings form saves through createOrUpdate, with the
+ * repository as the form built it: what it holds of the settings is saved
+ * as updateById saves it (recorded on window.__fixture.settings), the
+ * Runner it picks as its id, or null for a global Runner.
+ */
+const SETTING_KEYS = [
+  "name",
+  "description",
+  "mainBranchName",
+  "maxOpenFixPullRequests",
+  "isGitHubCommandsEnabled",
+  "gitHubTriggerLabel",
+  "setupCommand",
+  "buildCommand",
+  "testCommand",
+  "runnerId",
+];
+
+ModelAPI.createOrUpdate = async (options) => {
+  if (options.modelType !== CodeRepository) {
+    return refused(404, "The fixture does not model this save.");
+  }
+  const model = options.model;
+  const data = {};
+  for (const key of SETTING_KEYS) {
+    const value = model[key];
+    if (value === undefined) {
+      continue;
+    }
+    data[key] =
+      value !== null && typeof value === "object" ? value.toString() : value;
+  }
+  return await ModelAPI.updateById({
+    modelType: CodeRepository,
+    id: model._id,
+    data,
+  });
 };
 
 ModelAPI.deleteItem = async (options) => {

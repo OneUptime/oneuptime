@@ -9,8 +9,10 @@ import path from "path";
  * (GlobalRunners/Fixture): Runbooks -> Runners with its Global Runners,
  * Custom Runners and Global Runners in This Project cards; a runbook step's
  * Runner picker, opened and picked by mouse and by keyboard, and the line
- * under each folded step that says where it runs; and whether global
- * Runners may use a secret runbook variable. Then a phone, dark mode and
+ * under each folded step that says where it runs; whether global Runners
+ * may use a secret runbook variable; and a Runner's own page, which lists
+ * the code repositories that pick it - a Runner has no AI code fix switch,
+ * in the Create Runner dialog or on its page. Then a phone, dark mode and
  * German.
  *
  * The maintainer's ask: "Please also show global runners here as well, and
@@ -29,6 +31,8 @@ const RUNBOOK_ID: string = "20000000-0000-4000-8000-0000000000b1";
 const PROD_RUNNER_ID: string = "40000000-0000-4000-8000-0000000000d1";
 
 const RUNNERS_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/runners`;
+const RUNNER_PAGE: string = `${RUNNERS_PAGE}/${PROD_RUNNER_ID}`;
+const CHECKOUT_REPOSITORY_ID: string = "90000000-0000-4000-8000-000000000c01";
 const STEPS_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}/steps`;
 const VARIABLES_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/settings/variables`;
 
@@ -250,10 +254,10 @@ test.describe("Runbooks → Runners on a server that runs global Runners", () =>
     );
     const switchCard: Locator = card(page, SWITCH_CARD);
     await expect(switchCard).toContainText(
-      "Steps that pick one of your Runners always run on it.",
+      "Steps and code repositories that pick one of your Runners always run on it.",
     );
     await expect(switchCard).toContainText(
-      "JavaScript steps that pick no Runner run on a global Runner.",
+      "JavaScript steps and code repositories that pick no Runner run on a global Runner.",
     );
     // Said once: the card's title is not the switch's name.
     await expect(switchCard.getByText("Use global Runners")).toHaveCount(1);
@@ -272,7 +276,7 @@ test.describe("Runbooks → Runners on a server that runs global Runners", () =>
     await expect(modal).toBeVisible();
     await expect(modal).toContainText("Stop using global Runners?");
     await expect(modal).toContainText(
-      "JavaScript steps that pick no Runner will fail until they pick one of yours. Steps waiting for a global Runner now will not run.",
+      "JavaScript steps and code repositories that pick no Runner stop running until they pick one of yours. Work queued for a global Runner will not run.",
     );
     await screenshot(page, "stop-using-global-runners");
     await modal.getByRole("button", { name: "Cancel" }).click();
@@ -300,10 +304,10 @@ test.describe("Runbooks → Runners on a server that runs global Runners", () =>
     ]);
     // Both cards now say what the project does instead.
     await expect(card(page, "Global Runners")).toContainText(
-      "This project does not use them, so every step runs on one of your Runners.",
+      "This project does not use them, so steps and code repositories run on yours.",
     );
     await expect(card(page, SWITCH_CARD)).toContainText(
-      "Every step runs on one of your Runners. A JavaScript step that picks none fails.",
+      "Every step and code repository runs on one of your Runners. One that picks none does not run.",
     );
 
     // Turning it back on loses nothing, so it does not ask.
@@ -764,6 +768,114 @@ test.describe("which secret variables global Runners may use", () => {
     await expect(
       modal.getByRole("switch", { name: /Global Runners can use it/ }),
     ).toHaveCount(0);
+  });
+});
+
+/*
+ * The maintainer's ask: "Remove Runs AI Code Fixes from here, and in the
+ * Code Repo section, we should be able to select a runner to run from (if
+ * not selected, it will run on global runner)." A Runner says no more
+ * than what it may run; the repositories that pick it are listed on its
+ * page, each linked to the repository's settings in Code, where the pick
+ * is made.
+ */
+test.describe("a Runner and AI code fixes", () => {
+  test("Create Runner asks what the Runner may run, and AI code fixes are not one of its switches", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunners(page);
+    await card(page, "Custom Runners")
+      .getByRole("button", { name: "Create Runner" })
+      .first()
+      .click();
+
+    const modal: Locator = page.getByTestId("modal");
+    await expect(modal).toBeVisible();
+    await modal
+      .getByRole("textbox", { name: /Name/ })
+      .first()
+      .fill("db-runner");
+    await modal.getByRole("button", { name: "Next", exact: true }).click();
+
+    // The Capabilities step: what the Runner may run, and nothing about code.
+    await expect(modal).toContainText("Runs Runbooks");
+    await expect(modal).toContainText("Runs AI Remediation Commands");
+    await expect(modal).not.toContainText("Runs AI Code Fixes");
+    await expect(modal).not.toContainText("pull requests");
+    await screenshot(page, "create-runner-capabilities");
+
+    await modal.getByTestId("modal-footer-submit-button").click();
+    await expect
+      .poll(async (): Promise<number> => {
+        return (await recorded(page)).creates.length;
+      })
+      .toBe(1);
+
+    const created: Recorded["creates"][number] = (await recorded(page))
+      .creates[0]!;
+    expect(created.model).toBe("Runner");
+    expect(created.data["name"]).toBe("db-runner");
+    expect(created.data["canRunRunbooks"]).toBe(true);
+    expect(Object.keys(created.data)).not.toContain("canRunCodeFixTasks");
+  });
+
+  test("the Runners list shows no AI code fix capability", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunners(page, "custom=2");
+
+    const customCard: Locator = card(page, "Custom Runners");
+    await expect(customCard.locator("tbody tr")).toHaveCount(2);
+    await expect(customCard).toContainText("Runbooks");
+    await expect(customCard).not.toContainText("AI code fixes");
+  });
+
+  test("a Runner's page lists the code repositories that pick it, each linked to its settings in Code", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${RUNNER_PAGE}?page=runner&custom=1`);
+
+    const repositories: Locator = card(page, "Code Repositories");
+    await expect(repositories).toBeVisible();
+    await expect(repositories).toContainText(
+      "AI works in these repositories on this Runner.",
+    );
+    const link: Locator = repositories.getByRole("link", {
+      name: "checkout-service",
+    });
+    await expect(link).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/code/repositories/${CHECKOUT_REPOSITORY_ID}/settings`,
+    );
+    // A repository that picks no Runner works on a global Runner: not listed.
+    await expect(repositories).not.toContainText("web-app");
+
+    // The Runner's details say what it may run, and nothing about code fixes.
+    const details: Locator = card(page, "Runner Details");
+    await expect(details).toContainText("Runs Runbooks");
+    await expect(details).not.toContainText("Runs AI Code Fixes");
+    await screenshot(page, "runner-code-repositories");
+  });
+
+  test("no repository picks it: the card says so, and where a repository picks it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${RUNNER_PAGE}?page=runner&custom=1&picks=0`);
+
+    await expect(page.getByTestId("runner-code-repositories-empty")).toHaveText(
+      "No code repository picks this Runner. To have AI work in a repository on it, pick it in the repository's settings in Code.",
+    );
+    await expect(card(page, "Code Repositories").getByRole("link")).toHaveCount(
+      0,
+    );
   });
 });
 
