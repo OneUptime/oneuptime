@@ -8,6 +8,7 @@ import {
   getDashboardTemplateCategoryLabel,
 } from "../../FeatureSet/Dashboard/src/Utils/Dashboard/DashboardTemplatePickerUtil";
 import { TemplatePickerViewInfo } from "../../FeatureSet/Dashboard/src/Utils/TemplatePicker/TemplatePickerUtil";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 
 /*
  * Create a dashboard - the template picker and the wizard around it - looks
@@ -96,7 +97,6 @@ const MODAL_STRINGS: Array<string> = [
   "Dashboard names are unique within a project.",
   "What should this dashboard be called?",
   "Please give this dashboard a name of at least 2 letters.",
-  "More fields",
   "Description",
   "What is this dashboard for?",
   "Back",
@@ -110,8 +110,19 @@ const VIEW_STRINGS: Array<string> =
     },
   );
 
+/*
+ * The Name step's fold, named as every form's More fields is: by the shared
+ * title (FoldedSectionTitles), never written out (FoldedSectionsGuard).
+ */
+const FOLD_STRINGS: Array<string> = [MORE_FIELDS_SECTION_TITLE];
+
 const STRINGS: Array<string> = Array.from(
-  new Set([...PICKER_STRINGS, ...MODAL_STRINGS, ...VIEW_STRINGS]),
+  new Set([
+    ...PICKER_STRINGS,
+    ...MODAL_STRINGS,
+    ...VIEW_STRINGS,
+    ...FOLD_STRINGS,
+  ]),
 );
 
 /*
@@ -281,6 +292,10 @@ describe("Create a dashboard's strings", () => {
         inWizard: MODAL_CODE.includes(`"${text}"`),
       }).toEqual({ text: text, inWizard: true });
     }
+
+    // Its fold is every form's More fields, by the shared title.
+    expect(MODAL_CODE).toContain("title={MORE_FIELDS_SECTION_TITLE}");
+    expect(MORE_FIELDS_SECTION_TITLE).toBe("More fields");
   });
 
   test("the category select names its categories by keys the extractor reads", () => {

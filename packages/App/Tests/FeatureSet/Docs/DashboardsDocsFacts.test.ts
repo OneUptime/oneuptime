@@ -107,6 +107,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import TimeRange from "Common/Types/Time/TimeRange";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import { startsCollapsed } from "Common/UI/Components/SideMenu/SideMenuSectionState";
 import DashboardComponentsUtil from "Common/Utils/Dashboard/Components/Index";
 import DashboardChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardChartComponent";
@@ -946,7 +947,9 @@ describe("Authoring a Dashboard, against the product", () => {
     expect(wizard).toContain('title="Create a dashboard"');
     expect(wizard).toContain('submitButtonText="Create Dashboard"');
     expect(wizard).toContain('nextButtonText: "Use this template"');
-    expect(wizard).toContain('title="More fields"');
+    // Every form's More fields, by its shared title.
+    expect(wizard).toContain("title={MORE_FIELDS_SECTION_TITLE}");
+    expect(MORE_FIELDS_SECTION_TITLE).toBe("More fields");
     expect(wizard).toContain('title="Back"');
     expect(step).toContain('tx("Start from scratch")');
     expect(step).toContain('tx("Or start from a template")');

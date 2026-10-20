@@ -56,6 +56,7 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import {
   SteppedModalFooter,
@@ -403,7 +404,7 @@ const CreateDashboardModal: FunctionComponent<ComponentProps> = (
          * one name and one click on Create Dashboard.
          */}
         <FoldedSection
-          title="More fields"
+          title={MORE_FIELDS_SECTION_TITLE}
           dataTestId="dashboard-more-fields"
           items={[
             {
