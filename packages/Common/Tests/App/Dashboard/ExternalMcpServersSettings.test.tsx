@@ -558,17 +558,29 @@ describe("the add / edit form", () => {
 
     render(element!);
 
-    fireEvent.click(screen.getByText("Add Header"));
+    const headers: HTMLElement = screen.getByTestId(
+      "external-mcp-server-headers",
+    );
+    // One empty row from the start, ready to type into; nothing sent yet.
+    const names: Array<HTMLElement> = within(headers).getAllByRole("combobox");
+    expect(names).toHaveLength(1);
+    expect(names[0]).toHaveValue("");
+    expect(onChange).not.toHaveBeenCalled();
+    // The value: typed masked, like the Token and the Client Secret.
+    const value: HTMLElement = within(headers).getByTestId(
+      "external-mcp-server-header-value-0",
+    );
+    expect(value).toHaveAttribute("type", "password");
+    expect(value).toHaveAttribute("placeholder", "Value");
 
-    const inputs: Array<HTMLElement> = within(
-      screen.getByTestId("external-mcp-server-headers"),
-    ).getAllByRole("combobox");
-    expect(inputs).toHaveLength(2);
-
-    fireEvent.change(inputs[0]!, { target: { value: "X-API-Key" } });
-    fireEvent.change(inputs[1]!, { target: { value: "abc" } });
+    fireEvent.change(names[0]!, { target: { value: "X-API-Key" } });
+    fireEvent.change(value, { target: { value: "abc" } });
 
     expect(onChange).toHaveBeenLastCalledWith({ "X-API-Key": "abc" });
+
+    // Add Header adds a second row.
+    fireEvent.click(screen.getByText("Add Header"));
+    expect(within(headers).getAllByRole("combobox")).toHaveLength(2);
     // A header's value is text: no choice of type.
     expect(screen.queryByText("Number")).not.toBeInTheDocument();
   });

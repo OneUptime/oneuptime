@@ -490,8 +490,14 @@ test.describe("Project Settings > AI > External MCP Servers", () => {
       "Sent with every request. Values are stored encrypted and never shown again.",
     );
 
-    await headers.getByText("Add Header").click();
+    // One empty row from the start, ready to type into.
+    await expect(headers.getByPlaceholder("X-API-Key")).toHaveCount(1);
     await headers.getByPlaceholder("X-API-Key").fill("X-API-Key");
+    // A value is typed masked, as the Token and the Client Secret are.
+    await expect(headers.getByPlaceholder("Value")).toHaveAttribute(
+      "type",
+      "password",
+    );
     await headers.getByPlaceholder("Value").fill("ghp_example_value");
     await shoot(page, "create-custom-headers");
 

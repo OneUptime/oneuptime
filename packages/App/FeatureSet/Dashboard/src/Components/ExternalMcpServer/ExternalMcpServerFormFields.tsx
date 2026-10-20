@@ -21,6 +21,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import Input, { InputType } from "Common/UI/Components/Input/Input";
 import React, { ReactElement } from "react";
 
 /*
@@ -144,11 +145,18 @@ export function getFormUrlProblem(values: unknown): string | null {
 /*
  * The headers, one row each: a name and its value, both text. The shared
  * key/value editor, with text values only - a header has no number or
- * yes/no.
+ * yes/no. A value is typed masked, as the Token and the Client Secret are:
+ * it is an API key more often than not, and it is never shown again.
+ *
+ * It opens on one empty row, ready to type into, rather than on a lone Add
+ * Header button: picking Custom headers says a header is coming. An empty
+ * row is nothing entered (the editor reports only what is typed), so a new
+ * server still asks for one and an edit keeps the stored ones.
  */
 function renderHeadersInput(props: CustomElementProps): ReactElement {
-  const initialValue: Dictionary<DictionaryEntryValue> =
-    readFormHeaders(props.initialValue) || {};
+  const initialValue: Dictionary<DictionaryEntryValue> = readFormHeaders(
+    props.initialValue,
+  ) || { "": "" };
 
   return (
     <div data-testid="external-mcp-server-headers">
@@ -158,6 +166,23 @@ function renderHeadersInput(props: CustomElementProps): ReactElement {
         valuePlaceholder="Value"
         addButtonSuffix="Header"
         valueTypes={[ValueType.Text]}
+        renderTextValueInput={(args: {
+          value: string;
+          onChange: (value: string) => void;
+          placeholder?: string | undefined;
+          rowIndex: number;
+        }): ReactElement => {
+          return (
+            <Input
+              type={InputType.PASSWORD}
+              value={args.value}
+              placeholder={args.placeholder}
+              onChange={args.onChange}
+              disableSpellCheck={true}
+              dataTestId={`external-mcp-server-header-value-${args.rowIndex}`}
+            />
+          );
+        }}
         onChange={(value: Dictionary<DictionaryEntryValue>) => {
           props.onChange?.(readFormHeaders(value));
         }}
