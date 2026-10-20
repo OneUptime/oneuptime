@@ -30867,7 +30867,7 @@
   "Run a shell command on one of your Runners.": "Run a shell command on one of your Runners.",
   "Runbooks › Runners › Credentials": "Runbooks › Runners › Credentials",
   "Select a Runner": "Select a Runner",
-  "Steps run in order. A manual step waits until someone ticks it off. Drag a step to move it.": "Steps run in order. A manual step waits until someone ticks it off. Drag a step to move it.",
+  "Steps run in order. A manual step waits until someone ticks it off, and a step that needs approval until someone approves it. Drag a step to move it.": "Steps run in order. A manual step waits until someone ticks it off, and a step that needs approval until someone approves it. Drag a step to move it.",
   "This runbook is turned off": "This runbook is turned off",
   "Turn on runbook": "Turn on runbook",
   "Turn this runbook on to run it.": "Turn this runbook on to run it.",

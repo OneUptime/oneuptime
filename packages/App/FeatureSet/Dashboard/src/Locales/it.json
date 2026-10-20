@@ -30867,7 +30867,7 @@
   "Run a shell command on one of your Runners.": "Esegui un comando shell su uno dei tuoi Runner.",
   "Runbooks › Runners › Credentials": "Runbooks › Runners › Credenziali",
   "Select a Runner": "Seleziona un Runner",
-  "Steps run in order. A manual step waits until someone ticks it off. Drag a step to move it.": "I passaggi vengono eseguiti in ordine. Un passaggio manuale attende che qualcuno lo spunti. Trascina un passaggio per spostarlo.",
+  "Steps run in order. A manual step waits until someone ticks it off, and a step that needs approval until someone approves it. Drag a step to move it.": "I passaggi vengono eseguiti in ordine. Un passaggio manuale attende che qualcuno lo spunti, e un passaggio che richiede approvazione che qualcuno lo approvi. Trascina un passaggio per spostarlo.",
   "This runbook is turned off": "Questo runbook è disattivato",
   "Turn on runbook": "Attiva il runbook",
   "Turn this runbook on to run it.": "Attiva questo runbook per eseguirlo.",

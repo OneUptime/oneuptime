@@ -30867,7 +30867,7 @@
   "Run a shell command on one of your Runners.": "یک فرمان shell را روی یکی از Runnerهای خود اجرا کنید.",
   "Runbooks › Runners › Credentials": "Runbooks › Runners › اعتبارنامه‌ها",
   "Select a Runner": "یک Runner انتخاب کنید",
-  "Steps run in order. A manual step waits until someone ticks it off. Drag a step to move it.": "گام‌ها به ترتیب اجرا می‌شوند. گام دستی منتظر می‌ماند تا کسی آن را تیک بزند. برای جابه‌جا کردن یک گام، آن را بکشید.",
+  "Steps run in order. A manual step waits until someone ticks it off, and a step that needs approval until someone approves it. Drag a step to move it.": "گام‌ها به ترتیب اجرا می‌شوند. گام دستی منتظر می‌ماند تا کسی آن را تیک بزند، و گامی که نیازمند تأیید است تا کسی آن را تأیید کند. برای جابه‌جا کردن یک گام، آن را بکشید.",
   "This runbook is turned off": "این رانبوک خاموش است",
   "Turn on runbook": "روشن کردن رانبوک",
   "Turn this runbook on to run it.": "برای اجرای این رانبوک، آن را روشن کنید.",

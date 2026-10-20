@@ -30867,7 +30867,7 @@
   "Run a shell command on one of your Runners.": "अपने किसी Runner पर शेल कमांड चलाएँ।",
   "Runbooks › Runners › Credentials": "Runbooks › Runners › क्रेडेंशियल",
   "Select a Runner": "Runner चुनें",
-  "Steps run in order. A manual step waits until someone ticks it off. Drag a step to move it.": "चरण क्रम से चलते हैं। मैनुअल चरण तब तक रुकता है जब तक कोई उसे चेक न करे। चरण को हिलाने के लिए उसे खींचें।",
+  "Steps run in order. A manual step waits until someone ticks it off, and a step that needs approval until someone approves it. Drag a step to move it.": "चरण क्रम से चलते हैं। मैनुअल चरण तब तक रुकता है जब तक कोई उसे चेक न करे, और जिस चरण को अनुमोदन चाहिए वह तब तक, जब तक कोई उसे अनुमोदित न करे। चरण को हिलाने के लिए उसे खींचें।",
   "This runbook is turned off": "यह रनबुक बंद है",
   "Turn on runbook": "रनबुक चालू करें",
   "Turn this runbook on to run it.": "इसे चलाने के लिए यह रनबुक चालू करें।",

@@ -30867,7 +30867,7 @@
   "Run a shell command on one of your Runners.": "Kör ett shell-kommando på en av dina Runners.",
   "Runbooks › Runners › Credentials": "Runbooks › Runners › Autentiseringsuppgifter",
   "Select a Runner": "Välj en Runner",
-  "Steps run in order. A manual step waits until someone ticks it off. Drag a step to move it.": "Stegen körs i ordning. Ett manuellt steg väntar tills någon bockar av det. Dra ett steg för att flytta det.",
+  "Steps run in order. A manual step waits until someone ticks it off, and a step that needs approval until someone approves it. Drag a step to move it.": "Stegen körs i ordning. Ett manuellt steg väntar tills någon bockar av det, och ett steg som kräver godkännande tills någon godkänner det. Dra ett steg för att flytta det.",
   "This runbook is turned off": "Den här runbooken är avstängd",
   "Turn on runbook": "Slå på runbook",
   "Turn this runbook on to run it.": "Slå på den här runbooken för att köra den.",

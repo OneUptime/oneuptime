@@ -2026,7 +2026,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <Fragment>
       <Card
         title="Runbook Steps"
-        description="Steps run in order. A manual step waits until someone ticks it off. Drag a step to move it."
+        description="Steps run in order. A manual step waits until someone ticks it off, and a step that needs approval until someone approves it. Drag a step to move it."
         rightElement={
           steps.length > 0 ? (
             <div className="flex items-center gap-2">

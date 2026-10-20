@@ -30867,7 +30867,7 @@
   "Run a shell command on one of your Runners.": "Runner のいずれかでシェルコマンドを実行します。",
   "Runbooks › Runners › Credentials": "Runbook › Runner › 認証情報",
   "Select a Runner": "Runner を選択",
-  "Steps run in order. A manual step waits until someone ticks it off. Drag a step to move it.": "ステップは順番に実行されます。手動ステップは誰かがチェックを入れるまで待ちます。ステップをドラッグすると移動できます。",
+  "Steps run in order. A manual step waits until someone ticks it off, and a step that needs approval until someone approves it. Drag a step to move it.": "ステップは順番に実行されます。手動ステップは誰かがチェックを入れるまで、承認が必要なステップは誰かが承認するまで待ちます。ステップをドラッグすると移動できます。",
   "This runbook is turned off": "この Runbook はオフになっています",
   "Turn on runbook": "Runbook をオンにする",
   "Turn this runbook on to run it.": "実行するには、この Runbook をオンにしてください。",

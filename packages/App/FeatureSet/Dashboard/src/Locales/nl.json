@@ -30867,7 +30867,7 @@
   "Run a shell command on one of your Runners.": "Voer een shell-opdracht uit op een van je Runners.",
   "Runbooks › Runners › Credentials": "Runbooks › Runners › Inloggegevens",
   "Select a Runner": "Selecteer een Runner",
-  "Steps run in order. A manual step waits until someone ticks it off. Drag a step to move it.": "Stappen worden op volgorde uitgevoerd. Een handmatige stap wacht tot iemand hem afvinkt. Sleep een stap om hem te verplaatsen.",
+  "Steps run in order. A manual step waits until someone ticks it off, and a step that needs approval until someone approves it. Drag a step to move it.": "Stappen worden op volgorde uitgevoerd. Een handmatige stap wacht tot iemand hem afvinkt, en een stap die goedkeuring nodig heeft tot iemand hem goedkeurt. Sleep een stap om hem te verplaatsen.",
   "This runbook is turned off": "Dit runbook is uitgeschakeld",
   "Turn on runbook": "Runbook inschakelen",
   "Turn this runbook on to run it.": "Schakel dit runbook in om het uit te voeren.",

@@ -30867,7 +30867,7 @@
   "Run a shell command on one of your Runners.": "Kjør en shell-kommando på en av Runnerne dine.",
   "Runbooks › Runners › Credentials": "Runbooks › Runners › Påloggingsinformasjon",
   "Select a Runner": "Velg en Runner",
-  "Steps run in order. A manual step waits until someone ticks it off. Drag a step to move it.": "Trinnene kjøres i rekkefølge. Et manuelt trinn venter til noen krysser det av. Dra et trinn for å flytte det.",
+  "Steps run in order. A manual step waits until someone ticks it off, and a step that needs approval until someone approves it. Drag a step to move it.": "Trinnene kjøres i rekkefølge. Et manuelt trinn venter til noen krysser det av, og et trinn som krever godkjenning, til noen godkjenner det. Dra et trinn for å flytte det.",
   "This runbook is turned off": "Denne runbooken er slått av",
   "Turn on runbook": "Slå på runbook",
   "Turn this runbook on to run it.": "Slå på denne runbooken for å kjøre den.",

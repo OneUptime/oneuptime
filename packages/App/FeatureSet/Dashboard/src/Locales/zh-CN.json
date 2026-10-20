@@ -30867,7 +30867,7 @@
   "Run a shell command on one of your Runners.": "在您的某个 Runner 上运行 shell 命令。",
   "Runbooks › Runners › Credentials": "Runbooks › Runners › 凭据",
   "Select a Runner": "选择 Runner",
-  "Steps run in order. A manual step waits until someone ticks it off. Drag a step to move it.": "步骤按顺序运行。手动步骤会等到有人将其勾选。拖动步骤即可移动它。",
+  "Steps run in order. A manual step waits until someone ticks it off, and a step that needs approval until someone approves it. Drag a step to move it.": "步骤按顺序运行。手动步骤会等到有人将其勾选，需要批准的步骤会等到有人将其批准。拖动步骤即可移动它。",
   "This runbook is turned off": "此运行手册已关闭",
   "Turn on runbook": "开启运行手册",
   "Turn this runbook on to run it.": "开启此运行手册后即可运行它。",

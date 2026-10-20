@@ -30867,7 +30867,7 @@
   "Run a shell command on one of your Runners.": "Выполнить команду оболочки на одном из ваших Runner-ов.",
   "Runbooks › Runners › Credentials": "Runbooks › Runners › Учётные данные",
   "Select a Runner": "Выберите Runner",
-  "Steps run in order. A manual step waits until someone ticks it off. Drag a step to move it.": "Шаги выполняются по порядку. Ручной шаг ждёт, пока кто-нибудь его отметит. Перетащите шаг, чтобы переместить его.",
+  "Steps run in order. A manual step waits until someone ticks it off, and a step that needs approval until someone approves it. Drag a step to move it.": "Шаги выполняются по порядку. Ручной шаг ждёт, пока кто-нибудь его отметит, а шаг, которому нужно подтверждение, — пока кто-нибудь его подтвердит. Перетащите шаг, чтобы переместить его.",
   "This runbook is turned off": "Этот сценарий выключен",
   "Turn on runbook": "Включить сценарий",
   "Turn this runbook on to run it.": "Включите этот сценарий, чтобы запустить его.",
