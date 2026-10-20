@@ -31908,5 +31908,11 @@
   "Merged At": "Merged At",
   "Production Status": "Production Status",
   "Production Status At": "Production Status At",
-  "Production Summary": "Production Summary"
+  "Production Summary": "Production Summary",
+  "Admin": "Administrateur",
+  "One area": "Un domaine",
+  "Pick an area": "Choisissez un domaine",
+  "Then choose Admin, Member or Viewer.": "Puis choisissez Administrateur, Membre ou Lecteur.",
+  "Whole project": "Tout le projet",
+  "Access level": "Niveau d'accès"
 }

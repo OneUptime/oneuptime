@@ -31908,5 +31908,11 @@
   "Merged At": "Merged At",
   "Production Status": "Production Status",
   "Production Status At": "Production Status At",
-  "Production Summary": "Production Summary"
+  "Production Summary": "Production Summary",
+  "Admin": "एडमिन",
+  "One area": "एक क्षेत्र",
+  "Pick an area": "एक क्षेत्र चुनें",
+  "Then choose Admin, Member or Viewer.": "फिर एडमिन, सदस्य या दर्शक चुनें।",
+  "Whole project": "पूरा प्रोजेक्ट",
+  "Access level": "पहुँच स्तर"
 }

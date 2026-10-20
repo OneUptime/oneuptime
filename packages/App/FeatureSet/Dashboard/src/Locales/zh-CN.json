@@ -31908,5 +31908,11 @@
   "Merged At": "Merged At",
   "Production Status": "Production Status",
   "Production Status At": "Production Status At",
-  "Production Summary": "Production Summary"
+  "Production Summary": "Production Summary",
+  "Admin": "管理员",
+  "One area": "单个模块",
+  "Pick an area": "选择一个模块",
+  "Then choose Admin, Member or Viewer.": "然后选择管理员、成员或查看者。",
+  "Whole project": "整个项目",
+  "Access level": "访问级别"
 }

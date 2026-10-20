@@ -31908,5 +31908,11 @@
   "Merged At": "Merged At",
   "Production Status": "Production Status",
   "Production Status At": "Production Status At",
-  "Production Summary": "Production Summary"
+  "Production Summary": "Production Summary",
+  "Admin": "관리자",
+  "One area": "특정 영역",
+  "Pick an area": "영역 선택",
+  "Then choose Admin, Member or Viewer.": "그런 다음 관리자, 구성원, 뷰어 중에서 선택하세요.",
+  "Whole project": "프로젝트 전체",
+  "Access level": "액세스 수준"
 }

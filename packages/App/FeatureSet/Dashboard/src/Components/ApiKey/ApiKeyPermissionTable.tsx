@@ -21,7 +21,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ApiKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
 import Label from "Common/Models/DatabaseModels/Label";
 import Project from "Common/Models/DatabaseModels/Project";
-import { getRoleCardSelectOptions } from "../Permission/RoleCardSelectOptions";
+import { getRolePickerFormField } from "../Permission/RolePickerFormField";
 import PermissionScopeCell from "../Permission/PermissionScopeCell";
 import {
   ADD_PERMISSION_DIALOG_WORDS,
@@ -40,10 +40,11 @@ import React, {
  * Advanced section - what it may never do.
  *
  * What it may do is added the way a team's is (Components/Team/
- * TeamPermissionTable): Add Role picks a ready-made set of permissions from
- * cards, Add Permission picks one permission from the full list. A new key
- * created with Choose permissions later lands here with nothing, so the
- * empty table repeats Add Role as the way forward.
+ * TeamPermissionTable): Add Role picks a ready-made set of permissions - a
+ * role for the whole project, or for one area of it - from the role picker
+ * (Permission/RolePicker), Add Permission picks one permission from the
+ * full list. A new key created with Choose permissions later lands here
+ * with nothing, so the empty table repeats Add Role as the way forward.
  *
  * Block permissions keep the one-permission form they always had.
  */
@@ -202,24 +203,14 @@ const ApiKeyPermissionTable: FunctionComponent<ComponentProps> = (
   ];
 
   /*
-   * Add Role: the role cards. A row is edited with the one-permission form
-   * whichever way it was added - its picker lists the roles too - so the
-   * cards are for creating only, and the picker for editing only.
+   * Add Role: the role picker. A row is edited with the one-permission form
+   * whichever way it was added - its list holds the roles too - so the role
+   * picker is for adding only, and the one-permission list for editing.
    */
   const roleFormFields: Array<ModelField<ApiKeyPermission>> = [
-    {
-      field: {
-        permission: true,
-      },
-      title: "Role",
-      description:
-        "A role is a ready-made set of permissions. The key can do what the role allows in the whole project.",
-      fieldType: FormFieldSchemaType.CardSelect,
-      cardSelectOptions: getRoleCardSelectOptions(),
-      required: true,
-      placeholder: "Select a role",
+    getRolePickerFormField<ApiKeyPermission>({
       doNotShowWhenEditing: true,
-    },
+    }),
     ...granularFormFields.map(
       (field: ModelField<ApiKeyPermission>): ModelField<ApiKeyPermission> => {
         return {
@@ -266,7 +257,20 @@ const ApiKeyPermissionTable: FunctionComponent<ComponentProps> = (
         isBlock ? undefined : createDialogWords.submitButtonText
       }
       isViewable={false}
-      createEditModalWidth={ModalWidth.Large}
+      /*
+       * The role picker reads best in a dialog of its own size; the full
+       * list of permissions, which Edit and a block use, keeps the wide one.
+       */
+      createEditModalWidth={
+        !isBlock && createPermissionType === CreatePermissionType.RoleBased
+          ? ModalWidth.Medium
+          : ModalWidth.Large
+      }
+      onBeforeEdit={(item: ApiKeyPermission): Promise<ApiKeyPermission> => {
+        // Edit is the one-permission list, whichever way the row was added.
+        setCreatePermissionType(CreatePermissionType.Granular);
+        return Promise.resolve(item);
+      }}
       createEditFromRef={formRef}
       query={{
         apiKeyId: apiKeyId,

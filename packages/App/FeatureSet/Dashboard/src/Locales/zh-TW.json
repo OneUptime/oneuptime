@@ -31908,5 +31908,11 @@
   "Merged At": "Merged At",
   "Production Status": "Production Status",
   "Production Status At": "Production Status At",
-  "Production Summary": "Production Summary"
+  "Production Summary": "Production Summary",
+  "Admin": "管理員",
+  "One area": "單一模組",
+  "Pick an area": "選擇一個模組",
+  "Then choose Admin, Member or Viewer.": "然後選擇管理員、成員或檢視者。",
+  "Whole project": "整個專案",
+  "Access level": "存取層級"
 }

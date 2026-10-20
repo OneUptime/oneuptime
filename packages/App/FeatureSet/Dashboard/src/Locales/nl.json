@@ -31908,5 +31908,11 @@
   "Merged At": "Merged At",
   "Production Status": "Production Status",
   "Production Status At": "Production Status At",
-  "Production Summary": "Production Summary"
+  "Production Summary": "Production Summary",
+  "Admin": "Beheerder",
+  "One area": "Eén onderdeel",
+  "Pick an area": "Kies een onderdeel",
+  "Then choose Admin, Member or Viewer.": "Kies daarna Beheerder, Lid of Kijker.",
+  "Whole project": "Hele project",
+  "Access level": "Toegangsniveau"
 }

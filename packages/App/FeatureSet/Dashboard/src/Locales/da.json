@@ -31908,5 +31908,11 @@
   "Merged At": "Merged At",
   "Production Status": "Production Status",
   "Production Status At": "Production Status At",
-  "Production Summary": "Production Summary"
+  "Production Summary": "Production Summary",
+  "Admin": "Administrator",
+  "One area": "Ét område",
+  "Pick an area": "Vælg et område",
+  "Then choose Admin, Member or Viewer.": "Vælg derefter Administrator, Medlem eller Seer.",
+  "Whole project": "Hele projektet",
+  "Access level": "Adgangsniveau"
 }

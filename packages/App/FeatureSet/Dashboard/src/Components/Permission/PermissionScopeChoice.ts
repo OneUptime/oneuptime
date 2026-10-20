@@ -2,8 +2,10 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import Label from "Common/Models/DatabaseModels/Label";
 import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
 import type { ModelField } from "Common/UI/Components/Forms/ModelForm";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import type { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
 import SelectFormFields from "Common/UI/Types/SelectEntityField";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -36,6 +38,17 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * One list for both forms and for both tables' Scope column, so an answer
  * reads the same wherever it is picked or shown. React-free, so App's
  * tests read it without rendering a page.
+ *
+ * FOLDED UNDER MORE FIELDS. All resources in the project is what most
+ * teams want - its own line says "Recommended for most teams." - so the
+ * Scope waits folded under the form's More fields line, as every rarely
+ * changed setting does, and the Add a Role and Add a Permission dialogs
+ * ask for the role or the permission alone ("it gives a lot of
+ * information to the user", the maintainer, on Add a Role). Folded, the
+ * line names Scope - and a row narrowed to owned resources or to labels
+ * says so on the same line ("Scope: Only resources they own"), so Edit
+ * never hides it. A labels answer left without a label opens the fold by
+ * itself.
  */
 
 export const PERMISSION_SCOPE_FIELD_TITLE: string = translationKey("Scope");
@@ -184,7 +197,7 @@ export interface PermissionScopeFieldsOptions<TEntity> {
 
 /**
  * The Scope choice and the labels it may ask for, for a team's permission
- * and a custom role's permission alike.
+ * and a custom role's permission alike, folded under More fields.
  *
  * - Scope: the three answers, All picked to start with. Picking All or
  *   "Only resources they own" clears the labels, which would otherwise be
@@ -208,6 +221,10 @@ export const getPermissionScopeFields: <TEntity extends BaseModel>(
     );
   };
 
+  // One fold for both: the line names the Scope, and the labels once asked.
+  const moreFields: FormFieldCollapsibleSection<TEntity> =
+    getAdvancedFormSection<TEntity>();
+
   return [
     {
       field: { scope: true } as unknown as SelectFormFields<TEntity>,
@@ -219,6 +236,7 @@ export const getPermissionScopeFields: <TEntity extends BaseModel>(
       required: true,
       dataTestId: "permission-scope",
       showIf: options.isScopeShown,
+      collapsibleSection: moreFields,
       onChange: (
         value: unknown,
         currentValues: FormValues<TEntity>,
@@ -250,6 +268,7 @@ export const getPermissionScopeFields: <TEntity extends BaseModel>(
       },
       placeholder: "Select labels",
       showIf: isLabelsShown,
+      collapsibleSection: moreFields,
       required: (values: FormValues<TEntity>): boolean => {
         return options.isScopeShown(values) && isLabelsScopePicked(values);
       },

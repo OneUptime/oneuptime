@@ -31908,5 +31908,11 @@
   "Merged At": "Merged At",
   "Production Status": "Production Status",
   "Production Status At": "Production Status At",
-  "Production Summary": "Production Summary"
+  "Production Summary": "Production Summary",
+  "Admin": "Admin",
+  "One area": "One area",
+  "Pick an area": "Pick an area",
+  "Then choose Admin, Member or Viewer.": "Then choose Admin, Member or Viewer.",
+  "Whole project": "Whole project",
+  "Access level": "Access level"
 }

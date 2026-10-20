@@ -19,15 +19,10 @@ import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import Project from "Common/Models/DatabaseModels/Project";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import {
-  CardSelectOption,
-  CardSelectOptionGroup,
-} from "Common/UI/Components/CardSelect/CardSelect";
 import IconProp from "Common/Types/Icon/IconProp";
-import {
-  getRoleCardSelectOptions,
-  isBuiltInRolePermission,
-} from "../Permission/RoleCardSelectOptions";
+import { isBuiltInRolePermission } from "../Permission/RoleCardSelectOptions";
+import { RoleReach } from "../Permission/RoleCatalog";
+import { getRolePickerFormField } from "../Permission/RolePickerFormField";
 import { getPermissionScopeFields } from "../Permission/PermissionScopeChoice";
 import PermissionScopeCell from "../Permission/PermissionScopeCell";
 import {
@@ -47,10 +42,11 @@ import React, {
  * Permissions page's folded Advanced section - what they may never do.
  *
  * Both are added the same two ways: Add Role picks a ready-made set of
- * permissions from cards (RoleCardSelectOptions, the list an API key's Add
- * Role shows), Add Permission picks one permission from the full list. A new
- * team created with Choose permissions later lands here with nothing, so the
- * empty table repeats Add Role as the way forward.
+ * permissions - a role for the whole project, or for one area of it - from
+ * the role picker an API key's and a custom role's Add Role show too
+ * (Permission/RolePicker); Add Permission picks one permission from the
+ * full list. A new team created with Choose permissions later lands here
+ * with nothing, so the empty table repeats Add Role as the way forward.
  */
 
 export enum PermissionType {
@@ -86,10 +82,6 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
     useState<CreatePermissionType>(CreatePermissionType.RoleBased);
 
   const [showCreateForm, setShowCreateForm] = useState<boolean>(false);
-
-  // The same role cards an API key's Add Role offers (RoleCardSelectOptions).
-  const roleCardSelectOptions: Array<CardSelectOption | CardSelectOptionGroup> =
-    getRoleCardSelectOptions();
 
   // What the Add dialog is called: what the button that opened it said.
   const createDialogWords: AddPermissionDialogWords =
@@ -167,7 +159,15 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
       createFormTitle={createDialogWords.title}
       createFormSubmitButtonText={createDialogWords.submitButtonText}
       name={"Settings > Team > Permissions-" + permissionType}
-      createEditModalWidth={ModalWidth.Large}
+      /*
+       * The role picker reads best in a dialog of its own size; the full
+       * list of permissions keeps the wide one.
+       */
+      createEditModalWidth={
+        createPermissionType === CreatePermissionType.RoleBased
+          ? ModalWidth.Medium
+          : ModalWidth.Large
+      }
       isViewable={false}
       createEditFromRef={formRef}
       onBeforeEdit={(item: TeamPermission): Promise<TeamPermission> => {
@@ -236,11 +236,13 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
       formFields={
         createPermissionType === CreatePermissionType.RoleBased
           ? [
-              {
-                field: {
-                  permission: true,
-                },
-                onChange: async (value: any): Promise<void> => {
+              /*
+               * The role picker: the whole project, or one area of it. A
+               * block is usually one area's role, so its picker opens there.
+               */
+              getRolePickerFormField<TeamPermission>({
+                startOn: isBlock ? RoleReach.OneArea : RoleReach.WholeProject,
+                onChange: async (value: unknown): Promise<void> => {
                   await formRef.current.setFieldValue("labels", [], true);
                   if (
                     value &&
@@ -253,13 +255,7 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
                     );
                   }
                 },
-                title: "Role",
-                description: "A ready-made set of permissions.",
-                fieldType: FormFieldSchemaType.CardSelect,
-                cardSelectOptions: roleCardSelectOptions,
-                required: true,
-                placeholder: "Select a role",
-              },
+              }),
               /*
                * Scope: three plain answers, All first, and the labels the
                * third one asks for (PermissionScopeChoice).

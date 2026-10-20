@@ -31908,5 +31908,11 @@
   "Merged At": "Merged At",
   "Production Status": "Production Status",
   "Production Status At": "Production Status At",
-  "Production Summary": "Production Summary"
+  "Production Summary": "Production Summary",
+  "Admin": "管理者",
+  "One area": "特定の領域",
+  "Pick an area": "領域を選択",
+  "Then choose Admin, Member or Viewer.": "次に、管理者・メンバー・閲覧者から選びます。",
+  "Whole project": "プロジェクト全体",
+  "Access level": "アクセスレベル"
 }
