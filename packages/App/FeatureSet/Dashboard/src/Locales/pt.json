@@ -31664,5 +31664,7 @@
   "This is not your code: change how your code calls it, starting with {{function}}.": "Este não é o seu código: mude como o seu código a chama, começando por {{function}}.",
   "{{function}} takes {{share}} of the {{kind}} across your services.": "{{function}} ocupa {{share}} do total de {{kind}} nos seus serviços.",
   "{{function}} takes {{share}} of the {{kind}} in this window.": "{{function}} ocupa {{share}} do total de {{kind}} neste intervalo.",
-  "{{function}} takes {{share}} of the {{kind}} in {{service}}.": "{{function}} ocupa {{share}} do total de {{kind}} em {{service}}."
+  "{{function}} takes {{share}} of the {{kind}} in {{service}}.": "{{function}} ocupa {{share}} do total de {{kind}} em {{service}}.",
+  "Put back on the cluster: {{fields}}": "Revertido no cluster: {{fields}}",
+  "Temporary fix": "Correção temporária"
 }

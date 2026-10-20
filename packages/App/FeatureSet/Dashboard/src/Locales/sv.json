@@ -31664,5 +31664,7 @@
   "This is not your code: change how your code calls it, starting with {{function}}.": "Det här är inte din kod: ändra hur din kod anropar den, med början i {{function}}.",
   "{{function}} takes {{share}} of the {{kind}} across your services.": "I dina tjänster gick {{share}} av {{kind}} till {{function}}.",
   "{{function}} takes {{share}} of the {{kind}} in this window.": "{{function}} tar {{share}} av {{kind}} i det här tidsfönstret.",
-  "{{function}} takes {{share}} of the {{kind}} in {{service}}.": "I {{service}} gick {{share}} av {{kind}} till {{function}}."
+  "{{function}} takes {{share}} of the {{kind}} in {{service}}.": "I {{service}} gick {{share}} av {{kind}} till {{function}}.",
+  "Put back on the cluster: {{fields}}": "Återställt i klustret: {{fields}}",
+  "Temporary fix": "Tillfällig lösning"
 }

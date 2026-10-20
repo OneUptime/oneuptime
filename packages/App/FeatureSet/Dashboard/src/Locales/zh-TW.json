@@ -31664,5 +31664,7 @@
   "This is not your code: change how your code calls it, starting with {{function}}.": "這不是您的程式碼：請從 {{function}} 開始，修改您的程式碼呼叫它的方式。",
   "{{function}} takes {{share}} of the {{kind}} across your services.": "在您的服務中，{{function}} 佔 {{kind}} 的 {{share}}。",
   "{{function}} takes {{share}} of the {{kind}} in this window.": "在此時間範圍內，{{function}} 佔 {{kind}} 的 {{share}}。",
-  "{{function}} takes {{share}} of the {{kind}} in {{service}}.": "在 {{service}} 中，{{function}} 佔 {{kind}} 的 {{share}}。"
+  "{{function}} takes {{share}} of the {{kind}} in {{service}}.": "在 {{service}} 中，{{function}} 佔 {{kind}} 的 {{share}}。",
+  "Put back on the cluster: {{fields}}": "已在叢集中被改回：{{fields}}",
+  "Temporary fix": "暫時修復"
 }

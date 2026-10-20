@@ -31664,5 +31664,7 @@
   "This is not your code: change how your code calls it, starting with {{function}}.": "यह आपका कोड नहीं है: {{function}} से शुरू करके बदलें कि आपका कोड इसे कैसे कॉल करता है।",
   "{{function}} takes {{share}} of the {{kind}} across your services.": "आपकी सेवाओं में {{kind}} का {{share}} {{function}} में गया।",
   "{{function}} takes {{share}} of the {{kind}} in this window.": "इस अवधि में {{function}} {{kind}} का {{share}} लेता है।",
-  "{{function}} takes {{share}} of the {{kind}} in {{service}}.": "{{service}} में {{kind}} का {{share}} {{function}} में गया।"
+  "{{function}} takes {{share}} of the {{kind}} in {{service}}.": "{{service}} में {{kind}} का {{share}} {{function}} में गया।",
+  "Put back on the cluster: {{fields}}": "क्लस्टर पर वापस बदला गया: {{fields}}",
+  "Temporary fix": "अस्थायी सुधार"
 }

@@ -31664,5 +31664,7 @@
   "This is not your code: change how your code calls it, starting with {{function}}.": "Это не ваш код: измените то, как ваш код её вызывает, начиная с {{function}}.",
   "{{function}} takes {{share}} of the {{kind}} across your services.": "В ваших сервисах на {{function}} приходится {{share}} по метрике «{{kind}}».",
   "{{function}} takes {{share}} of the {{kind}} in this window.": "В этом интервале на {{function}} приходится {{share}} по метрике «{{kind}}».",
-  "{{function}} takes {{share}} of the {{kind}} in {{service}}.": "В {{service}} на {{function}} приходится {{share}} по метрике «{{kind}}»."
+  "{{function}} takes {{share}} of the {{kind}} in {{service}}.": "В {{service}} на {{function}} приходится {{share}} по метрике «{{kind}}».",
+  "Put back on the cluster: {{fields}}": "Возвращено в кластере: {{fields}}",
+  "Temporary fix": "Временное исправление"
 }

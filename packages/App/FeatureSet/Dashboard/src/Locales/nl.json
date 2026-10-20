@@ -31664,5 +31664,7 @@
   "This is not your code: change how your code calls it, starting with {{function}}.": "Dit is niet uw code: verander hoe uw code haar aanroept, te beginnen met {{function}}.",
   "{{function}} takes {{share}} of the {{kind}} across your services.": "In uw services neemt {{function}} {{share}} van de {{kind}} in.",
   "{{function}} takes {{share}} of the {{kind}} in this window.": "{{function}} neemt {{share}} van de {{kind}} in dit tijdvenster in.",
-  "{{function}} takes {{share}} of the {{kind}} in {{service}}.": "In {{service}} neemt {{function}} {{share}} van de {{kind}} in."
+  "{{function}} takes {{share}} of the {{kind}} in {{service}}.": "In {{service}} neemt {{function}} {{share}} van de {{kind}} in.",
+  "Put back on the cluster: {{fields}}": "Teruggezet op het cluster: {{fields}}",
+  "Temporary fix": "Tijdelijke oplossing"
 }

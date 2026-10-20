@@ -31664,5 +31664,7 @@
   "This is not your code: change how your code calls it, starting with {{function}}.": "これは自分のコードではありません：{{function}} から始めて、自分のコードからの呼び出し方を変えてください。",
   "{{function}} takes {{share}} of the {{kind}} across your services.": "サービス全体で {{kind}} の {{share}} が {{function}} で使われました。",
   "{{function}} takes {{share}} of the {{kind}} in this window.": "この期間、{{function}} が {{kind}} の {{share}} を占めています。",
-  "{{function}} takes {{share}} of the {{kind}} in {{service}}.": "{{service}} の {{kind}} の {{share}} が {{function}} で使われました。"
+  "{{function}} takes {{share}} of the {{kind}} in {{service}}.": "{{service}} の {{kind}} の {{share}} が {{function}} で使われました。",
+  "Put back on the cluster: {{fields}}": "クラスターで元に戻されました: {{fields}}",
+  "Temporary fix": "一時的な修正"
 }

@@ -31664,5 +31664,7 @@
   "This is not your code: change how your code calls it, starting with {{function}}.": "این کد شما نیست: نحوهٔ فراخوانی آن توسط کدتان را تغییر دهید، با شروع از {{function}}.",
   "{{function}} takes {{share}} of the {{kind}} across your services.": "در سرویس‌های شما {{share}} از {{kind}} صرف {{function}} شد.",
   "{{function}} takes {{share}} of the {{kind}} in this window.": "در این بازه {{function}} {{share}} از {{kind}} را می‌گیرد.",
-  "{{function}} takes {{share}} of the {{kind}} in {{service}}.": "در {{service}}، {{share}} از {{kind}} صرف {{function}} شد."
+  "{{function}} takes {{share}} of the {{kind}} in {{service}}.": "در {{service}}، {{share}} از {{kind}} صرف {{function}} شد.",
+  "Put back on the cluster: {{fields}}": "در خوشه برگردانده شد: {{fields}}",
+  "Temporary fix": "اصلاح موقت"
 }

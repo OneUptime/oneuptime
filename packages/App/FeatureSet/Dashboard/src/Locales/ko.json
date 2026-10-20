@@ -31664,5 +31664,7 @@
   "This is not your code: change how your code calls it, starting with {{function}}.": "내 코드가 아닙니다: {{function}}부터 시작해 내 코드가 이를 호출하는 방식을 바꾸세요.",
   "{{function}} takes {{share}} of the {{kind}} across your services.": "내 서비스 전체에서 {{function}}이(가) {{kind}}의 {{share}}을(를) 차지합니다.",
   "{{function}} takes {{share}} of the {{kind}} in this window.": "이 기간에 {{function}}이(가) {{kind}}의 {{share}}을(를) 차지합니다.",
-  "{{function}} takes {{share}} of the {{kind}} in {{service}}.": "{{service}}에서 {{function}}이(가) {{kind}}의 {{share}}을(를) 차지합니다."
+  "{{function}} takes {{share}} of the {{kind}} in {{service}}.": "{{service}}에서 {{function}}이(가) {{kind}}의 {{share}}을(를) 차지합니다.",
+  "Put back on the cluster: {{fields}}": "클러스터에서 되돌려짐: {{fields}}",
+  "Temporary fix": "임시 수정"
 }
