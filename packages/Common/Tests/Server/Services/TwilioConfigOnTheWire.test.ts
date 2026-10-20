@@ -152,9 +152,7 @@ describe("a call through a project's own Twilio config", () => {
   });
 
   test("posts the same config, its SMS numbers included", () => {
-    expect(postedConfig()).toEqual(
-      TwilioConfigJSON.toJSON(singaporeConfig()),
-    );
+    expect(postedConfig()).toEqual(TwilioConfigJSON.toJSON(singaporeConfig()));
   });
 
   test("goes out, on the other side, from the config's primary number", () => {

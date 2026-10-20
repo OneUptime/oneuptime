@@ -528,9 +528,13 @@ describe("Settings > Call & SMS", () => {
 
     expect(text(GERMAN, "More fields")).toBe("Weitere Felder");
     expect(header).toHaveAttribute("aria-expanded", "false");
-    // The folded header names the numbers in German, as a chip: they are set.
+    /*
+     * The folded header names the numbers in German, as a chip: they are
+     * set. A one-line list shows what it holds beside its name, as the
+     * Dashboard's Twilio Config form does.
+     */
     expect(setChips(header)).toEqual([
-      text(GERMAN, "Secondary Twilio Phone Numbers"),
+      `${text(GERMAN, "Secondary Twilio Phone Numbers")}: +441234567890, +461234567890`,
     ]);
     expect(
       label(dialog, text(GERMAN, "Secondary Twilio Phone Numbers")),
@@ -684,9 +688,7 @@ describe("Settings > Call & SMS", () => {
 
       await waitFor(
         () => {
-          expect(
-            screen.getByText("+6581234567, +447700900123"),
-          ).toBeVisible();
+          expect(screen.getByText("+6581234567, +447700900123")).toBeVisible();
         },
         { timeout: WAIT_FOR_TIMEOUT },
       );

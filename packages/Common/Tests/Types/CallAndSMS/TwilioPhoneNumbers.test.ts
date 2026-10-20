@@ -244,9 +244,10 @@ describe("the number each message goes out from", () => {
     for (const recipient of RECIPIENTS) {
       const sender: string = from(mixed, SMS, recipient);
 
-      expect({ recipient, fromACallNumber: callNumbers.includes(sender) }).toEqual(
-        { recipient, fromACallNumber: false },
-      );
+      expect({
+        recipient,
+        fromACallNumber: callNumbers.includes(sender),
+      }).toEqual({ recipient, fromACallNumber: false });
       expect({ recipient, sender }).toEqual({ recipient, sender: SG_MOBILE });
     }
   });
@@ -365,9 +366,9 @@ describe("a list of numbers, as a config keeps it", () => {
     expect(TwilioPhoneNumbers.parseList("  ,  ")).toEqual([]);
     expect(TwilioPhoneNumbers.parseList(undefined)).toEqual([]);
     expect(TwilioPhoneNumbers.parseList(null)).toEqual([]);
-    expect(
-      TwilioPhoneNumbers.getListEntries(42 as unknown as string),
-    ).toEqual([]);
+    expect(TwilioPhoneNumbers.getListEntries(42 as unknown as string)).toEqual(
+      [],
+    );
   });
 
   test("parses each entry as a Phone", () => {

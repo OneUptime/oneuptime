@@ -242,7 +242,7 @@ async function callRoute(
     json: jest.fn(),
     status: jest.fn().mockReturnThis(),
   } as unknown as ExpressResponse;
-  const next: jest.Mock = jest.fn();
+  const next: Mock<(...args: Array<unknown>) => unknown> = jest.fn();
 
   await handler(req, res, next as unknown as NextFunction);
 
@@ -293,7 +293,9 @@ beforeEach(() => {
   createCall = jest.fn<(...args: Array<unknown>) => Promise<unknown>>();
   createCall.mockResolvedValue({ sid: "CA-1", duration: "0" } as never);
 
-  (Twilio as unknown as jest.Mock).mockImplementation(() => {
+  (
+    Twilio as unknown as Mock<(...args: Array<unknown>) => unknown>
+  ).mockImplementation(() => {
     return {
       messages: { create: createMessage },
       calls: { create: createCall },
@@ -459,9 +461,9 @@ describe("the Notification service sending through the OneUptime server's own ac
 
     const twilioConfig: TwilioConfig | null = await getTwilioConfig();
 
-    expect(
-      (findOneBy.mock.calls[0]![0] as { select: unknown }).select,
-    ).toEqual(GLOBAL_TWILIO_CONFIG_SELECT);
+    expect((findOneBy.mock.calls[0]![0] as { select: unknown }).select).toEqual(
+      GLOBAL_TWILIO_CONFIG_SELECT,
+    );
     expect(twilioConfig!.primaryPhoneNumber.toString()).toBe(US_NUMBER);
     expect(twilioConfig!.secondaryPhoneNumbers.map(String)).toEqual([
       UK_NUMBER,
@@ -676,7 +678,10 @@ describe("Send Test SMS and Send Test Call", () => {
 
   test("Twilio refusing the test call is answered in Twilio's words too", async () => {
     createCall.mockRejectedValue(
-      twilioRefusal(21215, "Account not authorized to call +6590665484.") as never,
+      twilioRefusal(
+        21215,
+        "Account not authorized to call +6590665484.",
+      ) as never,
     );
 
     const error: unknown = await callRoute(testCallRoute(), {
@@ -731,7 +736,10 @@ describe("Twilio's refusal of an SMS from a number that cannot send SMS", () => 
     expect(
       (
         TwilioSendError.toSendError(
-          twilioRefusal(21408, "Permission to send an SMS has not been enabled."),
+          twilioRefusal(
+            21408,
+            "Permission to send an SMS has not been enabled.",
+          ),
           TwilioSendKind.SMS,
         ) as Error
       ).message,

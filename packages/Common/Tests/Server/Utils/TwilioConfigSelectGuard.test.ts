@@ -80,10 +80,7 @@ const SERVER_FILES: Array<ServerFile> = SCAN_ROOTS.flatMap(
     return listTypeScriptFiles(path.join(PACKAGES_DIR, root)).map(
       (filePath: string): ServerFile => {
         return {
-          file: path
-            .relative(PACKAGES_DIR, filePath)
-            .split(path.sep)
-            .join("/"),
+          file: path.relative(PACKAGES_DIR, filePath).split(path.sep).join("/"),
           source: fs.readFileSync(filePath, "utf8"),
         };
       },
@@ -109,8 +106,10 @@ function handSelects(serverFile: ServerFile): Array<string> {
   return found;
 }
 
-function twilioColumnsOf(model: object): Array<string> {
-  return Object.keys(getTableColumns(model as ProjectCallSMSConfig))
+function twilioColumnsOf(
+  model: ProjectCallSMSConfig | GlobalConfig,
+): Array<string> {
+  return Object.keys(getTableColumns(model))
     .filter((column: string): boolean => {
       return column.startsWith("twilio");
     })

@@ -114,7 +114,8 @@ const Settings: FunctionComponent = (): ReactElement => {
               twilioSmsPhoneNumbers: true,
             },
             title: "Twilio SMS Phone Numbers",
-            fieldType: FormFieldSchemaType.LongText,
+            // One line: most lists hold one number or two.
+            fieldType: FormFieldSchemaType.Text,
             // Optional: without them, SMS go out from the numbers calls do.
             required: false,
             collapsibleSection: advancedSection,
@@ -133,7 +134,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               twilioSecondaryPhoneNumbers: true,
             },
             title: "Secondary Twilio Phone Numbers",
-            fieldType: FormFieldSchemaType.LongText,
+            fieldType: FormFieldSchemaType.Text,
             /*
              * Optional, as the server treats it: without extra numbers every
              * call and SMS goes out from the primary number.

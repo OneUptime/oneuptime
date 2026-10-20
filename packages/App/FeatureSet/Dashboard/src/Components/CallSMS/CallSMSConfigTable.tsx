@@ -405,7 +405,8 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             },
             title: "Twilio SMS Phone Numbers",
             stepId: "twilio-info",
-            fieldType: FormFieldSchemaType.LongText,
+            // One line: most lists hold one number or two.
+            fieldType: FormFieldSchemaType.Text,
             required: false,
             collapsibleSection: moreNumbersSection,
             description: TwilioConfigNumbersCopy.smsPhoneNumbersDescription,
@@ -423,7 +424,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             },
             title: "Twilio Secondary Phone Numbers",
             stepId: "twilio-info",
-            fieldType: FormFieldSchemaType.LongText,
+            fieldType: FormFieldSchemaType.Text,
             required: false,
             collapsibleSection: moreNumbersSection,
             description:
@@ -432,7 +433,9 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             customValidation: (
               values: FormValues<ProjectCallSMSConfig>,
             ): string | null => {
-              return getPhoneNumberListError(values.twilioSecondaryPhoneNumbers);
+              return getPhoneNumberListError(
+                values.twilioSecondaryPhoneNumbers,
+              );
             },
           },
         ]}

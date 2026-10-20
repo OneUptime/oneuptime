@@ -94,7 +94,13 @@ function buildConfig(
   return config;
 }
 
-function asText(config: TwilioConfig | undefined): Record<string, unknown> {
+interface ConfigNumbers {
+  primary: string | undefined;
+  secondary: Array<string> | undefined;
+  sms: Array<string> | undefined;
+}
+
+function asText(config: TwilioConfig | undefined): ConfigNumbers {
   return {
     primary: config?.primaryPhoneNumber.toString(),
     secondary: config?.secondaryPhoneNumbers.map(String),
@@ -154,7 +160,9 @@ describe("ProjectCallSMSConfigService.toTwilioConfig", () => {
 
   test("a config without SMS numbers comes out exactly as before: no SMS numbers at all", () => {
     const twilioConfig: TwilioConfig | undefined =
-      ProjectCallSMSConfigService.toTwilioConfig(buildConfig({ secondary: UK }));
+      ProjectCallSMSConfigService.toTwilioConfig(
+        buildConfig({ secondary: UK }),
+      );
 
     expect(twilioConfig).toBeDefined();
     expect("smsPhoneNumbers" in twilioConfig!).toBe(false);
@@ -168,8 +176,9 @@ describe("ProjectCallSMSConfigService.toTwilioConfig", () => {
   test("an emptied list of SMS numbers is none", () => {
     for (const emptied of ["", " , ", ";\n"]) {
       expect(
-        ProjectCallSMSConfigService.toTwilioConfig(buildConfig({ sms: emptied }))
-          ?.smsPhoneNumbers,
+        ProjectCallSMSConfigService.toTwilioConfig(
+          buildConfig({ sms: emptied }),
+        )?.smsPhoneNumbers,
       ).toBeUndefined();
     }
   });

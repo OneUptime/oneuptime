@@ -1,7 +1,9 @@
+import IconProp from "Common/Types/Icon/IconProp";
 import Phone from "Common/Types/Phone";
+import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import {
+import TwilioConfigNumbersCopy, {
   getTwilioConfigNumberLines,
   TwilioConfigNumberLine,
 } from "./TwilioConfigNumbersCopy";
@@ -18,7 +20,10 @@ export interface ComponentProps {
  * The numbers a Twilio config sends from, in its row of the Twilio Config
  * table: its primary number alone, as before, or - when SMS have numbers of
  * their own - the number calls go out from and the first SMS goes out from,
- * each saying which it sends (TwilioConfigNumbersCopy).
+ * each marked with what it sends: the handset and message icons the row's
+ * Send Test Call and Send Test SMS actions use, named for screen readers
+ * and on hover (TwilioConfigNumbersCopy). Icons rather than words keep the
+ * column as narrow as one number, so the table's other columns stay in view.
  */
 const TwilioConfigPhoneNumbers: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -34,21 +39,33 @@ const TwilioConfigPhoneNumbers: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div className="space-y-0.5" data-testid="twilio-config-phone-numbers">
+    <div className="space-y-1" data-testid="twilio-config-phone-numbers">
       {lines.map((line: TwilioConfigNumberLine): ReactElement => {
+        const label: string | null = line.label
+          ? translator.translateText(line.label) || line.label
+          : null;
+
         return (
           <div
             key={`${line.label || "all"}-${line.phoneNumber}`}
-            className="flex items-baseline gap-2"
+            className="flex items-center gap-1.5"
+            title={label || undefined}
           >
-            <span className="text-gray-900">{line.phoneNumber}</span>
-            {line.label ? (
-              <span className="text-xs text-gray-500">
-                {translator.translateText(line.label)}
-              </span>
+            {label ? (
+              <Icon
+                icon={
+                  line.label === TwilioConfigNumbersCopy.smsLabel
+                    ? IconProp.SMS
+                    : IconProp.Call
+                }
+                size={SizeProp.Small}
+                className="h-4 w-4 flex-none text-gray-400"
+                ariaLabel={label}
+              />
             ) : (
               <></>
             )}
+            <span className="text-gray-900">{line.phoneNumber}</span>
           </div>
         );
       })}

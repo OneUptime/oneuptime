@@ -41,9 +41,7 @@ function locale(language: string): Record<string, string> {
 describe("getPhoneNumberListError", () => {
   test("says nothing of a good list, an empty one, or a value that is not text", () => {
     expect(getPhoneNumberListError("+447700900123, +46701234567")).toBe(null);
-    expect(getPhoneNumberListError("+447700900123;+46701234567\n")).toBe(
-      null,
-    );
+    expect(getPhoneNumberListError("+447700900123;+46701234567\n")).toBe(null);
     expect(getPhoneNumberListError("")).toBe(null);
     expect(getPhoneNumberListError(" , ")).toBe(null);
     expect(getPhoneNumberListError(undefined)).toBe(null);

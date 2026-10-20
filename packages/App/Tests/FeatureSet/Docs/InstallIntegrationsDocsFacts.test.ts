@@ -2585,7 +2585,7 @@ describe("Twilio Integration, against the notification server and the forms", ()
       const table: string = readSource("callSmsConfigTable");
       const admin: string = readSource("adminCallSms");
 
-      // The SMS numbers are a folded, comma-separated list on both forms.
+      // The SMS numbers are a folded, one-line list on both forms.
       for (const source of [table, admin]) {
         const field: string = blockFrom(
           source,
@@ -2594,7 +2594,7 @@ describe("Twilio Integration, against the notification server and the forms", ()
         );
 
         expect(field).toContain('title: "Twilio SMS Phone Numbers",');
-        expect(field).toContain("FormFieldSchemaType.LongText");
+        expect(field).toContain("FormFieldSchemaType.Text,");
         expect(field).toContain("collapsibleSection:");
         expect(field).toContain("required: false,");
       }
@@ -2658,9 +2658,9 @@ describe("Twilio Integration, against the notification server and the forms", ()
       expect(section).toContain(
         "If Twilio refuses an SMS with error 21606, the number cannot send SMS: add one that can to **Twilio SMS Phone Numbers**.",
       );
-      expect(
-        rowOf(page, "Twilio refuses SMS with error 21606")[1],
-      ).toContain("Add one that can to **Twilio SMS Phone Numbers**");
+      expect(rowOf(page, "Twilio refuses SMS with error 21606")[1]).toContain(
+        "Add one that can to **Twilio SMS Phone Numbers**",
+      );
     });
 
     it("links Twilio's own Singapore SMS guidelines by their address", () => {

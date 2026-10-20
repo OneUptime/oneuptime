@@ -18,7 +18,9 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * exactly as they did. Adding a nullable column without a default rewrites
  * no rows.
  */
-export class AddTwilioSmsPhoneNumbers1804700000000 implements MigrationInterface {
+export class AddTwilioSmsPhoneNumbers1804700000000
+  implements MigrationInterface
+{
   public name: string = "AddTwilioSmsPhoneNumbers1804700000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {

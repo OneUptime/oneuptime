@@ -101,7 +101,10 @@ export default class TwilioPhoneNumbers {
    * turned away when it is typed, not when an alert goes out. An absent or
    * emptied list passes.
    */
-  public static assertListIsValid(data: { title: string; text: unknown }): void {
+  public static assertListIsValid(data: {
+    title: string;
+    text: unknown;
+  }): void {
     if (data.text === undefined || data.text === null) {
       return;
     }

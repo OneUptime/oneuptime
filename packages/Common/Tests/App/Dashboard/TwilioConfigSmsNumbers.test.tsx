@@ -325,12 +325,9 @@ async function openForm(kind: "create" | "edit"): Promise<void> {
  */
 async function type(label: string, value: string): Promise<void> {
   await act(async (): Promise<void> => {
-    fireEvent.change(
-      within(dialog()).getByLabelText(label, { exact: false }),
-      {
-        target: { value },
-      },
-    );
+    fireEvent.change(within(dialog()).getByLabelText(label, { exact: false }), {
+      target: { value },
+    });
   });
 }
 
@@ -617,8 +614,11 @@ describe("the Twilio Config table", () => {
     expect(cell).toHaveTextContent(SG_MOBILE);
     // The rest of the list is in the config's Edit dialog.
     expect(cell).not.toHaveTextContent(UK);
-    expect(within(cell).getByText("Phone Calls")).toBeVisible();
-    expect(within(cell).getByText("SMS")).toBeVisible();
+    // Each number is marked with what it sends: an icon, named.
+    expect(
+      within(cell).getByRole("img", { name: "Phone Calls" }),
+    ).toBeVisible();
+    expect(within(cell).getByRole("img", { name: "SMS" })).toBeVisible();
   });
 });
 
@@ -633,8 +633,43 @@ describe("a config's numbers in its row", () => {
     const cell: HTMLElement = screen.getByTestId("twilio-config-phone-numbers");
 
     expect(cell).toHaveTextContent(SG_MOBILE);
-    expect(within(cell).queryByText("Phone Calls")).toBeNull();
-    expect(within(cell).queryByText("SMS")).toBeNull();
+    expect(cell.textContent).toBe(SG_MOBILE);
+    expect(within(cell).queryByRole("img")).toBeNull();
+    expect(within(cell).queryByTitle("Phone Calls")).toBeNull();
+  });
+
+  /*
+   * Icons rather than words keep the column as narrow as one number, so
+   * the table's Project Default column stays in view beside it - the
+   * handset and the message icon the row's Send Test Call and Send Test
+   * SMS use, each named for screen readers and on hover.
+   */
+  test("marks the call number with the handset and the SMS number with the message icon, named on hover", () => {
+    render(
+      <TwilioConfigPhoneNumbers
+        config={{
+          twilioPrimaryPhoneNumber: new Phone(SG_NATIONAL),
+          twilioSmsPhoneNumbers: `${SG_MOBILE}, ${UK}`,
+        }}
+      />,
+    );
+
+    const cell: HTMLElement = screen.getByTestId("twilio-config-phone-numbers");
+    const calls: HTMLElement = within(cell).getByTitle("Phone Calls");
+    const sms: HTMLElement = within(cell).getByTitle("SMS");
+
+    expect(calls).toHaveTextContent(SG_NATIONAL);
+    expect(sms).toHaveTextContent(SG_MOBILE);
+    // Calls first, then SMS.
+    expect(
+      calls.compareDocumentPosition(sms) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      within(calls).getByRole("img", { name: "Phone Calls" }),
+    ).toBeVisible();
+    expect(within(sms).getByRole("img", { name: "SMS" })).toBeVisible();
+    // No words beside the numbers: the names are the icons'.
+    expect(cell.textContent).toBe(`${SG_NATIONAL}${SG_MOBILE}`);
   });
 
   test("one with SMS numbers shows its primary and its first SMS number, calls first, each saying what it sends", () => {
@@ -706,8 +741,15 @@ describe("a config's numbers in its row", () => {
 
       expect(words["Phone Calls"]).toBeDefined();
       expect(words["Phone Calls"]).not.toBe("Phone Calls");
-      expect(within(cell).getByText(words["Phone Calls"]!)).toBeVisible();
-      expect(within(cell).getByText(words["SMS"]!)).toBeVisible();
+      expect(
+        within(cell).getByRole("img", { name: words["Phone Calls"]! }),
+      ).toBeVisible();
+      expect(within(cell).getByTitle(words["Phone Calls"]!)).toHaveTextContent(
+        SG_NATIONAL,
+      );
+      expect(
+        within(cell).getByRole("img", { name: words["SMS"]! }),
+      ).toBeVisible();
     },
   );
 });

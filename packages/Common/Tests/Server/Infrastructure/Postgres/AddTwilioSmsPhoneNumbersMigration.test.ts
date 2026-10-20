@@ -71,8 +71,11 @@ function recordingRunner(): RecordingRunner {
   return { runner: { query } as unknown as QueryRunner, statements };
 }
 
+// The two models that keep a Twilio config.
+type TwilioModelClass = typeof ProjectCallSMSConfig | typeof GlobalConfig;
+
 function typeOrmColumn(
-  target: object,
+  target: TwilioModelClass,
   propertyName: string,
 ): ColumnMetadataArgs | undefined {
   return getMetadataArgsStorage().columns.find(
@@ -148,9 +151,14 @@ describe("the migration and the models", () => {
       ColumnType.LongText,
       ColumnLength.LongText,
     ],
-  ] as Array<[object, string, ColumnType, ColumnLength]>)(
+  ] as Array<[TwilioModelClass, string, ColumnType, ColumnLength]>)(
     "describe the same column: %p.%s, nullable, without a default",
-    (target: object, column: string, type: ColumnType, length: ColumnLength) => {
+    (
+      target: TwilioModelClass,
+      column: string,
+      type: ColumnType,
+      length: ColumnLength,
+    ) => {
       const options: ColumnMetadataArgs["options"] | undefined = typeOrmColumn(
         target,
         column,
@@ -166,19 +174,23 @@ describe("the migration and the models", () => {
   );
 
   test("the list of SMS numbers is kept as the list of secondary numbers is", () => {
-    for (const target of [ProjectCallSMSConfig, GlobalConfig]) {
+    for (const target of [
+      ProjectCallSMSConfig,
+      GlobalConfig,
+    ] as Array<TwilioModelClass>) {
       for (const option of ["type", "length", "nullable", "unique"] as const) {
         expect({
-          target: (target as { name: string }).name,
+          target: target.name,
           option,
           value: typeOrmColumn(target, "twilioSmsPhoneNumbers")?.options[
             option
           ],
         }).toEqual({
-          target: (target as { name: string }).name,
+          target: target.name,
           option,
-          value: typeOrmColumn(target, "twilioSecondaryPhoneNumbers")
-            ?.options[option],
+          value: typeOrmColumn(target, "twilioSecondaryPhoneNumbers")?.options[
+            option
+          ],
         });
       }
     }
@@ -192,7 +204,9 @@ describe("the migration runs", () => {
       "utf8",
     );
 
-    expect(index).toContain(`from "./${MIGRATION_TIMESTAMP}-${MIGRATION_NAME}"`);
+    expect(index).toContain(
+      `from "./${MIGRATION_TIMESTAMP}-${MIGRATION_NAME}"`,
+    );
     expect(index).toContain(`${MIGRATION_CLASS_NAME},`);
     expect(SchemaMigrations).toContain(AddTwilioSmsPhoneNumbers1804700000000);
   });
