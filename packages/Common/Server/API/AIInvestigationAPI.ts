@@ -57,6 +57,10 @@ import {
   tracePerformanceFixSuggestionToJSON,
 } from "../../Utils/Suggestions/TracePerformanceFixSuggestion";
 import {
+  TelemetryImprovementSuggestion,
+  telemetryImprovementSuggestionToJSON,
+} from "../../Utils/Suggestions/TelemetryImprovementSuggestion";
+import {
   InvestigationEventReference,
   InvestigationEvidenceItem,
   InvestigationEvidenceRowsResponse,
@@ -1547,11 +1551,111 @@ router.post(
 );
 
 /*
+ * The body both telemetry-improvement routes take, read and checked the
+ * same way: the project scope, the service and the recipe, and the caller's
+ * own read access to the service (the trigger re-reads as root afterwards).
+ */
+interface TelemetryImprovementRequest {
+  projectId: ObjectID;
+  telemetryServiceId: ObjectID;
+  taskType: CodeFixTaskType;
+}
+
+async function readTelemetryImprovementRequest(
+  req: ExpressRequest,
+  props: DatabaseCommonInteractionProps,
+): Promise<TelemetryImprovementRequest> {
+  const projectId: ObjectID | undefined = props.tenantId;
+
+  if (!projectId) {
+    throw new BadDataException("A project scope is required.");
+  }
+
+  const telemetryServiceIdParam: string | undefined = req.body[
+    "telemetryServiceId"
+  ] as string | undefined;
+
+  if (!telemetryServiceIdParam) {
+    throw new BadDataException("telemetryServiceId is required.");
+  }
+
+  const rawTaskType: string | undefined = req.body["taskType"] as
+    | string
+    | undefined;
+
+  if (
+    rawTaskType !== CodeFixTaskType.ImproveLogging &&
+    rawTaskType !== CodeFixTaskType.ImproveTracing
+  ) {
+    throw new BadDataException(
+      `taskType must be ${CodeFixTaskType.ImproveLogging} or ${CodeFixTaskType.ImproveTracing}.`,
+    );
+  }
+
+  const telemetryServiceId: ObjectID = new ObjectID(telemetryServiceIdParam);
+
+  /*
+   * Access check under the USER's permissions: the caller must be able to
+   * read the service they are asking the agent to instrument.
+   */
+  const service: Service | null = await ServiceService.findOneById({
+    id: telemetryServiceId,
+    select: { _id: true },
+    props: props,
+  });
+
+  if (!service) {
+    throw new BadDataException(
+      "Telemetry service not found (or you do not have access to it).",
+    );
+  }
+
+  return { projectId, telemetryServiceId, taskType: rawTaskType };
+}
+
+/*
+ * What a service's Logs or Traces page offers for "Improve logging / tracing
+ * with AI": the card (Act), a link to the improvement already on its way
+ * (InProgress), or nothing (None) - decided by the gates the create route
+ * below enforces (TelemetryImprovementTaskTrigger.getSuggestion), so the
+ * page never offers an improvement the server then refuses. Body:
+ * { telemetryServiceId, taskType }. Response: { offer, aiRunId }.
+ */
+router.post(
+  "/ai-investigation/telemetry-improvement-suggestion",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const request: TelemetryImprovementRequest =
+        await readTelemetryImprovementRequest(req, props);
+
+      const suggestion: TelemetryImprovementSuggestion =
+        await TelemetryImprovementTaskTrigger.getSuggestion(request);
+
+      Response.sendJsonObjectResponse(
+        req,
+        res,
+        telemetryImprovementSuggestionToJSON(suggestion),
+      );
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
  * "Improve logging / tracing with AI" from a telemetry service's Logs or
  * Traces page: gate and enqueue a service-scoped instrumentation-
  * improvement CodeFix run (ImproveLogging / ImproveTracing). Human-
- * triggered — the click is the gate; budget, repository and per-service
- * dedupe are enforced in the trigger. Returns { aiRunId }.
+ * triggered — the click is the gate; the AI switch, budget, repository and
+ * per-service dedupe are enforced in the trigger. Returns { aiRunId }.
  */
 router.post(
   "/ai-investigation/create-telemetry-improvement-task",
@@ -1563,60 +1667,14 @@ router.post(
   ): Promise<void> => {
     try {
       const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
-
-      const projectId: ObjectID | undefined = props.tenantId;
-
-      if (!projectId) {
-        throw new BadDataException("A project scope is required.");
-      }
-
-      const telemetryServiceIdParam: string | undefined = req.body[
-        "telemetryServiceId"
-      ] as string | undefined;
-
-      if (!telemetryServiceIdParam) {
-        throw new BadDataException("telemetryServiceId is required.");
-      }
-
-      const rawTaskType: string | undefined = req.body["taskType"] as
-        | string
-        | undefined;
-
-      if (
-        rawTaskType !== CodeFixTaskType.ImproveLogging &&
-        rawTaskType !== CodeFixTaskType.ImproveTracing
-      ) {
-        throw new BadDataException(
-          `taskType must be ${CodeFixTaskType.ImproveLogging} or ${CodeFixTaskType.ImproveTracing}.`,
-        );
-      }
-
-      const telemetryServiceId: ObjectID = new ObjectID(
-        telemetryServiceIdParam,
-      );
-
-      /*
-       * Access check under the USER's permissions: the caller must be able
-       * to read the service they are asking the agent to instrument. The
-       * trigger re-reads as root afterwards.
-       */
-      const service: Service | null = await ServiceService.findOneById({
-        id: telemetryServiceId,
-        select: { _id: true },
-        props: props,
-      });
-
-      if (!service) {
-        throw new BadDataException(
-          "Telemetry service not found (or you do not have access to it).",
-        );
-      }
+      const request: TelemetryImprovementRequest =
+        await readTelemetryImprovementRequest(req, props);
 
       const run: AIRun =
         await TelemetryImprovementTaskTrigger.createTelemetryImprovementTask({
-          projectId,
-          telemetryServiceId,
-          taskType: rawTaskType,
+          projectId: request.projectId,
+          telemetryServiceId: request.telemetryServiceId,
+          taskType: request.taskType,
           userId: props.userId!,
         });
 

@@ -13,6 +13,7 @@ import TraceWaterfall from "./TraceDetail/TraceWaterfall";
 import ExceptionSegmentedControl from "../Exceptions/ExceptionSegmentedControl";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
+import { isAiOfferedForSelectedProject } from "../../Utils/UseAiOffered";
 import { PROFILE_SPAN_ID_LIMIT } from "../../Utils/TraceCorrelatedSignals";
 import {
   OperationSummary,
@@ -78,7 +79,6 @@ import CriticalPathUtil, {
   CriticalPathResult,
   SpanSelfTime,
 } from "Common/Utils/Traces/CriticalPath";
-import { isAiOffered } from "Common/Utils/Suggestions/AiSuggestion";
 import SuggestionOffer from "Common/Utils/Suggestions/SuggestionOffer";
 import {
   NO_TRACE_PERFORMANCE_FIX_SUGGESTION,
@@ -225,7 +225,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     useCallback(
       async (generation: number): Promise<void> => {
         try {
-          if (!isAiOffered(ProjectUtil.getCurrentProject())) {
+          if (!isAiOfferedForSelectedProject()) {
             setPerfFixSuggestion(NO_TRACE_PERFORMANCE_FIX_SUGGESTION);
             return;
           }

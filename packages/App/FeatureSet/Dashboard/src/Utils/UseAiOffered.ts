@@ -2,7 +2,10 @@ import Project from "Common/Models/DatabaseModels/Project";
 import ObjectID from "Common/Types/ObjectID";
 import { subscribeToModelSwitchSaved } from "Common/UI/Components/ModelSwitch/ModelSwitchEvents";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { isAiOffered } from "Common/Utils/Suggestions/AiSuggestion";
+import {
+  AiSwitchHolder,
+  isAiOffered,
+} from "Common/Utils/Suggestions/AiSuggestion";
 import { useEffect, useState } from "react";
 import { ENABLE_AI_COLUMN } from "../Components/AISettings/EnableAiColumn";
 
@@ -20,15 +23,45 @@ import { ENABLE_AI_COLUMN } from "../Components/AISettings/EnableAiColumn";
  * did not carry, reads as AI on - the server refuses an AI action either
  * way, and an unknown value must never hide a working feature.
  */
+/*
+ * The selected project's Enable AI, or null when it cannot be read: the
+ * stored copy is read from the browser's storage, and a value that will
+ * not read is an unknown one - which never hides a working feature.
+ */
+const readSelectedProject: () => AiSwitchHolder | null =
+  (): AiSwitchHolder | null => {
+    try {
+      return ProjectUtil.getCurrentProject();
+    } catch {
+      return null;
+    }
+  };
+
+const readSelectedProjectId: () => string = (): string => {
+  try {
+    return ProjectUtil.getCurrentProjectId()?.toString() || "";
+  } catch {
+    return "";
+  }
+};
+
+/*
+ * The same answer outside a render - for a callback that decides whether to
+ * ask the server for an AI suggestion at all.
+ */
+export const isAiOfferedForSelectedProject: () => boolean = (): boolean => {
+  return isAiOffered(readSelectedProject());
+};
+
 const useAiOffered: () => boolean = (): boolean => {
-  const projectId: string = ProjectUtil.getCurrentProjectId()?.toString() || "";
+  const projectId: string = readSelectedProjectId();
 
   const [isOffered, setIsOffered] = useState<boolean>(() => {
-    return isAiOffered(ProjectUtil.getCurrentProject());
+    return isAiOffered(readSelectedProject());
   });
 
   useEffect(() => {
-    setIsOffered(isAiOffered(ProjectUtil.getCurrentProject()));
+    setIsOffered(isAiOffered(readSelectedProject()));
 
     if (!projectId || !ObjectID.isValidUUID(projectId)) {
       return;

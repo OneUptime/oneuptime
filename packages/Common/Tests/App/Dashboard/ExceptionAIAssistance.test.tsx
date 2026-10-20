@@ -77,13 +77,21 @@ jest.mock("../../../UI/Utils/Navigation", () => {
   };
 });
 
-// Routes are populated with the current project id.
+/*
+ * Routes are populated with the current project id; the selected project is
+ * not loaded (read as AI on) unless a test switches AI off.
+ */
+let mockCurrentProject: { enableAi?: boolean } | null = null;
+
 jest.mock("../../../UI/Utils/Project", () => {
   return {
     __esModule: true,
     default: {
       getCurrentProjectId: (): ObjectID => {
         return new ObjectID("10000000-0000-4000-8000-000000000001");
+      },
+      getCurrentProject: (): { enableAi?: boolean } | null => {
+        return mockCurrentProject;
       },
     },
   };
@@ -220,6 +228,26 @@ function card(taskType: string): HTMLElement {
 }
 
 describe("ExceptionAIAssistance", () => {
+  test("with the project's AI switched off, says so and who can turn it on - no task cards, nothing to start", async () => {
+    mockCurrentProject = { enableAi: false };
+
+    try {
+      await renderAssistance();
+
+      expect(screen.getByTestId("exception-ai-off")).toHaveTextContent(
+        "AI features are disabled for this project",
+      );
+      expect(screen.getByTestId("exception-ai-off")).toHaveTextContent(
+        "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+      );
+      expect(screen.queryByTestId("exception-ai-ready")).toBeNull();
+      expect(screen.queryByTestId("exception-ai-task-FixException")).toBeNull();
+      expect(screen.queryByTestId("exception-ai-task-start")).toBeNull();
+    } finally {
+      mockCurrentProject = null;
+    }
+  });
+
   test("shows one card per task type, ready to start", async () => {
     await renderAssistance();
 

@@ -52,6 +52,8 @@ import {
 import { formatRelativeTime } from "../../Utils/ExceptionDetailPresentation";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import useAiOffered from "../../Utils/UseAiOffered";
+import { EnableAiCopy } from "../AISettings/ProjectAiSettingsCopy";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   translatableTerm,
@@ -84,6 +86,7 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const isAiOffered: boolean = useAiOffered();
   const exceptionId: string = props.telemetryExceptionId.toString();
   const [tasks, setTasks] = useState<Array<AIAgentTaskInfo>>([]);
   const [hasLoadedTasks, setHasLoadedTasks] = useState<boolean>(false);
@@ -258,6 +261,24 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
   const isPaused: boolean = props.isResolved || props.isArchived;
   const isBlockedBySetup: boolean = Boolean(readiness && !readiness.ready);
   const progress: AIReadinessProgress = getAIReadinessProgress(readiness);
+
+  /*
+   * AI switched off for the project: nothing here can be started (the menu
+   * does not offer this page then), so a link that still leads here says
+   * why, and who can turn AI on - and nothing else.
+   */
+  if (!isAiOffered) {
+    return (
+      <div className="space-y-4" data-testid="exception-ai-assistance">
+        <Alert
+          type={AlertType.INFO}
+          strongTitle="AI features are disabled for this project"
+          title={EnableAiCopy.whoCanTurnOn}
+          dataTestId="exception-ai-off"
+        />
+      </div>
+    );
+  }
 
   if (!hasLoadedTasks || !hasLoadedReadiness) {
     return (

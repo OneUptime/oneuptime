@@ -218,6 +218,17 @@ const AI_INVESTIGATION_ROUTES: Array<HumanOnlyRoute> = [
     firstRead: "spansRead",
   },
   {
+    // What a service's Logs or Traces page offers: the service is read first.
+    uri: "/ai-investigation/telemetry-improvement-suggestion",
+    params: {},
+    body: {
+      telemetryServiceId: SERVICE_ID.toString(),
+      taskType: CodeFixTaskType.ImproveTracing,
+    },
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "serviceRead",
+  },
+  {
     uri: "/ai-investigation/create-telemetry-improvement-task",
     params: {},
     body: {
