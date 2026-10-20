@@ -139,6 +139,23 @@ describe("get_ai_investigation on a record that waits", () => {
     });
   });
 
+  test("a one-minute wait reads in the singular", async () => {
+    jest.spyOn(AIRunService, "findBy").mockResolvedValue([] as never);
+    jest
+      .spyOn(InvestigationRuleWait, "getWaiting")
+      .mockResolvedValue({ waitUntil: WAIT_UNTIL, waitMinutes: 1 });
+
+    const result: ToolExecutionResult = await GetAIInvestigationTool.execute(
+      { incidentId: INCIDENT_ID.toString() },
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain(
+      "makes OneUptime AI wait 1 minute after it was created",
+    );
+    expect(result.dataForLlm).not.toContain("1 minutes");
+  });
+
   test("a record that does not wait reads as before", async () => {
     jest.spyOn(AIRunService, "findBy").mockResolvedValue([] as never);
     jest.spyOn(InvestigationRuleWait, "getWaiting").mockResolvedValue(null);

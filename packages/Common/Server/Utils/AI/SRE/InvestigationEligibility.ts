@@ -47,6 +47,10 @@ export default class InvestigationEligibility {
         ? details.waitMinutes
         : undefined;
     const isAfterWait: boolean = recorded && waitMinutes !== undefined;
+    // " 10 minutes", " 1 minute", or nothing without a wait.
+    const waitDuration: string = waitMinutes
+      ? ` ${waitMinutes} ${waitMinutes === 1 ? "minute" : "minutes"}`
+      : "";
     // "at creation", or "when the wait ended".
     const atDecision: string = isAfterWait
       ? "when the wait ended"
@@ -159,7 +163,7 @@ export default class InvestigationEligibility {
          * rule that made it wait - so what changed is said instead.
          */
         description: isAfterWait
-          ? `An investigation rule made OneUptime AI wait ${waitMinutes} minutes before investigating this ${kind}, and when the wait ended it matched none of ${details?.rulesChecked ? `the ${details.rulesChecked} investigation ${details.rulesChecked === 1 ? "rule" : "rules"}` : "the investigation rules"} any more: the ${kind} or the rules had changed. Only the ${kind}s that match one are investigated automatically.`
+          ? `An investigation rule made OneUptime AI wait${waitDuration} before investigating this ${kind}, and when the wait ended it matched none of ${details?.rulesChecked ? `the ${details.rulesChecked} investigation ${details.rulesChecked === 1 ? "rule" : "rules"}` : "the investigation rules"} any more: the ${kind} or the rules had changed. Only the ${kind}s that match one are investigated automatically.`
           : `${recorded ? `When this ${kind} was created, investigation rules were set up for ${kind}s, and it` : `Investigation rules are set up for ${kind}s, and this ${kind}`} ${recorded ? "matched" : "matches"} none of ${details?.rulesChecked ? `the ${details.rulesChecked} ${details.rulesChecked === 1 ? "rule" : "rules"}` : "them"}. Only the ${kind}s that match one are investigated automatically.`,
         nextStep: recorded
           ? `Review the investigation rules under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings → More settings. Changing them does not retry this ${kind}; to look into it anyway, ask OneUptime AI below.`
@@ -174,11 +178,12 @@ export default class InvestigationEligibility {
        * Only ever recorded when a rule's wait ends (InvestigationRuleWait):
        * "resolved before the investigation started" also holds when the
        * record was still open as the wait ended and resolved before the
-       * next check reached it.
+       * next check reached it. Told as what happened - the rule may have
+       * changed since - and why it waited.
        */
       resolved_before_investigation: {
         title: "Resolved before the investigation started",
-        description: `An investigation rule makes OneUptime AI wait${waitMinutes ? ` ${waitMinutes} ${waitMinutes === 1 ? "minute" : "minutes"}` : ""} before it investigates, and investigate only ${kind}s still open then. This ${kind} was resolved first, so it was not investigated.`,
+        description: `An investigation rule made OneUptime AI wait${waitDuration} to see whether this ${kind} would still be open. It was resolved first, so it was not investigated.`,
         nextStep: `To look into it anyway, ask OneUptime AI below. The wait is set on the investigation rules under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings → More settings.`,
       },
       daily_budget_exhausted: {

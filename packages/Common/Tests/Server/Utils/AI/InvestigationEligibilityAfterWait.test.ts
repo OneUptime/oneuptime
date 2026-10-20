@@ -47,7 +47,7 @@ describe("resolved_before_investigation", () => {
       code: "resolved_before_investigation",
       title: "Resolved before the investigation started",
       description:
-        "An investigation rule makes OneUptime AI wait 10 minutes before it investigates, and investigate only incidents still open then. This incident was resolved first, so it was not investigated.",
+        "An investigation rule made OneUptime AI wait 10 minutes to see whether this incident would still be open. It was resolved first, so it was not investigated.",
       nextStep:
         "To look into it anyway, ask OneUptime AI below. The wait is set on the investigation rules under Incidents → AI → Settings → More settings.",
       source: "recorded",
@@ -65,7 +65,7 @@ describe("resolved_before_investigation", () => {
       );
 
     expect(reason.description).toBe(
-      "An investigation rule makes OneUptime AI wait 30 minutes before it investigates, and investigate only alerts still open then. This alert was resolved first, so it was not investigated.",
+      "An investigation rule made OneUptime AI wait 30 minutes to see whether this alert would still be open. It was resolved first, so it was not investigated.",
     );
     expect(reason.nextStep).toContain("Alerts → AI → Settings → More settings");
   });
@@ -78,7 +78,7 @@ describe("resolved_before_investigation", () => {
         undefined,
         { waitMinutes: 1 },
       ).description,
-    ).toContain("wait 1 minute before it investigates");
+    ).toContain("wait 1 minute to see whether");
   });
 
   test("without the wait it still reads, leaving the minutes out", () => {
@@ -89,7 +89,7 @@ describe("resolved_before_investigation", () => {
       );
 
     expect(reason.description).toBe(
-      "An investigation rule makes OneUptime AI wait before it investigates, and investigate only incidents still open then. This incident was resolved first, so it was not investigated.",
+      "An investigation rule made OneUptime AI wait to see whether this incident would still be open. It was resolved first, so it was not investigated.",
     );
     expect(reason.decidedAfterWaitMinutes).toBeUndefined();
   });
@@ -217,6 +217,20 @@ describe("a decision taken when a wait ended says so", () => {
     expect(reason.description).toBe(
       "An investigation rule made OneUptime AI wait 10 minutes before investigating this incident, and when the wait ended it matched none of the 3 investigation rules any more: the incident or the rules had changed. Only the incidents that match one are investigated automatically.",
     );
+  });
+
+  test("a one-minute wait reads in the singular", () => {
+    const description: string = InvestigationEligibility.reason(
+      "no_investigation_rule_matched",
+      incident,
+      undefined,
+      { rulesChecked: 2, waitMinutes: 1 },
+    ).description;
+
+    expect(description).toContain(
+      "made OneUptime AI wait 1 minute before investigating this incident",
+    );
+    expect(description).not.toContain("1 minutes");
   });
 
   test("one rule checked reads in the singular", () => {

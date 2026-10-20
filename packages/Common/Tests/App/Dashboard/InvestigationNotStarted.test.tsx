@@ -163,7 +163,7 @@ const REASONS: Array<ReasonExample> = [
     code: "resolved_before_investigation",
     title: "Resolved before the investigation started",
     description:
-      "An investigation rule makes OneUptime AI wait 10 minutes before it investigates, and investigate only incidents still open then. This incident was resolved first, so it was not investigated.",
+      "An investigation rule made OneUptime AI wait 10 minutes to see whether this incident would still be open. It was resolved first, so it was not investigated.",
     nextStep:
       "To look into it anyway, ask OneUptime AI below. The wait is set on the investigation rules under Incidents → AI → Settings → More settings.",
   },
