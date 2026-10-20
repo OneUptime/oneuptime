@@ -19,7 +19,7 @@ import TraceAggregationService, {
 } from "../../../../../Services/TraceAggregationService";
 import SpanTreeAnalyzer, {
   AnalyzableSpan,
-} from "../../../PerfEvidence/SpanTreeAnalyzer";
+} from "../../../../../../Utils/Traces/SpanTreeAnalyzer";
 import FixPerformanceTaskTrigger from "../../FixPerformanceTaskTrigger";
 import logger from "../../../../Logger";
 import {
@@ -241,30 +241,13 @@ export default class TraceLatencyRegressionDetector implements InsightDetector {
   }
 
   /*
-   * Nanoseconds → milliseconds conversion into the analyzer's input shape
-   * (the AIInvestigationAPI conversion, kept local because the API file
-   * does not export it). Pure — the ns→ms arithmetic is unit-tested.
+   * Nanoseconds → milliseconds conversion into the analyzer's input shape -
+   * the same conversion the trace page's suggestion and the create route
+   * use (FixPerformanceTaskTrigger.toAnalyzableSpans), so all three read a
+   * trace alike. Pure — the ns→ms arithmetic is unit-tested.
    */
   public static toAnalyzableSpans(spans: Array<Span>): Array<AnalyzableSpan> {
-    return spans.map((span: Span): AnalyzableSpan => {
-      const attributes: Record<string, string> = {};
-
-      for (const [key, value] of Object.entries(span.attributes || {})) {
-        if (value !== null && value !== undefined) {
-          attributes[key] = String(value);
-        }
-      }
-
-      return {
-        spanId: span.spanId?.toString() || "",
-        parentSpanId: span.parentSpanId?.toString() || undefined,
-        name: span.name || "",
-        startMs: Number(span.startTimeUnixNano) / 1_000_000,
-        endMs: Number(span.endTimeUnixNano) / 1_000_000,
-        durationMs: Number(span.durationUnixNano) / 1_000_000,
-        attributes,
-      };
-    });
+    return FixPerformanceTaskTrigger.toAnalyzableSpans(spans);
   }
 
   /*

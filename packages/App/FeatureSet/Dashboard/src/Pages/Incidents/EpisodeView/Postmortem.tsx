@@ -31,6 +31,7 @@ import {
   toAITemplates,
 } from "../../../Components/Postmortem/PostmortemTemplates";
 import { getPostmortemCardButtons } from "../../../Components/Postmortem/PostmortemCardButtons";
+import useAiOffered from "../../../Utils/UseAiOffered";
 import ApplyPostmortemTemplateModal from "../../../Components/Postmortem/ApplyPostmortemTemplateModal";
 
 const POSTMORTEM_FORM_FIELDS: Fields<IncidentEpisode> = [
@@ -52,6 +53,7 @@ const EpisodePostmortem: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const isAiOffered: boolean = useAiOffered();
 
   const postmortemTemplates: PostmortemTemplatesState =
     usePostmortemTemplates();
@@ -128,6 +130,7 @@ const EpisodePostmortem: FunctionComponent<
           buttons: getPostmortemCardButtons({
             model: new IncidentEpisode(),
             hasTemplates: postmortemTemplates.templates.length > 0,
+            isAiOffered: isAiOffered,
             onGenerateWithAI: () => {
               setShowAIGenerateModal(true);
             },

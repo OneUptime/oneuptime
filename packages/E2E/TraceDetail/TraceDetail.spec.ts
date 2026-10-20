@@ -13,6 +13,7 @@ import path from "path";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const TRACES: Record<string, string> = {
   checkout: "4bf92f3577b34da6a3ce929d0e0e4736",
+  report: "5c2d7e8f9a0b1c2d3e4f5a6b7c8d9e0f",
   worker: "6aa85538140714b4892cd8f500735c51",
   large: "9c1d2e3f4a5b6c7d8e9fa0b1c2d3e4f5",
   orphans: "0af7651916cd43dd8448eb211c80319c",
@@ -947,18 +948,88 @@ test.describe("large and unusual traces", () => {
   });
 });
 
-test.describe("actions and related signals", () => {
-  test("fix performance with AI links to the task it created", async ({
+/*
+ * "Fix performance with AI" shows only on a trace worth fixing, saying what
+ * it found. The fixture answers the suggestion route with the real shared
+ * analysis and rule on its own spans: the checkout trace (an N+1 of 41 ms
+ * in a 1.3 s request) has nothing worth fixing, the report trace (40
+ * line-item queries, 960 ms of 1.7 s) does.
+ */
+test.describe("fix performance with AI", () => {
+  function suggestionRequests(state: FixtureState): Array<RecordedApiRequest> {
+    return state.apiRequests.filter((request: RecordedApiRequest) => {
+      return request.url.includes(
+        "/ai-investigation/performance-fix-suggestion",
+      );
+    });
+  }
+
+  test("a trace with nothing worth fixing shows no button and no note", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openLoaded(page);
 
+    await expect
+      .poll(async () => {
+        return suggestionRequests(await fixture(page)).length;
+      })
+      .toBe(1);
+    expect(suggestionRequests(await fixture(page))[0]!.body).toEqual({
+      traceId: TRACES["checkout"],
+    });
+    await expect(page.getByTestId("trace-performance-suggestion")).toHaveCount(
+      0,
+    );
+    await expect(page.getByTestId("trace-fix-performance")).toHaveCount(0);
+    await expect(page.getByText("Fix performance with AI")).toHaveCount(0);
+  });
+
+  test("a slow report with an N+1 says what it found and offers the fix", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report");
+
+    const strip: Locator = page.getByTestId("trace-performance-suggestion");
+    await expect(strip).toBeVisible();
+    await expect(strip).toHaveAttribute("data-offer", "Act");
+    await expect(page.getByTestId("trace-performance-finding")).toHaveText(
+      "The same database query ran 40 times in ReportService.build",
+    );
+    await expect(page.getByTestId("trace-performance-query")).toHaveText(
+      "SELECT * FROM line_items WHERE invoice_id = $1",
+    );
+    await expect(page.getByTestId("trace-performance-detail")).toContainText(
+      "Together they take 960 ms of this 1.72 s request.",
+    );
+    await expect(
+      strip.getByRole("button", { name: "Fix performance with AI" }),
+    ).toBeEnabled();
+    // The strip sits inside the header, above the numbers.
+    await expect(
+      page
+        .getByTestId("trace-header")
+        .getByTestId("trace-performance-suggestion"),
+    ).toHaveCount(1);
+    await screenshot(page, "performance-suggestion", false);
+  });
+
+  test("the fix links to the task it created", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report");
+
     await page.getByTestId("trace-fix-performance").click();
 
-    await expect(page.getByText("Performance fix task created")).toBeVisible();
-    await expect(page.getByTestId("trace-fix-performance")).toBeDisabled();
+    await expect(page.getByTestId("trace-fix-performance-progress")).toHaveText(
+      "OneUptime AI is working on a fix. View task progress",
+    );
+    await expect(page.getByTestId("trace-fix-performance")).toHaveCount(0);
     const state: FixtureState = await fixture(page);
     expect(
       state.apiRequests.find((request: RecordedApiRequest) => {
@@ -966,7 +1037,8 @@ test.describe("actions and related signals", () => {
           "/ai-investigation/create-performance-fix-task",
         );
       })!.body,
-    ).toEqual({ traceId: TRACES["checkout"] });
+    ).toEqual({ traceId: TRACES["report"] });
+    await screenshot(page, "performance-fix-started", false);
 
     await page.getByRole("link", { name: "View task progress" }).click();
     await expect(page.getByTestId("ai-task-page")).toContainText(
@@ -974,25 +1046,226 @@ test.describe("actions and related signals", () => {
     );
   });
 
-  test("a refused performance fix explains why", async ({
+  test("a refused fix says why beside the finding, and can be tried again", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await openLoaded(page, "checkout", "fail=perf-fix");
+    await openLoaded(page, "report", "fail=perf-fix");
 
     await page.getByTestId("trace-fix-performance").click();
 
-    await expect(
-      page.getByText("Could not create the performance fix task"),
-    ).toBeVisible();
-    await expect(
-      page.getByText(
-        "No deterministic performance pattern was found in this trace.",
-      ),
-    ).toBeVisible();
+    await expect(page.getByTestId("trace-fix-performance-error")).toContainText(
+      "Could not start the fix: No GitHub-App-connected repository exists for this project",
+    );
+    await expect(page.getByTestId("trace-fix-performance")).toBeEnabled();
   });
 
+  test("a repository disconnected since the page loaded: the refused click becomes the quiet Connect GitHub link", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report", "repo=gone");
+
+    await page.getByTestId("trace-fix-performance").click();
+
+    const strip: Locator = page.getByTestId("trace-performance-suggestion");
+    await expect(strip).toHaveAttribute("data-offer", "SetUp");
+    await expect(
+      strip.getByRole("link", { name: "Connect GitHub to fix this with AI" }),
+    ).toBeVisible();
+    // Said in the strip's own words: no refusal, no button.
+    await expect(page.getByTestId("trace-fix-performance-error")).toHaveCount(
+      0,
+    );
+    await expect(page.getByTestId("trace-fix-performance")).toHaveCount(0);
+    // The page asked again what the server offers after the refusal.
+    expect(suggestionRequests(await fixture(page))).toHaveLength(2);
+  });
+
+  test("on a wide screen the fix sits beside the finding, at the strip's right", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report");
+
+    const strip: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-performance-suggestion").boundingBox())!;
+    const finding: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-performance-finding").boundingBox())!;
+    const button: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-fix-performance").boundingBox())!;
+
+    expect(button.x).toBeGreaterThan(finding.x + finding.width);
+    expect(strip.x + strip.width - (button.x + button.width)).toBeLessThan(24);
+    // One line for the finding: the words keep their room.
+    expect(finding.height).toBeLessThan(30);
+  });
+
+  test("no repository connected: a quiet link to connect GitHub in place of the button", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report", "repo=none");
+
+    await expect(
+      page.getByTestId("trace-performance-suggestion"),
+    ).toHaveAttribute("data-offer", "SetUp");
+    await expect(page.getByTestId("trace-performance-finding")).toHaveText(
+      "The same database query ran 40 times in ReportService.build",
+    );
+    await expect(page.getByTestId("trace-fix-performance")).toHaveCount(0);
+    await screenshot(page, "performance-suggestion-connect", false);
+
+    await page
+      .getByRole("link", { name: "Connect GitHub to fix this with AI" })
+      .click();
+    await expect(page).toHaveURL(`/dashboard/${PROJECT_ID}/code`);
+    await expect(page.getByRole("heading", { name: "Code" })).toBeVisible();
+  });
+
+  test("a fix already on its way: a link to it, not a second fix", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report", "fix=running");
+
+    await expect(
+      page.getByTestId("trace-performance-suggestion"),
+    ).toHaveAttribute("data-offer", "InProgress");
+    await expect(
+      page.getByTestId("trace-fix-performance-progress"),
+    ).toContainText("OneUptime AI is working on a fix.");
+    await expect(page.getByTestId("trace-fix-performance")).toHaveCount(0);
+
+    await page.getByRole("link", { name: "View task progress" }).click();
+    await expect(page.getByTestId("ai-task-page")).toContainText(
+      "70000000-0000-4000-8000-000000000009",
+    );
+  });
+
+  test("AI switched off for the project: the page does not ask, and shows nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report", "ai=off");
+
+    await expect(page.getByTestId("trace-signals")).toBeVisible();
+    expect(suggestionRequests(await fixture(page))).toHaveLength(0);
+    await expect(page.getByTestId("trace-performance-suggestion")).toHaveCount(
+      0,
+    );
+    await expect(page.getByTestId("trace-fix-performance")).toHaveCount(0);
+  });
+
+  test("a suggestion that cannot be worked out leaves the page as it was", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report", "fail=suggestion");
+
+    await expect
+      .poll(async () => {
+        return suggestionRequests(await fixture(page)).length;
+      })
+      .toBe(1);
+    await expect(page.getByTestId("trace-performance-suggestion")).toHaveCount(
+      0,
+    );
+    await expect(page.getByTestId("trace-title")).toHaveText(
+      "GET /api/v1/reports/monthly",
+    );
+  });
+
+  test("'Show them' keeps the 40 queries in view in the waterfall and selects the first", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report");
+
+    await page.getByTestId("trace-performance-show-spans").click();
+
+    await expect(page.getByTestId("trace-search")).toHaveValue(
+      "SELECT line_items WHERE invoice_id = $1",
+    );
+    const first: string = await spanId(
+      page,
+      "SELECT line_items WHERE invoice_id = $1",
+    );
+    await expect(row(page, first)).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByTestId("trace-span-panel")).toBeVisible();
+    // The waterfall is scrolled to, its toolbar at the top of the window.
+    await expect
+      .poll(async () => {
+        return (await page.getByTestId("trace-spans").boundingBox())!.y;
+      })
+      .toBeLessThan(40);
+  });
+});
+
+/*
+ * Between a phone and lg the finding keeps the strip's width: the next step
+ * sits under its words, lined up with them, rather than beside them
+ * squeezing the words into a narrow column.
+ */
+test.describe("tablet", () => {
+  test.use({ viewport: { width: 900, height: 1000 } });
+
+  test("the next step sits under the finding, lined up with its words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report", "repo=none");
+
+    const finding: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-performance-finding").boundingBox())!;
+    const connect: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-fix-performance-connect").boundingBox())!;
+
+    expect(Math.abs(connect.x - finding.x)).toBeLessThanOrEqual(1);
+    expect(connect.y).toBeGreaterThan(finding.y + finding.height - 1);
+    expect(finding.height).toBeLessThan(30);
+    await page.getByTestId("trace-performance-suggestion").screenshot({
+      path: path.join(
+        SCREENSHOTS,
+        "tablet-performance-suggestion-connect-synthetic.png",
+      ),
+    });
+  });
+
+  test("while AI works on the fix, its line sits under the finding too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report", "fix=running");
+
+    const finding: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-performance-finding").boundingBox())!;
+    const progress: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-fix-performance-progress").boundingBox())!;
+
+    expect(Math.abs(progress.x - finding.x)).toBeLessThanOrEqual(1);
+    expect(progress.y).toBeGreaterThan(finding.y + finding.height - 1);
+    // "View task progress" is one link on one line.
+    const link: { x: number; y: number; width: number; height: number } =
+      (await page
+        .getByTestId("trace-fix-performance-progress")
+        .getByRole("link", { name: "View task progress" })
+        .boundingBox())!;
+    expect(link.height).toBeLessThan(26);
+  });
+});
+
+test.describe("actions and related signals", () => {
   test("related signals: logs, exceptions, metrics and profile", async ({
     page,
   }: {
@@ -1065,5 +1338,107 @@ test.describe("phone", () => {
 
     await page.getByTestId("span-panel-close").click();
     await expect(panel).toHaveCount(0);
+  });
+
+  test("the performance finding stacks above a full-width button", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report");
+
+    const strip: Locator = page.getByTestId("trace-performance-suggestion");
+    await expect(strip).toBeVisible();
+    const overflow: number = await page.evaluate(() => {
+      return document.documentElement.scrollWidth - window.innerWidth;
+    });
+    expect(overflow).toBeLessThanOrEqual(1);
+
+    const stripBox: { x: number; y: number; width: number; height: number } =
+      (await strip.boundingBox())!;
+    const button: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-fix-performance").boundingBox())!;
+    const finding: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-performance-finding").boundingBox())!;
+    /*
+     * Below the words, as wide as the strip's content, its label on one
+     * line: beside the clock it would break in two.
+     */
+    expect(button.y).toBeGreaterThan(finding.y + finding.height - 1);
+    expect(button.width).toBeGreaterThan(stripBox.width - 40);
+    expect(button.height).toBeLessThan(44);
+    await strip.screenshot({
+      path: path.join(
+        SCREENSHOTS,
+        "phone-performance-suggestion-synthetic.png",
+      ),
+    });
+  });
+
+  test("the Connect GitHub link and the working line keep in line with the words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [query, testId] of [
+      ["repo=none", "trace-fix-performance-connect"],
+      ["fix=running", "trace-fix-performance-progress"],
+    ]) {
+      await openLoaded(page, "report", query);
+
+      const finding: { x: number; y: number; width: number; height: number } =
+        (await page.getByTestId("trace-performance-finding").boundingBox())!;
+      const action: { x: number; y: number; width: number; height: number } =
+        (await page.getByTestId(testId!).boundingBox())!;
+
+      expect(Math.abs(action.x - finding.x)).toBeLessThanOrEqual(1);
+      expect(action.y).toBeGreaterThan(finding.y + finding.height - 1);
+    }
+  });
+
+  test("'Show them' puts the 40 queries in view with no sheet over them, the search on a row of its own", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report");
+
+    await page.getByTestId("trace-performance-show-spans").click();
+
+    await expect(page.getByTestId("trace-search")).toHaveValue(
+      "SELECT line_items WHERE invoice_id = $1",
+    );
+    await expect(page.getByTestId("trace-search-count")).toHaveText(
+      "40 matches",
+    );
+    // The sheet would cover the very spans asked for.
+    await expect(page.getByTestId("trace-span-panel")).toHaveCount(0);
+    await expect
+      .poll(async () => {
+        return (await page.getByTestId("trace-spans").boundingBox())!.y;
+      })
+      .toBeLessThan(40);
+
+    const first: string = await spanId(
+      page,
+      "SELECT line_items WHERE invoice_id = $1",
+    );
+    await expect(row(page, first)).toBeInViewport();
+
+    // The search has the row to itself, its count and arrows inside it.
+    const section: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-spans").boundingBox())!;
+    const search: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-search").boundingBox())!;
+    const count: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-search-count").boundingBox())!;
+    expect(search.x).toBeGreaterThanOrEqual(section.x);
+    expect(search.width).toBeGreaterThan(section.width - 40);
+    expect(count.x).toBeGreaterThan(search.x);
+    expect(count.x + count.width).toBeLessThanOrEqual(search.x + search.width);
+    const errorsOnly: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-errors-only").boundingBox())!;
+    expect(errorsOnly.y).toBeGreaterThanOrEqual(search.y + search.height);
+    await screenshot(page, "phone-show-them", false);
   });
 });

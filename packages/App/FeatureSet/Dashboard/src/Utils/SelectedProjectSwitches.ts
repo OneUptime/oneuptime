@@ -4,6 +4,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { subscribeToModelSwitchSaved } from "Common/UI/Components/ModelSwitch/ModelSwitchEvents";
 import { ModelSwitchColumn } from "Common/UI/Components/ModelSwitch/ModelSwitchUtil";
 import { MONITOR_GROUPS_SWITCH_COLUMN } from "../Components/MonitorGroup/MonitorGroupsSwitchCopy";
+import { ENABLE_AI_COLUMN } from "../Components/AISettings/EnableAiColumn";
 
 /*
  * The project the dashboard has selected is read once, from the project
@@ -20,10 +21,14 @@ import { MONITOR_GROUPS_SWITCH_COLUMN } from "../Components/MonitorGroup/Monitor
  * dialog reloaded the whole dashboard after saving.
  */
 
-// The selected project's columns that a switch saves and the menus read.
+/*
+ * The selected project's columns that a switch saves and the dashboard
+ * reads: Monitor Groups for the menus, and Enable AI for whether any AI
+ * action is drawn at all (Common/Utils/Suggestions/AiSuggestion).
+ */
 export const SELECTED_PROJECT_SWITCH_COLUMNS: ReadonlyArray<
   ModelSwitchColumn<Project>
-> = [MONITOR_GROUPS_SWITCH_COLUMN];
+> = [MONITOR_GROUPS_SWITCH_COLUMN, ENABLE_AI_COLUMN];
 
 /*
  * A copy of the project with the column set: a new object, so React sees a

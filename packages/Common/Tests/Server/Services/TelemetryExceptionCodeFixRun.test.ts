@@ -1,5 +1,7 @@
 import TelemetryExceptionService from "../../../Server/Services/TelemetryExceptionService";
-import AIService from "../../../Server/Services/AIService";
+import AIService, {
+  AI_DISABLED_MESSAGE,
+} from "../../../Server/Services/AIService";
 import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import LlmProviderService from "../../../Server/Services/LlmProviderService";
 import ServiceService from "../../../Server/Services/ServiceService";
@@ -128,10 +130,40 @@ describe("TelemetryExceptionService.createCodeFixRunForException", () => {
   beforeEach(() => {
     // The daily fix-run budget has its own suite (FixRunBudget.test.ts).
     jest.spyOn(FixRunBudget, "assertWithinBudget").mockResolvedValue();
+    // AI on: the switch's own refusal is held below.
+    jest.spyOn(AIService, "assertProjectAIEnabled").mockResolvedValue();
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  test("AI switched off for the project: refused in the switch's own words, before the budget, the readiness probes or any run", async () => {
+    mockReadinessOk();
+    jest
+      .spyOn(AIService, "assertProjectAIEnabled")
+      .mockRejectedValue(new BadDataException(AI_DISABLED_MESSAGE));
+    const budget: jest.SpyInstance = jest.spyOn(
+      FixRunBudget,
+      "assertWithinBudget",
+    );
+    const readiness: jest.SpyInstance = jest.spyOn(
+      TelemetryExceptionService,
+      "getAIFixReadiness",
+    );
+    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+
+    await expect(
+      TelemetryExceptionService.createCodeFixRunForException({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true },
+      }),
+    ).rejects.toThrow(AI_DISABLED_MESSAGE);
+
+    expect(AIService.assertProjectAIEnabled).toHaveBeenCalledWith(projectId);
+    expect(budget).not.toHaveBeenCalled();
+    expect(readiness).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
   });
 
   test("records a Queued CodeFix AIRun carrying the triggering exception", async () => {

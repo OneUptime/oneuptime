@@ -98,9 +98,11 @@ Chaque exécution est tenue à des budgets que le serveur impose : au plus **40 
 | La page **Assistance IA** d'une exception | **Générer un test de régression** | Ajoute un test qui reproduit l'exception et échoue jusqu'à ce que le bug soit corrigé. |
 | La page **Assistance IA** d'une exception | **Améliorer la gestion des erreurs** | Pour une erreur attendue, comme une saisie invalide : retire les données utilisateur du message, valide la saisie plus tôt et marque l'erreur comme gérée, sans changer le comportement. |
 | La carte **Investigation IA** d'un incident ou d'une alerte | **Ouvrir une PR de correctif à partir de cette analyse** | Corrige la cause racine publiée par l'investigation (voir [Corrections de code automatiques à partir des investigations](#corrections-de-code-automatiques-à-partir-des-investigations)). |
-| Une trace | **Corriger les performances avec l'IA** | Corrige le schéma lent trouvé dans la trace, comme des requêtes N+1 ou un seul span lent dominant. |
+| Une trace qui vaut d'être corrigée | **Accélérer avec l'IA** | Corrige le schéma lent que le bouton indique, comme une requête N+1 ou des appels qui pourraient s'exécuter en parallèle. |
 | La page **Journaux** d'un service | **Améliorer la journalisation** | Rend les logs du service structurés, au bon niveau de gravité et reliés à ses traces, sans changer le comportement. |
 | La page **Traces** d'un service | **Améliorer le traçage** | Ajoute des spans et des attributs là où le tracing du service manque, sans changer le comportement. |
+
+Ces boutons n'apparaissent que là où ils peuvent lancer une tâche. Quand l'IA est désactivée pour le projet, aucun n'apparaît et le menu latéral d'une exception ne propose pas **Assistance IA**. **Améliorer la journalisation** et **Améliorer le traçage** apparaissent dès qu'un dépôt est connecté, et **Accélérer avec l'IA** seulement sur une trace qui vaut d'être corrigée (voir [Explorateur de traces](/docs/telemetry/traces-explorer)).
 
 Pour ouvrir la page **Assistance IA** d'une exception, ouvrez l'exception sous **Produits → Observabilité → Exceptions** et choisissez **Assistance IA** dans son menu latéral. Une exception résolue ou archivée doit d'abord être marquée comme non résolue.
 

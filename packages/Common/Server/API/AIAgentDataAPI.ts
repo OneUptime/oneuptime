@@ -37,7 +37,7 @@ import CodeFixTaskContext, {
   InvestigationCodeFixTaskSnapshot,
   PerformanceFinding,
 } from "../../Types/AI/CodeFixTaskContext";
-import SpanTreeAnalyzer from "../Utils/AI/PerfEvidence/SpanTreeAnalyzer";
+import SpanTreeAnalyzer from "../../Utils/Traces/SpanTreeAnalyzer";
 import {
   sanitizeExceptionMessage,
   sanitizeStackTrace,

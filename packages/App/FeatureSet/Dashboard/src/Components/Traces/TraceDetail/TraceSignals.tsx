@@ -131,7 +131,20 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
   const metricsLoadGenerationRef: React.MutableRefObject<number> =
     useRef<number>(0);
 
+  /*
+   * Another trace starts from a clean slate. Not on the first mount: the
+   * initial state already is one, and a reset that ran then - after the
+   * first paint - could undo a tab the reader had already picked.
+   */
+  const shownTraceIdRef: React.MutableRefObject<string> =
+    useRef<string>(traceId);
+
   useEffect(() => {
+    if (shownTraceIdRef.current === traceId) {
+      return;
+    }
+    shownTraceIdRef.current = traceId;
+
     setActiveSignalTab("logs");
     setExceptionCount(null);
     setProfileSampleCount(0);

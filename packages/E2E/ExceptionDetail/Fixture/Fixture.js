@@ -18,6 +18,8 @@
  *   ?replay=     none (default) | session
  *   ?spans=      data (default) | empty
  *   ?fail=       comma separated: update, delete, create-task, exception
+ *   ?enableAi=   on (default) | off — the project's Enable AI switch, as
+ *                the selected project carries it
  *   ?hold=       exception — keep the exception read pending until
  *                window.__exceptionFixture.releaseException() is called
  *
@@ -42,6 +44,7 @@ import ExceptionDetailSection from "../../../App/FeatureSet/Dashboard/src/Compon
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import Service from "Common/Models/DatabaseModels/Service";
 import User from "Common/Models/DatabaseModels/User";
+import Project from "Common/Models/DatabaseModels/Project";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import Span, { SpanKind } from "Common/Models/AnalyticsModels/Span";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -83,6 +86,7 @@ const failures = new Set(
   (params.get("fail") || "").split(",").filter((value) => value.length > 0),
 );
 const holdException = params.get("hold") === "exception";
+const isAiOn = params.get("enableAi") !== "off";
 
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
@@ -662,6 +666,20 @@ UserUtil.isMasterAdmin = () => true;
 UserUtil.getUserId = () => new ObjectID(USER_ID);
 PermissionUtil.getAllPermissions = () => [Permission.ProjectOwner];
 ProjectUtil.getCurrentProjectId = () => new ObjectID(PROJECT_ID);
+/*
+ * With ?enableAi=off, the selected project as the project list carries it:
+ * its Enable AI switched off. Otherwise the page reads it as it always has
+ * (none stored, read as AI on).
+ */
+if (!isAiOn) {
+  ProjectUtil.getCurrentProject = () => {
+    return Object.assign(new Project(), {
+      _id: PROJECT_ID,
+      name: "Commerce",
+      enableAi: false,
+    });
+  };
+}
 ModelAPI.getCommonHeaders = () => ({ tenantid: PROJECT_ID });
 AnalyticsModelAPI.getCommonHeaders = () => ({ tenantid: PROJECT_ID });
 

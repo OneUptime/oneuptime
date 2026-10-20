@@ -13,6 +13,7 @@ import TelemetryExceptionService from "../../../../Services/TelemetryExceptionSe
 import { AIFixReadiness } from "../../../../../Types/AI/AIFixReadiness";
 import FixPerformanceTaskTrigger from "../FixPerformanceTaskTrigger";
 import FixRunBudget, { FixRunBudgetDecision } from "../../CodeFix/FixRunBudget";
+import { getFindingsWorthFixing } from "../../../../../Utils/Suggestions/TracePerformanceFixSuggestion";
 import logger from "../../../Logger";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 
@@ -110,10 +111,13 @@ export default class InsightFixRouting {
 
       /*
        * Latency insights are only fixable with the deterministic span-tree
-       * findings (and the trace they came from) captured at detect time.
+       * findings (and the trace they came from) captured at detect time -
+       * and only with findings that cost the request real time, by the
+       * same rule the trace page's "Fix performance with AI" follows.
        */
-      const latencyFindings: Array<PerformanceFinding> =
-        insight.evidence?.latency?.performanceFindings || [];
+      const latencyFindings: Array<PerformanceFinding> = getFindingsWorthFixing(
+        insight.evidence?.latency?.performanceFindings || [],
+      );
       const latencyCodeLocations: Array<PerformanceCodeLocation> =
         insight.evidence?.latency?.codeLocations || [];
       const latencyTraceId: string | undefined =
@@ -124,7 +128,7 @@ export default class InsightFixRouting {
         (latencyFindings.length === 0 || !latencyTraceId)
       ) {
         logger.debug(
-          `AI insights: not routing a fix for insight ${insight.id.toString()} — the latency evidence has no span-tree findings or no trace id.`,
+          `AI insights: not routing a fix for insight ${insight.id.toString()} — the latency evidence has no span-tree finding worth fixing, or no trace id.`,
         );
         return {};
       }

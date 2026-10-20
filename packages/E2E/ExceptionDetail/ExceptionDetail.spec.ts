@@ -1029,6 +1029,33 @@ test.describe("AI assistance", () => {
     await expect(page).toHaveURL(new RegExp(`${BASE}/ai-assistance`));
   });
 
+  test("with AI switched off: no AI Assistance in the menu, and its page says so, with Turn AI on", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "", "enableAi=off");
+
+    // Nothing on it could start: the menu does not offer it.
+    await expect(
+      sideMenu(page).getByRole("link", { name: "AI Assistance", exact: true }),
+    ).toHaveCount(0);
+    await expect(sideMenuSectionToggle(page, "Resolve")).toHaveCount(0);
+
+    // A link that still leads there says why, with the one step to take.
+    await open(page, "/ai-assistance", "enableAi=off");
+    const notice: Locator = page.getByTestId("exception-ai-off");
+    await expect(notice).toContainText("AI is turned off for this project.");
+    await expect(
+      notice.getByRole("link", { name: "Turn AI on" }),
+    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/settings/ai-features`);
+    await expect(
+      page.getByTestId("exception-ai-task-FixException"),
+    ).toHaveCount(0);
+    await expect(page.getByTestId("exception-ai-task-start")).toHaveCount(0);
+    await screenshot(page, "ai-assistance-ai-off");
+  });
+
   test("a resolved exception pauses AI tasks", async ({
     page,
   }: {
