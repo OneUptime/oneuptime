@@ -616,9 +616,16 @@ describe("an on-call policy's Settings page", () => {
     expect(resolve(POLICY_SETTINGS_PATH)).toBe(
       RouteUtil.getRouteString(PageMap.ON_CALL_DUTY_POLICY_VIEW_SETTINGS),
     );
+    // Policies, the list, before the policy: the URL's own order.
     expect(
       titlesOf(getOnCallDutyBreadcrumbs(resolve(POLICY_SETTINGS_PATH))),
-    ).toEqual(["Project", "On-Call Duty", "View On-Call Policy", "Settings"]);
+    ).toEqual([
+      "Project",
+      "On-Call Duty",
+      "Policies",
+      "View On-Call Policy",
+      "Settings",
+    ]);
   });
 
   test("opens inside the policy's own layout", () => {

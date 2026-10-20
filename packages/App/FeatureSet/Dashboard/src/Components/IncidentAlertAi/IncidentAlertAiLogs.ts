@@ -9,6 +9,9 @@ import AIRunAutoGrade from "Common/Types/AI/AIRunAutoGrade";
 import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
+import FixProductionReport, {
+  parseFixProductionReport,
+} from "Common/Types/AI/FixProductionReport";
 import {
   INCIDENT_ALERT_AI_LOG_KINDS,
   IncidentAlertAiLogKind,
@@ -148,6 +151,8 @@ export interface AiLogsEntry {
   ruleName: string | null;
   taskNumber: number | null;
   codeFixTaskType: string | null;
+  // A fix task's merged pull request: what production showed once it shipped.
+  production: FixProductionReport | null;
   command: string | null;
   commandOrigin: string | null;
   exitCode: number | null;
@@ -259,6 +264,7 @@ function parseEntry(
     ruleName: readString(value["ruleName"]),
     taskNumber: readNumber(value["taskNumber"]),
     codeFixTaskType: readString(value["codeFixTaskType"]),
+    production: parseFixProductionReport(value["production"]) || null,
     command: readString(value["command"]),
     commandOrigin: readString(value["commandOrigin"]),
     exitCode: readNumber(value["exitCode"]),

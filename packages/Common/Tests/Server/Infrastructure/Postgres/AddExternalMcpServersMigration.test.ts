@@ -1,5 +1,5 @@
-import { AddFirstPagedAt1804900000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804900000000-AddFirstPagedAt";
-import { AddExternalMcpServers1804950000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804950000000-AddExternalMcpServers";
+import { AddFixProductionCheck1804950000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804950000000-AddFixProductionCheck";
+import { AddExternalMcpServers1805000000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805000000000-AddExternalMcpServers";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AIInvestigationRule from "../../../../Models/DatabaseModels/AIInvestigationRule";
 import AutoRemediationRule from "../../../../Models/DatabaseModels/AutoRemediationRule";
@@ -23,7 +23,7 @@ import { describe, expect, test } from "@jest/globals";
  * the schema drift check runs the migration on Postgres against the models.
  */
 
-const MIGRATION_NAME: string = "AddExternalMcpServers1804950000000";
+const MIGRATION_NAME: string = "AddExternalMcpServers1805000000000";
 const TRAILING_TIMESTAMP: RegExp = /(\d{13})$/;
 // A column of a CREATE TABLE: its quoted name, then its type.
 const CREATED_COLUMN: RegExp = /(?:\(|, )"([A-Za-z_]+)" [A-Za-z]/g;
@@ -44,8 +44,8 @@ async function record(direction: "up" | "down"): Promise<Array<string>> {
       steps.push(sql);
     },
   } as unknown as QueryRunner;
-  const migration: AddExternalMcpServers1804950000000 =
-    new AddExternalMcpServers1804950000000();
+  const migration: AddExternalMcpServers1805000000000 =
+    new AddExternalMcpServers1805000000000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -95,26 +95,26 @@ function columnsCreated(statement: string): Array<string> {
 
 describe("the External MCP Servers migration", () => {
   test("names itself after its timestamp", () => {
-    expect(new AddExternalMcpServers1804950000000().name).toBe(MIGRATION_NAME);
+    expect(new AddExternalMcpServers1805000000000().name).toBe(MIGRATION_NAME);
   });
 
-  test("is registered once, after master's newest (AddFirstPagedAt), above every migration before it", () => {
+  test("is registered once, after master's newest (AddFixProductionCheck), above every migration before it", () => {
     const registered: Array<MigrationClass> =
       SchemaMigrations as Array<MigrationClass>;
-    const at: number = registered.indexOf(AddExternalMcpServers1804950000000);
+    const at: number = registered.indexOf(AddExternalMcpServers1805000000000);
 
     expect(
       registered.filter((candidate: MigrationClass): boolean => {
-        return candidate === AddExternalMcpServers1804950000000;
+        return candidate === AddExternalMcpServers1805000000000;
       }),
     ).toHaveLength(1);
     expect(at).toBeGreaterThan(
-      registered.indexOf(AddFirstPagedAt1804900000000),
+      registered.indexOf(AddFixProductionCheck1804950000000),
     );
 
     for (let before: number = 0; before < at; before++) {
       expect(timestampOf(registered[before]!)).toBeLessThan(
-        timestampOf(AddExternalMcpServers1804950000000),
+        timestampOf(AddExternalMcpServers1805000000000),
       );
     }
   });
@@ -130,10 +130,10 @@ describe("the External MCP Servers migration", () => {
     expect(
       files.filter((file: string): boolean => {
         return file.startsWith(
-          `${timestampOf(AddExternalMcpServers1804950000000)}-`,
+          `${timestampOf(AddExternalMcpServers1805000000000)}-`,
         );
       }),
-    ).toEqual(["1804950000000-AddExternalMcpServers.ts"]);
+    ).toEqual(["1805000000000-AddExternalMcpServers.ts"]);
   });
 
   test("creates the servers' table with every column the model stores", async () => {

@@ -4,6 +4,7 @@ import AIAgentTaskPullRequestService, {
 import PullRequestState from "../../../Types/CodeRepository/PullRequestState";
 import FixPullRequestCiStatus from "../../../Types/AI/FixPullRequestCiStatus";
 import FixProductionStatus from "../../../Types/AI/FixProductionStatus";
+import FixProductionCheck from "../../../Types/AI/FixProductionCheck";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
@@ -23,6 +24,11 @@ import { describe, expect, test, afterEach } from "@jest/globals";
 
 const projectId: ObjectID = ObjectID.generate();
 
+// Merged fixes production decided, by check and status, beyond the totals.
+type ProductionCounts = Partial<
+  Record<FixProductionCheck, Partial<Record<FixProductionStatus, number>>>
+>;
+
 function mockCounts(counts: {
   open: number;
   merged: number;
@@ -31,6 +37,8 @@ function mockCounts(counts: {
   mergedCiExpectedFailure?: number;
   verifiedInProduction?: number;
   regressedInProduction?: number;
+  unverifiableInProduction?: number;
+  byCheck?: ProductionCounts;
 }): void {
   jest
     .spyOn(AIAgentTaskPullRequestService, "countBy")
@@ -46,22 +54,44 @@ function mockCounts(counts: {
         "productionStatus"
       ] as FixProductionStatus | undefined;
 
+      const productionCheck: FixProductionCheck | undefined = args.query[
+        "productionCheck"
+      ] as FixProductionCheck | undefined;
+
       // So are the production verdicts: merging is not fixing.
-      if (productionStatus === FixProductionStatus.Verified) {
+      if (productionStatus) {
         expect(state).toBe(PullRequestState.Merged);
+        // Only decided fixes are counted.
+        expect([
+          FixProductionStatus.Verified,
+          FixProductionStatus.Regressed,
+          FixProductionStatus.Unverifiable,
+        ]).toContain(productionStatus);
+
+        if (productionCheck) {
+          // An exception fix is what the named checks leave of the totals.
+          expect(productionCheck).not.toBe(FixProductionCheck.Exception);
+
+          return Promise.resolve(
+            new PositiveNumber(
+              counts.byCheck?.[productionCheck]?.[productionStatus] || 0,
+            ),
+          );
+        }
+
+        const totals: Partial<Record<FixProductionStatus, number>> = {
+          [FixProductionStatus.Verified]: counts.verifiedInProduction || 0,
+          [FixProductionStatus.Regressed]: counts.regressedInProduction || 0,
+          [FixProductionStatus.Unverifiable]:
+            counts.unverifiableInProduction || 0,
+        };
+
         return Promise.resolve(
-          new PositiveNumber(counts.verifiedInProduction || 0),
+          new PositiveNumber(totals[productionStatus] || 0),
         );
       }
 
-      if (productionStatus === FixProductionStatus.Regressed) {
-        expect(state).toBe(PullRequestState.Merged);
-        return Promise.resolve(
-          new PositiveNumber(counts.regressedInProduction || 0),
-        );
-      }
-
-      expect(productionStatus).toBeUndefined();
+      expect(productionCheck).toBeUndefined();
 
       // The CI-filtered counts are always merged-scoped in the service.
       if (ciStatus === FixPullRequestCiStatus.Green) {
@@ -206,6 +236,71 @@ describe("AIAgentTaskPullRequestService.getOutcomeStats", () => {
 
     expect(stats.verifiedInProduction).toBe(0);
     expect(stats.regressedInProduction).toBe(0);
+    for (const outcome of Object.values(stats.productionByCheck)) {
+      expect(outcome).toEqual({ verified: 0, regressed: 0, unverifiable: 0 });
+    }
+  });
+
+  /*
+   * Each kind of fix earns its precision apart: a slow operation made
+   * faster is not an exception stopped. Rows from before the checks were
+   * told apart have none, and are exception fixes.
+   */
+  test("tells each kind of fix apart, the exception fixes being what the others leave", async () => {
+    mockCounts({
+      open: 0,
+      merged: 30,
+      closed: 0,
+      verifiedInProduction: 12,
+      regressedInProduction: 5,
+      unverifiableInProduction: 9,
+      byCheck: {
+        [FixProductionCheck.Performance]: {
+          [FixProductionStatus.Verified]: 3,
+          [FixProductionStatus.Regressed]: 2,
+          [FixProductionStatus.Unverifiable]: 1,
+        },
+        [FixProductionCheck.Recurrence]: {
+          [FixProductionStatus.Verified]: 1,
+          [FixProductionStatus.Unverifiable]: 4,
+        },
+        [FixProductionCheck.Telemetry]: {
+          [FixProductionStatus.Verified]: 2,
+          [FixProductionStatus.Regressed]: 1,
+        },
+      },
+    });
+
+    const stats: AIFixOutcomeStats =
+      await AIAgentTaskPullRequestService.getOutcomeStats({
+        isRoot: true,
+        tenantId: projectId,
+      });
+
+    expect(stats.productionByCheck).toEqual({
+      [FixProductionCheck.Exception]: {
+        verified: 6,
+        regressed: 2,
+        unverifiable: 4,
+      },
+      [FixProductionCheck.Performance]: {
+        verified: 3,
+        regressed: 2,
+        unverifiable: 1,
+      },
+      [FixProductionCheck.Recurrence]: {
+        verified: 1,
+        regressed: 0,
+        unverifiable: 4,
+      },
+      [FixProductionCheck.Telemetry]: {
+        verified: 2,
+        regressed: 1,
+        unverifiable: 0,
+      },
+    });
+    expect(stats.verifiedInProduction).toBe(12);
+    expect(stats.regressedInProduction).toBe(5);
   });
 
   test("throws without a tenant", async () => {

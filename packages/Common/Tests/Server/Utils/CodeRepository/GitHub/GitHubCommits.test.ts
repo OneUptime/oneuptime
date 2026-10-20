@@ -2,6 +2,8 @@ import GitHubCommits, {
   GitHubCommitRange,
   MAX_COMMITS,
   MAX_FILES,
+  MAX_PULL_REQUEST_FILE_PAGES,
+  PULL_REQUEST_FILES_PER_PAGE,
 } from "../../../../../Server/Utils/CodeRepository/GitHub/GitHubCommits";
 import API, { APIRequestOptions } from "../../../../../Utils/API";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
@@ -367,6 +369,119 @@ describe("the calls", () => {
         owner: "acme",
         repository: "api",
         sha: "abc1234",
+      }),
+    ).rejects.toBeInstanceOf(HTTPErrorResponse);
+  });
+});
+
+/*
+ * What a pull request changed, file by file with its diff: what a merged
+ * telemetry improvement adds is read from it (TelemetryFixWatch).
+ */
+describe("a pull request's files", () => {
+  function file(index: number, patch?: string): JSONObject {
+    return {
+      filename: `src/file-${index}.ts`,
+      status: "modified",
+      ...(patch === undefined ? {} : { patch }),
+    };
+  }
+
+  function pageOf(count: number, start: number): Array<JSONObject> {
+    return Array.from({ length: count }, (_: unknown, index: number) => {
+      return file(start + index, `+ span("s${start + index}")`);
+    });
+  }
+
+  test("each file keeps its diff; a binary or too large file has none", () => {
+    expect(
+      GitHubCommits.parsePullRequestFilePatches([
+        file(1, '+ span("a")'),
+        file(2),
+        { status: "added" },
+        "not a file",
+      ]),
+    ).toEqual([
+      { path: "src/file-1.ts", patch: '+ span("a")' },
+      { path: "src/file-2.ts" },
+    ]);
+    expect(GitHubCommits.parsePullRequestFilePatches({ message: "x" })).toEqual(
+      [],
+    );
+  });
+
+  test("pages are read until one is not full", async () => {
+    const get: SpyInstance<ApiGet> = jest
+      .spyOn(API, "get")
+      .mockResolvedValueOnce(
+        new HTTPResponse<JSONObject>(
+          200,
+          pageOf(PULL_REQUEST_FILES_PER_PAGE, 0) as unknown as JSONObject,
+          {},
+        ),
+      )
+      .mockResolvedValueOnce(
+        new HTTPResponse<JSONObject>(
+          200,
+          pageOf(3, PULL_REQUEST_FILES_PER_PAGE) as unknown as JSONObject,
+          {},
+        ),
+      );
+
+    const read: { files: Array<{ path: string }>; isTruncated: boolean } =
+      await GitHubCommits.listPullRequestFilePatches({
+        token: "tok",
+        owner: "acme",
+        repository: "api",
+        pullRequestNumber: 123,
+      });
+
+    expect(read.files).toHaveLength(PULL_REQUEST_FILES_PER_PAGE + 3);
+    expect(read.isTruncated).toBe(false);
+    expect(get).toHaveBeenCalledTimes(2);
+    expect(
+      (get.mock.calls[1]![0] as { url: { toString(): string } }).url.toString(),
+    ).toBe(
+      "https://api.github.com/repos/acme/api/pulls/123/files?per_page=100&page=2",
+    );
+  });
+
+  test(`at most ${MAX_PULL_REQUEST_FILE_PAGES} pages are read, and the read says so`, async () => {
+    const get: SpyInstance<ApiGet> = jest
+      .spyOn(API, "get")
+      .mockResolvedValue(
+        new HTTPResponse<JSONObject>(
+          200,
+          pageOf(PULL_REQUEST_FILES_PER_PAGE, 0) as unknown as JSONObject,
+          {},
+        ),
+      );
+
+    const read: { files: Array<{ path: string }>; isTruncated: boolean } =
+      await GitHubCommits.listPullRequestFilePatches({
+        token: "tok",
+        owner: "acme",
+        repository: "api",
+        pullRequestNumber: 123,
+      });
+
+    expect(get).toHaveBeenCalledTimes(MAX_PULL_REQUEST_FILE_PAGES);
+    expect(read.isTruncated).toBe(true);
+  });
+
+  test("an error reply is thrown, for the caller to try again", async () => {
+    jest
+      .spyOn(API, "get")
+      .mockResolvedValue(
+        new HTTPErrorResponse(403, { message: "rate limit" }, {}),
+      );
+
+    await expect(
+      GitHubCommits.listPullRequestFilePatches({
+        token: "tok",
+        owner: "acme",
+        repository: "api",
+        pullRequestNumber: 123,
       }),
     ).rejects.toBeInstanceOf(HTTPErrorResponse);
   });

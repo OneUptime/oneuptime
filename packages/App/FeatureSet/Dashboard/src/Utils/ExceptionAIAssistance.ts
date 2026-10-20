@@ -10,6 +10,7 @@ import FixProductionStatus, {
 } from "Common/Types/AI/FixProductionStatus";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import PageMap from "./PageMap";
 
 /*
@@ -49,12 +50,21 @@ export interface AIFixProductionInfo {
   statusAt: Date | undefined;
 }
 
+// An exception fix's words; FixProduction.ts has every kind of fix's.
 export const FIX_PRODUCTION_LABELS: Record<FixProductionStatus, string> = {
-  [FixProductionStatus.AwaitingDeploy]: "Merged, waiting for a deploy",
-  [FixProductionStatus.Watching]: "Deployed, watching in production",
-  [FixProductionStatus.Verified]: "Fixed in production",
-  [FixProductionStatus.Regressed]: "Still happening after the fix",
-  [FixProductionStatus.Unverifiable]: "Not verified in production",
+  [FixProductionStatus.AwaitingDeploy]: translationKey(
+    "Merged, waiting for a deploy",
+  ),
+  [FixProductionStatus.Watching]: translationKey(
+    "Deployed, watching in production",
+  ),
+  [FixProductionStatus.Verified]: translationKey("Fixed in production"),
+  [FixProductionStatus.Regressed]: translationKey(
+    "Still happening after the fix",
+  ),
+  [FixProductionStatus.Unverifiable]: translationKey(
+    "Not verified in production",
+  ),
 };
 
 export function getFixProductionTone(status: FixProductionStatus): AITaskTone {
@@ -351,6 +361,15 @@ export function getAIReadinessProgress(
 }
 
 export type AITaskTone = "neutral" | "info" | "success" | "warning" | "danger";
+
+// How each tone is drawn: a tinted background, its text, and a hairline ring.
+export const AI_TASK_TONE_CLASS_NAMES: Record<AITaskTone, string> = {
+  neutral: "bg-gray-50 text-gray-600 ring-gray-500/20",
+  info: "bg-sky-50 text-sky-700 ring-sky-600/20",
+  success: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
+  warning: "bg-amber-50 text-amber-700 ring-amber-600/20",
+  danger: "bg-red-50 text-red-700 ring-red-600/20",
+};
 
 export type AITaskPrimaryActionKind = "start" | "restart" | "retry";
 

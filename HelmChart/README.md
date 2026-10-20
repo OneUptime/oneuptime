@@ -38,6 +38,7 @@ you do, and so does the unit suite anywhere it has to install the plugin.
 | `marketplace`       | no              | the AWS, Microsoft and Google Cloud Marketplace editions [`Marketplace/build.py`](Marketplace/build.py) makes of the chart, and the Kubernetes agent's Amazon EKS add-on: its unit tests, then each edition rendered and checked the way that marketplace checks it at submission |
 | `secrets-lifecycle` | yes             | installs and upgrades the chart for real, to cover Secret handling across an upgrade  |
 | `keda-bootstrap`    | yes             | the KEDA CRD bootstrap and the `keda.install` / `keda.enabled` split, against a real API server |
+| `gitops-revert`     | yes (opt-in)    | Argo CD, Flux and Helm against the kubectl fixes OneUptime AI makes: which fixes each one puts back to what git (or the chart) declares, and how fast, and the ownership markers OneUptime reads to tell (`packages/Common/Utils/AiRemediation/GitOpsOwnership.ts`) |
 
 Run one suite, or keep the cluster around to poke at a failure:
 
@@ -63,6 +64,16 @@ Adding a suite: drop it in `Tests/suites`, source `lib/harness.sh` for the
 assertions and the cluster, end with `harness_report`, and list it in
 `ALL_SUITES` in `run.sh` (the runner fails if a suite file is not listed, so it
 cannot go unnoticed).
+
+A suite that measures other tools rather than this repository's charts, and
+pulls their images and waits out their timers to do it, goes in
+`OPT_IN_SUITES` instead: it is never run by default, so not in the helm-test
+job, only when named (`bash HelmChart/Tests/run.sh gitops-revert`).
+`gitops-revert` takes about ten minutes; its own workflow
+(`.github/workflows/test.gitops-revert.yaml`) runs it when it, or what it runs
+on, changes. It reads results off a KinD cluster it changes freely, so it
+points kubectl at a kubeconfig of its own for that cluster - never the one
+your shell uses.
 
 Not part of the `helm-test` job: `Tests/index.sh`, the full end-to-end install
 that pulls every image and waits for all pods to become ready.

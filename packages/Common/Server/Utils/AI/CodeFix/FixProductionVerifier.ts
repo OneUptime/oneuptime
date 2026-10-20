@@ -2,6 +2,10 @@ import ChangeEvent from "../../../../Models/AnalyticsModels/ChangeEvent";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import TelemetryException from "../../../../Models/DatabaseModels/TelemetryException";
+import FixProductionBaseline from "../../../../Types/AI/FixProductionBaseline";
+import FixProductionCheck, {
+  FixProductionCheckHelper,
+} from "../../../../Types/AI/FixProductionCheck";
 import FixProductionStatus from "../../../../Types/AI/FixProductionStatus";
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
@@ -36,6 +40,7 @@ import GitHubCommits, {
 import GitHubInstallationBinding from "../../CodeRepository/GitHub/GitHubInstallationBinding";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import FixProductionTelemetry from "./FixProductionTelemetry";
 import {
   FIX_PRODUCTION_THRESHOLDS,
   FixProductionVerdict,
@@ -43,25 +48,38 @@ import {
   decideWatchVerdict,
   deployContainsFix,
   describeDeploy,
+  fitVerdict,
 } from "./FixProductionVerdict";
+import PerformanceFixWatch from "./PerformanceFixWatch";
+import RecurrenceFixWatch from "./RecurrenceFixWatch";
+import TelemetryFixWatch from "./TelemetryFixWatch";
 
 /*
  * Fix verified in production - the last step of an AI fix.
  *
  * A merged fix pull request has fixed nothing until it runs. Every merged
- * fix for an exception (FixException) is followed here until it is decided:
+ * fix whose effect production shows is followed here until it is decided,
+ * with the check its recipe calls for (FixProductionCheck):
  *
- *   1. AwaitingDeploy: the deploys recorded since the merge for the
- *      exception's service, or for the whole project (change events:
- *      telemetry, Kubernetes, `oneuptime deploy`), are searched for one that
- *      contains the fix's merge commit - the same commit, or a later one by
- *      GitHub's compare. None within maxDeployWaitDays is Unverifiable.
- *   2. Watching: the exception is counted in the deployed fix - in the
- *      deploy's version when it reports one, else after the rollout grace -
- *      against how often it happened in the week before the merge
- *      (FixProductionVerdict.decideWatchVerdict).
- *   3. Verified, Regressed or Unverifiable is final. A verified fix resolves
- *      the exception; a regressed one reopens it.
+ *   1. AwaitingDeploy: the deploys recorded since the merge for the fix's
+ *      service, or for the whole project (change events: telemetry,
+ *      Kubernetes, `oneuptime deploy`), are searched for one that contains
+ *      the fix's merge commit - the same commit, or a later one by GitHub's
+ *      compare. None within maxDeployWaitDays is Unverifiable.
+ *   2. Watching: what the fix was for is measured in the deployed fix
+ *      against the time before the merge:
+ *        - Exception: the exception's occurrences - in the deploy's version
+ *          when the service's telemetry names it, else after the rollout
+ *          grace (FixProductionVerdict.decideWatchVerdict);
+ *        - Performance: the p99 of the operation it names
+ *          (PerformanceFixWatch);
+ *        - Recurrence: the incidents or alerts its monitor raises
+ *          (RecurrenceFixWatch);
+ *        - Telemetry: the spans, attributes and log text it adds
+ *          (TelemetryFixWatch).
+ *   3. Verified, Regressed or Unverifiable is final. A verified exception
+ *      fix resolves the exception and a regressed one reopens it; each check
+ *      does the same for what it watched (an insight, an incident).
  *
  * Runs on the Workers' schedule, as the system, every tenant's rows held to
  * their own project. Each fix is checked in isolation: one failing GitHub
@@ -122,6 +140,15 @@ export interface FixDeploy {
   time: Date;
   version?: string | undefined;
   commitSha: string;
+}
+
+// The deploy that shipped a fix, as its row records it.
+export interface ShippedFix {
+  deployedAt: Date;
+  deployedVersion?: string | undefined;
+  deployedCommitSha?: string | undefined;
+  // Found by this check: recorded with its verdict.
+  isNew: boolean;
 }
 
 export interface VerifierRun {
@@ -189,8 +216,33 @@ export default class FixProductionVerifier {
     }
   }
 
-  // One fix's check: find its deploy, then watch its exception.
+  // One fix's check, by what its recipe is watched for.
   public static async verifyFix(
+    fix: AIAgentTaskPullRequest,
+    run: VerifierRun,
+  ): Promise<void> {
+    const check: FixProductionCheck | undefined =
+      FixProductionCheckHelper.fromDatabaseValue(fix.productionCheck);
+
+    switch (check) {
+      case FixProductionCheck.Exception:
+        return FixProductionVerifier.verifyExceptionFix(fix, run);
+      case FixProductionCheck.Performance:
+        return PerformanceFixWatch.verify(fix, run);
+      case FixProductionCheck.Recurrence:
+        return RecurrenceFixWatch.verify(fix, run);
+      case FixProductionCheck.Telemetry:
+        return TelemetryFixWatch.verify(fix, run);
+      default:
+        // A check a newer server wrote: left for that server.
+        logger.debug(
+          `Fix verification: fix pull request ${fix.id?.toString()} is watched with a check this server does not know (${String(fix.productionCheck)}).`,
+        );
+    }
+  }
+
+  // An exception fix's check: find its deploy, then watch its exception.
+  public static async verifyExceptionFix(
     fix: AIAgentTaskPullRequest,
     run: VerifierRun,
   ): Promise<void> {
@@ -206,62 +258,25 @@ export default class FixProductionVerifier {
       return;
     }
 
-    const mergedAt: Date = fix.mergedAt
-      ? new Date(fix.mergedAt)
-      : fix.productionStatusAt
-        ? new Date(fix.productionStatusAt)
-        : new Date(fix.createdAt || run.now);
+    const mergedAt: Date = FixProductionVerifier.mergedAtOf(fix, run);
 
-    let deployedAt: Date | undefined = fix.deployedAt
-      ? new Date(fix.deployedAt)
-      : undefined;
-    let deployedVersion: string | undefined = fix.deployedVersion || undefined;
-    let deployedCommitSha: string | undefined =
-      fix.deployedCommitSha || undefined;
-    let isNewDeploy: boolean = false;
+    const shipped: ShippedFix | null = await FixProductionVerifier.awaitDeploy({
+      fix,
+      run,
+      serviceId: exception.primaryEntityId,
+      mergedAt,
+    });
 
-    if (fix.productionStatus !== FixProductionStatus.Watching || !deployedAt) {
-      if (!fix.mergeCommitSha) {
-        await FixProductionVerifier.settle(fix, run, {
-          status: FixProductionStatus.Unverifiable,
-          summary:
-            "GitHub did not say which commit the pull request merged as, so no deploy can be matched to the fix.",
-        });
-        return;
-      }
-
-      const deploy: FixDeploy | null =
-        await FixProductionVerifier.findDeployContainingFix({
-          fix,
-          exception,
-          mergedAt,
-          run,
-        });
-
-      if (!deploy) {
-        const waited: FixProductionVerdict | null = decideDeployWait({
-          mergedAt,
-          now: run.now,
-        });
-
-        if (waited) {
-          await FixProductionVerifier.settle(fix, run, waited);
-        }
-        return;
-      }
-
-      deployedAt = deploy.time;
-      deployedVersion = deploy.version;
-      deployedCommitSha = deploy.commitSha;
-      isNewDeploy = true;
+    if (!shipped) {
+      return;
     }
 
     const [occurrencesSinceDeploy, baselineOccurrences]: [number, number] =
       await Promise.all([
         FixProductionVerifier.countOccurrencesSinceDeploy({
           exception,
-          deployedAt,
-          deployedVersion,
+          deployedAt: shipped.deployedAt,
+          deployedVersion: shipped.deployedVersion,
           now: run.now,
         }),
         FixProductionVerifier.countOccurrences({
@@ -275,24 +290,19 @@ export default class FixProductionVerifier {
       ]);
 
     const verdict: FixProductionVerdict = decideWatchVerdict({
-      deployedAt,
+      deployedAt: shipped.deployedAt,
       now: run.now,
       occurrencesSinceDeploy,
       baselineOccurrences,
       // The same words every check, so an unchanged watch writes nothing.
-      deployLabel: describeDeploy({
-        version: deployedVersion,
-        commitSha: deployedCommitSha,
-      }),
+      deployLabel: FixProductionVerifier.deployLabelOf(shipped),
     });
 
     await FixProductionVerifier.settle(
       fix,
       run,
       verdict,
-      isNewDeploy
-        ? { deployedAt, deployedVersion, deployedCommitSha }
-        : undefined,
+      shipped.isNew ? shipped : undefined,
     );
 
     if (verdict.status === FixProductionStatus.Verified) {
@@ -302,13 +312,225 @@ export default class FixProductionVerifier {
     }
   }
 
+  // When the fix merged: GitHub's time, else when its watch started.
+  public static mergedAtOf(
+    fix: AIAgentTaskPullRequest,
+    run: VerifierRun,
+  ): Date {
+    return fix.mergedAt
+      ? new Date(fix.mergedAt)
+      : fix.productionStatusAt
+        ? new Date(fix.productionStatusAt)
+        : new Date(fix.createdAt || run.now);
+  }
+
   /*
-   * The first deploy of the exception's service (or a deploy of the whole
+   * The deploy that shipped the fix: the one its row records once it is
+   * watched, else the first recorded deploy since the merge that contains
+   * it. Null while there is none - and when none did in time, or GitHub
+   * never said which commit the pull request merged as, the fix is settled
+   * Unverifiable on the way.
+   */
+  public static async awaitDeploy(data: {
+    fix: AIAgentTaskPullRequest;
+    run: VerifierRun;
+    // The service whose deploys ship it; none reads every change of the project.
+    serviceId?: ObjectID | undefined;
+    mergedAt: Date;
+  }): Promise<ShippedFix | null> {
+    const fix: AIAgentTaskPullRequest = data.fix;
+
+    if (
+      fix.productionStatus === FixProductionStatus.Watching &&
+      fix.deployedAt
+    ) {
+      return {
+        deployedAt: new Date(fix.deployedAt),
+        deployedVersion: fix.deployedVersion || undefined,
+        deployedCommitSha: fix.deployedCommitSha || undefined,
+        isNew: false,
+      };
+    }
+
+    if (!fix.mergeCommitSha) {
+      await FixProductionVerifier.settle(fix, data.run, {
+        status: FixProductionStatus.Unverifiable,
+        summary:
+          "GitHub did not say which commit the pull request merged as, so no deploy can be matched to the fix.",
+      });
+      return null;
+    }
+
+    const deploy: FixDeploy | null =
+      await FixProductionVerifier.findDeployContainingFix({
+        fix,
+        serviceId: data.serviceId,
+        mergedAt: data.mergedAt,
+        run: data.run,
+      });
+
+    if (!deploy) {
+      const waited: FixProductionVerdict | null = decideDeployWait({
+        mergedAt: data.mergedAt,
+        now: data.run.now,
+      });
+
+      if (waited) {
+        await FixProductionVerifier.settle(fix, data.run, waited);
+      }
+      return null;
+    }
+
+    return {
+      deployedAt: deploy.time,
+      deployedVersion: deploy.version,
+      deployedCommitSha: deploy.commitSha,
+      isNew: true,
+    };
+  }
+
+  // "version 2.3.2", "commit 1a2b3c4": the same words on every check.
+  public static deployLabelOf(shipped: ShippedFix): string {
+    return describeDeploy({
+      version: shipped.deployedVersion,
+      commitSha: shipped.deployedCommitSha,
+    });
+  }
+
+  /*
+   * The version to read a deployed fix's telemetry by: the deploy's, once
+   * the service's own telemetry names it - else none, and the fix is read
+   * from the rollout grace on (sinceDeployWindowStart).
+   */
+  public static async versionToRead(data: {
+    projectId: ObjectID;
+    serviceId?: ObjectID | undefined;
+    shipped: ShippedFix;
+    now: Date;
+  }): Promise<string | undefined> {
+    if (!data.shipped.deployedVersion || !data.serviceId) {
+      return undefined;
+    }
+
+    return (await FixProductionTelemetry.reportsVersion({
+      projectId: data.projectId,
+      serviceId: data.serviceId,
+      version: data.shipped.deployedVersion,
+      from: data.shipped.deployedAt,
+      to: data.now,
+    }))
+      ? data.shipped.deployedVersion
+      : undefined;
+  }
+
+  /*
+   * Where the deployed fix's telemetry starts: the deploy, when it is read
+   * by its version; else the end of the rollout grace, so old pods still
+   * draining do not count.
+   */
+  public static sinceDeployWindowStart(data: {
+    shipped: ShippedFix;
+    version?: string | undefined;
+  }): Date {
+    return data.version
+      ? data.shipped.deployedAt
+      : OneUptimeDate.addRemoveMinutes(
+          data.shipped.deployedAt,
+          FIX_PRODUCTION_THRESHOLDS.rolloutGraceMinutes,
+        );
+  }
+
+  /*
+   * The run that opened the fix, held to the fix's project: its recipe, what
+   * started it, and its context.
+   */
+  public static async readRun(
+    fix: AIAgentTaskPullRequest,
+  ): Promise<AIRun | null> {
+    if (!fix.aiRunId) {
+      return null;
+    }
+
+    const aiRun: AIRun | null = await AIRunService.findOneById({
+      id: fix.aiRunId,
+      select: {
+        _id: true,
+        projectId: true,
+        codeFixTaskType: true,
+        taskContext: true,
+        triggeredByIncidentId: true,
+        triggeredByAlertId: true,
+        triggeredByAiInsightId: true,
+      },
+      props: { isRoot: true },
+    });
+
+    if (
+      !aiRun ||
+      (aiRun.projectId &&
+        fix.projectId &&
+        aiRun.projectId.toString() !== fix.projectId.toString())
+    ) {
+      return null;
+    }
+
+    return aiRun;
+  }
+
+  // What the check measured before the merge, kept for every later check.
+  public static async saveBaseline(
+    fix: AIAgentTaskPullRequest,
+    baseline: FixProductionBaseline,
+  ): Promise<void> {
+    await AIAgentTaskPullRequestService.updateOneById({
+      id: fix.id!,
+      data: { productionBaseline: baseline } as never,
+      props: { isRoot: true },
+    });
+
+    fix.productionBaseline = baseline;
+  }
+
+  /*
+   * A read a check depends on, that may fail - a telemetry query out of
+   * time, say. While there is time left the failure is thrown, and the fix
+   * is checked again next time; once the time to tell is over (isOver),
+   * the fix is settled Unverifiable instead of being retried for good.
+   */
+  public static async readOrSettle<T>(data: {
+    fix: AIAgentTaskPullRequest;
+    run: VerifierRun;
+    isOver: boolean;
+    // Why it cannot be told, when it is over.
+    summary: string;
+    read: () => Promise<T>;
+  }): Promise<T | null> {
+    try {
+      return await data.read();
+    } catch (error) {
+      if (!data.isOver) {
+        throw error;
+      }
+
+      logger.debug(
+        `Fix verification: fix pull request ${data.fix.id?.toString()} could not be read in time, and is not verified: ${error}`,
+      );
+      await FixProductionVerifier.settle(data.fix, data.run, {
+        status: FixProductionStatus.Unverifiable,
+        summary: data.summary,
+      });
+      return null;
+    }
+  }
+
+  /*
+   * The first deploy of the fix's service (or a deploy of the whole
    * project) recorded since the merge that contains the fix's commit.
    */
   public static async findDeployContainingFix(data: {
     fix: AIAgentTaskPullRequest;
-    exception: TelemetryException;
+    // None reads every change of the project.
+    serviceId?: ObjectID | undefined;
     mergedAt: Date;
     run: VerifierRun;
   }): Promise<FixDeploy | null> {
@@ -319,7 +541,7 @@ export default class FixProductionVerifier {
     const rows: Array<ChangeEvent> =
       await FixProductionVerifier.readChangesSinceMerge({
         projectId: data.fix.projectId!,
-        serviceId: data.exception.primaryEntityId,
+        serviceId: data.serviceId,
         mergedAt: data.mergedAt,
         now: data.run.now,
       });
@@ -408,8 +630,11 @@ export default class FixProductionVerifier {
 
   /*
    * Occurrences of the exception in the deployed fix: in its version when
-   * the deploy reported one - so old pods still draining do not count - and
-   * otherwise from the rollout grace after it on.
+   * the deploy reported one the service's telemetry names too - so old pods
+   * still draining do not count - and otherwise from the rollout grace after
+   * it on. A version the telemetry never names (a pipeline's "2.3.2" beside
+   * an SDK's "v2.3.2", or none at all) would find no occurrence, and verify
+   * a fix that never stopped the exception.
    */
   public static async countOccurrencesSinceDeploy(data: {
     exception: TelemetryException;
@@ -417,12 +642,24 @@ export default class FixProductionVerifier {
     deployedVersion?: string | undefined;
     now: Date;
   }): Promise<number> {
-    if (data.deployedVersion) {
+    const version: string | undefined =
+      await FixProductionVerifier.versionToRead({
+        projectId: data.exception.projectId!,
+        serviceId: data.exception.primaryEntityId,
+        shipped: {
+          deployedAt: data.deployedAt,
+          deployedVersion: data.deployedVersion,
+          isNew: false,
+        },
+        now: data.now,
+      });
+
+    if (version) {
       return FixProductionVerifier.countOccurrences({
         exception: data.exception,
         start: data.deployedAt,
         end: data.now,
-        release: data.deployedVersion,
+        release: version,
       });
     }
 
@@ -460,10 +697,10 @@ export default class FixProductionVerifier {
   }
 
   /*
-   * The changes recorded since the merge, oldest first: the exception's
-   * service's and the whole project's, read apart so that a busy project's
-   * other services cannot crowd the fix's deploy out of the read. An
-   * exception with no service reads every change of the project.
+   * The changes recorded since the merge, oldest first: the fix's service's
+   * and the whole project's, read apart so that a busy project's other
+   * services cannot crowd the fix's deploy out of the read. A fix with no
+   * service reads every change of the project.
    */
   private static async readChangesSinceMerge(data: {
     projectId: ObjectID;
@@ -567,7 +804,7 @@ export default class FixProductionVerifier {
     });
   }
 
-  private static repositoryOf(
+  public static repositoryOf(
     fix: AIAgentTaskPullRequest,
   ): GitHubRepositoryName | null {
     const owner: string | undefined =
@@ -664,9 +901,10 @@ export default class FixProductionVerifier {
 
   /*
    * A read-only token of the installation the fix's repository is bound
-   * through - never one of another project's installation.
+   * through - never one of another project's installation. It reads
+   * commits (compares) and pull requests (a fix's diff).
    */
-  private static async tokenFor(
+  public static async tokenFor(
     fix: AIAgentTaskPullRequest,
     run: VerifierRun,
   ): Promise<string | null> {
@@ -692,7 +930,11 @@ export default class FixProductionVerifier {
       ) {
         const minted: GitHubInstallationToken =
           await GitHubUtil.getInstallationAccessToken(installationId, {
-            permissions: { contents: "read", metadata: "read" },
+            permissions: {
+              contents: "read",
+              metadata: "read",
+              pull_requests: "read",
+            },
           });
         token = minted.token;
       }
@@ -707,16 +949,18 @@ export default class FixProductionVerifier {
   }
 
   // Records a verdict on the fix; the status time moves only when the status does.
-  private static async settle(
+  public static async settle(
     fix: AIAgentTaskPullRequest,
     run: VerifierRun,
-    verdict: FixProductionVerdict,
+    unfitVerdict: FixProductionVerdict,
     deploy?: {
       deployedAt: Date;
       deployedVersion?: string | undefined;
       deployedCommitSha?: string | undefined;
     },
   ): Promise<void> {
+    // Held to its column, so a long name never fails the write.
+    const verdict: FixProductionVerdict = fitVerdict(unfitVerdict);
     const statusChanged: boolean = fix.productionStatus !== verdict.status;
 
     if (
@@ -782,6 +1026,10 @@ export default class FixProductionVerifier {
       productionStatus: true,
       productionStatusAt: true,
       productionSummary: true,
+      productionCheck: true,
+      productionBaseline: true,
+      pullRequestNumber: true,
+      pullRequestUrl: true,
       deployedAt: true,
       deployedVersion: true,
       deployedCommitSha: true,
