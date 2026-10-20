@@ -111,7 +111,7 @@ flowchart TB
 
 | 任務 | pull request 做什麼 |
 | --- | --- |
-| **Fix this exception with AI** | 修正根本原因。用 **Fix with AI** 啟動它。 |
+| **Fix this exception with AI** | 修正根本原因。點擊 **用 AI 修正** 啟動它。 |
 | **Generate Regression Test** | 新增一個測試，在缺陷修正之前它會一直失敗。 |
 | **改善錯誤處理** | 針對預期內的錯誤：更早驗證輸入，讓使用者資料不出現在訊息中，並把錯誤標記為已處理。 |
 

@@ -156,7 +156,7 @@ flowchart TB
 | SQL Query | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
 | Database Health | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
 | External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
-| Журналы, Security Events, Трассировки, ИИ / LLM, Метрики, Исключения | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor` (вся конфигурация монитора) |
+| Журналы, Security Events, Трассировки, ИИ / LLM, Метрики, Исключения, Профили | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (вся конфигурация монитора) |
 | Статус зонда | `probeStatusMonitor.probeIds` |
 
 Мониторы инфраструктуры (Kubernetes, Docker Container, Хост, Podman Container, Proxmox, Docker Swarm, Ceph, Система хранения, IoT Device) предлагают свой селектор ресурсов, фильтры (все, кроме Хоста), запросы метрик и временное окно запроса. Их имена перечислены в **Template sync settings** в шаблоне этого типа.

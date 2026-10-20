@@ -309,7 +309,7 @@ criteria = [
 | Логи | `Log Count` |
 | Трассировки | `Span Count` |
 | Исключения | `Exception Count` |
-| Профили | `Profile Count` |
+| Профили | `Profile Count`, `Function Share (in %)` |
 | ИИ / LLM | `Bad AI Answers (in %)`, `Bad AI Answers`, `AI Answers` |
 | Метрики | `Metric Value` (фильтры метрик могут принимать JSON в `metric_monitor_options`) |
 | Собственный код / Synthetic | `Result Value` (может сравнивать одно поле возвращённых данных, указанное в JSON `custom_code_monitor_options`, например `jsonencode({ resultValuePath = "status" })` — см. ниже), `Error`, `Execution Time (in ms)` |

@@ -44,6 +44,7 @@ Klicka på **Starta uppgift**, eller tryck på Enter. Uppgiftens sida öppnas, o
 | **Övervakning** | Dess typ, status och beskrivning. |
 | **Spår** | Dess spans: deras namn, tider och fel. |
 | **Loggar** | De senaste 20 loggraderna som innehåller din sökning, från den senaste timmen, dagen eller veckan. |
+| **Prestandaprofil** | Vart en funktions tid går i dess tjänsts profiler: vem som anropar den, vad den anropar och dess hetaste rader. |
 
 En begäran bär högst 10 kontextdelar. Token, nycklar, lösenord och e-postadresser i det som OneUptime läser maskeras innan AI ser dem, som överallt där OneUptime AI läser dina data.
 
@@ -78,7 +79,7 @@ flowchart TB
     P --> H["En person granskar<br/>och mergar den"]
 ```
 
-1. Du klickar på **Starta uppgift** i ett repositorium, eller på **Fix with AI** på ett olöst undantag, eller så startar en annan knapp eller utlösare en uppgift (se [Var åtgärdsuppgifter startar](#var-åtgärdsuppgifter-startar)).
+1. Du klickar på **Starta uppgift** i ett repositorium, eller på **Åtgärda med AI** på ett olöst undantag, eller så startar en annan knapp eller utlösare en uppgift (se [Var åtgärdsuppgifter startar](#var-åtgärdsuppgifter-startar)).
 2. Uppgiften ställs i kö på sitt repository, och den Runner som repositoryt väljer tar den: en av dina Runners, eller en global Runner när det inte väljer någon (se [Välj repositoryts Runner](#välj-repositoryts-runner)).
 3. Runnern hämtar uppgiftens kontext. För en begäran är det dess ord, kontexten som lades till och konversationen hittills; för ett undantag dess typ, dess meddelande och dess stack trace.
 4. Den klonar repositoriet till en egen arbetsyta och skapar en branch. En åtgärd av ett undantag heter `oneuptime-fix-exception-` följt av de första tecknen i körningens id. Ett svar arbetar i stället på branchen för uppgiftens öppna pull request.
@@ -94,15 +95,16 @@ Varje körning hålls inom budgetar som servern upprätthåller: högst **40 LLM
 
 | Var | Klick | Pull requesten |
 | --- | --- | --- |
-| Ett undantags sida **AI Assistance** | **Fix with AI** | Åtgärdar buggen bakom undantaget. |
+| Ett undantags sida **AI Assistance** | **Åtgärda med AI** | Åtgärdar buggen bakom undantaget. |
 | Ett undantags sida **AI Assistance** | **Generate Regression Test** | Lägger till ett test som återskapar undantaget och fallerar tills buggen är åtgärdad. |
 | Ett undantags sida **AI Assistance** | **Förbättra felhantering** | För ett förväntat fel, som ogiltig indata: tar bort användardata ur meddelandet, validerar indata tidigare och markerar felet som hanterat, utan att ändra beteendet. |
 | En incidents eller ett larms kort **AI Investigation** | **Open Fix PR from this analysis** | Åtgärdar grundorsaken som utredningen publicerade (se [Automatiska kodåtgärder från utredningar](#automatiska-kodåtgärder-från-utredningar)). |
 | Ett spår som är värt att åtgärda | **Åtgärda prestandan med AI** | Åtgärdar det långsamma mönster som knappen nämner, som en N+1-fråga eller anrop som kunde köras parallellt. |
 | En tjänsts sida **Loggar** | **Förbättra loggning** | Gör tjänstens loggar strukturerade, med rätt allvarlighetsgrad och kopplade till dess spår, utan att ändra beteendet. |
 | En tjänsts sida **Spår** | **Förbättra spårning** | Lägger till spans och attribut där tjänstens tracing saknas, utan att ändra beteendet. |
+| En funktion i **Prestandaprofiler** | **Åtgärda med AI** | Får funktionen att göra samma arbete med mindre tid eller minne, med dess profil som underlag. |
 
-De här knapparna visas bara där de kan starta en uppgift. Med AI avstängt för projektet visas ingen av dem, och ett undantags sidomeny har ingen **AI Assistance**. **Förbättra loggning** och **Förbättra spårning** visas så snart ett repository är anslutet, och **Åtgärda prestandan med AI** bara på ett spår som är värt att åtgärda (se [Spårutforskare](/docs/telemetry/traces-explorer)).
+De här knapparna visas bara där de kan starta en uppgift. Med AI avstängt för projektet visas ingen av dem, och ett undantags sidomeny har ingen **AI Assistance**. **Förbättra loggning** och **Förbättra spårning** visas så snart ett repository är anslutet, och **Åtgärda prestandan med AI** bara på ett spår som är värt att åtgärda (se [Spårutforskare](/docs/telemetry/traces-explorer)). En funktions **Åtgärda med AI** visas bara för programmets egen kod som tar minst 5 % av profilens tid eller minne, eller vars andel har vuxit med 3 enheter eller mer sedan fönstret den jämförs med (se [Kontinuerlig profilering](/docs/telemetry/profiles)).
 
 För att öppna ett undantags sida **AI Assistance**, öppna undantaget under **Produkter → Observerbarhet → Undantag** och välj **AI Assistance** i dess sidomeny. Ett löst eller arkiverat undantag måste först markeras som olöst.
 

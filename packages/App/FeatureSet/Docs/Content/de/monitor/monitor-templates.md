@@ -156,7 +156,7 @@ Lassen Sie das Array weg oder setzen Sie es auf `[]`, um jede unterstützte Schr
 | SQL-Abfrage | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
 | Datenbank-Integrität | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
 | Externe Statusseite | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
-| Protokolle, Sicherheitsereignisse, Traces, KI / LLM, Metriken, Ausnahmen | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor` (die gesamte Konfiguration des Monitors) |
+| Protokolle, Sicherheitsereignisse, Traces, KI / LLM, Metriken, Ausnahmen, Profile | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (die gesamte Konfiguration des Monitors) |
 | Sondenstatus | `probeStatusMonitor.probeIds` |
 
 Infrastruktur-Monitore (Kubernetes, Docker Container, Host, Podman Container, Proxmox, Docker Swarm, Ceph, Speicher-Array, IoT-Gerät) bieten ihren Ressourcen-Selektor, Filter (alle außer Host), Metrikabfragen und das Abfragezeitfenster an. Ihre Namen stehen unter **Einstellungen für die Vorlagensynchronisierung** in einer Vorlage dieses Typs.

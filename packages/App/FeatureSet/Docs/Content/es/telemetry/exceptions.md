@@ -111,7 +111,7 @@ La página **Asistencia de IA** ofrece tres tareas. Cada una se ejecuta como una
 
 | Tarea | Qué hace el pull request |
 | --- | --- |
-| **Corregir esta excepción con IA** | Corrige la causa raíz. Iníciela con **Fix with AI**. |
+| **Corregir esta excepción con IA** | Corrige la causa raíz. Iníciela con **Corregir con IA**. |
 | **Generar prueba de regresión** | Añade una prueba que falla hasta que se corrija el error. |
 | **Mejorar el manejo de errores** | Para errores esperados: valida antes la entrada, mantiene los datos de usuario fuera de los mensajes y marca el error como gestionado. |
 

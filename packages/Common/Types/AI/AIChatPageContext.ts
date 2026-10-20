@@ -34,6 +34,8 @@ enum AIChatPageContextType {
   ScheduledMaintenanceList = "ScheduledMaintenanceList",
   LogsExplorer = "LogsExplorer",
   TracesExplorer = "TracesExplorer",
+  // The Profiler: where services spend their CPU time and memory.
+  ProfilesExplorer = "ProfilesExplorer",
   MetricsExplorer = "MetricsExplorer",
   ExceptionsList = "ExceptionsList",
   RumApplications = "RumApplications",

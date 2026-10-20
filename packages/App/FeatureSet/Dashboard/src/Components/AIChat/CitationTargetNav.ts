@@ -10,6 +10,11 @@ import { isAIResourceType } from "Common/Types/AI/AIResourceContext";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import ResourcePageContextUtil from "./ResourcePageContext";
+import {
+  ProfilesUrlState,
+  buildProfilesRoute,
+  parseProfilesUrlState,
+} from "../../Utils/ProfilesUrlState";
 
 /*
  * Maps an AI citation/widget target onto its dashboard route. Shared by the
@@ -52,6 +57,7 @@ export const targetTypeToPageMap: {
   [AIChatCitationTargetType.TelemetryResources]: undefined,
   [AIChatCitationTargetType.TelemetryResourceView]: undefined,
   [AIChatCitationTargetType.ServiceView]: PageMap.SERVICE_VIEW,
+  [AIChatCitationTargetType.Profiles]: PageMap.PROFILES,
 };
 
 export const targetTypeToIcon: {
@@ -88,7 +94,34 @@ export const targetTypeToIcon: {
   [AIChatCitationTargetType.TelemetryResources]: IconProp.Server,
   [AIChatCitationTargetType.TelemetryResourceView]: IconProp.Server,
   [AIChatCitationTargetType.ServiceView]: IconProp.Cube,
+  [AIChatCitationTargetType.Profiles]: IconProp.Fire,
 };
+
+/*
+ * A Profiles citation opens the Profiler on the profiles its evidence was
+ * read from: the service, the kind and the window, each checked as the
+ * Profiler checks its own address (an id that is not one, or a window
+ * that does not hold up, is left out). Nothing else in the target reaches
+ * the address.
+ */
+function getProfilesCitationRoute(params: { [key: string]: string }): Route {
+  const state: ProfilesUrlState = parseProfilesUrlState(
+    (name: string): string | null => {
+      if (
+        name !== "serviceId" &&
+        name !== "profileType" &&
+        name !== "startTime" &&
+        name !== "endTime"
+      ) {
+        return null;
+      }
+
+      return typeof params[name] === "string" ? params[name]! : null;
+    },
+  );
+
+  return buildProfilesRoute(state);
+}
 
 export function getRouteForCitationTarget(
   target: AIChatCitationTarget | undefined,
@@ -113,6 +146,10 @@ export function getRouteForCitationTarget(
       return ResourcePageContextUtil.getRoute(resourceType, resourceId);
     }
     return ResourcePageContextUtil.getRoute(resourceType);
+  }
+
+  if (target.type === AIChatCitationTargetType.Profiles) {
+    return getProfilesCitationRoute(target.params || {});
   }
 
   const pageMapKey: PageMap | undefined = targetTypeToPageMap[target.type];

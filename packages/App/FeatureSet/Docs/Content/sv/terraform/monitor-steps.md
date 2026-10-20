@@ -309,7 +309,7 @@ De `check_on`-värden som varje monitortyp använder mest. Instrumentpanelens kr
 | Loggar | `Log Count` |
 | Spårningar | `Span Count` |
 | Undantag | `Exception Count` |
-| Profiler | `Profile Count` |
+| Profiler | `Profile Count`, `Function Share (in %)` |
 | AI / LLM | `Bad AI Answers (in %)`, `Bad AI Answers`, `AI Answers` |
 | Metriker | `Metric Value` (metrikfilter kan ta JSON i `metric_monitor_options`) |
 | Anpassad kod / Synthetic | `Result Value` (kan jämföra ett fält i returnerade data, angivet i JSON:en i `custom_code_monitor_options`, t.ex. `jsonencode({ resultValuePath = "status" })` — se nedan), `Error`, `Execution Time (in ms)` |

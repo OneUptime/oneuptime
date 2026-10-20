@@ -1,153 +1,49 @@
-import AggregatedFlamegraph from "../../../Components/Profiles/AggregatedFlamegraph";
+import ProfilesOverview from "../../../Components/Profiles/ProfilesOverview";
 import ProfileTable from "../../../Components/Profiles/ProfileTable";
-import ProfileTypeSelector from "../../../Components/Profiles/ProfileTypeSelector";
-import { SERVICE_PROFILE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ServiceMetricDescriptions";
 import PageComponentProps from "../../PageComponentProps";
-import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
-  useMemo,
   useState,
 } from "react";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
-
-/** Each selectable time-range chip above the aggregate flame graph. */
-interface TimeRange {
-  label: string;
-  minutes: number;
-}
 
 /*
- * Same presets and defaults as the profiler home page so the two
- * surfaces feel like one product: 1h is wide enough to smooth sampling
- * noise, narrow enough that the graph still answers "what is this
- * service doing right now?".
+ * A service's Profiles tab: the Profiler's overview, locked to this service
+ * - where its time goes, what changed, each function's callers, callees,
+ * source and fix - and, below it, its profiles one by one.
+ *
+ * Profiles ingested with this service's service.name carry its id as their
+ * primaryEntityId, which is what the overview reads by and what the list
+ * filters on, so the two describe the same profiles. The list therefore
+ * waits for the overview: with no profile in 30 days the overview's first
+ * steps are the page, and an empty list under them would only say "nothing
+ * yet" a second time.
  */
-const TIME_RANGES: Array<TimeRange> = [
-  { label: "15m", minutes: 15 },
-  { label: "1h", minutes: 60 },
-  { label: "24h", minutes: 60 * 24 },
-  { label: "7d", minutes: 60 * 24 * 7 },
-];
-
-const DEFAULT_RANGE_MINUTES: number = 60;
-const DEFAULT_PROFILE_TYPE: string = "cpu";
-
-// The flame graph has no title of its own; this heading names it.
-const FLAMEGRAPH_TITLE: string = "Where the time is going";
-
 const ServiceProfiles: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-
-  const [rangeMinutes, setRangeMinutes] = useState<number>(
-    DEFAULT_RANGE_MINUTES,
-  );
-  const [profileType, setProfileType] = useState<string | undefined>(
-    DEFAULT_PROFILE_TYPE,
-  );
-
-  /*
-   * A single memoised (startTime, endTime) pair so the flame graph
-   * fetch only re-fires when the user actually picks a different
-   * range — recomputing Date objects every render would otherwise
-   * look like a new window each time.
-   */
-  const { startTime, endTime } = useMemo(() => {
-    const now: Date = OneUptimeDate.getCurrentDate();
-    return {
-      startTime: OneUptimeDate.addRemoveMinutes(now, -rangeMinutes),
-      endTime: now,
-    };
-  }, [rangeMinutes]);
-
-  /*
-   * Profiles ingested with an explicit service.name carry this Service
-   * row's id as primaryEntityId, which is exactly the column the
-   * aggregate flamegraph endpoint filters on via serviceIds — so the
-   * graph and the table below describe the same set of profiles.
-   */
-  const serviceIds: Array<ObjectID> = useMemo(() => {
-    return [modelId];
-  }, [modelId.toString()]);
+  const [hasProfiles, setHasProfiles] = useState<boolean | null>(null);
 
   return (
     <Fragment>
-      <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4">
-        <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-1">
-              <h3 className="text-sm font-semibold text-gray-900">
-                {FLAMEGRAPH_TITLE}
-              </h3>
-              <InfoTooltip
-                label={FLAMEGRAPH_TITLE}
-                text={SERVICE_PROFILE_METRIC_DESCRIPTIONS.flamegraph}
-              />
-            </div>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {translator.translateText(
-                "Every profile captured for this service in the window, merged into one view. Click a frame to zoom in.",
-              )}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">
-                {translator.translateText("Time window")}
-              </div>
-              <div className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 p-1">
-                {TIME_RANGES.map((r: TimeRange) => {
-                  const active: boolean = rangeMinutes === r.minutes;
-                  return (
-                    <button
-                      key={r.label}
-                      type="button"
-                      onClick={() => {
-                        setRangeMinutes(r.minutes);
-                      }}
-                      className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
-                        active
-                          ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
-                          : "text-gray-600 hover:text-gray-900"
-                      }`}
-                    >
-                      {r.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">
-                {translator.translateText("What to analyze")}
-              </div>
-              <ProfileTypeSelector
-                selectedProfileType={profileType}
-                onChange={setProfileType}
-              />
-            </div>
-          </div>
-        </div>
-        <AggregatedFlamegraph
-          startTime={startTime}
-          endTime={endTime}
-          serviceIds={serviceIds}
-          profileType={profileType}
+      <div className="mb-6">
+        <ProfilesOverview
+          lockedEntityId={modelId.toString()}
+          onHasProfiles={setHasProfiles}
         />
       </div>
-      <ProfileTable
-        modelId={modelId}
-        noItemsMessage="No profiles found for this service."
-      />
+      {hasProfiles ? (
+        <ProfileTable
+          modelId={modelId}
+          noItemsMessage="No profiles found for this service."
+        />
+      ) : (
+        <></>
+      )}
     </Fragment>
   );
 };

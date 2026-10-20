@@ -65,7 +65,7 @@ Klik op **Monitor maken**. De monitor opent op zijn pagina **Overzicht**, en zij
 | **Group by Attributes** | Geen filter: telt elke combinatie van waarden van deze attributen apart. | Leeg: één telling |
 | **Opgelost door attributen** | Geen filter: de log die een groep oplost. Verschijnt zodra **Group by Attributes** een attribuut heeft; zie [Opgelost door een log](#opgelost-door-een-log). | Leeg: een groep wordt opgelost wanneer de logs ervan stoppen |
 | **Filteren op telemetrieservice** (onder **Meer velden**) | Logs van een van de gekozen services. | Leeg: elke service |
-| **Filter by Infrastructure Entity** (onder **Meer velden**) | Logs van een van de gekozen hosts, pods, containers en andere entiteiten. | Leeg: elke entiteit |
+| **Filteren op infrastructuurentiteit** (onder **Meer velden**) | Logs van een van de gekozen hosts, pods, containers en andere entiteiten. | Leeg: elke entiteit |
 | **Filteren op attributen** (onder **Meer velden**) | Logs waarvan de attributen aan elke voorwaarde voldoen. Elke voorwaarde heeft een eigen operator, zoals "is gelijk aan" of "bevat". | Leeg: geen voorwaarde |
 
 Alle filters die u instelt, moeten overeenkomen voordat een log wordt geteld.

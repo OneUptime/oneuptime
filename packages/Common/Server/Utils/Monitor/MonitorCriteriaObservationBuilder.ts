@@ -29,6 +29,9 @@ import SecurityEventsMonitorResponse from "../../../Types/Monitor/SecurityEvents
 import LlmMonitorResponse from "../../../Types/Monitor/LlmMonitor/LlmMonitorResponse";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
+import ProfileMonitorResponse, {
+  ProfileFunctionShareReading,
+} from "../../../Types/Monitor/ProfileMonitor/ProfileMonitorResponse";
 import SnmpMonitorResponse, {
   SnmpOidResponse,
 } from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
@@ -213,6 +216,11 @@ export default class MonitorCriteriaObservationBuilder {
         );
       case CheckOn.ExceptionCount:
         return MonitorCriteriaObservationBuilder.describeExceptionCountObservation(
+          input,
+        );
+      case CheckOn.ProfileCount:
+      case CheckOn.ProfileFunctionShare:
+        return MonitorCriteriaObservationBuilder.describeProfileObservation(
           input,
         );
       case CheckOn.SnmpIsOnline:
@@ -1432,6 +1440,44 @@ export default class MonitorCriteriaObservationBuilder {
     }
 
     return `Span count was ${traceResponse.spanCount}.`;
+  }
+
+  /*
+   * What a Profiles monitor read: how many profiles it counted, or how much
+   * of the window ran through its function ("parseOrder was 34.2% of the
+   * window (1,234 samples)").
+   */
+  public static describeProfileObservation(input: {
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const response: ProfileMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getProfileMonitorResponse(
+        input.dataToProcess,
+      );
+
+    if (!response) {
+      return null;
+    }
+
+    if (input.criteriaFilter.checkOn === CheckOn.ProfileCount) {
+      return `Profile count was ${response.profileCount}.`;
+    }
+
+    const reading: ProfileFunctionShareReading | undefined =
+      response.functionShare;
+
+    if (!reading) {
+      return "No function is set on this monitor, so there is no share to compare.";
+    }
+
+    if (!(reading.windowSampleCount > 0)) {
+      return `Nothing was profiled in the window, so ${JSON.stringify(
+        reading.functionName,
+      )} has no share to compare.`;
+    }
+
+    return `${JSON.stringify(reading.functionName)} was ${reading.sharePercent}% of the window (${reading.windowSampleCount} samples).`;
   }
 
   private static describeExceptionCountObservation(input: {

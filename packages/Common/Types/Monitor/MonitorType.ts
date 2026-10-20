@@ -251,13 +251,11 @@ export class MonitorTypeHelper {
           MonitorType.SecurityEvents,
           MonitorType.Llm,
           /*
-           * MonitorType.Profiles is intentionally not offered here: the
-           * dashboard has no configuration form for the profile monitor
-           * step, so a Profiles monitor created from this picker would have
-           * no profileMonitor config and could never evaluate. Existing
-           * Profiles monitors keep working — the enum value, its props in
-           * getAllMonitorTypeProps, and worker-side evaluation all remain.
+           * Alerts on continuous profiles: profiling stopping (Profile
+           * Count), or a function's share of the time jumping (Function
+           * Share). ProfileMonitorStepForm sets its filters.
            */
+          MonitorType.Profiles,
         ],
       },
       {
@@ -856,7 +854,8 @@ export class MonitorTypeHelper {
       {
         monitorType: MonitorType.Profiles,
         title: "Profiles",
-        description: "Alert on continuous profiling data from any source.",
+        description:
+          "Alert when a function's share of CPU or memory jumps, or profiles stop arriving.",
         icon: IconProp.Fire,
         keywords: [
           "profiling",
@@ -864,6 +863,9 @@ export class MonitorTypeHelper {
           "flamegraph",
           "pprof",
           "continuous profiling",
+          "function",
+          "hotspot",
+          "performance regression",
         ],
       },
       {

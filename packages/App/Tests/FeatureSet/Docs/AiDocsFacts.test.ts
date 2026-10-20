@@ -472,6 +472,7 @@ describe("Code", () => {
       "Monitor",
       "Trace",
       "Logs",
+      "Performance profile",
     ];
 
     for (const label of labels) {
@@ -492,7 +493,15 @@ describe("Code", () => {
       bold("Monitor"),
       bold("Trace"),
       bold("Logs"),
+      bold("Performance profile"),
     ]);
+    // What the Add context dialog says a profile gives AI.
+    expect(dashboardSource("Components/Code/CodeContextModal.tsx")).toContain(
+      "\"AI reads where the function's time goes in the service's profiles: who calls it, what it calls and its hottest lines.\"",
+    );
+    expect(rowStartingWith(rows, bold("Performance profile"))[1]).toBe(
+      "Where a function's time goes in its service's profiles: who calls it, what it calls and its hottest lines.",
+    );
 
     expect(numberConstant(builder, "LOG_LINES")).toBe(20);
     expect(CODE_TASK_LOG_WINDOWS_IN_HOURS).toEqual([1, 24, 168]);
@@ -614,6 +623,10 @@ describe("Code", () => {
     expect(trace).toContain('"Fix performance with AI"');
     expect(telemetry).toContain('translationKey("Improve Logging")');
     expect(telemetry).toContain('translationKey("Improve Tracing")');
+    // The Profiler's function panel, beside the function's finding.
+    expect(dashboardSource("Components/Profiles/ProfileCopy.ts")).toContain(
+      'export const FIX_WITH_AI: string = translationKey("Fix with AI");',
+    );
 
     expect(
       starts.map((row: Array<string>): string => {
@@ -628,7 +641,24 @@ describe("Code", () => {
         "Fix performance with AI",
         "Improve Logging",
         "Improve Tracing",
+        "Fix with AI",
       ].map(bold),
+    );
+  });
+
+  it("offers a function's Fix with AI only on own code that takes a real share, or grew, as the shared rule decides", () => {
+    const rule: string = flat(
+      readRepoFile("Common/Utils/Suggestions/ProfileFixSuggestion.ts"),
+    );
+
+    expect(rule).toContain(
+      "export const PROFILE_FIX_MIN_OWN_SHARE_PERCENT: number = 5;",
+    );
+    expect(rule).toContain(
+      "export const PROFILE_FIX_MIN_GROWTH_POINTS: number = 3;",
+    );
+    expect(flat(englishPage(CODE_PAGE))).toContain(
+      `A function's ${bold("Fix with AI")} shows only on the application's own code that takes at least 5% of the profile's time or memory, or whose share grew by 3 points or more since the window it is compared with`,
     );
   });
 

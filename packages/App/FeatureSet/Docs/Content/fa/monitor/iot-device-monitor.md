@@ -99,7 +99,7 @@ flowchart TB
 | Low Battery | Power | Warning | `iot_battery_percent`، Avg به ازای هر `device.id`، ۵ دقیقه گذشته | کمتر از ۲۰٪ | ۲۲٪ یا بیشتر |
 | Weak Signal | Connectivity | Warning | `iot_signal_strength_dbm`، Avg به ازای هر `device.id`، ۵ دقیقه گذشته | کمتر از منفی ۱۰۰ dBm | منفی ۹۰ dBm یا بیشتر |
 | High Temperature | محیط | بحرانی | `iot_temperature_celsius`، Max به ازای هر `device.id`، ۵ دقیقه گذشته | بیش از ۷۰ °C | ۶۳ °C یا کمتر |
-| High CPU Usage | System | Warning | `iot_cpu_usage_ratio`، Avg به ازای هر `device.id`، ۵ دقیقه گذشته | بیش از ۰٫۹ (۹۰٪ از CPU آن) | ۰٫۸۱ یا کمتر |
+| High CPU Usage | سیستم | Warning | `iot_cpu_usage_ratio`، Avg به ازای هر `device.id`، ۵ دقیقه گذشته | بیش از ۰٫۹ (۹۰٪ از CPU آن) | ۰٫۸۱ یا کمتر |
 
 **شدت** برچسبی است که فهرست انتخاب نشان می‌دهد. حادثه و هشداری که یک قالب می‌سازد از شدیدترین شدت حادثه و هشدار پروژه شما شروع می‌شوند؛ آن‌ها را در معیارها تغییر دهید.
 

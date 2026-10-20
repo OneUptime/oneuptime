@@ -309,7 +309,7 @@ criteria = [
 | ログ | `Log Count` |
 | トレース | `Span Count` |
 | 例外 | `Exception Count` |
-| プロファイル | `Profile Count` |
+| プロファイル | `Profile Count`、`Function Share (in %)` |
 | AI / LLM | `Bad AI Answers (in %)`、`Bad AI Answers`、`AI Answers` |
 | メトリクス | `Metric Value` (メトリクスのフィルターは `metric_monitor_options` に JSON を受け付けます) |
 | カスタム コード / Synthetic | `Result Value` (返されたデータのひとつのフィールドを比較できます。`custom_code_monitor_options` の JSON で指定します。例: `jsonencode({ resultValuePath = "status" })` — 下記参照)、`Error`、`Execution Time (in ms)` |

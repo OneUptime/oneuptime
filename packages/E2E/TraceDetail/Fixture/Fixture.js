@@ -19,6 +19,10 @@
  *              orphans:  spans whose parents were never received
  *              empty:    the trace has no spans
  *   ?profile=  none (default) | samples
+ *   ?profiler= off (default) | on - whether the trace's root service sent
+ *              continuous profiles around the trace's time (POST
+ *              /telemetry/profiles/profile-types), which is when the
+ *              related signals link to the Profiler
  *   ?fail=     comma separated: spans, perf-fix, suggestion, metrics,
  *              span-detail
  *   ?ai=       on (default) | off - the project's Enable AI switch
@@ -85,6 +89,7 @@ const USER_ID = "80000000-0000-4000-8000-000000000001";
 
 const traceMode = params.get("trace") || "checkout";
 const profileMode = params.get("profile") || "none";
+const isProfilerOn = params.get("profiler") === "on";
 const failures = new Set(
   (params.get("fail") || "").split(",").filter((value) => value.length > 0),
 );
@@ -1061,6 +1066,21 @@ async function handleApi(method, options) {
   const url = options.url.toString();
   const body = serialize(options.data);
   fixture.apiRequests.push({ method, url, body });
+
+  if (url.includes("/telemetry/profiles/profile-types")) {
+    return ok({
+      profileTypes: isProfilerOn
+        ? [
+            {
+              profileType: "cpu",
+              unit: "nanoseconds",
+              sampleCount: 1200,
+              profileCount: 30,
+            },
+          ]
+        : [],
+    });
+  }
 
   if (url.includes("/telemetry/profiles/trace-presence")) {
     return ok({ sampleCount: profileMode === "samples" ? 842 : 0 });

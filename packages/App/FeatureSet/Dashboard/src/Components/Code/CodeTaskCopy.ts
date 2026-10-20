@@ -231,6 +231,16 @@ export const CODE_TASK_CONTEXT_KINDS: Record<
     icon: IconProp.Logs,
     isRecord: true,
   },
+  /*
+   * "Performance profile", not "Profile": the locales word "Profile" as a
+   * person's profile (User Settings), which a CPU profile is not.
+   */
+  [CodeTaskContextType.Profile]: {
+    label: translationKey("Performance profile"),
+    addTitle: translationKey("Add a performance profile"),
+    icon: IconProp.Fire,
+    isRecord: true,
+  },
 };
 
 export const CODE_TASK_CONTEXT_MENU_ORDER: Array<CodeTaskContextType> = [
@@ -243,7 +253,13 @@ export const CODE_TASK_CONTEXT_MENU_ORDER: Array<CodeTaskContextType> = [
   CodeTaskContextType.Monitor,
   CodeTaskContextType.Trace,
   CodeTaskContextType.Logs,
+  CodeTaskContextType.Profile,
 ];
+
+// A profile's chip, before and after it is sent.
+export const CODE_TASK_PROFILE_CHIP_LABEL: string = translationKey(
+  "Profile of {{function}}",
+);
 
 // The record a context chip opens, by its kind.
 export const CODE_TASK_CONTEXT_RECORD_PAGES: Partial<

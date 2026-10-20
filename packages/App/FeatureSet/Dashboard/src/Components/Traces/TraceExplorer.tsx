@@ -1482,7 +1482,16 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         </section>
       )}
 
-      <TraceSignals traceId={traceId} traceWindow={traceWindow} />
+      <TraceSignals
+        traceId={traceId}
+        traceWindow={traceWindow}
+        rootServiceId={tree.roots[0]?.span.serviceId || null}
+        rootServiceName={
+          tree.roots[0]?.span.serviceId
+            ? serviceNameById.get(tree.roots[0].span.serviceId) || null
+            : null
+        }
+      />
     </div>
   );
 };

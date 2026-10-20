@@ -111,7 +111,7 @@ A página **AI Assistance** oferece três tarefas. Cada uma roda como uma tarefa
 
 | Tarefa | O que o pull request faz |
 | --- | --- |
-| **Fix this exception with AI** | Corrige a causa raiz. Inicie-a com **Fix with AI**. |
+| **Fix this exception with AI** | Corrige a causa raiz. Inicie-a com **Corrigir com IA**. |
 | **Generate Regression Test** | Adiciona um teste que falha até o bug ser corrigido. |
 | **Melhorar o tratamento de erros** | Para erros esperados: valida a entrada mais cedo, mantém os dados do usuário fora das mensagens e marca o erro como tratado. |
 

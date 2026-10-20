@@ -28,6 +28,12 @@ export interface AggregatedFlamegraphProps {
   endTime: Date;
   serviceIds?: Array<ObjectID> | undefined;
   profileType?: string | undefined;
+  /*
+   * The raw types to read, when the page already knows them: the Profiler
+   * reads a kind as the scope's own raw types, all in one unit. Left out,
+   * they are worked out from profileType.
+   */
+  profileTypes?: Array<string> | undefined;
   unit?: string | undefined;
   compact?: boolean | undefined;
   /**
@@ -72,7 +78,10 @@ const AggregatedFlamegraph: FunctionComponent<AggregatedFlamegraphProps> = (
    * that would miss rows.
    */
   const queryProfileTypes: Array<string> | undefined =
-    ProfileUtil.getQueryProfileTypes(props.profileType);
+    props.profileTypes && props.profileTypes.length > 0
+      ? props.profileTypes
+      : ProfileUtil.getQueryProfileTypes(props.profileType);
+  const queryProfileTypesKey: string = (queryProfileTypes || []).join(",");
 
   const unit: string =
     props.unit ||
@@ -147,6 +156,7 @@ const AggregatedFlamegraph: FunctionComponent<AggregatedFlamegraphProps> = (
     props.startTime.getTime(),
     props.endTime.getTime(),
     props.profileType,
+    queryProfileTypesKey,
     // serviceIds intentionally re-joined to compare by value
     (props.serviceIds || [])
       .map((i: ObjectID) => {

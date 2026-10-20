@@ -7,6 +7,7 @@ import {
   CODE_TASK_CONTEXT_KINDS,
   CODE_TASK_CONTEXT_RECORD_PAGES,
   CODE_TASK_ORIGIN_SENTENCES,
+  CODE_TASK_PROFILE_CHIP_LABEL,
   CODE_TURN_FAILED,
 } from "./CodeTaskCopy";
 import CodeTaskStateBadge from "./CodeTaskStateBadge";
@@ -20,6 +21,10 @@ import {
 } from "../../Utils/EventDuration";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import {
+  ProfilesUrlState,
+  buildProfilesRoute,
+} from "../../Utils/ProfilesUrlState";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import {
@@ -133,6 +138,43 @@ export const getContextItemRoute: (
     );
   }
 
+  // A profile opens the Profiler on the function, in the window it was read.
+  if (
+    item.type === CodeTaskContextType.Profile &&
+    item.serviceId &&
+    item.functionName
+  ) {
+    const state: ProfilesUrlState = {
+      serviceId: item.serviceId,
+      functionName: item.functionName,
+    };
+
+    if (item.fileName) {
+      state.fileName = item.fileName;
+    }
+
+    if (item.profileType) {
+      state.profileType = item.profileType;
+    }
+
+    const startTime: Date | null = item.startTime
+      ? new Date(item.startTime)
+      : null;
+    const endTime: Date | null = item.endTime ? new Date(item.endTime) : null;
+
+    if (
+      startTime &&
+      endTime &&
+      !isNaN(startTime.getTime()) &&
+      !isNaN(endTime.getTime())
+    ) {
+      state.startTime = startTime;
+      state.endTime = endTime;
+    }
+
+    return buildProfilesRoute(state);
+  }
+
   const pageMap: PageMap | undefined =
     CODE_TASK_CONTEXT_RECORD_PAGES[item.type];
 
@@ -176,7 +218,11 @@ export const ContextChips: FunctionComponent<{
               ? translator.translateTemplate("Trace {{traceId}}", {
                   traceId: `${item.traceId.substring(0, 8)}…`,
                 })
-              : item.label;
+              : item.type === CodeTaskContextType.Profile && item.functionName
+                ? translator.translateTemplate(CODE_TASK_PROFILE_CHIP_LABEL, {
+                    function: item.functionName,
+                  })
+                : item.label;
         const chip: ReactElement = (
           <span className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700">
             <Icon

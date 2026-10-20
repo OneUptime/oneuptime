@@ -6,7 +6,7 @@ El perfilado continuo muestra en qué gasta su aplicación el tiempo de CPU y la
 - [Enviar perfiles](#enviar-perfiles): Grafana Alloy con eBPF, o un SDK de Pyroscope en su aplicación.
 - [Endpoint de ingesta](#endpoint-de-ingesta): La URL base y las tres formas de pasar la clave.
 - [Comprobar que funciona](#comprobar-que-funciona): Revisar la clave, la página y el estado de las subidas.
-- [Explorar perfiles](#explorar-perfiles-en-oneuptime): Gráficos de llamas, funciones principales, comparaciones y enlaces a trazas.
+- [Explorar perfiles](#explorar-perfiles-en-oneuptime): El Profiler: adónde va el tiempo, qué cambió y la corrección con IA.
 :::
 
 ## Cómo funciona
@@ -283,14 +283,32 @@ Para el perfilador .NET, defina `DD_TRACE_DEBUG=1` en la aplicación durante un 
 
 ## Explorar perfiles en OneUptime
 
-**Productos → Perfiles de rendimiento** abre un resumen de en qué se va el tiempo en sus servicios, y **Todos los perfiles** lista cada subida. Elija qué analizar: **Todo**, **Tiempo de CPU**, **Memoria** o **Bloqueos**, o un tipo concreto como **Tiempo real transcurrido** o **Goroutines**.
+**Productos → Perfiles de rendimiento** abre el Profiler en su **Vista general**. Responde con palabras antes de cualquier gráfico: adónde va el tiempo («JSON.parse ocupa el 42% del total de tiempo de CPU en checkout.») y, cuando la función más ocupada es de una biblioteca o del tiempo de ejecución, la función de su propio código que más ocupa, con el código de biblioteca y de tiempo de ejecución al que llama. Arriba, elija un servicio, un tipo de perfil del que tenga datos (**Tiempo de CPU**, **Tiempo real transcurrido**, **Memoria**, **Asignaciones**, **Bloqueos** o **Goroutines**, o un tipo en **Más tipos de perfil**) y un intervalo.
 
-La página de un perfil tiene tres vistas:
+| Tarjeta | Qué muestra |
+| --- | --- |
+| **Adónde va el tiempo de CPU** | Todos los perfiles del intervalo, combinados en un solo gráfico de llamas. Cuanto más ancho es un marco, mayor es su proporción. Haga clic en un marco para ampliarlo. |
+| **Funciones** | Las funciones que más ocupan, ordenadas por **Propio** (el tiempo en el propio código de la función), **Total** (con todo lo que llama) o **Tu código** (sus propias funciones, cada una con el código de biblioteca y de tiempo de ejecución al que llama: el tiempo que un cambio en ella puede recuperar). |
+| **Servicios que se están perfilando** | Cada servicio perfilado, los más ocupados primero. Los hilos del kernel que muestrea el perfilador eBPF quedan ocultos. |
+
+### Comparar dos intervalos
+
+**Comparar con** define con qué se compara el intervalo: **El periodo anterior**, **La misma hora de ayer**, **La misma hora de la semana pasada**, o un despliegue en **Antes y después de un cambio**. Se comparan proporciones, no totales, así que más tráfico por sí solo no mueve nada. El titular nombra la función cuya proporción más creció, y el código propio que creció; el gráfico de llamas pasa a ser **Qué cambió**, donde los marcos rojos ocupan una proporción mayor después y los verdes una menor; y **Funciones que cambiaron** lista la proporción de cada función antes y después.
+
+### Una función
+
+Haga clic en una función para abrir su panel: su proporción como **Propio**, **Total** y **Tu código**, **Quién la llama** y **Qué llama**, un enlace a su archivo y su línea en su repositorio cuando hay uno conectado, y **Resaltar en el gráfico de llamas**. Para una función de una biblioteca o del tiempo de ejecución, el panel nombra la función de su propio código que la llama, donde un cambio puede abaratarla. Un enlace bajo las proporciones crea una alerta sobre la proporción de la función, por encima de lo que ocupa hoy: consulte [Monitor de perfiles](/docs/monitor/profiles-monitor).
+
+Cuando una función de su propio código ocupa al menos el 5 % del tiempo o la memoria del perfil, o su proporción creció 3 puntos o más desde el intervalo con el que se compara, el panel ofrece **Corregir con IA**: OneUptime AI inicia una tarea en el repositorio que contiene la función, con el perfil como evidencia, y abre una pull request para que la revise (consulte [Code](/docs/ai/ai-agent)). OneUptime AI también lee los perfiles en sus respuestas e investigaciones, así que puede preguntarle qué funciones usan más tiempo de CPU.
+
+### Un solo perfil
+
+**Todos los perfiles** lista cada subida. La página de un perfil tiene tres vistas:
 
 | Vista | Qué muestra |
 | --- | --- |
 | **Gráfico de llamas** | Cada barra es una función de la pila de llamadas, y su anchura es proporcional al tiempo o los recursos que consumió. Haga clic en una función para ampliarla y ver quién la llama y a quién llama. |
-| **Funciones principales** | Las funciones del perfil, ordenadas por tiempo propio o total. **Only my code** oculta los frames de bibliotecas. |
+| **Funciones principales** | Las funciones del perfil, ordenadas por tiempo propio o total. **Solo mi código** oculta los frames de bibliotecas. |
 | **Diff vs. baseline** | El perfil comparado con un periodo anterior (**vs. hace 1 hora**, **vs. ayer** o **vs. la semana pasada**), con las funciones **Más empeorados** y **Más mejorados**. |
 
 **Descargar pprof** guarda el perfil para herramientas locales como `go tool pprof`.
@@ -300,6 +318,8 @@ La página de un perfil tiene tres vistas:
 Cuando un perfil lleva ID de traza y de span (por ejemplo, como etiquetas de muestra `trace_id` / `span_id`), puede ir directamente de un span lento de una traza al perfil de CPU o memoria correspondiente para entender exactamente qué código se ejecutaba, y **Abrir la traza vinculada** hace el camino inverso.
 
 La pestaña **Perfil** de un span incluye también las muestras vinculadas a los spans anidados bajo él, porque los perfiladores suelen atribuir el tiempo de CPU de una petición a un span hijo en lugar de al span de la propia petición.
+
+La página de una traza también enlaza al Profiler en el servicio de la traza, para los 15 minutos anteriores y posteriores, cuando ese servicio se perfilaba entonces, y la página **Perfiles de rendimiento** de un servicio o de un host abre el Profiler en ese servicio o host.
 
 ## Retención de datos
 
