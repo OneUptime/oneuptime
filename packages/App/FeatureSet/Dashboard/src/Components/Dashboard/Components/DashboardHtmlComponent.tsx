@@ -7,6 +7,7 @@ import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEnd
 import JSONFunctions from "Common/Types/JSONFunctions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Theme, useTheme } from "Common/UI/Utils/Theme";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardHtmlComponent;
@@ -18,6 +19,14 @@ const DashboardHtmlComponentElement: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const { html, css, javascript, allowScripts, allowForms, allowPopups } =
     props.component.arguments;
+
+  /*
+   * The scheme the dashboard is drawn in, which the frame's document takes
+   * (HtmlWidgetDocument, DARK_CSS): in the dark theme a widget that starts
+   * transparent stays transparent, instead of a white box on the dark card.
+   * A change of theme rebuilds the document, as a change of a variable does.
+   */
+  const isDark: boolean = useTheme() === Theme.Dark;
 
   const sandbox: string = HtmlWidgetDocument.getSandboxAttribute({
     allowScripts,
@@ -62,6 +71,7 @@ const DashboardHtmlComponentElement: FunctionComponent<ComponentProps> = (
       variables: props.variables,
       startDate: range.startValue,
       endDate: range.endValue,
+      colorScheme: isDark ? "dark" : "light",
     });
   }, [
     html,
@@ -73,6 +83,7 @@ const DashboardHtmlComponentElement: FunctionComponent<ComponentProps> = (
     variablesKey,
     rangeKey,
     props.refreshTick,
+    isDark,
   ]);
 
   const isEmpty: boolean = !html && !css && !javascript;
