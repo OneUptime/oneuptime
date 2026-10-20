@@ -22,6 +22,7 @@ const { spawn, spawnSync } = require("node:child_process");
 
 const {
   NGINX_DIRECTORY,
+  ingressListenEnvironment,
   readTemplate,
   readNginxConf,
 } = require("./NginxConfigParser");
@@ -149,7 +150,9 @@ function render(environment) {
 
 /**
  * A full container environment minus the variables under test, so a render is
- * representative of a real deployment.
+ * representative of a real deployment. The listen directives are the ones
+ * envsubst-on-templates.sh exports for the NGINX_LISTEN_ADDRESS it ends up
+ * with, on a kernel with IPv6; an override names them to differ.
  */
 function baseEnvironment(overrides = {}) {
   const environment = {};
@@ -168,7 +171,6 @@ function baseEnvironment(overrides = {}) {
     BACKEND_APP_TARGET: "$backend_app",
     BACKEND_APP_GRPC_TARGET: "$backend_app_grpc",
     NGINX_RESOLVER: "127.0.0.11",
-    PROVISION_SSL_LISTEN_DIRECTIVE: "",
     PROVISION_SSL_CERTIFICATE_DIRECTIVE: "",
     PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE: "",
     SERVER_APP_HOSTNAME: "app",
@@ -180,7 +182,16 @@ function baseEnvironment(overrides = {}) {
   delete environment.NGINX_UPSTREAM_KEEPALIVE_CONNECTIONS;
   delete environment.NGINX_INGEST_ACCESS_LOG;
 
-  return { ...environment, ...overrides };
+  const listenAddress =
+    overrides.NGINX_LISTEN_ADDRESS === undefined
+      ? environment.NGINX_LISTEN_ADDRESS
+      : overrides.NGINX_LISTEN_ADDRESS;
+
+  return {
+    ...environment,
+    ...ingressListenEnvironment({ listenAddress }),
+    ...overrides,
+  };
 }
 
 test("the only template variable the container environment does not supply is the ingest switch", () => {

@@ -5,7 +5,7 @@ import resolveTrustedClientIp, { ClientIpRequestLike } from "../ClientIp";
 import ClientRateLimitCounter, {
   ClientRateLimitRefusal,
 } from "./ClientRateLimitCounter";
-import net from "net";
+import { isPrivateNetworkAddress } from "../PrivateNetworkAddress";
 
 /*
  * DIFFERENT WRONG KEYS, COUNTED FOR THE CLIENT THAT SENDS THEM.
@@ -68,7 +68,7 @@ import net from "net";
  * such an address is often not one caller's alone: a proxy, a load balancer
  * or a container network can show many callers as one. So a key presented
  * from a private network address (RFC 1918, loopback, link-local, IPv6 unique
- * local; PRIVATE_NETWORKS below) is compared as it always was, and never
+ * local; Utils/PrivateNetworkAddress) is compared as it always was, and never
  * counted or refused: nothing is read or kept for it, and nothing sent from
  * beside OneUptime's own services can get them refused. Every other address
  * is counted. The address is the one the proxies TRUSTED_PROXY_HOPS counts
@@ -99,21 +99,6 @@ const TTL_MULTIPLIER: number = 2;
 
 // How often a failing count may be logged.
 const COUNTER_FAILED_LOG_INTERVAL_MS: number = 60 * 1000;
-
-/*
- * The private network addresses whose keys are never counted (NOT ON A
- * PRIVATE NETWORK ADDRESS above). An IPv4 address written as IPv6
- * (::ffff:10.0.0.1) is read as the IPv4 address it is.
- */
-const PRIVATE_NETWORKS: net.BlockList = new net.BlockList();
-PRIVATE_NETWORKS.addSubnet("10.0.0.0", 8, "ipv4");
-PRIVATE_NETWORKS.addSubnet("172.16.0.0", 12, "ipv4");
-PRIVATE_NETWORKS.addSubnet("192.168.0.0", 16, "ipv4");
-PRIVATE_NETWORKS.addSubnet("127.0.0.0", 8, "ipv4");
-PRIVATE_NETWORKS.addSubnet("169.254.0.0", 16, "ipv4");
-PRIVATE_NETWORKS.addAddress("::1", "ipv6");
-PRIVATE_NETWORKS.addSubnet("fc00::", 7, "ipv6");
-PRIVATE_NETWORKS.addSubnet("fe80::", 10, "ipv6");
 
 export interface WrongKeyLimitSpec {
   // What a log line calls this limit: "wrong cluster key".
@@ -271,24 +256,10 @@ export default class WrongKeyLimit {
    * Whether a client address is a private network address, whose keys are
    * never counted (NOT ON A PRIVATE NETWORK ADDRESS above). Anything that is
    * not an address - "unknown", the client every caller that cannot be
-   * placed shares - is counted.
+   * placed shares - is counted. The ranges are Utils/PrivateNetworkAddress's.
    */
   public static isPrivateNetworkAddress(address: string): boolean {
-    const text: string = typeof address === "string" ? address : "";
-
-    // An IPv6 link-local address may carry its zone ("fe80::1%eth0").
-    const bare: string = text.includes(":") ? text.split("%")[0] || "" : text;
-    const family: number = net.isIP(bare);
-
-    if (family === 4) {
-      return PRIVATE_NETWORKS.check(bare, "ipv4");
-    }
-
-    if (family === 6) {
-      return PRIVATE_NETWORKS.check(bare, "ipv6");
-    }
-
-    return false;
+    return isPrivateNetworkAddress(address);
   }
 
   // Whether a request's client is a private network address (getClientIp).

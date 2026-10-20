@@ -1,0 +1,179 @@
+# Whether visitors reach OneUptime's gateway (the nginx Service) from their own
+# address or from a node's, which is the address OneUptime counts them by: its
+# sign-in limits, its other per-address limits and its IP allowlists.
+#
+# Under Kubernetes' default externalTrafficPolicy (Cluster), kube-proxy hands
+# the gateway every visitor from the address of the node they came through,
+# so OneUptime sees everyone who came through one node as one visitor. Under
+# Local each visitor keeps their own address, but a node without a gateway pod
+# refuses visitors until the load balancer's health check stops sending them
+# there - so the chart cannot switch an existing Service by itself:
+#
+#   - nginx.service.externalTrafficPolicy renders as given, and when it is
+#     empty the Service has none, so an upgrade leaves a live Service as it is;
+#   - it is refused for a Service visitors cannot reach from outside the
+#     cluster, which the Kubernetes API would refuse with a less helpful error;
+#   - helm install / helm upgrade say so (NOTES.txt) while the Service is one
+#     visitors reach from outside and nothing is chosen.
+suite: gateway visitor addresses
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: leaves the policy to Kubernetes when nothing is chosen, so an upgrade changes nothing
+    templates:
+      - templates/nginx.yaml
+    documentSelector:
+      path: kind
+      value: Service
+    asserts:
+      - equal:
+          path: spec.type
+          value: LoadBalancer
+      - notExists:
+          path: spec.externalTrafficPolicy
+
+  - it: keeps visitors' own addresses with Local
+    templates:
+      - templates/nginx.yaml
+    documentSelector:
+      path: kind
+      value: Service
+    set:
+      nginx.service.externalTrafficPolicy: Local
+    asserts:
+      - equal:
+          path: spec.externalTrafficPolicy
+          value: Local
+      - equal:
+          path: spec.type
+          value: LoadBalancer
+
+  - it: writes Cluster when it is chosen
+    templates:
+      - templates/nginx.yaml
+    documentSelector:
+      path: kind
+      value: Service
+    set:
+      nginx.service.externalTrafficPolicy: Cluster
+    asserts:
+      - equal:
+          path: spec.externalTrafficPolicy
+          value: Cluster
+
+  - it: takes Local for a NodePort Service
+    templates:
+      - templates/nginx.yaml
+    documentSelector:
+      path: kind
+      value: Service
+    set:
+      nginx.service.type: NodePort
+      nginx.service.externalTrafficPolicy: Local
+    asserts:
+      - equal:
+          path: spec.type
+          value: NodePort
+      - equal:
+          path: spec.externalTrafficPolicy
+          value: Local
+
+  - it: takes Local for a ClusterIP Service with externalIPs, which visitors reach from outside
+    templates:
+      - templates/nginx.yaml
+    documentSelector:
+      path: kind
+      value: Service
+    set:
+      nginx.service.type: ClusterIP
+      nginx.service.externalIPs:
+        - 203.0.113.5
+      nginx.service.externalTrafficPolicy: Local
+    asserts:
+      - equal:
+          path: spec.externalTrafficPolicy
+          value: Local
+      - contains:
+          path: spec.externalIPs
+          content: 203.0.113.5
+
+  - it: refuses a policy for a Service visitors cannot reach from outside the cluster
+    templates:
+      - templates/nginx.yaml
+    set:
+      nginx.service.type: ClusterIP
+      nginx.service.externalTrafficPolicy: Local
+    asserts:
+      - failedTemplate:
+          errorMessage: "nginx.service.externalTrafficPolicy applies only to a Service visitors reach from outside the cluster: set nginx.service.type to LoadBalancer or NodePort, or leave externalTrafficPolicy empty."
+
+  - it: refuses a policy Kubernetes does not know
+    templates:
+      - templates/nginx.yaml
+    set:
+      nginx.service.externalTrafficPolicy: local
+    asserts:
+      - failedTemplate: {}
+
+  - it: says so on install and upgrade while the LoadBalancer Service's policy is Kubernetes' default
+    templates:
+      - templates/NOTES.txt
+    asserts:
+      - matchRegexRaw:
+          pattern: "ACTION RECOMMENDED -- OneUptime sees visitors at a node's address\\."
+      - matchRegexRaw:
+          pattern: 'The oneuptime-nginx Service hands every visitor to OneUptime''s gateway\s+from the address of the node they came through'
+      - matchRegexRaw:
+          pattern: 'set\s+nginx\.service\.externalTrafficPolicy=Local and run helm upgrade\.'
+      - matchRegexRaw:
+          pattern: 'until the load balancer''s health check catches up, from seconds to about a\s+minute depending on its interval, a node without one refuses visitors, so\s+switch at a quiet time\.'
+      - matchRegexRaw:
+          pattern: 'To keep things as they are, set nginx\.service\.externalTrafficPolicy=Cluster\.'
+
+  - it: says so for a NodePort Service too
+    templates:
+      - templates/NOTES.txt
+    set:
+      nginx.service.type: NodePort
+    asserts:
+      - matchRegexRaw:
+          pattern: "ACTION RECOMMENDED -- OneUptime sees visitors at a node's address\\."
+
+  - it: says so for a ClusterIP Service with externalIPs
+    templates:
+      - templates/NOTES.txt
+    set:
+      nginx.service.type: ClusterIP
+      nginx.service.externalIPs:
+        - 203.0.113.5
+    asserts:
+      - matchRegexRaw:
+          pattern: "ACTION RECOMMENDED -- OneUptime sees visitors at a node's address\\."
+
+  - it: says nothing once Local is chosen
+    templates:
+      - templates/NOTES.txt
+    set:
+      nginx.service.externalTrafficPolicy: Local
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "OneUptime sees visitors at a node's address"
+
+  - it: says nothing once Cluster is chosen
+    templates:
+      - templates/NOTES.txt
+    set:
+      nginx.service.externalTrafficPolicy: Cluster
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "OneUptime sees visitors at a node's address"
+
+  - it: says nothing for a Service only the cluster reaches, which an ingress of your own fronts
+    templates:
+      - templates/NOTES.txt
+    set:
+      nginx.service.type: ClusterIP
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "OneUptime sees visitors at a node's address"

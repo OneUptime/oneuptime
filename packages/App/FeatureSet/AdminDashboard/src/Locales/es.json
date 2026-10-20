@@ -1000,5 +1000,16 @@
   "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "Parámetros JSON adicionales enviados al proveedor en cada solicitud, como {\"temperature\": 0.2}. Déjelo vacío salvo que su modelo los necesite.",
   "Never put keys here.": "Nunca ponga claves aquí.",
   "Your deployment's name, exactly as Foundry shows it.": "El nombre de su implementación, tal como lo muestra Foundry.",
-  "{{name}} (default)": "{{name}} (predeterminado)"
+  "{{name}} (default)": "{{name}} (predeterminado)",
+  "Visitors share an address": "Varios visitantes comparten una dirección",
+  "Several people signed in from one private network address in the last 30 days. OneUptime counts them as one visitor, so one person's failed sign-ins can lock the others out.": "En los últimos 30 días, varias personas iniciaron sesión desde una misma dirección de red privada. OneUptime las cuenta como un solo visitante, así que los inicios de sesión fallidos de una persona pueden bloquear a las demás.",
+  "Usually something in front of OneUptime hands it every visitor from an address of its own:": "Normalmente, algo delante de OneUptime le entrega cada visitante desde una dirección propia:",
+  "Docker Compose: when people come over IPv6, turn IPv6 on for OneUptime's network in {{file}}.": "Docker Compose: cuando las personas lleguen por IPv6, active IPv6 en la red de OneUptime en {{file}}.",
+  "Docker Compose behind a proxy of your own: make the proxy the only way in, then set {{hops}}. With the proxy on the same server, publish OneUptime's ports on {{loopback}} only.": "Docker Compose detrás de un proxy propio: haga que el proxy sea la única vía de entrada y luego configure {{hops}}. Si el proxy está en el mismo servidor, publique los puertos de OneUptime solo en {{loopback}}.",
+  "Kubernetes: set {{setting}} in the Helm chart's values.": "Kubernetes: configure {{setting}} en los valores del chart de Helm.",
+  "Nothing needs to change if these people share one computer or one VPN.": "No hace falta cambiar nada si estas personas comparten un mismo equipo o una misma VPN.",
+  "{{count}} people": "{{count}} personas",
+  "{{count}} people_one": "{{count}} persona",
+  "Docker Compose guide": "Guía de Docker Compose",
+  "Kubernetes guide": "Guía de Kubernetes"
 }
