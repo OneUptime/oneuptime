@@ -55,7 +55,7 @@ Os primeiros custos aparecem depois que a primeira hora completa fecha, e o Open
 - Em um cluster, **Costs** mostra a tendência de gastos dele, **Spend by Namespace** com a divisão entre CPU, memória e armazenamento, **Spend by Workload**, os gastos ociosos, a eficiência e o cartão **Right-Sizing**.
 :::
 
-As métricas de custo (`node_total_hourly_cost`, `pv_hourly_cost` e as demais) são métricas comuns: elas estão no explorador de métricas, em dashboards personalizados e em monitores de métricas. Para um dashboard pronto, vá até **Produtos → Painéis**, selecione **Criar: Painel** e escolha **Kubernetes Cost Dashboard**: tendências do custo por hora dos nós, custos unitários de CPU e memória, e gastos com volumes e load balancers.
+As métricas de custo (`node_total_hourly_cost`, `pv_hourly_cost` e as demais) são métricas comuns: elas estão no explorador de métricas, em dashboards personalizados e em monitores de métricas. Para um dashboard pronto, vá até **Produtos → Painéis**, selecione **Criar painel** e escolha **Kubernetes Cost Dashboard**: tendências do custo por hora dos nós, custos unitários de CPU e memória, e gastos com volumes e load balancers.
 
 ## Já usa o Kubecost ou o OpenCost?
 

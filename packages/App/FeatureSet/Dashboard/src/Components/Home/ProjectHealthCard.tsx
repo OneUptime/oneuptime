@@ -1,3 +1,6 @@
+import AppLink from "../AppLink/AppLink";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { HomeCounts } from "./HomeOverviewData";
 import { formatRelativeTime, isJustNow } from "./HomeRelativeTime";
 import OverviewStats from "./OverviewStats";
@@ -8,6 +11,7 @@ import {
   ProjectHealthTone,
   translateProjectHealthText,
 } from "./ProjectHealth";
+import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -32,7 +36,21 @@ export interface ComponentProps {
   loadedAt: Date | null;
   now: Date;
   onRefresh: () => void;
+  /*
+   * Whether the signed-in user may create a monitor (Home's create gates).
+   * Before anything is monitored, the headline then ends on the button that
+   * does what it suggests.
+   */
+  canCreateMonitor?: boolean | undefined;
 }
+
+/*
+ * The one primary button on Home, and only before anything is monitored: the
+ * headline says to create a monitor, so it offers to. The Button component's
+ * PRIMARY look, as a link so it opens in a new tab too.
+ */
+export const CREATE_FIRST_MONITOR_BUTTON_CLASS_NAME: string =
+  "mt-4 inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
 interface ToneClassNames {
   // The band behind the headline.
@@ -203,6 +221,25 @@ const ProjectHealthCard: FunctionComponent<ComponentProps> = (
                 >
                   {translateProjectHealthText(translator, health.summary)}
                 </p>
+                {health.kind === ProjectHealthKind.NotSetUp &&
+                props.canCreateMonitor ? (
+                  <AppLink
+                    to={RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.MONITOR_CREATE] as Route,
+                    )}
+                    className={CREATE_FIRST_MONITOR_BUTTON_CLASS_NAME}
+                  >
+                    <span
+                      data-testid="home-health-create-monitor"
+                      className="inline-flex items-center gap-1.5"
+                    >
+                      <Icon icon={IconProp.Add} className="h-4 w-4 flex-none" />
+                      <span className="whitespace-nowrap">
+                        {translator.translateText("Create your first monitor")}
+                      </span>
+                    </span>
+                  </AppLink>
+                ) : null}
               </>
             ) : (
               <div data-testid="home-health-loading" className="space-y-2">

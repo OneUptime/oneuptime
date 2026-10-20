@@ -76,6 +76,7 @@ export class Service extends DatabaseService<Model> {
         projectId: true,
         createdAt: true,
         impactStartedAt: true,
+        firstPagedAt: true,
         labels: { _id: true, name: true, color: true },
         customFields: true,
         monitor: { _id: true, name: true },
@@ -330,6 +331,22 @@ export class Service extends DatabaseService<Model> {
           /*
            * Recorded by a person after the fact, so a blank value on an open
            * alert is still coming rather than never arriving.
+           */
+          canResolveAfterTerminalState: true,
+        };
+
+      case AlertMeasurementAnchorType.FirstPagedAt:
+        return {
+          kind: MeasurementAnchorKind.Timestamp,
+          label: "First Paged At",
+          timestamp: alert.firstPagedAt,
+          /*
+           * Written by OneUptime when an on-call policy or a direct page
+           * first notifies somebody about the alert (FirstPagedAt), which can
+           * be long after it opened - a page held until working hours goes
+           * out in the morning. Blank, it is still to come rather than never
+           * coming: an alert nobody was paged about has no value, and stays
+           * Pending as a state it never reached does.
            */
           canResolveAfterTerminalState: true,
         };

@@ -38,6 +38,8 @@ De regel bovenaan noemt het dringendste dat openstaat, in een bijpassende kleur:
 
 Ernaast staat wanneer Start het project voor het laatst heeft gelezen, en **Vernieuwen** leest het opnieuw. Komt u na een minuut of langer terug op een tabblad met Start, dan vernieuwt Start zich vanzelf.
 
+Zolang er nog niets wordt gemonitord, eindigt de regel met de knop **Maak je eerste monitor**, die het formulier opent waarmee je er een maakt. Alleen wie monitoren mag maken, ziet hem.
+
 ### De vijf getallen
 
 Elk getal telt iets, zegt of dat uw aandacht nodig heeft, en opent de lijst erachter.

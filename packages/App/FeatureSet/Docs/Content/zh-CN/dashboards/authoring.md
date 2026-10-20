@@ -1,9 +1,9 @@
 # 创建仪表板
 
-要创建仪表板，请打开 **产品 → 仪表板** ，点击 **创建仪表板** 并选择一个模板，或选择 **Blank Dashboard** 从零开始。模板会为你填好仪表板的名称（如果项目中已有同名仪表板，则会加上编号，例如"Kubernetes Dashboard 2"）；空白仪表板需要你输入名称。点击 **创建仪表板** ，新仪表板随即打开。空白仪表板会在空画布上打开，并提供一个 **添加小部件** 按钮用于添加第一个小部件。
+要创建仪表板，请打开 **产品 → 仪表板** ，点击 **创建仪表板** 。 **创建仪表板** 对话框会先问你如何开始，再问名称。 **从零开始** 给你一个空白仪表板；模板会为你创建它的小部件，通常还有变量，并填好它的名称（如果项目中已有同名仪表板，则会加上编号，例如"Kubernetes Dashboard 2"）。点击 **创建仪表板** ，新仪表板随即打开。空白仪表板会在画布上打开，并提供一个 **添加小部件** 按钮用于添加第一个小部件。
 
 :::cards
-- [新建仪表板](#新建仪表板): 从模板或空白画布开始。
+- [新建仪表板](#新建仪表板): 从零开始，或从模板开始。
 - [编辑与保存](#编辑与保存): 在你点击"保存更改"之前，任何人看到的都不会改变。
 - [添加小部件](#添加小部件): 从目录中选择、进行设置，然后放到位。
 - [放大峰值](#放大峰值): 在图表上拖动，读取那一刻的整个仪表板。
@@ -16,33 +16,32 @@
 ## 新建仪表板
 
 :::steps
-### 打开模板选择器
+### 选择开始方式
 
-打开 **产品 → 仪表板** ，点击 **创建仪表板** 。 **从模板创建** 对话框会显示 **Blank Dashboard** 和十五个模板，按它们监控的对象分组。
+打开 **产品 → 仪表板** ，点击 **创建仪表板** 。 **创建仪表板** 对话框从 **从零开始** 开始，这是一个可以添加你自己的小部件的空白仪表板。下方的 **或者从模板开始** 列出六个 **推荐** 模板。
 
 ### 选择模板
 
-点击一张卡片。模板会为你创建它的小部件，通常还有变量； **Blank Dashboard** 从空画布开始。
+点击一个模板，查看它会添加什么：它的小部件（名称与 **添加小部件** 中一致），以及你在工具栏中用来缩小范围的变量。其他模板可以在搜索框旁选择一个类别或 **全部模板** ，或在 **搜索模板…** 中输入来查找：你输入的每个词都必须匹配。然后点击 **使用此模板** ，或双击该模板。在搜索框中，方向键选择模板， **Enter** 使用它。
 
 ### 为仪表板命名
 
-模板的名称已经填好，并按项目中已有的名称往后编号。空白仪表板的名称为空：请输入一个。描述是可选的，折叠在 **更多字段** 下，你也可以稍后在仪表板的 **概览** 页面添加。
+模板的名称已经填好，并按项目中已有的名称往后编号。 **从零开始** 时名称为空：请输入一个。描述是可选的，折叠在 **更多字段** 下，你也可以稍后在仪表板的 **概览** 页面添加。 **返回** 会带你回到离开时的模板选择。
 
 ### 创建
 
-点击 **创建仪表板** 。新仪表板随即打开：如果是模板，会立即显示它的小部件；如果是空白仪表板，则显示带有 **添加小部件** 的空画布。
+点击 **创建仪表板** 。新仪表板随即打开：如果是模板，会立即显示它的小部件；否则显示带有 **添加小部件** 的空画布。
 :::
 
-模板按选择器中的分组列出：
+模板按选择器中的类别列出：
 
-| 分组 | 模板 |
+| 类别 | 模板 |
 | --- | --- |
-| Get Started | Blank Dashboard |
-| Monitoring & APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
-| Incident Response | Incident Dashboard, Alert Dashboard |
-| Infrastructure | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
+| 监控与 APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
+| 事件响应 | Incident Dashboard, Alert Dashboard |
+| 基础设施 | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
 
-模板只是起点，而不是关联：仪表板创建后，你可以随意修改。之后模板不会再更新它。
+**推荐** 包含 Monitor Dashboard、Incident Dashboard、Alert Dashboard、Kubernetes Dashboard、Hosts Dashboard 和 Metrics Dashboard。模板只是起点，而不是关联：仪表板创建后，你可以随意修改。之后模板不会再更新它。
 
 ## 编辑与保存
 

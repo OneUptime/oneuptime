@@ -30,6 +30,8 @@ flowchart TB
 
 Å bekrefte eller løse hendelsen, varselet eller episoden stopper alle retningslinjer som fortsatt tilkaller for den. OneUptime fører kjørende retningslinjer et steg videre hvert minutt og registrerer hver kjøring, regel for regel, i **Utførelseslogger**.
 
+Første gang en tilkalling når noen, registrerer OneUptime det på hendelsen, varselet eller episoden som `First Paged At`. En måling kan telle derfra: **Tid til bekreftelse etter tilkalling** måler hvor lang tid folk brukte på å svare etter at de ble tilkalt, ikke hvor lenge hendelsen, varselet eller episoden ventet før noen ble tilkalt. Se [Tid til bekreftelse etter tilkalling](/docs/incidents/settings#tid-til-bekreftelse-etter-tilkalling).
+
 > [!NOTE]
 > En hendelse, et varsel eller en episode som opprettes allerede bekreftet eller løst, kjører ingen av retningslinjene sine, og feeden sier det. Se [Opprettet allerede bekreftet eller løst](/docs/alerts/index#opprettet-allerede-bekreftet-eller-løst).
 
