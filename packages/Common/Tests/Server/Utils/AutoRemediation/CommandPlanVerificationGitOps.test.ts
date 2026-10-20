@@ -271,10 +271,10 @@ describe("a fix put back on the cluster", () => {
       AutoRemediationVerificationStatus.Failed,
     );
     expect(writtenVerification()?.note).toContain(
-      `The fix did not hold: Argo CD Application "shop" put back what "${COMMAND}" changed (spec.replicas (3 → back to 1))`,
+      `The fix did not hold: Argo CD Application "shop" declares deployment/web and put back what "${COMMAND}" changed (spec.replicas (3 → back to 1)); verification found it back`,
     );
     expect(writtenVerification()?.note).toContain(
-      "make the same change in git, where it is declared",
+      "A kubectl change of what it declares cannot last there: the lasting fix is the same change in git (the manifest, Helm values or Kustomize overlay it is built from).",
     );
 
     // What the read found is on the plan, for the rollback arm and the card.
@@ -301,7 +301,7 @@ describe("a fix put back on the cluster", () => {
       AutoRemediationVerificationStatus.Failed,
     );
     expect(writtenVerification()?.note).toContain(
-      `The fix did not hold: something on the cluster put back what "${COMMAND}" changed on deployment/web`,
+      `The fix did not hold: something on the cluster put back what "${COMMAND}" changed on deployment/web (spec.replicas (3 → back to 1))`,
     );
     expect(writtenVerification()?.note).toContain(
       "a GitOps controller, a Helm upgrade, an operator or an autoscaler",

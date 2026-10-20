@@ -23,7 +23,10 @@ import {
 } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import { AiRemediationRevertWatch } from "../../../Types/AutoRemediation/AiRemediationGitOps";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
-import { describeGitOpsOwner } from "../../../Utils/AiRemediation/GitOpsOwnership";
+import {
+  describeGitOpsOwner,
+  describeLastingFix,
+} from "../../../Utils/AiRemediation/GitOpsOwnership";
 import { describePutBackFields } from "../../../Utils/AiRemediation/KubectlRevertWatch";
 import GitOpsInspector from "../AI/Remediation/GitOpsInspector";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -996,16 +999,15 @@ export default class RemediationVerifier {
           60000,
       ),
     );
+    // When verification found it, which is after the owner put it back.
     const when: string =
       minutes <= 1 ? "within a minute or two" : `about ${minutes} minutes`;
 
     if (command.gitOps) {
-      const owner: string = describeGitOpsOwner(command.gitOps);
-
-      return `The fix did not hold: ${owner} put back what "${command.command}" changed (${what}), ${when} after it ran. It declares ${command.gitOps.objectKind}/${command.gitOps.objectName}, so a kubectl change of what it declares cannot last: make the same change in git, where it is declared. Escalation continues as normal.`;
+      return `The fix did not hold: ${describeGitOpsOwner(command.gitOps)} declares ${command.gitOps.objectKind}/${command.gitOps.objectName} and put back what "${command.command}" changed (${what}); verification found it back ${when} after the fix ran. A kubectl change of what it declares cannot last there: ${describeLastingFix(command.gitOps)}. Escalation continues as normal.`;
     }
 
-    return `The fix did not hold: something on the cluster put back what "${command.command}" changed on ${object} (${what}), ${when} after it ran — a GitOps controller, a Helm upgrade, an operator or an autoscaler. Make the change where ${object} is declared. Escalation continues as normal.`;
+    return `The fix did not hold: something on the cluster put back what "${command.command}" changed on ${object} (${what}) — a GitOps controller, a Helm upgrade, an operator or an autoscaler; verification found it back ${when} after the fix ran. Make the change where ${object} is declared. Escalation continues as normal.`;
   }
 
   /*

@@ -570,8 +570,8 @@ function describeWhenPutBack(owner: AiRemediationGitOpsOwner): string {
   return "nothing puts it back on its own, but the release's next helm upgrade does";
 }
 
-// Where the lasting change goes.
-function describeLastingFix(owner: AiRemediationGitOpsOwner): string {
+// Where the lasting change goes: "the lasting fix is the same change in ...".
+export function describeLastingFix(owner: AiRemediationGitOpsOwner): string {
   if (owner.controller === GitOpsController.Helm) {
     return "the lasting fix is the same change in the release's chart values";
   }
