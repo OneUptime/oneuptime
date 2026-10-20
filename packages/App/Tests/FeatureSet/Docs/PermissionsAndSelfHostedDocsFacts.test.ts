@@ -111,6 +111,8 @@ const SOURCES: Record<string, string> = {
   userChip: `${DASHBOARD}/Components/User/User.tsx`,
   teamPermissionTable: `${DASHBOARD}/Components/Team/TeamPermissionTable.tsx`,
   permissionScopeChoice: `${DASHBOARD}/Components/Permission/PermissionScopeChoice.ts`,
+  roleCatalog: `${DASHBOARD}/Components/Permission/RoleCatalog.ts`,
+  rolePickerOptions: `${DASHBOARD}/Components/Permission/RolePickerOptions.ts`,
   pushCard: `${DASHBOARD}/Components/NotificationMethods/Push.tsx`,
   pushCriticalAlertStatus: `${DASHBOARD}/Components/NotificationMethods/PushDeviceCriticalAlertStatus.tsx`,
   pushCriticalAlerts: `${DASHBOARD}/Components/NotificationMethods/PushDeviceCriticalAlerts.ts`,
@@ -838,8 +840,78 @@ describe("Users, Teams & Permissions, against the dashboard and the server", () 
         },
       ),
     ).toEqual(options);
+    /*
+     * The Scope waits folded under the dialog's More fields line, on All:
+     * both its fields are built into the More fields section.
+     */
+    expect(choice).toContain(
+      "const moreFields: FormFieldCollapsibleSection<TEntity> =\n    getAdvancedFormSection<TEntity>();",
+    );
+    expect(choice.split("collapsibleSection: moreFields,").length - 1).toBe(2);
     expect(page).toContain(
-      "Every allow permission is granted with a scope, chosen under **Scope** when you add it:",
+      "Every allow permission is granted with a scope: when you add it, **Scope** is under **More fields**, and starts on the first of these:",
+    );
+  });
+
+  /*
+   * Add Role asks how far a role reaches (Components/Permission/RoleCatalog
+   * and RolePicker): Whole project, with the four roles that reach all of
+   * it, or One area - an area, then its level - and a search box.
+   */
+  it("says how Add Role asks for a role, in the picker's own words", () => {
+    const catalog: string = readSource("roleCatalog");
+    const options: string = readSource("rolePickerOptions");
+    const paragraph: string | undefined = page
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith(
+          "**Add Role** asks first how far the role reaches.",
+        );
+      });
+
+    expect(paragraph).toBeDefined();
+
+    // The two answers and the search box, as the picker names them.
+    expect(catalog).toContain(
+      '[RoleReach.WholeProject]: translationKey("Whole project"),',
+    );
+    expect(catalog).toContain(
+      '[RoleReach.OneArea]: translationKey("One area"),',
+    );
+    expect(options).toContain('translationKey("Search roles")');
+    expect(paragraph).toContain("**Whole project**");
+    expect(paragraph).toContain("**One area**");
+    expect(paragraph).toContain("**Search roles**");
+
+    // The four whole-project roles, in the picker's order.
+    const wholeProject: number = catalog.indexOf("WHOLE_PROJECT_ROLES");
+    const order: Array<number> = [
+      "Permission.ProjectOwner",
+      "Permission.ProjectAdmin",
+      "Permission.ProjectMember",
+      "Permission.Viewer,",
+    ].map((role: string): number => {
+      return catalog.indexOf(role, wholeProject);
+    });
+
+    expect(
+      order.every((index: number): boolean => {
+        return index > wholeProject;
+      }),
+    ).toBe(true);
+    expect(
+      [...order].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(order);
+    expect(paragraph).toContain(
+      "the four roles that reach all of it — Project Owner, Project Admin, Project Member and Viewer —",
+    );
+
+    // An area's tile wears its product's icon; its level is picked after it.
+    expect(catalog).toContain("icon: IconProp.Alert,");
+    expect(paragraph).toContain(
+      "**One area** lists the areas, each with its product's icon: pick one, then its level.",
     );
   });
 });

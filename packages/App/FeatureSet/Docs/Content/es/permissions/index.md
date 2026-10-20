@@ -117,6 +117,8 @@ Un rol agrupa toda un área del producto en uno de tres niveles:
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer`, etc. Los roles son lo que se necesita casi siempre: siguen siendo correctos a medida que OneUptime añade funciones, porque una nueva tabla relacionada con los monitores se añade a los roles de monitor existentes en lugar de requerir una nueva concesión suya.
 
+**Añadir rol** pregunta primero hasta dónde llega el rol. **Todo el proyecto** muestra los cuatro roles que alcanzan todo el proyecto —Project Owner, Administrador del proyecto, Miembro del proyecto y Visor—, cada uno con una línea sobre para qué sirve. **Un área** muestra las áreas, cada una con el icono de su producto: elige una y luego su nivel. **Buscar roles** encuentra cualquier rol por su nombre, su área o lo que hace.
+
 Los flujos de trabajo y los runbooks son la excepción. Ambos ejecutan código en su proyecto —un flujo de trabajo sus pasos, un runbook sus scripts en sus Runners—, así que `WorkflowMember` abre los flujos de trabajo y sus ejecuciones y los ejecuta a mano, y `RunbookMember` abre los runbooks y sus ejecuciones y los ejecuta: inicia una ejecución, completa u omite sus pasos y la cancela. Ninguno de los dos crea, cambia ni elimina lo que ejecuta; `WorkflowAdmin` y `RunbookAdmin` los construyen. Un rol solo ejecuta los runbooks que alcanza su alcance, así que un `RunbookMember` limitado a algunas etiquetas ejecuta los runbooks que las llevan. Consulte [Permisos de los flujos de trabajo](/docs/workflows/configuration#permisos) y [Permisos de los runbooks](/docs/runbooks/configuration#permisos).
 
 Las reglas de un área (reglas de etiquetas, de propietarios, de guardia, de agrupación y de recordatorio), los campos personalizados, los SLA y los secretos son configuración del proyecto: requieren `ProjectAdmin`, tenga quien tenga el rol del área. Lo mismo ocurre con las claves de API, los equipos y sus permisos, las etiquetas, el SSO y los dominios: los roles Settings se ocupan de los servicios, sondas, infraestructura e integraciones del proyecto, no de quién puede hacer qué.
@@ -188,7 +190,7 @@ Solo el estado se escribe por usted. Una nota publicada con un cambio se publica
 
 ## Alcance: hasta dónde llega un permiso concedido
 
-Todo permiso concedido lleva un alcance, elegido en **Alcance** al añadirlo:
+Todo permiso concedido lleva un alcance: al añadirlo, **Alcance** está en **Más campos** y empieza en la primera de estas opciones:
 
 | Alcance | Significado |
 | --- | --- |

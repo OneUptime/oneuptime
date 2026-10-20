@@ -293,7 +293,6 @@ jobs:
               test-discovery-ui
               test-status-page-theme-ui
               test-calendar-feed-ui
-              test-custom-roles-ui
               test-sign-in-options-ui
               test-maintenance-calendar-ui
               test-detail-cards-ui
@@ -307,15 +306,20 @@ jobs:
           # took 16 to 23 minutes and every other group 15 to 27: together
           # they would have taken it to 27. Auto Remediation Rules (about two
           # minutes with its bundle locally, Chromium only) joined them the
-          # same day: the lightest group by far. Public Dashboard Theme (about
-          # five minutes with its bundle locally: a laptop and a phone, both
-          # Chromium) joined them on 2026-10-20, the group still the lightest.
+          # same day: the lightest group by far. Custom Roles (about 3
+          # minutes with its bundle, Chromium only) moved here from group 6
+          # the same day too, when its Add a Role spec added about a minute
+          # to a group already at 16 to 23 minutes. Public Dashboard Theme
+          # (about five minutes with its bundle locally: a laptop and a
+          # phone, both Chromium) joined them on 2026-10-20 as well: about
+          # 14 minutes for the five, the group still the lightest.
           - group: 7
             browsers: chromium
             suites: >-
               test-profiles-ui
               test-llm-connect-ui
               test-auto-remediation-rules-ui
+              test-custom-roles-ui
               test-public-dashboard-theme-ui
     steps:
       - uses: actions/checkout@v4

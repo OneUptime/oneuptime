@@ -13793,7 +13793,7 @@
   "Nothing is held back or combined, ever. This is exactly how OneUptime delivered owner notifications before rollup existed, and it is the right choice if you file, filter or forward mail one event at a time.": "Nothing is held back or combined, ever. This is exactly how OneUptime delivered owner notifications before rollup existed, and it is the right choice if you file, filter or forward mail one event at a time.",
   "Nothing left to set up here": "Nothing left to set up here",
   "Nothing logged yet": "Nothing logged yet",
-  "Nothing matches every word you typed.": "Nothing matches every word you typed.",
+  "Nothing matches every word you typed.": "هیچ موردی با همه واژه‌هایی که نوشتید مطابقت ندارد.",
   "Nothing matches every word you typed. Closest matches:": "Nothing matches every word you typed. Closest matches:",
   "Nothing on this map needs attention": "Nothing on this map needs attention",
   "Nothing open": "Nothing open",
@@ -31937,9 +31937,15 @@
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio پیامک آزمایشی را پذیرفت. باید ظرف چند دقیقه برسد.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio از {{phoneNumber}} تماس می‌گیرد. تلفن شما باید ظرف یک دقیقه زنگ بخورد.",
   "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio در حال برقراری تماس آزمایشی است. تلفن شما باید ظرف یک دقیقه زنگ بخورد.",
+  "Access level": "سطح دسترسی",
+  "Admin": "مدیر",
   "How your public dashboard looks to visitors. They can switch it from its toolbar.": "ظاهر داشبورد عمومی شما برای بازدیدکنندگان. آن‌ها می‌توانند آن را از نوار ابزارش عوض کنند.",
   "Light or dark, as each visitor's device is set.": "روشن یا تیره، مطابق تنظیم دستگاه هر بازدیدکننده.",
+  "One area": "یک بخش",
+  "Pick an area": "یک بخش انتخاب کنید",
   "Public dashboard theme": "پوسته داشبورد عمومی",
+  "Then choose Admin, Member or Viewer.": "سپس مدیر، عضو یا بیننده را انتخاب کنید.",
   "Visitors see the dark dashboard.": "بازدیدکنندگان داشبورد تیره را می‌بینند.",
-  "Visitors see the light dashboard.": "بازدیدکنندگان داشبورد روشن را می‌بینند."
+  "Visitors see the light dashboard.": "بازدیدکنندگان داشبورد روشن را می‌بینند.",
+  "Whole project": "کل پروژه"
 }

@@ -21,8 +21,11 @@ import CardSelect, {
  * CardSelect grew a search box and a catalog layout for the monitor type
  * picker, where 29 cards under nine headings made picking one a scrolling
  * exercise. Both are opt in, so the callers that do not ask for them - the
- * team role picker and the metrics pipeline rule picker - must keep exactly
- * the plain grid they had. That is what the first block pins.
+ * metrics pipeline rule picker and the other short pickers - must keep
+ * exactly the plain grid they had. That is what the first block pins. (Add a
+ * Role no longer uses CardSelect: its forty roles are picked by the whole
+ * project or an area and a level, Dashboard/src/Components/Permission/
+ * RolePicker.)
  *
  * The catalog layout (the "catalog layout" block) is the maintainer's "this
  * UI is extremely confusing": the common choices first as compact rows, the

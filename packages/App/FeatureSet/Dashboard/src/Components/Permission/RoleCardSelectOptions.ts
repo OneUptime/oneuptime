@@ -8,72 +8,49 @@ import {
   CardSelectOptionGroup,
 } from "Common/UI/Components/CardSelect/CardSelect";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  ROLE_AREAS,
+  ROLE_LEVELS,
+  ROLE_REACH_TITLES,
+  RoleArea,
+  RoleLevel,
+  RoleReach,
+  WHOLE_PROJECT_ROLES,
+  WholeProjectRole,
+} from "./RoleCatalog";
 
 /*
- * The roles a team or an API key can be given, as the cards of an "Add Role"
- * picker: one card per role (PermissionHelper.getRolePermissionProps), with
- * an icon for the area it covers, grouped from the widest to the narrowest.
+ * The roles a team or an API key can be given, as cards and list entries:
+ * one per role (PermissionHelper.getRolePermissionProps), with its icon and
+ * its one line, grouped as the role catalog arranges them (RoleCatalog) -
+ * the whole project first, then one group per area.
  *
- * One list for every place that offers roles - a team's permissions, an API
- * key's permissions and the Access choice of a new API key - so a role reads
- * and looks the same wherever it is picked. React-free, so tests can read it
+ * One list for every place that lists roles - the role picker of Add Role
+ * (RolePicker), the roles a new custom role starts with, the Built-in Roles
+ * card and the Access choice of a new API key or team - so a role reads and
+ * looks the same wherever it is met. React-free, so tests can read it
  * without rendering anything.
  */
 
-export const ROLE_ICONS: Partial<Record<Permission, IconProp>> = {
-  [Permission.ProjectOwner]: IconProp.ShieldCheck,
-  [Permission.ProjectAdmin]: IconProp.User,
-  [Permission.ProjectMember]: IconProp.Team,
-  [Permission.Viewer]: IconProp.Eye,
+/*
+ * Each role's icon: a whole-project role's own, an area's role its area's,
+ * which is the icon its product wears in the Products menu (RoleCatalog).
+ */
+export const ROLE_ICONS: Partial<Record<Permission, IconProp>> = (() => {
+  const icons: Partial<Record<Permission, IconProp>> = {};
 
-  [Permission.IncidentAdmin]: IconProp.Alert,
-  [Permission.IncidentMember]: IconProp.Alert,
-  [Permission.IncidentViewer]: IconProp.Alert,
+  for (const role of WHOLE_PROJECT_ROLES) {
+    icons[role.permission] = role.icon;
+  }
 
-  [Permission.AlertAdmin]: IconProp.BellAlert,
-  [Permission.AlertMember]: IconProp.BellAlert,
-  [Permission.AlertViewer]: IconProp.BellAlert,
+  for (const area of ROLE_AREAS) {
+    for (const level of ROLE_LEVELS) {
+      icons[area.roles[level]] = area.icon;
+    }
+  }
 
-  [Permission.MonitorAdmin]: IconProp.Activity,
-  [Permission.MonitorMember]: IconProp.Activity,
-  [Permission.MonitorViewer]: IconProp.Activity,
-
-  [Permission.StatusPageAdmin]: IconProp.Globe,
-  [Permission.StatusPageMember]: IconProp.Globe,
-  [Permission.StatusPageViewer]: IconProp.Globe,
-
-  [Permission.OnCallAdmin]: IconProp.Phone,
-  [Permission.OnCallMember]: IconProp.Phone,
-  [Permission.OnCallViewer]: IconProp.Phone,
-
-  [Permission.ScheduledMaintenanceAdmin]: IconProp.Calendar,
-  [Permission.ScheduledMaintenanceMember]: IconProp.Calendar,
-  [Permission.ScheduledMaintenanceViewer]: IconProp.Calendar,
-
-  [Permission.TelemetryAdmin]: IconProp.ChartBar,
-  [Permission.TelemetryMember]: IconProp.ChartBar,
-  [Permission.TelemetryViewer]: IconProp.ChartBar,
-
-  [Permission.SecurityAdmin]: IconProp.ShieldExclamation,
-  [Permission.SecurityMember]: IconProp.ShieldExclamation,
-  [Permission.SecurityViewer]: IconProp.ShieldExclamation,
-
-  [Permission.SettingsAdmin]: IconProp.Settings,
-  [Permission.SettingsMember]: IconProp.Settings,
-  [Permission.SettingsViewer]: IconProp.Settings,
-
-  [Permission.BillingAdmin]: IconProp.CreditCard,
-  [Permission.BillingMember]: IconProp.CreditCard,
-  [Permission.BillingViewer]: IconProp.CreditCard,
-
-  [Permission.WorkflowAdmin]: IconProp.Workflow,
-  [Permission.WorkflowMember]: IconProp.Workflow,
-  [Permission.WorkflowViewer]: IconProp.Workflow,
-
-  [Permission.RunbookAdmin]: IconProp.PlayCircle,
-  [Permission.RunbookMember]: IconProp.PlayCircle,
-  [Permission.RunbookViewer]: IconProp.PlayCircle,
-};
+  return icons;
+})();
 
 // A role with no icon of its own (one added later) shows a lock.
 export const getRoleIcon: (permission: Permission) => IconProp = (
@@ -282,25 +259,6 @@ export const getRoleCardSelectOption: (
   };
 };
 
-const OWNER_ROLES: Array<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-];
-
-const PROJECT_ROLES: Array<Permission> = [
-  Permission.ProjectMember,
-  Permission.Viewer,
-];
-
-const ADMINISTRATION_ROLES: Array<Permission> = [
-  Permission.SettingsAdmin,
-  Permission.SettingsMember,
-  Permission.SettingsViewer,
-  Permission.BillingAdmin,
-  Permission.BillingMember,
-  Permission.BillingViewer,
-];
-
 export interface RoleCardSelectOptionsFilter {
   /*
    * Roles left out: a custom role's Add Role offers every role but Project
@@ -315,57 +273,83 @@ export interface RoleCardSelectOptionsFilter {
 }
 
 /*
- * Every role, in four groups: Owner (owner and admin of the whole project),
- * Project Roles (member and viewer of the whole project), Administration
- * (settings and billing) and Domain Roles (one product area each). Empty
- * groups are left out.
+ * Every role, in the catalog's groups (RoleCatalog): Whole project - Project
+ * Owner, Project Admin, Project Member and Viewer - then one group per area,
+ * titled with the area's name and holding its Admin, Member and Viewer. A
+ * role the catalog does not place yet (one added later) is listed last,
+ * under Other, so it is never lost; RoleCatalog.test fails until it is
+ * placed. Empty groups are left out.
  */
 export const getRoleCardSelectOptions: (
   filter?: RoleCardSelectOptionsFilter,
 ) => Array<CardSelectOptionGroup> = (
   filter?: RoleCardSelectOptionsFilter,
 ): Array<CardSelectOptionGroup> => {
-  const ownerRoles: Array<CardSelectOption> = [];
-  const projectRoles: Array<CardSelectOption> = [];
-  const administrationRoles: Array<CardSelectOption> = [];
-  const domainRoles: Array<CardSelectOption> = [];
+  const offered: Array<PermissionProps> =
+    PermissionHelper.getRolePermissionProps().filter(
+      (props: PermissionProps): boolean => {
+        return !filter?.excludeRoles?.includes(props.permission);
+      },
+    );
 
-  for (const props of PermissionHelper.getRolePermissionProps()) {
-    if (filter?.excludeRoles?.includes(props.permission)) {
-      continue;
+  const listed: Set<Permission> = new Set<Permission>();
+
+  // The cards of these roles, each once, leaving out what is not offered.
+  const optionsOf: (
+    permissions: ReadonlyArray<Permission>,
+  ) => Array<CardSelectOption> = (
+    permissions: ReadonlyArray<Permission>,
+  ): Array<CardSelectOption> => {
+    const options: Array<CardSelectOption> = [];
+
+    for (const permission of permissions) {
+      const props: PermissionProps | undefined = offered.find(
+        (candidate: PermissionProps): boolean => {
+          return candidate.permission === permission;
+        },
+      );
+
+      if (!props || listed.has(permission)) {
+        continue;
+      }
+
+      listed.add(permission);
+      options.push(
+        getRoleCardSelectOption(props, {
+          fullDescription: filter?.fullDescriptions,
+        }),
+      );
     }
 
-    const option: CardSelectOption = getRoleCardSelectOption(props, {
-      fullDescription: filter?.fullDescriptions,
-    });
-
-    if (OWNER_ROLES.includes(props.permission)) {
-      ownerRoles.push(option);
-    } else if (PROJECT_ROLES.includes(props.permission)) {
-      projectRoles.push(option);
-    } else if (ADMINISTRATION_ROLES.includes(props.permission)) {
-      administrationRoles.push(option);
-    } else {
-      domainRoles.push(option);
-    }
-  }
+    return options;
+  };
 
   const groups: Array<CardSelectOptionGroup> = [
     {
-      label: "Owner",
-      options: ownerRoles,
+      label: ROLE_REACH_TITLES[RoleReach.WholeProject],
+      options: optionsOf(
+        WHOLE_PROJECT_ROLES.map((role: WholeProjectRole): Permission => {
+          return role.permission;
+        }),
+      ),
     },
+    ...ROLE_AREAS.map((area: RoleArea): CardSelectOptionGroup => {
+      return {
+        label: area.title,
+        options: optionsOf(
+          ROLE_LEVELS.map((level: RoleLevel): Permission => {
+            return area.roles[level];
+          }),
+        ),
+      };
+    }),
     {
-      label: "Project Roles",
-      options: projectRoles,
-    },
-    {
-      label: "Administration",
-      options: administrationRoles,
-    },
-    {
-      label: "Domain Roles",
-      options: domainRoles,
+      label: translationKey("Other"),
+      options: optionsOf(
+        offered.map((props: PermissionProps): Permission => {
+          return props.permission;
+        }),
+      ),
     },
   ];
 

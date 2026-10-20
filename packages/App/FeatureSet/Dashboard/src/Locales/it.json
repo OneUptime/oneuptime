@@ -13793,7 +13793,7 @@
   "Nothing is held back or combined, ever. This is exactly how OneUptime delivered owner notifications before rollup existed, and it is the right choice if you file, filter or forward mail one event at a time.": "Nothing is held back or combined, ever. This is exactly how OneUptime delivered owner notifications before rollup existed, and it is the right choice if you file, filter or forward mail one event at a time.",
   "Nothing left to set up here": "Nothing left to set up here",
   "Nothing logged yet": "Nothing logged yet",
-  "Nothing matches every word you typed.": "Nothing matches every word you typed.",
+  "Nothing matches every word you typed.": "Nessun risultato contiene tutte le parole digitate.",
   "Nothing matches every word you typed. Closest matches:": "Nothing matches every word you typed. Closest matches:",
   "Nothing on this map needs attention": "Nothing on this map needs attention",
   "Nothing open": "Nothing open",
@@ -31937,9 +31937,15 @@
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio ha accettato l'SMS di prova. Dovrebbe arrivare entro pochi minuti.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio sta chiamando da {{phoneNumber}}. Il tuo telefono dovrebbe squillare entro un minuto.",
   "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio sta effettuando la chiamata di prova. Il tuo telefono dovrebbe squillare entro un minuto.",
+  "Access level": "Livello di accesso",
+  "Admin": "Amministratore",
   "How your public dashboard looks to visitors. They can switch it from its toolbar.": "Come i visitatori vedono la tua dashboard pubblica. Possono cambiarlo dalla sua barra degli strumenti.",
   "Light or dark, as each visitor's device is set.": "Chiaro o scuro, secondo l'impostazione del dispositivo di ogni visitatore.",
+  "One area": "Un'area",
+  "Pick an area": "Scegli un'area",
   "Public dashboard theme": "Tema della dashboard pubblica",
+  "Then choose Admin, Member or Viewer.": "Poi scegli Amministratore, Membro o Visualizzatore.",
   "Visitors see the dark dashboard.": "I visitatori vedono la dashboard scura.",
-  "Visitors see the light dashboard.": "I visitatori vedono la dashboard chiara."
+  "Visitors see the light dashboard.": "I visitatori vedono la dashboard chiara.",
+  "Whole project": "Tutto il progetto"
 }

@@ -31937,9 +31937,15 @@
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio accepted the test SMS. It should arrive within a few minutes.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.",
   "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio is placing the test call. Your phone should ring within a minute.",
+  "Access level": "Access level",
+  "Admin": "Admin",
   "How your public dashboard looks to visitors. They can switch it from its toolbar.": "How your public dashboard looks to visitors. They can switch it from its toolbar.",
   "Light or dark, as each visitor's device is set.": "Light or dark, as each visitor's device is set.",
+  "One area": "One area",
+  "Pick an area": "Pick an area",
   "Public dashboard theme": "Public dashboard theme",
+  "Then choose Admin, Member or Viewer.": "Then choose Admin, Member or Viewer.",
   "Visitors see the dark dashboard.": "Visitors see the dark dashboard.",
-  "Visitors see the light dashboard.": "Visitors see the light dashboard."
+  "Visitors see the light dashboard.": "Visitors see the light dashboard.",
+  "Whole project": "Whole project"
 }

@@ -13793,7 +13793,7 @@
   "Nothing is held back or combined, ever. This is exactly how OneUptime delivered owner notifications before rollup existed, and it is the right choice if you file, filter or forward mail one event at a time.": "Nothing is held back or combined, ever. This is exactly how OneUptime delivered owner notifications before rollup existed, and it is the right choice if you file, filter or forward mail one event at a time.",
   "Nothing left to set up here": "Nothing left to set up here",
   "Nothing logged yet": "Nothing logged yet",
-  "Nothing matches every word you typed.": "Nothing matches every word you typed.",
+  "Nothing matches every word you typed.": "Nada corresponde a todas as palavras que você digitou.",
   "Nothing matches every word you typed. Closest matches:": "Nothing matches every word you typed. Closest matches:",
   "Nothing on this map needs attention": "Nothing on this map needs attention",
   "Nothing open": "Nothing open",
@@ -31937,9 +31937,15 @@
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "O Twilio aceitou o SMS de teste. Ele deve chegar em alguns minutos.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "O Twilio está ligando de {{phoneNumber}}. Seu telefone deve tocar em até um minuto.",
   "Twilio is placing the test call. Your phone should ring within a minute.": "O Twilio está fazendo a chamada de teste. Seu telefone deve tocar em até um minuto.",
+  "Access level": "Nível de acesso",
+  "Admin": "Administrador",
   "How your public dashboard looks to visitors. They can switch it from its toolbar.": "Como os visitantes veem seu painel público. Eles podem trocá-lo na barra de ferramentas.",
   "Light or dark, as each visitor's device is set.": "Claro ou escuro, conforme a configuração do dispositivo de cada visitante.",
+  "One area": "Uma área",
+  "Pick an area": "Escolha uma área",
   "Public dashboard theme": "Tema do painel público",
+  "Then choose Admin, Member or Viewer.": "Depois escolha Administrador, Membro ou Visualizador.",
   "Visitors see the dark dashboard.": "Os visitantes veem o painel escuro.",
-  "Visitors see the light dashboard.": "Os visitantes veem o painel claro."
+  "Visitors see the light dashboard.": "Os visitantes veem o painel claro.",
+  "Whole project": "Todo o projeto"
 }
