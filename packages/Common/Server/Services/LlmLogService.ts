@@ -16,6 +16,27 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 const CACHE_TOKEN_SUMS: string =
   'COALESCE(SUM("log"."cachedInputTokens"), 0) AS "cacheRead", COALESCE(SUM("log"."cacheCreationTokens"), 0) AS "cacheWrite"';
 
+// What a usage aggregate hands back for a day's tokens: SQL sums, as strings.
+type SummedTokens = string | number | null | undefined;
+
+/*
+ * A day's tokens as OneUptime counts them, from the summed tokens and the
+ * summed cache columns (CACHE_TOKEN_SUMS). The day is counted as one: its
+ * weighted parts are rounded up once, where the AI Logs round each call's,
+ * so the day can count a token or so per call less than its rows add up to.
+ */
+function countSummedTokens(sums: {
+  total: SummedTokens;
+  cacheRead: SummedTokens;
+  cacheWrite: SummedTokens;
+}): number {
+  return AiTokenCount.count({
+    totalTokens: AiTokenCount.toTokenCount(sums.total),
+    cachedInputTokens: AiTokenCount.toTokenCount(sums.cacheRead),
+    cacheCreationTokens: AiTokenCount.toTokenCount(sums.cacheWrite),
+  });
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -100,18 +121,18 @@ export class Service extends DatabaseService<Model> {
     }
 
     const rows: Array<{
-      total: string | number | null;
-      cacheRead?: string | number | null | undefined;
-      cacheWrite?: string | number | null | undefined;
+      total: SummedTokens;
+      cacheRead?: SummedTokens;
+      cacheWrite?: SummedTokens;
     }> = await this.getRepository().manager.query(
       `SELECT COALESCE(SUM("log"."totalTokens"), 0) AS "total", ${CACHE_TOKEN_SUMS} FROM "LlmLog" AS "log" WHERE "log"."projectId" = $1 AND "log"."createdAt" >= $2 AND "log"."feature" = ANY($3) ${subjectClause} AND "log"."deletedAt" IS NULL`,
       params,
     );
 
-    return AiTokenCount.count({
-      totalTokens: AiTokenCount.toTokenCount(rows[0]?.total),
-      cachedInputTokens: AiTokenCount.toTokenCount(rows[0]?.cacheRead),
-      cacheCreationTokens: AiTokenCount.toTokenCount(rows[0]?.cacheWrite),
+    return countSummedTokens({
+      total: rows[0]?.total,
+      cacheRead: rows[0]?.cacheRead,
+      cacheWrite: rows[0]?.cacheWrite,
     });
   }
 
@@ -138,9 +159,9 @@ export class Service extends DatabaseService<Model> {
     since: Date;
   }): Promise<{ totalTokens: number; billedCostInUSDCents: number }> {
     const rows: Array<{
-      totalTokens: string | number | null;
-      cacheRead?: string | number | null | undefined;
-      cacheWrite?: string | number | null | undefined;
+      totalTokens: SummedTokens;
+      cacheRead?: SummedTokens;
+      cacheWrite?: SummedTokens;
       billedCostInUSDCents: string | number | null;
     }> = await this.getRepository().manager.query(
       `SELECT COALESCE(SUM("log"."totalTokens"), 0) AS "totalTokens", ${CACHE_TOKEN_SUMS}, COALESCE(SUM(CASE WHEN "log"."wasBilled" = true THEN "log"."costInUSDCents" ELSE 0 END), 0) AS "billedCostInUSDCents" FROM "LlmLog" AS "log" WHERE "log"."projectId" = $1 AND "log"."createdAt" >= $2 AND "log"."deletedAt" IS NULL`,
@@ -149,10 +170,10 @@ export class Service extends DatabaseService<Model> {
 
     return {
       // The day's tokens as OneUptime counts them, not their raw sum.
-      totalTokens: AiTokenCount.count({
-        totalTokens: AiTokenCount.toTokenCount(rows[0]?.totalTokens),
-        cachedInputTokens: AiTokenCount.toTokenCount(rows[0]?.cacheRead),
-        cacheCreationTokens: AiTokenCount.toTokenCount(rows[0]?.cacheWrite),
+      totalTokens: countSummedTokens({
+        total: rows[0]?.totalTokens,
+        cacheRead: rows[0]?.cacheRead,
+        cacheWrite: rows[0]?.cacheWrite,
       }),
       billedCostInUSDCents: Number(rows[0]?.billedCostInUSDCents || 0),
     };

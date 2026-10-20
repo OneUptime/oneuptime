@@ -232,18 +232,6 @@ describe("AiTokenCount.toTokenCount", () => {
   });
 });
 
-describe("AiTokenCount.usedPromptCache", () => {
-  test.each([
-    [{ totalTokens: 100 }, false],
-    [{ totalTokens: 100, cachedInputTokens: 0, cacheCreationTokens: 0 }, false],
-    [{ totalTokens: 100, cachedInputTokens: 1 }, true],
-    [{ totalTokens: 100, cacheCreationTokens: 1 }, true],
-    [{ totalTokens: 100, cachedInputTokens: Number.NaN }, false],
-  ])("%p: %p", (usage: AiTokenUsage, used: boolean) => {
-    expect(AiTokenCount.usedPromptCache(usage)).toBe(used);
-  });
-});
-
 describe("a day of calls, added up and then counted", () => {
   test("adds every part of every call", () => {
     expect(AiTokenCount.add(ISSUE_CALLS)).toEqual({

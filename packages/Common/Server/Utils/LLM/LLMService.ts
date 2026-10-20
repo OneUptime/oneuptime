@@ -2349,7 +2349,7 @@ export default class LLMService {
 
   /*
    * Mark the conversation of an agent loop's call for the prompt cache, with
-   * at most `markers` cache_control markers, and say how many it placed.
+   * at most `markers` cache_control markers.
    *
    * The first goes on the last block of the last message - in an agent loop
    * the newest tool result - which caches the whole conversation for the
@@ -2367,9 +2367,9 @@ export default class LLMService {
   private static markAnthropicConversationForCache(
     messages: Array<JSONObject>,
     markers: number,
-  ): number {
+  ): void {
     if (markers <= 0 || messages.length === 0) {
-      return 0;
+      return;
     }
 
     const targets: Array<number> = [messages.length - 1];
@@ -2392,47 +2392,39 @@ export default class LLMService {
       }
     }
 
-    let placed: number = 0;
-
     for (const index of targets) {
-      if (this.markLastCacheableAnthropicBlock(messages[index]!)) {
-        placed++;
-      }
+      this.markLastCacheableAnthropicBlock(messages[index]!);
     }
-
-    return placed;
   }
 
   /*
    * Put a cache_control marker on the last block of a message that can carry
-   * one, and say whether there was one. A message whose content is a string
-   * becomes the one text block it stands for - the API reads the two alike,
-   * so the next call, which sends it as a string again, still matches the
-   * cache. The API takes no marker on an empty text block or on a thinking
-   * block (OneUptime sends none back, but a block it does not know is left
-   * alone too), so those are passed over for the block before them.
+   * one, when it has one. A message whose content is a string becomes the
+   * one text block it stands for - the API reads the two alike, so the next
+   * call, which sends it as a string again, still matches the cache. The API
+   * takes no marker on an empty text block or on a thinking block (OneUptime
+   * sends none back, but a block it does not know is left alone too), so
+   * those are passed over for the block before them.
    */
-  private static markLastCacheableAnthropicBlock(message: JSONObject): boolean {
+  private static markLastCacheableAnthropicBlock(message: JSONObject): void {
     const content: unknown = message["content"];
 
     if (typeof content === "string") {
-      if (!content.trim()) {
-        return false;
+      if (content.trim()) {
+        message["content"] = [
+          {
+            type: "text",
+            text: content,
+            cache_control: this.getAnthropicCacheControl(),
+          },
+        ];
       }
 
-      message["content"] = [
-        {
-          type: "text",
-          text: content,
-          cache_control: this.getAnthropicCacheControl(),
-        },
-      ];
-
-      return true;
+      return;
     }
 
     if (!Array.isArray(content)) {
-      return false;
+      return;
     }
 
     for (let index: number = content.length - 1; index >= 0; index--) {
@@ -2446,11 +2438,9 @@ export default class LLMService {
       ) {
         (block as JSONObject)["cache_control"] =
           this.getAnthropicCacheControl();
-        return true;
+        return;
       }
     }
-
-    return false;
   }
 
   private static canCarryAnthropicCacheControl(block: JSONObject): boolean {
@@ -2642,8 +2632,11 @@ export default class LLMService {
    * every field (a Pydantic model: "cache_control: Extra inputs are not
    * permitted") may refuse it there. Such an endpoint gets the markers it
    * took before, and one that refuses cache_control everywhere gets none -
-   * so it now works at all. The step is remembered for the endpoint like
-   * every other adaptation, so the refusal is paid for once.
+   * so it now works at all. The step is remembered for the endpoint (its
+   * provider, Base URL and model) like every other adaptation, so the
+   * refusal is paid for once - and, like every other adaptation, it is
+   * forgotten after ADAPTATION_CACHE_TTL_IN_MS, so an endpoint that starts
+   * taking the markers gets them again within the hour.
    */
   private static getAdaptationLeavingOutPromptCache(
     response: HTTPErrorResponse,

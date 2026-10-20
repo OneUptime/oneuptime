@@ -128,14 +128,6 @@ export default class AiTokenCount {
     };
   }
 
-  // Whether the call read from or wrote to the provider's prompt cache.
-  public static usedPromptCache(usage: AiTokenUsage): boolean {
-    return (
-      this.toTokenCount(usage.cachedInputTokens) > 0 ||
-      this.toTokenCount(usage.cacheCreationTokens) > 0
-    );
-  }
-
   /*
    * The tokens of several calls added up, part by part - what a day of AI
    * Logs rows sums to before it is counted.
