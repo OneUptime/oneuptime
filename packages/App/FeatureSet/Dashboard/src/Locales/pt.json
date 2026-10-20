@@ -21059,7 +21059,7 @@
   "Metric data from around when this incident was declared, scoped to the affected series ({{series}}).": "Metric data from around when this incident was declared, scoped to the affected series ({{series}}).",
   "Microsoft Teams Subscriptions": "Inscrições pelo Microsoft Teams",
   "Mixed": "Misto",
-  "Model {{name}}": "Model {{name}}",
+  "Model {{name}}": "Modelo {{name}}",
   "Monitors you archived. They are not checked, open no incidents or alerts, and are hidden from monitor lists and status pages. Select monitors to unarchive them.": "Monitors you archived. They are not checked, open no incidents or alerts, and are hidden from monitor lists and status pages. Select monitors to unarchive them.",
   "More actions for this group": "More actions for this group",
   "More actions for {{name}}": "More actions for {{name}}",
@@ -21751,8 +21751,8 @@
   "{{count}} people have asked in this conversation_one": "{{count}} person has asked in this conversation",
   "{{count}} phone numbers route calls to this policy.": "{{count}} phone numbers route calls to this policy.",
   "{{count}} phone numbers route calls to this policy._one": "{{count}} phone number routes calls to this policy.",
-  "{{count}} queries": "{{count}} queries",
-  "{{count}} queries_one": "{{count}} query",
+  "{{count}} queries": "{{count}} consultas",
+  "{{count}} queries_one": "{{count}} consulta",
   "{{count}} required fields still empty": "{{count}} required fields still empty",
   "{{count}} required fields still empty_one": "{{count}} required field still empty",
   "{{count}} resources are not on the grid": "{{count}} resources are not on the grid",
@@ -31994,6 +31994,7 @@
   "An investigation rule makes OneUptime AI wait {{count}} minutes, so alerts resolved by then are not investigated._one": "Uma regra de investigação faz o OneUptime AI esperar {{count}} minuto, então os alertas resolvidos até lá não são investigados.",
   "An investigation rule makes OneUptime AI wait {{count}} minutes, so incidents resolved by then are not investigated.": "Uma regra de investigação faz o OneUptime AI esperar {{count}} minutos, então os incidentes resolvidos até lá não são investigados.",
   "An investigation rule makes OneUptime AI wait {{count}} minutes, so incidents resolved by then are not investigated._one": "Uma regra de investigação faz o OneUptime AI esperar {{count}} minuto, então os incidentes resolvidos até lá não são investigados.",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "Como contam para os limites diários de IA do projeto: um token que o provedor leu do seu cache de prompts conta como um décimo de token, e um token gravado nesse cache como um e um quarto.",
   "Counted from when the alert is created. When several rules match, the shortest wait decides. At most 1440 (a day).": "Contado a partir da criação do alerta. Se várias regras corresponderem, vale a espera mais curta. No máximo 1440 (um dia).",
   "Counted from when the incident is declared. When several rules match, the shortest wait decides. At most 1440 (a day).": "Contado a partir da declaração do incidente. Se várias regras corresponderem, vale a espera mais curta. No máximo 1440 (um dia).",
   "Decision recorded when the wait ended": "Decisão registrada ao fim da espera",
@@ -32020,5 +32021,9 @@
   "OneUptime AI investigates tomorrow at {{time}} if this incident is still open": "O OneUptime AI investiga amanhã às {{time}} se este incidente ainda estiver aberto",
   "OneUptime AI investigates tomorrow at {{time}} if this alert is still open": "O OneUptime AI investiga amanhã às {{time}} se este alerta ainda estiver aberto",
   "OneUptime AI investigates shortly if this incident is still open": "O OneUptime AI investiga em breve se este incidente ainda estiver aberto",
-  "OneUptime AI investigates shortly if this alert is still open": "O OneUptime AI investiga em breve se este alerta ainda estiver aberto"
+  "OneUptime AI investigates shortly if this alert is still open": "O OneUptime AI investiga em breve se este alerta ainda estiver aberto",
+  "{{count}} from cache": "{{count}} do cache",
+  "{{count}} from cache_one": "{{count}} do cache",
+  "{{count}} written to cache": "{{count}} gravados no cache",
+  "{{count}} written to cache_one": "{{count}} gravado no cache"
 }

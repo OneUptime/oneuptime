@@ -31994,6 +31994,7 @@
   "An investigation rule makes OneUptime AI wait {{count}} minutes, so alerts resolved by then are not investigated._one": "調査ルールにより OneUptime AI は {{count}} 分待機するため、それまでに解決したアラートは調査されません。",
   "An investigation rule makes OneUptime AI wait {{count}} minutes, so incidents resolved by then are not investigated.": "調査ルールにより OneUptime AI は {{count}} 分待機するため、それまでに解決したインシデントは調査されません。",
   "An investigation rule makes OneUptime AI wait {{count}} minutes, so incidents resolved by then are not investigated._one": "調査ルールにより OneUptime AI は {{count}} 分待機するため、それまでに解決したインシデントは調査されません。",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "プロジェクトの 1 日あたりの AI 上限に数えられる量です。プロバイダーがプロンプトキャッシュから読んだトークンは 10 分の 1 トークン、そのキャッシュに書き込まれたトークンは 1.25 トークンとして数えます。",
   "Counted from when the alert is created. When several rules match, the shortest wait decides. At most 1440 (a day).": "アラートが作成された時点から数えます。複数のルールに一致する場合は、最も短い待機時間が使われます。最大 1440（1 日）。",
   "Counted from when the incident is declared. When several rules match, the shortest wait decides. At most 1440 (a day).": "インシデントが宣言された時点から数えます。複数のルールに一致する場合は、最も短い待機時間が使われます。最大 1440（1 日）。",
   "Decision recorded when the wait ended": "待機終了時に記録された判断",
@@ -32020,5 +32021,9 @@
   "OneUptime AI investigates tomorrow at {{time}} if this incident is still open": "このインシデントが明日の {{time}} にまだ未解決なら、OneUptime AI が調査します",
   "OneUptime AI investigates tomorrow at {{time}} if this alert is still open": "このアラートが明日の {{time}} にまだ未解決なら、OneUptime AI が調査します",
   "OneUptime AI investigates shortly if this incident is still open": "このインシデントがまだ未解決なら、OneUptime AI がまもなく調査します",
-  "OneUptime AI investigates shortly if this alert is still open": "このアラートがまだ未解決なら、OneUptime AI がまもなく調査します"
+  "OneUptime AI investigates shortly if this alert is still open": "このアラートがまだ未解決なら、OneUptime AI がまもなく調査します",
+  "{{count}} from cache": "キャッシュから {{count}}",
+  "{{count}} from cache_one": "キャッシュから {{count}}",
+  "{{count}} written to cache": "キャッシュへの書き込み {{count}}",
+  "{{count}} written to cache_one": "キャッシュへの書き込み {{count}}"
 }

@@ -21751,7 +21751,7 @@
   "{{count}} people have asked in this conversation_one": "{{count}} person has asked in this conversation",
   "{{count}} phone numbers route calls to this policy.": "{{count}} phone numbers route calls to this policy.",
   "{{count}} phone numbers route calls to this policy._one": "{{count}} phone number routes calls to this policy.",
-  "{{count}} queries": "{{count}} queries",
+  "{{count}} queries": "{{count}} query's",
   "{{count}} queries_one": "{{count}} query",
   "{{count}} required fields still empty": "{{count}} required fields still empty",
   "{{count}} required fields still empty_one": "{{count}} required field still empty",
@@ -31994,6 +31994,7 @@
   "An investigation rule makes OneUptime AI wait {{count}} minutes, so alerts resolved by then are not investigated._one": "Een onderzoeksregel laat OneUptime AI {{count}} minuut wachten, dus waarschuwingen die dan al zijn opgelost, worden niet onderzocht.",
   "An investigation rule makes OneUptime AI wait {{count}} minutes, so incidents resolved by then are not investigated.": "Een onderzoeksregel laat OneUptime AI {{count}} minuten wachten, dus incidenten die dan al zijn opgelost, worden niet onderzocht.",
   "An investigation rule makes OneUptime AI wait {{count}} minutes, so incidents resolved by then are not investigated._one": "Een onderzoeksregel laat OneUptime AI {{count}} minuut wachten, dus incidenten die dan al zijn opgelost, worden niet onderzocht.",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "Zoals ze meetellen voor de dagelijkse AI-limieten van het project: een token dat de provider uit zijn promptcache las, telt als een tiende token, en een token dat in die cache werd geschreven als één en een kwart.",
   "Counted from when the alert is created. When several rules match, the shortest wait decides. At most 1440 (a day).": "Geteld vanaf het moment dat de waarschuwing wordt aangemaakt. Als meerdere regels overeenkomen, beslist de kortste wachttijd. Hoogstens 1440 (een dag).",
   "Counted from when the incident is declared. When several rules match, the shortest wait decides. At most 1440 (a day).": "Geteld vanaf het moment dat het incident wordt gemeld. Als meerdere regels overeenkomen, beslist de kortste wachttijd. Hoogstens 1440 (een dag).",
   "Decision recorded when the wait ended": "Beslissing vastgelegd toen het wachten voorbij was",
@@ -32020,5 +32021,9 @@
   "OneUptime AI investigates tomorrow at {{time}} if this incident is still open": "OneUptime AI onderzoekt morgen om {{time}} als dit incident dan nog open is",
   "OneUptime AI investigates tomorrow at {{time}} if this alert is still open": "OneUptime AI onderzoekt morgen om {{time}} als deze waarschuwing dan nog open is",
   "OneUptime AI investigates shortly if this incident is still open": "OneUptime AI onderzoekt binnenkort als dit incident nog open is",
-  "OneUptime AI investigates shortly if this alert is still open": "OneUptime AI onderzoekt binnenkort als deze waarschuwing nog open is"
+  "OneUptime AI investigates shortly if this alert is still open": "OneUptime AI onderzoekt binnenkort als deze waarschuwing nog open is",
+  "{{count}} from cache": "{{count}} uit de cache",
+  "{{count}} from cache_one": "{{count}} uit de cache",
+  "{{count}} written to cache": "{{count}} in de cache geschreven",
+  "{{count}} written to cache_one": "{{count}} in de cache geschreven"
 }

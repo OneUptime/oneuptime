@@ -31994,6 +31994,7 @@
   "An investigation rule makes OneUptime AI wait {{count}} minutes, so alerts resolved by then are not investigated._one": "An investigation rule makes OneUptime AI wait {{count}} minute, so alerts resolved by then are not investigated.",
   "An investigation rule makes OneUptime AI wait {{count}} minutes, so incidents resolved by then are not investigated.": "An investigation rule makes OneUptime AI wait {{count}} minutes, so incidents resolved by then are not investigated.",
   "An investigation rule makes OneUptime AI wait {{count}} minutes, so incidents resolved by then are not investigated._one": "An investigation rule makes OneUptime AI wait {{count}} minute, so incidents resolved by then are not investigated.",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.",
   "Counted from when the alert is created. When several rules match, the shortest wait decides. At most 1440 (a day).": "Counted from when the alert is created. When several rules match, the shortest wait decides. At most 1440 (a day).",
   "Counted from when the incident is declared. When several rules match, the shortest wait decides. At most 1440 (a day).": "Counted from when the incident is declared. When several rules match, the shortest wait decides. At most 1440 (a day).",
   "Decision recorded when the wait ended": "Decision recorded when the wait ended",
@@ -32020,5 +32021,9 @@
   "OneUptime AI investigates tomorrow at {{time}} if this incident is still open": "OneUptime AI investigates tomorrow at {{time}} if this incident is still open",
   "OneUptime AI investigates tomorrow at {{time}} if this alert is still open": "OneUptime AI investigates tomorrow at {{time}} if this alert is still open",
   "OneUptime AI investigates shortly if this incident is still open": "OneUptime AI investigates shortly if this incident is still open",
-  "OneUptime AI investigates shortly if this alert is still open": "OneUptime AI investigates shortly if this alert is still open"
+  "OneUptime AI investigates shortly if this alert is still open": "OneUptime AI investigates shortly if this alert is still open",
+  "{{count}} from cache": "{{count}} from cache",
+  "{{count}} from cache_one": "{{count}} from cache",
+  "{{count}} written to cache": "{{count}} written to cache",
+  "{{count}} written to cache_one": "{{count}} written to cache"
 }

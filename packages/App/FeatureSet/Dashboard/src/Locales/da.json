@@ -21751,8 +21751,8 @@
   "{{count}} people have asked in this conversation_one": "{{count}} person has asked in this conversation",
   "{{count}} phone numbers route calls to this policy.": "{{count}} phone numbers route calls to this policy.",
   "{{count}} phone numbers route calls to this policy._one": "{{count}} phone number routes calls to this policy.",
-  "{{count}} queries": "{{count}} queries",
-  "{{count}} queries_one": "{{count}} query",
+  "{{count}} queries": "{{count}} forespørgsler",
+  "{{count}} queries_one": "{{count}} forespørgsel",
   "{{count}} required fields still empty": "{{count}} required fields still empty",
   "{{count}} required fields still empty_one": "{{count}} required field still empty",
   "{{count}} resources are not on the grid": "{{count}} resources are not on the grid",
@@ -31994,6 +31994,7 @@
   "An investigation rule makes OneUptime AI wait {{count}} minutes, so alerts resolved by then are not investigated._one": "En undersøgelsesregel får OneUptime AI til at vente {{count}} minut, så advarsler, der er løst inden da, bliver ikke undersøgt.",
   "An investigation rule makes OneUptime AI wait {{count}} minutes, so incidents resolved by then are not investigated.": "En undersøgelsesregel får OneUptime AI til at vente {{count}} minutter, så hændelser, der er løst inden da, bliver ikke undersøgt.",
   "An investigation rule makes OneUptime AI wait {{count}} minutes, so incidents resolved by then are not investigated._one": "En undersøgelsesregel får OneUptime AI til at vente {{count}} minut, så hændelser, der er løst inden da, bliver ikke undersøgt.",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "Som de tæller med i projektets daglige AI-grænser: et token, som udbyderen læste fra sin prompt-cache, tæller som en tiendedel token, og et token, der blev skrevet til den cache, som en og en kvart.",
   "Counted from when the alert is created. When several rules match, the shortest wait decides. At most 1440 (a day).": "Regnes fra advarslen oprettes. Matcher flere regler, afgør den korteste ventetid. Højst 1440 (et døgn).",
   "Counted from when the incident is declared. When several rules match, the shortest wait decides. At most 1440 (a day).": "Regnes fra hændelsen erklæres. Matcher flere regler, afgør den korteste ventetid. Højst 1440 (et døgn).",
   "Decision recorded when the wait ended": "Beslutning registreret, da ventetiden sluttede",
@@ -32020,5 +32021,9 @@
   "OneUptime AI investigates tomorrow at {{time}} if this incident is still open": "OneUptime AI undersøger i morgen kl. {{time}}, hvis denne hændelse stadig er åben",
   "OneUptime AI investigates tomorrow at {{time}} if this alert is still open": "OneUptime AI undersøger i morgen kl. {{time}}, hvis denne advarsel stadig er åben",
   "OneUptime AI investigates shortly if this incident is still open": "OneUptime AI undersøger om lidt, hvis denne hændelse stadig er åben",
-  "OneUptime AI investigates shortly if this alert is still open": "OneUptime AI undersøger om lidt, hvis denne advarsel stadig er åben"
+  "OneUptime AI investigates shortly if this alert is still open": "OneUptime AI undersøger om lidt, hvis denne advarsel stadig er åben",
+  "{{count}} from cache": "{{count}} fra cachen",
+  "{{count}} from cache_one": "{{count}} fra cachen",
+  "{{count}} written to cache": "{{count}} skrevet til cachen",
+  "{{count}} written to cache_one": "{{count}} skrevet til cachen"
 }

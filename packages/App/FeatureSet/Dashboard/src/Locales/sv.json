@@ -21059,7 +21059,7 @@
   "Metric data from around when this incident was declared, scoped to the affected series ({{series}}).": "Metric data from around when this incident was declared, scoped to the affected series ({{series}}).",
   "Microsoft Teams Subscriptions": "Microsoft Teams-prenumerationer",
   "Mixed": "Blandat",
-  "Model {{name}}": "Model {{name}}",
+  "Model {{name}}": "Modell {{name}}",
   "Monitors you archived. They are not checked, open no incidents or alerts, and are hidden from monitor lists and status pages. Select monitors to unarchive them.": "Monitors you archived. They are not checked, open no incidents or alerts, and are hidden from monitor lists and status pages. Select monitors to unarchive them.",
   "More actions for this group": "More actions for this group",
   "More actions for {{name}}": "More actions for {{name}}",
@@ -21751,8 +21751,8 @@
   "{{count}} people have asked in this conversation_one": "{{count}} person has asked in this conversation",
   "{{count}} phone numbers route calls to this policy.": "{{count}} phone numbers route calls to this policy.",
   "{{count}} phone numbers route calls to this policy._one": "{{count}} phone number routes calls to this policy.",
-  "{{count}} queries": "{{count}} queries",
-  "{{count}} queries_one": "{{count}} query",
+  "{{count}} queries": "{{count}} frågor",
+  "{{count}} queries_one": "{{count}} fråga",
   "{{count}} required fields still empty": "{{count}} required fields still empty",
   "{{count}} required fields still empty_one": "{{count}} required field still empty",
   "{{count}} resources are not on the grid": "{{count}} resources are not on the grid",
@@ -31994,6 +31994,7 @@
   "An investigation rule makes OneUptime AI wait {{count}} minutes, so alerts resolved by then are not investigated._one": "En utredningsregel får OneUptime AI att vänta {{count}} minut, så larm som är lösta till dess utreds inte.",
   "An investigation rule makes OneUptime AI wait {{count}} minutes, so incidents resolved by then are not investigated.": "En utredningsregel får OneUptime AI att vänta {{count}} minuter, så incidenter som är lösta till dess utreds inte.",
   "An investigation rule makes OneUptime AI wait {{count}} minutes, so incidents resolved by then are not investigated._one": "En utredningsregel får OneUptime AI att vänta {{count}} minut, så incidenter som är lösta till dess utreds inte.",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "Så som de räknas mot projektets dagliga AI-gränser: en token som leverantören läste från sin promptcache räknas som en tiondels token, och en token som skrevs till den cachen som en och en kvarts.",
   "Counted from when the alert is created. When several rules match, the shortest wait decides. At most 1440 (a day).": "Räknas från att larmet skapas. Matchar flera regler avgör den kortaste väntetiden. Högst 1440 (ett dygn).",
   "Counted from when the incident is declared. When several rules match, the shortest wait decides. At most 1440 (a day).": "Räknas från att incidenten deklareras. Matchar flera regler avgör den kortaste väntetiden. Högst 1440 (ett dygn).",
   "Decision recorded when the wait ended": "Beslut registrerat när väntetiden var slut",
@@ -32020,5 +32021,9 @@
   "OneUptime AI investigates tomorrow at {{time}} if this incident is still open": "OneUptime AI utreder i morgon kl. {{time}} om den här incidenten fortfarande är öppen",
   "OneUptime AI investigates tomorrow at {{time}} if this alert is still open": "OneUptime AI utreder i morgon kl. {{time}} om det här larmet fortfarande är öppet",
   "OneUptime AI investigates shortly if this incident is still open": "OneUptime AI utreder snart om den här incidenten fortfarande är öppen",
-  "OneUptime AI investigates shortly if this alert is still open": "OneUptime AI utreder snart om det här larmet fortfarande är öppet"
+  "OneUptime AI investigates shortly if this alert is still open": "OneUptime AI utreder snart om det här larmet fortfarande är öppet",
+  "{{count}} from cache": "{{count}} från cachen",
+  "{{count}} from cache_one": "{{count}} från cachen",
+  "{{count}} written to cache": "{{count}} skrivna till cachen",
+  "{{count}} written to cache_one": "{{count}} skriven till cachen"
 }
