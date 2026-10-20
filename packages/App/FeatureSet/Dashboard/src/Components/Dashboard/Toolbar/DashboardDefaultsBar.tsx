@@ -1,6 +1,9 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import TimeRange from "Common/Types/Time/TimeRange";
-import { AutoRefreshInterval } from "Common/Types/Dashboard/DashboardViewConfig";
+import {
+  AutoRefreshInterval,
+  getAutoRefreshIntervalLabel,
+} from "Common/Types/Dashboard/DashboardViewConfig";
 import { DASHBOARD_TIME_RANGES } from "Common/Types/Dashboard/DashboardTimeRange";
 import { DASHBOARD_AUTO_REFRESH_INTERVALS } from "Common/Types/Dashboard/DashboardAutoRefresh";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -39,7 +42,10 @@ import {
 
 interface Choice {
   value: string;
+  // How the choice reads in the list.
   label: string;
+  // How the picker's button names it, when shorter: "1m" for "Refresh every 1m".
+  buttonLabel?: string | undefined;
 }
 
 interface ChoicePickerProps {
@@ -110,7 +116,9 @@ const ChoicePicker: FunctionComponent<ChoicePickerProps> = (
         data-testid={props.testId}
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        aria-label={`${props.label}: ${selected?.label || props.value}`}
+        aria-label={`${props.label}: ${
+          selected?.buttonLabel || selected?.label || props.value
+        }`}
         className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
           isOpen
             ? "border-indigo-200 bg-indigo-50 text-indigo-700"
@@ -121,7 +129,7 @@ const ChoicePicker: FunctionComponent<ChoicePickerProps> = (
         }}
       >
         <Icon icon={props.icon} className="h-3.5 w-3.5 text-gray-500" />
-        <span>{selected?.label || props.value}</span>
+        <span>{selected?.buttonLabel || selected?.label || props.value}</span>
         <Icon
           icon={IconProp.ChevronDown}
           className={`h-3 w-3 text-gray-400 transition-transform ${
@@ -233,9 +241,22 @@ const DashboardDefaultsBar: FunctionComponent<ComponentProps> = (
           value={props.refreshInterval}
           choices={DASHBOARD_AUTO_REFRESH_INTERVALS.map(
             (interval: AutoRefreshInterval): Choice => {
+              /*
+               * Worded as the viewer's auto-refresh menu words them, and
+               * named on the button as its countdown names them: Off, 1m.
+               */
               return {
                 value: interval,
-                label: text(getAutoRefreshChoiceLabel(interval)),
+                label:
+                  interval === AutoRefreshInterval.OFF
+                    ? text("Auto-refresh Off")
+                    : translator.translateTemplate(
+                        "Refresh every {{interval}}",
+                        {
+                          interval: getAutoRefreshIntervalLabel(interval),
+                        },
+                      ),
+                buttonLabel: text(getAutoRefreshChoiceLabel(interval)),
               };
             },
           )}

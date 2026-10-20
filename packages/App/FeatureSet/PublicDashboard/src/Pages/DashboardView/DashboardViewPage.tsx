@@ -34,6 +34,7 @@ import DashboardVariableUrlState from "Common/Utils/Dashboard/VariableUrlState";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
+import MoreMenuDivider from "Common/UI/Components/MoreMenu/Divider";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import DashboardVariableSelector from "./DashboardVariableSelector";
@@ -383,6 +384,7 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
                         viewerSettings.pickDefaultAutoRefreshInterval();
                       }}
                     />,
+                    <MoreMenuDivider key="default-divider" />,
                     ...Object.values(AutoRefreshInterval).map(
                       (interval: AutoRefreshInterval) => {
                         /*
