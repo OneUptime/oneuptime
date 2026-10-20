@@ -1,5 +1,5 @@
 import Project from "../../../Models/DatabaseModels/Project";
-import RunbookSecret from "../../../Models/DatabaseModels/RunbookSecret";
+import RunbookVariable from "../../../Models/DatabaseModels/RunbookVariable";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import RunnerJob from "../../../Models/DatabaseModels/RunnerJob";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -15,9 +15,9 @@ import { describe, expect, test } from "@jest/globals";
  *     column create or update permission), default false;
  *   - Runner.projectId: no longer required - a global Runner has none;
  *   - RunnerJob.runsOnGlobalRunner: the server's own, default false;
- *   - RunbookSecret.isAvailableToGlobalRunners: whoever may write the
- *     secret, default false - a secret reaches a global Runner only when
- *     someone says so;
+ *   - RunbookVariable.isAvailableToGlobalRunners: whoever may write the
+ *     variable, default false - a secret reaches a global Runner only when
+ *     someone says so (runbook secrets became runbook variables);
  *   - Project.useGlobalRunners: a project admin's switch, on by default.
  */
 
@@ -107,9 +107,9 @@ describe("RunnerJob.runsOnGlobalRunner", () => {
   });
 });
 
-describe("RunbookSecret.isAvailableToGlobalRunners", () => {
+describe("RunbookVariable.isAvailableToGlobalRunners", () => {
   const facts: ColumnFacts = factsOf(
-    new RunbookSecret(),
+    new RunbookVariable(),
     "isAvailableToGlobalRunners",
   );
 
@@ -118,7 +118,7 @@ describe("RunbookSecret.isAvailableToGlobalRunners", () => {
     expect(facts.defaultValue).toBe(false);
   });
 
-  test("whoever may create or edit the secret may set it, and nobody else", () => {
+  test("whoever may create or edit the variable may set it, and nobody else", () => {
     expect(facts.access?.create).toEqual([
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

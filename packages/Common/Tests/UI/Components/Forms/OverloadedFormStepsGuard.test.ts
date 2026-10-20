@@ -431,7 +431,7 @@ describe("the project's stepped forms", () => {
     ],
     [
       `${DASHBOARD}/Pages/Runbook/Runners/RunnerCredentials.tsx`,
-      "ModelTable: Runbooks > Runner Credentials",
+      "ModelTable: Runbooks > AI Access",
       ["credential", "ssh", "ssh-authentication", "kubernetes", "runners"],
     ],
     /*

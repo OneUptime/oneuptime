@@ -132,8 +132,12 @@ Din roll läser runbooks men kör dem inte: knappen säger "Du har inte behörig
 Runbookets brytare **Kör det här runbooket** är avstängd på dess sida **Inställningar**, eller så har det inga sparade steg. Slå på brytaren, eller lägg till steg, och klicka på **Save Steps**. Dess **Översikt** säger vilket, med **Slå på runbook** eller **Lägg till steg**.
 :::
 
-:::details Ett steg misslyckades för att det saknar en Runner eller en autentiseringsuppgift
-Meddelandet lyder till exempel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." Steget sparades utan **Runner**, eller ett SSH- eller Kubernetes-steg utan **Credential**. Ett JavaScript-steg behöver bara en egen Runner när ingen [global Runner](/docs/runbooks/agents#globala-runners) kan köra det. Öppna runbookets **Steg**, välj det som steget saknar, klicka på **Save Steps** och kör runbooket igen.
+:::details Ett steg misslyckades för att det saknar en Runner
+Meddelandet lyder till exempel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." Steget sparades utan **Runner**. Ett JavaScript-steg behöver bara en egen Runner när ingen [global Runner](/docs/runbooks/agents#globala-runners) kan köra det. Öppna runbookets **Steg**, välj stegets Runner, klicka på **Save Steps** och kör runbooket igen.
+:::
+
+:::details Ett steg misslyckades för att det nämner variabler som det inte kan använda
+Meddelandet börjar med "This step names variables it cannot use, so it was not run:" och säger för varje variabel vad som är fel och var det åtgärdas: det finns ingen variabel med det namnet, hemligheten har inget värde, eller stegets Runner får inte använda den. Skapa variabeln eller rätta dess namn i steget, eller låt Runnern använda hemligheten, och kör sedan runbooken igen. Se [Runbook-variabler](/docs/runbooks/variables).
 :::
 
 :::details Ett steg misslyckades för att ingen runbook-agent tog det

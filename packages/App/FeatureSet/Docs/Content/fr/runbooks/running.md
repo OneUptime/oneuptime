@@ -132,8 +132,12 @@ Votre rôle lit les runbooks mais ne les exécute pas : le bouton indique « Vou
 L'interrupteur **Exécuter ce runbook** du runbook est désactivé, sur sa page **Paramètres**, ou il n'a aucune étape enregistrée. Activez l'interrupteur, ou ajoutez des étapes et cliquez sur **Save Steps**. Sa **Vue d'ensemble** indique lequel, avec **Activer le runbook** ou **Ajouter des étapes**.
 :::
 
-:::details Une étape a échoué parce qu'il lui manque un agent Runbook ou un identifiant
-Le message indique par exemple "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." L'étape a été enregistrée sans **Agent Runbook**, ou une étape SSH ou Kubernetes sans **Identifiant**. Une étape JavaScript n'a besoin d'un agent à elle que si aucun [agent Runbook global](/docs/runbooks/agents#agents-runbook-globaux) ne peut l'exécuter. Ouvrez les **Étapes** du runbook, choisissez ce qui manque à l'étape, cliquez sur **Save Steps** et relancez le runbook.
+:::details Une étape a échoué parce qu'il lui manque un agent Runbook
+Le message indique par exemple "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." L'étape a été enregistrée sans **Agent Runbook**. Une étape JavaScript n'a besoin d'un agent à elle que si aucun [agent Runbook global](/docs/runbooks/agents#agents-runbook-globaux) ne peut l'exécuter. Ouvrez les **Étapes** du runbook, choisissez l'agent Runbook de l'étape, cliquez sur **Save Steps** et relancez le runbook.
+:::
+
+:::details Une étape a échoué parce qu'elle nomme des variables qu'elle ne peut pas utiliser
+Le message commence par "This step names variables it cannot use, so it was not run:" et indique, pour chaque variable, ce qui ne va pas et où le corriger : il n'existe aucune variable de ce nom, le secret n'a pas de valeur, ou l'agent Runbook de l'étape n'a pas le droit de l'utiliser. Créez la variable ou corrigez son nom dans l'étape, ou laissez l'agent utiliser le secret, puis relancez le runbook. Voir [Variables de runbook](/docs/runbooks/variables).
 :::
 
 :::details Une étape a échoué parce qu'aucun agent de runbook ne l'a prise en charge

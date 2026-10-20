@@ -11,7 +11,7 @@ import KubernetesClusterService from "../../../Server/Services/KubernetesCluster
 import LlmProviderService from "../../../Server/Services/LlmProviderService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
-import RunbookSecretService from "../../../Server/Services/RunbookSecretService";
+import RunbookVariableService from "../../../Server/Services/RunbookVariableService";
 import RunnerService from "../../../Server/Services/RunnerService";
 import logger from "../../../Server/Utils/Logger";
 import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
@@ -228,7 +228,7 @@ describe("a cluster's AI access status: Enable AI is the only project switch", (
       .spyOn(RunbookCredentialService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
     jest
-      .spyOn(RunbookSecretService, "countBy")
+      .spyOn(RunbookVariableService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
     jest
       .spyOn(KubernetesClusterService, "countBy")

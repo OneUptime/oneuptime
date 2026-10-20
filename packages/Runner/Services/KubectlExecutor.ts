@@ -891,8 +891,10 @@ export default class KubectlExecutor {
    * on every use rather than trusted once: a pre-existing directory owned
    * by another user (a shared /tmp on a bare-metal host) would let that
    * user rename or replace entries under it, so it is refused outright.
+   * Also where a kubectl step's kubeconfig is written for its script
+   * (KubectlScriptExecutor), so the same sweeps remove it.
    */
-  private static createKubeconfigDir(): string {
+  public static createKubeconfigDir(): string {
     const parent: string = KubectlExecutor.getKubeconfigParentDir();
 
     fs.mkdirSync(parent, { recursive: true, mode: PRIVATE_DIR_MODE });
@@ -1142,7 +1144,8 @@ export default class KubectlExecutor {
     return `${killed}: kubectl produced no output at all, so ${target} is probably unreachable from this Runner. Check the API server address, the network path from the Runner (firewall, egress policy, proxy settings) and the CA certificate.`;
   }
 
-  private static cleanup(dir: string | null): void {
+  // Removes one command's private directory, kubeconfig and all.
+  public static cleanup(dir: string | null): void {
     if (!dir) {
       return;
     }

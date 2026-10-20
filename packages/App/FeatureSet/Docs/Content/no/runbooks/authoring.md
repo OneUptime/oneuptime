@@ -4,7 +4,7 @@ Du skriver et runbook som en ordnet liste med trinn på siden **Trinn**. Denne s
 
 :::cards
 - [Opprett et runbook](#opprett-et-runbook): Fra et tomt runbook til lagrede trinn.
-- [Trinntyper](#trinntyper): Manual, JavaScript, HTTP request, Bash, SSH, Kubernetes og AI.
+- [Trinntyper](#trinntyper): Manual, JavaScript, HTTP request, Bash, SSH, kubectl og AI.
 - [Feilhåndtering og godkjenninger](#feilhåndtering-og-godkjenninger): Hva som skjer når et trinn feiler eller lykkes.
 - [Et gjennomgått eksempel](#et-gjennomgått-eksempel): En database-failover i fem trinn.
 :::
@@ -12,8 +12,8 @@ Du skriver et runbook som en ordnet liste med trinn på siden **Trinn**. Denne s
 ## Før du begynner
 
 - **En rolle som skriver runbooks.** Project Owner, Project Admin og Runbook Admin oppretter runbooks og lagrer trinnene deres. Med detaljerte tillatelser trenger du **Create Runbook** og **Edit Runbook**. Se [Tillatelser](/docs/runbooks/configuration#tillatelser).
-- **En Runner, for Bash-, SSH- og Kubernetes-trinn.** Disse trinnene kjører på en [Runner](/docs/runbooks/agents) i din egen infrastruktur, aldri på OneUptime Worker. Installer en først. Et JavaScript-trinn kjører på en [global Runner](/docs/runbooks/agents#globale-runnere) med mindre du velger en av dine egne.
-- **Påloggingsinformasjon, for SSH- og Kubernetes-trinn, og tillatelse til å lese den.** Se [Runbook-påloggingsinformasjon](/docs/runbooks/credentials). Et trinn kan bare peke på påloggingsinformasjon hvis du har lov til å lese runbook-påloggingsinformasjon: Project Owner, Project Admin eller **Read Runbook Credential**. Runbook Admin omfatter ikke dette.
+- **En Runner, for Bash-, SSH- og kubectl-trinn.** Disse trinnene kjører på en [Runner](/docs/runbooks/agents) i din egen infrastruktur, aldri på OneUptime Worker. Installer en først. Et JavaScript-trinn kjører på en [global Runner](/docs/runbooks/agents#globale-runnere) med mindre du velger en av dine egne.
+- **En hemmelig variabel, for SSH- og kubectl-trinn.** Nøkkelen, passordet eller kubeconfigen et trinn logger på med, er en hemmelig [runbook-variabel](/docs/runbooks/variables). Project Owner og Project Admin oppretter variabler, og Runbook Admin velger dem i trinnene den skriver. Et kubectl-trinn kan i stedet bruke Runnerens egen tilgang.
 - **En LLM-leverandør, for AI-trinn.** Se [LLM-leverandører](/docs/ai/llm-provider).
 
 ## Opprett et runbook
@@ -29,7 +29,7 @@ Klikk **Opprett Runbook**, skriv inn et **Navn** og eventuelt en **Beskrivelse**
 
 ### Legg til trinn
 
-Under **Start your runbook** velger du typen for det første trinnet; under det siste trinnet tilbyr **Add another step** de samme sju typene. Hvert trinn åpnes med **Tittel**, **Beskrivelse** (Markdown, vises for den som håndterer hendelsen) og innstillingene for typen. Når runbooket har et trinn, legger **Legg til trinn** øverst på kortet til et Manual-trinn.
+Under **Start your runbook** velger du typen for det første trinnet; under det siste trinnet tilbyr **Add another step** de samme sju typene. Hvert trinn åpnes med **Tittel** og det typen trenger; resten, som **Beskrivelse** og tidsavbrudd, er brettet sammen under **Flere felt**. Når runbooket har et trinn, legger **Legg til trinn** øverst på kortet til et Manual-trinn.
 
 ### Sett trinnene i rekkefølge
 
@@ -42,15 +42,15 @@ Klikk **Save Steps**. Inntil du gjør det, viser redigeringsverktøyet **Ulagred
 
 ## Hvordan et trinn er bygd opp
 
-Hvert trinn har disse feltene:
+Hvert trinn har disse feltene. Et automatisert trinn viser **Tittel** og innstillingene for typen, og bretter resten sammen under **Flere felt**, som viser hva av det som er satt:
 
 | Felt | Formål |
 | --- | --- |
 | **Tittel** | En kort etikett som vises i trinnlisten og ved hver kjøring. |
-| **Beskrivelse** | Valgfri kontekst for den som håndterer hendelsen, i Markdown. På et Manual-trinn er det instruksjonen personen leser. |
+| **Beskrivelse** | Valgfri kontekst for den som håndterer hendelsen, i Markdown, under **Flere felt**. På et Manual-trinn er det instruksjonen personen leser, vist under tittelen. |
 | **Fortsett ved feil** | Bare automatiserte trinn. Når den er slått på, stopper ikke et trinn som feiler kjøringen: neste trinn kjører likevel. |
 | **Krev godkjenning** | Bare automatiserte trinn. Når den er slått på, tar runbooket pause etter dette trinnet og venter på at en person godkjenner før neste trinn kjører. Bryteren heter **Krev godkjenning før det neste trinnet kjøres**. |
-| Typespesifikke innstillinger | Skriptet, URL-en, Runneren, påloggingsinformasjonen eller prompten. Se [Trinntyper](#trinntyper). |
+| Typespesifikke innstillinger | Skriptet, URL-en, Runneren, en hemmelig variabel eller prompten. Se [Trinntyper](#trinntyper). |
 
 ## Trinntyper
 
@@ -60,9 +60,11 @@ Hvert trinn har disse feltene:
 | [JavaScript](#javascript) | En Runner | En Runner |
 | [HTTP request](#http-request) | OneUptime Worker | Ingenting |
 | [Bash](#bash) | En Runner | En Runner |
-| [SSH](#ssh) | En Runner | En Runner og SSH-påloggingsinformasjon |
-| [Kubernetes](#kubernetes) | En Runner | En Runner og Kubernetes-påloggingsinformasjon |
+| [SSH](#ssh) | En Runner | En Runner og en hemmelig variabel å logge på med |
+| [kubectl](#kubectl) | En Runner | En Runner og en kubeconfig-variabel eller Runnerens egen tilgang |
 | [AI](#ai) | OneUptime Worker | En LLM-leverandør |
+
+I hvert trinn nedenfor ligger tidsavbruddene, **Beskrivelse**, **Fortsett ved feil** og **Krev godkjenning** under trinnets **Flere felt**, og det samme gjør leverandøren og kontekstbryterne til et AI-trinn.
 
 ### Manual
 
@@ -136,36 +138,50 @@ fi
 Hvis den valgte Runneren er frakoblet når kjøringen når dette trinnet, venter trinnet opptil **claim timeout** (2 minutter som standard) og feiler deretter på grunn av tidsavbrudd. Legg til en agent under **Runbooks → Runbook-agenter** før du regner med et Bash-trinn.
 
 > [!TIP]
-> Hold passord og tokens utenfor skriptet. Lagre dem som runbook-hemmeligheter, og skriv `{{runbookSecrets.NAME}}` i et Bash- eller JavaScript-skript: Runneren mottar skriptet med verdien fylt inn. Se [Hemmeligheter for skript](/docs/runbooks/credentials#hemmeligheter-for-skript).
+> Hold passord og tokener utenfor skriptet. Lagre dem som hemmelige [runbook-variabler](/docs/runbooks/variables), og skriv `{{global.variables.NAME}}` der verdien skal stå: Runneren mottar skriptet med verdien satt inn, og trinnets utdata viser `[REDACTED]` i stedet.
 
 ### SSH
 
-Kjør én kommando på en vert som Runneren kan nå via SSH. I motsetning til `ssh host cmd` i et Bash-trinn er tilgangen administrert [påloggingsinformasjon](/docs/runbooks/credentials) i stedet for en privat nøkkel på Runnerens disk: kryptert i hvile, tildelt bestemte Runnere og aldri lesbar igjen via API-et.
+Logg på en maskin over SSH og kjør et bash-skript der. Runneren åpner forbindelsen, så maskinen må bare kunne nås fra Runneren, og nøkkelen eller passordet trinnet logger på med, er en hemmelig [runbook-variabel](/docs/runbooks/variables) som aldri skrives i trinnet.
 
 | Felt | Hva det gjør |
 | --- | --- |
-| **Runner** | Runneren som åpner forbindelsen. Den må kunne nå verten over nettverket. |
-| **Credential** | SSH-påloggingsinformasjon med vert, port, bruker og nøkkel eller passord. Den må være tildelt Runneren du valgte, ellers feiler trinnet i stedet for å kjøre med feil tilgang. |
-| **Command** | Kjøres på den eksterne verten som brukeren i påloggingsinformasjonen. Output registreres opptil 50 KB, og en exitkode som ikke er null, får trinnet til å feile. |
-| **Tidsavbrudd for kjøring** | Dekker tilkobling, autentisering og kjøring av kommandoen samlet, så en kommando som henger, ikke kan holde trinnet åpent. Standard 30 sekunder. |
+| **Runner** | Runneren som åpner forbindelsen. Den må kunne nå maskinen over nettverket. |
+| **SSH til** | Brukeren og maskinen, slik du ville skrevet dem etter `ssh`: `deploy@10.0.4.21`. |
+| **Logg på med** | Den hemmelige variabelen som holder den private nøkkelen eller passordet; verdien viser hvilken det er. Bare hemmelige variabler tilbys, og trinnet sier fra når Runneren ikke får bruke den valgte. |
+| **Bash-skript** | Kjører med `bash` på maskinen som brukeren trinnet logger på som. Utdata fanges opp til 50 KB, og en avslutningskode som ikke er null, får trinnet til å feile. |
+| **Port** | Under **Flere felt**. 22 når den står tom. |
+| **Passordfrase for nøkkelen** | Under **Flere felt**. Den hemmelige variabelen som holder passordfrasen til en nøkkel som har en. |
+| **Tidsavbrudd for kjøring** | Dekker tilkobling, pålogging og kjøring av skriptet samlet, slik at et skript som henger, ikke kan holde trinnet åpent. Standard 30 sekunder. |
 | **Tidsavbrudd for overtakelse** | Hvor lenge Workeren venter på at Runneren tar jobben. Standard 2 minutter. |
 
-### Kubernetes
+For eksempel for å starte en tjeneste på nytt og vise at den kom opp igjen:
 
-Start på nytt eller skaler en arbeidsbelastning i en klynge. Handlingene er bevisst et lukket sett: et trinn som kunne endre vilkårlige objekter, ville vært et administratorskall for klyngen, og denne trinntypen finnes for å gjøre de vanlige utbedringene trygge nok for automatisk utbedring.
+```bash
+sudo systemctl restart nginx
+systemctl status nginx --no-pager
+```
+
+### kubectl
+
+Kjør kubectl-kommandoer mot en klynge. Skriptet kjører med bash på Runneren, som har med `kubectl`, med `KUBECONFIG` pekende på klyngen: enhver kubectl-kommando virker, og det samme gjør all bash rundt.
 
 | Felt | Hva det gjør |
 | --- | --- |
-| **Runner** | Runneren som kaller klyngens API-server. Den må kunne nå den. |
-| **Credential** | Kubernetes-påloggingsinformasjon: API-serverens URL, et serviceaccount-token og klyngens CA. Bind den serviceaccounten til en rolle som bare tillater det runbookene dine trenger. |
-| **Handling** | **Restart workload** endrer pod-malen slik at kontrolleren gjenoppretter podene, slik `kubectl rollout restart` gjør. **Scale workload** setter antallet replikaer. |
-| **Workload kind** | **Utrulling**, **StatefulSet** eller **DaemonSet**. |
-| **Navnerom** og **Workload name** | Arbeidsbelastningen det handles på. |
-| **Replikaer** | Bare ved skalering. Null er tillatt: å tømme en arbeidsbelastning er en legitim utbedring. Et DaemonSet kjører én pod per node og kan ikke skaleres; start det på nytt i stedet. |
-| **Tidsavbrudd for kjøring** | Hvor lenge Runneren venter på at API-serveren godtar endringen. Standard 30 sekunder. |
+| **Runner** | Runneren som kjører kubectl. Den må kunne nå klyngens API-server. |
+| **Kubeconfig** | Den hemmelige variabelen som holder klyngens kubeconfig, eller **Runnerens egen tilgang**: Runnerens egen kubeconfig, eller tjenestekontoen når den kjører i klyngen. Runneren skriver en kubeconfig til en fil bare den kan lese, og fjerner den når skriptet avsluttes. |
+| **Script** | kubectl-kommandoene. Utdata fanges opp til 50 KB, og en avslutningskode som ikke er null, får trinnet til å feile. |
+| **Tidsavbrudd for kjøring** | Hvor lenge Runneren lar skriptet kjøre før den stopper det med `SIGKILL`. Standard 30 sekunder. |
 | **Tidsavbrudd for overtakelse** | Hvor lenge Workeren venter på at Runneren tar jobben. Standard 2 minutter. |
 
-Hvis API-serveren avviser endringen, vises dens egen melding på trinnet, så en tillatelsesfeil forteller deg hvilken rollebinding du må utvide.
+For eksempel for å starte en deployment på nytt og vente til de nye podene er klare:
+
+```bash
+kubectl rollout restart deployment/checkout-api --namespace checkout
+kubectl rollout status deployment/checkout-api --namespace checkout --timeout=120s
+```
+
+**Eksempler – klikk for å sette inn**, under hvert skript, setter inn vanlige skript som disse. Gi kubeconfigens bruker bare det skriptene dine gjør: en Role i namespacene de jobber i, med verbene de bruker. Hvis API-serveren avviser en kommando, står kubectls egen melding i trinnets utdata, så en tillatelsesfeil forteller deg hvilken role binding du må utvide.
 
 ### AI
 
@@ -224,5 +240,5 @@ Den som håndterer hendelsen, ser trinn 1 kjøre, krysser av trinn 2, ser trinn 
 - [Kjøre et runbook](/docs/runbooks/running): Start en kjøring, og fullfør, godkjenn eller hopp over trinnene.
 - [Runbook-regler](/docs/runbooks/rules): Start dette runbooket automatisk ved hendelser som treffer.
 - [Runbook-agenter](/docs/runbooks/agents): Installer Runneren som skripttrinnene dine trenger.
-- [Runbook-påloggingsinformasjon](/docs/runbooks/credentials): Gi SSH- og Kubernetes-trinn administrert tilgang.
+- [Runbook-variabler](/docs/runbooks/variables): Hold verter, nøkler, passord og kubeconfiger utenfor trinnene dine.
 :::

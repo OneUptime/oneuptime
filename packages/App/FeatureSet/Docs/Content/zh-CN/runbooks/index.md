@@ -7,6 +7,7 @@ Runbook 是可重复使用的响应流程：一份由手动步骤和自动步骤
 - [Runbook 规则](/docs/runbooks/rules): 在新的事件、警报和维护事件上启动 Runbook。
 - [运行 Runbook](/docs/runbooks/running): 启动一次执行，完成并批准其步骤，或取消它。
 - [Runbook 触发器](/docs/runbooks/triggers): 按计划运行 Runbook，或从其他工具通过其 Webhook URL 运行。
+- [Runbook 变量](/docs/runbooks/variables): 步骤按名称使用的主机、密钥、密码和 kubeconfig。
 - [Runbook 代理](/docs/runbooks/agents): 安装在你自己的基础设施中运行脚本的 Runner。
 :::
 
@@ -26,7 +27,7 @@ flowchart TB
     execution --> worker["OneUptime Worker<br/>按顺序处理步骤"]
     worker -->|"Manual<br/>步骤或审批"| person["等待人员处理"]
     worker -->|"HTTP 和<br/>AI 步骤"| onworker["在 Worker 上运行"]
-    worker -->|"JavaScript、<br/>Bash、SSH、<br/>Kubernetes"| runner["你基础设施中的<br/>Runner"]
+    worker -->|"JavaScript、<br/>Bash、SSH、<br/>kubectl"| runner["你基础设施中的<br/>Runner"]
     person --> record["记录状态、<br/>输出和错误"]
     onworker --> record
     runner --> record
@@ -35,20 +36,20 @@ flowchart TB
 
 每次运行 Runbook 都会创建一次 **执行** 。执行开始时，Runbook 的步骤会被复制到其中，OneUptime 按顺序逐一处理。Manual 步骤或需要审批的步骤会暂停执行，直到有人处理。
 
-HTTP 和 AI 步骤在 OneUptime Worker 上运行。Bash、SSH 和 Kubernetes 步骤在你安装于自己基础设施中的 [Runner](/docs/runbooks/agents) 上运行，因此这些脚本永远不会在 OneUptime 的服务器上运行。JavaScript 步骤也可以在你的某个 Runner 上运行；如果它未选择任何 Runner，则在 [全局 Runner](/docs/runbooks/agents#全局-runner) 上、在只能访问互联网的沙箱中运行。每个步骤的状态、输出和错误消息都会记录在执行中，执行会一直保留在它所针对的事件、警报或计划维护事件上。
+HTTP 和 AI 步骤在 OneUptime Worker 上运行。Bash、SSH 和 kubectl 步骤在你安装于自己基础设施中的 [Runner](/docs/runbooks/agents) 上运行，因此这些脚本永远不会在 OneUptime 的服务器上运行。JavaScript 步骤也可以在你的某个 Runner 上运行；如果它未选择任何 Runner，则在 [全局 Runner](/docs/runbooks/agents#全局-runner) 上、在只能访问互联网的沙箱中运行。每个步骤的状态、输出和错误消息都会记录在执行中，执行会一直保留在它所针对的事件、警报或计划维护事件上。
 
 ## 核心概念
 
 | 概念 | 含义 |
 | --- | --- |
 | **Runbook** | 模板。一个有名称、可重复使用的流程，包含有序的步骤列表和 **运行此 Runbook** 开关。 |
-| **步骤** | Runbook 中的一项。它有类型（Manual、JavaScript、HTTP request、Bash、SSH、Kubernetes 或 AI）、标题、描述和与类型相关的设置。 |
+| **步骤** | Runbook 中的一项。它有类型（Manual、JavaScript、HTTP request、Bash、SSH、kubectl 或 AI）、标题、描述和与类型相关的设置。 |
 | **Runbook 规则** | 一条规则，自动将一个或多个 Runbook 关联到符合其条件（监视器、严重性、标签、监视器标签、标题或描述）的事件、警报或计划维护事件。 |
 | **执行** | Runbook 的一次运行。在规则触发、有人在事件上点击 **运行 Runbook** 或在 Runbook 本身上点击 **Run Now** 时创建。它保存步骤的快照以及每个步骤的状态和输出。 |
 | **快照** | 保存在每次执行中的 Runbook 步骤的冻结副本。之后编辑 Runbook 不会改写过去运行的历史。 |
-| **Runner** | 你在自己基础设施中的主机上运行的小型代理。它运行指定它的 JavaScript、Bash、SSH 和 Kubernetes 步骤。也称为 Runbook 代理。 全局 Runner 是 OneUptime 为所有项目运行的 Runner，它运行未指定任何 Runner 的 JavaScript 步骤。 |
-| **凭据** | SSH 和 Kubernetes 步骤使用的受管 SSH 或 Kubernetes 访问权限。静态加密存储，只交给你分配的 Runner。 |
-| **密钥** | 单个值，例如 API 令牌，Bash 或 JavaScript 脚本以 `{{runbookSecrets.NAME}}` 的形式使用它。静态加密存储，只交给你分配的 Runner。 只有你允许时，全局 Runner 才会获得它。 |
+| **Runner** | 你在自己基础设施中的主机上运行的小型代理。它运行指定它的 JavaScript、Bash、SSH 和 kubectl 步骤。也称为 Runbook 代理。 全局 Runner 是 OneUptime 为所有项目运行的 Runner，它运行未指定任何 Runner 的 JavaScript 步骤。 |
+| **变量** | 步骤通过名称使用的值，例如主机或 URL：`{{global.variables.NAME}}` 表示项目的变量，每个 Runbook 都可以使用；`{{local.variables.NAME}}` 表示 Runbook 自己的变量。 |
+| **机密** | 值在存储时加密、再也不会显示、并在步骤输出中被隐藏的变量，例如 SSH 密钥、密码、kubeconfig 或 API 令牌。只交给你允许使用它的 Runner；只有你允许时，全局 Runner 才会获得它。 |
 
 ## 步骤类型
 
@@ -59,9 +60,9 @@ HTTP 和 AI 步骤在 OneUptime Worker 上运行。Bash、SSH 和 Kubernetes 步
 | **Manual** | 人员 | 需要人来检查、判断或执行 OneUptime 无法完成的操作。 | “确认流量已切换到备用区域。” |
 | **JavaScript** | Runner | 需要在沙箱中进行小型、受限的计算。 | 计算副本延迟并决定是否继续。 |
 | **HTTP request** | OneUptime Worker | 调用现有 API：云服务商、PagerDuty、Slack Webhook、你自己的服务。 | 向故障转移编排器发送 `POST`。 |
-| **Bash** | Runner | 需要在你自己的基础设施上执行 Shell 命令。 | 运行 `kubectl rollout restart` 或恢复脚本。 |
-| **SSH** | Runner | 需要用受管的 SSH 凭据在远程主机上运行一条命令。 | 在 Web 服务器上重启服务。 |
-| **Kubernetes** | Runner | 需要重启或扩缩 Deployment、StatefulSet 或 DaemonSet。 | 在 `production` 中重启 `checkout-api`。 |
+| **Bash** | Runner | 需要在你自己的基础设施上执行 Shell 命令。 | 运行恢复脚本，或用 `curl` 调用只有你的网络才能访问的服务。 |
+| **SSH** | Runner | 需要用机密变量登录，在远程机器上运行 bash 脚本。 | 在 Web 服务器上重启服务。 |
+| **kubectl** | Runner | 需要对集群运行 kubectl 命令。 | 在 `production` 中重启 `checkout-api`，然后等待它的新 Pod。 |
 | **AI** | OneUptime Worker | 希望在执行过程中由项目的 LLM 提供商给出分析、摘要或判断。 | “查看上面的诊断结果。现在故障转移安全吗？” |
 
 一个 Runbook 可以混合所有类型。Runbook 的优势在于把人工检查与自动化和 AI 分析交织在一起。
@@ -90,11 +91,12 @@ Runbook 位于 **产品** 下的 **仪表板与自动化** 分组中。
 | Runbook 的 **概览** | 查看最近的执行和结果，并点击 **Run Now** 。 |
 | Runbook 的 **执行** | 该 Runbook 的所有运行，可按状态或开始日期筛选。 |
 | Runbook 的 **触发器** | 按[计划](/docs/runbooks/triggers#按计划运行)运行，或从其他工具通过其 [Webhook URL](/docs/runbooks/triggers#调用-webhook) 运行。 |
+| Runbook 的 **变量** | 管理只有该 Runbook 的步骤使用的 [变量](/docs/runbooks/variables)。 |
 | Runbook 的 **所有者** | 添加对它负责的人员和团队。 |
 | Runbook 的 **设置** | 在不删除 Runbook 的情况下关闭 **运行此 Runbook** 。 |
 | **运行手册 → 执行** | 项目中所有 Runbook 的所有运行。 |
-| **运行手册 → Runbook 代理** 和 **运行手册 → Runbook 代理 → 凭据** | 安装 [Runner](/docs/runbooks/agents) 并管理 [凭据](/docs/runbooks/credentials)。 |
-| **运行手册 → 设置** | 管理供脚本使用的 [密钥](/docs/runbooks/credentials#供脚本使用的密钥)，以及为新 Runbook 添加所有者和标签的 **所有者规则** 和 **标签规则** 。 |
+| **运行手册 → Runbook 代理** 和 **运行手册 → Runbook 代理 → AI 访问** | 安装 [Runner](/docs/runbooks/agents)，并管理 OneUptime AI 的命令通过它们拥有的 [访问权限](/docs/runbooks/credentials)。 |
+| **运行手册 → 设置** | 管理每个 Runbook 都可以 [使用](/docs/runbooks/variables) 的 **全局变量** ，以及为新 Runbook 添加所有者和标签的 **所有者规则** 和 **标签规则** 。 |
 | **事件 / 警报 / 计划维护 → 规则 → Runbook 规则** | 创建自动启动 Runbook 的规则。 |
 | 事件、警报或维护事件 → **运行手册** | 查看与之关联的执行，并点击 **运行 Runbook** 启动新的执行。 |
 
@@ -105,7 +107,7 @@ Runbook 自己的侧边菜单按如下方式组织页面。默认只展开**基�
 | **基础** | **概览**、**步骤** |
 | **日志** | **执行** |
 | **所有者** | **所有者** |
-| **设置** | **触发器**、**设置** |
+| **设置** | **触发器**、**变量**、**设置** |
 | **开发者** | **Terraform**、**API**、**AI 助手** |
 | **高级** | **审计日志**、**删除运行手册** |
 
@@ -156,7 +158,7 @@ Runbooks:    [DB primary failover]
 - **清除缓存**：一次 HTTP 请求，然后一个 Manual 步骤“确认缓存命中率正在恢复”。
 - **影响客户的事件**：Manual“在状态页面发布更新”，用 HTTP 请求通知支持团队，用 JavaScript 获取受影响账户的列表。
 - **计划维护前的预检**：对指标做快照，与相关方确认变更窗口（Manual），在负载均衡器上开启维护模式（HTTP request）。
-- **先诊断，再修复**：Bash 步骤收集诊断信息，开启了 **需要批准** 的 AI 步骤阅读这些信息并推荐修复方案，只有在人员批准后，Kubernetes 步骤才会重启工作负载。
+- **先诊断，再修复**：Bash 步骤收集诊断信息，开启了 **需要批准** 的 AI 步骤阅读这些信息并推荐修复方案，只有在人员批准后，kubectl 步骤才会重启工作负载。
 - **始终运行的例行检查**：一条没有条件的规则，在每个事件上记录系统状态，供事后复盘使用。
 
 ## Runbook 与 OneUptime 其他功能的关系
@@ -170,7 +172,7 @@ Runbooks:    [DB primary failover]
 
 :::cards
 - [编写 Runbook](/docs/runbooks/authoring): 创建你的第一个 Runbook 及其步骤。
-- [Runbook 代理](/docs/runbooks/agents): 在编写 Bash、SSH 或 Kubernetes 步骤之前安装 Runner。
+- [Runbook 代理](/docs/runbooks/agents): 在编写 Bash、SSH 或 kubectl 步骤之前安装 Runner。
 - [Runbook 规则](/docs/runbooks/rules): 在创建事件时自动启动 Runbook。
 - [Runbook 配置与安全](/docs/runbooks/configuration): 限制、超时、权限和加固。
 :::

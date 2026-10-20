@@ -19,7 +19,7 @@ flowchart TB
     end
     subgraph yours["Din infrastruktur"]
         runner["Runner"]
-        onrunner["JavaScript- och Bash-steg<br/>SSH- och Kubernetes-steg"]
+        onrunner["JavaScript- och Bash-steg<br/>SSH- och kubectl-steg"]
     end
     person["En person"]
     worker --> onworker
@@ -34,19 +34,19 @@ flowchart TB
 | JavaScript | En Runner | I en `isolated-vm`-sandlåda. |
 | HTTP request | OneUptime Worker | Ett utgående HTTP-anrop. |
 | Bash | En Runner | `bash -c <script>`. |
-| SSH | En Runner | En SSH-anslutning med en [autentiseringsuppgift](/docs/runbooks/credentials). |
-| Kubernetes | En Runner | Ett anrop till klustrets API-server med en autentiseringsuppgift. |
+| SSH | En Runner | En SSH-anslutning som kör skriptet med bash på maskinen, inloggad med en hemlig [variabel](/docs/runbooks/variables). |
+| kubectl | En Runner | `bash -c <script>`, med `KUBECONFIG` pekande på klustret. |
 | AI | OneUptime Worker | Ett anrop till projektets LLM-leverantör. |
 
 ## Så skickas Runner-steg ut
 
-JavaScript-, Bash-, SSH- och Kubernetes-steg **körs aldrig på OneUptime Worker**. De skickas som jobb till en viss [runbook-agent](/docs/runbooks/agents): en liten process som du installerar på en värd i din egen infrastruktur. Ett JavaScript-steg som inte väljer någon går till de [globala Runners](/docs/runbooks/agents#globala-runners) som OneUptime kör för alla projekt.
+JavaScript-, Bash-, SSH- och kubectl-steg **körs aldrig på OneUptime Worker**. De skickas som jobb till en viss [runbook-agent](/docs/runbooks/agents): en liten process som du installerar på en värd i din egen infrastruktur. Ett JavaScript-steg som inte väljer någon går till de [globala Runners](/docs/runbooks/agents#globala-runners) som OneUptime kör för alla projekt.
 
 Utskicksmodellen:
 
 1. Den som skriver runbook-steget väljer en Runner i listrutan.
 2. När steget körs infogar Workern en rad i `RunnerJob` med `targetAgentId` satt till den Runnerns ID och statusen `Pending`. Ett JavaScript-steg som inte valde någon får i ett projekt som använder globala Runners i stället `runsOnGlobalRunner`.
-3. Just den Runnern (och bara den) tar jobbet atomiskt, kör det lokalt — Bash via `bash -c <script>`, JavaScript i en `isolated-vm`-sandlåda, SSH och Kubernetes med stegets autentiseringsuppgift — och skickar tillbaka resultatet. Vilken global Runner som helst får ta ett jobb med `runsOnGlobalRunner`.
+3. Just den Runnern (och bara den) tar jobbet atomiskt, kör det lokalt — Bash och kubectl via `bash -c <script>`, JavaScript i en `isolated-vm`-sandlåda, SSH genom en anslutning till maskinen, var och en med de variabler den nämner ifyllda — och skickar tillbaka resultatet. Vilken global Runner som helst får ta ett jobb med `runsOnGlobalRunner`.
 4. Workern fortsätter runbooket med resultatet.
 
 Det finns inte längre någon miljöflagga `RUNBOOK_BASH_ENABLED`. Om de här stegen fungerar i en installation beror helt på om projektet har en ansluten Runner med **Kör Runbooks** påslaget. Ett JavaScript-steg fungerar också på en global Runner.
@@ -56,13 +56,13 @@ Det finns inte längre någon miljöflagga `RUNBOOK_BASH_ENABLED`. Om de här st
 | Gräns | Värde | Gäller för |
 | --- | --- | --- |
 | Output per steg | **50 KB**. Längre output klipps av med en markör. | Varje automatiserat steg |
-| Körningstidsgräns | **30 sekunder** som standard | JavaScript-, Bash-, SSH- och Kubernetes-steg |
+| Körningstidsgräns | **30 sekunder** som standard | JavaScript-, Bash-, SSH- och kubectl-steg |
 | Tidsgräns för begäran | **30 sekunder** som standard | HTTP request-steg |
-| Tidsgräns för övertagande | **2 minuter** som standard: hur länge Workern väntar på att den valda Runnern tar jobbet innan det misslyckas | JavaScript-, Bash-, SSH- och Kubernetes-steg |
+| Tidsgräns för övertagande | **2 minuter** som standard: hur länge Workern väntar på att den valda Runnern tar jobbet innan det misslyckas | JavaScript-, Bash-, SSH- och kubectl-steg |
 | Intervall för tidsgränser | **1 sekund till 1 timme** | Varje tidsgräns |
 | Väntan på en person | Ingen gräns | Manual-steg och godkännanden |
 
-Ange tidsgränserna per steg på runbookets sida **Steg**; lämna ett fält tomt för att behålla standarden. Ett värde utanför intervallet begränsas när steget körs, så att en felskriven konfiguration varken kan stänga av tidsgränsen eller hålla en Worker-plats upptagen i all oändlighet.
+Ange tidsgränserna per steg under stegets **Fler fält** på runbookets sida **Steg**; lämna ett fält tomt för att behålla standarden. Ett värde utanför intervallet begränsas när steget körs, så att en felskriven konfiguration varken kan stänga av tidsgränsen eller hålla en Worker-plats upptagen i all oändlighet.
 
 ## Behörigheter
 
@@ -78,7 +78,7 @@ En roll kör de runbooks som dess omfång når. En tilldelning av `RunbookMember
 
 Ett runbooks schema och webhook startar körningar utan att någon är där, så att konfigurera något av dem kräver behörighet att redigera runbooket och att köra det, och detsamma gäller att se dess webhook-URL. Att stänga av dem kräver bara behörighet att redigera det. Se [Runbook-utlösare](/docs/runbooks/triggers#vem-får-konfigurera-utlösare).
 
-Autentiseringsuppgifter och hemligheter ligger utanför `RunbookAdmin`. Att hantera dem kräver `ProjectOwner` eller `ProjectAdmin` eller behörigheterna `CreateRunbookCredential`, `EditRunbookCredential`, `DeleteRunbookCredential`, `ReadRunbookCredential` och `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret`, `ReadRunbookSecret`. Se [Runbook-autentiseringsuppgifter](/docs/runbooks/credentials).
+Runbook-variabler och autentiseringsuppgifter ligger utanför `RunbookAdmin`, som bara läser variabler för att välja dem i de steg den skriver. Att hantera variabler kräver `ProjectOwner` eller `ProjectAdmin`, eller behörigheterna `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret` och `ReadRunbookSecret`: runbook-hemligheternas behörigheter, som behöll sina namn när hemligheter blev variabler. Att hantera autentiseringsuppgifter kräver `ProjectOwner` eller `ProjectAdmin`, eller `CreateRunbookCredential`, `EditRunbookCredential`, `DeleteRunbookCredential` och `ReadRunbookCredential`. Se [Runbook-variabler](/docs/runbooks/variables) och [AI-åtkomst](/docs/runbooks/credentials).
 
 Ägarreglerna och etikettreglerna under **Runbooks → Inställningar** ligger också utanför `RunbookAdmin`. Att hantera dem kräver `ProjectOwner` eller `ProjectAdmin` eller behörigheterna `CreateRunbookOwnerRule` och `CreateRunbookLabelRule` och deras motsvarigheter för redigering, borttagning och läsning.
 
@@ -92,12 +92,12 @@ När ett manuellt steg bockas av via API:et köas körningen igen för att forts
 
 ## Härdningsanteckningar
 
-- **JavaScript, Bash, SSH och Kubernetes** körs på en Runner-värd som du styr, inte på OneUptime Worker. JavaScript körs i ett eget `isolated-vm`-isolat med 128 MB minne och utan åtkomst till Runnerns filsystem eller processer; det kan göra HTTP-begäranden med `axios`, men begäranden till privata nätverk, loopback- och link-local-adresser avvisas. Bash körs via `bash -c`, med en tidsgräns som upprätthålls på Runnern. Ett JavaScript-steg som inte väljer någon körs i stället på en global Runner.
+- **JavaScript, Bash, SSH och kubectl** körs på en Runner-värd som du styr, inte på OneUptime Worker. JavaScript körs i ett eget `isolated-vm`-isolat med 128 MB minne och utan åtkomst till Runnerns filsystem eller processer; det kan göra HTTP-begäranden med `axios`, men begäranden till privata nätverk, loopback- och link-local-adresser avvisas. Bash körs via `bash -c`, med en tidsgräns som upprätthålls på Runnern. Ett JavaScript-steg som inte väljer någon körs i stället på en global Runner.
 - **HTTP-steg** använder en tillåtande statusvalidering, så att ett 4xx- eller 5xx-svar registreras som ett misslyckat steg i stället för att kastas som ett undantag, och den registrerade outputen visar vad motparten faktiskt returnerade. Omdirigeringar följs inte. Workern anropar aldrig loopback- eller link-local-adresser, till exempel en metadataslutpunkt i molnet; på OneUptime Cloud avvisar den även privata nätverksadresser, och en självhostad OneUptime avvisar dem med `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`.
 - **AI-steg** ser aldrig privata incidentanteckningar eller meddelanden från Slack och Microsoft Teams, och tidigare stegs output genomsöks efter hemligheter, som maskeras innan den når modellen. Inbäddade bilder och långa kodade data utelämnas från prompten. Se [AI](/docs/runbooks/authoring#ai).
-- **Globala Runners** kör bara JavaScript-steg, vart och ett i en sandlåda som skapas för steget och slängs efteråt, som bara når offentliga internetadresser, i högst 5 minuter och med högst tre steg från ett och samma projekt åt gången. De får bara de runbook-hemligheter från stegets eget projekt som är påslagna för globala Runners, och aldrig autentiseringsuppgifter; den medföljande har sin egen nyckel och inget annat från servern. Se [Globala Runners](/docs/runbooks/agents#globala-runners).
+- **Globala Runners** kör bara JavaScript-steg, vart och ett i en sandlåda som skapas för steget och slängs efteråt, som bara når offentliga internetadresser, i högst 5 minuter och med högst tre steg från ett och samma projekt åt gången. De får bara de hemliga variabler från stegets eget projekt som är påslagna för globala Runners, och aldrig autentiseringsuppgifter; den medföljande har sin egen nyckel och inget annat från servern. Se [Globala Runners](/docs/runbooks/agents#globala-runners).
 - **Autentisering av Runners** sker med ID och hemlig nyckel, som anges som miljövariabler på Runner-containern. På servern kommer Runnerns gällande identitet från den databasrad som hör till det uppvisade ID:t och nyckeln: en klient kan inte utge sig för att vara en annan Runner, inte ens med en komprometterad nyckel.
-- **Autentiseringsuppgifter och hemligheter** är krypterade i vila, returneras aldrig av API:et och lämnas bara ut till de Runners de är tilldelade, när dessa tar ett steg. En runbook-hemlighet lämnas också till en global Runner som tar ett steg från hemlighetens eget projekt, när hemligheten låter globala Runners använda den.
+- **Hemliga variabler och autentiseringsuppgifter** är krypterade i vila, returneras aldrig av API:t och lämnas bara ut till de Runners de listar, när dessa tar ett steg eller ett kommando som nämner dem. En hemlig variabel lämnas också ut till en global Runner som tar ett steg i variabelns eget projekt, när variabeln låter globala Runners använda den. Runnern ersätter varje hemlighet som ett steg fick med `[REDACTED]` i det steget skriver ut, och OneUptime gör det igen innan utdata lagras.
 
 ## Databastabeller
 
@@ -108,8 +108,8 @@ När ett manuellt steg bockas av via API:et köas körningen igen för att forts
 | `RunbookRule` | Regler för automatisk start, med en diskriminator `triggerEntityType` (Incident, Alert, ScheduledMaintenance), en många-till-många-relation till de runbooks som ska startas, och det de matchar på: en JSON-kolumn `criteria` (villkoren) plus många-till-många-länkar till monitorer, incidentallvarlighetsgrader, larmallvarlighetsgrader, etiketter och monitoretiketter samt mönster för titel, beskrivning, monitornamn och monitorbeskrivning. |
 | `Runner` | En rad per installerad Runner: namn, hemlig nyckel, `lastAlive`, `connectionStatus`, värdinformation och funktioner. En global Runner har `isGlobalRunner` satt och inget projekt. |
 | `RunnerJob` | En rad per steg som skickats till en Runner: `targetAgentId` (den Runner som stegets författare valde), stegtyp, skript eller nyttolast, status (`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` eller `Cancelled`), tidsfrist för övertagande, lease, output och slutkod. `runsOnGlobalRunner` markerar ett steg som vilken global Runner som helst får ta. |
-| `RunbookCredential` | SSH- och Kubernetes-autentiseringsuppgifter med krypterade hemliga fält och de Runners de är tilldelade. |
-| `RunbookSecret` | Runbook-hemligheter, krypterade, och de Runners som får ta emot dem. |
+| `RunbookCredential` | De SSH- och Kubernetes-autentiseringsuppgifter som OneUptime AI:s kommandon använder, med krypterade hemliga fält, och de Runners de är tilldelade. |
+| `RunbookVariable` | Runbook-variabler: projektets globala och en runbooks egna, som nämner den i `runbookId`; en hemlighets värde krypterat, och de Runners som får ta emot en hemlighet. |
 
 ## Drifttips
 
@@ -121,6 +121,6 @@ När ett manuellt steg bockas av via API:et köas körningen igen för att forts
 
 :::cards
 - [Runbook-agenter](/docs/runbooks/agents): Installera, driv och felsök Runners.
-- [Runbook-autentiseringsuppgifter](/docs/runbooks/credentials): Hanterad SSH- och Kubernetes-åtkomst och hemligheter för skript.
+- [Runbook-variabler](/docs/runbooks/variables): De värden och hemligheter som steg använder, och de Runners som tar emot dem.
 - [Användare, team och behörigheter](/docs/permissions/index): Hur roller, etiketter och team avgör vem som kör vad.
 :::

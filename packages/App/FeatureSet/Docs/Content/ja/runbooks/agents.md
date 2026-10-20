@@ -1,6 +1,6 @@
 # Runbook エージェント
 
-**Runbook エージェント** （ダッシュボードでの名前は **Runner** ）は、Runbook の JavaScript、Bash、SSH、Kubernetes のステップを **自社インフラで** 実行する、小さなセルフホストのプロセスです。OneUptime Worker がスクリプトを実行することはありません。Worker はスクリプトをキューに入れ、ステップの作成者が選んだ Runner が各ジョブを取得して実行し、結果を返します。このページは Runner をインストールして運用する人のためのものです。 Runner を選ばない JavaScript のステップは、代わりに [グローバル Runner](#グローバル-runner) で実行されます。これは OneUptime がすべてのプロジェクトのために動かす Runner です。
+**Runbook エージェント** （ダッシュボードでの名前は **Runner** ）は、Runbook の JavaScript、Bash、SSH、kubectl のステップを **自社インフラで** 実行する、小さなセルフホストのプロセスです。OneUptime Worker がスクリプトを実行することはありません。Worker はスクリプトをキューに入れ、ステップの作成者が選んだ Runner が各ジョブを取得して実行し、結果を返します。このページは Runner をインストールして運用する人のためのものです。 Runner を選ばない JavaScript のステップは、代わりに [グローバル Runner](#グローバル-runner) で実行されます。これは OneUptime がすべてのプロジェクトのために動かす Runner です。
 
 :::cards
 - [Runner をインストールする](#runner-をインストールする): ダッシュボードから接続済みのコンテナまで 5 ステップ。
@@ -33,13 +33,13 @@ flowchart TB
 1. OneUptime で Runner を作成します。OneUptime がその ID と秘密キーを生成します。
 2. 自社インフラのホストで、その ID、キー、OneUptime の URL を指定して Runner コンテナを実行します。
 3. Runner は 5 秒ごとに OneUptime に作業を問い合わせ、60 秒ごとに稼働中であることを報告します。
-4. JavaScript、Bash、SSH、Kubernetes のステップを書くときに、ドロップダウンから Runner を選びます。ステップはその Runner に結び付けられます。 JavaScript のステップは、ドロップダウンが選んでおく **グローバル Runner** のままにもできます。
+4. JavaScript、Bash、SSH、kubectl のステップを書くときに、ドロップダウンから Runner を選びます。ステップはその Runner に結び付けられます。 JavaScript のステップは、ドロップダウンが選んでおく **グローバル Runner** のままにもできます。
 5. ステップが実行されると、Worker は `targetAgentId` をその Runner にしたジョブをキューに入れます。それを取得できるのはその Runner だけです。
-6. Runner はジョブをローカルで実行し（Bash は `bash -c <script>`、JavaScript は `isolated-vm` サンドボックス、SSH と Kubernetes はステップの認証情報を使った SSH 接続またはクラスターの API サーバーの呼び出し）、結果を記録して返します。Worker はその結果で Runbook を再開します。
+6. Runner はジョブをローカルで実行し（Bash と kubectl は `bash -c <script>`、JavaScript は `isolated-vm` サンドボックス、SSH はマシン上で bash でスクリプトを実行する SSH 接続）、結果を記録して、その中のステップのシークレットを隠してから返します。Worker はその結果で Runbook を再開します。
 
 Runner に必要なのは、OneUptime インスタンスへの **送信 HTTPS** だけです。受信接続は受け付けません。
 
-Runner が持っているのは自身の ID とキーだけです。それ以外はすべて、取得したジョブとともに受け取ります。割り当てられた [Runbook のシークレット](/docs/runbooks/credentials#スクリプト用のシークレット) が埋め込まれたスクリプト、または SSH や Kubernetes のステップが指定する [認証情報](/docs/runbooks/credentials) です。そのため、Runner のキーを持つ人は誰でもその Runner として振る舞えます。キーは、その Runner に割り当てた認証情報と同じように扱ってください。
+Runner が持っているのは自身の ID とキーだけです。それ以外はすべて、取得したジョブとともに受け取ります。指定された [Runbook の変数](/docs/runbooks/variables) が埋め込まれたスクリプトと、SSH ステップの鍵またはパスワード、または kubectl ステップの kubeconfig です。シークレットは、そのシークレットが許可している場合にだけ受け取ります。そのため、Runner のキーを持つ人は誰でもその Runner として振る舞えます。キーは、その Runner が使えるシークレットと同じように扱ってください。
 
 ## スクリプトを Runner で実行する理由
 
@@ -56,17 +56,17 @@ Runner を使うと、これらのステップは自分が管理するホスト�
 
 | | グローバル Runner | 自社の Runner |
 | --- | --- | --- |
-| 実行するステップ | JavaScript | JavaScript、Bash、SSH、Kubernetes |
+| 実行するステップ | JavaScript | JavaScript、Bash、SSH、kubectl |
 | ステップがアクセスできる先 | 公開インターネットのアドレス | そのホストがアクセスできる先 |
 | ステップの最長実行時間 | 5 分 | 1 時間 |
-| Runbook のシークレット | グローバル Runner に使用を許可したもの | その Runner に割り当てたもの |
+| シークレット変数 | グローバル Runner に使用を許可したもの | その Runner を指定しているもの |
 | 認証情報 | なし | その Runner に割り当てたもの |
 
 グローバル Runner は多くのプロジェクトのステップを実行するため、各ステップは他のすべてのステップから切り離されています。
 
 - 各ステップは、そのステップのために作られて終了後に破棄される専用の `isolated-vm` サンドボックスで実行されます。ファイルもプロセスも環境変数もなく、あるステップから次のステップへ何も残りません。
 - HTTP リクエストが届くのは公開インターネットのアドレスだけで、プライベート、ループバック、リンクローカルのアドレスやクラウドのメタデータエンドポイントには決して届きません。そのため、グローバル Runner が自社のネットワークに届くことはありません。
-- Runbook のシークレットが渡されるのは、そのシークレットの **グローバル Runner がこのシークレットを使用できる** スイッチがオンのときだけで、しかもシークレット自身のプロジェクトのステップに限られます。認証情報が渡されることはありません。
+- シークレット変数を受け取るのは、その変数の **グローバル Runner が使用できる** スイッチがオンの場合だけで、しかも変数自身のプロジェクトのステップに限られます。認証情報は決して受け取りません。
 - 1 つのプロジェクトがグローバル Runner で同時に実行するステップは最大 3 つなので、1 つのプロジェクトがグローバル Runner を占有することはありません。
 
 自社のネットワークにアクセスする必要があるステップや、自分で管理するホストで実行したいステップには、自社の Runner を選んでください。すべてのステップを自社の Runner で実行するには、 **Runbook → Runner** の下部にある **グローバル Runner を使用** をオフにします。すると Runner を選ばない JavaScript のステップは、自社の Runner を選ぶまで、その旨を示して失敗します。自社の Runner を選んだステップは、どちらの場合もその Runner を使い続けます。
@@ -140,7 +140,7 @@ docker rm -f oneuptime-runner
 :::steps
 ### Runner で実行するステップを追加する
 
-Runbook の **ステップ** に、JavaScript、Bash、SSH、Kubernetes のいずれかのステップを追加します。
+Runbook の **ステップ** に、JavaScript、Bash、SSH、kubectl のいずれかのステップを追加します。
 
 ### Runner を選ぶ
 
@@ -151,7 +151,7 @@ Runbook の **ステップ** に、JavaScript、Bash、SSH、Kubernetes のい�
 **ステップを保存** をクリックします。実行がそのステップに達すると、Worker はその Runner の ID 宛てにジョブをキューに入れ、それを取得できるのはその Runner だけです。 **グローバル Runner** のステップは、空いているグローバル Runner を待ちます。
 :::
 
-Bash は `bash -c` で実行されます。JavaScript は Runner 上の `isolated-vm` サンドボックスで、ファイルシステムやプロセスにアクセスせずに実行されます。`axios` で公開の HTTP API を呼び出せますが、プライベートネットワーク上のアドレスは呼び出せません。SSH と Kubernetes のステップは、ステップが指定する [認証情報](/docs/runbooks/credentials) を使い、その認証情報は同じ Runner に割り当てられている必要があります。
+Bash は `bash -c` で実行されます。JavaScript は Runner 上の `isolated-vm` サンドボックスで、ファイルシステムやプロセスにアクセスせずに実行されます。`axios` で公開の HTTP API を呼び出せますが、プライベートネットワーク上のアドレスは呼び出せません。SSH と kubectl のステップはシークレットの [Runbook の変数](/docs/runbooks/variables) でサインインし、その変数の **使用できる Runner** にはステップの Runner が含まれている必要があります。
 
 Runner が複数必要ですか？ それぞれを作成し、各ステップに適切な Runner を指定します。冗長性のためには、追加の Runner を動かしてステップを分散するか、ステップがもう一方の Runner を指す予備の Runbook を用意します。
 
@@ -166,7 +166,7 @@ Runner で実行されるすべてのステップに、2 つのタイムアウ�
 | **取得のタイムアウト** | 2 分 | Worker が、選んだ Runner によるジョブの取得を待つ時間です。Runner が時間内に取得しないと、ステップはタイムアウトで失敗し、Runbook は続行します（ **失敗時に続行** によっては停止します）。 |
 | **実行タイムアウト** | 30 秒 | Runner がステップを停止するまで実行させる時間です。Bash には `SIGKILL` が送られ、JavaScript のサンドボックスは破棄されます。 |
 
-どちらもステップごとに設定できます。 **Runbook › 対象の Runbook › ステップ** を開き、ステップを展開して、その設定で **実行タイムアウト** と **取得のタイムアウト** （秒）を指定します。既定値を使うには空のままにします。どちらも 1 秒から 1 時間まで指定でき、範囲外の値はステップの実行時に範囲内に収められます。
+どちらもステップごとに設定できます。 **Runbook › 対象の Runbook › ステップ** を開き、ステップを展開して、 **その他の項目** で **実行タイムアウト** と **取得のタイムアウト** （秒）を指定します。既定値を使うには空のままにします。どちらも 1 秒から 1 時間まで指定でき、範囲外の値はステップの実行時に範囲内に収められます。
 
 Worker の待機時間の合計は `claim timeout + execution timeout + a few seconds` です。ステップに合った値を選んでください。
 
@@ -307,14 +307,18 @@ Runner はジョブを取得した後、リースの更新をやめました。�
 この Runner ではすべての機能がオフになっています。OneUptime の Runner のページで **Runbook を実行** をオンにします。Runner は次のハートビートで変更を取り込みます。
 :::
 
-:::details グローバル Runner が Runbook のシークレットを使用できないため、グローバル Runner のステップが失敗する
-ステップが、 **グローバル Runner がこのシークレットを使用できる** スイッチがオフの Runbook のシークレットを指定しているため、グローバル Runner にはそのシークレットが渡されず、ステップは実行されませんでした。エラーにはシークレットの名前が示されます。 **Runbook → 設定 → シークレット** でそのシークレットのスイッチをオンにするか、ステップに自社の Runner を選んでください。
+:::details Runner がシークレット変数を使えないためにステップが失敗する
+ステップが、その Runner に使用を許可していないシークレット変数を指定しているため、Runner には渡されず、ステップは実行されませんでした。エラーにはシークレットと変えるべき点が示されます。 **Runbook → 設定 → グローバル変数** または Runbook の **設定 → 変数** で、 **使用できる Runner** にその Runner を追加するか、グローバル Runner 上のステップなら **グローバル Runner が使用できる** をオンにします。または、シークレットが許可している Runner を選びます。
+:::
+
+:::details Runner が古すぎるために kubectl のステップが失敗する
+ステップは "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." で失敗しました。kubectl スクリプトより古い Runner はスクリプトを実行できません。[エージェントを最新に保つ](#5-エージェントを最新に保つ) のとおりに Runner を更新してから、Runbook をもう一度実行してください。
 :::
 
 ## 次のステップ
 
 :::cards
 - [Runbook を作成する](/docs/runbooks/authoring): Runner で実行されるステップを書きます。
-- [Runbook の認証情報](/docs/runbooks/credentials): SSH と Kubernetes のステップに管理されたアクセス権を与えます。
+- [Runbook の変数](/docs/runbooks/variables): ステップが使う値とシークレット、そしてそれを受け取る Runner。
 - [Runbook の設定と安全性](/docs/runbooks/configuration): 上限、権限、堅牢化。
 :::

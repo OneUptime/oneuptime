@@ -134,10 +134,10 @@ De waarden op het hoogste niveau van de body worden de invoer van de uitvoering.
 
 | Staptype | Hoe het de invoer leest |
 | --- | --- |
-| Bash | Omgevingsvariabelen: één `ONEUPTIME_INPUT_<NAME>` voor elke waarde op het hoogste niveau, `ONEUPTIME_INPUTS` met het hele object als JSON en `ONEUPTIME_TRIGGER` met wat de uitvoering startte, zoals `Webhook` of `Schedule`. |
+| Bash en kubectl | Omgevingsvariabelen: één `ONEUPTIME_INPUT_<NAME>` voor elke waarde op het hoogste niveau, `ONEUPTIME_INPUTS` met het hele object als JSON en `ONEUPTIME_TRIGGER` met wat de uitvoering startte, zoals `Webhook` of `Schedule`. |
 | JavaScript | `args.inputs`, het object zoals verstuurd, en `args.trigger`. |
 | AI | In de prompt, gemarkeerd als gegevens van buiten OneUptime, wanneer **Include trigger context** aan staat. |
-| HTTP request, SSH en Kubernetes | Helemaal niet. Hun URL, opdracht en doel zijn wat in het runbook staat, en niets wat een aanroeper verstuurt verandert ze. |
+| HTTP request en SSH | Helemaal niet. Hun URL, script en doel zijn wat in het runbook staat, en niets wat een aanroeper verstuurt verandert ze. |
 
 De naam van een variabele is de naam van de waarde in hoofdletters, waarbij elk teken dat geen letter of cijfer is als `_` wordt geschreven: `host-name` wordt `ONEUPTIME_INPUT_HOST_NAME`. Tekst wordt doorgegeven zoals hij is, getallen en `true` of `false` zoals geschreven, en objecten en lijsten als JSON. Een stap krijgt hooguit 100 van deze variabelen, en een naam van meer dan 100 tekens wordt er geen; elke waarde staat nog steeds in `ONEUPTIME_INPUTS`. Elke naam begint met `ONEUPTIME_`, dus een aanroeper kan `PATH` of een andere variabele die de Runner leest niet instellen.
 

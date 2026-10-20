@@ -19,7 +19,7 @@ flowchart TB
     end
     subgraph yours["Sua infraestrutura"]
         runner["Runner"]
-        onrunner["Etapas<br/>JavaScript<br/>e Bash<br/>Etapas SSH<br/>e Kubernetes"]
+        onrunner["Etapas<br/>JavaScript<br/>e Bash<br/>Etapas SSH<br/>e kubectl"]
     end
     person["Uma pessoa"]
     worker --> onworker
@@ -34,19 +34,19 @@ flowchart TB
 | JavaScript | Um Runner | Em um sandbox `isolated-vm`. |
 | HTTP request | O Worker do OneUptime | Uma chamada HTTP de saída. |
 | Bash | Um Runner | `bash -c <script>`. |
-| SSH | Um Runner | Uma conexão SSH, com uma [credencial](/docs/runbooks/credentials). |
-| Kubernetes | Um Runner | Uma chamada ao servidor de API do cluster, com uma credencial. |
+| SSH | Um Runner | Uma conexão SSH que executa o script com bash na máquina, com login por uma [variável](/docs/runbooks/variables) secreta. |
+| kubectl | Um Runner | `bash -c <script>`, com `KUBECONFIG` apontando para o cluster. |
 | AI | O Worker do OneUptime | Uma chamada ao provedor de LLM do projeto. |
 
 ## Como as etapas de Runner são despachadas
 
-As etapas JavaScript, Bash, SSH e Kubernetes **nunca rodam no Worker do OneUptime**. Elas são despachadas como trabalhos para um [agente de runbook](/docs/runbooks/agents) específico: um pequeno processo que você instala em um host da sua própria infraestrutura. Uma etapa JavaScript que não escolhe nenhum vai para os [Runners globais](/docs/runbooks/agents#runners-globais) que o OneUptime executa para todos os projetos.
+As etapas JavaScript, Bash, SSH e kubectl **nunca rodam no Worker do OneUptime**. Elas são despachadas como trabalhos para um [agente de runbook](/docs/runbooks/agents) específico: um pequeno processo que você instala em um host da sua própria infraestrutura. Uma etapa JavaScript que não escolhe nenhum vai para os [Runners globais](/docs/runbooks/agents#runners-globais) que o OneUptime executa para todos os projetos.
 
 O modelo de despacho:
 
 1. Quem escreve a etapa do runbook escolhe um Runner na lista suspensa ao escrever a etapa.
 2. Quando a etapa roda, o Worker insere uma linha em `RunnerJob` com `targetAgentId` igual ao ID desse Runner e status `Pending`. Uma etapa JavaScript que não escolheu nenhum, em um projeto que usa Runners globais, recebe `runsOnGlobalRunner` em vez disso.
-3. Esse Runner específico (e só ele) assume o trabalho de forma atômica, executa-o localmente — Bash via `bash -c <script>`, JavaScript dentro de um sandbox `isolated-vm`, SSH e Kubernetes com a credencial da etapa — e devolve o resultado. Qualquer Runner global pode assumir um trabalho com `runsOnGlobalRunner`.
+3. Esse Runner específico (e só ele) assume o trabalho de forma atômica, executa-o localmente — Bash e kubectl via `bash -c <script>`, JavaScript dentro de um sandbox `isolated-vm`, SSH por uma conexão com a máquina, cada um com as variáveis que nomeia já inseridas — e devolve o resultado. Qualquer Runner global pode assumir um trabalho com `runsOnGlobalRunner`.
 4. O Worker retoma o runbook com o resultado.
 
 Não existe mais o sinalizador de ambiente `RUNBOOK_BASH_ENABLED`. Se essas etapas funcionam em uma instalação depende só de o projeto ter um Runner conectado com **Executa runbooks** ligado. Uma etapa JavaScript também funciona em um Runner global.
@@ -56,13 +56,13 @@ Não existe mais o sinalizador de ambiente `RUNBOOK_BASH_ENABLED`. Se essas etap
 | Limite | Valor | Vale para |
 | --- | --- | --- |
 | Saída por etapa | **50 KB**. Uma saída maior é cortada com um marcador. | Toda etapa automatizada |
-| Execution timeout | **30 segundos** por padrão | Etapas JavaScript, Bash, SSH e Kubernetes |
+| Execution timeout | **30 segundos** por padrão | Etapas JavaScript, Bash, SSH e kubectl |
 | Request timeout | **30 segundos** por padrão | Etapas de requisição HTTP |
-| Claim timeout | **2 minutos** por padrão: por quanto tempo o Worker espera o Runner escolhido assumir o trabalho antes de fazê-lo falhar | Etapas JavaScript, Bash, SSH e Kubernetes |
+| Claim timeout | **2 minutos** por padrão: por quanto tempo o Worker espera o Runner escolhido assumir o trabalho antes de fazê-lo falhar | Etapas JavaScript, Bash, SSH e kubectl |
 | Faixa dos timeouts | **De 1 segundo a 1 hora** | Todo timeout |
 | Espera por uma pessoa | Sem limite | Etapas Manual e aprovações |
 
-Defina os timeouts etapa por etapa na página **Etapas** do runbook; deixe um campo vazio para manter o padrão. Um valor fora da faixa é ajustado ao limite quando a etapa roda, então uma configuração digitada errada não consegue desligar o timeout nem prender indefinidamente uma vaga do Worker.
+Defina os timeouts etapa por etapa, em **Mais campos** da etapa, na página **Etapas** do runbook; deixe um campo vazio para manter o padrão. Um valor fora da faixa é ajustado ao limite quando a etapa roda, então uma configuração digitada errada não consegue desligar o timeout nem prender indefinidamente uma vaga do Worker.
 
 ## Permissões
 
@@ -78,7 +78,7 @@ Uma função executa os runbooks que seu escopo alcança. Uma concessão de `Run
 
 O agendamento e o webhook de um runbook iniciam execuções sem ninguém presente, então configurar qualquer um deles exige permissão para editar o runbook e para executá-lo, assim como ver a URL do webhook. Desativá-los exige apenas permissão para editá-lo. Veja [Gatilhos de runbook](/docs/runbooks/triggers#quem-pode-configurar-gatilhos).
 
-Credenciais e segredos ficam fora de `RunbookAdmin`. Gerenciá-los exige `ProjectOwner` ou `ProjectAdmin`, ou as permissões `CreateRunbookCredential`, `EditRunbookCredential`, `DeleteRunbookCredential`, `ReadRunbookCredential` e `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret`, `ReadRunbookSecret`. Consulte [Credenciais de runbook](/docs/runbooks/credentials).
+As variáveis de runbook e as credenciais ficam fora de `RunbookAdmin`, que só lê as variáveis, para escolhê-las nas etapas que escreve. Gerenciar variáveis exige `ProjectOwner` ou `ProjectAdmin`, ou as permissões `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret` e `ReadRunbookSecret`: as permissões dos segredos de runbook, que mantiveram os nomes quando os segredos viraram variáveis. Gerenciar credenciais exige `ProjectOwner` ou `ProjectAdmin`, ou `CreateRunbookCredential`, `EditRunbookCredential`, `DeleteRunbookCredential` e `ReadRunbookCredential`. Consulte [Variáveis de runbook](/docs/runbooks/variables) e [Acesso da IA](/docs/runbooks/credentials).
 
 As regras de proprietário e de rótulos em **Runbooks → Configurações** também ficam fora de `RunbookAdmin`. Gerenciá-las exige `ProjectOwner` ou `ProjectAdmin`, ou as permissões `CreateRunbookOwnerRule` e `CreateRunbookLabelRule` com suas equivalentes de edição, exclusão e leitura.
 
@@ -92,12 +92,12 @@ Quando uma etapa manual é marcada pela API, a execução volta para a fila para
 
 ## Notas de proteção
 
-- **JavaScript, Bash, SSH e Kubernetes** rodam em um host de Runner que você controla, não no Worker do OneUptime. O JavaScript roda em um isolado `isolated-vm` separado com 128 MB de memória e sem acesso ao sistema de arquivos nem aos processos do Runner; ele pode fazer requisições HTTP com `axios`, mas as requisições para redes privadas e para endereços de loopback e link-local são recusadas. O Bash roda via `bash -c`, com o timeout aplicado no Runner. Uma etapa JavaScript que não escolhe nenhum roda em um Runner global em vez disso.
+- **JavaScript, Bash, SSH e kubectl** rodam em um host de Runner que você controla, não no Worker do OneUptime. O JavaScript roda em um isolado `isolated-vm` separado com 128 MB de memória e sem acesso ao sistema de arquivos nem aos processos do Runner; ele pode fazer requisições HTTP com `axios`, mas as requisições para redes privadas e para endereços de loopback e link-local são recusadas. O Bash roda via `bash -c`, com o timeout aplicado no Runner. Uma etapa JavaScript que não escolhe nenhum roda em um Runner global em vez disso.
 - **As etapas HTTP** usam uma validação de status permissiva, então uma resposta 4xx ou 5xx é registrada como etapa com falha em vez de lançar uma exceção, e a saída capturada reflete o que o serviço remoto realmente devolveu. Redirecionamentos não são seguidos. O Worker nunca chama endereços de loopback ou link-local, como um endpoint de metadados da nuvem; no OneUptime Cloud ele também recusa endereços de rede privada, e um OneUptime auto-hospedado os recusa com `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`.
 - **As etapas de IA** nunca veem as notas privadas dos incidentes nem as mensagens do Slack e do Microsoft Teams, e a saída das etapas anteriores é analisada em busca de segredos, que são ocultados antes de chegar ao modelo. Imagens incorporadas e dados codificados longos ficam fora do prompt. Consulte [AI](/docs/runbooks/authoring#ai).
-- **Runners globais**: executam apenas etapas JavaScript, cada uma em um sandbox criado para essa etapa e descartado depois, que só alcança endereços públicos da internet, por no máximo 5 minutos, e no máximo três etapas de um mesmo projeto por vez. Eles recebem apenas os segredos de runbook do próprio projeto da etapa que estão ligados para Runners globais, e nunca uma credencial; o incluído tem a própria chave e nada mais do servidor. Consulte [Runners globais](/docs/runbooks/agents#runners-globais).
+- **Runners globais**: executam apenas etapas JavaScript, cada uma em um sandbox criado para essa etapa e descartado depois, que só alcança endereços públicos da internet, por no máximo 5 minutos, e no máximo três etapas de um mesmo projeto por vez. Eles recebem apenas as variáveis secretas do próprio projeto da etapa que estão ligadas para Runners globais, e nunca uma credencial; o incluído tem a própria chave e nada mais do servidor. Consulte [Runners globais](/docs/runbooks/agents#runners-globais).
 - **A autenticação dos Runners** é feita por ID e chave secreta, definidos no contêiner do Runner como variáveis de ambiente. No servidor, a identidade válida do Runner vem da linha do banco de dados correspondente ao ID e à chave apresentados: um cliente não consegue se passar por outro Runner nem com uma chave comprometida.
-- **Credenciais e segredos** são criptografados em repouso, nunca devolvidos pela API e entregues apenas aos Runners aos quais estão atribuídos, quando eles assumem uma etapa. Um segredo de runbook também é entregue a um Runner global que assume uma etapa do próprio projeto do segredo, quando o segredo permite que Runners globais o usem.
+- **Variáveis secretas e credenciais** são criptografadas em repouso, nunca devolvidas pela API e entregues só aos Runners que elas listam, quando estes assumem uma etapa ou um comando que as nomeia. Uma variável secreta também é entregue a um Runner global que assume uma etapa do próprio projeto da variável, quando a variável permite que Runners globais a usem. O Runner substitui cada segredo que uma etapa recebeu por `[REDACTED]` no que a etapa imprime, e o OneUptime faz isso de novo antes de guardar a saída.
 
 ## Tabelas do banco de dados
 
@@ -108,8 +108,8 @@ Quando uma etapa manual é marcada pela API, a execução volta para a fila para
 | `RunbookRule` | As regras de disparo automático, com um discriminador `triggerEntityType` (Incident, Alert, ScheduledMaintenance), uma relação muitos-para-muitos com os runbooks a iniciar e aquilo que comparam: uma coluna JSON `criteria` (as condições) mais vínculos muitos-para-muitos com monitores, severidades de incidente, severidades de alerta, rótulos e rótulos de monitor, e padrões de título, descrição, nome de monitor e descrição de monitor. |
 | `Runner` | Uma linha por Runner instalado: nome, chave secreta, `lastAlive`, `connectionStatus`, informações do host e capacidades. Um Runner global tem `isGlobalRunner` definido e nenhum projeto. |
 | `RunnerJob` | Uma linha por etapa despachada para um Runner: `targetAgentId` (o Runner escolhido por quem escreveu a etapa), tipo de etapa, script ou payload, status (`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` ou `Cancelled`), prazo de assunção, lease, saída e código de saída. `runsOnGlobalRunner` marca uma etapa que qualquer Runner global pode assumir. |
-| `RunbookCredential` | As credenciais SSH e Kubernetes, com os campos secretos criptografados, e os Runners aos quais estão atribuídas. |
-| `RunbookSecret` | Os segredos de runbook, criptografados, e os Runners que podem recebê-los. |
+| `RunbookCredential` | As credenciais SSH e Kubernetes que os comandos do OneUptime AI usam, com os campos secretos criptografados, e os Runners aos quais estão atribuídas. |
+| `RunbookVariable` | As variáveis de runbook: as globais do projeto e as próprias de um runbook, que o nomeiam em `runbookId`; o valor de um segredo criptografado, e os Runners que podem receber um segredo. |
 
 ## Dicas de operação
 
@@ -121,6 +121,6 @@ Quando uma etapa manual é marcada pela API, a execução volta para a fila para
 
 :::cards
 - [Agentes de runbook](/docs/runbooks/agents): Instalar, operar e solucionar problemas dos Runners.
-- [Credenciais de runbook](/docs/runbooks/credentials): Acesso SSH e Kubernetes gerenciado, e segredos para scripts.
+- [Variáveis de runbook](/docs/runbooks/variables): Os valores e segredos que as etapas usam, e os Runners que os recebem.
 - [Usuários, equipes e permissões](/docs/permissions/index): Como funções, rótulos e equipes decidem quem executa o quê.
 :::

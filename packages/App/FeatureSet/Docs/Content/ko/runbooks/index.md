@@ -7,6 +7,7 @@ Runbook은 재사용할 수 있는 대응 절차입니다. 인시던트, 알림 
 - [Runbook 규칙](/docs/runbooks/rules): 새 인시던트, 알림, 유지 관리 이벤트에서 Runbook을 시작합니다.
 - [Runbook 실행](/docs/runbooks/running): 실행을 시작하고, 단계를 완료하고 승인하고, 실행을 취소합니다.
 - [Runbook 트리거](/docs/runbooks/triggers): 일정에 따라, 또는 다른 도구에서 웹훅 URL로 Runbook을 실행합니다.
+- [Runbook 변수](/docs/runbooks/variables): 단계가 이름으로 사용하는 호스트, 키, 비밀번호, kubeconfig.
 - [Runbook 에이전트](/docs/runbooks/agents): 자체 인프라에서 스크립트를 실행하는 Runner를 설치합니다.
 :::
 
@@ -26,7 +27,7 @@ flowchart TB
     execution --> worker["OneUptime<br/>Worker가 단계를<br/>순서대로 처리"]
     worker -->|"Manual 단계<br/>또는 승인"| person["사람을 기다림"]
     worker -->|"HTTP와 AI 단계"| onworker["Worker에서 실행"]
-    worker -->|"JavaScript,<br/>Bash, SSH,<br/>Kubernetes"| runner["자체 인프라의<br/>Runner"]
+    worker -->|"JavaScript,<br/>Bash, SSH,<br/>kubectl"| runner["자체 인프라의<br/>Runner"]
     person --> record["상태, 출력,<br/>오류 기록"]
     onworker --> record
     runner --> record
@@ -35,20 +36,20 @@ flowchart TB
 
 Runbook을 실행할 때마다 **실행**이 만들어집니다. 실행이 시작되면 Runbook의 단계가 복사되고, OneUptime이 단계를 순서대로 처리합니다. Manual 단계나 승인이 필요한 단계는 누군가 조치할 때까지 실행을 일시 중지합니다.
 
-HTTP와 AI 단계는 OneUptime Worker에서 실행됩니다. Bash, SSH, Kubernetes 단계는 자체 인프라에 설치하는 [Runner](/docs/runbooks/agents)에서 실행되므로, 그 스크립트가 OneUptime 서버에서 실행되는 일은 없습니다. JavaScript 단계도 내 Runner 중 하나에서 실행되거나, 아무것도 고르지 않으면 인터넷에만 접근할 수 있는 샌드박스에서 [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)로 실행됩니다. 각 단계의 상태, 출력, 오류 메시지는 실행에 기록되며, 실행은 대상 인시던트, 알림 또는 이벤트에 남습니다.
+HTTP와 AI 단계는 OneUptime Worker에서 실행됩니다. Bash, SSH, kubectl 단계는 자체 인프라에 설치하는 [Runner](/docs/runbooks/agents)에서 실행되므로, 그 스크립트가 OneUptime 서버에서 실행되는 일은 없습니다. JavaScript 단계도 내 Runner 중 하나에서 실행되거나, 아무것도 고르지 않으면 인터넷에만 접근할 수 있는 샌드박스에서 [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)로 실행됩니다. 각 단계의 상태, 출력, 오류 메시지는 실행에 기록되며, 실행은 대상 인시던트, 알림 또는 이벤트에 남습니다.
 
 ## 핵심 개념
 
 | 개념 | 의미 |
 | --- | --- |
 | **Runbook** | 템플릿입니다. 순서 있는 단계 목록과 **이 런북 실행** 스위치를 가진, 이름이 붙은 재사용 가능한 절차입니다. |
-| **단계** | Runbook의 항목 하나입니다. 유형(Manual, JavaScript, HTTP request, Bash, SSH, Kubernetes, AI), 제목, 설명, 유형별 설정을 가집니다. |
+| **단계** | Runbook의 항목 하나입니다. 유형(Manual, JavaScript, HTTP request, Bash, SSH, kubectl, AI), 제목, 설명, 유형별 설정을 가집니다. |
 | **Runbook 규칙** | 조건(모니터, 심각도, 레이블, 모니터 레이블, 제목, 설명)을 만족하는 인시던트, 알림, 예정된 유지 관리 이벤트에 하나 이상의 Runbook을 자동으로 연결하는 규칙입니다. |
 | **실행** | Runbook의 한 번의 실행입니다. 규칙이 발동할 때, 누군가 이벤트에서 **런북 실행**을 클릭할 때, 또는 Runbook 자체에서 **Run Now**를 클릭할 때 만들어집니다. 단계의 스냅샷과 각 단계의 상태 및 출력을 담습니다. |
 | **스냅샷** | 각 실행에 저장되는, Runbook 단계의 고정된 사본입니다. 나중에 Runbook을 편집해도 지난 실행의 기록은 바뀌지 않습니다. |
-| **Runner** | 자체 인프라의 호스트에서 실행하는 작은 에이전트입니다. 자신을 지정한 JavaScript, Bash, SSH, Kubernetes 단계를 실행합니다. Runbook 에이전트라고도 합니다. OneUptime이 모든 프로젝트를 위해 실행하는 글로벌 Runner는 Runner를 지정하지 않은 JavaScript 단계를 실행합니다. |
-| **자격 증명** | SSH와 Kubernetes 단계가 사용하는, 관리되는 SSH 또는 Kubernetes 접근 권한입니다. 저장 시 암호화되며, 할당한 Runner에만 전달됩니다. |
-| **시크릿** | Bash나 JavaScript 스크립트가 `{{runbookSecrets.NAME}}`로 사용하는 API 토큰 같은 단일 값입니다. 저장 시 암호화되며, 할당한 Runner에만 전달됩니다. 글로벌 Runner에는 허용한 경우에만 전달됩니다. |
+| **Runner** | 자체 인프라의 호스트에서 실행하는 작은 에이전트입니다. 자신을 지정한 JavaScript, Bash, SSH, kubectl 단계를 실행합니다. Runbook 에이전트라고도 합니다. OneUptime이 모든 프로젝트를 위해 실행하는 글로벌 Runner는 Runner를 지정하지 않은 JavaScript 단계를 실행합니다. |
+| **변수** | 단계가 이름으로 사용하는 값입니다. 호스트나 URL 같은 값으로, 모든 Runbook이 사용할 수 있는 프로젝트의 변수는 `{{global.variables.NAME}}`, Runbook 자체 변수는 `{{local.variables.NAME}}`로 씁니다. |
+| **시크릿** | 값이 저장 시 암호화되고, 다시는 표시되지 않으며, 단계 출력에서 가려지는 변수입니다. SSH 키, 비밀번호, kubeconfig, API 토큰 등에 사용합니다. 사용을 허용한 Runner에만 전달되며, 글로벌 Runner에는 허용한 경우에만 전달됩니다. |
 
 ## 단계 유형
 
@@ -59,9 +60,9 @@ HTTP와 AI 단계는 OneUptime Worker에서 실행됩니다. Bash, SSH, Kubernet
 | **Manual** | 사람 | OneUptime이 할 수 없는 확인, 판단, 조치를 사람이 해야 할 때. | "트래픽이 보조 리전으로 전환되었는지 확인하세요." |
 | **JavaScript** | Runner | 샌드박스에서 작고 제한된 계산이 필요할 때. | 복제 지연을 계산하고 계속할지 결정합니다. |
 | **HTTP request** | OneUptime Worker | 기존 API(클라우드 공급자, PagerDuty, Slack 웹훅, 자체 서비스)를 호출할 때. | 페일오버 오케스트레이터로 `POST`. |
-| **Bash** | Runner | 자체 인프라에서 셸 명령이 필요할 때. | `kubectl rollout restart`나 복구 스크립트를 실행합니다. |
-| **SSH** | Runner | 관리되는 SSH 자격 증명으로 원격 호스트에서 명령 하나를 실행해야 할 때. | 웹 서버에서 서비스를 다시 시작합니다. |
-| **Kubernetes** | Runner | Deployment, StatefulSet 또는 DaemonSet을 다시 시작하거나 확장해야 할 때. | `production`의 `checkout-api`를 다시 시작합니다. |
+| **Bash** | Runner | 자체 인프라에서 셸 명령이 필요할 때. | 복구 스크립트를 실행하거나, 자체 네트워크에서만 닿는 서비스를 `curl`로 호출합니다. |
+| **SSH** | Runner | 시크릿 변수로 로그인해 원격 머신에서 bash 스크립트를 실행해야 할 때. | 웹 서버에서 서비스를 다시 시작합니다. |
+| **kubectl** | Runner | 클러스터에 kubectl 명령을 실행해야 할 때. | `production`의 `checkout-api`를 다시 시작하고 새 Pod를 기다립니다. |
 | **AI** | OneUptime Worker | 실행 도중 프로젝트의 LLM 공급자에게서 분석, 요약 또는 판단을 받고 싶을 때. | "위의 진단을 검토하세요. 페일오버해도 안전한가요?" |
 
 하나의 Runbook에 모든 유형을 섞을 수 있습니다. 사람의 확인을 자동화 및 AI 분석과 엮을 수 있다는 것이 Runbook의 강점입니다.
@@ -90,11 +91,12 @@ Runbook은 **제품**의 **대시보드 및 자동화** 그룹에 있습니다.
 | Runbook의 **개요** | 최근 실행과 결과를 보고 **Run Now**를 클릭합니다. |
 | Runbook의 **실행** | 이 Runbook의 모든 실행을 상태나 시작 날짜로 필터링해 봅니다. |
 | Runbook의 **트리거** | [일정](/docs/runbooks/triggers#일정에-따라-실행)에 따라, 또는 다른 도구에서 [웹훅 URL](/docs/runbooks/triggers#웹훅-호출)로 실행합니다. |
+| Runbook의 **변수** | 그 Runbook의 단계만 사용하는 [변수](/docs/runbooks/variables)를 관리합니다. |
 | Runbook의 **소유자** | 책임지는 사람과 팀을 추가합니다. |
 | Runbook의 **설정** | Runbook을 삭제하지 않고 **이 런북 실행**을 끕니다. |
 | **런북 → 실행** | 프로젝트에 있는 모든 Runbook의 모든 실행입니다. |
-| **런북 → Runbook 에이전트**와 **런북 → Runbook 에이전트 → 자격 증명** | [Runner](/docs/runbooks/agents)를 설치하고 [자격 증명](/docs/runbooks/credentials)을 관리합니다. |
-| **런북 → 설정** | 스크립트용 [시크릿](/docs/runbooks/credentials#스크립트용-시크릿)과, 새 Runbook에 소유자와 레이블을 추가하는 **소유자 규칙** 및 **레이블 규칙**을 관리합니다. |
+| **런북 → Runbook 에이전트**와 **런북 → Runbook 에이전트 → AI 액세스** | [Runner](/docs/runbooks/agents)를 설치하고, OneUptime AI의 명령이 Runner를 통해 갖는 [액세스](/docs/runbooks/credentials)를 관리합니다. |
+| **런북 → 설정** | 모든 Runbook이 [사용할 수 있는](/docs/runbooks/variables) **전역 변수**와, 새 Runbook에 소유자와 레이블을 추가하는 **소유자 규칙** 및 **레이블 규칙**을 관리합니다. |
 | **인시던트 / 알림 / 예정된 유지 관리 → 규칙 → Runbook 규칙** | Runbook을 자동으로 시작하는 규칙을 만듭니다. |
 | 인시던트, 알림 또는 유지 관리 이벤트 → **런북** | 연결된 실행을 보고, **런북 실행**을 클릭해 새로 시작합니다. |
 
@@ -105,7 +107,7 @@ Runbook 자체의 사이드 메뉴는 페이지를 다음과 같이 묶습니다
 | **기본** | **개요**, **단계** |
 | **로그** | **실행** |
 | **소유자** | **소유자** |
-| **설정** | **트리거**, **설정** |
+| **설정** | **트리거**, **변수**, **설정** |
 | **개발자** | **Terraform**, **API**, **AI 어시스턴트** |
 | **고급** | **감사 로그**, **런북 삭제** |
 
@@ -156,7 +158,7 @@ Runbooks:    [DB primary failover]
 - **캐시 비우기**: HTTP 요청 한 번 뒤에 Manual 단계로 "캐시 적중률이 회복되고 있는지 확인하세요".
 - **고객에게 영향을 주는 인시던트**: Manual로 "상태 페이지에 업데이트를 게시하세요", HTTP 요청으로 지원 팀에 알리고, JavaScript로 영향을 받은 계정 목록을 가져옵니다.
 - **예정된 유지 관리 전 사전 점검**: 메트릭 스냅샷을 찍고, 이해관계자와 변경 시간대를 확인하고(Manual), 로드 밸런서에서 유지 관리 모드를 켭니다(HTTP request).
-- **진단한 다음 수정**: Bash 단계가 진단 정보를 모으고, **승인 필요**가 켜진 AI 단계가 이를 읽고 수정을 제안하며, 사람이 승인한 뒤에야 Kubernetes 단계가 워크로드를 다시 시작합니다.
+- **진단한 다음 수정**: Bash 단계가 진단 정보를 모으고, **승인 필요**가 켜진 AI 단계가 이를 읽고 수정을 제안하며, 사람이 승인한 뒤에야 kubectl 단계가 워크로드를 다시 시작합니다.
 - **항상 실행되는 위생 점검**: 조건 없는 규칙으로 모든 인시던트에서 포스트모템용 시스템 상태를 기록합니다.
 
 ## Runbook과 OneUptime의 나머지 기능
@@ -170,7 +172,7 @@ Runbooks:    [DB primary failover]
 
 :::cards
 - [Runbook 작성](/docs/runbooks/authoring): 첫 Runbook과 그 단계를 만듭니다.
-- [Runbook 에이전트](/docs/runbooks/agents): Bash, SSH, Kubernetes 단계를 작성하기 전에 Runner를 설치합니다.
+- [Runbook 에이전트](/docs/runbooks/agents): Bash, SSH, kubectl 단계를 작성하기 전에 Runner를 설치합니다.
 - [Runbook 규칙](/docs/runbooks/rules): 인시던트가 만들어질 때 Runbook을 자동으로 시작합니다.
 - [Runbook 설정과 안전성](/docs/runbooks/configuration): 한도, 타임아웃, 권한, 보안 강화.
 :::
