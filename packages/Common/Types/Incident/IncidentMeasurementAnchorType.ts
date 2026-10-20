@@ -29,6 +29,13 @@ enum IncidentMeasurementAnchorType {
   StateRoleEntered = "State Role Entered",
 
   PostmortemPostedAt = "Postmortem Posted At",
+
+  /*
+   * When an on-call policy or a direct page first notified somebody about
+   * the incident (Incident.firstPagedAt). Empty until somebody is paged, so
+   * a measurement from it counts from the page, not from the declaration.
+   */
+  FirstPagedAt = "First Paged At",
 }
 
 export default IncidentMeasurementAnchorType;

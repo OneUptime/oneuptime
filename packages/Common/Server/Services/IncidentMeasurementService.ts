@@ -41,6 +41,7 @@ const TIMESTAMP_ANCHOR_SOURCES: Record<string, string> = {
   [IncidentMeasurementAnchorType.TimelineStart]: "declaredAt",
   [IncidentMeasurementAnchorType.CreatedAt]: "createdAt",
   [IncidentMeasurementAnchorType.PostmortemPostedAt]: "postmortemPostedAt",
+  [IncidentMeasurementAnchorType.FirstPagedAt]: "firstPagedAt",
 };
 
 export class Service extends ProjectReferencesService<Model> {

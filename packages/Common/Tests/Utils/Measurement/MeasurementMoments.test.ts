@@ -10,6 +10,7 @@ import {
   CUSTOM_MEASUREMENT_PRESET_ID,
   MEASUREMENT_DELETED_STATE_LABEL,
   MEASUREMENT_LAST_TIME_TEMPLATE,
+  TIME_TO_ACKNOWLEDGE_AFTER_PAGING_PRESET_ID,
   MeasurementAnchor,
   MeasurementDomain,
   MeasurementMoment,
@@ -65,6 +66,7 @@ const CASES: Array<DomainCase> = [
       [IncidentMeasurementAnchorType.TimelineStart]: "declaredAt",
       [IncidentMeasurementAnchorType.CreatedAt]: "createdAt",
       [IncidentMeasurementAnchorType.PostmortemPostedAt]: "postmortemPostedAt",
+      [IncidentMeasurementAnchorType.FirstPagedAt]: "firstPagedAt",
     },
   },
   {
@@ -77,6 +79,7 @@ const CASES: Array<DomainCase> = [
       [AlertMeasurementAnchorType.ImpactStartedAt]: "impactStartedAt",
       [AlertMeasurementAnchorType.TimelineStart]: "createdAt",
       [AlertMeasurementAnchorType.CreatedAt]: "createdAt",
+      [AlertMeasurementAnchorType.FirstPagedAt]: "firstPagedAt",
     },
   },
   {
@@ -378,21 +381,110 @@ describe("the ready-made measurements, by name", () => {
     );
   };
 
-  test("incidents: time to acknowledge, resolve and postmortem", () => {
+  test("incidents: time to acknowledge, from the declaration and after paging, resolve and postmortem", () => {
     expect(names(MeasurementDomain.Incident)).toEqual([
       "Time to acknowledge",
+      "Time to acknowledge after paging",
       "Time to resolve",
       "Time to postmortem",
       "Something else",
     ]);
   });
 
-  test("alerts: time to acknowledge and resolve", () => {
+  test("alerts: time to acknowledge, from the alert's creation and after paging, and resolve", () => {
     expect(names(MeasurementDomain.Alert)).toEqual([
       "Time to acknowledge",
+      "Time to acknowledge after paging",
       "Time to resolve",
       "Something else",
     ]);
+  });
+
+  test.each([
+    {
+      domain: MeasurementDomain.Incident,
+      firstPagedAt: IncidentMeasurementAnchorType.FirstPagedAt as string,
+      stateRoleEntered: IncidentMeasurementAnchorType.StateRoleEntered,
+      acknowledged: IncidentStateRole.Acknowledged as string,
+    },
+    {
+      domain: MeasurementDomain.Alert,
+      firstPagedAt: AlertMeasurementAnchorType.FirstPagedAt as string,
+      stateRoleEntered: AlertMeasurementAnchorType.StateRoleEntered,
+      acknowledged: AlertStateRole.Acknowledged as string,
+    },
+  ])(
+    "$domain: time to acknowledge after paging runs from the first page to the acknowledged role",
+    (entry: {
+      domain: MeasurementDomain;
+      firstPagedAt: string;
+      stateRoleEntered: string;
+      acknowledged: string;
+    }) => {
+      const preset: MeasurementPreset | null = getMeasurementPreset({
+        domain: entry.domain,
+        id: TIME_TO_ACKNOWLEDGE_AFTER_PAGING_PRESET_ID,
+      });
+
+      expect(preset?.name).toBe("Time to acknowledge after paging");
+      expect(
+        getMeasurementAnchorForMoment({
+          domain: entry.domain,
+          value: preset?.startMoment,
+        }),
+      ).toEqual({ anchorType: entry.firstPagedAt, stateRole: null });
+      // The same acknowledged moment time to acknowledge ends at.
+      expect(preset?.endMoment).toBe(
+        getMeasurementPresets(entry.domain)[0]!.endMoment,
+      );
+      expect(
+        getMeasurementAnchorForMoment({
+          domain: entry.domain,
+          value: preset?.endMoment,
+        }),
+      ).toEqual({
+        anchorType: entry.stateRoleEntered,
+        stateRole: entry.acknowledged,
+      });
+    },
+  );
+
+  test("the first page is a moment OneUptime records, said in plain words in both lists", () => {
+    for (const domain of [
+      MeasurementDomain.Incident,
+      MeasurementDomain.Alert,
+    ]) {
+      const moment: MeasurementMoment | null = findMeasurementMoment({
+        domain: domain,
+        anchorType: "First Paged At",
+      });
+
+      expect(moment?.label).toBe("Someone is first paged");
+      expect(moment?.description).toContain("Until someone is paged");
+      // A timestamp: no state to pick, and it happens once.
+      expect(moment?.isPickedState).toBeFalsy();
+      expect(
+        canMeasurementMomentRepeat({ domain: domain, value: moment?.value }),
+      ).toBe(false);
+      expect(
+        describeMeasurementEnd({
+          domain: domain,
+          anchorType: "First Paged At",
+        }),
+      ).toEqual({
+        label: "First paged",
+        isStateName: false,
+        isLastTime: false,
+      });
+    }
+
+    // Scheduled maintenance pages nobody.
+    expect(
+      findMeasurementMoment({
+        domain: MeasurementDomain.ScheduledMaintenance,
+        anchorType: "First Paged At",
+      }),
+    ).toBeNull();
   });
 
   test("scheduled maintenance: how late it starts, how long it overruns, how long it takes", () => {

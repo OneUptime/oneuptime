@@ -13,8 +13,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Two nullable columns on an existing table: no index, no foreign key, no
  * rewrite.
  */
-export class AddFixProductionCheck1804900000000 implements MigrationInterface {
-  public name: string = "AddFixProductionCheck1804900000000";
+export class AddFixProductionCheck1804950000000 implements MigrationInterface {
+  public name: string = "AddFixProductionCheck1804950000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

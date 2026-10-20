@@ -344,16 +344,18 @@ Warnungen und geplante Wartungsereignisse haben dieselbe Funktion, unter **Warnu
 
 Das Formular öffnet mit **Was möchten Sie messen?**. Wählen Sie eine dieser Messungen, und Name, Beschreibung und beide Zeitpunkte werden ausgefüllt: **Weiter** zeigt die Zeitpunkte, und die Messung wird in diesem letzten Schritt angelegt.
 
-| Wo                   | Messung                          | Beginnt, wenn                              | Endet, wenn                           |
-| -------------------- | -------------------------------- | ------------------------------------------ | ------------------------------------- |
-| Vorfälle             | **Zeit bis zur Bestätigung**     | Der Vorfall wird gemeldet                  | Der Vorfall wird bestätigt            |
-| Vorfälle             | **Zeit bis zur Behebung**        | Der Vorfall wird gemeldet                  | Der Vorfall wird behoben              |
-| Vorfälle             | **Zeit bis zum Postmortem**      | Der Vorfall wird behoben                   | Das Postmortem wird veröffentlicht    |
-| Warnungen            | **Zeit bis zur Bestätigung**     | Die Warnung wird erstellt                  | Die Warnung wird bestätigt            |
-| Warnungen            | **Zeit bis zur Behebung**        | Die Warnung wird erstellt                  | Die Warnung wird behoben              |
-| Geplante Wartung     | **Startverzögerung**             | Die Wartung soll laut Plan beginnen        | Die Wartung beginnt                   |
-| Geplante Wartung     | **Überziehung**                  | Die Wartung soll laut Plan enden           | Die Wartung endet                     |
-| Geplante Wartung     | **Wartungsdauer**                | Die Wartung beginnt                        | Die Wartung endet                     |
+| Wo                   | Messung                                           | Beginnt, wenn                              | Endet, wenn                           |
+| -------------------- | ------------------------------------------------- | ------------------------------------------ | ------------------------------------- |
+| Vorfälle             | **Zeit bis zur Bestätigung**                      | Der Vorfall wird gemeldet                  | Der Vorfall wird bestätigt            |
+| Vorfälle             | **Zeit bis zur Bestätigung nach der Alarmierung** | Jemand wird zum ersten Mal alarmiert        | Der Vorfall wird bestätigt            |
+| Vorfälle             | **Zeit bis zur Behebung**                         | Der Vorfall wird gemeldet                  | Der Vorfall wird behoben              |
+| Vorfälle             | **Zeit bis zum Postmortem**                       | Der Vorfall wird behoben                   | Das Postmortem wird veröffentlicht    |
+| Warnungen            | **Zeit bis zur Bestätigung**                      | Die Warnung wird erstellt                  | Die Warnung wird bestätigt            |
+| Warnungen            | **Zeit bis zur Bestätigung nach der Alarmierung** | Jemand wird zum ersten Mal alarmiert        | Die Warnung wird bestätigt            |
+| Warnungen            | **Zeit bis zur Behebung**                         | Die Warnung wird erstellt                  | Die Warnung wird behoben              |
+| Geplante Wartung     | **Startverzögerung**                              | Die Wartung soll laut Plan beginnen        | Die Wartung beginnt                   |
+| Geplante Wartung     | **Überziehung**                                   | Die Wartung soll laut Plan enden           | Die Wartung endet                     |
+| Geplante Wartung     | **Wartungsdauer**                                 | Die Wartung beginnt                        | Die Wartung endet                     |
 
 Wählen Sie **Etwas anderes**, um die zwei Zeitpunkte selbst zu wählen. Ein Name, den Sie getippt haben, bleibt erhalten, wenn Sie eine dieser Messungen wählen.
 
@@ -364,6 +366,7 @@ Der zweite Schritt, **Beginn und Ende**, hat **Beginnt, wenn** und **Endet, wenn
 | Zeitpunkt                                    | Wann er eintritt                                                             | In der API gespeichert als                            |
 | -------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
 | **Der Vorfall wird gemeldet**                | Wann der Vorfall in OneUptime begann: als er angelegt wurde, sofern niemand eine frühere Zeit gesetzt hat. | `Declared At` (`Timeline Start` ist derselbe Augenblick) |
+| **Jemand wird zum ersten Mal alarmiert**      | Wann eine Bereitschaftsrichtlinie oder eine direkte Alarmierung zum ersten Mal jemanden über den Vorfall benachrichtigt – siehe unten. | `First Paged At`                                      |
 | **Der Vorfall wird bestätigt**               | Wann er Ihren bestätigten Status oder einen Status danach erreicht (auch ein Beheben direkt vom Start zählt). | `State Role Entered`, Rolle `Acknowledged`            |
 | **Der Vorfall wird behoben**                 | Wann er Ihren behobenen Status erreicht.                                     | `State Role Entered`, Rolle `Resolved`                |
 | **Das Postmortem wird veröffentlicht**       | Wann das Postmortem des Vorfalls veröffentlicht wird.                        | `Postmortem Posted At`                                |
@@ -409,7 +412,7 @@ Die Seite jedes Vorfalls zeigt seine eigenen Messungen in einer Karte **Messunge
 | Eine Dauer, etwa **4 Minuten**    | Beide Zeitpunkte sind eingetreten (**Aufgezeichnet**). Sie steht in der Einheit der Messung: **Automatisch** liest sich wie die anderen Zeiten der Seite, **1 Stunde, 5 Minuten**, und **Stunden** liest sich **1,5 Stunden**. |
 | **Läuft bereits 12 Minuten**      | Die Uhr läuft, und das Ende ist noch nicht eingetreten. Sie zählt hoch, solange die Seite offen ist.                              |
 | **Noch nicht gestartet**          | Der Beginn ist noch nicht eingetreten oder ist eine noch kommende Zeit, etwa der geplante Beginn eines Wartungsereignisses.        |
-| **Nicht erreicht**                | Der Vorfall ist behoben, und der Zeitpunkt, auf den die Messung wartete, kam nie – ein Vorfall, der ohne Bestätigung behoben wurde. |
+| **Nicht erreicht**                | Der Vorfall ist behoben, und der Zeitpunkt, auf den die Messung wartete, kam nie – ein Vorfall, der ohne Bestätigung oder ohne Alarmierung behoben wurde. |
 | **Nicht gemessen**                | Ein Zeitpunkt kann nie eintreten (**Not Applicable**), mit dem Grund, etwa einem übersprungenen Status.                           |
 | **Endet vor dem Start**           | Die festgehaltenen Zeiten widersprechen sich (**Invalid**), mit dem Abstand zwischen ihnen.                                       |
 | **Noch nicht berechnet**          | OneUptime hat sie für diesen Vorfall noch nicht berechnet, etwa direkt nach dem Anlegen der Messung.                              |
@@ -424,9 +427,17 @@ Warnungen und geplante Wartungsereignisse haben dieselbe Karte auf ihren Seiten.
 
 Genau darum geht es. `Declared At` hält fest, wann OneUptime davon erfahren hat, und das ist bei einem von einem Monitor ausgelösten Vorfall der Zeitpunkt, zu dem die Kriterien verarbeitet wurden – nicht der Beginn der Auswirkung. Würde „Time to Detect“ seinen Beginn standardmäßig auf denselben Zeitstempel setzen, den sein Ende verwendet, würde jeder Vorfall null melden, und das Diagramm würde „wir erkennen sofort“ sagen. Ein leeres Feld und eine **Not Applicable**-Messung sagen das Wahre: Niemand hat festgehalten, wann es begann.
 
+### Zeit bis zur Bestätigung nach der Alarmierung
+
+Die **Zeit bis zur Bestätigung** zählt ab dem Melden des Vorfalls, sodass ein Vorfall, zu dem erst am Morgen jemand alarmiert wird, als stundenlanges Warten erscheint, das niemand in Bereitschaft gesehen hat. Die **Zeit bis zur Bestätigung nach der Alarmierung** zählt stattdessen ab **Jemand wird zum ersten Mal alarmiert**: dem ersten Mal, dass eine Bereitschaftsrichtlinie oder eine direkte Alarmierung jemanden über den Vorfall benachrichtigt hat. Sie endet, wenn der Vorfall bestätigt wird, nach derselben Regel wie die Zeit bis zur Bestätigung.
+
+OneUptime hält diesen Zeitpunkt am Vorfall und an der Warnung als `First Paged At` fest, einmal, und verschiebt ihn nie. Es zählt nur eine Alarmierung, die tatsächlich hinausging: in der **Zeitachse der Ausführung** einer Bereitschaftsrichtlinie oder einer direkten Alarmierung eine Person, deren Alarmierung gesendet, bestätigt oder weitergegeben wurde. Ein Schritt, der als **Übersprungen** markiert ist oder mit **Fehler** endete, zählt nicht, ebenso wenig eine Richtlinie, die gestartet ist, aber niemanden alarmiert hat, etwa eine, in deren Plan niemand Bereitschaft hatte. Vorfälle, zu denen alarmiert wurde, bevor es `First Paged At` gab, erhalten ihren Zeitpunkt aus den Läufen ihrer Bereitschaftsrichtlinien.
+
+Ein Vorfall, zu dem niemand alarmiert wurde, hat keinen Wert: **Noch nicht gestartet**, solange er offen ist, und **Nicht erreicht**, sobald er behoben ist. Das Diagramm lässt sich nach Schweregrad aufteilen, sodass Sie sehen, wie schnell auf jeden Schweregrad reagiert wird, sobald jemand alarmiert ist. Auch die Seite des Vorfalls zeigt es: Unter seiner Zeit bis zur Bestätigung ergänzt sie, wie lange nach der ersten Alarmierung er bestätigt wurde, etwa **4 Minuten nach der Alarmierung**. Die Metrik der Zeit bis zur Bestätigung und die MTTA in Slack- und Microsoft-Teams-Zusammenfassungen zählen weiterhin ab dem Melden des Vorfalls.
+
 ### Einen falschen Zeitstempel korrigieren
 
-Jede Messung wird von Grund auf neu berechnet, sobald sich die Daten darunter ändern – ein Eintrag der Statuszeitachse angelegt, bearbeitet oder gelöscht, oder `Impact Started At`, `Declared At` oder `Postmortem Posted At` am Vorfall korrigiert. Nichts wird schrittweise geflickt; es gibt also keinen veralteten Wert zu reparieren.
+Jede Messung wird von Grund auf neu berechnet, sobald sich die Daten darunter ändern – ein Eintrag der Statuszeitachse angelegt, bearbeitet oder gelöscht, `Impact Started At`, `Declared At` oder `Postmortem Posted At` am Vorfall korrigiert, oder seine erste Alarmierung gesendet. Nichts wird schrittweise geflickt; es gibt also keinen veralteten Wert zu reparieren.
 
 Das Feld **Beginnt am** eines Eintrags der Statuszeitachse ist bearbeitbar. Wurde ein Vorfall um 09:12 bestätigt, der Eintrag sagt aber 09:29, korrigieren Sie den Eintrag, und jede daraus abgeleitete Messung bewegt sich mit.
 
