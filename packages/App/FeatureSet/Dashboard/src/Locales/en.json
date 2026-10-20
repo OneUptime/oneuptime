@@ -31942,5 +31942,12 @@
   "One area": "One area",
   "Pick an area": "Pick an area",
   "Then choose Admin, Member or Viewer.": "Then choose Admin, Member or Viewer.",
-  "Whole project": "Whole project"
+  "Whole project": "Whole project",
+  "{{count}} tokens, {{cacheRead}} from the cache": "{{count}} tokens, {{cacheRead}} from the cache",
+  "{{count}} tokens, {{cacheRead}} from the cache_one": "{{count}} token, {{cacheRead}} from the cache",
+  "{{count}} tokens, {{cacheWrite}} written to the cache": "{{count}} tokens, {{cacheWrite}} written to the cache",
+  "{{count}} tokens, {{cacheWrite}} written to the cache_one": "{{count}} token, {{cacheWrite}} written to the cache",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it": "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it_one": "{{count}} token: {{cacheRead}} from the cache, {{cacheWrite}} written to it",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter."
 }

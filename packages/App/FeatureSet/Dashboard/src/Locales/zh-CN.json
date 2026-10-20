@@ -31942,5 +31942,12 @@
   "One area": "单个模块",
   "Pick an area": "选择一个模块",
   "Then choose Admin, Member or Viewer.": "然后选择管理员、成员或查看者。",
-  "Whole project": "整个项目"
+  "Whole project": "整个项目",
+  "{{count}} tokens, {{cacheRead}} from the cache": "{{count}} 个令牌，其中 {{cacheRead}} 个来自缓存",
+  "{{count}} tokens, {{cacheRead}} from the cache_one": "{{count}} 个令牌，其中 {{cacheRead}} 个来自缓存",
+  "{{count}} tokens, {{cacheWrite}} written to the cache": "{{count}} 个令牌，其中 {{cacheWrite}} 个写入缓存",
+  "{{count}} tokens, {{cacheWrite}} written to the cache_one": "{{count}} 个令牌，其中 {{cacheWrite}} 个写入缓存",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it": "{{count}} 个令牌：{{cacheRead}} 个来自缓存，{{cacheWrite}} 个写入缓存",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it_one": "{{count}} 个令牌：{{cacheRead}} 个来自缓存，{{cacheWrite}} 个写入缓存",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "按计入项目每日 AI 限制的方式计算：提供商从其提示缓存读取的令牌按十分之一个令牌计算，写入该缓存的令牌按 1.25 个计算。"
 }

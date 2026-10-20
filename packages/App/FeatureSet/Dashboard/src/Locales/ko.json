@@ -31942,5 +31942,12 @@
   "One area": "특정 영역",
   "Pick an area": "영역 선택",
   "Then choose Admin, Member or Viewer.": "그런 다음 관리자, 구성원, 뷰어 중에서 선택하세요.",
-  "Whole project": "프로젝트 전체"
+  "Whole project": "프로젝트 전체",
+  "{{count}} tokens, {{cacheRead}} from the cache": "토큰 {{count}}개 (캐시에서 읽음 {{cacheRead}}개)",
+  "{{count}} tokens, {{cacheRead}} from the cache_one": "토큰 {{count}}개 (캐시에서 읽음 {{cacheRead}}개)",
+  "{{count}} tokens, {{cacheWrite}} written to the cache": "토큰 {{count}}개 (캐시에 씀 {{cacheWrite}}개)",
+  "{{count}} tokens, {{cacheWrite}} written to the cache_one": "토큰 {{count}}개 (캐시에 씀 {{cacheWrite}}개)",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it": "토큰 {{count}}개: 캐시에서 읽음 {{cacheRead}}개, 캐시에 씀 {{cacheWrite}}개",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it_one": "토큰 {{count}}개: 캐시에서 읽음 {{cacheRead}}개, 캐시에 씀 {{cacheWrite}}개",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "프로젝트의 일일 AI 한도에 계산되는 기준입니다. 공급자가 프롬프트 캐시에서 읽은 토큰은 토큰 10분의 1로, 그 캐시에 쓴 토큰은 1.25개로 계산됩니다."
 }

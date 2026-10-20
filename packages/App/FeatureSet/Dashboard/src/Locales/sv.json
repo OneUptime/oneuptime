@@ -31942,5 +31942,12 @@
   "One area": "Ett område",
   "Pick an area": "Välj ett område",
   "Then choose Admin, Member or Viewer.": "Välj sedan Administratör, Medlem eller Tittare.",
-  "Whole project": "Hela projektet"
+  "Whole project": "Hela projektet",
+  "{{count}} tokens, {{cacheRead}} from the cache": "{{count}} tokens, varav {{cacheRead}} från cachen",
+  "{{count}} tokens, {{cacheRead}} from the cache_one": "{{count}} token, varav {{cacheRead}} från cachen",
+  "{{count}} tokens, {{cacheWrite}} written to the cache": "{{count}} tokens, varav {{cacheWrite}} skrivna till cachen",
+  "{{count}} tokens, {{cacheWrite}} written to the cache_one": "{{count}} token, varav {{cacheWrite}} skrivna till cachen",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it": "{{count}} tokens: {{cacheRead}} från cachen, {{cacheWrite}} skrivna till den",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it_one": "{{count}} token: {{cacheRead}} från cachen, {{cacheWrite}} skrivna till den",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "Så som de räknas mot projektets dagliga AI-gränser: en token som leverantören läste från sin promptcache räknas som en tiondels token, och en token som skrevs till den cachen som en och en kvarts."
 }

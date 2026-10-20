@@ -153,6 +153,8 @@ Claude Opus 4.7 og alle senere Claude-modeller velger sin egen sampling og avvis
 
 Claude 5-modeller tenker før de svarer, og tenkingen teller med i svarets tokengrense, så OneUptime gir plass til den. For å få dem til å tenke mindre og svare raskere og billigere, sett `{"output_config": {"effort": "low"}}` i leverandørens **Ekstra parametere**. OneUptime sender innstillingene du legger til der, til Anthropic med hver forespørsel, unntatt `model`, `messages`, `system`, `tools`, `tool_choice` og `stream`, som den setter selv.
 
+OneUptime bruker prompt-cachingen til Anthropic. Hvert kall i en undersøkelse eller et svar fra Spør AI sender systemprompten, verktøyene og samtalen så langt på nytt, og OneUptime merker dem for cachen, slik at kallet leser dem tilbake til en tidel av prisen eller mindre og bare betaler full pris for det som er nytt. Hvis en gateway foran Claude avviser cache-merkene, sender OneUptime forespørselen på nytt uten dem og husker det for leverandøren. [Slik telles tokener](/docs/ai/ai-sre#slik-telles-tokener) forklarer hvordan tokener fra cachen teller mot grensene dine.
+
 ### Azure OpenAI og Microsoft Foundry
 
 Bruk **Azure OpenAI / Microsoft Foundry** for modellene du ruller ut i Microsoft Foundry eller Azure OpenAI: OpenAI-modeller, andre Foundry Models og Claude. Skriv inn en av ressursens nøkler som **API-nøkkel**, utrullingens navn som **Modellnavn** og ressursens endepunkt som **Basis-URL**, for eksempel `https://contoso-ai.openai.azure.com/openai/v1`. [Microsoft Foundry og Azure OpenAI](/docs/ai/microsoft-foundry) går gjennom Azure-siden: ressursen, tillatelser, modellutrullingen, nettverkskrav og feilsøking.

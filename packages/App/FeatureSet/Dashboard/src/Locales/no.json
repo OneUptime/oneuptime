@@ -31942,5 +31942,12 @@
   "One area": "Ett område",
   "Pick an area": "Velg et område",
   "Then choose Admin, Member or Viewer.": "Velg deretter Administrator, Medlem eller Viser.",
-  "Whole project": "Hele prosjektet"
+  "Whole project": "Hele prosjektet",
+  "{{count}} tokens, {{cacheRead}} from the cache": "{{count}} tokener, hvorav {{cacheRead}} fra cachen",
+  "{{count}} tokens, {{cacheRead}} from the cache_one": "{{count}} token, hvorav {{cacheRead}} fra cachen",
+  "{{count}} tokens, {{cacheWrite}} written to the cache": "{{count}} tokener, hvorav {{cacheWrite}} skrevet til cachen",
+  "{{count}} tokens, {{cacheWrite}} written to the cache_one": "{{count}} token, hvorav {{cacheWrite}} skrevet til cachen",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it": "{{count}} tokener: {{cacheRead}} fra cachen, {{cacheWrite}} skrevet til den",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it_one": "{{count}} token: {{cacheRead}} fra cachen, {{cacheWrite}} skrevet til den",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "Slik de teller mot prosjektets daglige KI-grenser: en token som leverandøren leste fra sin prompt-cache, teller som en tidel token, og en token som ble skrevet til den cachen, som en og en kvart."
 }

@@ -18,9 +18,14 @@ import User from "Common/Models/DatabaseModels/User";
 import { BILLING_ENABLED } from "Common/UI/Config";
 import {
   translatableTerm,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import AiTokenCount, {
+  AiTokenCountBreakdown,
+} from "Common/Types/AI/AiTokenCount";
+import { getLlmLogCacheText } from "./LlmLogTokens";
 
 export interface LlmLogsTableProps {
   query?: Query<LlmLog>;
@@ -71,19 +76,38 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
       field: { totalTokens: true },
       title: "Tokens Used",
       type: FieldType.Number,
+      /*
+       * The tokens as OneUptime counts them (AiTokenCount): what the
+       * project's daily AI limits add up and the AI credits charge. A call
+       * that used the provider's prompt cache says, under its count, how
+       * many tokens it sent in all and how many of them the cache served or
+       * took, so the count can be checked against the provider's own.
+       */
+      // The (i) beside the title translates its text as it shows it.
+      headerTooltip: translationKey(
+        "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.",
+      ),
+      wrapContent: true,
+      wrapMaxWidthClassName: "max-w-xs",
       getElement: (item: LlmLog): ReactElement => {
-        const total: number = (item["totalTokens"] as number) || 0;
-        const cached: number = (item["cachedInputTokens"] as number) || 0;
+        const tokens: AiTokenCountBreakdown = AiTokenCount.getBreakdown(item);
+        const cacheText: string = getLlmLogCacheText(translator, tokens);
 
-        if (cached > 0) {
-          return (
-            <p>
-              {total} <span className="text-gray-500">({cached} cached)</span>
-            </p>
-          );
-        }
-
-        return <p>{total}</p>;
+        return (
+          <div data-testid="llm-log-tokens">
+            <p>{translator.formatNumber(tokens.countedTokens)}</p>
+            {cacheText ? (
+              <p
+                className="text-xs text-gray-500"
+                data-testid="llm-log-cache-tokens"
+              >
+                {cacheText}
+              </p>
+            ) : (
+              <></>
+            )}
+          </div>
+        );
       },
     },
     // Only show cost column if billing is enabled
@@ -172,6 +196,7 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
         selectMoreFields={{
           statusMessage: true,
           cachedInputTokens: true,
+          cacheCreationTokens: true,
         }}
         cardProps={{
           title: "AI Logs",

@@ -31942,5 +31942,12 @@
   "One area": "Uma área",
   "Pick an area": "Escolha uma área",
   "Then choose Admin, Member or Viewer.": "Depois escolha Administrador, Membro ou Visualizador.",
-  "Whole project": "Todo o projeto"
+  "Whole project": "Todo o projeto",
+  "{{count}} tokens, {{cacheRead}} from the cache": "{{count}} tokens, {{cacheRead}} vindos do cache",
+  "{{count}} tokens, {{cacheRead}} from the cache_one": "{{count}} token, {{cacheRead}} vindos do cache",
+  "{{count}} tokens, {{cacheWrite}} written to the cache": "{{count}} tokens, {{cacheWrite}} gravados no cache",
+  "{{count}} tokens, {{cacheWrite}} written to the cache_one": "{{count}} token, {{cacheWrite}} gravados no cache",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it": "{{count}} tokens: {{cacheRead}} vindos do cache, {{cacheWrite}} gravados nele",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it_one": "{{count}} token: {{cacheRead}} vindos do cache, {{cacheWrite}} gravados nele",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "Como contam para os limites diários de IA do projeto: um token que o provedor leu do seu cache de prompts conta como um décimo de token, e um token gravado nesse cache como um e um quarto."
 }

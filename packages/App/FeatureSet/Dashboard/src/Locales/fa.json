@@ -31942,5 +31942,12 @@
   "One area": "یک بخش",
   "Pick an area": "یک بخش انتخاب کنید",
   "Then choose Admin, Member or Viewer.": "سپس مدیر، عضو یا بیننده را انتخاب کنید.",
-  "Whole project": "کل پروژه"
+  "Whole project": "کل پروژه",
+  "{{count}} tokens, {{cacheRead}} from the cache": "{{count}} توکن، {{cacheRead}} تا از حافظهٔ نهان",
+  "{{count}} tokens, {{cacheRead}} from the cache_one": "{{count}} توکن، {{cacheRead}} تا از حافظهٔ نهان",
+  "{{count}} tokens, {{cacheWrite}} written to the cache": "{{count}} توکن، {{cacheWrite}} تا نوشته‌شده در حافظهٔ نهان",
+  "{{count}} tokens, {{cacheWrite}} written to the cache_one": "{{count}} توکن، {{cacheWrite}} تا نوشته‌شده در حافظهٔ نهان",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it": "{{count}} توکن: {{cacheRead}} تا از حافظهٔ نهان، {{cacheWrite}} تا نوشته‌شده در آن",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it_one": "{{count}} توکن: {{cacheRead}} تا از حافظهٔ نهان، {{cacheWrite}} تا نوشته‌شده در آن",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "همان‌طور که در محدودیت‌های روزانهٔ هوش مصنوعی پروژه شمرده می‌شوند: توکنی که ارائه‌دهنده از حافظهٔ نهان پرامپت خود خوانده یک‌دهم توکن شمرده می‌شود، و توکنی که در آن حافظهٔ نهان نوشته شده یک و یک‌چهارم."
 }

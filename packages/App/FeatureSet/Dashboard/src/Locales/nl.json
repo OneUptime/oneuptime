@@ -31942,5 +31942,12 @@
   "One area": "Eén onderdeel",
   "Pick an area": "Kies een onderdeel",
   "Then choose Admin, Member or Viewer.": "Kies daarna Beheerder, Lid of Kijker.",
-  "Whole project": "Hele project"
+  "Whole project": "Hele project",
+  "{{count}} tokens, {{cacheRead}} from the cache": "{{count}} tokens, waarvan {{cacheRead}} uit de cache",
+  "{{count}} tokens, {{cacheRead}} from the cache_one": "{{count}} token, waarvan {{cacheRead}} uit de cache",
+  "{{count}} tokens, {{cacheWrite}} written to the cache": "{{count}} tokens, waarvan {{cacheWrite}} in de cache geschreven",
+  "{{count}} tokens, {{cacheWrite}} written to the cache_one": "{{count}} token, waarvan {{cacheWrite}} in de cache geschreven",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it": "{{count}} tokens: {{cacheRead}} uit de cache, {{cacheWrite}} erin geschreven",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it_one": "{{count}} token: {{cacheRead}} uit de cache, {{cacheWrite}} erin geschreven",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "Zoals ze meetellen voor de dagelijkse AI-limieten van het project: een token dat de provider uit zijn promptcache las, telt als een tiende token, en een token dat in die cache werd geschreven als één en een kwart."
 }

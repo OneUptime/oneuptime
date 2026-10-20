@@ -31942,5 +31942,12 @@
   "One area": "Un domaine",
   "Pick an area": "Choisissez un domaine",
   "Then choose Admin, Member or Viewer.": "Puis choisissez Administrateur, Membre ou Lecteur.",
-  "Whole project": "Tout le projet"
+  "Whole project": "Tout le projet",
+  "{{count}} tokens, {{cacheRead}} from the cache": "{{count}} jetons, dont {{cacheRead}} depuis le cache",
+  "{{count}} tokens, {{cacheRead}} from the cache_one": "{{count}} jeton, dont {{cacheRead}} depuis le cache",
+  "{{count}} tokens, {{cacheWrite}} written to the cache": "{{count}} jetons, dont {{cacheWrite}} écrits dans le cache",
+  "{{count}} tokens, {{cacheWrite}} written to the cache_one": "{{count}} jeton, dont {{cacheWrite}} écrits dans le cache",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it": "{{count}} jetons : {{cacheRead}} depuis le cache, {{cacheWrite}} écrits dans celui-ci",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it_one": "{{count}} jeton : {{cacheRead}} depuis le cache, {{cacheWrite}} écrits dans celui-ci",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "Tels qu'ils comptent dans les limites quotidiennes d'IA du projet : un jeton que le fournisseur a lu dans son cache de prompts compte pour un dixième de jeton, et un jeton écrit dans ce cache pour un et quart."
 }

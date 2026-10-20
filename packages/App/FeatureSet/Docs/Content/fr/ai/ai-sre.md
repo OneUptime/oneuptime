@@ -370,6 +370,12 @@ Elles sont repliées sous **Plus de paramètres** en bas de la page des paramèt
 
 Le travail de l'IA en dehors des incidents et des alertes — le tri des analyses, et les tâches de correction pour les exceptions, les analyses et les régressions de performance — n'a pas de paramètre propre ni aucune des limites du tableau ; seules les limites quotidiennes propres au projet (ci-dessous) s'y appliquent. Ses pull requests comptent dans le **Nombre max de demandes de tirage de correctifs ouvertes** d'un dépôt (sur la page **Paramètres** du dépôt) une fois que vous en définissez un ; non défini signifie aucun plafond, et 0 bloque les pull requests de correctif IA pour ce dépôt.
 
+### Comment les jetons sont comptés
+
+Chaque limite de jetons de cette page compte les jetons d'un appel selon ce qu'ils coûtent, tout comme les Journaux IA et, sur OneUptime Cloud, les crédits IA. Un jeton que le modèle lit pour la première fois, et chaque jeton qu'il écrit, compte pour un. Une investigation ou une réponse de Demander à l'IA se compose de nombreux appels, et chaque appel renvoie toute la conversation : le fournisseur sert la partie qu'il a déjà vue depuis son cache de prompts, pour une fraction du prix. Un jeton lu dans ce cache compte pour un dixième de jeton, et un jeton écrit dans ce cache pour un et quart.
+
+Les Journaux IA (**Paramètres du projet → IA → Journaux IA**) listent chaque appel avec les jetons qui comptent et, en dessous, combien de jetons il a utilisés en tout et combien d'entre eux venaient du cache ou y ont été écrits. Avec Anthropic, y compris Claude dans Microsoft Foundry, OneUptime marque le prompt système, les outils et la conversation pour le cache, si bien que chaque appel d'une investigation y lit tout ce qui précède ses derniers résultats d'outils. OpenAI et Azure OpenAI mettent eux-mêmes en cache un prompt répété.
+
 ### Les limites quotidiennes propres au projet
 
 Au-dessus de toutes les limites du tableau, un projet peut plafonner ce que OneUptime AI utilise en une journée, quoi qu'il fasse : Demander à l'IA, investigations, brouillons de post-mortem, pull requests de correctif, tri des analyses, workflows, runbooks, et questions dans Slack ou Microsoft Teams. Les limites se trouvent dans **Paramètres du projet → IA → Fonctionnalités IA**, repliées sous **Plus de paramètres**, dans sa section **Limites quotidiennes** :

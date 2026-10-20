@@ -31942,5 +31942,12 @@
   "One area": "एक क्षेत्र",
   "Pick an area": "एक क्षेत्र चुनें",
   "Then choose Admin, Member or Viewer.": "फिर एडमिन, सदस्य या दर्शक चुनें।",
-  "Whole project": "पूरा प्रोजेक्ट"
+  "Whole project": "पूरा प्रोजेक्ट",
+  "{{count}} tokens, {{cacheRead}} from the cache": "{{count}} टोकन, जिनमें से {{cacheRead}} कैश से",
+  "{{count}} tokens, {{cacheRead}} from the cache_one": "{{count}} टोकन, जिनमें से {{cacheRead}} कैश से",
+  "{{count}} tokens, {{cacheWrite}} written to the cache": "{{count}} टोकन, जिनमें से {{cacheWrite}} कैश में लिखे गए",
+  "{{count}} tokens, {{cacheWrite}} written to the cache_one": "{{count}} टोकन, जिनमें से {{cacheWrite}} कैश में लिखे गए",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it": "{{count}} टोकन: {{cacheRead}} कैश से, {{cacheWrite}} उसमें लिखे गए",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it_one": "{{count}} टोकन: {{cacheRead}} कैश से, {{cacheWrite}} उसमें लिखे गए",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "जैसे वे प्रोजेक्ट की दैनिक AI सीमाओं में गिने जाते हैं: प्रदाता ने अपने प्रॉम्प्ट कैश से जो टोकन पढ़ा, वह एक टोकन का दसवां हिस्सा गिना जाता है, और उस कैश में लिखा गया टोकन सवा टोकन।"
 }

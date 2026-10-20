@@ -31942,5 +31942,12 @@
   "One area": "Один раздел",
   "Pick an area": "Выберите раздел",
   "Then choose Admin, Member or Viewer.": "Затем выберите: Администратор, Участник или Зритель.",
-  "Whole project": "Весь проект"
+  "Whole project": "Весь проект",
+  "{{count}} tokens, {{cacheRead}} from the cache": "Токенов: {{count}} (из кэша: {{cacheRead}})",
+  "{{count}} tokens, {{cacheRead}} from the cache_one": "{{count}} токен (из кэша: {{cacheRead}})",
+  "{{count}} tokens, {{cacheWrite}} written to the cache": "Токенов: {{count}} (записано в кэш: {{cacheWrite}})",
+  "{{count}} tokens, {{cacheWrite}} written to the cache_one": "{{count}} токен (записано в кэш: {{cacheWrite}})",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it": "Токенов: {{count}} (из кэша: {{cacheRead}}, записано в кэш: {{cacheWrite}})",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it_one": "{{count}} токен (из кэша: {{cacheRead}}, записано в кэш: {{cacheWrite}})",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "Так, как они учитываются в дневных лимитах ИИ проекта: токен, который провайдер прочитал из своего кэша промптов, считается за десятую часть токена, а токен, записанный в этот кэш, — за один с четвертью."
 }

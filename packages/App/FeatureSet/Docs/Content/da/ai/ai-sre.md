@@ -370,6 +370,12 @@ De er foldet sammen under **Yderligere indstillinger** nederst på hver signalty
 
 AI-arbejde uden for hændelser og advarsler (triage af indsigter og rettelsesopgaver for undtagelser, indsigter og ydelsesregressioner) har ingen egen indstilling og ingen af grænserne i tabellen; kun projektets egne daglige grænser (nedenfor) gælder for det. Dets pull requests tæller med i et repositorys **Max Open Fix Pull Requests** (på repositoryets side **Indstillinger**), så snart du sætter en; ikke sat betyder intet loft, og 0 blokerer AI-pull requests med rettelser for det repository.
 
+### Sådan tælles tokens
+
+Hver tokengrænse på denne side tæller et kalds tokens efter, hvad de koster, og det samme gør AI-logs og, på OneUptime Cloud, AI-kreditterne. Et token, som modellen læser for første gang, og hvert token, den skriver, tæller som ét. En undersøgelse eller et svar fra Spørg AI består af mange kald, og hvert kald sender hele samtalen igen: udbyderen leverer den del, den allerede har set, fra sin prompt-cache til en brøkdel af prisen. Et token, der læses fra den cache, tæller som en tiendedel token, og et token, der skrives til den, som en og en kvart.
+
+AI-logs (**Projektindstillinger → AI → AI-logs**) viser hvert kald med de tokens, der tæller, og under dem, hvor mange tokens det brugte i alt, og hvor mange af dem der kom fra cachen eller blev skrevet til den. Med Anthropic, inklusive Claude i Microsoft Foundry, markerer OneUptime systemprompten, værktøjerne og samtalen til cachen, så hvert kald i en undersøgelse læser alt før sine nyeste værktøjsresultater fra den. OpenAI og Azure OpenAI cacher selv en gentaget prompt.
+
 ### Projektets egne daglige grænser
 
 Over alle grænserne i tabellen kan et projekt sætte loft over, hvad OneUptime AI bruger på et døgn, uanset hvad den laver: Spørg AI, undersøgelser, udkast til postmortems, pull requests med rettelser, triage af indsigter, workflows, runbooks og spørgsmål i Slack eller Microsoft Teams, alt sammen. Grænserne findes på **Projektindstillinger → AI → AI Features**, foldet sammen under **Yderligere indstillinger**, i afsnittet **Daglige grænser**:

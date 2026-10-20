@@ -31942,5 +31942,12 @@
   "One area": "特定の領域",
   "Pick an area": "領域を選択",
   "Then choose Admin, Member or Viewer.": "次に、管理者・メンバー・閲覧者から選びます。",
-  "Whole project": "プロジェクト全体"
+  "Whole project": "プロジェクト全体",
+  "{{count}} tokens, {{cacheRead}} from the cache": "{{count}} トークン（うちキャッシュから {{cacheRead}}）",
+  "{{count}} tokens, {{cacheRead}} from the cache_one": "{{count}} トークン（うちキャッシュから {{cacheRead}}）",
+  "{{count}} tokens, {{cacheWrite}} written to the cache": "{{count}} トークン（うちキャッシュへの書き込み {{cacheWrite}}）",
+  "{{count}} tokens, {{cacheWrite}} written to the cache_one": "{{count}} トークン（うちキャッシュへの書き込み {{cacheWrite}}）",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it": "{{count}} トークン: キャッシュから {{cacheRead}}、キャッシュへの書き込み {{cacheWrite}}",
+  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it_one": "{{count}} トークン: キャッシュから {{cacheRead}}、キャッシュへの書き込み {{cacheWrite}}",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "プロジェクトの 1 日あたりの AI 上限に数えられる量です。プロバイダーがプロンプトキャッシュから読んだトークンは 10 分の 1 トークン、そのキャッシュに書き込まれたトークンは 1.25 トークンとして数えます。"
 }
