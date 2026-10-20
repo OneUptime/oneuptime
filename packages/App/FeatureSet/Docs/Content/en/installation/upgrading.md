@@ -1523,6 +1523,25 @@ API, SSO, or the Slack and Microsoft Teams apps.
   kubectl step that runs a script needs a Runner of this release: an older
   one fails such a step and says so, so update your Runners. See
   [Runbook Variables](/docs/runbooks/variables).
+- **Visitors keep their own address in more setups.** OneUptime counts a
+  visitor by the address they connect from, for its sign-in limits, its other
+  limits per address and its IP allowlists. Its ingress now listens on IPv6 as
+  well as IPv4, and IPv6 can be turned on for Docker Compose's network in
+  `docker-compose.override.yml` (Docker Engine 27 or later), so that a visitor
+  who comes over IPv6 keeps their own address instead of one Docker passes
+  them on from. If a reverse proxy of your own on the same server is the way
+  in, publish the ingress on `127.0.0.1` only
+  (`ONEUPTIME_HTTP_PORT=127.0.0.1:8080`), so that visitors reach OneUptime
+  through the proxy alone; `npm start` says so while it is still published
+  on every address. With Helm,
+  `nginx.service.externalTrafficPolicy: Local` keeps each visitor's address
+  through a load balancer that passes it on; while that is unset,
+  `helm install` and `helm upgrade` say so.
+  **Admin Dashboard → OneUptime Health** says when several people sign in
+  from one private network address. Networks and Services stay as they are
+  until you set one of these. `NGINX_LISTEN_OPTIONS`, which nginx refused for
+  any value, now works. See
+  [Visitor addresses](/docs/installation/docker-compose#visitor-addresses).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

@@ -260,6 +260,19 @@ spec:
     - {{ $val }}
     {{- end }}
   {{- end }}
+  {{- /*
+    Whether visitors reach the gateway from their own address (Local) or from
+    a node's (Cluster, Kubernetes' default, which applies while this is
+    empty). Kubernetes takes it only for a Service visitors reach from outside
+    the cluster - a LoadBalancer or NodePort one, or one with externalIPs - so
+    the chart says so rather than hand the API a Service it refuses.
+  */}}
+  {{- with $.Values.nginx.service.externalTrafficPolicy }}
+  {{- if not (or (has (default "ClusterIP" $.Values.nginx.service.type) (list "LoadBalancer" "NodePort")) $.Values.nginx.service.externalIPs) }}
+  {{- fail "nginx.service.externalTrafficPolicy applies only to a Service visitors reach from outside the cluster: set nginx.service.type to LoadBalancer or NodePort, or leave externalTrafficPolicy empty." }}
+  {{- end }}
+  externalTrafficPolicy: {{ . }}
+  {{- end }}
   ports:
     - port: {{ $.Values.nginx.ports.http }}
       targetPort: 7849

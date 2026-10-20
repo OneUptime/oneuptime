@@ -1055,16 +1055,20 @@ describe("every check counts the different wrong keys a client sends, in one pla
       "const LIMIT: WrongKeyLimit = new WrongKeyLimit({",
     );
 
-    // The private networks are listed once, there: no other rate limit keeps a list of its own.
+    /*
+     * The private networks are listed once, in Utils/PrivateNetworkAddress,
+     * which the Health page's report of shared addresses reads too: no rate
+     * limit keeps a list of its own, and WrongKeyLimit asks that one.
+     */
+    expect(productFilesWhoseCodeMatches(/\bnew net\.BlockList\(/)).toEqual([
+      "packages/Common/Server/Utils/PrivateNetworkAddress.ts",
+    ]);
     expect(
-      productFilesWhoseCodeMatches(/\bnew net\.BlockList\(/).filter(
-        (relativePath: string): boolean => {
-          return relativePath.startsWith(
-            "packages/Common/Server/Utils/RateLimit/",
-          );
-        },
-      ),
-    ).toEqual([WRONG_KEY_LIMIT]);
+      methodBodies(WRONG_KEY_LIMIT)["isPrivateNetworkAddress"] || "",
+    ).toContain("return isPrivateNetworkAddress(address);");
+    expect(codeOf(WRONG_KEY_LIMIT)).toContain(
+      'import { isPrivateNetworkAddress } from "../PrivateNetworkAddress";',
+    );
   });
 
   test("the Runner's registration hands a request that carries no cluster key anywhere to the Runner's own key, and nothing else", () => {

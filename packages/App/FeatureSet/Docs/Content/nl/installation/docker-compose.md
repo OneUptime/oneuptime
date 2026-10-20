@@ -186,7 +186,7 @@ Met `HTTP_PROTOCOL=https` bouwt OneUptime HTTPS-links, houdt het aanmeldcookies 
 :::steps
 #### Wijs uw domein naar de server
 
-Maak voor uw domein een DNS-record `A` (of `AAAA` voor IPv6) aan, met het openbare IP-adres van de server als waarde.
+Maak voor uw domein een DNS-record `A` (of `AAAA` voor IPv6) aan, met het openbare IP-adres van de server als waarde. Met een `AAAA`-record zet u ook IPv6 aan voor OneUptime: zie [Adressen van bezoekers](#adressen-van-bezoekers).
 
 #### Schakel het aanvragen van certificaten in
 
@@ -213,16 +213,16 @@ Open `https://oneuptime.example.com`. OneUptime bestelt het certificaat bij het 
 
 ### Uw eigen reverse proxy gebruiken
 
-Deze stappen draaien de proxy op dezelfde server als OneUptime. Draait uw proxy op een andere machine, sla dan de eerste stap over en wijs de proxy naar poort 80 van deze server.
+Deze stappen draaien de proxy op dezelfde server als OneUptime. Draait uw proxy op een andere machine, sla dan de eerste stap over, wijs de proxy naar poort 80 van deze server en laat met de firewall van uw cloudprovider alleen de proxy poort 80 en 443 bereiken: een bezoeker die OneUptime buiten de proxy om bereikt, kan het adres kiezen waarop OneUptime hem telt.
 
 :::steps
 #### Haal de ingress van poort 80 en 443 af
 
-De proxy heeft poort 80 en 443 nodig, dus verplaats de ingress naar andere poorten. De probe en de Runner gebruiken het netwerk van de host en bereiken OneUptime via `http://localhost`, dus ze verhuizen mee:
+De proxy heeft poort 80 en 443 nodig, dus verplaats de ingress naar andere poorten, alleen gepubliceerd op het loopbackadres `127.0.0.1` van deze server, zodat bezoekers OneUptime alleen via uw proxy bereiken. De probe en de Runner gebruiken het netwerk van de host en bereiken OneUptime via `http://localhost`, dus ze verhuizen mee:
 
 ```ini title="config.env"
-ONEUPTIME_HTTP_PORT=8080
-STATUS_PAGE_HTTPS_PORT=8443
+ONEUPTIME_HTTP_PORT=127.0.0.1:8080
+STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 GLOBAL_PROBE_1_ONEUPTIME_URL=http://localhost:8080
 ONEUPTIME_RUNNER_ONEUPTIME_URL=http://localhost:8080
 ```
@@ -315,6 +315,48 @@ Open `https://oneuptime.example.com`. U zou de aanmeldpagina van OneUptime moete
 > [!NOTE]
 > Stuur telemetrie achter uw eigen proxy via OTLP/HTTP (`/otlp`). OTLP via gRPC bereikt OneUptime alleen als zijn eigen ingress TLS afhandelt (`PROVISION_SSL=true`).
 
+## Adressen van bezoekers
+
+OneUptime telt elke bezoeker op het adres waarvandaan hij verbinding maakt: de aanmeldlimieten, de andere limieten per adres en de IP-allowlists van statuspagina's en dashboards lezen het allemaal. Twee opstellingen hebben een instelling nodig om dat adres het eigen adres van de bezoeker te laten zijn:
+
+| Opstelling | Instelling |
+| --- | --- |
+| Mensen bereiken OneUptime via IPv6, bijvoorbeeld via een `AAAA`-record | IPv6 op het netwerk van OneUptime, in `docker-compose.override.yml` |
+| Uw eigen reverse proxy staat voor OneUptime | `TRUSTED_PROXY_HOPS=2`, met de ingress gepubliceerd op `127.0.0.1` (zie [Uw eigen reverse proxy gebruiken](#uw-eigen-reverse-proxy-gebruiken)) |
+
+Zonder IPv6 op het netwerk van OneUptime geeft Docker elke bezoeker die via IPv6 komt vanaf een eigen adres door aan OneUptime, en OneUptime telt hen allemaal als één bezoeker: de mislukte aanmeldingen van één persoon kunnen de anderen buitensluiten. IPv6 aanzetten vraagt Docker Engine 27 of nieuwer (`docker version` toont de uwe).
+
+:::steps
+### Zet IPv6 aan
+
+Maak `docker-compose.override.yml` aan naast `docker-compose.yml`, of voeg dit toe aan het bestand dat u al hebt; `npm start` en `npm run update` lezen het:
+
+```yaml title="docker-compose.override.yml"
+networks:
+  oneuptime:
+    enable_ipv6: true
+```
+
+### Herstart OneUptime
+
+```bash
+npm stop
+npm start
+```
+
+OneUptime stopt en start opnieuw, met IPv6 op zijn netwerk. Uw gegevens blijven bewaard. Docker kan geen netwerk verwijderen waaraan nog een eigen container gekoppeld is, zoals een reverse proxy: ontkoppel die eerst van het netwerk van OneUptime en koppel hem daarna weer. Stopt `npm start` met `has active endpoints`, ontkoppel hem dan en voer `npm stop` en `npm start` opnieuw uit.
+
+### Controleer het netwerk
+
+```bash
+docker network ls --quiet --filter name=_oneuptime | xargs docker network inspect | grep EnableIPv6
+```
+
+Het toont `"EnableIPv6": true,`.
+:::
+
+Als meerdere mensen zich aanmelden vanaf één privénetwerkadres, meldt de pagina **OneUptime-gezondheid** van het Admin Dashboard dat, met de instelling die het verandert.
+
 ## Checklist voor productie
 
 Docker Compose draait van elke service één exemplaar op één server, wat past bij kleine teams en homelabs. Loop deze lijst door voordat u erop gaat vertrouwen.
@@ -325,6 +367,7 @@ Docker Compose draait van elke service één exemplaar op één server, wat past
 | **HTTPS** | Mensen bereiken OneUptime via HTTPS en `HTTP_PROTOCOL=https` is ingesteld. Zie [HTTPS instellen](#https-instellen). |
 | **Registraties** | Zodra uw team accounts heeft, schakelt u **Registratie toestaan** uit onder **Instellingen > Authenticatie** in het Admin Dashboard. |
 | **Firewall** | Alleen poort 80 en 443 (en SSH) staan open naar internet. OneUptime publiceert poort 5400 van PostgreSQL alleen op `127.0.0.1`. Sluit elke andere poort die u publiceert af met de firewall van uw cloudprovider: `ufw`-regels gelden niet voor poorten die Docker publiceert. |
+| **Adressen van bezoekers** | De pagina **OneUptime-gezondheid** van het Admin Dashboard meldt niet dat meerdere mensen zich aanmelden vanaf één adres. Zie [Adressen van bezoekers](#adressen-van-bezoekers). |
 | **Back-ups** | PostgreSQL wordt elke dag geback-upt en de kopieën verlaten de server. Zie [Back-up en herstel](#back-up-en-herstel). |
 | **E-mail** | Er is een mailserver ingesteld onder **Instellingen > Meldingen > E-mails** in het Admin Dashboard, zodat OneUptime uitnodigingen en meldingen kan versturen. Zie [SMTP](/docs/emails/smtp). |
 | **Schijf** | De vrije ruimte wordt bewaakt. ClickHouse groeit met de telemetrie die u bewaart (zie [Sizing en capaciteitsplanning](/docs/installation/sizing)); het log van elke container is begrensd op 1000 MB. |

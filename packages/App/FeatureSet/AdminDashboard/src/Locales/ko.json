@@ -1000,5 +1000,16 @@
   "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "모든 요청과 함께 공급자에게 보내는 추가 JSON 매개변수입니다(예: {\"temperature\": 0.2}). 모델에 필요하지 않으면 비워 두세요.",
   "Never put keys here.": "여기에 키를 넣지 마세요.",
   "Your deployment's name, exactly as Foundry shows it.": "Foundry에 표시된 그대로의 배포 이름입니다.",
-  "{{name}} (default)": "{{name}} (기본값)"
+  "{{name}} (default)": "{{name}} (기본값)",
+  "Visitors share an address": "방문자들이 하나의 주소를 공유하고 있습니다",
+  "Several people signed in from one private network address in the last 30 days. OneUptime counts them as one visitor, so one person's failed sign-ins can lock the others out.": "지난 30일 동안 여러 사람이 같은 사설 네트워크 주소에서 로그인했습니다. OneUptime은 이들을 한 명의 방문자로 계산하므로, 한 사람의 로그인 실패로 다른 사람들이 잠길 수 있습니다.",
+  "Usually something in front of OneUptime hands it every visitor from an address of its own:": "보통 OneUptime 앞에 있는 무언가가 모든 방문자를 자기 주소에서 넘겨줍니다:",
+  "Docker Compose: when people come over IPv6, turn IPv6 on for OneUptime's network in {{file}}.": "Docker Compose: 사람들이 IPv6로 접속한다면 {{file}}에서 OneUptime 네트워크의 IPv6를 켜세요.",
+  "Docker Compose behind a proxy of your own: make the proxy the only way in, then set {{hops}}. With the proxy on the same server, publish OneUptime's ports on {{loopback}} only.": "자체 프록시 뒤의 Docker Compose: 프록시를 유일한 진입로로 만든 다음 {{hops}}를 설정하세요. 프록시가 같은 서버에 있다면 OneUptime의 포트를 {{loopback}}에만 게시하세요.",
+  "Kubernetes: set {{setting}} in the Helm chart's values.": "Kubernetes: Helm 차트의 values에서 {{setting}}을 설정하세요.",
+  "Nothing needs to change if these people share one computer or one VPN.": "이 사람들이 한 대의 컴퓨터나 하나의 VPN을 함께 쓰고 있다면 바꿀 것이 없습니다.",
+  "{{count}} people": "{{count}}명",
+  "{{count}} people_one": "{{count}}명",
+  "Docker Compose guide": "Docker Compose 가이드",
+  "Kubernetes guide": "Kubernetes 가이드"
 }

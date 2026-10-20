@@ -1000,5 +1000,16 @@
   "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "Дополнительные JSON-параметры, отправляемые поставщику с каждым запросом, например {\"temperature\": 0.2}. Оставьте пустым, если модели они не нужны.",
   "Never put keys here.": "Никогда не указывайте здесь ключи.",
   "Your deployment's name, exactly as Foundry shows it.": "Имя вашего развёртывания точно так, как его показывает Foundry.",
-  "{{name}} (default)": "{{name}} (по умолчанию)"
+  "{{name}} (default)": "{{name}} (по умолчанию)",
+  "Visitors share an address": "Посетители делят один адрес",
+  "Several people signed in from one private network address in the last 30 days. OneUptime counts them as one visitor, so one person's failed sign-ins can lock the others out.": "За последние 30 дней несколько человек вошли с одного адреса частной сети. OneUptime считает их одним посетителем, поэтому неудачные попытки входа одного человека могут заблокировать остальных.",
+  "Usually something in front of OneUptime hands it every visitor from an address of its own:": "Обычно что-то перед OneUptime передаёт ему каждого посетителя со своего собственного адреса:",
+  "Docker Compose: when people come over IPv6, turn IPv6 on for OneUptime's network in {{file}}.": "Docker Compose: если люди приходят по IPv6, включите IPv6 для сети OneUptime в {{file}}.",
+  "Docker Compose behind a proxy of your own: make the proxy the only way in, then set {{hops}}. With the proxy on the same server, publish OneUptime's ports on {{loopback}} only.": "Docker Compose за вашим собственным прокси: сделайте прокси единственным входом, затем задайте {{hops}}. Если прокси работает на том же сервере, публикуйте порты OneUptime только на {{loopback}}.",
+  "Kubernetes: set {{setting}} in the Helm chart's values.": "Kubernetes: задайте {{setting}} в значениях Helm-чарта.",
+  "Nothing needs to change if these people share one computer or one VPN.": "Ничего менять не нужно, если эти люди пользуются одним компьютером или одним VPN.",
+  "{{count}} people": "Человек: {{count}}",
+  "{{count}} people_one": "{{count}} человек",
+  "Docker Compose guide": "Руководство по Docker Compose",
+  "Kubernetes guide": "Руководство по Kubernetes"
 }

@@ -186,7 +186,7 @@ OneUptime は、HTTPS を追加する 2 つの方法のどちらかを選ぶま�
 :::steps
 #### ドメインをサーバーに向ける
 
-ドメインの DNS `A` レコード (IPv6 の場合は `AAAA`) を作成し、値にサーバーの公開 IP アドレスを設定します。
+ドメインの DNS `A` レコード (IPv6 の場合は `AAAA`) を作成し、値にサーバーの公開 IP アドレスを設定します。`AAAA` レコードを作る場合は、OneUptime の IPv6 もオンにしてください ([訪問者のアドレス](#訪問者のアドレス)を参照)。
 
 #### 証明書の取得をオンにする
 
@@ -213,16 +213,16 @@ npm start
 
 ### 独自のリバースプロキシを使う
 
-この手順では、OneUptime と同じサーバーでプロキシを実行します。プロキシが別のマシンで動いている場合は最初の手順を飛ばし、このサーバーのポート 80 にプロキシを向けてください。
+この手順では、OneUptime と同じサーバーでプロキシを実行します。プロキシが別のマシンで動いている場合は最初の手順を飛ばし、このサーバーのポート 80 にプロキシを向けたうえで、クラウドプロバイダーのファイアウォールでポート 80 と 443 にはプロキシだけが届くようにしてください。プロキシを通らずに OneUptime に届いた訪問者は、OneUptime が自分を数えるアドレスを選べてしまいます。
 
 :::steps
 #### ingress をポート 80 と 443 から移す
 
-プロキシがポート 80 と 443 を使うので、ingress を別のポートに移します。プローブと Runner はホストのネットワークを使い、`http://localhost` 経由で OneUptime に到達するため、一緒に移ります。
+プロキシがポート 80 と 443 を使うので、ingress を別のポートに移し、このサーバーのループバックアドレス `127.0.0.1` だけで公開して、訪問者がプロキシを通してしか OneUptime に届かないようにします。プローブと Runner はホストのネットワークを使い、`http://localhost` 経由で OneUptime に到達するため、一緒に移ります。
 
 ```ini title="config.env"
-ONEUPTIME_HTTP_PORT=8080
-STATUS_PAGE_HTTPS_PORT=8443
+ONEUPTIME_HTTP_PORT=127.0.0.1:8080
+STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 GLOBAL_PROBE_1_ONEUPTIME_URL=http://localhost:8080
 ONEUPTIME_RUNNER_ONEUPTIME_URL=http://localhost:8080
 ```
@@ -315,6 +315,48 @@ server {
 > [!NOTE]
 > 独自のプロキシの背後では、テレメトリを OTLP/HTTP (`/otlp`) で送信してください。gRPC による OTLP が OneUptime に届くのは、OneUptime 自身の ingress が TLS を終端する場合 (`PROVISION_SSL=true`) だけです。
 
+## 訪問者のアドレス
+
+OneUptime は、訪問者が接続してくるアドレスでそれぞれの訪問者を数えます。サインインの制限、そのほかのアドレスごとの制限、ステータスページとダッシュボードの IP 許可リストは、どれもこのアドレスを使います。次の 2 つの構成では、このアドレスを訪問者自身のものにするための設定が必要です。
+
+| 構成 | 設定 |
+| --- | --- |
+| IPv6 で OneUptime にアクセスする人がいる (たとえば `AAAA` レコード経由) | `docker-compose.override.yml` で OneUptime のネットワークの IPv6 をオン |
+| OneUptime の前に独自のリバースプロキシがある | `TRUSTED_PROXY_HOPS=2` と、`127.0.0.1` で公開した ingress ([独自のリバースプロキシを使う](#独自のリバースプロキシを使う)を参照) |
+
+OneUptime のネットワークで IPv6 がオンになっていないと、Docker は IPv6 で来た訪問者をすべて自分の 1 つのアドレスから OneUptime に渡すため、OneUptime は全員を 1 人の訪問者として数えます。その結果、1 人のサインイン失敗によって他の人が締め出されることがあります。IPv6 をオンにするには Docker Engine 27 以降が必要です (`docker version` で確認できます)。
+
+:::steps
+### IPv6 をオンにする
+
+`docker-compose.override.yml` を `docker-compose.yml` の隣に作成するか、すでにあるファイルに次を追加します。`npm start` と `npm run update` はこのファイルを読み込みます。
+
+```yaml title="docker-compose.override.yml"
+networks:
+  oneuptime:
+    enable_ipv6: true
+```
+
+### OneUptime を再起動する
+
+```bash
+npm stop
+npm start
+```
+
+OneUptime がいったん止まり、ネットワークの IPv6 がオンになった状態で再び起動します。データはそのまま残ります。自分のコンテナー (リバースプロキシなど) がつながっているネットワークは Docker が削除できないため、先に OneUptime のネットワークから切り離し、あとでつなぎ直してください。`npm start` が `has active endpoints` で止まった場合は、切り離してから `npm stop` と `npm start` をもう一度実行します。
+
+### ネットワークを確認する
+
+```bash
+docker network ls --quiet --filter name=_oneuptime | xargs docker network inspect | grep EnableIPv6
+```
+
+`"EnableIPv6": true,` と表示されます。
+:::
+
+複数の人が同じプライベートネットワークアドレスからサインインしている場合は、Admin Dashboard の **OneUptime の正常性** ページがそのことと、それを変える設定を知らせます。
+
 ## 本番環境のチェックリスト
 
 Docker Compose は 1 台のサーバーで各サービスを 1 つずつ実行するため、小規模なチームやホームラボに向いています。本番で使う前に、このリストを確認してください。
@@ -325,6 +367,7 @@ Docker Compose は 1 台のサーバーで各サービスを 1 つずつ実行�
 | **HTTPS** | OneUptime に HTTPS でアクセスでき、`HTTP_PROTOCOL=https` が設定されている。 [HTTPS を設定する](#https-を設定する) を参照してください。 |
 | **サインアップ** | チームのアカウントがそろったら、Admin Dashboard の **設定 > 認証** で **サインアップを許可** をオフにする。 |
 | **ファイアウォール** | インターネットに開いているのはポート 80 と 443 (と SSH) だけ。OneUptime は PostgreSQL のポート 5400 を `127.0.0.1` だけで公開します。自分で公開するほかのポートは、クラウドプロバイダーのファイアウォールで閉じてください。`ufw` のルールは Docker が公開するポートには適用されません。 |
+| **訪問者のアドレス** | Admin Dashboard の **OneUptime の正常性** ページが、複数の人が 1 つのアドレスからサインインしていると知らせていない。[訪問者のアドレス](#訪問者のアドレス)を参照。 |
 | **バックアップ** | PostgreSQL を毎日バックアップし、コピーをサーバーの外に置く。 [バックアップと復元](#バックアップと復元) を参照してください。 |
 | **メール** | OneUptime が招待と通知を送れるよう、Admin Dashboard の **設定 > 通知 > メール** でメールサーバーを設定する。 [SMTP](/docs/emails/smtp) を参照してください。 |
 | **ディスク** | 空き容量を監視する。ClickHouse は保持するテレメトリに応じて大きくなります ( [サイジングとキャパシティプランニング](/docs/installation/sizing) を参照)。各コンテナーのログは 1000 MB が上限です。 |
