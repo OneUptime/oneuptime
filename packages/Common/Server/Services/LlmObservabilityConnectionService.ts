@@ -48,7 +48,9 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-  public static getDefinitionOrThrow(provider: unknown): LlmConnectionDefinition {
+  public static getDefinitionOrThrow(
+    provider: unknown,
+  ): LlmConnectionDefinition {
     const definition: LlmConnectionDefinition | undefined =
       isLlmConnectionProvider(provider)
         ? getLlmConnectionDefinition(provider)
@@ -384,13 +386,12 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (connection.serviceId) {
-      const existing: TelemetryService | null = await ServiceService.findOneById(
-        {
+      const existing: TelemetryService | null =
+        await ServiceService.findOneById({
           id: connection.serviceId,
           select: { _id: true, name: true },
           props: { isRoot: true },
-        },
-      );
+        });
 
       if (existing && existing.name) {
         return { serviceId: existing.id!, serviceName: existing.name };

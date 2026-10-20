@@ -105,7 +105,11 @@ export default class AnthropicAdminClient {
     };
   }
 
-  private async get(path: string, query: string, step: string): Promise<JSONObject> {
+  private async get(
+    path: string,
+    query: string,
+    step: string,
+  ): Promise<JSONObject> {
     this.requestCount++;
 
     return await LlmProviderHttp.requestJson({

@@ -163,8 +163,7 @@ export const LlmConnectionCatalog: Array<LlmConnectionDefinition> = [
     kind: LlmConnectionKind.ProviderAccount,
     title: "Anthropic",
     description: "Usage and cost of your Claude API organization.",
-    summary:
-      "Tokens and cost by day, model, workspace, API key and person.",
+    summary: "Tokens and cost by day, model, workspace, API key and person.",
     hint: "Create an admin key in the Claude Console: Settings, Admin keys. Only organization admins can create one.",
     icon: IconProp.ChatBubbleOvalLeftEllipsis,
     genAiProviderName: "anthropic",
@@ -190,7 +189,8 @@ export const LlmConnectionCatalog: Array<LlmConnectionDefinition> = [
     provider: LlmConnectionProvider.AzureOpenAI,
     kind: LlmConnectionKind.ProviderAccount,
     title: "Azure OpenAI and Microsoft Foundry",
-    description: "Usage of every Azure OpenAI and Foundry resource in a subscription.",
+    description:
+      "Usage of every Azure OpenAI and Foundry resource in a subscription.",
     summary:
       "Tokens and requests by day, resource and deployment, with an estimated cost.",
     hint: "Register an app in Microsoft Entra ID and give it the Monitoring Reader role on the subscription.",
@@ -305,7 +305,8 @@ export const LlmConnectionCatalog: Array<LlmConnectionDefinition> = [
     kind: LlmConnectionKind.CompanyTool,
     title: "Claude Enterprise",
     description: "What your people ask Claude on claude.ai.",
-    summary: "Every chat by person: what they asked Claude and what it answered.",
+    summary:
+      "Every chat by person: what they asked Claude and what it answered.",
     hint: "The primary owner turns on the Compliance API in claude.ai (Organization settings, API) and creates a key there with the read:compliance_user_data scope.",
     icon: IconProp.ChatBubbleLeftRight,
     genAiProviderName: "anthropic",

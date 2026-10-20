@@ -22,7 +22,8 @@ import logger from "../Logger";
  * credentials are read by the job itself, never put on the queue.
  */
 
-export const LLM_CONNECTION_PULL_JOB: string = "LlmObservability:PullConnection";
+export const LLM_CONNECTION_PULL_JOB: string =
+  "LlmObservability:PullConnection";
 export const LLM_CONNECTION_PULL_JOB_TIMEOUT_MS: number = 9 * 60 * 1000;
 // Connections claimed in one tick; the rest wait for the next minute.
 const MAX_CONNECTIONS_PER_TICK: number = 100;
@@ -35,7 +36,10 @@ export default class LlmConnectionScheduler {
   }
 
   // Queue a read of one connection now. Its payload is the id only.
-  public static async enqueue(connectionId: ObjectID, now: Date): Promise<void> {
+  public static async enqueue(
+    connectionId: ObjectID,
+    now: Date,
+  ): Promise<void> {
     await Queue.addJob(
       QueueName.Worker,
       LlmConnectionScheduler.jobIdOf(connectionId, now),
@@ -48,7 +52,9 @@ export default class LlmConnectionScheduler {
     );
   }
 
-  public static async enqueueDueConnections(now: Date = new Date()): Promise<number> {
+  public static async enqueueDueConnections(
+    now: Date = new Date(),
+  ): Promise<number> {
     const due: Array<LlmObservabilityConnection> =
       await LlmObservabilityConnectionService.findBy({
         query: {
@@ -70,8 +76,8 @@ export default class LlmConnectionScheduler {
       }
 
       const interval: number =
-        getLlmConnectionDefinition(connection.provider)?.pullIntervalInMinutes ||
-        15;
+        getLlmConnectionDefinition(connection.provider)
+          ?.pullIntervalInMinutes || 15;
 
       try {
         /*

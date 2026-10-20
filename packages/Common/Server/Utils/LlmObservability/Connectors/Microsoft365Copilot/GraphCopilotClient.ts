@@ -180,7 +180,11 @@ export default class GraphCopilotClient {
     startTime: Date;
     endTime: Date;
   }): Promise<Array<JSONObject>> {
-    if (!data.userId || data.userId.includes("/") || data.userId.includes("?")) {
+    if (
+      !data.userId ||
+      data.userId.includes("/") ||
+      data.userId.includes("?")
+    ) {
       throw new BadDataException("Not a Microsoft Entra user id.");
     }
 

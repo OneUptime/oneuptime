@@ -128,10 +128,14 @@ export interface LlmCompanyToolConnector extends LlmConnectorBase {
   ): Promise<LlmChatFetchResult>;
 }
 
-export type LlmConnector = LlmProviderAccountConnector | LlmCompanyToolConnector;
+export type LlmConnector =
+  | LlmProviderAccountConnector
+  | LlmCompanyToolConnector;
 
 // Every secret value of a connection, for redacting what a failure says.
-export function getSecretValues(settings: LlmConnectionSettings): Array<string> {
+export function getSecretValues(
+  settings: LlmConnectionSettings,
+): Array<string> {
   const values: Array<string> = [];
 
   for (const key of Object.keys(settings.secrets || {})) {

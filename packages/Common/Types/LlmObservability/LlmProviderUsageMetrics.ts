@@ -28,7 +28,8 @@
  * Isomorphic: the server writes them, and the dashboard reads them.
  */
 
-export const LLM_PROVIDER_COST_METRIC_NAME: string = "oneuptime.llm.provider.cost";
+export const LLM_PROVIDER_COST_METRIC_NAME: string =
+  "oneuptime.llm.provider.cost";
 export const LLM_PROVIDER_TOKENS_METRIC_NAME: string =
   "oneuptime.llm.provider.tokens";
 export const LLM_PROVIDER_REQUESTS_METRIC_NAME: string =
@@ -41,7 +42,8 @@ export const LlmProviderUsageMetricNames: Array<string> = [
 ];
 
 // Which connection a point came from (stable across renames).
-export const LLM_CONNECTION_ID_ATTRIBUTE: string = "oneuptime.llm.connection.id";
+export const LLM_CONNECTION_ID_ATTRIBUTE: string =
+  "oneuptime.llm.connection.id";
 // The connection's name when the point was written, for charts.
 export const LLM_CONNECTION_NAME_ATTRIBUTE: string =
   "oneuptime.llm.connection.name";

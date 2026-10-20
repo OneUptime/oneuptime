@@ -32,7 +32,8 @@ import LlmProviderHttp, {
  * connection asks for a read scope only.
  */
 
-export const CLAUDE_COMPLIANCE_BASE_URL: string = "https://api.anthropic.com/v1";
+export const CLAUDE_COMPLIANCE_BASE_URL: string =
+  "https://api.anthropic.com/v1";
 const API_VERSION: string = "2023-06-01";
 const CHATS_PAGE_LIMIT: number = 100;
 const MESSAGES_PAGE_LIMIT: number = 100;
@@ -98,7 +99,11 @@ export default class ClaudeComplianceClient {
     };
   }
 
-  private async get(path: string, query: string, step: string): Promise<JSONObject> {
+  private async get(
+    path: string,
+    query: string,
+    step: string,
+  ): Promise<JSONObject> {
     this.requestCount++;
 
     return await LlmProviderHttp.requestJson({

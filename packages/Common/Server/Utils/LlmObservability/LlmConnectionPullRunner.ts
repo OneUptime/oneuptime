@@ -18,7 +18,10 @@ import { LlmConnectionFailureKind } from "../../../Types/LlmObservability/LlmCon
 import ObjectID from "../../../Types/ObjectID";
 import { LlmModelPrice } from "../../../Types/Telemetry/LlmCostCatalog";
 import { resolveTelemetryRetentionInDays } from "../../../Types/Telemetry/TelemetryRetentionConfig";
-import { DbJSONResponse, Results } from "../../Services/AnalyticsDatabaseService";
+import {
+  DbJSONResponse,
+  Results,
+} from "../../Services/AnalyticsDatabaseService";
 import LlmModelPriceService from "../../Services/LlmModelPriceService";
 import LlmObservabilityConnectionService, {
   Service as LlmObservabilityConnectionServiceClass,
@@ -110,7 +113,11 @@ export interface LlmConnectionPullDependencies {
   now?: (() => Date) | undefined;
 }
 
-export type LlmConnectionPullStatus = "success" | "partial" | "failed" | "skipped";
+export type LlmConnectionPullStatus =
+  | "success"
+  | "partial"
+  | "failed"
+  | "skipped";
 
 export interface LlmConnectionPullOutcome {
   status: LlmConnectionPullStatus;
@@ -119,7 +126,9 @@ export interface LlmConnectionPullOutcome {
 }
 
 export default class LlmConnectionPullRunner {
-  public static async isTelemetryAllowed(projectId: ObjectID): Promise<boolean> {
+  public static async isTelemetryAllowed(
+    projectId: ObjectID,
+  ): Promise<boolean> {
     if (TelemetryIngestionDisabled.isDisabled()) {
       return false;
     }
@@ -247,22 +256,24 @@ export default class LlmConnectionPullRunner {
       const batch: Array<string> = data.spanIds.slice(offset, offset + 1000);
       const statement: Statement = new Statement();
       statement.append(`SELECT spanId FROM ${SPAN_TABLE}`);
-      statement.append(SQL` WHERE projectId = ${{
-        type: TableColumnType.ObjectID,
-        value: data.projectId,
-      }} AND primaryEntityId = ${{
-        type: TableColumnType.ObjectID,
-        value: data.serviceId,
-      }} AND startTime >= ${{
-        type: TableColumnType.Date,
-        value: data.from,
-      }} AND startTime <= ${{
-        type: TableColumnType.Date,
-        value: data.to,
-      }} AND spanId IN ${{
-        type: TableColumnType.ArrayText,
-        value: batch,
-      }}`);
+      statement.append(
+        SQL` WHERE projectId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.projectId,
+        }} AND primaryEntityId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.serviceId,
+        }} AND startTime >= ${{
+          type: TableColumnType.Date,
+          value: data.from,
+        }} AND startTime <= ${{
+          type: TableColumnType.Date,
+          value: data.to,
+        }} AND spanId IN ${{
+          type: TableColumnType.ArrayText,
+          value: batch,
+        }}`,
+      );
       statement.append(DEDUPE_QUERY_SETTINGS);
 
       const result: Results = await SpanService.executeQuery(statement);
@@ -314,7 +325,9 @@ export default class LlmConnectionPullRunner {
         connection.provider,
       );
 
-    if (!(await LlmConnectionPullRunner.isTelemetryAllowed(connection.projectId))) {
+    if (
+      !(await LlmConnectionPullRunner.isTelemetryAllowed(connection.projectId))
+    ) {
       const message: string =
         "AI connections are not part of this project's plan, or telemetry ingestion is turned off.";
 
@@ -336,16 +349,18 @@ export default class LlmConnectionPullRunner {
         );
 
       settings =
-        await LlmObservabilityConnectionService.getConnectorSettings(connection);
+        await LlmObservabilityConnectionService.getConnectorSettings(
+          connection,
+        );
 
       const connector: LlmConnector = LlmConnectorRegistry.getConnector(
         definition.provider,
       );
       const transport: LlmConnectorTransport =
-        dependencies.transport || DataSourceHttpFetch.fetch.bind(DataSourceHttpFetch);
-      const state: LlmConnectionPullState = LlmConnectionPullRunner.readPullState(
-        connection.pullState,
-      );
+        dependencies.transport ||
+        DataSourceHttpFetch.fetch.bind(DataSourceHttpFetch);
+      const state: LlmConnectionPullState =
+        LlmConnectionPullRunner.readPullState(connection.pullState);
 
       let outcome: LlmConnectionPullOutcome;
       let nextState: LlmConnectionPullState;
@@ -359,7 +374,12 @@ export default class LlmConnectionPullRunner {
         const fetched: LlmUsageFetchResult = await connector.fetchUsage(
           settings,
           window,
-          { transport, now: () => now },
+          {
+            transport,
+            now: () => {
+              return now;
+            },
+          },
         );
 
         const metadata: TelemetryServiceMetadata =
@@ -413,17 +433,22 @@ export default class LlmConnectionPullRunner {
           },
         };
       } else {
-        const fetched: LlmChatFetchResult = await connector.fetchChats(settings, {
-          transport,
-          now: () => now,
-          state,
-          backfillStart: new Date(
-            now.getTime() - definition.backfillDays * 24 * 60 * 60 * 1000,
-          ),
-          windowEnd: new Date(now.getTime() - LLM_CHAT_READ_DELAY_MS),
-          maxRequests: LLM_CHAT_READ_MAX_REQUESTS,
-          maxDurationMs: LLM_CHAT_READ_MAX_DURATION_MS,
-        });
+        const fetched: LlmChatFetchResult = await connector.fetchChats(
+          settings,
+          {
+            transport,
+            now: () => {
+              return now;
+            },
+            state,
+            backfillStart: new Date(
+              now.getTime() - definition.backfillDays * 24 * 60 * 60 * 1000,
+            ),
+            windowEnd: new Date(now.getTime() - LLM_CHAT_READ_DELAY_MS),
+            maxRequests: LLM_CHAT_READ_MAX_REQUESTS,
+            maxDurationMs: LLM_CHAT_READ_MAX_DURATION_MS,
+          },
+        );
 
         const imported: { turns: number; conversations: number } =
           await LlmConnectionPullRunner.importTurns({
@@ -520,19 +545,22 @@ export default class LlmConnectionPullRunner {
     const times: Array<number> = data.turns.map((turn: LlmChatTurn): number => {
       return turn.startedAt.getTime();
     });
-    const existing: Set<string> = await LlmConnectionPullRunner.findExistingSpanIds({
-      projectId: data.connection.projectId!,
-      serviceId: data.serviceId,
-      spanIds: data.turns.map((turn: LlmChatTurn): string => {
-        return LlmChatSpanPayload.spanIdOf(connectionId, turn.turnId);
-      }),
-      from: new Date(Math.min(...times) - 24 * 60 * 60 * 1000),
-      to: new Date(Math.max(...times) + 24 * 60 * 60 * 1000),
-    });
+    const existing: Set<string> =
+      await LlmConnectionPullRunner.findExistingSpanIds({
+        projectId: data.connection.projectId!,
+        serviceId: data.serviceId,
+        spanIds: data.turns.map((turn: LlmChatTurn): string => {
+          return LlmChatSpanPayload.spanIdOf(connectionId, turn.turnId);
+        }),
+        from: new Date(Math.min(...times) - 24 * 60 * 60 * 1000),
+        to: new Date(Math.max(...times) + 24 * 60 * 60 * 1000),
+      });
 
     const fresh: Array<LlmChatTurn> = data.turns.filter(
       (turn: LlmChatTurn): boolean => {
-        return !existing.has(LlmChatSpanPayload.spanIdOf(connectionId, turn.turnId));
+        return !existing.has(
+          LlmChatSpanPayload.spanIdOf(connectionId, turn.turnId),
+        );
       },
     );
 

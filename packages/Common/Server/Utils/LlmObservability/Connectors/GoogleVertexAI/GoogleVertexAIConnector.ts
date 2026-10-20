@@ -182,8 +182,14 @@ export default class GoogleVertexAIConnector
   ): Promise<LlmConnectionTestResult> {
     const startedAt: number = Date.now();
     const now: Date = options.now ? options.now() : new Date();
-    const endDay: Date = LlmUsageDays.addDays(LlmUsageDays.startOfUtcDay(now), 1);
-    const startDay: Date = LlmUsageDays.addDays(endDay, -LLM_CONNECTION_TEST_DAYS);
+    const endDay: Date = LlmUsageDays.addDays(
+      LlmUsageDays.startOfUtcDay(now),
+      1,
+    );
+    const startDay: Date = LlmUsageDays.addDays(
+      endDay,
+      -LLM_CONNECTION_TEST_DAYS,
+    );
 
     try {
       this.validateSettings(settings);

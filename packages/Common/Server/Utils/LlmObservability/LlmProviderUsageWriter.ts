@@ -31,7 +31,10 @@ import ObjectID from "../../../Types/ObjectID";
 import { LlmModelPrice } from "../../../Types/Telemetry/LlmCostCatalog";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import { keyForService } from "../../../Utils/Telemetry/EntityKey";
-import { DbJSONResponse, Results } from "../../Services/AnalyticsDatabaseService";
+import {
+  DbJSONResponse,
+  Results,
+} from "../../Services/AnalyticsDatabaseService";
 import MetricService from "../../Services/MetricService";
 import { getQuerySettings } from "../AnalyticsDatabase/QuerySettingsHelper";
 import { SQL, Statement } from "../AnalyticsDatabase/Statement";
@@ -187,7 +190,12 @@ export default class LlmProviderUsageWriter {
       }
 
       if (record.requests !== null && record.requests !== undefined) {
-        add(record.day, LLM_PROVIDER_REQUESTS_METRIC_NAME, base, record.requests);
+        add(
+          record.day,
+          LLM_PROVIDER_REQUESTS_METRIC_NAME,
+          base,
+          record.requests,
+        );
       }
 
       if (record.costUsd !== null && record.costUsd !== undefined) {
@@ -338,10 +346,12 @@ export default class LlmProviderUsageWriter {
     );
 
     LlmProviderSeriesAttributeKeys.forEach((key: string, index: number) => {
-      statement.append(SQL`, attributes[${{
-        type: TableColumnType.Text,
-        value: key,
-      }}]`);
+      statement.append(
+        SQL`, attributes[${{
+          type: TableColumnType.Text,
+          value: key,
+        }}]`,
+      );
       statement.append(` AS attribute${index}`);
     });
 

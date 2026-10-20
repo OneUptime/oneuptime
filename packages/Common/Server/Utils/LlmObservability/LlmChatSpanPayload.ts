@@ -89,8 +89,10 @@ export default class LlmChatSpanPayload {
       return text;
     }
 
-    return text.substring(0, Math.max(0, limit - SHORTENED_MARKER.length)) +
-      SHORTENED_MARKER;
+    return (
+      text.substring(0, Math.max(0, limit - SHORTENED_MARKER.length)) +
+      SHORTENED_MARKER
+    );
   }
 
   /*
@@ -100,32 +102,34 @@ export default class LlmChatSpanPayload {
    * text part naming it: its content is never copied.
    */
   public static toConventionMessage(message: LlmChatMessage): JSONObject {
-    const parts: JSONArray = message.parts.map((part: LlmChatPart): JSONObject => {
-      const text: string = LlmChatSpanPayload.shorten(
-        part.text || "",
-        LLM_CHAT_MAX_PART_LENGTH,
-      );
+    const parts: JSONArray = message.parts.map(
+      (part: LlmChatPart): JSONObject => {
+        const text: string = LlmChatSpanPayload.shorten(
+          part.text || "",
+          LLM_CHAT_MAX_PART_LENGTH,
+        );
 
-      switch (part.type) {
-        case LlmChatPartType.ToolCall:
-          return {
-            type: "tool_call",
-            id: part.toolCallId || "",
-            name: part.toolName || "tool",
-            arguments: text,
-          };
-        case LlmChatPartType.ToolResult:
-          return {
-            type: "tool_call_response",
-            id: part.toolCallId || "",
-            response: text,
-          };
-        case LlmChatPartType.File:
-          return { type: "text", content: `[file: ${text}]` };
-        default:
-          return { type: "text", content: text };
-      }
-    });
+        switch (part.type) {
+          case LlmChatPartType.ToolCall:
+            return {
+              type: "tool_call",
+              id: part.toolCallId || "",
+              name: part.toolName || "tool",
+              arguments: text,
+            };
+          case LlmChatPartType.ToolResult:
+            return {
+              type: "tool_call_response",
+              id: part.toolCallId || "",
+              response: text,
+            };
+          case LlmChatPartType.File:
+            return { type: "text", content: `[file: ${text}]` };
+          default:
+            return { type: "text", content: text };
+        }
+      },
+    );
 
     return {
       role: message.role === LlmChatRole.Assistant ? "assistant" : "user",
@@ -142,18 +146,9 @@ export default class LlmChatSpanPayload {
     let partLimit: number = LLM_CHAT_MAX_PART_LENGTH;
 
     for (let attempt: number = 0; attempt < 8; attempt++) {
-      const json: string = JSON.stringify(
-        messages.map((message: LlmChatMessage): JSONObject => {
-          return LlmChatSpanPayload.toConventionMessage({
-            ...message,
-            parts: message.parts.map((part: LlmChatPart): LlmChatPart => {
-              return {
-                ...part,
-                text: LlmChatSpanPayload.shorten(part.text || "", partLimit),
-              };
-            }),
-          });
-        }),
+      const json: string = LlmChatSpanPayload.messagesJsonWithin(
+        messages,
+        partLimit,
       );
 
       if (json.length <= LLM_CHAT_MAX_MESSAGES_LENGTH) {
@@ -165,7 +160,8 @@ export default class LlmChatSpanPayload {
 
     return JSON.stringify([
       {
-        role: messages[0]?.role === LlmChatRole.Assistant ? "assistant" : "user",
+        role:
+          messages[0]?.role === LlmChatRole.Assistant ? "assistant" : "user",
         parts: [
           {
             type: "text",
@@ -174,6 +170,26 @@ export default class LlmChatSpanPayload {
         ],
       },
     ]);
+  }
+
+  // The messages as JSON text, each part cut to `partLimit` characters.
+  private static messagesJsonWithin(
+    messages: Array<LlmChatMessage>,
+    partLimit: number,
+  ): string {
+    return JSON.stringify(
+      messages.map((message: LlmChatMessage): JSONObject => {
+        return LlmChatSpanPayload.toConventionMessage({
+          ...message,
+          parts: message.parts.map((part: LlmChatPart): LlmChatPart => {
+            return {
+              ...part,
+              text: LlmChatSpanPayload.shorten(part.text || "", partLimit),
+            };
+          }),
+        });
+      }),
+    );
   }
 
   private static stringAttribute(key: string, value: string): JSONObject {
@@ -219,7 +235,9 @@ export default class LlmChatSpanPayload {
     }
 
     if (turn.personId) {
-      attributes.push(LlmChatSpanPayload.stringAttribute("user.id", turn.personId));
+      attributes.push(
+        LlmChatSpanPayload.stringAttribute("user.id", turn.personId),
+      );
     }
 
     if (turn.app) {

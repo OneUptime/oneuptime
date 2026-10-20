@@ -84,7 +84,9 @@ export default class LlmProviderSpend {
   }
 
   @CaptureSpan()
-  public static async getCostInUSD(scope: LlmProviderSpendScope): Promise<number> {
+  public static async getCostInUSD(
+    scope: LlmProviderSpendScope,
+  ): Promise<number> {
     const result: AggregatedResult = await MetricService.aggregateBy(
       LlmProviderSpend.buildAggregateBy(scope),
     );

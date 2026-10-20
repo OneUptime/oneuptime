@@ -74,7 +74,11 @@ export default class LlmObservabilityConnectionAPI extends BaseAPI<
           let settings: LlmConnectionSettings;
 
           try {
-            settings = await this.readSettingsToTest({ body, projectId, props });
+            settings = await this.readSettingsToTest({
+              body,
+              projectId,
+              props,
+            });
           } catch (error) {
             /*
              * Settings the form could still fix (a key of the wrong kind, a
@@ -97,21 +101,20 @@ export default class LlmObservabilityConnectionAPI extends BaseAPI<
             );
           }
 
-          const result: LlmConnectionTestResult = await LlmConnectorRegistry.getConnector(
-            settings.provider,
-          )
-            .testConnection(settings, {
-              transport: DataSourceHttpFetch.fetch.bind(DataSourceHttpFetch),
-            })
-            .catch((error: unknown): LlmConnectionTestResult => {
-              // testConnection never throws; this is the belt to its braces.
-              return LlmConnectorTestResults.fromError({
-                provider: settings.provider,
-                error,
-                secretValues: getSecretValues(settings),
-                durationMs: 0,
+          const result: LlmConnectionTestResult =
+            await LlmConnectorRegistry.getConnector(settings.provider)
+              .testConnection(settings, {
+                transport: DataSourceHttpFetch.fetch.bind(DataSourceHttpFetch),
+              })
+              .catch((error: unknown): LlmConnectionTestResult => {
+                // testConnection never throws; this is the belt to its braces.
+                return LlmConnectorTestResults.fromError({
+                  provider: settings.provider,
+                  error,
+                  secretValues: getSecretValues(settings),
+                  durationMs: 0,
+                });
               });
-            });
 
           return Response.sendJsonObjectResponse(
             req,
@@ -175,7 +178,8 @@ export default class LlmObservabilityConnectionAPI extends BaseAPI<
   private assertCanOperate(props: DatabaseCommonInteractionProps): void {
     CommonAPI.assertPermittedInProject({
       databaseProps: props,
-      allowedPermissions: new LlmObservabilityConnection().getUpdatePermissions(),
+      allowedPermissions:
+        new LlmObservabilityConnection().getUpdatePermissions(),
       errorMessage:
         "Project owners and project administrators can test and read AI connections.",
     });

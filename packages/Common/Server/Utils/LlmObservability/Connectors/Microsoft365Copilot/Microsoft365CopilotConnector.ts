@@ -1,6 +1,6 @@
 import {
-  removeHtmlMarkup,
   removeMarkupFromText,
+  replaceHtmlMarkup,
 } from "../../../../../Types/HtmlMarkup";
 import { JSONObject } from "../../../../../Types/JSON";
 import { LlmConnectionKind } from "../../../../../Types/LlmObservability/LlmConnectionCatalog";
@@ -76,6 +76,31 @@ const APP_NAMES: Record<string, string> = {
 
 const ADAPTIVE_CARD_TYPE: string = "application/vnd.microsoft.card.adaptive";
 
+/*
+ * How Copilot's HTML reads as text: these tags end a line wherever they
+ * are (a break, a paragraph, a block, a list as a whole)...
+ */
+const LINE_ENDING_TAGS: Set<string> = new Set<string>([
+  "br",
+  "p",
+  "div",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "blockquote",
+  "pre",
+  "ul",
+  "ol",
+  "table",
+]);
+// ...these start one (a list item, a table row)...
+const LINE_STARTING_TAGS: Set<string> = new Set<string>(["li", "tr"]);
+// ...and these are a table's cells, set apart by a space.
+const CELL_TAGS: Set<string> = new Set<string>(["td", "th"]);
+
 export default class Microsoft365CopilotConnector
   implements LlmCompanyToolConnector
 {
@@ -106,7 +131,9 @@ export default class Microsoft365CopilotConnector
       tenantId: readSetting(settings.config, "tenantId"),
       clientId: readSetting(settings.config, "clientId"),
       clientSecret: readSetting(settings.secrets, "clientSecret"),
-      cloud: EntraTokenClient.resolveCloud(readSetting(settings.config, "cloud")),
+      cloud: EntraTokenClient.resolveCloud(
+        readSetting(settings.config, "cloud"),
+      ),
       transport: options.transport,
       requestTimeoutInMs: options.requestTimeoutInMs,
     });
@@ -115,6 +142,76 @@ export default class Microsoft365CopilotConnector
   public static appNameOf(appClass: string): string {
     const last: string = (appClass || "").split(".").pop() || "";
     return APP_NAMES[last.toLowerCase()] || last;
+  }
+
+  // A tag's name as written ("<br/>" -> "br", "</P>" -> "p"); "" for a comment.
+  public static tagNameOf(markup: string): string {
+    let index: number = markup.charAt(1) === "/" ? 2 : 1;
+    let name: string = "";
+
+    while (index < markup.length) {
+      const code: number = markup.charCodeAt(index);
+      const isNameCharacter: boolean =
+        (code >= 0x30 && code <= 0x39) ||
+        (code >= 0x41 && code <= 0x5a) ||
+        (code >= 0x61 && code <= 0x7a);
+
+      if (!isNameCharacter) {
+        break;
+      }
+
+      name += markup.charAt(index);
+      index++;
+    }
+
+    return name.toLowerCase();
+  }
+
+  /*
+   * Copilot's HTML as lines of text: paragraphs and line breaks end a line,
+   * list items and table rows start one, cells are set apart, every other
+   * tag goes, script and style go whole, and blank lines are kept one at a
+   * time.
+   */
+  public static readHtmlText(html: string): string {
+    const text: string = replaceHtmlMarkup(
+      html,
+      (markup: string): string => {
+        const name: string = Microsoft365CopilotConnector.tagNameOf(markup);
+        const isEndTag: boolean = markup.charAt(1) === "/";
+
+        if (LINE_ENDING_TAGS.has(name)) {
+          return "\n";
+        }
+
+        if (!isEndTag && LINE_STARTING_TAGS.has(name)) {
+          return "\n";
+        }
+
+        if (!isEndTag && CELL_TAGS.has(name)) {
+          return " ";
+        }
+
+        return "";
+      },
+      { rawTextElements: true },
+    );
+
+    const lines: Array<string> = [];
+
+    for (const rawLine of text.split("\n")) {
+      const line: string = rawLine.trim();
+
+      if (line || (lines.length > 0 && lines[lines.length - 1] !== "")) {
+        lines.push(line);
+      }
+    }
+
+    while (lines.length > 0 && lines[lines.length - 1] === "") {
+      lines.pop();
+    }
+
+    return lines.join("\n");
   }
 
   // The few entities Copilot's HTML uses, read back as the characters they are.
@@ -195,13 +292,16 @@ export default class Microsoft365CopilotConnector
   public static readInteractionText(interaction: JSONObject): string {
     const body: JSONObject = readObject(interaction["body"]);
     const content: string = readText(body["content"]);
-    const isHtml: boolean = readText(body["contentType"]).toLowerCase() === "html";
+    const isHtml: boolean =
+      readText(body["contentType"]).toLowerCase() === "html";
     /*
      * Plain text still carries <attachment> placeholders; it loses only real
      * tags, so a "<" a person typed ("latency < 200ms") stays.
      */
     const text: string = Microsoft365CopilotConnector.decodeEntities(
-      isHtml ? removeHtmlMarkup(content) : removeMarkupFromText(content),
+      isHtml
+        ? Microsoft365CopilotConnector.readHtmlText(content)
+        : removeMarkupFromText(content),
     ).trim();
 
     if (text) {
@@ -212,9 +312,10 @@ export default class Microsoft365CopilotConnector
       const attachment: JSONObject = readObject(rawAttachment);
 
       if (readText(attachment["contentType"]) === ADAPTIVE_CARD_TYPE) {
-        const cardText: string = Microsoft365CopilotConnector.readAdaptiveCardText(
-          attachment["content"],
-        );
+        const cardText: string =
+          Microsoft365CopilotConnector.readAdaptiveCardText(
+            attachment["content"],
+          );
 
         if (cardText) {
           return cardText;
@@ -230,14 +331,17 @@ export default class Microsoft365CopilotConnector
     role: LlmChatRole,
   ): LlmChatMessage | null {
     const id: string = readText(interaction["id"]);
-    const createdAt: number = Date.parse(readText(interaction["createdDateTime"]));
+    const createdAt: number = Date.parse(
+      readText(interaction["createdDateTime"]),
+    );
 
     if (!id || !Number.isFinite(createdAt)) {
       return null;
     }
 
     const parts: Array<LlmChatPart> = [];
-    const text: string = Microsoft365CopilotConnector.readInteractionText(interaction);
+    const text: string =
+      Microsoft365CopilotConnector.readInteractionText(interaction);
 
     if (text) {
       parts.push({ type: LlmChatPartType.Text, text });
@@ -288,10 +392,11 @@ export default class Microsoft365CopilotConnector
       for (const interaction of group) {
         const isPrompt: boolean =
           readText(interaction["interactionType"]) === "userPrompt";
-        const message: LlmChatMessage | null = Microsoft365CopilotConnector.toMessage(
-          interaction,
-          isPrompt ? LlmChatRole.User : LlmChatRole.Assistant,
-        );
+        const message: LlmChatMessage | null =
+          Microsoft365CopilotConnector.toMessage(
+            interaction,
+            isPrompt ? LlmChatRole.User : LlmChatRole.Assistant,
+          );
 
         if (message) {
           (isPrompt ? question : answer).push(message);
@@ -334,7 +439,9 @@ export default class Microsoft365CopilotConnector
         personId: data.person.id,
         personName: data.person.name,
         model: MICROSOFT_365_COPILOT_MODEL,
-        app: Microsoft365CopilotConnector.appNameOf(readText(sample["appClass"])),
+        app: Microsoft365CopilotConnector.appNameOf(
+          readText(sample["appClass"]),
+        ),
         startedAt: first.createdAt,
         endedAt: last.createdAt,
         question,
@@ -385,7 +492,9 @@ export default class Microsoft365CopilotConnector
       readSetting(settings.config, "groupId"),
     );
     const turns: Array<LlmChatTurn> = [];
-    let index: number = resuming ? Math.max(0, options.state.nextIndex || 0) : 0;
+    let index: number = resuming
+      ? Math.max(0, options.state.nextIndex || 0)
+      : 0;
 
     for (; index < people.length; index++) {
       if (
@@ -417,7 +526,11 @@ export default class Microsoft365CopilotConnector
       });
 
       turns.push(
-        ...Microsoft365CopilotConnector.buildTurns({ person, interactions, now }),
+        ...Microsoft365CopilotConnector.buildTurns({
+          person,
+          interactions,
+          now,
+        }),
       );
     }
 

@@ -39,7 +39,10 @@ export const AZURE_RESOURCE_API_VERSION: string = "2024-10-01";
 export const AZURE_METRICS_API_VERSION: string = "2023-10-01";
 
 // The resource kinds that serve models: Azure OpenAI and Foundry (AI Services).
-export const AZURE_MODEL_ACCOUNT_KINDS: Array<string> = ["openai", "aiservices"];
+export const AZURE_MODEL_ACCOUNT_KINDS: Array<string> = [
+  "openai",
+  "aiservices",
+];
 
 // Series per metric a request returns (Azure's default is 10).
 const METRICS_TOP: number = 500;
@@ -254,7 +257,9 @@ export default class AzureMonitorClient {
     return AzureMonitorClient.readMetricPoints(response);
   }
 
-  public static readMetricPoints(response: JSONObject): Array<AzureMetricPoint> {
+  public static readMetricPoints(
+    response: JSONObject,
+  ): Array<AzureMetricPoint> {
     const points: Array<AzureMetricPoint> = [];
 
     for (const rawMetric of readArray(response["value"])) {
@@ -281,7 +286,11 @@ export default class AzureMonitorClient {
           const total: number = Number(point["total"]);
           const time: number = Date.parse(readText(point["timeStamp"]));
 
-          if (!Number.isFinite(total) || total === 0 || !Number.isFinite(time)) {
+          if (
+            !Number.isFinite(total) ||
+            total === 0 ||
+            !Number.isFinite(time)
+          ) {
             continue;
           }
 
@@ -320,7 +329,9 @@ export default class AzureMonitorClient {
       id.includes("//") ||
       id.length > 1000
     ) {
-      throw new BadDataException(`Not an Azure resource id: ${id.substring(0, 100)}`);
+      throw new BadDataException(
+        `Not an Azure resource id: ${id.substring(0, 100)}`,
+      );
     }
   }
 }

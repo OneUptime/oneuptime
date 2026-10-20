@@ -105,7 +105,8 @@ export default class ClaudeEnterpriseConnector
       const type: string = readText(block["type"]);
 
       if (type === "text") {
-        const text: string = typeof block["text"] === "string" ? block["text"] : "";
+        const text: string =
+          typeof block["text"] === "string" ? block["text"] : "";
 
         if (text) {
           parts.push({ type: LlmChatPartType.Text, text });
@@ -291,12 +292,20 @@ export default class ClaudeEnterpriseConnector
           );
         }
 
-        if (updatedAt && (!lastDone || Date.parse(updatedAt) > Date.parse(lastDone))) {
+        if (
+          updatedAt &&
+          (!lastDone || Date.parse(updatedAt) > Date.parse(lastDone))
+        ) {
           lastDone = updatedAt;
         }
       }
 
-      if (!complete || !page.hasMore || !page.lastId || page.lastId === afterId) {
+      if (
+        !complete ||
+        !page.hasMore ||
+        !page.lastId ||
+        page.lastId === afterId
+      ) {
         break;
       }
 
@@ -326,7 +335,10 @@ export default class ClaudeEnterpriseConnector
 
     try {
       this.validateSettings(settings);
-      const client: ClaudeComplianceClient = this.createClient(settings, options);
+      const client: ClaudeComplianceClient = this.createClient(
+        settings,
+        options,
+      );
 
       // Counts only: a test never reads what anyone wrote.
       const page: ClaudeChatsPage = await client.listChats({

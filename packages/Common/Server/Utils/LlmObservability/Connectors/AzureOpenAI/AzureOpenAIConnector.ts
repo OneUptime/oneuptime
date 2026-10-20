@@ -81,7 +81,9 @@ export default class AzureOpenAIConnector
       tenantId: readSetting(settings.config, "tenantId"),
       clientId: readSetting(settings.config, "clientId"),
       subscriptionId: readSetting(settings.config, "subscriptionId"),
-      cloud: EntraTokenClient.resolveCloud(readSetting(settings.config, "cloud")),
+      cloud: EntraTokenClient.resolveCloud(
+        readSetting(settings.config, "cloud"),
+      ),
       clientSecret: readSetting(settings.secrets, "clientSecret"),
       transport: options.transport,
       requestTimeoutInMs: options.requestTimeoutInMs,
@@ -213,9 +215,7 @@ export default class AzureOpenAIConnector
     const records: Array<LlmUsageRecord> = [];
 
     for (const account of accounts.slice(0, MAX_ACCOUNTS)) {
-      records.push(
-        ...(await this.readAccount({ client, account, window })),
-      );
+      records.push(...(await this.readAccount({ client, account, window })));
     }
 
     return {
@@ -231,8 +231,14 @@ export default class AzureOpenAIConnector
   ): Promise<LlmConnectionTestResult> {
     const startedAt: number = Date.now();
     const now: Date = options.now ? options.now() : new Date();
-    const endDay: Date = LlmUsageDays.addDays(LlmUsageDays.startOfUtcDay(now), 1);
-    const startDay: Date = LlmUsageDays.addDays(endDay, -LLM_CONNECTION_TEST_DAYS);
+    const endDay: Date = LlmUsageDays.addDays(
+      LlmUsageDays.startOfUtcDay(now),
+      1,
+    );
+    const startDay: Date = LlmUsageDays.addDays(
+      endDay,
+      -LLM_CONNECTION_TEST_DAYS,
+    );
 
     try {
       this.validateSettings(settings);

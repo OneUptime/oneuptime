@@ -17,7 +17,12 @@ import {
 import LlmConnectorTestResults, {
   LLM_CONNECTION_TEST_DAYS,
 } from "../../LlmConnectorTestResults";
-import { readArray, readCount, readObject, readText } from "../../LlmProviderHttp";
+import {
+  readArray,
+  readCount,
+  readObject,
+  readText,
+} from "../../LlmProviderHttp";
 import LlmUsageDays from "../../LlmUsageDays";
 import AnthropicAdminClient, {
   AnthropicApiKeyInfo,
@@ -193,7 +198,9 @@ export default class AnthropicConnector implements LlmProviderAccountConnector {
           apiKey: row.apiKeyId ? key?.name || row.apiKeyId : "",
           // Every input token: uncached, read from and written to the cache.
           inputTokens:
-            row.uncachedInputTokens + row.cacheReadTokens + row.cacheWriteTokens,
+            row.uncachedInputTokens +
+            row.cacheReadTokens +
+            row.cacheWriteTokens,
           outputTokens: row.outputTokens,
           cacheReadTokens: row.cacheReadTokens,
           cacheWriteTokens: row.cacheWriteTokens,
@@ -263,8 +270,14 @@ export default class AnthropicConnector implements LlmProviderAccountConnector {
   ): Promise<LlmConnectionTestResult> {
     const startedAt: number = Date.now();
     const now: Date = options.now ? options.now() : new Date();
-    const endDay: Date = LlmUsageDays.addDays(LlmUsageDays.startOfUtcDay(now), 1);
-    const startDay: Date = LlmUsageDays.addDays(endDay, -LLM_CONNECTION_TEST_DAYS);
+    const endDay: Date = LlmUsageDays.addDays(
+      LlmUsageDays.startOfUtcDay(now),
+      1,
+    );
+    const startDay: Date = LlmUsageDays.addDays(
+      endDay,
+      -LLM_CONNECTION_TEST_DAYS,
+    );
 
     try {
       this.validateSettings(settings);

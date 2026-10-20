@@ -50,7 +50,9 @@ const MAX_REGIONS: number = 10;
 // Models read per Region.
 const MAX_MODELS_PER_REGION: number = 100;
 
-export default class AwsBedrockConnector implements LlmProviderAccountConnector {
+export default class AwsBedrockConnector
+  implements LlmProviderAccountConnector
+{
   public provider: LlmConnectionProvider = LlmConnectionProvider.AwsBedrock;
   public kind: LlmConnectionKind.ProviderAccount =
     LlmConnectionKind.ProviderAccount;
@@ -81,7 +83,9 @@ export default class AwsBedrockConnector implements LlmProviderAccountConnector 
     );
 
     if (regions.length === 0) {
-      throw new BadDataException("Name at least one AWS Region, such as us-east-1.");
+      throw new BadDataException(
+        "Name at least one AWS Region, such as us-east-1.",
+      );
     }
 
     if (regions.length > MAX_REGIONS) {
@@ -153,7 +157,11 @@ export default class AwsBedrockConnector implements LlmProviderAccountConnector 
       result.timestamps.forEach((timestamp: number, index: number) => {
         const value: number = result.values[index] || 0;
 
-        if (!Number.isFinite(timestamp) || !Number.isFinite(value) || value <= 0) {
+        if (
+          !Number.isFinite(timestamp) ||
+          !Number.isFinite(value) ||
+          value <= 0
+        ) {
           return;
         }
 
@@ -217,7 +225,11 @@ export default class AwsBedrockConnector implements LlmProviderAccountConnector 
     region: string;
     window: LlmUsageWindow;
     options: LlmConnectorCallOptions;
-  }): Promise<{ records: Array<LlmUsageRecord>; requests: number; warning: string }> {
+  }): Promise<{
+    records: Array<LlmUsageRecord>;
+    requests: number;
+    warning: string;
+  }> {
     const client: CloudWatchClient = this.createClient({
       settings: data.settings,
       region: data.region,
@@ -291,8 +303,14 @@ export default class AwsBedrockConnector implements LlmProviderAccountConnector 
   ): Promise<LlmConnectionTestResult> {
     const startedAt: number = Date.now();
     const now: Date = options.now ? options.now() : new Date();
-    const endDay: Date = LlmUsageDays.addDays(LlmUsageDays.startOfUtcDay(now), 1);
-    const startDay: Date = LlmUsageDays.addDays(endDay, -LLM_CONNECTION_TEST_DAYS);
+    const endDay: Date = LlmUsageDays.addDays(
+      LlmUsageDays.startOfUtcDay(now),
+      1,
+    );
+    const startDay: Date = LlmUsageDays.addDays(
+      endDay,
+      -LLM_CONNECTION_TEST_DAYS,
+    );
 
     try {
       this.validateSettings(settings);

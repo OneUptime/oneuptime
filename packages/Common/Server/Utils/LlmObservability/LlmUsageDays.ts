@@ -114,8 +114,7 @@ export default class LlmUsageDays {
     );
 
     return {
-      startDay:
-        reopened.getTime() < earliest.getTime() ? earliest : reopened,
+      startDay: reopened.getTime() < earliest.getTime() ? earliest : reopened,
       endDay,
     };
   }

@@ -62,11 +62,15 @@ export default class GoogleServiceAccountToken {
   }
 
   public async getAccessToken(): Promise<string> {
-    if (this.cached && this.cached.expiresAtMs - EXPIRY_SLACK_IN_MS > Date.now()) {
+    if (
+      this.cached &&
+      this.cached.expiresAtMs - EXPIRY_SLACK_IN_MS > Date.now()
+    ) {
       return this.cached.token;
     }
 
-    const issuedAt: number = Math.floor(Date.now() / 1000) - CLOCK_SKEW_IN_SECONDS;
+    const issuedAt: number =
+      Math.floor(Date.now() / 1000) - CLOCK_SKEW_IN_SECONDS;
 
     const assertion: string = jwt.sign(
       {

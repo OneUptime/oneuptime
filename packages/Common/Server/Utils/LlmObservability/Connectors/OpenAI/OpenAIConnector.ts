@@ -19,7 +19,12 @@ import {
 import LlmConnectorTestResults, {
   LLM_CONNECTION_TEST_DAYS,
 } from "../../LlmConnectorTestResults";
-import { readArray, readCount, readObject, readText } from "../../LlmProviderHttp";
+import {
+  readArray,
+  readCount,
+  readObject,
+  readText,
+} from "../../LlmProviderHttp";
 import LlmUsageDays from "../../LlmUsageDays";
 import OpenAIAdminClient, { OpenAIApiKeyInfo } from "./OpenAIAdminClient";
 
@@ -54,7 +59,9 @@ export default class OpenAIConnector implements LlmProviderAccountConnector {
     LlmConnectionKind.ProviderAccount;
 
   public validateSettings(settings: LlmConnectionSettings): void {
-    OpenAIAdminClient.validateAdminKey(readSetting(settings.secrets, "adminKey"));
+    OpenAIAdminClient.validateAdminKey(
+      readSetting(settings.secrets, "adminKey"),
+    );
   }
 
   private createClient(
@@ -69,11 +76,15 @@ export default class OpenAIConnector implements LlmProviderAccountConnector {
   }
 
   // The usage report's rows, one per day bucket and group.
-  public static readUsageRows(buckets: Array<JSONObject>): Array<OpenAIUsageRow> {
+  public static readUsageRows(
+    buckets: Array<JSONObject>,
+  ): Array<OpenAIUsageRow> {
     const rows: Array<OpenAIUsageRow> = [];
 
     for (const bucket of buckets) {
-      const day: Date | null = LlmUsageDays.fromUnixSeconds(bucket["start_time"]);
+      const day: Date | null = LlmUsageDays.fromUnixSeconds(
+        bucket["start_time"],
+      );
 
       if (!day) {
         continue;
@@ -114,7 +125,9 @@ export default class OpenAIConnector implements LlmProviderAccountConnector {
     const lines: Array<LlmCostLine> = [];
 
     for (const bucket of buckets) {
-      const day: Date | null = LlmUsageDays.fromUnixSeconds(bucket["start_time"]);
+      const day: Date | null = LlmUsageDays.fromUnixSeconds(
+        bucket["start_time"],
+      );
 
       if (!day) {
         continue;
@@ -297,8 +310,14 @@ export default class OpenAIConnector implements LlmProviderAccountConnector {
   ): Promise<LlmConnectionTestResult> {
     const startedAt: number = Date.now();
     const now: Date = options.now ? options.now() : new Date();
-    const endDay: Date = LlmUsageDays.addDays(LlmUsageDays.startOfUtcDay(now), 1);
-    const startDay: Date = LlmUsageDays.addDays(endDay, -LLM_CONNECTION_TEST_DAYS);
+    const endDay: Date = LlmUsageDays.addDays(
+      LlmUsageDays.startOfUtcDay(now),
+      1,
+    );
+    const startDay: Date = LlmUsageDays.addDays(
+      endDay,
+      -LLM_CONNECTION_TEST_DAYS,
+    );
 
     try {
       this.validateSettings(settings);

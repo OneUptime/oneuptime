@@ -32,7 +32,15 @@ export default class LlmConnectorTestResults {
     let costUsd: number = 0;
 
     for (const record of records) {
-      if (record.model) {
+      /*
+       * A model is one that was used: a cost line kept whole (web search,
+       * code execution) names what was bought, not a model.
+       */
+      const used: boolean =
+        (record.inputTokens || 0) + (record.outputTokens || 0) > 0 ||
+        (record.requests || 0) > 0;
+
+      if (record.model && used) {
         models.add(record.model);
       }
 
@@ -133,10 +141,7 @@ export default class LlmConnectorTestResults {
       return {
         provider: data.provider,
         status: "fail",
-        message: LlmProviderError.redact(
-          data.error.message,
-          data.secretValues,
-        ),
+        message: LlmProviderError.redact(data.error.message, data.secretValues),
         failureKind: LlmConnectionFailureKind.Settings,
         durationMs: data.durationMs,
       };

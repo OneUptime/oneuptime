@@ -113,11 +113,9 @@ export default class GoogleMonitoringClient {
         ["aggregation.alignmentPeriod", "3600s"],
         ["aggregation.perSeriesAligner", "ALIGN_SUM"],
         ["aggregation.crossSeriesReducer", "REDUCE_SUM"],
-        ...data.groupByFields.map(
-          (field: string): [string, string] => {
-            return ["aggregation.groupByFields", field];
-          },
-        ),
+        ...data.groupByFields.map((field: string): [string, string] => {
+          return ["aggregation.groupByFields", field];
+        }),
         ["pageSize", PAGE_SIZE],
         ["pageToken", pageToken],
       ]);
@@ -159,9 +157,10 @@ export default class GoogleMonitoringClient {
 
     for (const rawSeries of readArray(response["timeSeries"])) {
       const series: JSONObject = readObject(rawSeries);
-      const metricLabels: Dictionary<string> = GoogleMonitoringClient.readLabels(
-        readObject(series["metric"])["labels"],
-      );
+      const metricLabels: Dictionary<string> =
+        GoogleMonitoringClient.readLabels(
+          readObject(series["metric"])["labels"],
+        );
       const resourceLabels: Dictionary<string> =
         GoogleMonitoringClient.readLabels(
           readObject(series["resource"])["labels"],
@@ -177,11 +176,14 @@ export default class GoogleMonitoringClient {
         const start: number = Date.parse(readText(interval["startTime"]));
         const end: number = Date.parse(readText(interval["endTime"]));
         // An aligned point covers (end - 1 hour, end]; its hour starts there.
-        const hourStart: number = Number.isFinite(start) && start < end
-          ? start
-          : end - 60 * 60 * 1000;
+        const hourStart: number =
+          Number.isFinite(start) && start < end ? start : end - 60 * 60 * 1000;
 
-        if (!Number.isFinite(numeric) || numeric === 0 || !Number.isFinite(hourStart)) {
+        if (
+          !Number.isFinite(numeric) ||
+          numeric === 0 ||
+          !Number.isFinite(hourStart)
+        ) {
           continue;
         }
 
