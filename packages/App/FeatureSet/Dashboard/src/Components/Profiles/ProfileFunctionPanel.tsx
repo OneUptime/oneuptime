@@ -10,6 +10,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import SideOver from "Common/UI/Components/SideOver/SideOver";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { ProfileFunctionChange } from "Common/Utils/Profiles/ProfileComparison";
@@ -21,6 +22,7 @@ import {
   ProfileCallChain,
   ProfileCallee,
   ProfileTreeNode,
+  getOwnCodeValue,
   getShareOfWindow,
   getTopCallees,
   getTopCallerChains,
@@ -34,12 +36,14 @@ import {
   ProfileKindChoice,
   ProfilesWindowPair,
   buildProfileMonitorRoute,
+  getNearestOwnCaller,
   suggestFunctionShareThreshold,
 } from "../../Utils/ProfilesView";
 import useAiOffered from "../../Utils/UseAiOffered";
 import FlamegraphView, { FlamegraphNode } from "./FlamegraphView";
 import {
   PANEL_BEFORE_AFTER,
+  PANEL_BEFORE_AFTER_OWN,
   PANEL_CALLEES,
   PANEL_CALLEES_NONE,
   PANEL_CALLERS,
@@ -47,9 +51,11 @@ import {
   PANEL_DESCRIPTION,
   PANEL_HIDE_GRAPHS,
   PANEL_HIGHLIGHT,
+  PANEL_NOT_YOUR_CODE,
   PANEL_OPEN_SOURCE,
   PANEL_PICK_SERVICE_TO_FIX,
-  PANEL_SAMPLES,
+  PANEL_OWN_HINT,
+  PANEL_SAMPLE_COUNT,
   PANEL_SELF_HINT,
   PANEL_SHOW_GRAPHS,
   PANEL_TITLE,
@@ -58,6 +64,7 @@ import {
   PROFILE_ORIGIN_LABELS,
   SORT_BY_SELF,
   SORT_BY_TOTAL,
+  VIEW_YOUR_CODE,
 } from "./ProfileCopy";
 import ProfileFixStrip from "./ProfileFixStrip";
 import { findSourceLink } from "./ProfileFunctionTable";
@@ -202,6 +209,20 @@ const ProfileFunctionPanel: FunctionComponent<ComponentProps> = (
     windowTotal,
   );
 
+  // Its own code, with the library and runtime code it calls (own code only).
+  const ownValue: number = focus.data?.callees
+    ? getOwnCodeValue(focus.data.callees)
+    : 0;
+  const ownShare: number = getShareOfWindow(ownValue, windowTotal);
+
+  // Code that is not the application's own is changed through its callers.
+  const nearestOwnCaller: { functionName: string; fileName: string } | null =
+    useMemo(() => {
+      return origin === ProfileFrameOrigin.Own
+        ? null
+        : getNearestOwnCaller(focus.data?.callers);
+    }, [focus.data, origin]);
+
   const callerChains: Array<ProfileCallChain> = useMemo(() => {
     return focus.data?.callers
       ? getTopCallerChains(focus.data.callers, { limit: 5, depth: 3 })
@@ -300,7 +321,11 @@ const ProfileFunctionPanel: FunctionComponent<ComponentProps> = (
     return (
       <div className="space-y-6">
         <dl
-          className="grid grid-cols-1 gap-3 sm:grid-cols-3"
+          className={`grid grid-cols-1 gap-3 ${
+            origin === ProfileFrameOrigin.Own
+              ? "sm:grid-cols-3"
+              : "sm:grid-cols-2"
+          }`}
           data-testid="profiles-panel-stats"
         >
           <div className="rounded-lg border border-gray-200 px-3 py-2">
@@ -337,25 +362,81 @@ const ProfileFunctionPanel: FunctionComponent<ComponentProps> = (
               {formatProfileValue(data.totalValue, props.kind.unit)}
             </dd>
           </div>
-          <div className="rounded-lg border border-gray-200 px-3 py-2">
-            <dt className="text-xs font-medium text-gray-500">
-              {translator.translateText(PANEL_SAMPLES)}
-            </dt>
-            <dd className="mt-0.5 font-mono text-lg font-semibold text-gray-900">
-              {translator.formatNumber(data.sampleCount)}
-            </dd>
-          </div>
+          {origin === ProfileFrameOrigin.Own ? (
+            <div className="rounded-lg border border-orange-100 bg-orange-50 px-3 py-2">
+              <dt className="text-xs font-medium text-gray-500">
+                {translator.translateText(VIEW_YOUR_CODE)}{" "}
+                <span className="font-normal text-gray-400">
+                  {translator.translateText(PANEL_OWN_HINT)}
+                </span>
+              </dt>
+              <dd
+                className="mt-0.5 font-mono text-lg font-semibold text-gray-900"
+                data-testid="profiles-panel-own"
+              >
+                {formatProfileShare(ownShare)}
+              </dd>
+              <dd className="text-xs text-gray-500">
+                {formatProfileValue(ownValue, props.kind.unit)}
+              </dd>
+            </div>
+          ) : (
+            <></>
+          )}
         </dl>
+
+        <p
+          className="-mt-3 text-xs text-gray-500"
+          data-testid="profiles-panel-samples"
+        >
+          {translator.translatePlural(PANEL_SAMPLE_COUNT, data.sampleCount)}
+        </p>
 
         {props.change ? (
           <p
             className="-mt-3 text-sm text-gray-600"
             data-testid="profiles-panel-change"
           >
-            {translator.translateTemplate(PANEL_BEFORE_AFTER, {
-              before: formatProfileShare(props.change.before?.selfShare || 0),
-              after: formatProfileShare(props.change.after?.selfShare || 0),
-            })}
+            {origin === ProfileFrameOrigin.Own
+              ? translator.translateTemplate(PANEL_BEFORE_AFTER_OWN, {
+                  before: formatProfileShare(
+                    props.change.before?.ownShare || 0,
+                  ),
+                  after: formatProfileShare(props.change.after?.ownShare || 0),
+                })
+              : translator.translateTemplate(PANEL_BEFORE_AFTER, {
+                  before: formatProfileShare(
+                    props.change.before?.selfShare || 0,
+                  ),
+                  after: formatProfileShare(props.change.after?.selfShare || 0),
+                })}
+          </p>
+        ) : (
+          <></>
+        )}
+
+        {nearestOwnCaller ? (
+          <p
+            className="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700 ring-1 ring-inset ring-gray-200"
+            data-testid="profiles-panel-not-yours"
+          >
+            <TranslatedSentence
+              template={PANEL_NOT_YOUR_CODE}
+              slots={{
+                function: (
+                  <button
+                    type="button"
+                    className="rounded-sm font-mono font-semibold text-indigo-700 [overflow-wrap:anywhere] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    data-testid="profiles-panel-own-caller"
+                    onClick={() => {
+                      props.onOpenFunction(nearestOwnCaller);
+                    }}
+                  >
+                    {nearestOwnCaller.functionName}
+                  </button>
+                ),
+              }}
+            />
           </p>
         ) : (
           <></>

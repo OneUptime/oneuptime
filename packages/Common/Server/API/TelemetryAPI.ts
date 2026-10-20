@@ -3574,10 +3574,18 @@ router.post(
         ? (body["limit"] as number)
         : undefined;
 
-      const sortBy: "selfValue" | "totalValue" | "sampleCount" | undefined =
-        body["sortBy"]
-          ? (body["sortBy"] as "selfValue" | "totalValue" | "sampleCount")
-          : undefined;
+      const sortBy:
+        | "selfValue"
+        | "totalValue"
+        | "sampleCount"
+        | "ownValue"
+        | undefined = body["sortBy"]
+        ? (body["sortBy"] as
+            | "selfValue"
+            | "totalValue"
+            | "sampleCount"
+            | "ownValue")
+        : undefined;
 
       const request: FunctionListRequest = {
         projectId: databaseProps.tenantId,

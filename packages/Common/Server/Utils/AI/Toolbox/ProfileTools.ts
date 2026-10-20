@@ -27,6 +27,7 @@ import {
   ProfileChangeDirection,
   ProfileFunctionChange,
   getFasterFunctions,
+  getOwnCodeChanges,
   getSlowerFunctions,
 } from "../../../../Utils/Profiles/ProfileComparison";
 import {
@@ -85,9 +86,13 @@ const SERVICE_ID_ARGUMENT: JSONObject = {
 };
 
 const SHARE_KEY_EXPLAINED: string =
-  "self = time in the function's own code, total = the function and everything it calls, each as a share of the whole window.";
+  "self = time in the function's own code, total = the function and everything it calls, ownCode (the application's own functions only) = the function with the library, runtime and system code it calls down to the next function of the application's own - the time a change to it can win back - each as a share of the whole window.";
 
-function originLabel(fileName: string, functionName: string, frameType: string): string {
+function originLabel(
+  fileName: string,
+  functionName: string,
+  frameType: string,
+): string {
   return ProfileEvidence.describeOrigin(
     getProfileFrameOrigin(fileName, functionName, frameType),
   );
@@ -194,7 +199,7 @@ export const GetProfileHotspotsTool: ObservabilityTool = {
       onlyOwnCode: {
         type: "boolean",
         description:
-          "Only the application's own functions (no libraries, runtime or system code).",
+          "Only the application's own functions (no libraries, runtime or system code), ranked by their own-code time.",
       },
       limit: {
         type: "number",
@@ -216,7 +221,8 @@ export const GetProfileHotspotsTool: ObservabilityTool = {
       min: 1,
       max: 25,
     });
-    const onlyOwnCode: boolean = ToolArgs.getBoolean(args, "onlyOwnCode") === true;
+    const onlyOwnCode: boolean =
+      ToolArgs.getBoolean(args, "onlyOwnCode") === true;
 
     const { serviceId, serviceFilter } = await getScopedFilter(args, ctx);
 
@@ -248,6 +254,11 @@ export const GetProfileHotspotsTool: ObservabilityTool = {
       return noProfilesResult({ serviceId, window, label });
     }
 
+    /*
+     * Asked for the application's own code, the functions are ranked by
+     * their own-code time: a parser whose time all goes to JSON.parse leads,
+     * though it has no self time of its own.
+     */
     const functions: Array<FunctionListItem> = list.functions
       .filter((item: FunctionListItem): boolean => {
         return (
@@ -258,6 +269,9 @@ export const GetProfileHotspotsTool: ObservabilityTool = {
             item.frameType,
           ) === ProfileFrameOrigin.Own
         );
+      })
+      .sort((a: FunctionListItem, b: FunctionListItem): number => {
+        return onlyOwnCode ? b.ownValue - a.ownValue : 0;
       })
       .slice(0, limit);
 
@@ -275,6 +289,12 @@ export const GetProfileHotspotsTool: ObservabilityTool = {
           total: formatProfileShare(
             getShareOfWindow(item.totalValue, list.windowTotal),
           ),
+          ownCode:
+            item.ownValue > 0
+              ? formatProfileShare(
+                  getShareOfWindow(item.ownValue, list.windowTotal),
+                )
+              : "",
           selfValue: formatProfileValue(item.selfValue, kind.unit),
         };
       },
@@ -286,7 +306,8 @@ export const GetProfileHotspotsTool: ObservabilityTool = {
         : ""
     }`;
 
-    const serialized: SerializedResult = ToolResultSerializer.serializeRows(rows);
+    const serialized: SerializedResult =
+      ToolResultSerializer.serializeRows(rows);
 
     return {
       dataForLlm: `${header}\n${serialized.text}`,
@@ -403,6 +424,17 @@ function getComparisonWindows(args: JSONObject): {
   };
 }
 
+// One of the application's own functions, by its own-code share.
+function ownChangeRow(change: ProfileFunctionChange): JSONObject {
+  return {
+    function: change.functionName || "(anonymous)",
+    file: change.fileName,
+    ownCodeBefore: formatProfileShare(change.before?.ownShare || 0),
+    ownCodeAfter: formatProfileShare(change.after?.ownShare || 0),
+    change: `${change.ownShareChange >= 0 ? "+" : ""}${change.ownShareChange.toFixed(1)} points`,
+  };
+}
+
 function changeRow(change: ProfileFunctionChange): JSONObject {
   return {
     function: change.functionName || "(anonymous)",
@@ -514,6 +546,17 @@ export const CompareProfilesTool: ObservabilityTool = {
     const faster: Array<JSONObject> = getFasterFunctions(comparison.changes)
       .slice(0, limit)
       .map(changeRow);
+    /*
+     * The application's own functions whose own-code share grew: a parser
+     * whose time went to JSON.parse shows no self growth of its own, but it
+     * is the code to change.
+     */
+    const ownGrowth: Array<JSONObject> = getOwnCodeChanges(comparison.changes)
+      .filter((change: ProfileFunctionChange): boolean => {
+        return change.ownShareChange > 0;
+      })
+      .slice(0, limit)
+      .map(ownChangeRow);
 
     const footing: string = comparison.isFooted
       ? ""
@@ -525,6 +568,8 @@ export const CompareProfilesTool: ObservabilityTool = {
       ToolResultSerializer.serializeRows(slower);
     const fasterText: SerializedResult =
       ToolResultSerializer.serializeRows(faster);
+    const ownText: SerializedResult =
+      ToolResultSerializer.serializeRows(ownGrowth);
 
     const dataForLlm: string = [
       header,
@@ -534,15 +579,22 @@ export const CompareProfilesTool: ObservabilityTool = {
       faster.length > 0
         ? `Took a smaller share after (faster or gone):\n${fasterText.text}`
         : "No function's share shrank past the noise floor.",
+      ownGrowth.length > 0
+        ? `The application's own functions whose own-code share grew (the function with the library and runtime code it calls - the code to change):\n${ownText.text}`
+        : "No function of the application's own code grew past the noise floor.",
     ].join("\n\n");
 
     return {
       dataForLlm,
-      rowCount: slower.length + faster.length,
+      rowCount: slower.length + faster.length + ownGrowth.length,
       citationLabel: label,
       citationTarget: profilesTarget({ serviceId, kind, window: after }),
-      redactionCount: slowerText.redactionCount + fasterText.redactionCount,
-      isTruncated: slowerText.isTruncated || fasterText.isTruncated,
+      redactionCount:
+        slowerText.redactionCount +
+        fasterText.redactionCount +
+        ownText.redactionCount,
+      isTruncated:
+        slowerText.isTruncated || fasterText.isTruncated || ownText.isTruncated,
       widget:
         slower.length > 0
           ? WidgetBuilder.table({

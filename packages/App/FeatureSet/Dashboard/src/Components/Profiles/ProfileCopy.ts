@@ -41,6 +41,9 @@ export const COMPARE_LABELS: Record<ProfilesCompareMode, string> = {
 
 export const COMPARE_OFF: string = translationKey("Don't compare");
 
+// A raw profile type in the type picker: "samples (CPU time)".
+export const RAW_TYPE_LABEL: string = translationKey("{{type}} ({{kind}})");
+
 /*
  * What the headline says the window was compared with, after its sentence:
  * "parseOrder went from 10% to 45% of the CPU time, compared with the hour
@@ -72,10 +75,13 @@ export const HEADLINE_TOP_THREE: string = translationKey(
   "The top {{count}} functions take {{share}}.",
 );
 export const HEADLINE_TOP_OWN: string = translationKey(
-  "In your own code, {{function}} takes the most: {{share}} with what it calls.",
+  "In your own code, {{function}} takes the most: {{share}}, with the library and runtime code it calls.",
 );
 export const HEADLINE_SLOWER: string = translationKey(
   "{{function}} went from {{before}} to {{after}} of the {{kind}}.",
+);
+export const HEADLINE_OWN_GREW: string = translationKey(
+  "In your own code, {{function}} grew the most: from {{before}} to {{after}}, with the library and runtime code it calls.",
 );
 export const HEADLINE_NOTHING_CHANGED: string = translationKey(
   "Nothing changed much: no function's share moved by more than 2 points.",
@@ -121,7 +127,17 @@ export const FUNCTIONS_COMPARE_DESCRIPTION: string = translationKey(
 );
 export const SORT_BY_SELF: string = translationKey("Self");
 export const SORT_BY_TOTAL: string = translationKey("Total");
-export const ONLY_YOUR_CODE: string = translationKey("Only your code");
+export const VIEW_YOUR_CODE: string = translationKey("Your code");
+export const VIEW_ALL_FUNCTIONS: string = translationKey("All functions");
+export const OWN_CODE_SENTENCE: string = translationKey(
+  "Your own functions, each with the library and runtime code it calls: the time a change to it can win back.",
+);
+export const OWN_CODE_COMPARE_DESCRIPTION: string = translationKey(
+  "Your own functions, each with the library and runtime code it calls, as a share of the window before and after.",
+);
+export const OWN_CODE_EXPLAINED: string = translationKey(
+  "The function with the library and runtime code it calls.",
+);
 
 // The services card (every profiled service).
 export const SERVICES_TITLE: string = translationKey("Services being profiled");
@@ -160,9 +176,18 @@ export const PANEL_DESCRIPTION: string = translationKey(
 );
 export const PANEL_SELF_HINT: string = translationKey("in its own code");
 export const PANEL_TOTAL_HINT: string = translationKey("with what it calls");
-export const PANEL_SAMPLES: string = translationKey("Samples");
+export const PANEL_OWN_HINT: string = translationKey(
+  "with the library code it calls",
+);
+export const PANEL_SAMPLE_COUNT: PluralTemplate = {
+  one: "Read from {{count}} sample in this window.",
+  other: "Read from {{count}} samples in this window.",
+};
 export const PANEL_BEFORE_AFTER: string = translationKey(
-  "{{before}} before, {{after}} after",
+  "Self: {{before}} before, {{after}} after.",
+);
+export const PANEL_BEFORE_AFTER_OWN: string = translationKey(
+  "Your code: {{before}} before, {{after}} after.",
 );
 export const PANEL_CALLERS: string = translationKey("Who calls it");
 export const PANEL_CALLERS_NONE: string = translationKey(
@@ -185,6 +210,9 @@ export const PANEL_HIDE_GRAPHS: string = translationKey(
 export const PANEL_WATCH: string = translationKey(
   "Alert me when its share passes {{threshold}}",
 );
+export const PANEL_NOT_YOUR_CODE: string = translationKey(
+  "This is not your code. To spend less time here, change how your code calls it, starting with {{function}}.",
+);
 export const PANEL_PICK_SERVICE_TO_FIX: string = translationKey(
   "Pick its service above to fix it with AI.",
 );
@@ -203,6 +231,8 @@ export const FIX_GREW_SENTENCE: string = translationKey(
 export const FIX_PICK_REPOSITORY: string = translationKey(
   "Which repository holds this code?",
 );
+export const FIX_PICK_REPOSITORY_PLACEHOLDER: string =
+  translationKey("Pick a repository");
 export const FIX_WORKING: string = translationKey(
   "OneUptime AI is working on it.",
 );

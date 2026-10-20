@@ -156,6 +156,7 @@ function readFunctionRow(row: unknown): ProfileFunctionRow {
     selfValue: num(record["selfValue"]),
     totalValue: num(record["totalValue"]),
     sampleCount: num(record["sampleCount"]),
+    ownValue: num(record["ownValue"]),
   };
 }
 
@@ -165,7 +166,7 @@ export async function fetchFunctionList(data: {
   profileId?: string | undefined;
   serviceIds?: Array<string> | undefined;
   profileTypes?: Array<string> | undefined;
-  sortBy: "selfValue" | "totalValue";
+  sortBy: "selfValue" | "totalValue" | "ownValue";
   limit: number;
 }): Promise<ProfileFunctionListAnswer> {
   const answer: JSONObject = await post("/telemetry/profiles/function-list", {
@@ -214,6 +215,8 @@ function readShare(value: unknown): ProfileFunctionChange["before"] {
     sampleCount: num(record["sampleCount"]),
     selfShare: num(record["selfShare"]),
     totalShare: num(record["totalShare"]),
+    ownValue: num(record["ownValue"]),
+    ownShare: num(record["ownShare"]),
   };
 }
 
@@ -257,6 +260,7 @@ export async function fetchFunctionComparison(data: {
       after: readShare(record["after"]),
       selfShareChange: num(record["selfShareChange"]),
       totalShareChange: num(record["totalShareChange"]),
+      ownShareChange: num(record["ownShareChange"]),
       direction: DIRECTIONS.includes(direction)
         ? (direction as ProfileChangeDirection)
         : ProfileChangeDirection.Same,

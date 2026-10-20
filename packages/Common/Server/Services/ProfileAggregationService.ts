@@ -19,12 +19,14 @@ import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import {
   ParsedProfileFrame,
   getProfileFunctionKey,
+  isOwnProfileFrame,
   parseProfileFrame,
 } from "../../Utils/Profiles/ProfileFrames";
 import {
   ProfileFunctionChange,
   compareProfileWindows,
   isComparisonFooted,
+  limitProfileComparison,
 } from "../../Utils/Profiles/ProfileComparison";
 import {
   ProfileCategory,
@@ -99,7 +101,23 @@ export interface FunctionListItem {
   totalValue: number;
   sampleCount: number;
   frameType: string;
+  /*
+   * For a function of the application's own code: the time a change to it
+   * can win back - its own code, and the library, runtime and system code
+   * it calls down to the next function of the application's own. Each
+   * stack counts toward the own function nearest its leaf. 0 for code that
+   * is not the application's own.
+   */
+  ownValue: number;
 }
+
+/*
+ * How many of the application's own functions with the most own-code time
+ * a function list always holds, whatever it is sorted by: a parser whose
+ * time all goes to JSON.parse has no self time, and would otherwise fall
+ * off a list ranked by self time.
+ */
+export const FUNCTION_LIST_OWN_CODE_LEADERS: number = 10;
 
 export interface FunctionListRequest {
   projectId: ObjectID;
@@ -126,7 +144,7 @@ export interface FunctionListRequest {
   /** See FlamegraphRequest.spanIds. */
   spanIds?: Array<string>;
   limit?: number;
-  sortBy?: "selfValue" | "totalValue" | "sampleCount";
+  sortBy?: "selfValue" | "totalValue" | "sampleCount" | "ownValue";
 }
 
 export interface FunctionListResult {
@@ -662,6 +680,10 @@ export class ProfileAggregationService {
         return b.sampleCount - a.sampleCount;
       }
 
+      if (sortBy === "ownValue") {
+        return b.ownValue - a.ownValue || b.selfValue - a.selfValue;
+      }
+
       return b.selfValue - a.selfValue;
     });
 
@@ -669,11 +691,42 @@ export class ProfileAggregationService {
       request.limit ?? ProfileAggregationService.DEFAULT_FUNCTION_LIST_LIMIT;
 
     return {
-      functions: items.slice(0, limit),
+      functions: ProfileAggregationService.withOwnCodeLeaders(items, limit),
       windowTotal,
       windowSampleCount,
       truncated,
     };
+  }
+
+  /*
+   * The first `limit` functions of a sorted list, and after them the
+   * application's own functions with the most own-code time that the limit
+   * left out (FUNCTION_LIST_OWN_CODE_LEADERS), heaviest first. Pure.
+   */
+  public static withOwnCodeLeaders(
+    sorted: Array<FunctionListItem>,
+    limit: number,
+  ): Array<FunctionListItem> {
+    const shown: Array<FunctionListItem> = sorted.slice(0, Math.max(0, limit));
+    const shownSet: Set<FunctionListItem> = new Set(shown);
+
+    const leaders: Array<FunctionListItem> = sorted
+      .filter((item: FunctionListItem): boolean => {
+        return item.ownValue > 0;
+      })
+      .sort((a: FunctionListItem, b: FunctionListItem): number => {
+        return b.ownValue - a.ownValue;
+      })
+      .slice(0, FUNCTION_LIST_OWN_CODE_LEADERS);
+
+    for (const leader of leaders) {
+      if (!shownSet.has(leader)) {
+        shown.push(leader);
+        shownSet.add(leader);
+      }
+    }
+
+    return shown;
   }
 
   /*
@@ -704,6 +757,8 @@ export class ProfileAggregationService {
       }
 
       const seenInThisSample: Set<string> = new Set();
+      // The stack's own-code time goes to the own function nearest its leaf.
+      let isOwnCodeCounted: boolean = false;
 
       for (let i: number = 0; i < stacktrace.length; i++) {
         const frame: ParsedProfileFrame = parseProfileFrame(stacktrace[i]!);
@@ -726,8 +781,17 @@ export class ProfileAggregationService {
             totalValue: 0,
             sampleCount: 0,
             frameType: frameType,
+            ownValue: 0,
           };
           functionMap.set(key, entry);
+        }
+
+        if (
+          !isOwnCodeCounted &&
+          isOwnProfileFrame(frame.fileName, frame.functionName, frameType)
+        ) {
+          entry.ownValue += value;
+          isOwnCodeCounted = true;
         }
 
         // totalValue: count the value once per unique function per stack
@@ -827,7 +891,10 @@ export class ProfileAggregationService {
     );
 
     return {
-      changes: compareProfileWindows(beforeWindow, afterWindow).slice(0, limit),
+      changes: limitProfileComparison(
+        compareProfileWindows(beforeWindow, afterWindow),
+        limit,
+      ),
       before: {
         windowTotal: before.windowTotal,
         windowSampleCount: before.windowSampleCount,

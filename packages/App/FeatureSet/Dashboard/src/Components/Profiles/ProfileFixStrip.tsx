@@ -47,6 +47,7 @@ import {
   FIX_GREW_SENTENCE,
   FIX_HOT_SENTENCE,
   FIX_PICK_REPOSITORY,
+  FIX_PICK_REPOSITORY_PLACEHOLDER,
   FIX_VIEW_TASK,
   FIX_WITH_AI,
   FIX_WITH_AI_TOOLTIP,
@@ -316,9 +317,15 @@ const ProfileFixStrip: FunctionComponent<ComponentProps> = (
       );
 
     return (
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
         {needsRepositoryPick ? (
           <div className="w-full sm:w-64" data-testid="profiles-fix-repository">
+            <p
+              className="mb-1 text-sm font-medium text-gray-700"
+              id="profiles-fix-repository-label"
+            >
+              {translator.translateText(FIX_PICK_REPOSITORY)}
+            </p>
             <Dropdown
               options={repositoryOptions}
               value={repositoryOptions.find(
@@ -326,8 +333,10 @@ const ProfileFixStrip: FunctionComponent<ComponentProps> = (
                   return option.value === pickedRepositoryId;
                 },
               )}
-              placeholder={translator.translateText(FIX_PICK_REPOSITORY)}
-              ariaLabel={translator.translateText(FIX_PICK_REPOSITORY)}
+              placeholder={translator.translateText(
+                FIX_PICK_REPOSITORY_PLACEHOLDER,
+              )}
+              ariaLabelledby="profiles-fix-repository-label"
               isClearable={false}
               onChange={(
                 value: DropdownValue | Array<DropdownValue> | null,

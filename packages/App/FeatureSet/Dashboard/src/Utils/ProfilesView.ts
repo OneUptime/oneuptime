@@ -17,7 +17,15 @@ import {
   ProfileFrameOrigin,
   getProfileFrameOrigin,
 } from "Common/Utils/Profiles/ProfileFrames";
-import { getShareOfWindow } from "Common/Utils/Profiles/ProfileHotspot";
+import {
+  ProfileTreeNode,
+  getShareOfWindow,
+} from "Common/Utils/Profiles/ProfileHotspot";
+import {
+  ProfileChangeDirection,
+  ProfileFunctionChange,
+  getOwnCodeChanges,
+} from "Common/Utils/Profiles/ProfileComparison";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import PageMap from "./PageMap";
 import RouteMap, { RouteUtil } from "./RouteMap";
@@ -351,6 +359,12 @@ export interface ProfileFunctionRow {
   selfValue: number;
   totalValue: number;
   sampleCount: number;
+  /*
+   * For the application's own code: the function with the library, runtime
+   * and system code it calls, down to the next function of its own - the
+   * time a change to it can win back. 0 for other code.
+   */
+  ownValue: number;
 }
 
 export interface ProfileHeadlineFacts {
@@ -361,12 +375,109 @@ export interface ProfileHeadlineFacts {
   topThreeShare: number;
   topThreeCount: number;
   /*
-   * The busiest function of the application's own code, when the leader is
-   * not one (a runtime's JSON.parse leads, but the fix is in the code that
-   * calls it), and its total share.
+   * The function of the application's own code with the most own-code
+   * time, when the leader is not one (a runtime's JSON.parse leads, but
+   * the fix is in the code that calls it), and that share.
    */
   topOwn: ProfileFunctionRow | null;
   topOwnShare: number;
+}
+
+/*
+ * How the function list ranks: by self time, by total time, or only the
+ * application's own functions by their own-code time ("Your code").
+ * Comparing two windows, "own" keeps the application's own functions.
+ */
+export type ProfileFunctionView = "self" | "total" | "own";
+
+export const PROFILE_FUNCTION_VIEWS: ReadonlyArray<ProfileFunctionView> = [
+  "self",
+  "total",
+  "own",
+];
+
+/*
+ * The rows the list shows at first, and the most it shows when asked for
+ * all: the flame graph has the rest.
+ */
+export const PROFILE_FUNCTION_ROWS: number = 10;
+export const PROFILE_FUNCTION_ROWS_ALL: number = 50;
+
+// The function list's read sorts as the view ranks.
+export function getFunctionListSort(
+  view: ProfileFunctionView,
+): "selfValue" | "totalValue" | "ownValue" {
+  switch (view) {
+    case "total":
+      return "totalValue";
+    case "own":
+      return "ownValue";
+    default:
+      return "selfValue";
+  }
+}
+
+// The rows a view shows, ranked, at most PROFILE_FUNCTION_ROWS.
+export function getShownFunctionRows(
+  rows: ReadonlyArray<ProfileFunctionRow>,
+  view: ProfileFunctionView,
+  limit: number = PROFILE_FUNCTION_ROWS,
+): Array<ProfileFunctionRow> {
+  /*
+   * Each view lists what it ranks by: functions that did work themselves
+   * (Self), that were on the stack at all (Total), or the application's
+   * own functions with own-code time (Your code).
+   */
+  const shown: Array<ProfileFunctionRow> = rows.filter(
+    (row: ProfileFunctionRow): boolean => {
+      if (view === "own") {
+        return (
+          row.ownValue > 0 && getProfileOrigin(row) === ProfileFrameOrigin.Own
+        );
+      }
+
+      return view === "total" ? row.totalValue > 0 : row.selfValue > 0;
+    },
+  );
+
+  return shown
+    .sort((a: ProfileFunctionRow, b: ProfileFunctionRow): number => {
+      if (view === "own") {
+        return b.ownValue - a.ownValue || b.selfValue - a.selfValue;
+      }
+
+      return view === "total"
+        ? b.totalValue - a.totalValue || b.selfValue - a.selfValue
+        : b.selfValue - a.selfValue || b.totalValue - a.totalValue;
+    })
+    .slice(0, limit);
+}
+
+/*
+ * The functions whose share moved, the biggest moves first either way, at
+ * most `limit`: by self share, or - only the application's own functions -
+ * by own-code share.
+ */
+export function getShownFunctionChanges(
+  changes: ReadonlyArray<ProfileFunctionChange>,
+  onlyOwnCode: boolean,
+  limit: number = PROFILE_FUNCTION_ROWS,
+): Array<ProfileFunctionChange> {
+  if (onlyOwnCode) {
+    return getOwnCodeChanges(changes).slice(0, limit);
+  }
+
+  return changes
+    .filter((change: ProfileFunctionChange): boolean => {
+      return change.direction !== ProfileChangeDirection.Same;
+    })
+    .sort((a: ProfileFunctionChange, b: ProfileFunctionChange): number => {
+      return (
+        Math.abs(b.selfShareChange) - Math.abs(a.selfShareChange) ||
+        a.functionName.localeCompare(b.functionName)
+      );
+    })
+    .slice(0, limit);
 }
 
 export function getProfileOrigin(row: {
@@ -399,20 +510,22 @@ export function getProfileHeadlineFacts(
 
   if (leader && getProfileOrigin(leader) !== ProfileFrameOrigin.Own) {
     /*
-     * The own function with the most total time below the root frames: a
-     * whole-program entry point (main, the request handler every request
-     * runs) has the most total time of all, and says nothing.
+     * The own function with the most own-code time: the parser whose time
+     * all goes to JSON.parse, not the request handler above it (whose own
+     * code is the parser's caller, and takes nothing itself).
      */
     const own: Array<ProfileFunctionRow> = functions
       .filter((row: ProfileFunctionRow): boolean => {
         return (
-          getProfileOrigin(row) === ProfileFrameOrigin.Own &&
-          row.totalValue > 0 &&
-          getShareOfWindow(row.totalValue, windowTotal) < 90
+          getProfileOrigin(row) === ProfileFrameOrigin.Own && row.ownValue > 0
         );
       })
       .sort((a: ProfileFunctionRow, b: ProfileFunctionRow): number => {
-        return b.selfValue - a.selfValue || b.totalValue - a.totalValue;
+        return (
+          b.ownValue - a.ownValue ||
+          b.selfValue - a.selfValue ||
+          a.functionName.localeCompare(b.functionName)
+        );
       });
 
     topOwn = own[0] || null;
@@ -429,8 +542,58 @@ export function getProfileHeadlineFacts(
     ),
     topThreeCount: topThree.length,
     topOwn,
-    topOwnShare: topOwn ? getShareOfWindow(topOwn.totalValue, windowTotal) : 0,
+    topOwnShare: topOwn ? getShareOfWindow(topOwn.ownValue, windowTotal) : 0,
   };
+}
+
+/*
+ * For a function that is not the application's own (JSON.parse, a
+ * driver's query): the function of the application's own code that calls
+ * it the most - where a change can make it run less. Read from its callers
+ * tree, the heaviest callers first, each followed up the stack to the
+ * first frame of the application's own. Null when no own code calls it.
+ */
+export function getNearestOwnCaller(
+  callers: ProfileTreeNode | null | undefined,
+): { functionName: string; fileName: string } | null {
+  if (!callers) {
+    return null;
+  }
+
+  const byWeight: (nodes: Array<ProfileTreeNode>) => Array<ProfileTreeNode> = (
+    nodes: Array<ProfileTreeNode>,
+  ): Array<ProfileTreeNode> => {
+    return [...nodes].sort((a: ProfileTreeNode, b: ProfileTreeNode) => {
+      return b.totalValue - a.totalValue;
+    });
+  };
+
+  // Breadth first, heaviest first: the nearest own caller of the most time.
+  let level: Array<ProfileTreeNode> = byWeight(callers.children);
+  let depth: number = 0;
+
+  while (level.length > 0 && depth < 64) {
+    for (const node of level) {
+      if (
+        getProfileOrigin({
+          fileName: node.fileName,
+          functionName: node.functionName,
+          frameType: node.frameType || "",
+        }) === ProfileFrameOrigin.Own
+      ) {
+        return { functionName: node.functionName, fileName: node.fileName };
+      }
+    }
+
+    level = byWeight(
+      level.flatMap((node: ProfileTreeNode): Array<ProfileTreeNode> => {
+        return node.children;
+      }),
+    );
+    depth += 1;
+  }
+
+  return null;
 }
 
 /*

@@ -28,6 +28,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   ProfileFunctionChange,
+  getNotableOwnCodeGrowth,
   getNotableSlowdown,
 } from "Common/Utils/Profiles/ProfileComparison";
 import { ProfileFrameOrigin } from "Common/Utils/Profiles/ProfileFrames";
@@ -50,12 +51,14 @@ import {
 } from "../../Utils/ProfilesUrlState";
 import {
   MIN_MINUTES_AFTER_A_CHANGE,
+  ProfileFunctionView,
   ProfileHeadlineFacts,
   ProfileKindChoice,
   ProfileKindChoices,
   ProfilesWindow,
   ProfilesWindowPair,
   getDefaultProfileSelection,
+  getFunctionListSort,
   getProfileHeadlineFacts,
   getProfileKindChoices,
   getProfileOrigin,
@@ -71,15 +74,14 @@ import {
   FUNCTIONS_COMPARE_TITLE,
   FUNCTIONS_TITLE,
   HEADLINE_CHANGE_TOO_RECENT,
-  ONLY_YOUR_CODE,
   SORT_BY_SELF,
   SORT_BY_TOTAL,
+  VIEW_ALL_FUNCTIONS,
+  VIEW_YOUR_CODE,
 } from "./ProfileCopy";
 import ProfileFlameCard from "./ProfileFlameCard";
 import ProfileFunctionPanel from "./ProfileFunctionPanel";
-import ProfileFunctionTable, {
-  ProfileFunctionSort,
-} from "./ProfileFunctionTable";
+import ProfileFunctionTable from "./ProfileFunctionTable";
 import ProfileHeadline, { ProfileHeadlineComparison } from "./ProfileHeadline";
 import ProfileScopeBar, {
   ProfileDeployOption,
@@ -163,8 +165,7 @@ const ProfilesOverview: FunctionComponent<ComponentProps> = (
     return OneUptimeDate.getCurrentDate();
   });
   const [refreshCount, setRefreshCount] = useState<number>(0);
-  const [sortBy, setSortBy] = useState<ProfileFunctionSort>("self");
-  const [onlyOwnCode, setOnlyOwnCode] = useState<boolean>(false);
+  const [functionView, setFunctionView] = useState<ProfileFunctionView>("self");
   const [highlight, setHighlight] = useState<string>("");
 
   // The address follows the view; a locked page's service is its route's.
@@ -258,14 +259,14 @@ const ProfilesOverview: FunctionComponent<ComponentProps> = (
   const functions: ProfileRequestState<ProfileFunctionListAnswer> =
     useProfileRequest<ProfileFunctionListAnswer>(
       hasData && !comparison
-        ? `functions|${scopeKey}|${kindKey}|${sortBy}`
+        ? `functions|${scopeKey}|${kindKey}|${functionView}`
         : null,
       () => {
         return fetchFunctionList({
           window: shownWindow,
           serviceIds,
           profileTypes: kind.queryTypes,
-          sortBy: sortBy === "total" ? "totalValue" : "selfValue",
+          sortBy: getFunctionListSort(functionView),
           limit: FUNCTION_READ_LIMIT,
         });
       },
@@ -492,6 +493,7 @@ const ProfilesOverview: FunctionComponent<ComponentProps> = (
     comparison && compared.data
       ? {
           notable: getNotableSlowdown(compared.data.changes),
+          ownGrowth: getNotableOwnCodeGrowth(compared.data.changes),
           isFooted: compared.data.isFooted,
           againstText:
             urlState.compare === ProfilesCompareMode.Change &&
@@ -705,57 +707,52 @@ const ProfilesOverview: FunctionComponent<ComponentProps> = (
   const changeTooRecent: boolean =
     urlState.compare === ProfilesCompareMode.Change && !comparison;
 
-  const functionsCardControls: ReactElement = (
-    <div className="flex flex-wrap items-center gap-3">
-      {!comparison ? (
-        <div
-          className="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1"
-          role="group"
-          aria-label={translator.translateText("Sort by")}
-          data-testid="profiles-functions-sort"
-        >
-          {(["self", "total"] as Array<ProfileFunctionSort>).map(
-            (option: ProfileFunctionSort) => {
-              const isActive: boolean = sortBy === option;
+  // Comparing, the list ranks by change: All functions, or Your code.
+  const viewOptions: Array<{ view: ProfileFunctionView; label: string }> =
+    comparison
+      ? [
+          { view: "self", label: VIEW_ALL_FUNCTIONS },
+          { view: "own", label: VIEW_YOUR_CODE },
+        ]
+      : [
+          { view: "self", label: SORT_BY_SELF },
+          { view: "total", label: SORT_BY_TOTAL },
+          { view: "own", label: VIEW_YOUR_CODE },
+        ];
+  const shownView: ProfileFunctionView =
+    comparison && functionView === "total" ? "self" : functionView;
 
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  aria-pressed={isActive}
-                  className={`rounded-md px-2.5 py-1 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                    isActive
-                      ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
-                  data-testid={`profiles-functions-sort-${option}`}
-                  onClick={() => {
-                    setSortBy(option);
-                  }}
-                >
-                  {translator.translateText(
-                    option === "self" ? SORT_BY_SELF : SORT_BY_TOTAL,
-                  )}
-                </button>
-              );
-            },
-          )}
-        </div>
-      ) : (
-        <></>
+  const functionsCardControls: ReactElement = (
+    <div
+      className="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1"
+      role="group"
+      aria-label={translator.translateText("Rank by")}
+      data-testid="profiles-functions-view"
+    >
+      {viewOptions.map(
+        (option: { view: ProfileFunctionView; label: string }) => {
+          const isActive: boolean = shownView === option.view;
+
+          return (
+            <button
+              key={option.view}
+              type="button"
+              aria-pressed={isActive}
+              className={`whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                isActive
+                  ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+              data-testid={`profiles-functions-view-${option.view}`}
+              onClick={() => {
+                setFunctionView(option.view);
+              }}
+            >
+              {translator.translateText(option.label)}
+            </button>
+          );
+        },
       )}
-      <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-gray-700">
-        <input
-          type="checkbox"
-          className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-          checked={onlyOwnCode}
-          data-testid="profiles-functions-own-code"
-          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-            setOnlyOwnCode(event.target.checked);
-          }}
-        />
-        {translator.translateText(ONLY_YOUR_CODE)}
-      </label>
     </div>
   );
 
@@ -812,8 +809,7 @@ const ProfilesOverview: FunctionComponent<ComponentProps> = (
             rows={functions.data?.functions}
             windowTotal={functions.data?.windowTotal}
             changes={comparison ? compared.data?.changes || [] : undefined}
-            sortBy={sortBy}
-            onlyOwnCode={onlyOwnCode}
+            view={shownView}
             truncated={Boolean(
               comparison ? compared.data?.truncated : functions.data?.truncated,
             )}

@@ -7,9 +7,13 @@ import Dropdown, {
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import { ProfileCategory } from "Common/Utils/Profiles/ProfileTypes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import ProfileUtil from "../../Utils/ProfileUtil";
 import {
   PROFILE_KIND_DESCRIPTIONS,
   PROFILE_KIND_LABELS,
@@ -20,7 +24,7 @@ import {
   PROFILES_RANGE_MINUTES,
   ProfilesCompareMode,
 } from "../../Utils/ProfilesUrlState";
-import { COMPARE_LABELS, COMPARE_OFF } from "./ProfileCopy";
+import { COMPARE_LABELS, COMPARE_OFF, RAW_TYPE_LABEL } from "./ProfileCopy";
 
 /*
  * WHAT THE PROFILER IS LOOKING AT, IN ONE BAR.
@@ -189,11 +193,22 @@ const ProfileScopeBar: FunctionComponent<ComponentProps> = (
     }`;
   };
 
+  /*
+   * A raw type by its own name, and the kind it is of: "samples (CPU
+   * time)" is the eBPF profiler's CPU samples, counted rather than timed.
+   */
   const rawTypeOptions: Array<DropdownOption> = props.choices.rawTypes.map(
     (choice: ProfileKindChoice): DropdownOption => {
       return {
         value: choice.selection,
-        label: ProfileUtil.getProfileTypeDisplayName(choice.selection),
+        label:
+          choice.category === ProfileCategory.Other
+            ? choice.selection
+            : translator.translateTemplate(RAW_TYPE_LABEL, {
+                type: choice.selection,
+                kind: translatableTerm(PROFILE_KIND_LABELS[choice.category]),
+              }),
+        isUserContent: true,
       };
     },
   );
@@ -261,57 +276,10 @@ const ProfileScopeBar: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
+      </div>
 
-        {rawTypeOptions.length > 0 ? (
-          <div
-            className="w-full sm:w-52"
-            data-testid="profiles-raw-type-picker"
-          >
-            <Dropdown
-              options={rawTypeOptions}
-              value={rawTypeOptions.find((option: DropdownOption): boolean => {
-                return (
-                  props.selectedKind.isRawType &&
-                  option.value === props.selectedKind.selection
-                );
-              })}
-              placeholder={translator.translateText("More profile types")}
-              ariaLabel={translator.translateText("More profile types")}
-              isClearable={false}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (value) {
-                  props.onSelectKind(value.toString());
-                }
-              }}
-            />
-          </div>
-        ) : (
-          <></>
-        )}
-
-        <div className="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto">
-          {props.customWindow ? (
-            <span
-              className="inline-flex max-w-full items-center gap-1.5 rounded-md bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700 ring-1 ring-indigo-200"
-              data-testid="profiles-custom-window"
-            >
-              <Icon icon={IconProp.Clock} className="h-3.5 w-3.5 flex-none" />
-              <span className="truncate">
-                {translator.translateTemplate("{{start}} to {{end}}", {
-                  start: OneUptimeDate.getDateAsLocalFormattedString(
-                    props.customWindow.startTime,
-                  ),
-                  end: OneUptimeDate.getDateAsLocalFormattedString(
-                    props.customWindow.endTime,
-                  ),
-                })}
-              </span>
-            </span>
-          ) : (
-            <></>
-          )}
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-gray-100 pt-3">
+        <div className="flex max-w-full flex-wrap items-center gap-2">
           <div
             className="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1"
             role="group"
@@ -338,10 +306,30 @@ const ProfileScopeBar: FunctionComponent<ComponentProps> = (
               );
             })}
           </div>
+          {props.customWindow ? (
+            <span
+              className="inline-flex max-w-full items-center gap-1.5 rounded-md bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700 ring-1 ring-indigo-200"
+              data-testid="profiles-custom-window"
+            >
+              <Icon icon={IconProp.Clock} className="h-3.5 w-3.5 flex-none" />
+              <span className="truncate">
+                {translator.translateTemplate("{{start}} to {{end}}", {
+                  start: OneUptimeDate.getDateAsLocalFormattedString(
+                    props.customWindow.startTime,
+                  ),
+                  end: OneUptimeDate.getDateAsLocalFormattedString(
+                    props.customWindow.endTime,
+                  ),
+                })}
+              </span>
+            </span>
+          ) : (
+            <></>
+          )}
           <button
             type="button"
             onClick={props.onRefresh}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            className="inline-flex h-9 w-9 flex-none items-center justify-center rounded-md border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             title={translator.translateText("Refresh")}
             aria-label={translator.translateText("Refresh")}
             data-testid="profiles-refresh"
@@ -349,38 +337,72 @@ const ProfileScopeBar: FunctionComponent<ComponentProps> = (
             <Icon icon={IconProp.Refresh} className="h-4 w-4" />
           </button>
         </div>
-      </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
-        <span className="text-sm text-gray-600">
-          {translator.translateText("Compare with")}
-        </span>
-        <div className="w-full sm:w-72" data-testid="profiles-compare-picker">
-          <Dropdown
-            options={compareGroups}
-            value={selectedCompareOption}
-            ariaLabel={translator.translateText("Compare with")}
-            isClearable={false}
-            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-              const picked: string = value ? value.toString() : "";
+        <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
+          <span className="flex-none text-sm text-gray-600">
+            {translator.translateText("Compare with")}
+          </span>
+          <div
+            className="min-w-0 flex-1 sm:w-72 sm:flex-none"
+            data-testid="profiles-compare-picker"
+          >
+            <Dropdown
+              options={compareGroups}
+              value={selectedCompareOption}
+              ariaLabel={translator.translateText("Compare with")}
+              isClearable={false}
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
+                const picked: string = value ? value.toString() : "";
 
-              if (!picked) {
-                props.onCompare(null);
-                return;
-              }
+                if (!picked) {
+                  props.onCompare(null);
+                  return;
+                }
 
-              if (picked.startsWith(DEPLOY_VALUE_PREFIX)) {
-                props.onCompare(
-                  ProfilesCompareMode.Change,
-                  new Date(picked.substring(DEPLOY_VALUE_PREFIX.length)),
-                );
-                return;
-              }
+                if (picked.startsWith(DEPLOY_VALUE_PREFIX)) {
+                  props.onCompare(
+                    ProfilesCompareMode.Change,
+                    new Date(picked.substring(DEPLOY_VALUE_PREFIX.length)),
+                  );
+                  return;
+                }
 
-              props.onCompare(picked as ProfilesCompareMode);
-            }}
-          />
+                props.onCompare(picked as ProfilesCompareMode);
+              }}
+            />
+          </div>
         </div>
+
+        {rawTypeOptions.length > 0 ? (
+          <div
+            className="w-full sm:ml-auto sm:w-56"
+            data-testid="profiles-raw-type-picker"
+          >
+            <Dropdown
+              options={rawTypeOptions}
+              value={rawTypeOptions.find((option: DropdownOption): boolean => {
+                return (
+                  props.selectedKind.isRawType &&
+                  option.value === props.selectedKind.selection
+                );
+              })}
+              placeholder={translator.translateText("More profile types")}
+              ariaLabel={translator.translateText("More profile types")}
+              isClearable={false}
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
+                if (value) {
+                  props.onSelectKind(value.toString());
+                }
+              }}
+            />
+          </div>
+        ) : (
+          <></>
+        )}
       </div>
     </div>
   );

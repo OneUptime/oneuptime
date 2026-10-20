@@ -1,4 +1,4 @@
-import { getProfileFunctionKey } from "./ProfileFrames";
+import { getProfileFunctionKey, isOwnProfileFrame } from "./ProfileFrames";
 
 /*
  * WHAT GOT SLOWER BETWEEN TWO WINDOWS.
@@ -17,6 +17,12 @@ import { getProfileFunctionKey } from "./ProfileFrames";
  * of every caller above it by the same amount, but only the expression's
  * self share grew: it is the code that changed.
  *
+ * For the application's own functions it also reads their OWN-CODE share
+ * (the function with the library and runtime code it calls, down to the
+ * next function of the application's own): a parser that now hands
+ * JSON.parse a payload ten times bigger has no self time at all, but its
+ * own-code share grew - and it is the code to change.
+ *
  * Pure: the server (the comparison route, the AI tools, the Profiles
  * monitor) and the Dashboard import it alike.
  */
@@ -30,6 +36,11 @@ export interface ProfileFunctionStat {
   selfValue: number;
   totalValue: number;
   sampleCount: number;
+  /*
+   * Own-code time, for the application's own functions
+   * (ProfileAggregationService.buildFunctionList); absent reads as 0.
+   */
+  ownValue?: number | undefined;
 }
 
 // One window: its functions, and the total of every sample in it.
@@ -49,6 +60,9 @@ export interface ProfileFunctionShare {
   selfShare: number;
   // 0-100: total value as a share of the window.
   totalShare: number;
+  ownValue: number;
+  // 0-100: own-code value as a share of the window.
+  ownShare: number;
 }
 
 export enum ProfileChangeDirection {
@@ -75,6 +89,8 @@ export interface ProfileFunctionChange {
   selfShareChange: number;
   // Percentage points: after.totalShare - before.totalShare.
   totalShareChange: number;
+  // Percentage points: after.ownShare - before.ownShare.
+  ownShareChange: number;
   direction: ProfileChangeDirection;
 }
 
@@ -114,6 +130,8 @@ function toShare(
     sampleCount: Number(stat.sampleCount) || 0,
     selfShare: share(Number(stat.selfValue) || 0, windowTotal),
     totalShare: share(Number(stat.totalValue) || 0, windowTotal),
+    ownValue: Number(stat.ownValue) || 0,
+    ownShare: share(Number(stat.ownValue) || 0, windowTotal),
   };
 }
 
@@ -146,12 +164,14 @@ function mergeByFunction(
         selfValue: Number(stat.selfValue) || 0,
         totalValue,
         sampleCount: Number(stat.sampleCount) || 0,
+        ownValue: Number(stat.ownValue) || 0,
         lineValue: totalValue,
       });
       continue;
     }
 
     existing.selfValue += Number(stat.selfValue) || 0;
+    existing.ownValue = (existing.ownValue || 0) + (Number(stat.ownValue) || 0);
     existing.totalValue += totalValue;
     existing.sampleCount += Number(stat.sampleCount) || 0;
 
@@ -218,8 +238,9 @@ export function compareProfileWindows(
   const changes: Array<ProfileFunctionChange> = [];
 
   for (const key of keys) {
-    const beforeStat: (ProfileFunctionStat & { lineValue: number }) | undefined =
-      beforeByKey.get(key);
+    const beforeStat:
+      | (ProfileFunctionStat & { lineValue: number })
+      | undefined = beforeByKey.get(key);
     const afterStat: (ProfileFunctionStat & { lineValue: number }) | undefined =
       afterByKey.get(key);
     const reference: ProfileFunctionStat & { lineValue: number } = (afterStat ||
@@ -236,6 +257,8 @@ export function compareProfileWindows(
       (afterShare?.selfShare || 0) - (beforeShare?.selfShare || 0);
     const totalShareChange: number =
       (afterShare?.totalShare || 0) - (beforeShare?.totalShare || 0);
+    const ownShareChange: number =
+      (afterShare?.ownShare || 0) - (beforeShare?.ownShare || 0);
 
     changes.push({
       functionName: reference.functionName,
@@ -247,6 +270,7 @@ export function compareProfileWindows(
       after: afterShare,
       selfShareChange,
       totalShareChange,
+      ownShareChange,
       direction: getDirection({
         before: beforeShare,
         after: afterShare,
@@ -274,6 +298,94 @@ export function compareProfileWindows(
   });
 
   return changes;
+}
+
+// Whether a change is a function of the application's own code.
+export function isOwnCodeChange(change: ProfileFunctionChange): boolean {
+  return isOwnProfileFrame(
+    change.fileName,
+    change.functionName,
+    change.frameType,
+  );
+}
+
+/*
+ * The application's own functions whose own-code share moved past the
+ * noise floor, the biggest moves first either way.
+ */
+export function getOwnCodeChanges(
+  changes: ReadonlyArray<ProfileFunctionChange>,
+): Array<ProfileFunctionChange> {
+  return changes
+    .filter((change: ProfileFunctionChange): boolean => {
+      return (
+        isOwnCodeChange(change) &&
+        Math.abs(change.ownShareChange || 0) >=
+          PROFILE_CHANGE_NOISE_FLOOR_POINTS
+      );
+    })
+    .sort((a: ProfileFunctionChange, b: ProfileFunctionChange): number => {
+      return (
+        Math.abs(b.ownShareChange) - Math.abs(a.ownShareChange) ||
+        b.ownShareChange - a.ownShareChange ||
+        a.functionName.localeCompare(b.functionName)
+      );
+    });
+}
+
+/*
+ * The one function of the application's own code to name when the time
+ * moved: the one whose own-code share grew the most, when that is at least
+ * PROFILE_CHANGE_NOTABLE_POINTS. Null when none grew that much.
+ */
+export function getNotableOwnCodeGrowth(
+  changes: ReadonlyArray<ProfileFunctionChange>,
+): ProfileFunctionChange | null {
+  const top: ProfileFunctionChange | undefined = getOwnCodeChanges(
+    changes,
+  ).find((change: ProfileFunctionChange): boolean => {
+    return change.ownShareChange > 0;
+  });
+
+  if (!top || top.ownShareChange < PROFILE_CHANGE_NOTABLE_POINTS) {
+    return null;
+  }
+
+  return top;
+}
+
+/*
+ * How many own-code movers a limited comparison always keeps, whatever its
+ * limit: ranked by self share, a parser with no self time of its own would
+ * fall off the list.
+ */
+export const PROFILE_COMPARISON_OWN_CODE_LEADERS: number = 10;
+
+/*
+ * The first `limit` changes of a comparison, then the own-code movers the
+ * limit left out (PROFILE_COMPARISON_OWN_CODE_LEADERS), biggest first.
+ */
+export function limitProfileComparison(
+  changes: ReadonlyArray<ProfileFunctionChange>,
+  limit: number,
+): Array<ProfileFunctionChange> {
+  const shown: Array<ProfileFunctionChange> = changes.slice(
+    0,
+    Math.max(0, limit),
+  );
+  const shownSet: Set<ProfileFunctionChange> = new Set(shown);
+
+  for (const change of getOwnCodeChanges(changes).slice(
+    0,
+    PROFILE_COMPARISON_OWN_CODE_LEADERS,
+  )) {
+    if (!shownSet.has(change)) {
+      shown.push(change);
+      shownSet.add(change);
+    }
+  }
+
+  return shown;
 }
 
 // The functions that take a bigger part of the time now, biggest first.

@@ -10,7 +10,6 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { ProfileFunctionChange } from "Common/Utils/Profiles/ProfileComparison";
 import { formatProfileShare } from "Common/Utils/Profiles/ProfileTypes";
-import ProfileUtil from "../../Utils/ProfileUtil";
 import {
   PROFILE_KIND_NOUNS,
   ProfileFunctionRow,
@@ -21,6 +20,7 @@ import {
   HEADLINE_LEADER,
   HEADLINE_LEADER_ALL,
   HEADLINE_NOTHING_CHANGED,
+  HEADLINE_OWN_GREW,
   HEADLINE_NOT_FOOTED,
   HEADLINE_NO_DATA,
   HEADLINE_SLOWER,
@@ -41,7 +41,14 @@ import {
  */
 
 export interface ProfileHeadlineComparison {
+  // The function whose self share grew the most (getNotableSlowdown).
   notable: ProfileFunctionChange | null;
+  /*
+   * The function of the application's own code whose own-code share grew
+   * the most (getNotableOwnCodeGrowth): the code to change, when the
+   * function that grew is a runtime's or a library's.
+   */
+  ownGrowth?: ProfileFunctionChange | null | undefined;
   isFooted: boolean;
   // "compared with the hour before", "after the deploy of 2.3.1".
   againstText: string;
@@ -56,6 +63,11 @@ export interface ComponentProps {
   facts?: ProfileHeadlineFacts | null | undefined;
   comparison?: ProfileHeadlineComparison | null | undefined;
   onOpenFunction: (row: { functionName: string; fileName: string }) => void;
+}
+
+// "the last hour" as a caption of its own: "The last hour".
+export function capitalize(text: string): string {
+  return text ? `${text.charAt(0).toLocaleUpperCase()}${text.slice(1)}` : text;
 }
 
 const ProfileHeadline: FunctionComponent<ComponentProps> = (
@@ -123,33 +135,59 @@ const ProfileHeadline: FunctionComponent<ComponentProps> = (
           {translator.translateText(HEADLINE_NOT_FOOTED)}
         </p>
       );
-    } else if (comparison.notable) {
-      const notable: ProfileFunctionChange = comparison.notable;
+    } else if (comparison.notable || comparison.ownGrowth) {
+      const notable: ProfileFunctionChange | null = comparison.notable;
+      const ownGrowth: ProfileFunctionChange | null =
+        comparison.ownGrowth &&
+        (!notable ||
+          comparison.ownGrowth.functionName !== notable.functionName ||
+          comparison.ownGrowth.fileName !== notable.fileName)
+          ? comparison.ownGrowth
+          : null;
       tone = "bg-amber-50 text-amber-600";
+
+      const ownSentence: ReactNode = ownGrowth ? (
+        <TranslatedSentence
+          template={HEADLINE_OWN_GREW}
+          slots={{
+            function: functionButton(ownGrowth),
+            before: strong(formatProfileShare(ownGrowth.before?.ownShare || 0)),
+            after: strong(formatProfileShare(ownGrowth.after?.ownShare || 0)),
+          }}
+        />
+      ) : null;
+
       body = (
         <>
           <p
             className="text-base text-gray-800"
             data-testid="profiles-headline-text"
           >
-            <TranslatedSentence
-              template={HEADLINE_SLOWER}
-              values={{ kind: kindNoun }}
-              slots={{
-                function: functionButton(notable),
-                before: strong(
-                  formatProfileShare(notable.before?.selfShare || 0),
-                ),
-                after: strong(
-                  formatProfileShare(notable.after?.selfShare || 0),
-                ),
-              }}
-            />{" "}
+            {notable ? (
+              <TranslatedSentence
+                template={HEADLINE_SLOWER}
+                values={{ kind: kindNoun }}
+                slots={{
+                  function: functionButton(notable),
+                  before: strong(
+                    formatProfileShare(notable.before?.selfShare || 0),
+                  ),
+                  after: strong(
+                    formatProfileShare(notable.after?.selfShare || 0),
+                  ),
+                }}
+              />
+            ) : (
+              ownSentence
+            )}{" "}
             <span className="text-gray-600">{comparison.againstText}</span>
           </p>
-          {notable.fileName ? (
-            <p className="mt-1 truncate font-mono text-xs text-gray-500">
-              {ProfileUtil.formatFileName(notable.fileName, 96)}
+          {notable && ownSentence ? (
+            <p
+              className="mt-1.5 text-sm text-gray-700"
+              data-testid="profiles-headline-own"
+            >
+              {ownSentence}
             </p>
           ) : (
             <></>
@@ -198,8 +236,14 @@ const ProfileHeadline: FunctionComponent<ComponentProps> = (
                 props.serviceName ? HEADLINE_LEADER : HEADLINE_LEADER_ALL
               }
               values={{ kind: kindNoun }}
+              /*
+               * Every slot must be in the sentence (a missing one falls back
+               * to the raw template): the service only when one is named.
+               */
               slots={{
-                service: strong(props.serviceName || ""),
+                ...(props.serviceName
+                  ? { service: strong(props.serviceName) }
+                  : {}),
                 share: strong(formatProfileShare(facts.leaderShare)),
                 function: functionButton(leader),
               }}
@@ -231,7 +275,13 @@ const ProfileHeadline: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
-          <p className="mt-1 text-xs text-gray-500">{props.windowText}</p>
+          <div
+            className="mt-1.5 flex items-center gap-1 text-xs text-gray-500"
+            data-testid="profiles-headline-window"
+          >
+            <Icon icon={IconProp.Clock} className="h-3.5 w-3.5 flex-none" />
+            <span>{capitalize(props.windowText)}</span>
+          </div>
         </>
       );
     }

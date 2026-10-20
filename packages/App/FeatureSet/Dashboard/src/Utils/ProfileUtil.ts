@@ -336,6 +336,11 @@ export default class ProfileUtil {
    *
    * The `intensity` parameter (0..1) lets hot frames within a category
    * read as more saturated than cool ones.
+   *
+   * The dark text on the light frames is a 950 shade on purpose: the dark
+   * theme lightens text 600-900 for dark surfaces (Theme.css), and a frame
+   * keeps its light colour in both themes - a lightened label on it could
+   * not be read.
    */
   public static getModuleFrameStyle(
     category: ModuleCategory,
@@ -369,7 +374,7 @@ export default class ProfileUtil {
       }
       return {
         bg: "bg-orange-300",
-        text: "text-orange-900",
+        text: "text-orange-950",
         border: "border-orange-400",
       };
     }
@@ -384,7 +389,7 @@ export default class ProfileUtil {
       }
       return {
         bg: "bg-sky-300",
-        text: "text-sky-900",
+        text: "text-sky-950",
         border: "border-sky-400",
       };
     }
@@ -392,7 +397,7 @@ export default class ProfileUtil {
     if (category === "native") {
       return {
         bg: "bg-purple-300",
-        text: "text-purple-900",
+        text: "text-purple-950",
         border: "border-purple-400",
       };
     }
