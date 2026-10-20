@@ -43,6 +43,7 @@ const RULE_MATCHING_CALLS: ReadonlyArray<string> = [
   "AutoImportRuleMatcher.evaluateHost",
   "CidrMatchUtil.ruleMatches",
   "CidrMatchUtil.pickRule",
+  "CidrMatchUtil.hostnameMatchesWildcard",
 ];
 
 // What hands a record of telemetry to a project's patterns.
@@ -81,6 +82,8 @@ const TEST_FOLDER: RegExp = /(?:^|\/)Tests\//;
 interface MethodFacts {
   name: string;
   hasAllowance: boolean;
+  // Not private or protected: another class can call it.
+  isCallableOutside: boolean;
   // Calls that ask patterns, outside PatternWorkScope.run: their lines.
   unscopedAskingCalls: Array<number>;
   // Methods of the same class it calls.
@@ -151,15 +154,60 @@ function decoratorNames(node: ts.Node): Array<string> {
     });
 }
 
+function isCallableOutsideItsClass(node: ts.Node): boolean {
+  const modifiers: ReadonlyArray<ts.ModifierLike> = ts.canHaveModifiers(node)
+    ? ts.getModifiers(node) || []
+    : [];
+
+  return !modifiers.some((modifier: ts.ModifierLike): boolean => {
+    return (
+      modifier.kind === ts.SyntaxKind.PrivateKeyword ||
+      modifier.kind === ts.SyntaxKind.ProtectedKeyword
+    );
+  });
+}
+
+interface SourceReading {
+  uncovered: Array<UncoveredQuestion>;
+  askersCallableOutside: Array<string>;
+}
+
+const NO_OUTSIDE_ASKERS: ReadonlySet<string> = new Set<string>();
+
 /*
  * The methods of each class in a source that ask a project's patterns with
  * no allowance of their own, and are not called only by methods that have
- * one.
+ * one. `outsideAskers` names methods other classes define that ask them
+ * with no allowance of their own (findAskersCallableOutside): a call to one
+ * from this source asks them too.
  */
 export function findUncoveredQuestions(
   file: string,
   text: string,
+  outsideAskers: ReadonlySet<string> = NO_OUTSIDE_ASKERS,
 ): Array<UncoveredQuestion> {
+  return readSource(file, text, outsideAskers).uncovered;
+}
+
+/*
+ * The methods of a source's classes that ask a project's patterns - in
+ * their own body, or through methods of their class with no allowance of
+ * their own - with no allowance of their own, and that another class can
+ * call. Covered here when every caller in their class has an allowance; a
+ * call from anywhere else must have one too.
+ */
+export function findAskersCallableOutside(
+  file: string,
+  text: string,
+): Array<string> {
+  return readSource(file, text, NO_OUTSIDE_ASKERS).askersCallableOutside;
+}
+
+function readSource(
+  file: string,
+  text: string,
+  outsideAskers: ReadonlySet<string>,
+): SourceReading {
   const source: ts.SourceFile = ts.createSourceFile(
     file,
     text,
@@ -171,6 +219,7 @@ export function findUncoveredQuestions(
     ...TELEMETRY_STEP_CALLS,
   ]);
   const uncovered: Array<UncoveredQuestion> = [];
+  const askersCallableOutside: Array<string> = [];
 
   const visitClass: (node: ts.ClassLikeDeclaration) => void = (
     node: ts.ClassLikeDeclaration,
@@ -196,6 +245,7 @@ export function findUncoveredQuestions(
         hasAllowance: decoratorNames(member).some((name: string): boolean => {
           return ALLOWANCE_DECORATORS.has(name);
         }),
+        isCallableOutside: isCallableOutsideItsClass(member),
         unscopedAskingCalls: [],
         callees: new Set<string>(),
       };
@@ -203,19 +253,26 @@ export function findUncoveredQuestions(
       const visitBody: (child: ts.Node) => void = (child: ts.Node): void => {
         if (ts.isCallExpression(child)) {
           const name: string | null = callName(child.expression);
+          const [owner, method] =
+            name === null ? ["", ""] : (name.split(".") as [string, string]);
+          const callsAnAskerOfAnotherClass: boolean =
+            owner !== "" &&
+            owner !== "this" &&
+            owner !== className &&
+            outsideAskers.has(method);
 
-          if (name !== null && asking.has(name) && !isInsideScopeRun(child)) {
+          if (
+            name !== null &&
+            (asking.has(name) || callsAnAskerOfAnotherClass) &&
+            !isInsideScopeRun(child)
+          ) {
             facts.unscopedAskingCalls.push(
               source.getLineAndCharacterOfPosition(child.getStart()).line + 1,
             );
           }
 
-          if (name !== null) {
-            const [owner, method] = name.split(".") as [string, string];
-
-            if (owner === "this" || owner === className) {
-              facts.callees.add(method);
-            }
+          if (name !== null && (owner === "this" || owner === className)) {
+            facts.callees.add(method);
           }
         }
 
@@ -299,6 +356,51 @@ export function findUncoveredQuestions(
         });
       }
     }
+
+    /*
+     * Which methods ask, in their own body or through methods of the class
+     * with no allowance of their own: a method with an allowance asks
+     * nothing of whoever calls it.
+     */
+    const asks: Map<string, boolean> = new Map<string, boolean>();
+
+    const doesAsk: (name: string, seen: Set<string>) => boolean = (
+      name: string,
+      seen: Set<string>,
+    ): boolean => {
+      const known: boolean | undefined = asks.get(name);
+
+      if (known !== undefined) {
+        return known;
+      }
+
+      const facts: MethodFacts | undefined = methods.get(name);
+
+      if (!facts || facts.hasAllowance || seen.has(name)) {
+        return false;
+      }
+
+      const nextSeen: Set<string> = new Set<string>(seen).add(name);
+      const result: boolean =
+        facts.unscopedAskingCalls.length > 0 ||
+        Array.from(facts.callees).some((callee: string): boolean => {
+          return doesAsk(callee, nextSeen);
+        });
+
+      asks.set(name, result);
+
+      return result;
+    };
+
+    for (const facts of methods.values()) {
+      if (
+        facts.isCallableOutside &&
+        !facts.hasAllowance &&
+        doesAsk(facts.name, new Set<string>())
+      ) {
+        askersCallableOutside.push(facts.name);
+      }
+    }
   };
 
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
@@ -311,7 +413,7 @@ export function findUncoveredQuestions(
 
   visit(source);
 
-  return uncovered;
+  return { uncovered: uncovered, askersCallableOutside: askersCallableOutside };
 }
 
 function listServerFiles(): Array<string> {
@@ -352,9 +454,21 @@ interface AllowanceFacts {
   files: Array<string>;
   uncovered: Array<UncoveredQuestion>;
   decorated: Array<string>;
+  // Methods that ask with no allowance of their own, callable from outside.
+  askersCallableOutside: Set<string>;
 }
 
 let factsMemo: AllowanceFacts | null = null;
+
+function callsAny(text: string, names: Iterable<string>): boolean {
+  for (const name of names) {
+    if (text.includes(`${name}(`) || text.includes(`${name}<`)) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 function repositoryFacts(): AllowanceFacts {
   if (factsMemo) {
@@ -365,30 +479,52 @@ function repositoryFacts(): AllowanceFacts {
     ...RULE_MATCHING_CALLS,
     ...TELEMETRY_STEP_CALLS,
   ];
-  const files: Array<string> = [];
-  const uncovered: Array<UncoveredQuestion> = [];
-  const decorated: Array<string> = [];
+  const sources: Array<{ file: string; text: string }> = [];
 
   for (const file of listServerFiles()) {
     if (DEFINING_FILES.has(file)) {
       continue;
     }
 
-    const text: string = fs.readFileSync(
-      path.join(REPOSITORY_DIRECTORY, file),
-      "utf8",
-    );
+    sources.push({
+      file: file,
+      text: fs.readFileSync(path.join(REPOSITORY_DIRECTORY, file), "utf8"),
+    });
+  }
 
-    if (
-      !askingNames.some((name: string): boolean => {
-        return text.includes(`${name}(`) || text.includes(`${name}<`);
-      })
-    ) {
+  /*
+   * First, the methods that ask with no allowance of their own and that any
+   * class can call: covered in their own class only when every caller there
+   * has one, so a call from any other source asks too.
+   */
+  const askersCallableOutside: Set<string> = new Set<string>();
+
+  for (const { file, text } of sources) {
+    if (callsAny(text, askingNames)) {
+      for (const name of findAskersCallableOutside(file, text)) {
+        askersCallableOutside.add(name);
+      }
+    }
+  }
+
+  const callsOfAskers: Array<string> = Array.from(askersCallableOutside).map(
+    (name: string): string => {
+      return `.${name}`;
+    },
+  );
+  const files: Array<string> = [];
+  const uncovered: Array<UncoveredQuestion> = [];
+  const decorated: Array<string> = [];
+
+  for (const { file, text } of sources) {
+    if (!callsAny(text, askingNames) && !callsAny(text, callsOfAskers)) {
       continue;
     }
 
     files.push(file);
-    uncovered.push(...findUncoveredQuestions(file, text));
+    uncovered.push(
+      ...findUncoveredQuestions(file, text, askersCallableOutside),
+    );
 
     for (const line of text.split("\n")) {
       const trimmed: string = line.trim();
@@ -399,7 +535,12 @@ function repositoryFacts(): AllowanceFacts {
     }
   }
 
-  factsMemo = { files: files, uncovered: uncovered, decorated: decorated };
+  factsMemo = {
+    files: files,
+    uncovered: uncovered,
+    decorated: decorated,
+    askersCallableOutside: askersCallableOutside,
+  };
 
   return factsMemo;
 }
@@ -481,6 +622,59 @@ describe("the reading of a class", () => {
     ).toEqual([{ file: "example.ts", method: "Ingest.handle", line: 6 }]);
   });
 
+  test("a method another class can call, asking with no allowance of its own, is found as one", () => {
+    expect(
+      findAskersCallableOutside(
+        "example.ts",
+        `class Engine {
+          @RuleEvaluation()
+          private async applyRules(rule: Rule): Promise<boolean> {
+            return this.doesMatch(rule);
+          }
+
+          public doesMatch(rule: Rule): boolean {
+            return this.readsPattern(rule);
+          }
+
+          private readsPattern(rule: Rule): boolean {
+            return RulePatternMatchUtil.matches("value", rule.pattern);
+          }
+
+          public preview(rule: Rule): Promise<boolean> {
+            return this.applyRules(rule);
+          }
+        }`,
+      ),
+    ).toEqual(["doesMatch"]);
+  });
+
+  test("a call to such a method from another class needs an allowance there", () => {
+    const askers: ReadonlySet<string> = new Set<string>(["doesMatch"]);
+
+    expect(
+      findUncoveredQuestions(
+        "other.ts",
+        `class Report {
+          public static async build(rule: Rule): Promise<boolean> {
+            return EngineService.doesMatch(rule);
+          }
+
+          @RuleEvaluation()
+          public static async buildMarked(rule: Rule): Promise<boolean> {
+            return EngineService.doesMatch(rule);
+          }
+
+          public static async buildScoped(rule: Rule): Promise<boolean> {
+            return PatternWorkScope.run(allowance, () => {
+              return EngineService.doesMatch(rule);
+            });
+          }
+        }`,
+        askers,
+      ),
+    ).toEqual([{ file: "other.ts", method: "Report.build", line: 3 }]);
+  });
+
   test("a static method calling another through its class is followed", () => {
     expect(
       findUncoveredQuestions(
@@ -546,5 +740,26 @@ describe("every piece of work that asks a project's patterns has an allowance", 
     expect(facts.files).toContain(
       "packages/App/FeatureSet/Telemetry/Services/ProbeSyslogIngestService.ts",
     );
+  });
+
+  test("the rule helpers other classes could call are known, and none is called outside an allowance", () => {
+    const facts: AllowanceFacts = repositoryFacts();
+
+    /*
+     * Public helpers of the engines that evaluate one rule: each is covered
+     * in its class, and a call from any other class must have an allowance
+     * of its own (the test above holds that).
+     */
+    for (const name of [
+      "doesIncidentMatchRule",
+      "doesAlertMatchRule",
+      "doesScheduledMaintenanceMatchRule",
+      "doesMonitorMatchRule",
+    ]) {
+      expect({ name, known: facts.askersCallableOutside.has(name) }).toEqual({
+        name,
+        known: true,
+      });
+    }
   });
 });

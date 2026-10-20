@@ -58,6 +58,15 @@ export class RulePatternMatchUtil {
       return false;
     }
 
+    if (patternWorkRefusesQuestions(value)) {
+      /*
+       * The evaluation's allowance is spent (LinearRegExp/PatternWork.ts):
+       * no answer, as a regular expression or as a wildcard, without a
+       * lookup. The wildcard below counts against it too.
+       */
+      return false;
+    }
+
     const trimmedPattern: string = pattern.trim();
 
     if (RulePatternMatchUtil.matchesRegex(value, trimmedPattern)) {
