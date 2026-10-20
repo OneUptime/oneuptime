@@ -63,10 +63,19 @@ flowchart TB
 - `PublishHomebrewCask.sh` commits the cask to the tap. A tap holds one
   version of a cask, so it never replaces a newer one.
 - `PublishWingetManifests.sh` opens the pull request to `microsoft/winget-pkgs`
-  from a fork, through the GitHub API (winget-pkgs is too big to clone), and
-  agrees to Microsoft's CLA on it for HackerBay, Inc.: the CLA bot asks on
-  every pull request. Microsoft's checks validate it, and a bot or a moderator
-  merges it.
+  from a fork, through the GitHub API (winget-pkgs is too big to clone).
+  Microsoft's checks validate it, and a bot or a moderator merges it. The
+  script then closes the account's open pull requests for older versions of
+  the agent, which the new one supersedes, commenting
+  `Superseded by #<number> (OneUptime.InfrastructureAgent <version>).` on
+  each. It closes only its own (titled as it titles them, and open from the
+  fork's `OneUptime.InfrastructureAgent-<version>` branch), never a newer
+  version's, and one it cannot close is a warning, not a failed job. It also
+  agrees to Microsoft's CLA on the pull request for HackerBay, Inc. The CLA
+  bot asks on every pull request and ignores an agreement posted before it
+  has asked, so the script waits up to 15 minutes for the bot's `Needs-CLA`
+  label before it agrees, then up to 5 more for the label to go. A label that
+  stays is a warning too.
 
 ## One-time setup
 
@@ -129,8 +138,9 @@ same tree to S3 behind CloudFront and keep the domain: only
    once they pass validation. Microsoft's CLA bot asks the account to agree
    on every pull request, so the job comments
    `@microsoft-github-policy-service agree company="HackerBay, Inc."` on each
-   one it opens. The account agrees for HackerBay, Inc.: an account for
-   another organization needs that changed in the script.
+   one it opens, once the bot has labelled it `Needs-CLA`: the bot ignores an
+   agreement posted before it asks. The account agrees for HackerBay, Inc.:
+   an account for another organization needs that changed in the script.
 
 ## Checking a release
 
@@ -164,7 +174,8 @@ winget show --id OneUptime.InfrastructureAgent --versions
 - `Tests/Ops/InfrastructureAgentPackageManagers.test.js` (in `npm test` of
   `Tests/Ops`) reads the GoReleaser config and the jobs, runs
   `PublishHomebrewCask.sh` against a local git repository and
-  `PublishWingetManifests.sh` against a fake `gh`.
+  `PublishWingetManifests.sh` against a fake `gh`, with a stand-in for
+  Microsoft's CLA bot and a `sleep` that does not wait.
 - `Tests/Ops/InfrastructureAgentReleaseStatus.test.js` runs
   `ReleaseStatus.sh` against a fake `gh` and a signed site it writes, and the
   two install checks against a fake `docker` and `brew`.
