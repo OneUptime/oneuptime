@@ -106,7 +106,9 @@ function mockWorld(): World {
         service as typeof AlertService,
         "compareAndSetColumnsByIdWithoutHooks",
       )
-      .mockImplementation((async (call: CompareAndSetCall): Promise<boolean> => {
+      .mockImplementation((async (
+        call: CompareAndSetCall,
+      ): Promise<boolean> => {
         world.writes[table]!.push(call);
 
         // The statement checks the column is still empty, and fills it.
@@ -148,9 +150,7 @@ describe("which steps of a run are a page that went out", () => {
     ]);
 
     for (const status of PAGE_WENT_OUT_STATUSES) {
-      expect(FirstPagedAt.isPageThatWentOut(pageAboutAlert(status))).toBe(
-        true,
-      );
+      expect(FirstPagedAt.isPageThatWentOut(pageAboutAlert(status))).toBe(true);
     }
   });
 
@@ -171,7 +171,9 @@ describe("which steps of a run are a page that went out", () => {
   test("not a step that names nobody - a schedule with nobody on call, an empty rule", () => {
     expect(
       FirstPagedAt.isPageThatWentOut({
-        ...pageAboutAlert(OnCallDutyExecutionLogTimelineStatus.NotificationSent),
+        ...pageAboutAlert(
+          OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+        ),
         alertSentToUserId: undefined,
       }),
     ).toBe(false);
@@ -624,7 +626,7 @@ describe("FirstPagedAt.backfill", () => {
       alertStatements.map((statement: Statement): string => {
         return statement.sql.slice(0, 6);
       }),
-    ).toEqual(["SELECT", "WITH \"", "SELECT", "WITH \"", "WITH \""]);
+    ).toEqual(["SELECT", 'WITH "', "SELECT", 'WITH "', 'WITH "']);
     expect(alertStatements[0]!.parameters).toEqual([2, null]);
     expect(alertStatements[2]!.parameters).toEqual([
       2,

@@ -257,6 +257,7 @@ const PAGES: Array<PageCase> = [
       "A measurement is the time between two moments in an incident. Pick a common one, or choose Something else to set up your own.",
     presetNames: [
       "Time to acknowledge",
+      "Time to acknowledge after paging",
       "Time to resolve",
       "Time to postmortem",
       "Something else",
@@ -303,7 +304,12 @@ const PAGES: Array<PageCase> = [
     noun: "alert",
     presetDescription:
       "A measurement is the time between two moments in an alert. Pick a common one, or choose Something else to set up your own.",
-    presetNames: ["Time to acknowledge", "Time to resolve", "Something else"],
+    presetNames: [
+      "Time to acknowledge",
+      "Time to acknowledge after paging",
+      "Time to resolve",
+      "Something else",
+    ],
     preset: {
       id: "time-to-acknowledge",
       name: "Time to acknowledge",

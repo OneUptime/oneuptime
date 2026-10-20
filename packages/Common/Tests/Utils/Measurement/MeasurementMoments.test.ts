@@ -450,7 +450,10 @@ describe("the ready-made measurements, by name", () => {
   );
 
   test("the first page is a moment OneUptime records, said in plain words in both lists", () => {
-    for (const domain of [MeasurementDomain.Incident, MeasurementDomain.Alert]) {
+    for (const domain of [
+      MeasurementDomain.Incident,
+      MeasurementDomain.Alert,
+    ]) {
       const moment: MeasurementMoment | null = findMeasurementMoment({
         domain: domain,
         anchorType: "First Paged At",
@@ -464,8 +467,15 @@ describe("the ready-made measurements, by name", () => {
         canMeasurementMomentRepeat({ domain: domain, value: moment?.value }),
       ).toBe(false);
       expect(
-        describeMeasurementEnd({ domain: domain, anchorType: "First Paged At" }),
-      ).toEqual({ label: "First paged", isStateName: false, isLastTime: false });
+        describeMeasurementEnd({
+          domain: domain,
+          anchorType: "First Paged At",
+        }),
+      ).toEqual({
+        label: "First paged",
+        isStateName: false,
+        isLastTime: false,
+      });
     }
 
     // Scheduled maintenance pages nobody.
