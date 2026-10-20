@@ -18,6 +18,9 @@ import {
 import React, { ReactElement } from "react";
 import ViewSwitch, {
   VIEW_SWITCH_ACTIVE_CLASS_NAME,
+  VIEW_SWITCH_CLASS_NAME,
+  VIEW_SWITCH_FILL_CLASS_NAME,
+  VIEW_SWITCH_FILL_OPTION_CLASS_NAME,
   ViewSwitchOption,
 } from "../../../../UI/Components/ViewSwitch/ViewSwitch";
 import RememberedView, {
@@ -70,6 +73,66 @@ afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
   window.localStorage.clear();
+});
+
+describe("ViewSwitch on a phone", () => {
+  /*
+   * The role picker's Whole project | One area heads a dialog: on a phone it
+   * fills the row, each option an equal share, as a phone's own segmented
+   * controls do; from sm up it hugs its options again. A switch in a
+   * toolbar keeps its own width everywhere.
+   */
+  test("can fill the row on a phone, its options sharing it equally", () => {
+    render(
+      <ViewSwitch
+        options={OPTIONS}
+        value="list"
+        onChange={(): void => {}}
+        ariaLabel="Show the events as"
+        dataTestId="switch"
+        fillWidthOnPhone={true}
+      />,
+    );
+
+    const group: HTMLElement = screen.getByTestId("switch");
+
+    expect(group.className).toBe(VIEW_SWITCH_FILL_CLASS_NAME);
+    expect(VIEW_SWITCH_FILL_CLASS_NAME).toContain("w-full");
+    expect(VIEW_SWITCH_FILL_CLASS_NAME).toContain("sm:w-auto");
+    expect(VIEW_SWITCH_FILL_CLASS_NAME).toContain("sm:inline-flex");
+
+    for (const option of ["list", "calendar"]) {
+      expect(screen.getByTestId(`switch-${option}`).className).toContain(
+        VIEW_SWITCH_FILL_OPTION_CLASS_NAME,
+      );
+    }
+    expect(VIEW_SWITCH_FILL_OPTION_CLASS_NAME).toBe(
+      "flex-1 justify-center sm:flex-none",
+    );
+  });
+
+  test("keeps its own width when not asked to fill the row", () => {
+    render(
+      <ViewSwitch
+        options={OPTIONS}
+        value="list"
+        onChange={(): void => {}}
+        ariaLabel="Show the events as"
+        dataTestId="switch"
+      />,
+    );
+
+    expect(screen.getByTestId("switch").className).toBe(VIEW_SWITCH_CLASS_NAME);
+    expect(screen.getByTestId("switch-list").className).not.toContain("flex-1");
+  });
+
+  test("filling the row, it looks the same: the same track and the same raised option", () => {
+    // Only the width changes: the track colour and padding stay.
+    expect(VIEW_SWITCH_FILL_CLASS_NAME).toContain(
+      "rounded-lg bg-gray-100 p-0.5",
+    );
+    expect(VIEW_SWITCH_CLASS_NAME).toContain("rounded-lg bg-gray-100 p-0.5");
+  });
 });
 
 describe("ViewSwitch", () => {

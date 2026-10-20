@@ -23,6 +23,11 @@ import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSch
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import type { RadioButton } from "../../../UI/Components/RadioButtons/GroupRadioButtons";
 import { escapeRegExp } from "../../../Utils/RegExpEscape";
+import {
+  ADVANCED_FORM_SECTION_ID,
+  MORE_FIELDS_SECTION_TITLE,
+} from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
+import { FOLDED_SECTION_LINE } from "../../../UI/Components/FoldedSection/FoldedSectionVariant";
 
 /*
  * HOW FAR A PERMISSION REACHES (Dashboard/src/Components/Permission/
@@ -34,6 +39,10 @@ import { escapeRegExp } from "../../../Utils/RegExpEscape";
  * and Terraform write them. What a cell says follows the server: a row is
  * narrowed by its labels whenever it has some, whatever its scope, and a
  * labels row with none reaches every resource.
+ *
+ * Both fields wait folded under the dialog's More fields line: All is what
+ * most teams want, so Add a Role and Add a Permission ask for the role or
+ * the permission alone.
  */
 
 type Values = FormValues<TeamPermission>;
@@ -352,6 +361,55 @@ describe("the Labels field", () => {
 
     expect(labels.showIf!(picked)).toBe(false);
     expect(required(picked)).toBe(false);
+  });
+});
+
+describe("folded under More fields", () => {
+  test("both fields wait in one fold: the form's More fields line", () => {
+    const [scope, labels] = fieldsFor(SCOPE_SHOWN);
+
+    expect(scope.collapsibleSection).toBeDefined();
+    expect(labels.collapsibleSection).toBe(scope.collapsibleSection);
+    expect(scope.collapsibleSection?.id).toBe(ADVANCED_FORM_SECTION_ID);
+    expect(scope.collapsibleSection?.title).toBe(MORE_FIELDS_SECTION_TITLE);
+    expect(MORE_FIELDS_SECTION_TITLE).toBe("More fields");
+    expect(scope.collapsibleSection?.variant).toBe(FOLDED_SECTION_LINE);
+  });
+
+  test("folded on Create and on Edit alike, its line naming the Scope - and what a narrower one is set to", () => {
+    const [scope] = fieldsFor(SCOPE_SHOWN);
+
+    expect(scope.collapsibleSection?.openWhenConfigured).toBe(false);
+    expect(scope.collapsibleSection?.listFieldsWhileFolded).toBe(true);
+  });
+
+  test("says nothing more under the line: All needs no sentence", () => {
+    const [scope] = fieldsFor(SCOPE_SHOWN);
+
+    expect(scope.collapsibleSection?.getSummary).toBeUndefined();
+    expect(scope.collapsibleSection?.description).toBeUndefined();
+  });
+
+  test("the fold is written into each field, where the form-steps scan reads it", () => {
+    const source: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Components/Permission/PermissionScopeChoice.ts",
+      ),
+      "utf8",
+    );
+
+    expect(source.split("collapsibleSection: moreFields,").length - 1).toBe(2);
+    expect(source).toContain("getAdvancedFormSection<TEntity>()");
+  });
+
+  test("a permission that takes no scope folds nothing away: no More fields line", () => {
+    const [scope, labels] = fieldsFor(SCOPE_HIDDEN);
+
+    expect(scope.showIf!(values({}))).toBe(false);
+    expect(labels.showIf!(values({ labels: [label("Production")] }))).toBe(
+      false,
+    );
   });
 });
 

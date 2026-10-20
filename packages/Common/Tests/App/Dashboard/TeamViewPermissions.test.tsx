@@ -30,8 +30,11 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     Advanced section holding Block Permissions;
  *   - Advanced starts folded, says what is in it, and says "Configured"
  *     while the team has any block permission;
- *   - Permissions offers Add Role - the role cards, a plain grid - as its
+ *   - Permissions offers Add Role - the role picker: the whole project or
+ *     one area, then a level (Components/Permission/RolePicker) - as its
  *     one button, and Add Permission in the card's More menu;
+ *   - the Scope of a role waits under the dialog's More fields line, on
+ *     All resources in the project, and is still sent;
  *   - an empty Permissions card says the team can do nothing yet and
  *     repeats Add Role (a new team created with Choose permissions later
  *     lands here);
@@ -91,6 +94,7 @@ jest.mock("../../../UI/Utils/Translation", () => {
 });
 
 const getListMock: MockFunction = getJestMockFunction();
+const getItemMock: MockFunction = getJestMockFunction();
 const createOrUpdateMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
@@ -103,8 +107,8 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getList: (...args: Array<any>) => {
         return getListMock(...args);
       },
-      getItem: async (): Promise<null> => {
-        return null;
+      getItem: (...args: Array<any>) => {
+        return getItemMock(...args);
       },
       count: async (): Promise<number> => {
         return 0;
@@ -249,6 +253,15 @@ beforeEach(() => {
     return { data: [], count: 0, skip: 0, limit: 10 };
   });
 
+  // An Edit form reads its row: the one the table listed, by its id.
+  getItemMock.mockImplementation(async (params: any): Promise<any> => {
+    return (
+      [...allowRows, ...blockRows].find((row: TeamPermission): boolean => {
+        return row._id?.toString() === params.id?.toString();
+      }) || null
+    );
+  });
+
   createOrUpdateMock.mockImplementation(async (data: any): Promise<any> => {
     return {
       data: {
@@ -262,6 +275,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   getListMock.mockReset();
+  getItemMock.mockReset();
   createOrUpdateMock.mockReset();
   jest.restoreAllMocks();
 });
@@ -363,7 +377,7 @@ async function openModal(trigger: HTMLElement): Promise<HTMLElement> {
 
   const modal: HTMLElement = await screen.findByTestId("modal");
 
-  // The form is drawn: the role cards, or the one-permission picker.
+  // The form is drawn: the role picker, or the one-permission picker.
   await waitFor(() => {
     expect(
       within(modal).queryAllByRole("radio").length > 0 ||
@@ -380,6 +394,34 @@ async function submitModal(modal: HTMLElement): Promise<void> {
   await act(async (): Promise<void> => {
     fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
   });
+}
+
+// The role picker's switch: Whole project, or One area.
+function reachButton(modal: HTMLElement, reach: string): HTMLElement {
+  return within(modal).getByTestId(`role-picker-reach-${reach}`);
+}
+
+// An area's role at a level, picked as a person picks it: the area, then the level.
+async function pickAreaRole(
+  modal: HTMLElement,
+  area: string,
+  level: string,
+): Promise<void> {
+  await act(async (): Promise<void> => {
+    fireEvent.click(reachButton(modal, "OneArea"));
+  });
+  await act(async (): Promise<void> => {
+    fireEvent.click(within(modal).getByTestId(`role-picker-area-${area}`));
+  });
+  await act(async (): Promise<void> => {
+    fireEvent.click(within(modal).getByTestId(`role-picker-level-${level}`));
+  });
+  await settleForm();
+}
+
+// The dialog's More fields line, which folds the Scope away.
+function moreFields(modal: HTMLElement): HTMLElement {
+  return within(modal).getByRole("button", { name: /More fields/ });
 }
 
 function isBefore(first: HTMLElement, second: HTMLElement): boolean {
@@ -495,7 +537,7 @@ describe("what the team's members can do", () => {
     ).toHaveTextContent("Add Role");
   });
 
-  test("Add Role shows every role card, as a plain grid, and adds the role picked as an allow row for all resources", async () => {
+  test("Add Role asks the whole project or one area: no wall of forty cards", async () => {
     await renderPage();
 
     const modal: HTMLElement = await openModal(
@@ -513,22 +555,49 @@ describe("what the team's members can do", () => {
       within(modal).getByTestId("modal-footer-submit-button"),
     ).toHaveTextContent(/^Add Role$/);
 
-    const roles: number = PermissionHelper.getRolePermissionProps().length;
-    expect(within(modal).getAllByRole("radio")).toHaveLength(roles);
-    expect(within(modal).getByText("Domain Roles")).toBeInTheDocument();
-    // No search box on the role grid.
-    expect(within(modal).queryByRole("searchbox")).toBeNull();
+    // It opens on the four roles that reach the whole project.
+    expect(reachButton(modal, "WholeProject")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(
+      within(modal)
+        .getAllByRole("radio")
+        .map((radio: HTMLElement): string => {
+          return radio.getAttribute("value") || "";
+        }),
+    ).toEqual([
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ]);
+    expect(within(modal).queryByText("Domain Roles")).toBeNull();
+    // The field's old help is gone: the dialog's title says what it adds.
+    expect(
+      within(modal).queryByText("A ready-made set of permissions."),
+    ).toBeNull();
+    // A search box finds any role.
+    expect(
+      within(modal).getByRole("searchbox", { name: "Search roles" }),
+    ).toBeInTheDocument();
+  });
 
-    fireEvent.click(
-      within(modal).getByTestId(
-        `card-select-option-${Permission.IncidentMember}`,
-      ),
+  test("an area's role, picked by area and level, is added as an allow row for all resources", async () => {
+    await renderPage();
+
+    const modal: HTMLElement = await openModal(
+      cardButton(card("Permissions"), "Add Role"),
     );
 
-    // A role that can be scoped asks how far it reaches, starting on All.
+    await pickAreaRole(modal, "Incidents", "Member");
+
     expect(
-      await within(modal).findByText("All resources in the project"),
-    ).toBeInTheDocument();
+      within(modal).getByTestId("role-picker-picked-title"),
+    ).toHaveTextContent("Incident Member");
+
+    // A role that can be scoped folds its Scope under More fields, on All.
+    expect(moreFields(modal)).toHaveAttribute("aria-expanded", "false");
 
     await submitModal(modal);
 
@@ -547,7 +616,88 @@ describe("what the team's members can do", () => {
     expect(request.model.scope).toBe(PermissionScope.All);
   });
 
-  test("the empty state's Add Role opens the same role cards", async () => {
+  test("a whole-project role is one click, and one that takes no scope shows no More fields", async () => {
+    await renderPage();
+
+    const modal: HTMLElement = await openModal(
+      cardButton(card("Permissions"), "Add Role"),
+    );
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(modal).getByTestId(
+          `role-picker-role-${Permission.ProjectAdmin}`,
+        ),
+      );
+    });
+    await settleForm();
+
+    expect(
+      within(modal).queryByRole("button", { name: /More fields/ }),
+    ).toBeNull();
+
+    await submitModal(modal);
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const request: any = createOrUpdateMock.mock.calls[0]![0];
+
+    expect(request.model.permission).toBe(Permission.ProjectAdmin);
+    expect(request.model.scope).toBe(PermissionScope.All);
+  });
+
+  test("a search finds a role, Enter picks it, and Add Role adds it", async () => {
+    await renderPage();
+
+    const modal: HTMLElement = await openModal(
+      cardButton(card("Permissions"), "Add Role"),
+    );
+
+    const search: HTMLElement = within(modal).getByRole("searchbox", {
+      name: "Search roles",
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.change(search, { target: { value: "telemetry viewer" } });
+    });
+    await act(async (): Promise<void> => {
+      fireEvent.keyDown(search, { key: "Enter" });
+    });
+    await settleForm();
+
+    // Enter picked the first match; it did not submit the dialog.
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
+
+    await submitModal(modal);
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(createOrUpdateMock.mock.calls[0]![0].model.permission).toBe(
+      Permission.TelemetryViewer,
+    );
+  });
+
+  test("with nothing picked, Add Role says a role is needed and adds nothing", async () => {
+    await renderPage();
+
+    const modal: HTMLElement = await openModal(
+      cardButton(card("Permissions"), "Add Role"),
+    );
+
+    await submitModal(modal);
+    await settleForm();
+
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
+    expect(within(modal).getByRole("alert")).toHaveTextContent(
+      "Role is required.",
+    );
+  });
+
+  test("the empty state's Add Role opens the same role picker", async () => {
     await renderPage();
 
     const modal: HTMLElement = await openModal(
@@ -555,8 +705,54 @@ describe("what the team's members can do", () => {
     );
 
     expect(
-      within(modal).getByTestId(`card-select-option-${Permission.Viewer}`),
+      within(modal).getByTestId(`role-picker-role-${Permission.Viewer}`),
     ).toBeInTheDocument();
+  });
+
+  test("Edit opens the picker on the row's role, where it lives", async () => {
+    allowRows = [permissionRow(Permission.MonitorViewer)];
+
+    await renderPage();
+
+    const permissions: HTMLElement = card("Permissions");
+
+    await within(permissions).findByText(
+      PermissionHelper.getTitle(Permission.MonitorViewer),
+    );
+
+    const editButton: HTMLElement = await waitFor((): HTMLElement => {
+      const found: HTMLElement | undefined = within(permissions)
+        .getAllByRole("button")
+        .find((candidate: HTMLElement): boolean => {
+          return (candidate.textContent || "").trim() === "Edit";
+        });
+
+      if (!found) {
+        throw new Error("No Edit button yet");
+      }
+
+      return found;
+    });
+
+    const modal: HTMLElement = await openModal(editButton);
+
+    await waitFor(() => {
+      expect(reachButton(modal, "OneArea")).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+    });
+    expect(
+      within(modal)
+        .getByTestId("role-picker-area-Monitors")
+        .querySelector("input[type='radio']"),
+    ).toBeChecked();
+    expect(
+      within(modal).getByTestId("role-picker-level-Viewer"),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      within(modal).getByTestId("role-picker-picked-title"),
+    ).toHaveTextContent("Monitor Viewer");
   });
 
   test("Add Permission keeps the one-permission picker", async () => {
@@ -596,7 +792,7 @@ describe("what the team's members can do", () => {
     ).toBeInTheDocument();
   });
 
-  test("Add Role's cards say what each role is for in one line, not its whole description", async () => {
+  test("Add Role says what each role is for in one line, not its whole description", async () => {
     await renderPage();
 
     const modal: HTMLElement = await openModal(
@@ -604,33 +800,39 @@ describe("what the team's members can do", () => {
     );
 
     const member: HTMLElement = within(modal).getByTestId(
-      `card-select-option-${Permission.ProjectMember}`,
+      `role-picker-role-${Permission.ProjectMember}`,
     );
 
     expect(member).toHaveTextContent(
       "Create, change and delete monitors, incidents, status pages and other resources.",
     );
     expect(member).not.toHaveTextContent("Member of this project.");
+
+    await pickAreaRole(modal, "Incidents", "Viewer");
+
     expect(
-      within(modal).getByTestId(
-        `card-select-option-${Permission.IncidentViewer}`,
-      ),
+      within(modal).getByTestId("role-picker-picked-summary"),
     ).toHaveTextContent("Read incidents. Change nothing.");
   });
 
-  test("the Scope is three plain answers starting on All; the third asks for labels, and requires them", async () => {
+  test("the Scope waits under More fields: three plain answers starting on All; the third asks for labels, and requires them", async () => {
     await renderPage();
 
     const modal: HTMLElement = await openModal(
       cardButton(card("Permissions"), "Add Role"),
     );
 
-    fireEvent.click(
-      within(modal).getByTestId(
-        `card-select-option-${Permission.IncidentMember}`,
-      ),
-    );
-    await settleForm();
+    await pickAreaRole(modal, "Incidents", "Member");
+
+    // Folded, its line names the Scope.
+    expect(moreFields(modal)).toHaveAttribute("aria-expanded", "false");
+    expect(moreFields(modal)).toHaveTextContent("Scope");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(moreFields(modal));
+    });
+
+    expect(moreFields(modal)).toHaveAttribute("aria-expanded", "true");
 
     const all: HTMLElement = await within(modal).findByRole("radio", {
       name: "All resources in the project",
@@ -710,11 +912,13 @@ describe("what the team's members can never do", () => {
 
     const modal: HTMLElement = await openModal(cardButton(block, "Add Role"));
 
-    fireEvent.click(
-      within(modal).getByTestId(
-        `card-select-option-${Permission.BillingAdmin}`,
-      ),
+    // A block is most often one area's role: its picker opens on One area.
+    expect(reachButton(modal, "OneArea")).toHaveAttribute(
+      "aria-pressed",
+      "true",
     );
+
+    await pickAreaRole(modal, "Billing", "Admin");
 
     await submitModal(modal);
 
