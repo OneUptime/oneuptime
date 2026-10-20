@@ -685,13 +685,28 @@ const ExecutionView: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * Stacked: the run's name and its buttons share the first line, and
+       * what the run waits on runs under both, across the card - beside two
+       * buttons in the narrower card a tablet or the side menu leaves, it was
+       * squeezed into a column a word wide.
+       */}
       <Card
         title={execution.runbookNameSnapshot || "Runbook Execution"}
         description={cardDescription}
         buttons={cardButtons}
+        headerLayout="stacked"
       >
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+          {/*
+           * Four tiles across where the card is wide enough for a date on
+           * one line, two by two below that, and one above another on a
+           * phone, where two side by side cut a status or a date in pieces.
+           */}
+          <div
+            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6"
+            data-testid="runbook-execution-tiles"
+          >
             <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
               <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">
                 {translator.translateText("Status")}
@@ -906,13 +921,20 @@ const ExecutionView: FunctionComponent<
                         >
                           {/*
                            * The step, and the buttons that move the run on:
-                           * beside it from sm up, under it on a phone - at
-                           * the right edge, as every card's actions are -
-                           * where beside it they left its words a column one
-                           * word wide.
+                           * beside its words where the card has room for
+                           * both, and under them, at the card's right edge,
+                           * where it has not - decided by the card's own
+                           * width, not the screen's, so a narrow card (a
+                           * tablet, the side menu open, a long label in the
+                           * reader's language) never squeezes the words into
+                           * a column a word wide. The words keep at least
+                           * 16rem; the buttons wrap under them first.
                            */}
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                            <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-start gap-3">
+                            <div
+                              className="min-w-0 grow basis-64"
+                              data-testid={`runbook-execution-step-${idx}-words`}
+                            >
                               <div className="flex flex-wrap items-center gap-2 mb-1">
                                 <span className="text-xs text-gray-400 font-medium">
                                   {translator.translateTemplate(
@@ -959,13 +981,27 @@ const ExecutionView: FunctionComponent<
                                 </div>
                               )}
                             </div>
-                            <div className="flex items-center gap-2 empty:hidden self-end sm:self-auto sm:flex-shrink-0">
+                            {/*
+                             * On a phone the waiting step's buttons take the
+                             * card's width, as a dialog's do: the one that
+                             * moves the run on fills a line of its own, and
+                             * Skip sits centred under it - so however long
+                             * their words are in the reader's language, they
+                             * stay inside the card. A later step's lone Skip
+                             * keeps to the card's right edge.
+                             */}
+                            <div
+                              className="ml-auto flex flex-wrap items-center justify-end gap-2 empty:hidden max-sm:w-full"
+                              data-testid={`runbook-execution-step-${idx}-actions`}
+                            >
                               {canComplete && (
                                 <Button
                                   title={waitingStepButtonTitle}
                                   buttonStyle={ButtonStyleType.PRIMARY}
                                   buttonSize={ButtonSize.Small}
                                   icon={IconProp.Check}
+                                  // Full width on a phone (Button's own), its own width beside the step.
+                                  className="sm:w-auto"
                                   onClick={() => {
                                     void completeStep(stepExec.step.id);
                                   }}
@@ -978,6 +1014,11 @@ const ExecutionView: FunctionComponent<
                                   buttonStyle={ButtonStyleType.OUTLINE}
                                   buttonSize={ButtonSize.Small}
                                   icon={IconProp.ChevronRight}
+                                  className={
+                                    canComplete
+                                      ? "max-sm:ml-0 max-sm:w-full max-sm:justify-center"
+                                      : undefined
+                                  }
                                   onClick={() => {
                                     void skipStep(stepExec.step.id);
                                   }}
@@ -1001,7 +1042,12 @@ const ExecutionView: FunctionComponent<
                                   className="inline-flex items-center gap-1"
                                   data-testid={`runbook-execution-step-${idx}-approved-by`}
                                 >
-                                  {translator.translateText(APPROVED_BY_LABEL)}
+                                  {/* Kept on one line beside the person, as a phone narrows it. */}
+                                  <span className="whitespace-nowrap">
+                                    {translator.translateText(
+                                      APPROVED_BY_LABEL,
+                                    )}
+                                  </span>
                                   {stepUsers.get(stepExec.approvedByUserId) ? (
                                     <UserElement
                                       user={
@@ -1047,12 +1093,14 @@ const ExecutionView: FunctionComponent<
                                   stepExec.status ===
                                     RunbookStepExecutionStatus.Skipped) && (
                                   <span className="inline-flex items-center gap-1">
-                                    {stepExec.status ===
-                                    RunbookStepExecutionStatus.Skipped
-                                      ? translator.translateText("Skipped by")
-                                      : translator.translateText(
-                                          "Completed by",
-                                        )}
+                                    <span className="whitespace-nowrap">
+                                      {stepExec.status ===
+                                      RunbookStepExecutionStatus.Skipped
+                                        ? translator.translateText("Skipped by")
+                                        : translator.translateText(
+                                            "Completed by",
+                                          )}
+                                    </span>
                                     {stepUsers.get(
                                       stepExec.completedByUserId,
                                     ) ? (

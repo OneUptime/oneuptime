@@ -1035,16 +1035,19 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
       ...providerOptions,
     ];
 
+    /*
+     * Always set to something - the project default when nothing is pinned -
+     * so the field is not marked optional and has nothing to clear: picking
+     * the project default is how a pin is taken off.
+     */
     return (
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1.5">
-          {translator.translateText("LLM provider")}{" "}
-          <span className="text-gray-400">
-            {translator.translateText("(optional)")}
-          </span>
+          {translator.translateText("LLM provider")}
         </label>
         <Dropdown
           options={options}
+          isClearable={false}
           value={staleOption || knownOption || defaultOption}
           placeholder="Project default"
           onChange={(
@@ -1538,23 +1541,29 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               />
             </div>
             {renderDescriptionField(step, idx)}
-            <StepTimeoutInput
-              label="Request timeout"
-              value={config.timeoutInMs}
-              bounds={STEP_EXECUTION_TIMEOUT_BOUNDS}
-              description={
-                <>
-                  {translator.translateText(
-                    "How long to wait for the endpoint to respond before failing the step.",
-                  )}
-                </>
-              }
-              onChange={(timeoutInMs: number | undefined) => {
-                updateConfig(idx, {
-                  timeoutInMs,
-                });
-              }}
-            />
+            {/*
+             * Half the width, as every other step's timeouts are: a number
+             * of seconds needs no more.
+             */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <StepTimeoutInput
+                label="Request timeout"
+                value={config.timeoutInMs}
+                bounds={STEP_EXECUTION_TIMEOUT_BOUNDS}
+                description={
+                  <>
+                    {translator.translateText(
+                      "How long to wait for the endpoint to respond before failing the step.",
+                    )}
+                  </>
+                }
+                onChange={(timeoutInMs: number | undefined) => {
+                  updateConfig(idx, {
+                    timeoutInMs,
+                  });
+                }}
+              />
+            </div>
           </>,
         )}
       </>
@@ -2191,26 +2200,36 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                         {idx + 1}
                                       </div>
                                       {/*
-                                       * The step's type: its icon and name,
-                                       * the icon alone on a phone, where the
-                                       * title needs the room (the name stays
-                                       * for a screen reader).
+                                       * The step's type: its icon and name.
+                                       * Not drawn on a phone, where the title
+                                       * needs the room - the number's colour
+                                       * and the line under the title say the
+                                       * type there - but still read out by a
+                                       * screen reader.
                                        */}
                                       <div
-                                        className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${meta.bg} ${meta.iconColor} ring-1 ring-inset ${meta.ring} flex-shrink-0 max-sm:px-1.5`}
+                                        className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${meta.bg} ${meta.iconColor} ring-1 ring-inset ${meta.ring} flex-shrink-0 max-sm:sr-only`}
+                                        data-testid={`runbook-step-${idx}-type`}
                                       >
                                         <Icon
                                           icon={meta.icon}
                                           size={SizeProp.Smaller}
                                           className={meta.iconColor}
                                         />
-                                        <span className="max-sm:sr-only">
-                                          {meta.shortLabel}
-                                        </span>
+                                        {meta.shortLabel}
                                       </div>
                                       <div className="min-w-0 flex-1">
-                                        <div className="flex min-w-0 items-center gap-2">
-                                          <div className="text-sm font-semibold text-gray-900 truncate">
+                                        <div className="flex min-w-0 items-center gap-2 max-sm:items-start">
+                                          {/*
+                                           * One line, cut short, beside the
+                                           * step's type; on a phone up to two,
+                                           * so a title reads as more than its
+                                           * first word.
+                                           */}
+                                          <div
+                                            className="text-sm font-semibold text-gray-900 truncate max-sm:whitespace-normal max-sm:break-words max-sm:line-clamp-2"
+                                            data-testid={`runbook-step-${idx}-title-text`}
+                                          >
                                             {step.title || meta.label}
                                           </div>
                                           {/*
