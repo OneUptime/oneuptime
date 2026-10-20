@@ -260,14 +260,12 @@ export default class FixProductionVerifier {
 
     const mergedAt: Date = FixProductionVerifier.mergedAtOf(fix, run);
 
-    const shipped: ShippedFix | null = await FixProductionVerifier.awaitDeploy(
-      {
-        fix,
-        run,
-        serviceId: exception.primaryEntityId,
-        mergedAt,
-      },
-    );
+    const shipped: ShippedFix | null = await FixProductionVerifier.awaitDeploy({
+      fix,
+      run,
+      serviceId: exception.primaryEntityId,
+      mergedAt,
+    });
 
     if (!shipped) {
       return;
@@ -315,7 +313,10 @@ export default class FixProductionVerifier {
   }
 
   // When the fix merged: GitHub's time, else when its watch started.
-  public static mergedAtOf(fix: AIAgentTaskPullRequest, run: VerifierRun): Date {
+  public static mergedAtOf(
+    fix: AIAgentTaskPullRequest,
+    run: VerifierRun,
+  ): Date {
     return fix.mergedAt
       ? new Date(fix.mergedAt)
       : fix.productionStatusAt
@@ -339,7 +340,10 @@ export default class FixProductionVerifier {
   }): Promise<ShippedFix | null> {
     const fix: AIAgentTaskPullRequest = data.fix;
 
-    if (fix.productionStatus === FixProductionStatus.Watching && fix.deployedAt) {
+    if (
+      fix.productionStatus === FixProductionStatus.Watching &&
+      fix.deployedAt
+    ) {
       return {
         deployedAt: new Date(fix.deployedAt),
         deployedVersion: fix.deployedVersion || undefined,
@@ -440,7 +444,9 @@ export default class FixProductionVerifier {
    * The run that opened the fix, held to the fix's project: its recipe, what
    * started it, and its context.
    */
-  public static async readRun(fix: AIAgentTaskPullRequest): Promise<AIRun | null> {
+  public static async readRun(
+    fix: AIAgentTaskPullRequest,
+  ): Promise<AIRun | null> {
     if (!fix.aiRunId) {
       return null;
     }
@@ -592,8 +598,11 @@ export default class FixProductionVerifier {
 
   /*
    * Occurrences of the exception in the deployed fix: in its version when
-   * the deploy reported one - so old pods still draining do not count - and
-   * otherwise from the rollout grace after it on.
+   * the deploy reported one the service's telemetry names too - so old pods
+   * still draining do not count - and otherwise from the rollout grace after
+   * it on. A version the telemetry never names (a pipeline's "2.3.2" beside
+   * an SDK's "v2.3.2", or none at all) would find no occurrence, and verify
+   * a fix that never stopped the exception.
    */
   public static async countOccurrencesSinceDeploy(data: {
     exception: TelemetryException;
@@ -601,12 +610,24 @@ export default class FixProductionVerifier {
     deployedVersion?: string | undefined;
     now: Date;
   }): Promise<number> {
-    if (data.deployedVersion) {
+    const version: string | undefined =
+      await FixProductionVerifier.versionToRead({
+        projectId: data.exception.projectId!,
+        serviceId: data.exception.primaryEntityId,
+        shipped: {
+          deployedAt: data.deployedAt,
+          deployedVersion: data.deployedVersion,
+          isNew: false,
+        },
+        now: data.now,
+      });
+
+    if (version) {
       return FixProductionVerifier.countOccurrences({
         exception: data.exception,
         start: data.deployedAt,
         end: data.now,
-        release: data.deployedVersion,
+        release: version,
       });
     }
 

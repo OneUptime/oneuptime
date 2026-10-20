@@ -242,9 +242,9 @@ export class Service extends ProjectReferencesService<Model> {
       readProductionByCheck(),
     ]);
 
-    const sumOf: (
+    const sumOf: (key: keyof AIFixProductionOutcome) => number = (
       key: keyof AIFixProductionOutcome,
-    ) => number = (key: keyof AIFixProductionOutcome): number => {
+    ): number => {
       return Object.values(productionByCheck).reduce(
         (sum: number, outcome: AIFixProductionOutcome): number => {
           return sum + outcome[key];

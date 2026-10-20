@@ -4,7 +4,10 @@ import TableColumnType from "../../../../Types/AnalyticsDatabase/TableColumnType
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
-import { DbJSONResponse, Results } from "../../../Services/AnalyticsDatabaseService";
+import {
+  DbJSONResponse,
+  Results,
+} from "../../../Services/AnalyticsDatabaseService";
 import LogService from "../../../Services/LogService";
 import SpanService from "../../../Services/SpanService";
 import TraceAggregationService, {
@@ -382,9 +385,8 @@ export default class FixProductionTelemetry {
     statement: Statement,
     table: TelemetryTable,
   ): Promise<Array<JSONObject>> {
-    const result: Results = await (table === SPAN_TABLE
-      ? SpanService
-      : LogService
+    const result: Results = await (
+      table === SPAN_TABLE ? SpanService : LogService
     ).executeQuery(statement);
     const response: DbJSONResponse = await result.json<{
       data?: Array<JSONObject>;

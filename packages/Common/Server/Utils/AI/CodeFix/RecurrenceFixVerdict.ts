@@ -117,7 +117,10 @@ export function decideRecurrenceVerdict(data: {
   const isOver: boolean = watched >= thresholds.maxWatchDays * 24 * HOUR_IN_MS;
   // Quiet time: since the rollout grace, or since one was last seen open.
   const quiet: number = data.openSeenAt
-    ? Math.min(watched, Math.max(0, data.now.getTime() - data.openSeenAt.getTime()))
+    ? Math.min(
+        watched,
+        Math.max(0, data.now.getTime() - data.openSeenAt.getTime()),
+      )
     : watched;
   const quietHours: number = quiet / HOUR_IN_MS;
   const expected: number =
@@ -145,7 +148,9 @@ export function decideRecurrenceVerdict(data: {
 
   // How long it has been quiet, and since what.
   const quietWords: string = `in the ${describeDuration(quiet)} since ${
-    quiet < watched ? `its last ${kind} closed` : `${data.deployLabel} shipped the fix`
+    quiet < watched
+      ? `its last ${kind} closed`
+      : `${data.deployLabel} shipped the fix`
   }`;
 
   if (

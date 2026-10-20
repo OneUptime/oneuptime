@@ -106,9 +106,11 @@ export default class RecurrenceFixWatch {
       await FixProductionVerifier.saveBaseline(fix, { recurrence: baseline });
     }
 
-    const shipped: ShippedFix | null = await FixProductionVerifier.awaitDeploy(
-      { fix, run, mergedAt },
-    );
+    const shipped: ShippedFix | null = await FixProductionVerifier.awaitDeploy({
+      fix,
+      run,
+      mergedAt,
+    });
 
     if (!shipped) {
       return;
@@ -125,22 +127,20 @@ export default class RecurrenceFixWatch {
       RECURRENCE_FIX_THRESHOLDS.rolloutGraceMinutes,
     );
 
-    const [recurrences, hasOpenSubject]: [number, boolean] = await Promise.all(
-      [
-        RecurrenceFixWatch.countRaised({
-          fix,
-          kind: baseline.subjectKind,
-          monitorIds,
-          from: since,
-          to: run.now,
-        }),
-        RecurrenceFixWatch.hasOpen({
-          fix,
-          kind: baseline.subjectKind,
-          monitorIds,
-        }),
-      ],
-    );
+    const [recurrences, hasOpenSubject]: [number, boolean] = await Promise.all([
+      RecurrenceFixWatch.countRaised({
+        fix,
+        kind: baseline.subjectKind,
+        monitorIds,
+        from: since,
+        to: run.now,
+      }),
+      RecurrenceFixWatch.hasOpen({
+        fix,
+        kind: baseline.subjectKind,
+        monitorIds,
+      }),
+    ]);
 
     const firstRecurrence: Recurrence | null =
       recurrences > 0

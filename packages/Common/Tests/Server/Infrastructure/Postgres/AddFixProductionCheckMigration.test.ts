@@ -35,7 +35,8 @@ async function record(direction: "up" | "down"): Promise<Array<string>> {
       statements.push(sql);
     },
   } as unknown as QueryRunner;
-  const migration: MigrationInterface = new AddFixProductionCheck1804500000000();
+  const migration: MigrationInterface =
+    new AddFixProductionCheck1804500000000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -91,11 +92,9 @@ describe("AddFixProductionCheck1804500000000", () => {
   });
 
   test("adds exactly the columns the model declares", () => {
-    const declared: Record<string, { type: TableColumnType }> =
-      getTableColumns(new AIAgentTaskPullRequest()) as unknown as Record<
-        string,
-        { type: TableColumnType }
-      >;
+    const declared: Record<string, { type: TableColumnType }> = getTableColumns(
+      new AIAgentTaskPullRequest(),
+    ) as unknown as Record<string, { type: TableColumnType }>;
 
     for (const column of NEW_COLUMNS) {
       expect(Object.keys(declared)).toContain(column);

@@ -114,7 +114,9 @@ describe("which operation a trace's finding is measured by", () => {
     expect(
       operationOfFinding(finding({ parentSpanName: undefined })),
     ).toBeUndefined();
-    expect(operationOfFinding(finding({ parentSpanName: "  " }))).toBeUndefined();
+    expect(
+      operationOfFinding(finding({ parentSpanName: "  " })),
+    ).toBeUndefined();
     expect(
       operationOfFinding(
         finding({

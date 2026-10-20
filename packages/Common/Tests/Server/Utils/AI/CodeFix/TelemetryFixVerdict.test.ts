@@ -87,17 +87,17 @@ describe("what a fix adds: the text quoted on the lines its diff adds", () => {
   const PATCH: string = [
     "@@ -10,6 +10,12 @@ export async function pay(order) {",
     "   const total = sum(order);",
-    '-  logger.info(`Paid ${order.id}`);',
+    "-  logger.info(`Paid ${order.id}`);",
     '+  return tracer.startActiveSpan("checkout.pay", async (span) => {',
     '+    span.setAttribute("order.id", order.id);',
     "+    logger.info('Payment captured', { orderId: order.id });",
     '+    span.setAttribute("order.id", order.id);',
-    '+    // don\'t record the card number',
-    '+    logger.info(`Paid ${order.id}`);',
+    "+    // don't record the card number",
+    "+    logger.info(`Paid ${order.id}`);",
     '+    const empty = "";',
     '+    const status = "200";',
     '+    log.debug("escaped \\"quote\\" inside");',
-    '+++ b/not-a-line-of-code.ts',
+    "+++ b/not-a-line-of-code.ts",
     '     const unchanged = "context line";',
   ].join("\n");
 
@@ -125,8 +125,9 @@ describe("what a fix adds: the text quoted on the lines its diff adds", () => {
 
   test("text in any script counts, and a quote unclosed on its line ends the line", () => {
     expect(
-      readAddedQuotedText(['+ log.info("注文を受け付けました") // it\'s "kept"'])
-        .texts,
+      readAddedQuotedText([
+        '+ log.info("注文を受け付けました") // it\'s "kept"',
+      ]).texts,
     ).toEqual(["注文を受け付けました"]);
   });
 
@@ -138,9 +139,12 @@ describe("what a fix adds: the text quoted on the lines its diff adds", () => {
   });
 
   test("at most 200 texts are kept, and the read says it stopped", () => {
-    const patch: string = Array.from({ length: 250 }, (_: unknown, i: number) => {
-      return `+ span("span.number.${i}")`;
-    }).join("\n");
+    const patch: string = Array.from(
+      { length: 250 },
+      (_: unknown, i: number) => {
+        return `+ span("span.number.${i}")`;
+      },
+    ).join("\n");
     const read: { texts: Array<string>; isTruncated: boolean } =
       readAddedQuotedText([patch]);
 
@@ -163,7 +167,8 @@ describe("what a fix adds: the text quoted on the lines its diff adds", () => {
 
   test("megabytes of diff are read in one pass, and stop at 2,000,000 characters", () => {
     // Every line ends in a quote that never closes.
-    const line: string = '+ span("a.b") log("text with \'quotes\' in it") x("\n';
+    const line: string =
+      '+ span("a.b") log("text with \'quotes\' in it") x("\n';
     const patch: string = line.repeat(60000);
     const started: number = Date.now();
     const read: { texts: Array<string>; isTruncated: boolean } =

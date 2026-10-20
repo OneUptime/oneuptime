@@ -119,9 +119,12 @@ export default class PerformanceFixWatch {
 
     const serviceId: ObjectID = new ObjectID(baseline.serviceId);
 
-    const shipped: ShippedFix | null = await FixProductionVerifier.awaitDeploy(
-      { fix, run, serviceId, mergedAt },
-    );
+    const shipped: ShippedFix | null = await FixProductionVerifier.awaitDeploy({
+      fix,
+      run,
+      serviceId,
+      mergedAt,
+    });
 
     if (!shipped) {
       return;

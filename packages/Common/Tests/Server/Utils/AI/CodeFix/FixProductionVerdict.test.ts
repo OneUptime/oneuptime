@@ -326,24 +326,27 @@ describe("what a merged fix records", () => {
     FixProductionCheck.Performance,
     FixProductionCheck.Recurrence,
     FixProductionCheck.Telemetry,
-  ])("a fix watched with the %s check starts the same watch", (check) => {
-    expect(
-      fieldsWhenMerged({
-        mergeCommitSha: FIX_SHA,
+  ])(
+    "a fix watched with the %s check starts the same watch",
+    (check: FixProductionCheck) => {
+      expect(
+        fieldsWhenMerged({
+          mergeCommitSha: FIX_SHA,
+          mergedAt: MERGED_AT,
+          productionCheck: check,
+          now: NOW,
+        }),
+      ).toEqual({
         mergedAt: MERGED_AT,
+        mergeCommitSha: FIX_SHA,
         productionCheck: check,
-        now: NOW,
-      }),
-    ).toEqual({
-      mergedAt: MERGED_AT,
-      mergeCommitSha: FIX_SHA,
-      productionCheck: check,
-      productionStatus: FixProductionStatus.AwaitingDeploy,
-      productionStatusAt: NOW,
-      productionSummary:
-        "Merged. Waiting for a recorded deploy of the service that contains the fix.",
-    });
-  });
+        productionStatus: FixProductionStatus.AwaitingDeploy,
+        productionStatusAt: NOW,
+        productionSummary:
+          "Merged. Waiting for a recorded deploy of the service that contains the fix.",
+      });
+    },
+  );
 
   test("any other fix: only its merge, which production says nothing about", () => {
     const fields: FixMergedFields = fieldsWhenMerged({

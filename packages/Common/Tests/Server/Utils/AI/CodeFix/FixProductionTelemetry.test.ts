@@ -138,7 +138,9 @@ describe("the statements", () => {
       { ...WINDOW, version: "2.3.2" },
     );
 
-    expect(statement.query).toContain("SELECT count() AS cnt FROM (SELECT 1 FROM");
+    expect(statement.query).toContain(
+      "SELECT count() AS cnt FROM (SELECT 1 FROM",
+    );
     expect(statement.query).toContain("LIMIT 1)");
   });
 
@@ -215,16 +217,16 @@ describe("the reads", () => {
     logRows = (): Array<JSONObject> => {
       return [];
     };
-    jest
-      .spyOn(SpanService, "executeQuery")
-      .mockImplementation((async (statement: Statement) => {
-        return answer(spanRows(statement));
-      }) as never);
-    jest
-      .spyOn(LogService, "executeQuery")
-      .mockImplementation((async (statement: Statement) => {
-        return answer(logRows(statement));
-      }) as never);
+    jest.spyOn(SpanService, "executeQuery").mockImplementation((async (
+      statement: Statement,
+    ) => {
+      return answer(spanRows(statement));
+    }) as never);
+    jest.spyOn(LogService, "executeQuery").mockImplementation((async (
+      statement: Statement,
+    ) => {
+      return answer(logRows(statement));
+    }) as never);
   });
 
   test("texts found as more than one thing are listed once, in the fix's order", async () => {
@@ -313,20 +315,22 @@ describe("the reads", () => {
   test("an operation's p99 is read through the trace analytics table, by name, service and version", async () => {
     const table: jest.SpiedFunction<
       typeof TraceAggregationService.getAnalyticsTable
-    > = jest.spyOn(TraceAggregationService, "getAnalyticsTable").mockResolvedValue([
-      {
-        groupValues: {},
-        count: 1204,
-        errorCount: 0,
-        avgDurationMs: 90,
-        p50DurationMs: 80,
-        p90DurationMs: 200,
-        p95DurationMs: 250,
-        p99DurationMs: 310,
-        minDurationMs: 1,
-        maxDurationMs: 900,
-      },
-    ]);
+    > = jest
+      .spyOn(TraceAggregationService, "getAnalyticsTable")
+      .mockResolvedValue([
+        {
+          groupValues: {},
+          count: 1204,
+          errorCount: 0,
+          avgDurationMs: 90,
+          p50DurationMs: 80,
+          p90DurationMs: 200,
+          p95DurationMs: 250,
+          p99DurationMs: 310,
+          minDurationMs: 1,
+          maxDurationMs: 900,
+        },
+      ]);
 
     expect(
       await FixProductionTelemetry.measureLatency({

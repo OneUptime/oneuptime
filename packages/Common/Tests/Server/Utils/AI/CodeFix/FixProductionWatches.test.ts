@@ -232,9 +232,7 @@ beforeEach(() => {
 
   FixProductionVerifier.forgetCompares();
 
-  jest
-    .spyOn(OneUptimeDate, "getCurrentDate")
-    .mockReturnValue(runAt(30).now);
+  jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(runAt(30).now);
   for (const level of ["debug", "warn", "error"] as const) {
     jest.spyOn(logger, level).mockImplementation(() => {
       return undefined;
@@ -293,21 +291,29 @@ afterEach(() => {
 });
 
 describe("which check a merged fix is watched with", () => {
+  // Each watch's verify, as the verifier calls it.
+  type Watch = {
+    verify: (fix: AIAgentTaskPullRequest, run: VerifierRun) => Promise<void>;
+  };
+
   test.each([
     [FixProductionCheck.Performance, PerformanceFixWatch],
     [FixProductionCheck.Recurrence, RecurrenceFixWatch],
     [FixProductionCheck.Telemetry, TelemetryFixWatch],
-  ] as const)("%s", async (check, watch) => {
-    const verify: SpyInstance<typeof watch.verify> = jest
-      .spyOn(watch, "verify")
-      .mockResolvedValue(undefined);
-    const run: VerifierRun = runAt(1);
-    const watched: AIAgentTaskPullRequest = fix(check);
+  ] as Array<[FixProductionCheck, Watch]>)(
+    "%s",
+    async (check: FixProductionCheck, watch: Watch) => {
+      const verify: SpyInstance<Watch["verify"]> = jest
+        .spyOn(watch, "verify")
+        .mockResolvedValue(undefined);
+      const run: VerifierRun = runAt(1);
+      const watched: AIAgentTaskPullRequest = fix(check);
 
-    await FixProductionVerifier.verifyFix(watched, run);
+      await FixProductionVerifier.verifyFix(watched, run);
 
-    expect(verify).toHaveBeenCalledWith(watched, run);
-  });
+      expect(verify).toHaveBeenCalledWith(watched, run);
+    },
+  );
 
   test("a check this server does not know is left for the server that wrote it", async () => {
     await FixProductionVerifier.verifyFix(
@@ -376,11 +382,11 @@ describe("a performance fix", () => {
     jest.spyOn(AIInsightService, "findOneBy").mockImplementation((async () => {
       return insight;
     }) as never);
-    jest
-      .spyOn(AIInsightService, "updateOneById")
-      .mockImplementation((async (data: JSONObject) => {
-        insightUpdates.push(data);
-      }) as never);
+    jest.spyOn(AIInsightService, "updateOneById").mockImplementation((async (
+      data: JSONObject,
+    ) => {
+      insightUpdates.push(data);
+    }) as never);
     jest.spyOn(ServiceService, "findOneBy").mockImplementation((async (data: {
       query: JSONObject;
     }) => {
@@ -724,7 +730,9 @@ describe("a fix of an incident's root cause", () => {
     }) as never);
     jest
       .spyOn(IncidentStateService, "getUnresolvedIncidentStateIds")
-      .mockResolvedValue([new ObjectID("9c1d0f50-0000-4000-8000-0000000000aa")]);
+      .mockResolvedValue([
+        new ObjectID("9c1d0f50-0000-4000-8000-0000000000aa"),
+      ]);
     jest
       .spyOn(IncidentFeedService, "createIncidentFeedItem")
       .mockImplementation((async (data: JSONObject) => {
@@ -779,8 +787,9 @@ describe("a fix of an incident's root cause", () => {
       runAt(1),
     );
 
-    const calls: Array<Array<unknown>> = (ChangeEventService.findBy as jest.Mock)
-      .mock.calls;
+    const calls: Array<Array<unknown>> = (
+      ChangeEventService.findBy as jest.Mock
+    ).mock.calls;
     expect(calls).toHaveLength(1);
     expect((calls[0]![0] as JSONObject)["query"]).not.toHaveProperty(
       "primaryEntityId",
@@ -1018,7 +1027,9 @@ describe("a telemetry improvement", () => {
       TelemetryArrivalKind.LogAttribute,
       TelemetryArrivalKind.LogBody,
     ]);
-    expect(keptBaseline().telemetry?.signals).toEqual([TelemetryFixSignal.Logs]);
+    expect(keptBaseline().telemetry?.signals).toEqual([
+      TelemetryFixSignal.Logs,
+    ]);
   });
 
   test("GitHub out of reach is asked again next time, until 14 days after the merge", async () => {

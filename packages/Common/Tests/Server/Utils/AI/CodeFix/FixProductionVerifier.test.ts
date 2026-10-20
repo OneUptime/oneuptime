@@ -13,6 +13,7 @@ import AIRunService from "../../../../../Server/Services/AIRunService";
 import ChangeEventService from "../../../../../Server/Services/ChangeEventService";
 import ExceptionInstanceService from "../../../../../Server/Services/ExceptionInstanceService";
 import TelemetryExceptionService from "../../../../../Server/Services/TelemetryExceptionService";
+import FixProductionTelemetry from "../../../../../Server/Utils/AI/CodeFix/FixProductionTelemetry";
 import FixProductionVerifier, {
   MAX_GITHUB_COMPARES_PER_FIX,
   MAX_KNOWN_COMPARES,
@@ -113,6 +114,7 @@ let exceptionUpdates: Array<JSONObject>;
 let compareStatus: Record<string, string>;
 let compare: SpyInstance<typeof GitHubCommits.compare>;
 let mintToken: SpyInstance<typeof GitHubUtil.getInstallationAccessToken>;
+let reportsVersion: SpyInstance<typeof FixProductionTelemetry.reportsVersion>;
 let isBound: boolean;
 
 function change(overrides: {
@@ -264,6 +266,10 @@ beforeEach(() => {
   mintToken = jest
     .spyOn(GitHubUtil, "getInstallationAccessToken")
     .mockResolvedValue({ token: "tok", expiresAt: new Date() });
+  // The service's telemetry names the deploy's version, unless a test says not.
+  reportsVersion = jest
+    .spyOn(FixProductionTelemetry, "reportsVersion")
+    .mockResolvedValue(true);
   jest
     .spyOn(GitHubInstallationBinding, "isRepositoryInstallationBound")
     .mockImplementation(async () => {
@@ -830,6 +836,39 @@ describe("watching the deployed fix", () => {
     await FixProductionVerifier.verifyFix(watching(), newRun());
 
     expect(lastUpdate()["productionStatus"]).toBe(FixProductionStatus.Verified);
+  });
+
+  test("a version the service's telemetry never names is not read by: the exception counts from the rollout grace on", async () => {
+    baseline(21);
+    reportsVersion.mockResolvedValue(false);
+    // The SDK reports another version, or none: by the deploy's, nothing.
+    occurrences.push({ time: hoursAfterMerge(5), release: "v2.3.2" });
+
+    await FixProductionVerifier.verifyFix(watching(), newRun());
+
+    expect(lastUpdate()["productionStatus"]).toBe(
+      FixProductionStatus.Regressed,
+    );
+    expect(reportsVersion).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      serviceId: new ObjectID(SERVICE_ID),
+      version: "2.3.2",
+      from: hoursAfterMerge(2),
+      to: NOW,
+    });
+  });
+
+  test("an exception with no service cannot be told to report a version: from the rollout grace on", async () => {
+    baseline(21);
+    exceptionRow!["primaryEntityId"] = undefined;
+    occurrences.push({ time: hoursAfterMerge(5), release: "2.3.1" });
+
+    await FixProductionVerifier.verifyFix(watching(), newRun());
+
+    expect(reportsVersion).not.toHaveBeenCalled();
+    expect(lastUpdate()["productionStatus"]).toBe(
+      FixProductionStatus.Regressed,
+    );
   });
 
   test("without a version, the exception counts from the rollout grace on", async () => {

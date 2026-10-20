@@ -72,7 +72,9 @@ export function quoteName(name: string): string {
 }
 
 // A verdict held to its column: a summary past it is cut short with "…".
-export function fitVerdict(verdict: FixProductionVerdict): FixProductionVerdict {
+export function fitVerdict(
+  verdict: FixProductionVerdict,
+): FixProductionVerdict {
   if (verdict.summary.length <= MAX_PRODUCTION_SUMMARY_LENGTH) {
     return verdict;
   }

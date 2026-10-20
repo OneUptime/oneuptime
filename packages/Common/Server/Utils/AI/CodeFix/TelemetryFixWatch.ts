@@ -130,9 +130,12 @@ export default class TelemetryFixWatch {
       ? new ObjectID(baseline.serviceId)
       : undefined;
 
-    const shipped: ShippedFix | null = await FixProductionVerifier.awaitDeploy(
-      { fix, run, serviceId, mergedAt },
-    );
+    const shipped: ShippedFix | null = await FixProductionVerifier.awaitDeploy({
+      fix,
+      run,
+      serviceId,
+      mergedAt,
+    });
 
     if (!shipped) {
       return;
