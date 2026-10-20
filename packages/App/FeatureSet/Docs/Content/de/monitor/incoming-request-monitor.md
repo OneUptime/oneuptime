@@ -285,14 +285,26 @@ flowchart TB
 | Wert, der „wiederhergestellt“ bedeutet | `resolved` | Der genaue Wert, der die Erholung kennzeichnet |
 | Max. Vorfälle pro Anfrage | `100` (Standard) | Sicherheitsgrenze, damit ein Feld mit vielen Werten keine unbegrenzte Zahl von Vorfällen eröffnet |
 
+Die Gruppierung gehört zu dem Kriterium, in dem sie eingeschaltet ist. Die anderen Kriterien des Monitors gruppieren nicht: Trifft eines von ihnen auf eine Anfrage zu, eröffnet es seinen Vorfall und seine Warnung wie auf einem Monitor, bei dem kein Kriterium gruppiert.
+
 ### Pfadsyntax
 
-Pfade müssen mit dem wörtlichen Präfix `requestBody.` beginnen. Ein Pfad ohne es — `alerts[*].labels.alertname` — trifft auf nichts zu, stillschweigend. Die Hülle `{{ }}` ist optional: `requestBody.status` und `{{requestBody.status}}` verhalten sich gleich.
+Pfade müssen mit dem wörtlichen Präfix `requestBody.` beginnen. Ein Pfad ohne es — `alerts[*].labels.alertname` — findet in keiner Anfrage einen Wert. Die Hülle `{{ }}` ist optional: `requestBody.status` und `{{requestBody.status}}` verhalten sich gleich.
 
 - `[*]` fächert über ein Array auf — ein Vorfall pro **unterschiedlichem** Wert. Zwei Elemente mit demselben Wert fallen zu einem Vorfall zusammen, und dessen Zustand (auslösend/behoben) stammt vom **ersten** passenden Element. **Nur das erste `[*]` eines Pfads ist ein Platzhalter**; `requestBody.groups[*].alerts[*].name` trifft auf nichts zu.
 - `[0]` und `[last]` wählen ein einzelnes Element und dürfen auf ein `[*]` folgen.
 - Objekt- und Array-Werte, leere Zeichenketten und Nullwerte werden übersprungen. `0` und `false` sind gültige Schlüssel.
 - Der Body muss ein JSON-Objekt sein; eine Nutzlast, deren oberste Ebene ein Array ist, wird nicht gruppiert.
+
+### Anfragen ohne das Feld
+
+Eine Anfrage, die auf ein gruppiertes Kriterium zutrifft, an dessen Pfad aber keinen Wert hat — das Feld fehlt oder ist leer, enthält ein Objekt oder eine Liste, oder der Body ist kein JSON-Objekt —, eröffnet trotzdem den Vorfall und die Warnung dieses Kriteriums: einen für den ganzen Monitor, wie das Kriterium es ohne Gruppierung täte. Ebenso ein gruppiertes Kriterium, das zutrifft, weil keine Anfragen mehr ankommen. Ein Titel, der die Gruppierungsvariable nennt, etwa `{{alertname}}`, zeigt sie wörtlich, da es keinen Wert zum Einsetzen gibt.
+
+Dieser Vorfall wird behoben, wenn **Vorfall automatisch beheben** eingeschaltet ist und eine spätere Anfrage ohne das Feld meldet, dass sie sich erholt hat, oder eine spätere Anfrage auf ein anderes Kriterium zutrifft. Eine solche Erholung eröffnet nichts Neues.
+
+Haben manche Elemente eines Arrays einen Wert und andere nicht, eröffnet jeder Wert seinen eigenen Vorfall, und die Elemente ohne Wert eröffnen selbst nichts.
+
+Die Karte **Monitor-Zusammenfassung** in der **Übersicht** des Monitors zeigt, was jede Anfrage bewirkt hat, auch wenn ein Kriterium sie für den ganzen Monitor behandelt oder nichts Neues eröffnet hat.
 
 ### Die Behebung ist ereignisgesteuert
 
@@ -306,8 +318,11 @@ Ein Webhook beschreibt nur, was in dieser Nutzlast steht, deshalb behebt OneUpti
 > [!NOTE]
 > Erhält ein Monitor Anfragen schneller, als OneUptime sie prüft, prüft es die neueste und überspringt die dazwischen, sodass ein Schwall von Webhooks eine auslösende oder eine behobene Warnung ungeprüft lassen kann. Auf einem selbst gehosteten Server prüft `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` in der Umgebung der OneUptime-App jede Anfrage einzeln.
 
+> [!NOTE]
+> Enthält **Feld, das die Erholung signalisiert** ein `[*]`, **Einen eigenen Vorfall eröffnen pro…** aber nicht, hat sich eine Anfrage erst erholt, wenn jedes Element dieses Arrays das sagt. Mit `requestBody.alerts[*].status` und `resolved` wird ein nach `requestBody.groupLabels.alertname` gruppierter Vorfall behoben, sobald jede Warnung einer Anfrage behoben ist, und er bleibt offen, solange eine noch auslöst.
+
 > [!WARNING]
-> Enthält **Feld, das die Erholung signalisiert** ein `[*]`, **Einen eigenen Vorfall eröffnen pro…** aber nicht, wird nie etwas behoben. Verwenden Sie `[*]` entweder in beiden oder in keinem. Ein Erholungspfad ohne `[*]` wird gegen die ganze Nutzlast geprüft, ein `status: resolved` auf Ebene der Nutzlast behebt also jeden Schlüssel dieser Nutzlast — auch Warnungen, deren eigener Status noch auslösend ist.
+> Ein Erholungspfad ohne `[*]` wird gegen die ganze Nutzlast geprüft, ein `status: resolved` auf Ebene der Nutzlast behebt also jeden Schlüssel dieser Nutzlast — auch Warnungen, deren eigener Status noch auslösend ist.
 
 ### Die Vorfälle benennen
 

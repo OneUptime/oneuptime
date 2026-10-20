@@ -31947,5 +31947,16 @@
   "Then choose Admin, Member or Viewer.": "Kies daarna Beheerder, Lid of Kijker.",
   "Visitors see the dark dashboard.": "Bezoekers zien het donkere dashboard.",
   "Visitors see the light dashboard.": "Bezoekers zien het lichte dashboard.",
-  "Whole project": "Hele project"
+  "Whole project": "Hele project",
+  "Every value at {{path}} in this request reported recovered, so {{criteria}} opened nothing new.": "Elke waarde op {{path}} in dit verzoek meldde herstel, dus criterium {{criteria}} heeft niets nieuws geopend.",
+  "No request to group by": "Geen verzoek om op te groeperen",
+  "No value to group by": "Geen waarde om op te groeperen",
+  "Not every item has a value to group by": "Niet elk item heeft een waarde om op te groeperen",
+  "Nothing new to open": "Niets nieuws te openen",
+  "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "De achtergrondcontrole heeft het laatste verzoek opnieuw gelezen. Criterium {{criteria}} opent alleen per waarde iets wanneer er een verzoek binnenkomt.",
+  "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "Dit verzoek heeft geen waarde op {{path}} en meldde herstel, dus criterium {{criteria}} heeft niets nieuws geopend.",
+  "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "Dit verzoek heeft geen waarde op {{path}}, dus criterium {{criteria}} heeft het zonder groeperen afgehandeld, één keer voor de hele monitor.",
+  "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "{{count}} items in dit verzoek hebben geen waarde op {{path}}, dus ze hebben niets eigens geopend.",
+  "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} item in dit verzoek heeft geen waarde op {{path}}, dus het heeft niets eigens geopend.",
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Criterium {{criteria}} kwam overeen omdat er geen verzoeken meer binnenkwamen, dus het heeft dit zonder groeperen afgehandeld, één keer voor de hele monitor."
 }

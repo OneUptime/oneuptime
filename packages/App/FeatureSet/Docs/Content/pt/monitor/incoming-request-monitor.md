@@ -285,14 +285,26 @@ flowchart TB
 | Value that means recovered | `resolved` | O valor exato que marca a recuperação |
 | Max incidents per request | `100` (padrão) | Limite de segurança para que um campo com muitos valores não abra incidentes sem limite |
 
+O agrupamento pertence ao critério em que está ligado. Os outros critérios do monitor não agrupam: quando um deles corresponde a uma solicitação, abre o seu incidente e o seu alerta como faria em um monitor em que nenhum critério agrupa.
+
 ### Sintaxe dos caminhos
 
-Os caminhos precisam começar com o prefixo literal `requestBody.`. Um caminho sem ele, como `alerts[*].labels.alertname`, não corresponde a nada, sem avisar. O invólucro `{{ }}` é opcional: `requestBody.status` e `{{requestBody.status}}` se comportam igual.
+Os caminhos precisam começar com o prefixo literal `requestBody.`. Um caminho sem ele, como `alerts[*].labels.alertname`, não encontra valor em nenhuma solicitação. O invólucro `{{ }}` é opcional: `requestBody.status` e `{{requestBody.status}}` se comportam igual.
 
 - `[*]` se expande sobre um array: um incidente por valor **distinto**. Dois elementos que dão o mesmo valor se fundem em um único incidente, e o estado dele (disparado/resolvido) vem do **primeiro** elemento correspondente. **Só o primeiro `[*]` de um caminho é um curinga**; `requestBody.groups[*].alerts[*].name` não corresponde a nada.
 - `[0]` e `[last]` selecionam um único elemento, e podem vir depois de um `[*]`.
 - Valores de objeto e de array, strings vazias e valores nulos são ignorados. `0` e `false` são chaves válidas.
 - O corpo precisa ser um objeto JSON; um payload cujo nível superior é um array não é agrupado.
+
+### Solicitações sem o campo
+
+Uma solicitação que corresponde a um critério agrupado, mas não tem valor no caminho dele (o campo está ausente ou vazio, contém um objeto ou uma lista, ou o corpo não é um objeto JSON), ainda abre o incidente e o alerta desse critério: um só para o monitor inteiro, como o critério faria sem agrupamento. O mesmo vale para um critério agrupado que corresponde porque as solicitações pararam de chegar. Um título que cita a variável de agrupamento, como `{{alertname}}`, mostra-a como está escrita, pois não há valor para pôr no lugar.
+
+Esse incidente é resolvido, se **Resolver incidente automaticamente** estiver ligado, quando uma solicitação posterior sem o campo informa que se recuperou, ou quando uma solicitação posterior corresponde a outro critério. Essa recuperação não abre nada novo.
+
+Quando alguns elementos de um array têm valor e outros não, cada valor abre o seu próprio incidente, e os elementos sem valor não abrem nada por conta própria.
+
+O cartão **Resumo do monitor** na **Visão geral** do monitor mostra o que cada solicitação fez, inclusive quando um critério a tratou para o monitor inteiro ou não abriu nada novo.
 
 ### A resolução é orientada a eventos
 
@@ -306,8 +318,11 @@ Um webhook descreve apenas o que está naquele payload, então o OneUptime nunca
 > [!NOTE]
 > Quando um monitor recebe requisições mais rápido do que o OneUptime consegue avaliá-las, ele avalia a mais recente e pula as intermediárias, então uma rajada de webhooks pode deixar sem avaliação um alerta disparado ou um resolvido. Em um servidor auto-hospedado, definir `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` no ambiente do app OneUptime avalia cada requisição separadamente.
 
+> [!NOTE]
+> Se **Field that signals recovery** contém `[*]` mas **Open a separate incident for each…** não, uma solicitação só se recuperou quando todos os elementos daquele array dizem isso. Com `requestBody.alerts[*].status` e `resolved`, um incidente agrupado por `requestBody.groupLabels.alertname` é resolvido quando todos os alertas de uma solicitação estão resolvidos, e continua aberto enquanto algum ainda estiver disparado.
+
 > [!WARNING]
-> Se **Field that signals recovery** contém `[*]` mas **Open a separate incident for each…** não, nada nunca será resolvido. Use `[*]` nos dois, ou em nenhum. Um caminho de recuperação sem `[*]` é avaliado no payload inteiro, então um `status: resolved` no nível do payload resolve todas as chaves daquele payload, inclusive alertas cujo próprio status ainda está disparado.
+> Um caminho de recuperação sem `[*]` é avaliado no payload inteiro, então um `status: resolved` no nível do payload resolve todas as chaves daquele payload, inclusive alertas cujo próprio status ainda está disparado.
 
 ### Dar nome aos incidentes
 

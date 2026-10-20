@@ -785,9 +785,23 @@ describe("how criteria decide", () => {
     expect(perSeries).toContain(
       "MonitorStepLogMonitorUtil.getGroupByAttributes(",
     );
-    expect(perSeries).toContain(
-      "PerEntityCriteriaFanOut.isServerDiskFanOutConfigured(",
+    // A "*" disk, port or table row - each criteria's own opt-in.
+    expect(perSeries).toContain("PerEntityCriteriaFanOut.isFanOutConfigured({");
+
+    const fanOutOptIn: string = between(
+      readCommonSource("Server/Utils/Monitor/PerEntityCriteriaFanOut.ts"),
+      "public static isFanOutConfigured(input: {",
+      "\n  }\n",
     );
+
+    for (const optIn of [
+      "isServerDiskFanOutConfigured(",
+      "isSnmpInterfaceFanOutConfigured(",
+      "isSnmpTableFanOutConfigured(",
+    ]) {
+      expect(fanOutOptIn).toContain(optIn);
+    }
+
     expect(criteriaPage).toContain(
       "> A monitor that raises one incident or alert per host, container, disk or interface judges every criteria on each check, so two hosts can match two different criteria at once.",
     );

@@ -31947,5 +31947,16 @@
   "Then choose Admin, Member or Viewer.": "Luego elige Administrador, Miembro o Visor.",
   "Visitors see the dark dashboard.": "Los visitantes ven el panel oscuro.",
   "Visitors see the light dashboard.": "Los visitantes ven el panel claro.",
-  "Whole project": "Todo el proyecto"
+  "Whole project": "Todo el proyecto",
+  "Every value at {{path}} in this request reported recovered, so {{criteria}} opened nothing new.": "Cada valor en {{path}} de esta solicitud indicó que se recuperó, así que el criterio {{criteria}} no abrió nada nuevo.",
+  "No request to group by": "Ninguna solicitud para agrupar",
+  "No value to group by": "Ningún valor para agrupar",
+  "Not every item has a value to group by": "No todos los elementos tienen un valor para agrupar",
+  "Nothing new to open": "Nada nuevo que abrir",
+  "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "La comprobación en segundo plano volvió a leer la última solicitud. El criterio {{criteria}} solo abre uno por valor cuando llega una solicitud.",
+  "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "Esta solicitud no tiene ningún valor en {{path}} e indicó que se recuperó, así que el criterio {{criteria}} no abrió nada nuevo.",
+  "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "Esta solicitud no tiene ningún valor en {{path}}, así que el criterio {{criteria}} la trató sin agrupar, una sola vez para todo el monitor.",
+  "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "{{count}} elementos de esta solicitud no tienen valor en {{path}}, así que no abrieron nada propio.",
+  "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} elemento de esta solicitud no tiene valor en {{path}}, así que no abrió nada propio.",
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "El criterio {{criteria}} coincidió porque dejaron de llegar solicitudes, así que lo trató sin agrupar, una sola vez para todo el monitor."
 }

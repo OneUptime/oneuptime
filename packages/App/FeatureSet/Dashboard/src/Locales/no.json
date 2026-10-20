@@ -31947,5 +31947,16 @@
   "Then choose Admin, Member or Viewer.": "Velg deretter Administrator, Medlem eller Viser.",
   "Visitors see the dark dashboard.": "Besøkende ser det mørke dashbordet.",
   "Visitors see the light dashboard.": "Besøkende ser det lyse dashbordet.",
-  "Whole project": "Hele prosjektet"
+  "Whole project": "Hele prosjektet",
+  "Every value at {{path}} in this request reported recovered, so {{criteria}} opened nothing new.": "Hver verdi i {{path}} i denne forespørselen meldte seg gjenopprettet, så kriteriet {{criteria}} åpnet ingenting nytt.",
+  "No request to group by": "Ingen forespørsel å gruppere etter",
+  "No value to group by": "Ingen verdi å gruppere etter",
+  "Not every item has a value to group by": "Ikke alle elementer har en verdi å gruppere etter",
+  "Nothing new to open": "Ingenting nytt å åpne",
+  "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "Bakgrunnssjekken leste den siste forespørselen på nytt. Kriteriet {{criteria}} åpner bare én per verdi når en forespørsel kommer inn.",
+  "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "Denne forespørselen har ingen verdi i {{path}} og meldte seg gjenopprettet, så kriteriet {{criteria}} åpnet ingenting nytt.",
+  "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "Denne forespørselen har ingen verdi i {{path}}, så kriteriet {{criteria}} behandlet den uten gruppering, én gang for hele monitoren.",
+  "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "{{count}} elementer i denne forespørselen har ingen verdi i {{path}}, så de åpnet ingenting eget.",
+  "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} element i denne forespørselen har ingen verdi i {{path}}, så det åpnet ingenting eget.",
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Kriteriet {{criteria}} slo til fordi forespørslene sluttet å komme, så det behandlet dette uten gruppering, én gang for hele monitoren."
 }

@@ -38,6 +38,7 @@ const ACTION_TIMESTAMP_CASES: Array<ActionTimestampCase> = [
   { type: "incident-skipped", label: "Skipped at" },
   { type: "monitor-status-changed", label: "Action at" },
   { type: "probe-agreement", label: "Action at" },
+  { type: "grouping", label: "Action at" },
 ];
 
 const ENTITIES: Array<Entity> = ["Alert", "Incident"];

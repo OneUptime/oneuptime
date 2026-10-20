@@ -31947,5 +31947,16 @@
   "Then choose Admin, Member or Viewer.": "سپس مدیر، عضو یا بیننده را انتخاب کنید.",
   "Visitors see the dark dashboard.": "بازدیدکنندگان داشبورد تیره را می‌بینند.",
   "Visitors see the light dashboard.": "بازدیدکنندگان داشبورد روشن را می‌بینند.",
-  "Whole project": "کل پروژه"
+  "Whole project": "کل پروژه",
+  "Every value at {{path}} in this request reported recovered, so {{criteria}} opened nothing new.": "هر مقدار در {{path}} در این درخواست بهبود را گزارش کرد، پس معیار {{criteria}} چیز تازه‌ای باز نکرد.",
+  "No request to group by": "درخواستی برای گروه‌بندی نیست",
+  "No value to group by": "مقداری برای گروه‌بندی نیست",
+  "Not every item has a value to group by": "برخی موارد مقداری برای گروه‌بندی ندارند",
+  "Nothing new to open": "چیز تازه‌ای برای باز کردن نیست",
+  "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "بررسی پس‌زمینه آخرین درخواست را دوباره خواند. معیار {{criteria}} فقط وقتی درخواستی برسد برای هر مقدار یکی باز می‌کند.",
+  "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "این درخواست در {{path}} مقداری ندارد و بهبود را گزارش کرد، پس معیار {{criteria}} چیز تازه‌ای باز نکرد.",
+  "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "این درخواست در {{path}} مقداری ندارد، پس معیار {{criteria}} آن را بدون گروه‌بندی، یک بار برای کل مانیتور رسیدگی کرد.",
+  "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "{{count}} مورد در این درخواست در {{path}} مقداری ندارند، پس چیزی برای خودشان باز نکردند.",
+  "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} مورد در این درخواست در {{path}} مقداری ندارد، پس چیزی برای خودش باز نکرد.",
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "معیار {{criteria}} تطبیق یافت چون درخواست‌ها دیگر نمی‌رسند، پس آن را بدون گروه‌بندی، یک بار برای کل مانیتور رسیدگی کرد."
 }

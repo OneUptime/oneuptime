@@ -31947,5 +31947,16 @@
   "Then choose Admin, Member or Viewer.": "Puis choisissez Administrateur, Membre ou Lecteur.",
   "Visitors see the dark dashboard.": "Les visiteurs voient le tableau de bord sombre.",
   "Visitors see the light dashboard.": "Les visiteurs voient le tableau de bord clair.",
-  "Whole project": "Tout le projet"
+  "Whole project": "Tout le projet",
+  "Every value at {{path}} in this request reported recovered, so {{criteria}} opened nothing new.": "Chaque valeur à {{path}} dans cette requête a signalé son rétablissement : le critère {{criteria}} n'a donc rien ouvert de nouveau.",
+  "No request to group by": "Aucune requête pour regrouper",
+  "No value to group by": "Aucune valeur pour regrouper",
+  "Not every item has a value to group by": "Les éléments n'ont pas tous une valeur pour regrouper",
+  "Nothing new to open": "Rien de nouveau à ouvrir",
+  "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "La vérification en arrière-plan a relu la dernière requête. Le critère {{criteria}} n'ouvre un élément par valeur qu'à l'arrivée d'une requête.",
+  "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "Cette requête n'a pas de valeur à {{path}} et a signalé un rétablissement : le critère {{criteria}} n'a donc rien ouvert de nouveau.",
+  "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "Cette requête n'a pas de valeur à {{path}} : le critère {{criteria}} l'a donc traitée sans regroupement, une seule fois pour tout le moniteur.",
+  "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "{{count}} éléments de cette requête n'ont pas de valeur à {{path}} : ils n'ont donc rien ouvert pour eux-mêmes.",
+  "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} élément de cette requête n'a pas de valeur à {{path}} : il n'a donc rien ouvert pour lui-même.",
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Le critère {{criteria}} a correspondu parce que les requêtes ont cessé d'arriver : il a donc traité ce cas sans regroupement, une seule fois pour tout le moniteur."
 }
