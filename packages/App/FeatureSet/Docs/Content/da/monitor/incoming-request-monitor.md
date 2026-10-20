@@ -285,14 +285,26 @@ flowchart TB
 | Value that means recovered | `resolved` | Den nøjagtige værdi, der markerer, at problemet er ovre |
 | Max incidents per request | `100` (standard) | Sikkerhedsloft, så et felt med mange værdier ikke kan åbne et ubegrænset antal hændelser |
 
+Grupperingen hører til det kriterium, den er slået til i. Monitorens andre kriterier grupperer ikke: når et af dem matcher en anmodning, åbner det sin hændelse og advarsel, som det ville på en monitor, hvor intet kriterium grupperer.
+
 ### Syntaks for stier
 
-Stier skal starte med det bogstavelige præfiks `requestBody.`. En sti uden det — `alerts[*].labels.alertname` — matcher ingenting, uden at sige det. Indpakningen `{{ }}` er valgfri: `requestBody.status` og `{{requestBody.status}}` opfører sig ens.
+Stier skal starte med det bogstavelige præfiks `requestBody.`. En sti uden det — `alerts[*].labels.alertname` — finder ingen værdi i nogen anmodning. Indpakningen `{{ }}` er valgfri: `requestBody.status` og `{{requestBody.status}}` opfører sig ens.
 
 - `[*]` folder sig ud over et array — én hændelse pr. **særskilt** værdi. To elementer med samme værdi slås sammen til én hændelse, og den hændelses tilstand (aktiv/løst) tages fra det **første** matchende element. **Kun den første `[*]` i en sti er et jokertegn**; `requestBody.groups[*].alerts[*].name` matcher ingenting.
 - `[0]` og `[last]` vælger et enkelt element og må komme efter en `[*]`.
 - Objekt- og arrayværdier, tomme strenge og null-værdier springes over. `0` og `false` er gyldige nøgler.
 - Brødteksten skal være et JSON-objekt; en payload, hvis øverste niveau er et array, grupperes ikke.
+
+### Anmodninger uden feltet
+
+En anmodning, der matcher et grupperet kriterium, men ikke har nogen værdi ved dets sti — feltet mangler eller er tomt, indeholder et objekt eller en liste, eller brødteksten er ikke et JSON-objekt — åbner stadig kriteriets hændelse og advarsel: én for hele monitoren, som kriteriet ville uden gruppering. Det samme gør et grupperet kriterium, der matcher, fordi anmodningerne holdt op med at komme. En titel, der nævner grupperingsvariablen, som `{{alertname}}`, viser den, som den er skrevet, da der ikke er nogen værdi at sætte ind.
+
+Den hændelse løses som hændelsen fra et kriterium uden gruppering: når en senere anmodning matcher et andet kriterium, hvis **Løs hændelse automatisk** er slået til. En anmodning uden feltet, der melder, at problemet er ovre, åbner ingenting.
+
+Når nogle elementer i et array har en værdi og andre ikke, åbner hver værdi sin egen hændelse, og elementerne uden en værdi åbner ikke noget for sig selv.
+
+Kortet **Monitor-resumé** på monitorens **Oversigt** viser, hvad hver anmodning gjorde, også når et kriterium håndterede den for hele monitoren eller ikke åbnede noget nyt.
 
 ### Løsning sker på baggrund af hændelser
 
@@ -306,8 +318,11 @@ En webhook beskriver kun det, der står i den payload, så OneUptime løser aldr
 > [!NOTE]
 > Når én monitor modtager anmodninger hurtigere, end OneUptime evaluerer dem, evaluerer OneUptime den nyeste og springer dem imellem over, så en byge af webhooks kan efterlade en aktiv eller en løst advarsel uevalueret. På en selvhostet server får `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` i OneUptime-appens miljø hver anmodning til at blive evalueret for sig.
 
+> [!NOTE]
+> Hvis **Field that signals recovery** indeholder `[*]`, men **Open a separate incident for each…** ikke gør, er en anmodning først ovre, når hvert element i det array siger det. Med `requestBody.alerts[*].status` og `resolved` løses en hændelse grupperet efter `requestBody.groupLabels.alertname`, når alle en anmodnings advarsler er løst, og den forbliver åben, så længe én stadig er aktiv.
+
 > [!WARNING]
-> Hvis **Field that signals recovery** indeholder `[*]`, men **Open a separate incident for each…** ikke gør, bliver intet nogensinde løst. Brug enten `[*]` i begge eller i ingen af dem. En sti for løsning uden `[*]` evalueres mod hele payloaden, så en `status: resolved` på payloadens niveau løser hver nøgle i den payload — også advarsler, hvis egen status stadig er aktiv.
+> En sti for løsning uden `[*]` evalueres mod hele payloaden, så en `status: resolved` på payloadens niveau løser hver nøgle i den payload — også advarsler, hvis egen status stadig er aktiv.
 
 ### Navngiv hændelserne
 

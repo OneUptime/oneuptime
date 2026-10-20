@@ -285,14 +285,26 @@ flowchart TB
 | Value that means recovered | `resolved` | La valeur exacte qui marque le rétablissement |
 | Incidents max par requête | `100` (par défaut) | Plafond de sécurité, pour qu'un champ à forte cardinalité ne puisse pas ouvrir des incidents sans limite |
 
+Le regroupement appartient au critère dans lequel il est activé. Les autres critères du moniteur ne regroupent pas : quand l'un d'eux correspond à une requête, il ouvre son incident et son alerte comme il le ferait sur un moniteur dont aucun critère ne regroupe.
+
 ### Syntaxe des chemins
 
-Les chemins doivent commencer par le préfixe littéral `requestBody.`. Un chemin sans lui — `alerts[*].labels.alertname` — ne correspond à rien, sans le signaler. L'enveloppe `{{ }}` est facultative : `requestBody.status` et `{{requestBody.status}}` se comportent de la même façon.
+Les chemins doivent commencer par le préfixe littéral `requestBody.`. Un chemin sans lui — `alerts[*].labels.alertname` — ne trouve de valeur dans aucune requête. L'enveloppe `{{ }}` est facultative : `requestBody.status` et `{{requestBody.status}}` se comportent de la même façon.
 
 - `[*]` se déploie sur un tableau — un incident par valeur **différente**. Deux éléments qui donnent la même valeur fusionnent en un seul incident, dont l'état (déclenché/résolu) est pris sur le **premier** élément correspondant. **Seul le premier `[*]` d'un chemin est un joker** ; `requestBody.groups[*].alerts[*].name` ne correspond à rien.
 - `[0]` et `[last]` sélectionnent un seul élément, et peuvent suivre un `[*]`.
 - Les valeurs objet et tableau, les chaînes vides et les valeurs nulles sont ignorées. `0` et `false` sont des clés valides.
 - Le corps doit être un objet JSON ; une charge utile dont le niveau supérieur est un tableau n'est pas regroupée.
+
+### Requêtes sans le champ
+
+Une requête qui correspond à un critère regroupé mais n'a pas de valeur à son chemin — le champ est absent ou vide, contient un objet ou une liste, ou le corps n'est pas un objet JSON — ouvre quand même l'incident et l'alerte de ce critère : un seul pour tout le moniteur, comme le ferait le critère sans regroupement. Il en va de même d'un critère regroupé qui correspond parce que les requêtes ont cessé d'arriver. Un titre qui nomme la variable de regroupement, comme `{{alertname}}`, l'affiche telle qu'elle est écrite, puisqu'il n'y a aucune valeur à y mettre.
+
+Cet incident se résout comme celui d'un critère sans regroupement : quand une requête suivante correspond à un autre critère, si **Résoudre automatiquement l'incident** est activé. Une requête sans le champ qui signale son rétablissement n'ouvre rien.
+
+Quand certains éléments d'un tableau ont une valeur et d'autres non, chaque valeur ouvre son propre incident, et les éléments sans valeur n'ouvrent rien d'eux-mêmes.
+
+La carte **Résumé du moniteur** de la **Vue d'ensemble** du moniteur montre ce que chaque requête a fait, y compris quand un critère l'a traitée pour tout le moniteur ou n'a rien ouvert de nouveau.
 
 ### La résolution est pilotée par les événements
 
@@ -306,8 +318,11 @@ Un webhook ne décrit que ce que contient cette charge utile : OneUptime ne rés
 > [!NOTE]
 > Quand un moniteur reçoit des requêtes plus vite que OneUptime ne les évalue, il évalue la plus récente et saute celles d'entre-deux : une rafale de webhooks peut donc laisser une alerte déclenchée ou résolue sans évaluation. Sur un serveur auto-hébergé, définir `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` dans l'environnement de l'application OneUptime évalue chaque requête séparément.
 
+> [!NOTE]
+> Si **Champ qui signale le rétablissement** contient `[*]` mais pas **Ouvrir un incident distinct pour chaque…**, une requête n'est rétablie que lorsque chaque élément de ce tableau le dit. Avec `requestBody.alerts[*].status` et `resolved`, un incident regroupé par `requestBody.groupLabels.alertname` se résout dès que chaque alerte d'une requête est résolue, et reste ouvert tant qu'une alerte est encore déclenchée.
+
 > [!WARNING]
-> Si **Champ qui signale le rétablissement** contient `[*]` mais pas **Ouvrir un incident distinct pour chaque…**, rien ne sera jamais résolu. Utilisez `[*]` dans les deux, ou dans aucun. Un chemin de rétablissement sans `[*]` est évalué sur toute la charge utile : un `status: resolved` au niveau de la charge utile résout donc chaque clé de cette charge utile — y compris les alertes dont le propre statut est encore déclenché.
+> Un chemin de rétablissement sans `[*]` est évalué sur toute la charge utile : un `status: resolved` au niveau de la charge utile résout donc chaque clé de cette charge utile — y compris les alertes dont le propre statut est encore déclenché.
 
 ### Nommer les incidents
 

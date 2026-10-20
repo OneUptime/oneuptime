@@ -285,14 +285,26 @@ flowchart TB
 | Value that means recovered | `resolved` | Il valore esatto che segnala il ripristino |
 | Max incidents per request | `100` (predefinito) | Limite di sicurezza, perché un campo con molti valori non possa aprire incidenti senza limiti |
 
+Il raggruppamento appartiene al criterio in cui è attivato. Gli altri criteri del monitor non raggruppano: quando uno di essi corrisponde a una richiesta, apre il suo incidente e il suo avviso come farebbe su un monitor in cui nessun criterio raggruppa.
+
 ### Sintassi dei percorsi
 
-I percorsi devono iniziare con il prefisso letterale `requestBody.`. Un percorso senza di esso, come `alerts[*].labels.alertname`, non corrisponde a nulla, senza segnalarlo. L'involucro `{{ }}` è facoltativo: `requestBody.status` e `{{requestBody.status}}` si comportano allo stesso modo.
+I percorsi devono iniziare con il prefisso letterale `requestBody.`. Un percorso senza di esso, come `alerts[*].labels.alertname`, non trova alcun valore in nessuna richiesta. L'involucro `{{ }}` è facoltativo: `requestBody.status` e `{{requestBody.status}}` si comportano allo stesso modo.
 
 - `[*]` si espande su un array: un incidente per ogni valore **distinto**. Due elementi che danno lo stesso valore confluiscono in un solo incidente, il cui stato (attivo/risolto) viene preso dal **primo** elemento corrispondente. **Solo il primo `[*]` di un percorso è un carattere jolly**; `requestBody.groups[*].alerts[*].name` non corrisponde a nulla.
 - `[0]` e `[last]` selezionano un singolo elemento, e possono seguire un `[*]`.
 - I valori oggetto e array, le stringhe vuote e i valori nulli vengono saltati. `0` e `false` sono chiavi valide.
 - Il corpo deve essere un oggetto JSON; un payload il cui livello superiore è un array non viene raggruppato.
+
+### Richieste senza il campo
+
+Una richiesta che corrisponde a un criterio raggruppato ma non ha alcun valore nel suo percorso (il campo manca o è vuoto, contiene un oggetto o un elenco, oppure il corpo non è un oggetto JSON) apre comunque l'incidente e l'avviso di quel criterio: uno solo per l'intero monitor, come farebbe il criterio senza raggruppamento. Lo stesso fa un criterio raggruppato che corrisponde perché le richieste hanno smesso di arrivare. Un titolo che nomina la variabile di raggruppamento, come `{{alertname}}`, la mostra così come è scritta, perché non c'è alcun valore da inserire.
+
+Quell'incidente si risolve come quello di un criterio senza raggruppamento: quando una richiesta successiva corrisponde a un altro criterio, se **Risoluzione automatica dell'incidente** è attiva. Una richiesta senza il campo che segnala il proprio ripristino non apre nulla.
+
+Quando alcuni elementi di un array hanno un valore e altri no, ogni valore apre il proprio incidente, e gli elementi senza valore non aprono nulla di proprio.
+
+La scheda **Riepilogo del monitor** nella **Panoramica** del monitor mostra che cosa ha fatto ogni richiesta, anche quando un criterio l'ha gestita per l'intero monitor o non ha aperto nulla di nuovo.
 
 ### La risoluzione è guidata dagli eventi
 
@@ -306,8 +318,11 @@ Un webhook descrive solo ciò che c'è in quel payload, quindi OneUptime non ris
 > [!NOTE]
 > Quando un monitor riceve richieste più in fretta di quanto OneUptime riesca a valutarle, valuta la più recente e salta quelle intermedie, quindi una raffica di webhook può lasciare non valutato un avviso attivo o uno risolto. Su un server self-hosted, impostare `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` nell'ambiente dell'app OneUptime fa valutare ogni richiesta da sola.
 
+> [!NOTE]
+> Se **Field that signals recovery** contiene `[*]` ma **Open a separate incident for each…** no, una richiesta è ripristinata solo quando ogni elemento di quell'array lo dice. Con `requestBody.alerts[*].status` e `resolved`, un incidente raggruppato per `requestBody.groupLabels.alertname` si risolve quando tutti gli avvisi di una richiesta sono risolti, e resta aperto finché uno è ancora attivo.
+
 > [!WARNING]
-> Se **Field that signals recovery** contiene `[*]` ma **Open a separate incident for each…** no, non verrà mai risolto nulla. Usate `[*]` in entrambi, o in nessuno dei due. Un percorso di ripristino senza `[*]` viene valutato sull'intero payload, quindi un `status: resolved` a livello di payload risolve ogni chiave di quel payload, compresi gli avvisi il cui stato è ancora attivo.
+> Un percorso di ripristino senza `[*]` viene valutato sull'intero payload, quindi un `status: resolved` a livello di payload risolve ogni chiave di quel payload, compresi gli avvisi il cui stato è ancora attivo.
 
 ### Dare un nome agli incidenti
 

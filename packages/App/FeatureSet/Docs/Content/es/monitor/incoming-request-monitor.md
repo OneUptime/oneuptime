@@ -285,14 +285,26 @@ flowchart TB
 | Valor que significa recuperado | `resolved` | El valor exacto que marca la recuperación |
 | Máximo de incidentes por solicitud | `100` (predeterminado) | Límite de seguridad para que un campo con muchos valores no pueda abrir incidentes sin límite |
 
+La agrupación pertenece al criterio en el que está activada. Los demás criterios del monitor no agrupan: cuando uno de ellos coincide con una solicitud, abre su incidente y su alerta como lo haría en un monitor en el que ningún criterio agrupa.
+
 ### Sintaxis de las rutas
 
-Las rutas deben empezar por el prefijo literal `requestBody.`. Una ruta sin él —`alerts[*].labels.alertname`— no coincide con nada, sin avisar. La envoltura `{{ }}` es opcional: `requestBody.status` y `{{requestBody.status}}` se comportan igual.
+Las rutas deben empezar por el prefijo literal `requestBody.`. Una ruta sin él —`alerts[*].labels.alertname`— no encuentra ningún valor en ninguna solicitud. La envoltura `{{ }}` es opcional: `requestBody.status` y `{{requestBody.status}}` se comportan igual.
 
 - `[*]` se despliega sobre un array: un incidente por valor **distinto**. Dos elementos que dan el mismo valor se funden en un solo incidente, y su estado (activo/resuelto) se toma del **primer** elemento que coincide. **Solo el primer `[*]` de una ruta es un comodín**; `requestBody.groups[*].alerts[*].name` no coincide con nada.
 - `[0]` y `[last]` seleccionan un único elemento, y pueden ir después de un `[*]`.
 - Los valores de objeto y de array, las cadenas vacías y los valores nulos se omiten. `0` y `false` son claves válidas.
 - El cuerpo debe ser un objeto JSON; una carga útil cuyo nivel superior es un array no se agrupa.
+
+### Solicitudes sin el campo
+
+Una solicitud que coincide con un criterio agrupado pero no tiene valor en su ruta —el campo falta o está vacío, contiene un objeto o una lista, o el cuerpo no es un objeto JSON— sigue abriendo el incidente y la alerta de ese criterio: uno para todo el monitor, como lo haría el criterio sin agrupación. Lo mismo hace un criterio agrupado que coincide porque las solicitudes dejaron de llegar. Un título que nombra la variable de agrupación, como `{{alertname}}`, la muestra tal como está escrita, porque no hay ningún valor que poner.
+
+Ese incidente se resuelve como el de un criterio sin agrupación: cuando una solicitud posterior coincide con otro criterio, si **Resolver incidente automáticamente** está activado. Una solicitud sin el campo que informa de que se ha recuperado no abre nada.
+
+Cuando algunos elementos de un array tienen un valor y otros no, cada valor abre su propio incidente, y los elementos sin valor no abren nada propio.
+
+La tarjeta **Resumen del monitor** de la **Vista general** del monitor muestra lo que hizo cada solicitud, incluido cuándo un criterio la trató para todo el monitor o no abrió nada nuevo.
 
 ### La resolución depende de los eventos
 
@@ -306,8 +318,11 @@ Un webhook solo describe lo que hay en esa carga útil, así que OneUptime nunca
 > [!NOTE]
 > Cuando un monitor recibe solicitudes más rápido de lo que OneUptime las evalúa, evalúa la más reciente y se salta las intermedias, así que una ráfaga de webhooks puede dejar sin evaluar una alerta activa o una resuelta. En un servidor autoalojado, definir `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` en el entorno de la aplicación OneUptime evalúa cada solicitud por separado.
 
+> [!NOTE]
+> Si **Campo que indica la recuperación** contiene `[*]` pero **Abrir un incidente separado para cada…** no, una solicitud solo se ha recuperado cuando todos los elementos de ese array lo dicen. Con `requestBody.alerts[*].status` y `resolved`, un incidente agrupado por `requestBody.groupLabels.alertname` se resuelve cuando todas las alertas de una solicitud están resueltas, y sigue abierto mientras alguna siga activa.
+
 > [!WARNING]
-> Si **Campo que indica la recuperación** contiene `[*]` pero **Abrir un incidente separado para cada…** no, nunca se resolverá nada. Use `[*]` en ambos, o en ninguno. Una ruta de recuperación sin `[*]` se evalúa sobre toda la carga útil, así que un `status: resolved` a nivel de la carga útil resuelve todas las claves de esa carga útil, incluidas las alertas cuyo propio estado sigue activo.
+> Una ruta de recuperación sin `[*]` se evalúa sobre toda la carga útil, así que un `status: resolved` a nivel de la carga útil resuelve todas las claves de esa carga útil, incluidas las alertas cuyo propio estado sigue activo.
 
 ### Poner nombre a los incidentes
 
