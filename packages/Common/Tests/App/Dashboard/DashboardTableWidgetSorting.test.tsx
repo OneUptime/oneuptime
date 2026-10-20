@@ -326,10 +326,7 @@ describe("a metric table grouped by an attribute", () => {
 
     fireEvent.click(sortButton("col:errors"));
     expect(firstCells()).toEqual(["billing", "checkout", "auth", "search"]);
-    expect(headerCell("col:errors")).toHaveAttribute(
-      "aria-sort",
-      "descending",
-    );
+    expect(headerCell("col:errors")).toHaveAttribute("aria-sort", "descending");
     expect(window.localStorage.getItem(PICK_KEY)).toBe("col:errors:desc");
 
     fireEvent.click(sortButton("col:errors"));
@@ -533,7 +530,11 @@ describe("a Data Source table", () => {
         title: "Service",
         type: DataSourceTableColumnType.Text,
       },
-      { key: "errors", title: "Errors", type: DataSourceTableColumnType.Number },
+      {
+        key: "errors",
+        title: "Errors",
+        type: DataSourceTableColumnType.Number,
+      },
     ],
     rows: [
       { service: "checkout", errors: 12 },
@@ -714,10 +715,7 @@ describe("a trace table", () => {
   beforeEach(() => {
     apiPostMock.mockResolvedValue({
       data: {
-        data: [
-          traceRow("GET /cart", 120, 4),
-          traceRow("POST /pay", 30, 9),
-        ],
+        data: [traceRow("GET /cart", 120, 4), traceRow("POST /pay", 30, 9)],
       },
     });
   });

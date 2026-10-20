@@ -171,9 +171,10 @@ const dashboardViewConfig: DashboardViewConfig = {
   heightInDashboardUnits: 12,
 };
 
-function baseProps(
-  componentId: ObjectID,
-): Omit<DashboardBaseComponentProps, "componentId"> & {
+function baseProps(componentId: ObjectID): Omit<
+  DashboardBaseComponentProps,
+  "componentId"
+> & {
   componentId: ObjectID;
 } {
   return {

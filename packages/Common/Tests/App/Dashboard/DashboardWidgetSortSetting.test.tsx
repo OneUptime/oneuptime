@@ -328,7 +328,10 @@ describe("the Sort setting's choices", () => {
       };
 
     expect(
-      getWidgetSortOptionValue({ savedSort: "status:desc", builtInSort: builtIn }),
+      getWidgetSortOptionValue({
+        savedSort: "status:desc",
+        builtInSort: builtIn,
+      }),
     ).toBe("status:desc");
     expect(
       getWidgetSortOptionValue({ savedSort: undefined, builtInSort: builtIn }),
@@ -467,13 +470,14 @@ describe("the Sort setting's choices", () => {
       const sections: Array<string> =
         DashboardComponentsUtil.getComponentSettingsArguments(
           componentType,
-        ).map(
-          (argument: ComponentArgument<DashboardBaseComponent>): string => {
-            return argument.section?.name || "";
-          },
-        );
+        ).map((argument: ComponentArgument<DashboardBaseComponent>): string => {
+          return argument.section?.name || "";
+        });
 
-      expect({ componentType, hasSection: sections.includes(SORT_SETTING_SECTION_NAME) }).toEqual({
+      expect({
+        componentType,
+        hasSection: sections.includes(SORT_SETTING_SECTION_NAME),
+      }).toEqual({
         componentType,
         hasSection: true,
       });
@@ -550,7 +554,9 @@ describe("the Sort setting in a list widget's settings", () => {
     const setting: HTMLElement = await screen.findByTestId(
       DASHBOARD_WIDGET_SORT_SETTING_TEST_ID,
     );
-    expect(within(setting).getByText("Status, Worst first")).toBeInTheDocument();
+    expect(
+      within(setting).getByText("Status, Worst first"),
+    ).toBeInTheDocument();
 
     pickSortChoice("Default (Name, A to Z)");
 
@@ -692,9 +698,8 @@ describe("a click on a column header in the settings preview", () => {
     await waitFor(() => {
       expect(onChange).toHaveBeenCalled();
     });
-    const saved: DashboardViewConfig = onChange.mock.calls[
-      onChange.mock.calls.length - 1
-    ]![0];
+    const saved: DashboardViewConfig =
+      onChange.mock.calls[onChange.mock.calls.length - 1]![0];
     expect((saved.components[0]!.arguments as JSONObject)["sort"]).toBe(
       "status:desc",
     );
@@ -737,9 +742,9 @@ describe("a click on a column header in the settings preview", () => {
 
     const savedSort: () => unknown = (): unknown => {
       const calls: Array<[DashboardViewConfig]> = onChange.mock.calls;
-      return (calls[calls.length - 1]![0].components[0]!.arguments as JSONObject)[
-        "sort"
-      ];
+      return (
+        calls[calls.length - 1]![0].components[0]!.arguments as JSONObject
+      )["sort"];
     };
 
     fireEvent.click(header());

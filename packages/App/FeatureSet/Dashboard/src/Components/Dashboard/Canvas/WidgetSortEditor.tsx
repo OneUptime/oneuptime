@@ -74,10 +74,7 @@ const WidgetSortEditor: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="mt-4" data-testid={DASHBOARD_WIDGET_SORT_SETTING_TEST_ID}>
-      <label
-        id={labelId}
-        className="block text-sm font-medium text-gray-700"
-      >
+      <label id={labelId} className="block text-sm font-medium text-gray-700">
         {translator.translateText(DashboardWidgetSortCopy.settingLabel)}
       </label>
       <p className="mt-1 text-sm text-gray-500">

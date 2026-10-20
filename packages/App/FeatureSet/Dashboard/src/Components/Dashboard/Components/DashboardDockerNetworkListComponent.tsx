@@ -1,4 +1,11 @@
-import React, { FunctionComponent, ReactElement, useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import DashboardDockerNetworkListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardDockerNetworkListComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
@@ -126,7 +133,13 @@ const DashboardDockerNetworkListComponentElement: FunctionComponent<
     }
 
     setIsLoading(false);
-  }, [maxRows, dockerHostIdsKey, props.componentId, props.variables, widgetSort.sortKey]);
+  }, [
+    maxRows,
+    dockerHostIdsKey,
+    props.componentId,
+    props.variables,
+    widgetSort.sortKey,
+  ]);
 
   useEffect(() => {
     fetchNetworks();

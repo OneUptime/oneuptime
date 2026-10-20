@@ -12,7 +12,8 @@ import {
  * value at the bottom both ways, and rows that tie in the query's order.
  */
 
-const ASC: DashboardWidgetSortDirection = DashboardWidgetSortDirection.Ascending;
+const ASC: DashboardWidgetSortDirection =
+  DashboardWidgetSortDirection.Ascending;
 const DESC: DashboardWidgetSortDirection =
   DashboardWidgetSortDirection.Descending;
 

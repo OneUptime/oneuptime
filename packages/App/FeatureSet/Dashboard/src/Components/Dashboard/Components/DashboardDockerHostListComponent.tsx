@@ -1,4 +1,11 @@
-import React, { FunctionComponent, ReactElement, useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import DashboardDockerHostListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardDockerHostListComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
@@ -153,7 +160,13 @@ const DashboardDockerHostListComponentElement: FunctionComponent<
     }
 
     setIsLoading(false);
-  }, [maxRows, statusFilter, props.variables, props.componentId, widgetSort.sortKey]);
+  }, [
+    maxRows,
+    statusFilter,
+    props.variables,
+    props.componentId,
+    widgetSort.sortKey,
+  ]);
 
   useEffect(() => {
     fetchHosts();

@@ -77,7 +77,8 @@ import DockerSwarmResource from "../../../Models/DatabaseModels/DockerSwarmResou
 import Span from "../../../Models/AnalyticsModels/Span";
 import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
 
-const ASC: DashboardWidgetSortDirection = DashboardWidgetSortDirection.Ascending;
+const ASC: DashboardWidgetSortDirection =
+  DashboardWidgetSortDirection.Ascending;
 const DESC: DashboardWidgetSortDirection =
   DashboardWidgetSortDirection.Descending;
 
@@ -290,7 +291,9 @@ const WIDGETS: Array<{
   },
 ];
 
-function getSpec(componentType: DashboardComponentType): DashboardWidgetListSortSpec {
+function getSpec(
+  componentType: DashboardComponentType,
+): DashboardWidgetListSortSpec {
   const spec: DashboardWidgetListSortSpec | null =
     getDashboardWidgetSortSpec(componentType);
 
@@ -390,9 +393,9 @@ describe.each(WIDGETS)(
 
     if (entry.previousOrder) {
       test("saved without a sort, it lists exactly as it always did", () => {
-        expect(written(getDashboardWidgetListSort(entry.componentType, null))).toBe(
-          written(entry.previousOrder as JSONObject),
-        );
+        expect(
+          written(getDashboardWidgetListSort(entry.componentType, null)),
+        ).toBe(written(entry.previousOrder as JSONObject));
         expect(
           written(
             getDashboardWidgetListSort(entry.componentType, spec.defaultSort),
@@ -440,7 +443,10 @@ describe.each(WIDGETS)(
         ];
 
         for (const path of paths) {
-          const [relation, field] = path.split(".") as [string, string | undefined];
+          const [relation, field] = path.split(".") as [
+            string,
+            string | undefined,
+          ];
 
           if (model instanceof AnalyticsBaseModel) {
             expect(field).toBeUndefined();
@@ -455,9 +461,10 @@ describe.each(WIDGETS)(
             continue;
           }
 
-          const relatedModelType: { new (): BaseModel } | undefined = model
-            .getTableColumnMetadata(relation)
-            ?.modelType as { new (): BaseModel } | undefined;
+          const relatedModelType: { new (): BaseModel } | undefined =
+            model.getTableColumnMetadata(relation)?.modelType as
+              | { new (): BaseModel }
+              | undefined;
 
           expect(relatedModelType).toBeDefined();
 
@@ -526,7 +533,11 @@ describe("status and severity sort by what they mean, worst first", () => {
     [DashboardComponentType.AlertList, "currentAlertState", "state"],
   ])(
     "%s %s by its order - the lower, the worse: worst first is ascending",
-    (componentType: DashboardComponentType, relation: string, column: string) => {
+    (
+      componentType: DashboardComponentType,
+      relation: string,
+      column: string,
+    ) => {
       expect(
         getDashboardWidgetListSort(componentType, choice(column, DESC)),
       ).toEqual({
@@ -667,7 +678,9 @@ describe("status and severity sort by what they mean, worst first", () => {
   test("every status column is a Status column, so its first click is worst first", () => {
     for (const componentType of getDashboardWidgetSortComponentTypes()) {
       for (const column of getDashboardWidgetSortColumns(componentType)) {
-        if (["status", "state", "severity", "phase", "power"].includes(column.key)) {
+        if (
+          ["status", "state", "severity", "phase", "power"].includes(column.key)
+        ) {
           expect(column.kind).toBe(DashboardWidgetSortKind.Status);
           expect(column.firstDirection).toBeUndefined();
         }
@@ -770,7 +783,9 @@ describe("numbers, times and names", () => {
           );
 
           for (const value of Object.values(sort)) {
-            expect([SortOrder.Ascending, SortOrder.Descending]).toContain(value);
+            expect([SortOrder.Ascending, SortOrder.Descending]).toContain(
+              value,
+            );
           }
         }
       }
@@ -799,7 +814,9 @@ describe("what a list must read for its order", () => {
     });
 
     expect(
-      getDashboardWidgetListSortSelect(DashboardComponentType.KubernetesPodList),
+      getDashboardWidgetListSortSelect(
+        DashboardComponentType.KubernetesPodList,
+      ),
     ).toEqual({ kubernetesCluster: { name: true } });
 
     expect(
@@ -817,7 +834,10 @@ describe("what a list must read for its order", () => {
     };
 
     expect(
-      withDashboardWidgetListSortSelect(DashboardComponentType.MonitorList, select),
+      withDashboardWidgetListSortSelect(
+        DashboardComponentType.MonitorList,
+        select,
+      ),
     ).toEqual({
       _id: true,
       name: true,
@@ -1215,7 +1235,9 @@ describe("reading a list step by step", () => {
     const rows: Array<string> = await readDashboardWidgetListInSteps<string>({
       steps,
       limit: 25,
-      read: async (step: DashboardWidgetListReadStep): Promise<Array<string>> => {
+      read: async (
+        step: DashboardWidgetListReadStep,
+      ): Promise<Array<string>> => {
         return step.query["rank"] === 2 ? [] : [`${step.query["rank"]}`];
       },
     });
@@ -1242,7 +1264,9 @@ describe("reading a list step by step", () => {
     const rows: Array<string> = await readDashboardWidgetListInSteps<string>({
       steps,
       limit: 25,
-      read: async (step: DashboardWidgetListReadStep): Promise<Array<string>> => {
+      read: async (
+        step: DashboardWidgetListReadStep,
+      ): Promise<Array<string>> => {
         const rank: number = step.query["rank"] as number;
         asked.push(rank);
         // The click comes while the first rank is being read.
@@ -1264,7 +1288,9 @@ describe("reading a list step by step", () => {
     await readDashboardWidgetListInSteps<string>({
       steps,
       limit: 25,
-      read: async (step: DashboardWidgetListReadStep): Promise<Array<string>> => {
+      read: async (
+        step: DashboardWidgetListReadStep,
+      ): Promise<Array<string>> => {
         asked.push(step.query["rank"] as number);
         return [];
       },
@@ -1363,7 +1389,9 @@ describe("a dashboard write's widget sorts", () => {
           },
         ]),
       ),
-    ).toContain("dashboardViewConfig.components[0].arguments.sort must be one of");
+    ).toContain(
+      "dashboardViewConfig.components[0].arguments.sort must be one of",
+    );
   });
 
   test("a metric or Data Source table's sort may name any column, but must name a column and a direction", () => {
@@ -1389,7 +1417,9 @@ describe("a dashboard write's widget sorts", () => {
           },
         ]),
       ),
-    ).toContain("components[0].arguments.sort must be a column and a direction");
+    ).toContain(
+      "components[0].arguments.sort must be a column and a direction",
+    );
   });
 
   test("widgets that do not sort, or that this version does not know, are kept as written", () => {

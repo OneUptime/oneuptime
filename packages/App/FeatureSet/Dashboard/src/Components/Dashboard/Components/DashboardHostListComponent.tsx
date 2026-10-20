@@ -1,4 +1,11 @@
-import React, { FunctionComponent, ReactElement, useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import DashboardHostListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardHostListComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
@@ -201,7 +208,14 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     setIsLoading(false);
-  }, [maxRows, statusFilter, osTypeFilter, props.variables, props.componentId, widgetSort.sortKey]);
+  }, [
+    maxRows,
+    statusFilter,
+    osTypeFilter,
+    props.variables,
+    props.componentId,
+    widgetSort.sortKey,
+  ]);
 
   useEffect(() => {
     fetchHosts();

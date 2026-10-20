@@ -104,7 +104,8 @@ type ListService = {
   findBy: (findBy: never) => Promise<Array<unknown>>;
 };
 
-const ASC: DashboardWidgetSortDirection = DashboardWidgetSortDirection.Ascending;
+const ASC: DashboardWidgetSortDirection =
+  DashboardWidgetSortDirection.Ascending;
 const DESC: DashboardWidgetSortDirection =
   DashboardWidgetSortDirection.Descending;
 
@@ -362,11 +363,11 @@ describe("a public dashboard's list widgets sorted by a viewer", () => {
   }
 
   function getReads(service: ListService): Array<JSONObject> {
-    return ((service.findBy as jest.Mock).mock.calls as Array<Array<unknown>>).map(
-      (call: Array<unknown>) => {
-        return call[0] as JSONObject;
-      },
-    );
+    return (
+      (service.findBy as jest.Mock).mock.calls as Array<Array<unknown>>
+    ).map((call: Array<unknown>) => {
+      return call[0] as JSONObject;
+    });
   }
 
   // Lists one widget, as a viewer asks for it, and returns its reads.
@@ -454,7 +455,9 @@ describe("a public dashboard's list widgets sorted by a viewer", () => {
       });
 
       it("orders the list by each of the widget's own columns, both ways, built on the server", async () => {
-        for (const column of getDashboardWidgetSortColumns(entry.componentType)) {
+        for (const column of getDashboardWidgetSortColumns(
+          entry.componentType,
+        )) {
           for (const direction of [ASC, DESC]) {
             const reads: Array<JSONObject> = await listWidget({
               ...entry,
@@ -477,7 +480,9 @@ describe("a public dashboard's list widgets sorted by a viewer", () => {
 
             for (const read of reads) {
               // Every read, every rank, is kept to the dashboard's project.
-              expect((read["query"] as JSONObject)["projectId"]).toBe(projectId);
+              expect((read["query"] as JSONObject)["projectId"]).toBe(
+                projectId,
+              );
               expect(read["skip"]).toBe(0);
             }
           }
@@ -654,9 +659,9 @@ describe("a public dashboard's list widgets sorted by a viewer", () => {
   });
 
   it("a pod list sorted worst phase first reads rank by rank, each read the widget's own query", async () => {
-    (KubernetesResourceService.findBy as unknown as jest.Mock).mockResolvedValue(
-      [],
-    );
+    (
+      KubernetesResourceService.findBy as unknown as jest.Mock
+    ).mockResolvedValue([]);
 
     const reads: Array<JSONObject> = await listWidget({
       resourceType: "kubernetes-resource",
@@ -710,18 +715,18 @@ describe("a public dashboard's list widgets sorted by a viewer", () => {
   it("stops reading ranks once the list is full, asking each for the rows still wanted", async () => {
     let call: number = 0;
 
-    (KubernetesResourceService.findBy as unknown as jest.Mock).mockImplementation(
-      async (findBy: unknown): Promise<Array<unknown>> => {
-        call++;
-        const limit: number = (findBy as JSONObject)["limit"] as number;
-        // Two failed pods, then a full page of unknown ones.
-        return Array.from({ length: Math.min(limit, call === 1 ? 2 : 10) }).map(
-          (_: unknown, index: number) => {
-            return { id: `${call}-${index}` };
-          },
-        );
-      },
-    );
+    (
+      KubernetesResourceService.findBy as unknown as jest.Mock
+    ).mockImplementation(async (findBy: unknown): Promise<Array<unknown>> => {
+      call++;
+      const limit: number = (findBy as JSONObject)["limit"] as number;
+      // Two failed pods, then a full page of unknown ones.
+      return Array.from({ length: Math.min(limit, call === 1 ? 2 : 10) }).map(
+        (_: unknown, index: number) => {
+          return { id: `${call}-${index}` };
+        },
+      );
+    });
 
     const reads: Array<JSONObject> = await listWidget({
       resourceType: "kubernetes-resource",
@@ -768,9 +773,12 @@ describe("a public dashboard's list widgets sorted by a viewer", () => {
   });
 
   it("the policy names the order it read with, or none for a widget it does not sort", () => {
-    const monitor: JSONObject = buildWidget(DashboardComponentType.MonitorList, {
-      sort: "type:desc",
-    }).widget;
+    const monitor: JSONObject = buildWidget(
+      DashboardComponentType.MonitorList,
+      {
+        sort: "type:desc",
+      },
+    ).widget;
 
     expect(
       PublicDashboardResourceListPolicy.build({
@@ -791,8 +799,9 @@ describe("a public dashboard's list widgets sorted by a viewer", () => {
       }).sortChoice,
     ).toEqual({ column: "status", direction: ASC });
 
-    const map: JSONObject = buildWidget(DashboardComponentType.NetworkMap)
-      .widget;
+    const map: JSONObject = buildWidget(
+      DashboardComponentType.NetworkMap,
+    ).widget;
 
     expect(
       PublicDashboardResourceListPolicy.build({

@@ -85,7 +85,9 @@ function getTraceTableSortColumns(
       );
     })
     .map(
-      (column: DashboardWidgetListSortColumn): DashboardWidgetSortColumnInfo => {
+      (
+        column: DashboardWidgetListSortColumn,
+      ): DashboardWidgetSortColumnInfo => {
         return column.key === "group"
           ? { ...column, title: dimensionLabel(groupByAttribute || "") }
           : column;

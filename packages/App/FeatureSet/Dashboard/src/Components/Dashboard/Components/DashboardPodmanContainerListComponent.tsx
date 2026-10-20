@@ -1,4 +1,11 @@
-import React, { FunctionComponent, ReactElement, useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import DashboardPodmanContainerListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardPodmanContainerListComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
@@ -209,7 +216,9 @@ const DashboardPodmanContainerListComponentElement: FunctionComponent<
     podmanHostIdsKey,
     imageNameKey,
     props.variables,
-    props.componentId, widgetSort.sortKey]);
+    props.componentId,
+    widgetSort.sortKey,
+  ]);
 
   useEffect(() => {
     fetchContainers();

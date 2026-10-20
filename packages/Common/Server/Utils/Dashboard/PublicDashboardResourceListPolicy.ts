@@ -334,9 +334,10 @@ export default class PublicDashboardResourceListPolicy {
         requestedSort: data.requestedSort,
       });
 
-    const select: JSONObject = PublicDashboardResourceListPolicy.selectForComponent(
-      componentType as DashboardComponentType,
-    );
+    const select: JSONObject =
+      PublicDashboardResourceListPolicy.selectForComponent(
+        componentType as DashboardComponentType,
+      );
 
     return {
       resourceType: draft.resourceType,
@@ -378,10 +379,7 @@ export default class PublicDashboardResourceListPolicy {
     return getDashboardWidgetEffectiveSort(
       data.componentType,
       requested ||
-        readDashboardWidgetSavedSort(
-          data.componentType,
-          data.argumentsObject,
-        ),
+        readDashboardWidgetSavedSort(data.componentType, data.argumentsObject),
     );
   }
 

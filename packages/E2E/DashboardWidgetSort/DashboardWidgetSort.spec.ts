@@ -214,15 +214,14 @@ const columnOf: (
   table: Locator,
   index: number,
 ): Promise<Array<string>> => {
-  return table.locator("tbody tr").evaluateAll(
-    (rows: Array<Element>, cellIndex: number): Array<string> => {
+  return table
+    .locator("tbody tr")
+    .evaluateAll((rows: Array<Element>, cellIndex: number): Array<string> => {
       return rows.map((row: Element): string => {
         const cells: Array<Element> = Array.from(row.querySelectorAll("td"));
         return (cells[cellIndex]?.textContent || "").trim();
       });
-    },
-    index,
-  );
+    }, index);
 };
 
 const expectRows: (
@@ -373,9 +372,9 @@ test.describe("a list on the dashboard inside OneUptime", () => {
       "title",
       "Sort: Worst first",
     );
-    await expect(
-      table.getByTestId("dashboard-widget-sort-arrow"),
-    ).toHaveCount(1);
+    await expect(table.getByTestId("dashboard-widget-sort-arrow")).toHaveCount(
+      1,
+    );
 
     await shoot(page, testInfo, "board", undefined);
   });
@@ -666,9 +665,9 @@ test.describe("the order everyone sees", () => {
       return JSON.stringify(component["componentId"]).includes(MONITORS_WIDGET);
     });
 
-    expect((savedMonitors?.["arguments"] as Record<string, unknown>)["sort"]).toBe(
-      "status:desc",
-    );
+    expect(
+      (savedMonitors?.["arguments"] as Record<string, unknown>)["sort"],
+    ).toBe("status:desc");
 
     // Everyone opens it worst first, with no pick of their own.
     await page.reload();

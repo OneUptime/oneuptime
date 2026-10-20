@@ -61,8 +61,7 @@ const DashboardSortableColumnHeader: FunctionComponent<ComponentProps> = (
     ? props.label
     : (translator.translateText(props.label) as string);
   const padding: string = props.paddingClassName || DEFAULT_PADDING_CLASS_NAME;
-  const column: DashboardWidgetSortColumnInfo | null =
-    props.sortColumn || null;
+  const column: DashboardWidgetSortColumnInfo | null = props.sortColumn || null;
 
   const style: React.CSSProperties | undefined = props.widthPct
     ? { width: props.widthPct }

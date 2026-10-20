@@ -19,10 +19,11 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 export const DASHBOARD_WIDGET_SORT_HEADER_TEST_ID_PREFIX: string =
   "dashboard-widget-sort-";
 
-export const getDashboardWidgetSortHeaderTestId: (columnKey: string) => string =
-  (columnKey: string): string => {
-    return `${DASHBOARD_WIDGET_SORT_HEADER_TEST_ID_PREFIX}${columnKey}`;
-  };
+export const getDashboardWidgetSortHeaderTestId: (
+  columnKey: string,
+) => string = (columnKey: string): string => {
+  return `${DASHBOARD_WIDGET_SORT_HEADER_TEST_ID_PREFIX}${columnKey}`;
+};
 
 // The arrow on the column the rows are sorted by.
 export const DASHBOARD_WIDGET_SORT_ARROW_TEST_ID: string =
@@ -61,9 +62,7 @@ export const getDashboardWidgetSortDirectionWords: (
         : translationKey("Lowest first");
     case DashboardWidgetSortKind.Text:
     default:
-      return isDescending
-        ? translationKey("Z to A")
-        : translationKey("A to Z");
+      return isDescending ? translationKey("Z to A") : translationKey("A to Z");
   }
 };
 

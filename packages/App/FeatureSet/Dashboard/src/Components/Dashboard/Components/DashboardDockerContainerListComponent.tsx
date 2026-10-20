@@ -1,4 +1,11 @@
-import React, { FunctionComponent, ReactElement, useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import DashboardDockerContainerListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardDockerContainerListComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
@@ -209,7 +216,9 @@ const DashboardDockerContainerListComponentElement: FunctionComponent<
     dockerHostIdsKey,
     imageNameKey,
     props.variables,
-    props.componentId, widgetSort.sortKey]);
+    props.componentId,
+    widgetSort.sortKey,
+  ]);
 
   useEffect(() => {
     fetchContainers();

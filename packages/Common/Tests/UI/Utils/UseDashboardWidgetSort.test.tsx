@@ -44,7 +44,8 @@ const OTHER_WIDGET_ID: string = "c0000000-0000-4000-8000-000000000002";
 
 const PICK_KEY: string = `oneuptime-dashboard-widget-sort-${WIDGET_ID}:${DASHBOARD_ID}`;
 
-const ASC: DashboardWidgetSortDirection = DashboardWidgetSortDirection.Ascending;
+const ASC: DashboardWidgetSortDirection =
+  DashboardWidgetSortDirection.Ascending;
 const DESC: DashboardWidgetSortDirection =
   DashboardWidgetSortDirection.Descending;
 

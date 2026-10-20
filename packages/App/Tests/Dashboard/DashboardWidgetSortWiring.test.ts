@@ -88,7 +88,9 @@ interface WidgetColumn {
 }
 
 function columnsOf(code: string): Array<WidgetColumn> {
-  const start: number = code.indexOf("const COLUMNS: Array<ResourceListColumn> = [");
+  const start: number = code.indexOf(
+    "const COLUMNS: Array<ResourceListColumn> = [",
+  );
 
   expect(start).toBeGreaterThanOrEqual(0);
 
@@ -192,8 +194,9 @@ describe("every list widget's headers are its kind's sortable columns", () => {
         ) && code.includes("sort={widgetSort.listSort}");
 
       const isSharedBase: boolean =
-        code.includes(`componentType={DashboardComponentType.${enumKeyOf(type)}}`) &&
-        code.includes("widgetProps={props}");
+        code.includes(
+          `componentType={DashboardComponentType.${enumKeyOf(type)}}`,
+        ) && code.includes("widgetProps={props}");
 
       expect({ type, wired: isOwnRead || isSharedBase }).toEqual({
         type,
@@ -260,9 +263,9 @@ describe("the trace table's headers", () => {
 
   test("sends its order to the server, which ranks the groups by it", () => {
     expect(code).toContain("sort: widgetSort.sort,");
-    expect(
-      readCode(`${WIDGETS_DIR}/TraceTableData.ts`),
-    ).toContain('requestData["tableSort"] = {');
+    expect(readCode(`${WIDGETS_DIR}/TraceTableData.ts`)).toContain(
+      'requestData["tableSort"] = {',
+    );
   });
 });
 
@@ -281,9 +284,9 @@ describe("one registry for the browser and the public route", () => {
   });
 
   test("a dashboard write is held to every widget's sort", () => {
-    expect(
-      readCode("Common/Server/Services/DashboardService.ts"),
-    ).toContain("getDashboardWidgetSortsProblem(");
+    expect(readCode("Common/Server/Services/DashboardService.ts")).toContain(
+      "getDashboardWidgetSortsProblem(",
+    );
   });
 
   test("both dashboard shells hand the widgets the dashboard their picks are kept for", () => {
@@ -398,7 +401,9 @@ describe("the header in the dark theme", () => {
 describe("React-free modules App's tests and the server read", () => {
   test.each([
     [`${WIDGETS_DIR}/DashboardWidgetSortCopy.ts`],
-    ["App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/WidgetSortOptions.ts"],
+    [
+      "App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/WidgetSortOptions.ts",
+    ],
     ["Common/Types/Dashboard/DashboardWidgetSort.ts"],
     ["Common/Utils/Dashboard/DashboardWidgetSorts.ts"],
   ])("%s imports no React", (relative: string) => {

@@ -1,4 +1,11 @@
-import React, { FunctionComponent, ReactElement, useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import DashboardPodmanImageListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardPodmanImageListComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
@@ -150,7 +157,9 @@ const DashboardPodmanImageListComponentElement: FunctionComponent<
     podmanHostIdsKey,
     nameSearchKey,
     props.variables,
-    props.componentId, widgetSort.sortKey]);
+    props.componentId,
+    widgetSort.sortKey,
+  ]);
 
   useEffect(() => {
     fetchImages();

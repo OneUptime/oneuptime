@@ -293,7 +293,8 @@ describe("TraceTableData.displayGroupValue for a status split", () => {
  * dimension, whose ids the server names only after ranking.
  */
 describe("TraceTableData: the table's order", () => {
-  const ASC: DashboardWidgetSortDirection = DashboardWidgetSortDirection.Ascending;
+  const ASC: DashboardWidgetSortDirection =
+    DashboardWidgetSortDirection.Ascending;
   const DESC: DashboardWidgetSortDirection =
     DashboardWidgetSortDirection.Descending;
 

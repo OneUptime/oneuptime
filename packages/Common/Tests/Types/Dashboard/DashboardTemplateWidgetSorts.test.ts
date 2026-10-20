@@ -31,9 +31,7 @@ const TEMPLATE_TYPES: Array<DashboardTemplateType> = Object.values(
   return type !== DashboardTemplateType.Blank;
 });
 
-function widgetsOf(
-  type: DashboardTemplateType,
-): Array<DashboardBaseComponent> {
+function widgetsOf(type: DashboardTemplateType): Array<DashboardBaseComponent> {
   const config: DashboardViewConfig | null = getTemplateConfig(type);
 
   if (!config) {

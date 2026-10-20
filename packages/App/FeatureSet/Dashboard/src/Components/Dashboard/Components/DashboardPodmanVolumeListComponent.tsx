@@ -1,4 +1,11 @@
-import React, { FunctionComponent, ReactElement, useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import DashboardPodmanVolumeListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardPodmanVolumeListComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
@@ -126,7 +133,13 @@ const DashboardPodmanVolumeListComponentElement: FunctionComponent<
     }
 
     setIsLoading(false);
-  }, [maxRows, podmanHostIdsKey, props.componentId, props.variables, widgetSort.sortKey]);
+  }, [
+    maxRows,
+    podmanHostIdsKey,
+    props.componentId,
+    props.variables,
+    widgetSort.sortKey,
+  ]);
 
   useEffect(() => {
     fetchVolumes();

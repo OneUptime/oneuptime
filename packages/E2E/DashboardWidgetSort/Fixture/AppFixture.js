@@ -348,8 +348,7 @@ API.post = async (options) => {
     const valueOf =
       (tableSort && TRACE_COLUMN_VALUES[tableSort.column]) ||
       TRACE_COLUMN_VALUES.count;
-    const direction =
-      tableSort && tableSort.direction === "asc" ? 1 : -1;
+    const direction = tableSort && tableSort.direction === "asc" ? 1 : -1;
 
     record.traceTables.push({ tableSort: tableSort || null });
 

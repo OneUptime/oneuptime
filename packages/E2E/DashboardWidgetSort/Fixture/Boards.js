@@ -184,9 +184,7 @@ export const pods = () => {
       name,
       namespaceKey,
       phase,
-      kubernetesClusterId: new ObjectID(
-        "b0000000-0000-4000-8000-000000000299",
-      ),
+      kubernetesClusterId: new ObjectID("b0000000-0000-4000-8000-000000000299"),
       kubernetesCluster: { name: "prod" },
     };
   });
@@ -225,15 +223,17 @@ export const incidents = (now) => {
       severity("Minor", 3, "#64748b"),
       2 * 24 * 60,
     ],
-  ].map(([title, currentIncidentState, incidentSeverity, minutesAgo], index) => {
-    return {
-      _id: `b0000000-0000-4000-8000-00000000030${index}`,
-      title,
-      createdAt: new Date(now - minutesAgo * MINUTE),
-      currentIncidentState,
-      incidentSeverity,
-    };
-  });
+  ].map(
+    ([title, currentIncidentState, incidentSeverity, minutesAgo], index) => {
+      return {
+        _id: `b0000000-0000-4000-8000-00000000030${index}`,
+        title,
+        createdAt: new Date(now - minutesAgo * MINUTE),
+        currentIncidentState,
+        incidentSeverity,
+      };
+    },
+  );
 };
 
 export const securityEvents = (now) => {
@@ -241,19 +241,24 @@ export const securityEvents = (now) => {
     [60, "High", 4, "Authentication", "Failed login for root", "bastion-1"],
     [45, "Low", 2, "Network Activity", "Port scan blocked", "edge-2"],
     [30, "Critical", 5, "Authentication", "Brute force detected", "bastion-1"],
-    [15, "Informational", 1, "File System Activity", "Config file read", "app-3"],
-  ].map(
-    ([minutesAgo, severityName, severityId, className, message, host]) => {
-      return {
-        time: new Date(now - minutesAgo * MINUTE),
-        severityName,
-        severityId,
-        className,
-        message,
-        principalHost: host,
-      };
-    },
-  );
+    [
+      15,
+      "Informational",
+      1,
+      "File System Activity",
+      "Config file read",
+      "app-3",
+    ],
+  ].map(([minutesAgo, severityName, severityId, className, message, host]) => {
+    return {
+      time: new Date(now - minutesAgo * MINUTE),
+      severityName,
+      severityId,
+      className,
+      message,
+      principalHost: host,
+    };
+  });
 };
 
 export const traceGroups = () => {

@@ -53,7 +53,8 @@ const describePostgres: typeof describe =
 
 const DESC: DashboardWidgetSortDirection =
   DashboardWidgetSortDirection.Descending;
-const ASC: DashboardWidgetSortDirection = DashboardWidgetSortDirection.Ascending;
+const ASC: DashboardWidgetSortDirection =
+  DashboardWidgetSortDirection.Ascending;
 
 describePostgres("dashboard list widget sorts against Postgres", () => {
   const schema: string = `dashboard_widget_sort_${ObjectID.generate().toString().replace(/-/g, "")}`;
@@ -141,9 +142,11 @@ describePostgres("dashboard list widget sorts against Postgres", () => {
 
   function names(rows: Array<BaseModel>): Array<string> {
     return rows.map((row: BaseModel) => {
-      return (row as unknown as { name?: string; title?: string }).name ||
+      return (
+        (row as unknown as { name?: string; title?: string }).name ||
         (row as unknown as { title?: string }).title ||
-        "";
+        ""
+      );
     });
   }
 

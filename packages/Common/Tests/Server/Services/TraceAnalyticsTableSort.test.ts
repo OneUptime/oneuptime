@@ -165,7 +165,10 @@ describe("a trace table's order", () => {
 
   test("the limit still applies after the order", async () => {
     const query: string = await tableQuery(
-      tableRequest({ limit: 25, tableSort: { column: "p99", direction: "desc" } }),
+      tableRequest({
+        limit: 25,
+        tableSort: { column: "p99", direction: "desc" },
+      }),
     );
 
     expect(query.indexOf(" LIMIT ")).toBeGreaterThan(

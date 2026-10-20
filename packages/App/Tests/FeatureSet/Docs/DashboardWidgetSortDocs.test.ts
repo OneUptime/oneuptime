@@ -287,7 +287,12 @@ describe("Sorting lists and tables, against the header and the registry", () => 
 
           for (const tieBreak of spec.thenBy) {
             const leaf: string = tieBreak.path.split(".").pop() as string;
-            expect({ type, column: column.key, tieBreak: tieBreak.path, inSort: paths.includes(`"${leaf}"`) }).toEqual({
+            expect({
+              type,
+              column: column.key,
+              tieBreak: tieBreak.path,
+              inSort: paths.includes(`"${leaf}"`),
+            }).toEqual({
               type,
               column: column.key,
               tieBreak: tieBreak.path,
@@ -303,11 +308,11 @@ describe("Sorting lists and tables, against the header and the registry", () => 
 
   it("names a column the list cannot be sorted by: a security event's message", () => {
     expect(
-      getDashboardWidgetSortColumns(DashboardComponentType.SecurityEventsList).map(
-        (column: DashboardWidgetListSortColumn): string => {
-          return column.key;
-        },
-      ),
+      getDashboardWidgetSortColumns(
+        DashboardComponentType.SecurityEventsList,
+      ).map((column: DashboardWidgetListSortColumn): string => {
+        return column.key;
+      }),
     ).not.toContain("message");
     expect(
       readSource(
@@ -333,12 +338,9 @@ describe("Sorting lists and tables, against the header and the registry", () => 
 
 describe("Your own sort and the order everyone sees, against the product", () => {
   it("keeps a viewer's sort per widget, per dashboard, in their browser", () => {
-    expect(
-      getDashboardViewerPickKey(
-        "d1",
-        "widget-sort-c1",
-      ),
-    ).toBe("oneuptime-dashboard-widget-sort-c1:d1");
+    expect(getDashboardViewerPickKey("d1", "widget-sort-c1")).toBe(
+      "oneuptime-dashboard-widget-sort-c1:d1",
+    );
     expect(ownSort).toContain(
       "your browser remembers it for that widget on that dashboard",
     );

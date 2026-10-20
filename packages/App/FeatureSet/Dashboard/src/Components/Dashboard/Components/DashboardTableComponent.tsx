@@ -312,7 +312,9 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
     dashboardId: props.dashboardId,
     componentId: props.componentId.toString(),
     columns: sortColumns,
-    savedSort: (args as Record<string, unknown>)[DASHBOARD_WIDGET_SORT_ARGUMENT],
+    savedSort: (args as Record<string, unknown>)[
+      DASHBOARD_WIDGET_SORT_ARGUMENT
+    ],
     builtInSort: isGroupedMode ? GROUPED_DEFAULT_SORT : TIME_DEFAULT_SORT,
     onSavedSortChange: props.onWidgetSortChange,
   });
@@ -327,8 +329,7 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
       return {
         columnKey: widgetSort.sort?.column || null,
         direction:
-          widgetSort.sort?.direction ===
-          DashboardWidgetSortDirection.Descending
+          widgetSort.sort?.direction === DashboardWidgetSortDirection.Descending
             ? "desc"
             : "asc",
       };

@@ -27,7 +27,8 @@ import {
 } from "../../../Types/Dashboard/DashboardWidgetSort";
 import { describe, expect, test } from "@jest/globals";
 
-const ASC: DashboardWidgetSortDirection = DashboardWidgetSortDirection.Ascending;
+const ASC: DashboardWidgetSortDirection =
+  DashboardWidgetSortDirection.Ascending;
 const DESC: DashboardWidgetSortDirection =
   DashboardWidgetSortDirection.Descending;
 
@@ -128,9 +129,7 @@ describe("reading a written sort", () => {
       parseDashboardWidgetSortChoice(
         `${"c".repeat(DASHBOARD_WIDGET_SORT_MAX_LENGTH - 4)}:asc`,
       ),
-    ).toEqual(
-      choice("c".repeat(DASHBOARD_WIDGET_SORT_MAX_LENGTH - 4), ASC),
-    );
+    ).toEqual(choice("c".repeat(DASHBOARD_WIDGET_SORT_MAX_LENGTH - 4), ASC));
   });
 
   test("400,000 characters of colons are read in no time", () => {
@@ -179,7 +178,9 @@ describe("a sort read through one widget's columns", () => {
     expect(
       readDashboardWidgetSortChoiceForColumns("status:sideways", COLUMNS),
     ).toBeNull();
-    expect(readDashboardWidgetSortChoiceForColumns("status:desc", [])).toBeNull();
+    expect(
+      readDashboardWidgetSortChoiceForColumns("status:desc", []),
+    ).toBeNull();
   });
 
   test("finds a column by its key, never by its words", () => {
@@ -294,7 +295,11 @@ describe("a click on a column header", () => {
         widgetSort: choice("status", DESC),
         clicks: 3,
       }),
-    ).toEqual([choice("name", ASC), choice("name", DESC), choice("status", DESC)]);
+    ).toEqual([
+      choice("name", ASC),
+      choice("name", DESC),
+      choice("status", DESC),
+    ]);
   });
 
   test("the third click forgets the pick: it leaves none", () => {
@@ -320,7 +325,11 @@ describe("a click on a column header", () => {
         widgetSort: choice("status", DESC),
         clicks: 3,
       }),
-    ).toEqual([choice("status", ASC), choice("status", DESC), choice("status", ASC)]);
+    ).toEqual([
+      choice("status", ASC),
+      choice("status", DESC),
+      choice("status", ASC),
+    ]);
   });
 
   test("on a column the widget sorts the other way from its first, turns it to its first and back", () => {
@@ -331,7 +340,11 @@ describe("a click on a column header", () => {
         widgetSort: choice("status", ASC),
         clicks: 3,
       }),
-    ).toEqual([choice("status", DESC), choice("status", ASC), choice("status", DESC)]);
+    ).toEqual([
+      choice("status", DESC),
+      choice("status", ASC),
+      choice("status", DESC),
+    ]);
   });
 
   test("never keeps a pick that only repeats the widget's own sort", () => {
@@ -348,9 +361,12 @@ describe("a click on a column header", () => {
   });
 
   test("a widget with no order of its own (a Data Source table) goes back to the query's order", () => {
-    expect(
-      clickThrough({ column: CPU, widgetSort: null, clicks: 4 }),
-    ).toEqual([choice("cpu", DESC), choice("cpu", ASC), null, choice("cpu", DESC)]);
+    expect(clickThrough({ column: CPU, widgetSort: null, clicks: 4 })).toEqual([
+      choice("cpu", DESC),
+      choice("cpu", ASC),
+      null,
+      choice("cpu", DESC),
+    ]);
   });
 
   test("a column whose first click is lowest starts there", () => {

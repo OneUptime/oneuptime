@@ -92,7 +92,12 @@ const readResourceList = async (resource, body) => {
     limit: widget.arguments.maxRows || 25,
     read: async (step, limit) => {
       phases.push(describePhase(step.query));
-      return readTable({ rows: rows(), query: step.query, sort: step.sort, limit });
+      return readTable({
+        rows: rows(),
+        query: step.query,
+        sort: step.sort,
+        limit,
+      });
     },
   });
 

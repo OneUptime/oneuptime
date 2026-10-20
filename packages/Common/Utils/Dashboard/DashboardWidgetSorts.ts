@@ -295,7 +295,11 @@ function kubernetesNamespacedSpec(
   return {
     columns: [
       textColumn({ key: "name", title: nameTitle, path: "name" }),
-      textColumn({ key: "namespace", title: "Namespace", path: "namespaceKey" }),
+      textColumn({
+        key: "namespace",
+        title: "Namespace",
+        path: "namespaceKey",
+      }),
       ...extraColumns,
       kubernetesCluster(),
     ],
@@ -446,7 +450,9 @@ function storageHardwareStatusColumn(): DashboardWidgetListSortColumn {
     kind: DashboardWidgetSortKind.Status,
     ranks: {
       ranks: [
-        { status: new Includes([...STORAGE_ARRAY_CRITICAL_COMPONENT_STATUSES]) },
+        {
+          status: new Includes([...STORAGE_ARRAY_CRITICAL_COMPONENT_STATUSES]),
+        },
         { status: new Includes([...STORAGE_ARRAY_WARNING_COMPONENT_STATUSES]) },
         { status: new IncludesNone(problems) },
       ],
@@ -830,7 +836,11 @@ const DASHBOARD_WIDGET_SORT_SPECS: Partial<
         title: "Component",
         path: "name",
       }),
-      textColumn({ key: "type", title: "Type", path: ["kind", "componentType"] }),
+      textColumn({
+        key: "type",
+        title: "Type",
+        path: ["kind", "componentType"],
+      }),
       storageHardwareStatusColumn(),
       textColumn({ key: "array", title: "Array", path: "storageArray.name" }),
     ],
@@ -960,7 +970,9 @@ const DASHBOARD_WIDGET_SORT_SPECS: Partial<
  * their own settings or query name.
  */
 export function getDashboardWidgetSortComponentTypes(): Array<DashboardComponentType> {
-  return Object.keys(DASHBOARD_WIDGET_SORT_SPECS) as Array<DashboardComponentType>;
+  return Object.keys(
+    DASHBOARD_WIDGET_SORT_SPECS,
+  ) as Array<DashboardComponentType>;
 }
 
 export function getDashboardWidgetSortSpec(
@@ -980,8 +992,7 @@ export function getDashboardWidgetSortSpec(
   }
 
   return (
-    DASHBOARD_WIDGET_SORT_SPECS[componentType as DashboardComponentType] ||
-    null
+    DASHBOARD_WIDGET_SORT_SPECS[componentType as DashboardComponentType] || null
   );
 }
 
@@ -1017,9 +1028,10 @@ export function readDashboardWidgetSavedSort(
  * its built-in order - for null. A new widget and arguments object; the
  * widget handed in is not changed.
  */
-export function withDashboardWidgetSavedSort<
-  T extends { arguments?: unknown },
->(component: T, sort: string | null): T {
+export function withDashboardWidgetSavedSort<T extends { arguments?: unknown }>(
+  component: T,
+  sort: string | null,
+): T {
   const widgetArguments: JSONObject = {
     ...((component.arguments as JSONObject | undefined) || {}),
   };
@@ -1101,9 +1113,9 @@ export function getDashboardWidgetSortsProblem(
     }
 
     if (
-      (DASHBOARD_WIDGET_TYPES_SORTED_BY_OWN_COLUMNS as ReadonlyArray<unknown>).includes(
-        componentType,
-      ) &&
+      (
+        DASHBOARD_WIDGET_TYPES_SORTED_BY_OWN_COLUMNS as ReadonlyArray<unknown>
+      ).includes(componentType) &&
       !parseDashboardWidgetSortChoice(sort)
     ) {
       return `${field} must be a column and a direction, such as <column>:asc or <column>:desc, or left out for the widget's own order.`;

@@ -71,10 +71,7 @@ export function isTraceTableGroupSortable(
     return false;
   }
 
-  return !Object.prototype.hasOwnProperty.call(
-    getResourceFacetLabelMap(),
-    key,
-  );
+  return !Object.prototype.hasOwnProperty.call(getResourceFacetLabelMap(), key);
 }
 
 /*
