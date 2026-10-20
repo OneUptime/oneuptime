@@ -225,7 +225,9 @@ html.dark :is(
     [class~="hover:bg-white"],
     [class~="hover:bg-white/60"]
   ):hover,
-html.dark :is([class~="focus:bg-gray-50"], [class~="focus:bg-white"]):focus {
+html.dark :is([class~="focus:bg-gray-50"], [class~="focus:bg-white"]):focus,
+/* A row a keyboard reaches takes its hover's ground (Code's task and repository rows). */
+html.dark [class~="focus-visible:bg-gray-50"]:focus-visible {
   background-color: var(--ou-surface-secondary) !important;
 }
 

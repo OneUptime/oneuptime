@@ -267,7 +267,7 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
               void send();
             }
           }}
-          className={`block w-full resize-none border-0 bg-transparent px-4 pb-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:text-gray-400 ${
+          className={`block w-full resize-none border-0 bg-transparent px-4 pb-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 ${
             props.notice ? "" : "rounded-t-2xl"
           } ${
             props.isLarge

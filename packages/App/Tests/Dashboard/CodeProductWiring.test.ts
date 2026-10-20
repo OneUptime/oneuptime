@@ -293,6 +293,127 @@ describe("Code's pages and the old addresses", () => {
   });
 });
 
+/*
+ * Code opens like Claude Code and Codex: its first page (…/code) is the
+ * request box with every task under it, and the repositories are a page of
+ * their own (…/code/repositories) - something to pick in the box, not the
+ * landing view. Old links keep landing on the page that does their job now.
+ */
+describe("Code opens on the request box; the repositories are a page of their own", () => {
+  test("Repositories lives at …/code/repositories, beside each repository's …/code/repositories/:id", () => {
+    const routes: string = dense(readSource("Utils", "RouteMap.ts"));
+    const pageMap: string = readSource("Utils", "PageMap.ts");
+
+    expect(pageMap).toContain('CODE_REPOSITORIES = "CODE_REPOSITORIES",');
+    expect(routes).toContain("[PageMap.CODE_REPOSITORIES]:`repositories`,");
+    expect(routes).toContain(
+      "[PageMap.CODE_REPOSITORIES]:newRoute(`/dashboard/${RouteParams.ProjectID}/code/${CodeRoutePath[PageMap.CODE_REPOSITORIES]}`,),",
+    );
+    expect(routes).toContain(
+      "[PageMap.CODE_REPOSITORY_VIEW]:`repositories/${RouteParams.ModelID}`,",
+    );
+  });
+
+  test("Code's route group mounts the request box at its root and Repositories under Code's layout", () => {
+    const codeRoutes: string = dense(readSource("Routes", "CodeRoutes.tsx"));
+
+    expect(codeRoutes).toContain(
+      'importCodeRepositoriesPagefrom"../Pages/Code/Repositories";',
+    );
+    expect(codeRoutes).toContain(
+      "<PageRouteindexelement={<CodePage{...props}pageRoute={RouteMap[PageMap.CODE]asRoute}/>}/>",
+    );
+    expect(codeRoutes).toContain(
+      '<PageRoutepath={CodeRoutePath[PageMap.CODE_REPOSITORIES]||""}element={<CodeRepositoriesPage{...props}pageRoute={RouteMap[PageMap.CODE_REPOSITORIES]asRoute}/>}/>',
+    );
+    // Under Code's layout: its side menu and breadcrumbs, before a repository's own.
+    expect(codeRoutes.indexOf("CodeRepositoriesPage{...props}")).toBeLessThan(
+      codeRoutes.indexOf("<CodeRepositoryLayout"),
+    );
+  });
+
+  test("Code's side menu: Tasks - the first page - then Repositories", () => {
+    const menu: string = dense(
+      stripComments(readSource("Components", "Code", "CodeSideMenu.tsx")),
+    );
+
+    const tasks: number = menu.indexOf(
+      'title:"Tasks",to:RouteUtil.populateRouteParams(RouteMap[PageMap.CODE]asRoute)',
+    );
+    const repositories: number = menu.indexOf(
+      'title:"Repositories",to:RouteUtil.populateRouteParams(RouteMap[PageMap.CODE_REPOSITORIES]asRoute,)',
+    );
+    expect(tasks).toBeGreaterThan(-1);
+    expect(repositories).toBeGreaterThan(tasks);
+  });
+
+  test("the breadcrumb of Repositories is Project, Code, Repositories", () => {
+    const crumbs: string = dense(
+      readSource("Utils", "Breadcrumbs", "CodeBreadcrumbs.ts"),
+    );
+
+    expect(crumbs).toContain(
+      'BuildBreadcrumbLinksByTitles(PageMap.CODE_REPOSITORIES,["Project","Code","Repositories",])',
+    );
+  });
+
+  test("the old Code Repositories list forwards to Repositories; the old Tasks list to Code's first page", () => {
+    const repositories: string = dense(
+      stripComments(readSource("Routes", "MovedRepositoryRoutes.tsx")),
+    );
+    const tasks: string = dense(
+      stripComments(readSource("Routes", "MovedTaskRoutes.tsx")),
+    );
+
+    expect(repositories).toContain(
+      "<PageRouteindexelement={<MovedPageRedirectpageMap={PageMap.CODE_REPOSITORIES}/>}/>",
+    );
+    expect(tasks).toContain(
+      "<PageRouteindexelement={<MovedPageRedirectpageMap={PageMap.CODE}/>}/>",
+    );
+    // A repository's old address still opens that repository.
+    expect(repositories).toContain(
+      "element={<MovedPageRedirectpageMap={PageMap.CODE_REPOSITORY_VIEW}/>}",
+    );
+  });
+
+  test("GitHub comes back to Code's first page, which - like Repositories - says what came of connecting it", () => {
+    const callback: string = fs.readFileSync(
+      path.join(COMMON_ROOT, "Types", "Workspace", "ConnectCallback.ts"),
+      "utf8",
+    );
+    expect(dense(callback)).toContain(
+      'caseConnectProvider.GitHub:return"/code";',
+    );
+
+    for (const page of [
+      ["Pages", "Code", "Code.tsx"],
+      ["Pages", "Code", "Repositories.tsx"],
+    ]) {
+      const source: string = dense(readSource(...page));
+
+      expect({ page: page.join("/"), connects: source }).toEqual({
+        page: page.join("/"),
+        connects: expect.stringContaining("useGitHubConnect({"),
+      });
+      expect(source).toContain("{connection.notices}");
+    }
+  });
+
+  test("the first page has no title of its own - it opens on its question - and Repositories says what it lists", () => {
+    const layout: string = squash(readSource("Pages", "Code", "Layout.tsx"));
+    const home: string = squash(readSource("Pages", "Code", "Code.tsx"));
+
+    expect(dense(layout)).toContain(
+      "if(path===RouteUtil.getRouteString(PageMap.CODE)){return{};}",
+    );
+    expect(layout).toContain('title: "Repositories",');
+    expect(home).toContain('translator.translateText("What should AI do?")');
+    expect(home).toContain("<CodeAskBox");
+    expect(dense(home)).toContain("scope={{allRepositories:true}}");
+  });
+});
+
 describe("copy that tells people where repositories are connected", () => {
   test.each([
     "TelemetryImprovementTaskTrigger.ts",

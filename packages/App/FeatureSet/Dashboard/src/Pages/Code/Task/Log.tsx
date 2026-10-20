@@ -254,7 +254,7 @@ const LogEntryRow: FunctionComponent<{
             : IconProp.Circle
         }
         className={`h-3 w-3 shrink-0 ${
-          hasContent ? "text-gray-500" : "text-gray-200"
+          hasContent ? "text-gray-500" : "text-gray-400"
         }`}
       />
       <span className="shrink-0 font-mono text-xs text-gray-400">
