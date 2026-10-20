@@ -125,7 +125,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             required: false,
             collapsibleSection: advancedSection,
             description:
-              "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.",
+              "Numbers to send SMS from if yours can't (Singapore's national ones are voice-only). Each SMS uses the one in the recipient's country, or the first.",
             placeholder: "+6581234567",
             customValidation: (
               values: FormValues<GlobalConfig>,

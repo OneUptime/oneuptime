@@ -4609,6 +4609,15 @@ html.dark .docs-theme-toggle .docs-icon-light {
   color: var(--docs-code-inline-text);
   overflow-wrap: break-word;
 }
+/*
+ * In a right-to-left paragraph, JetBrains Mono's ligatures for "{{" and "}}"
+ * are drawn over the letters beside them inside the isolated run: a Persian
+ * page's {{alertname}} read "{{ alertnam}}", its braces on the "e". There
+ * each character is drawn on its own.
+ */
+.docs-code-inline:dir(rtl) {
+  font-variant-ligatures: none;
+}
 .docs-content a .docs-code-inline {
   color: inherit;
 }

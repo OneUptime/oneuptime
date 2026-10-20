@@ -96,7 +96,7 @@ Lo que no puede hacer es llegar a la página de OneUptime que lo rodea. No tiene
 Dos consecuencias que conviene conocer antes de pegar algo:
 
 - Un `fetch` desde el widget es una petición entre orígenes desde un origen opaco, así que el servidor al que llamas tiene que permitirla con CORS. Llamar a la API de OneUptime desde aquí no está soportado.
-- El widget empieza transparente. Define un fondo en `body` en tu CSS si quieres que llene la tarjeta.
+- El widget empieza transparente. Define un fondo en `body` en tu CSS si quieres que llene la tarjeta. En el tema oscuro su texto empieza claro y su elemento `<html>` tiene la clase `dark`: empieza una regla CSS con `html.dark` para dar estilo solo al tema oscuro.
 
 #### Usar las variables del panel
 

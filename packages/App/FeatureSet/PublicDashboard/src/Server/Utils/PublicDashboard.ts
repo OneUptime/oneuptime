@@ -9,6 +9,10 @@ import {
   PUBLIC_PAGE_NOT_FOUND,
   PublicPageNotFound,
 } from "Common/Server/Utils/PublicPageNotFound";
+import DashboardTheme, {
+  DASHBOARD_THEME_COLUMN,
+  parseDashboardTheme,
+} from "Common/Types/Dashboard/DashboardTheme";
 
 const DashboardApiInternalUrl: string =
   process.env["DASHBOARD_API_URL"] ||
@@ -18,6 +22,14 @@ export interface PublicDashboardData {
   id: string;
   title: string;
   description: string;
+  /*
+   * Light, Dark or System, as the dashboard API read it (/seo), for the
+   * theme the page's HTML is sent with (Types/Dashboard/DashboardTheme). Null
+   * when the answer names none - Access Denied by the IP allowlist, which
+   * shows nothing of the dashboard - or the lookup failed: the page then
+   * follows the visitor until the app reads the dashboard's own.
+   */
+  theme: DashboardTheme | null;
 }
 
 /*
@@ -139,6 +151,10 @@ export const getPublicDashboardData: (
       id: dashboardId,
       title,
       description,
+      theme:
+        seoData && seoData[DASHBOARD_THEME_COLUMN] !== undefined
+          ? parseDashboardTheme(seoData[DASHBOARD_THEME_COLUMN])
+          : null,
     };
   } catch (err) {
     logger.error("Error getting public dashboard data:", {

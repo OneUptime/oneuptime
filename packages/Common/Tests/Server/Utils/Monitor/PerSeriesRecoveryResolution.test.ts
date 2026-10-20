@@ -12,6 +12,7 @@ import Dictionary from "../../../../Types/Dictionary";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
+import MetricSeriesFingerprint from "../../../../Utils/Metrics/MetricSeriesFingerprint";
 import {
   afterEach,
   beforeEach,
@@ -672,6 +673,45 @@ describe("Per-series auto-resolve root cause", () => {
           'Series "Host: node-a" no longer satisfies the criteria that raised it.',
         );
       }
+    });
+
+    /*
+     * A criteria that names no "*" on a monitor where another one does
+     * judges the whole monitor, as an entity with the whole monitor's own
+     * fingerprint and no labels: its record is about the device, not a
+     * series of it.
+     */
+    it("names the monitor, not a series, for the whole monitor's own record", () => {
+      expect(
+        PerSeriesResolutionRootCause.build({
+          seriesLabels: undefined,
+          createdCriteriaId: CPU_CRITERIA_ID,
+          criteriaInstancesById: CRITERIA_BY_ID,
+          seriesFingerprint: MetricSeriesFingerprint.WholeMonitorFingerprint,
+        }),
+      ).toBe(
+        `The monitor no longer satisfies criteria "${CPU_CRITERIA_NAME}".`,
+      );
+      expect(
+        PerSeriesResolutionRootCause.build({
+          seriesLabels: {},
+          createdCriteriaId: undefined,
+          seriesFingerprint: MetricSeriesFingerprint.WholeMonitorFingerprint,
+        }),
+      ).toBe("The monitor no longer satisfies the criteria that raised it.");
+    });
+
+    it("still names a series that has no labels left as this series", () => {
+      expect(
+        PerSeriesResolutionRootCause.build({
+          seriesLabels: undefined,
+          createdCriteriaId: CPU_CRITERIA_ID,
+          criteriaInstancesById: CRITERIA_BY_ID,
+          seriesFingerprint: "a1b2c3d4e5f60718",
+        }),
+      ).toBe(
+        `This series no longer satisfies criteria "${CPU_CRITERIA_NAME}".`,
+      );
     });
   });
 });

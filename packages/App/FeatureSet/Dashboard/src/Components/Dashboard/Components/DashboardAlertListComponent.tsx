@@ -38,6 +38,7 @@ import AppLink from "../../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Color from "Common/Types/Color";
+import { getSeverityPillProps } from "../Utils/SeverityPillStyle";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -316,19 +317,7 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
           </span>
         </td>
         <td className="px-3 py-2">
-          <span
-            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border"
-            style={{
-              fontSize: "10px",
-              color: severityColor ? severityColor.toString() : "#6b7280",
-              borderColor: severityColor ? severityColor.toString() : "#e5e7eb",
-              backgroundColor: severityColor
-                ? `${severityColor.toString()}10`
-                : "#f9fafb",
-            }}
-          >
-            {severityName}
-          </span>
+          <span {...getSeverityPillProps(severityColor)}>{severityName}</span>
         </td>
         <td
           className="px-3 py-2 text-xs text-gray-500 tabular-nums whitespace-nowrap"

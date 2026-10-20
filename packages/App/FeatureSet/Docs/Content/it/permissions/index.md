@@ -117,6 +117,8 @@ Un ruolo raggruppa un'intera area del prodotto a uno di tre livelli:
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` e così via. I ruoli sono ciò che vi serve quasi sempre: restano corretti man mano che OneUptime aggiunge funzionalità, perché una nuova tabella legata ai monitor viene aggiunta ai ruoli monitor esistenti invece di richiedere una nuova concessione da parte vostra.
 
+**Aggiungi ruolo** chiede prima fin dove arriva il ruolo. **Tutto il progetto** elenca i quattro ruoli che coprono l'intero progetto — Project Owner, Amministratore del progetto, Membro del progetto e Visualizzatore — ciascuno con una riga su a cosa serve. **Un'area** elenca le aree, ciascuna con l'icona del suo prodotto: sceglietene una, poi il suo livello. **Cerca ruoli** trova qualsiasi ruolo per nome, area o per quello che fa.
+
 Workflow e runbook sono l'eccezione. Entrambi eseguono codice nel vostro progetto — un workflow i suoi passi, un runbook i suoi script sui vostri Runner —, quindi `WorkflowMember` apre i workflow e le loro esecuzioni e li esegue a mano, e `RunbookMember` apre i runbook e le loro esecuzioni e li esegue: avvia un'esecuzione, completa o salta i suoi passi e la annulla. Nessuno dei due crea, modifica o elimina ciò che esegue; `WorkflowAdmin` e `RunbookAdmin` li costruiscono. Un ruolo esegue solo i runbook che il suo ambito raggiunge, quindi un `RunbookMember` limitato ad alcune etichette esegue i runbook che le portano. Vedi [Autorizzazioni dei workflow](/docs/workflows/configuration#autorizzazioni) e [Autorizzazioni dei runbook](/docs/runbooks/configuration#autorizzazioni).
 
 Le regole di un'area (regole di etichette, di proprietari, di reperibilità, di raggruppamento e di promemoria), i campi personalizzati, gli SLA e i segreti sono configurazione del progetto: richiedono `ProjectAdmin`, qualunque ruolo d'area abbia la persona. Lo stesso vale per chiavi API, team e loro autorizzazioni, etichette, SSO e domini — i ruoli Settings si occupano di servizi, probe, infrastruttura e integrazioni del progetto, non di chi può fare cosa.
@@ -188,7 +190,7 @@ Solo lo stato viene scritto per voi. Una nota pubblicata con un cambio viene pub
 
 ## Ambito: fin dove arriva un'autorizzazione concessa
 
-Ogni autorizzazione concessa ha un ambito, scelto sotto **Ambito** quando la aggiungete:
+Ogni autorizzazione concessa ha un ambito: quando la aggiungete, **Ambito** si trova sotto **Altri campi** e parte dalla prima di queste risposte:
 
 | Ambito | Significato |
 | --- | --- |

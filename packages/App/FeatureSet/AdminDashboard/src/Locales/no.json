@@ -1011,7 +1011,7 @@
   "Docker Compose guide": "Docker Compose-veiledning",
   "Kubernetes guide": "Kubernetes-veiledning",
   "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "Anrop går ut fra dette nummeret, og SMS-er også, med mindre du legger til SMS-telefonnumre under Flere felt.",
-  "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "Hvis Twilio-numrene dine ikke kan sende SMS (i Singapore er nasjonale numre bare for tale), legg til numre som kan. Hver SMS går da ut fra nummeret i mottakerens land, ellers fra det første.",
+  "Numbers to send SMS from if yours can't (Singapore's national ones are voice-only). Each SMS uses the one in the recipient's country, or the first.": "Numre å sende SMS fra hvis dine ikke kan (i Singapore er nasjonale numre bare for tale). Hver SMS går ut fra nummeret i mottakerens land, ellers fra det første.",
   "Twilio SMS Phone Numbers": "Twilio SMS-telefonnumre",
   "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} er ikke et telefonnummer. Skriv hvert nummer med landskode, og skill numrene med komma, som +6581234567, +447700900123.",
   "Twilio Primary Phone Number": "Twilio primært telefonnummer",

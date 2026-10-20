@@ -117,6 +117,8 @@ En rolle samler et helt produktområde på ett av tre nivåer:
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` og så videre. Roller er nesten alltid det du vil ha — de forblir riktige etter hvert som OneUptime legger til funksjoner, fordi en ny overvåkerrelatert tabell legges til de eksisterende overvåkerrollene i stedet for å kreve en ny tildeling fra deg.
 
+**Legg til rolle** spør først hvor langt rollen rekker. **Hele prosjektet** viser de fire rollene som dekker hele prosjektet — Project Owner, Prosjektadministrator, Prosjektmedlem og Viser — hver med en linje om hva den er til. **Ett område** viser områdene, hvert med ikonet til produktet sitt: velg ett, og deretter nivået. **Søk etter roller** finner enhver rolle etter navn, område eller hva den gjør.
+
 Arbeidsflyter og runbooks er unntaket. Begge kjører kode i prosjektet ditt — en arbeidsflyt sine steg, en runbook sine skript på Runnerne dine —, så `WorkflowMember` åpner arbeidsflyter og kjøringene deres og kjører dem manuelt, og `RunbookMember` åpner runbooks og kjøringene deres og kjører dem: den starter en kjøring, fullfører eller hopper over stegene og avbryter den. Ingen av dem oppretter, endrer eller sletter det de kjører; `WorkflowAdmin` og `RunbookAdmin` bygger dem. En rolle kjører bare runbookene omfanget når, så en `RunbookMember` begrenset til noen etiketter kjører runbookene som bærer dem. Se [Arbeidsflyttillatelser](/docs/workflows/configuration#tillatelser) og [Runbook-tillatelser](/docs/runbooks/configuration#tillatelser).
 
 Et områdes regler (etikett-, eier-, vakt-, grupperings- og påminnelsesregler), egendefinerte felt, SLA-er og hemmeligheter er prosjektkonfigurasjon: de krever `ProjectAdmin`, uansett hvilken områderolle noen har. Det samme gjelder API-nøkler, team og tillatelsene deres, etiketter, SSO og domener — Settings-rollene tar seg av prosjektets tjenester, prober, infrastruktur og integrasjoner, ikke av hvem som kan gjøre hva.
@@ -188,7 +190,7 @@ Bare tilstanden skrives for deg. Et notat som sendes med en endring, sendes som 
 
 ## Omfang: hvor langt en tillatt rettighet rekker
 
-Hver tillatt rettighet gis med et omfang, valgt under **Omfang** når du legger den til:
+Hver tillatt rettighet gis med et omfang: når du legger den til, ligger **Omfang** under **Flere felt** og starter på det første av disse svarene:
 
 | Omfang | Betydning |
 | --- | --- |

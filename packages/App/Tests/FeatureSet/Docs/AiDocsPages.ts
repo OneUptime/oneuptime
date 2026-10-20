@@ -135,6 +135,8 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Checked again",
     ],
     [INFRASTRUCTURE_AI_AGENTS]: ["⋯", "SafeWrite", "RiskyWrite"],
+    // The heading a review writes its production findings under, on GitHub.
+    [GITHUB_APP]: ["Production context"],
     [LLM_PROVIDERS]: [
       "OpenAI Compatible",
       '"…points to an address OneUptime is not allowed to connect to"',
@@ -326,9 +328,20 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "40 LLM calls",
     "100,000 output tokens",
     "2",
+    "12",
     "not available today",
     "GitLab support.",
-    "More telemetry in a fix.",
+    // What a fix reads of production, and the rules it reads it by.
+    "Exceptions",
+    "Traces",
+    "Logs",
+    "Metrics",
+    "Incidents",
+    "Deploys",
+    "Read only.",
+    "This project, and only the services this repository serves.",
+    "No private incidents",
+    "Bounded.",
   ],
   [GITHUB_APP]: [
     "it never merges anything, and it never approves a pull request.",

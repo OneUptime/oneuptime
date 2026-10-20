@@ -105,10 +105,16 @@ export default class DashboardHtmlComponentUtil extends DashboardBaseComponentUt
       section: MarkupSection,
     });
 
+    /*
+     * Where an author writes the widget's styles, so where they learn how
+     * to style the dark theme too: in it the widget's <html> carries the
+     * class dark (HtmlWidgetDocument, DARK_CSS), as the dashboard's does -
+     * a reader's own pick, and a public dashboard's theme.
+     */
     componentArguments.push({
       name: "CSS",
       description:
-        "Styles for the markup above. The widget starts transparent — set a background on body to fill the card.",
+        "Styles for the markup above. The widget starts transparent — set a background on body to fill the card. Rules that start with html.dark style only the dark theme.",
       required: false,
       type: ComponentInputType.Css,
       id: "css",

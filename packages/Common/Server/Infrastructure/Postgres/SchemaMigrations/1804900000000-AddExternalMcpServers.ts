@@ -19,8 +19,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * proposes, through the project's external MCP servers. A nullable column
  * with no default, added without rewriting the table.
  */
-export class AddExternalMcpServers1804850000000 implements MigrationInterface {
-  public name: string = "AddExternalMcpServers1804850000000";
+export class AddExternalMcpServers1804900000000 implements MigrationInterface {
+  public name: string = "AddExternalMcpServers1804900000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

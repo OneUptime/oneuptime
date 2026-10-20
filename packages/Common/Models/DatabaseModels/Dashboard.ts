@@ -35,6 +35,7 @@ import {
 import AccessControlColumn from "../../Types/Database/AccessControlColumn";
 import Label from "./Label";
 import DashboardViewConfig from "../../Types/Dashboard/DashboardViewConfig";
+import DashboardTheme from "../../Types/Dashboard/DashboardTheme";
 
 @OperationalResource()
 @AccessControlColumn("labels")
@@ -870,6 +871,57 @@ export default class Dashboard extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public faviconFileId?: ObjectID = undefined;
+
+  /*
+   * How the dashboard's public link looks to visitors: Light, Dark, or
+   * System - light or dark as each visitor's device is set
+   * (Types/Dashboard/DashboardTheme). The column's default is Light, the
+   * page every public dashboard was before the setting: the migration fills
+   * it in for them, and it is the default the generated Terraform provider
+   * sends, so a Terraform configuration that names no theme keeps its
+   * dashboards as they are. A dashboard made in the dashboard or through the
+   * API with no theme starts with System instead
+   * (DashboardService.onBeforeCreate). Read and changed like the rest of the
+   * dashboard's branding, and free on every plan: it is how the page looks,
+   * not what it shows.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadDashboard,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditDashboard,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Theme",
+    required: false,
+    defaultValue: DashboardTheme.Light,
+    description:
+      "How the public dashboard looks to visitors: Light, Dark, or System (light or dark, as each visitor's device is set). Visitors can switch between light and dark from its toolbar. A dashboard created without a theme starts with System.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    default: DashboardTheme.Light,
+  })
+  public theme?: DashboardTheme = undefined;
 
   @ColumnAccessControl({
     create: [
