@@ -151,7 +151,11 @@ describe("Project Settings > Call and SMS", () => {
     expect(table).not.toContain("hosted on AWS");
   });
 
-  test("tells configs apart by name, account, number and default", () => {
+  /*
+   * The numbers a config sends from: its primary number, and its SMS number
+   * beside it when SMS have their own (TwilioConfigPhoneNumbers).
+   */
+  test("tells configs apart by name, account, numbers and default", () => {
     const columns: string = table.slice(table.indexOf("columns={["));
 
     expect(
@@ -163,7 +167,7 @@ describe("Project Settings > Call and SMS", () => {
     ).toEqual([
       "Name",
       "Twilio Account SID",
-      "Primary Twilio Phone Number",
+      "Phone Numbers",
       "Project Default",
     ]);
   });

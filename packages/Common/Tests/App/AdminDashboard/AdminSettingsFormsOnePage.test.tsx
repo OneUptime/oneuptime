@@ -227,6 +227,7 @@ import UserUtil from "../../../UI/Utils/User";
 import {
   getByTextOutsideFoldedHeaders,
   hasSetChip,
+  listedNames,
   setChips,
 } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
@@ -534,6 +535,207 @@ describe("Settings > Call & SMS", () => {
     expect(
       label(dialog, text(GERMAN, "Secondary Twilio Phone Numbers")),
     ).not.toBeVisible();
+  });
+
+  /*
+   * The server's numbers for SMS, as a project's Twilio config has them: a
+   * Twilio number can make calls and send SMS, or only one of the two, and
+   * in Singapore calls need a national number and SMS a mobile one. Folded
+   * with the extra numbers, as few installations need them.
+   */
+  describe("numbers for SMS", () => {
+    const SMS_NUMBER: string = "Twilio SMS Phone Number";
+    const SECONDARY: string = "Secondary Twilio Phone Numbers";
+    const SMS_SECONDARY: string = "Twilio SMS Secondary Phone Numbers";
+
+    async function openDialog(): Promise<HTMLElement> {
+      const dialog: HTMLElement = await openEditDialog(editButton);
+
+      await waitFor(
+        () => {
+          expect(label(dialog, "Twilio Account SID")).toBeVisible();
+        },
+        { timeout: WAIT_FOR_TIMEOUT },
+      );
+      await settle();
+
+      return dialog;
+    }
+
+    async function fill(
+      dialog: HTMLElement,
+      title: string,
+      value: string,
+    ): Promise<void> {
+      await act(async () => {
+        fireEvent.change(
+          within(dialog).getByLabelText(title, { exact: false }),
+          { target: { value } },
+        );
+      });
+    }
+
+    test("are folded with the extra numbers, the SMS number first, each optional", async () => {
+      await renderWithLocale(<CallSmsSettings />);
+
+      const dialog: HTMLElement = await openDialog();
+      const header: HTMLElement = advancedHeader(dialog, "More fields");
+
+      expect(listedNames(header)).toEqual([
+        SMS_NUMBER,
+        SECONDARY,
+        SMS_SECONDARY,
+      ]);
+      expect(label(dialog, SMS_NUMBER)).not.toBeVisible();
+
+      fireEvent.click(header);
+
+      for (const title of [SMS_NUMBER, SECONDARY, SMS_SECONDARY]) {
+        expect(label(dialog, title)).toBeVisible();
+        expect(label(dialog, title)).toHaveTextContent("(Optional)");
+      }
+
+      // The primary number says what goes out from it, and where the rest is.
+      expect(
+        within(dialog).getByText(
+          "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.",
+        ),
+      ).toBeVisible();
+    });
+
+    test("a Singapore setup is saved: SMS from the mobile number, calls from the national one", async () => {
+      stored[new GlobalConfig().tableName || ""]!["twilioPrimaryPhoneNumber"] =
+        "+6561234567";
+
+      await renderWithLocale(<CallSmsSettings />);
+
+      const dialog: HTMLElement = await openDialog();
+
+      fireEvent.click(advancedHeader(dialog, "More fields"));
+      await fill(dialog, SMS_NUMBER, "+6581234567");
+
+      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+
+      await waitFor(
+        () => {
+          expect(mockCreateOrUpdate).toHaveBeenCalledTimes(1);
+        },
+        { timeout: WAIT_FOR_TIMEOUT },
+      );
+
+      const saved: Record<string, unknown> = savedValues(mockCreateOrUpdate);
+
+      expect(String(saved["twilioPrimaryPhoneNumber"])).toBe("+6561234567");
+      expect(String(saved["twilioSmsPhoneNumber"])).toBe("+6581234567");
+    });
+
+    test("a list of SMS numbers that is not one is refused under the field, and nothing is saved", async () => {
+      await renderWithLocale(<CallSmsSettings />);
+
+      const dialog: HTMLElement = await openDialog();
+
+      fireEvent.click(advancedHeader(dialog, "More fields"));
+      await fill(dialog, SMS_SECONDARY, "+6581234567, mobile");
+
+      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+
+      await waitFor(
+        () => {
+          expect(
+            within(dialog).getByText(
+              '"mobile" is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.',
+            ),
+          ).toBeVisible();
+        },
+        { timeout: WAIT_FOR_TIMEOUT },
+      );
+      expect(mockCreateOrUpdate).not.toHaveBeenCalled();
+    });
+
+    test("the details say SMS go out from the primary number while no SMS number is set", async () => {
+      await renderWithLocale(<CallSmsSettings />);
+
+      await waitFor(
+        () => {
+          expect(
+            screen.getByText(
+              text(ENGLISH, "pages.settings.callSms.smsSameAsPrimary"),
+            ),
+          ).toBeVisible();
+        },
+        { timeout: WAIT_FOR_TIMEOUT },
+      );
+      expect(
+        screen.getByText(
+          text(ENGLISH, "pages.settings.callSms.smsSameAsSecondary"),
+        ),
+      ).toBeVisible();
+      expect(text(ENGLISH, "pages.settings.callSms.smsSameAsPrimary")).toBe(
+        "Same as the primary number",
+      );
+    });
+
+    test("and show the SMS number once it is set, in the reader's language", async () => {
+      stored[new GlobalConfig().tableName || ""]!["twilioSmsPhoneNumber"] =
+        "+6581234567";
+
+      await renderWithLocale(<CallSmsSettings />, "de");
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("+6581234567")).toBeVisible();
+        },
+        { timeout: WAIT_FOR_TIMEOUT },
+      );
+      expect(screen.getByText(text(GERMAN, SMS_NUMBER))).toBeVisible();
+      expect(text(GERMAN, SMS_NUMBER)).toBe("Twilio-SMS-Telefonnummer");
+      expect(
+        screen.queryByText(
+          text(GERMAN, "pages.settings.callSms.smsSameAsPrimary"),
+        ),
+      ).toBeNull();
+    });
+
+    test("every word they add is in the Admin Dashboard's locales, translated", () => {
+      for (const language of [
+        "de",
+        "fr",
+        "es",
+        "it",
+        "pt",
+        "nl",
+        "da",
+        "no",
+        "sv",
+        "ru",
+        "ja",
+        "ko",
+        "zh-CN",
+        "zh-TW",
+        "hi",
+        "fa",
+      ]) {
+        const words: Locale = readLocale(language);
+
+        for (const key of [
+          SMS_NUMBER,
+          SMS_SECONDARY,
+          "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.",
+          "Send SMS from this number instead of the primary one, if the primary number can only make calls. In Singapore, for example, calls need a national number and SMS a mobile number.",
+          "Numbers to send SMS from instead of the secondary ones when they match the recipient's country code.",
+          "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.",
+          "pages.settings.callSms.smsSameAsPrimary",
+          "pages.settings.callSms.smsSameAsSecondary",
+        ]) {
+          const english: string = text(ENGLISH, key);
+          const translated: string = text(words, key);
+
+          expect({ language, key, translated: translated !== english }).toEqual(
+            { language, key, translated: true },
+          );
+        }
+      }
+    });
   });
 });
 

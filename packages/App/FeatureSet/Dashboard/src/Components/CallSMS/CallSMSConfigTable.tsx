@@ -529,7 +529,8 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             field: {
               twilioPrimaryPhoneNumber: true,
             },
-            title: TwilioConfigNumbersCopy.phoneNumbersColumnTitle,
+            // Its primary number, and its SMS number when SMS have their own.
+            title: "Phone Numbers",
             type: FieldType.Phone,
             getElement: (item: ProjectCallSMSConfig): ReactElement => {
               return <TwilioConfigPhoneNumbers config={item} />;

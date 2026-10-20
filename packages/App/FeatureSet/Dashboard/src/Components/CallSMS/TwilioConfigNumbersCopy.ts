@@ -28,8 +28,6 @@ export const TwilioConfigNumbersCopy: {
   secondaryPhoneNumbersDescription: string;
   // The SMS secondary numbers' help.
   smsSecondaryPhoneNumbersDescription: string;
-  // The table's column of the numbers a config sends from.
-  phoneNumbersColumnTitle: string;
   /*
    * What a number in that column is for, when calls and SMS have their own:
    * "Phone Calls", not "Calls", which the locales word as calls of code.
@@ -49,7 +47,6 @@ export const TwilioConfigNumbersCopy: {
   smsSecondaryPhoneNumbersDescription: translationKey(
     "Numbers to send SMS from instead of the secondary ones when they match the recipient's country code.",
   ),
-  phoneNumbersColumnTitle: translationKey("Phone Numbers"),
   callsLabel: translationKey("Phone Calls"),
   smsLabel: translationKey("SMS"),
 };
