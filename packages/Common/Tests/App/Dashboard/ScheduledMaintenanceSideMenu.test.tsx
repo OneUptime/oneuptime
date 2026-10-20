@@ -17,6 +17,11 @@ import * as React from "react";
  * thing worth pinning — an AI section added here by symmetry would be a
  * heading with nothing behind it.
  *
+ * It gets a Calendar section of its own, open, right after Overview: the
+ * Maintenance Calendar is a page of its own (it was a List | Calendar switch
+ * on All Events), and its Calendar Settings - the calendars from outside the
+ * project drawn on it - sit last in the folded Settings.
+ *
  * Rendered against the real RouteMap rather than asserted on the source, so a
  * menu entry pointing at a route that does not exist fails here. The
  * "coverage" block pins the full set of settings pages reachable before the
@@ -94,11 +99,12 @@ describe("Scheduled maintenance side menu", () => {
   });
 
   describe("sections", () => {
-    test("renders Overview, Workspace, Rules, Settings and Developer in order", async () => {
+    test("renders Overview, Calendar, Workspace, Rules, Settings and Developer in order", async () => {
       await renderScheduledMaintenanceMenu();
 
       expect(sectionTitlesInOrder()).toEqual([
         "Overview",
+        "Calendar",
         "Workspace",
         "Rules",
         "Settings",
@@ -122,6 +128,7 @@ describe("Scheduled maintenance side menu", () => {
       await renderScheduledMaintenanceMenu();
 
       expect(isExpanded("Overview")).toBe(true);
+      expect(isExpanded("Calendar")).toBe(true);
       expect(isExpanded("Workspace")).toBe(false);
       expect(isExpanded("Rules")).toBe(false);
       expect(isExpanded("Settings")).toBe(false);
@@ -198,6 +205,37 @@ describe("Scheduled maintenance side menu", () => {
           ),
         },
       ]);
+    });
+  });
+
+  describe("Calendar section", () => {
+    test("holds the Maintenance Calendar, at /calendar", async () => {
+      await renderScheduledMaintenanceMenu();
+
+      expect(linksIn("Calendar")).toEqual([
+        {
+          title: "Maintenance Calendar",
+          href: routeFor(PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR),
+        },
+      ]);
+      expect(routeFor(PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR)).toBe(
+        `${ROOT}/calendar`,
+      );
+      expect(iconCountIn("Calendar")).toBe(1);
+    });
+
+    test("marks the Maintenance Calendar on its page, and All Events no longer", async () => {
+      goTo(`${ROOT}/calendar`);
+      await renderScheduledMaintenanceMenu();
+
+      expect(isExpanded("Calendar")).toBe(true);
+      expect(activeLinkTitles()).toEqual(["Maintenance Calendar"]);
+    });
+
+    test("on All Events, the list is marked and the calendar is not", async () => {
+      await renderScheduledMaintenanceMenu();
+
+      expect(activeLinkTitles()).toEqual(["All Events"]);
     });
   });
 
@@ -308,18 +346,39 @@ describe("Scheduled maintenance side menu", () => {
             PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING,
           ),
         },
+        // The calendars from outside the project, drawn on the calendar.
+        {
+          title: "Calendar Settings",
+          href: routeFor(
+            PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR,
+          ),
+        },
       ]);
     });
 
-    test("lists Numbering last, at settings/numbering", async () => {
+    test("lists Calendar Settings last, at settings/calendar, after Numbering", async () => {
       await renderScheduledMaintenanceMenu();
 
       const settings: Array<MenuLink> = linksIn("Settings");
 
-      expect(settings[settings.length - 1]).toEqual({
+      expect(settings[settings.length - 2]).toEqual({
         title: "Numbering",
         href: `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/settings/numbering`,
       });
+      expect(settings[settings.length - 1]).toEqual({
+        title: "Calendar Settings",
+        href: `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/settings/calendar`,
+      });
+    });
+
+    test("opens itself on the Calendar Settings page, and marks it", async () => {
+      goTo(
+        `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/settings/calendar`,
+      );
+      await renderScheduledMaintenanceMenu();
+
+      expect(isExpanded("Settings")).toBe(true);
+      expect(activeLinkTitles()).toEqual(["Calendar Settings"]);
     });
 
     test("has no More Settings or Number Prefix entry, and nothing points at their old addresses", async () => {
@@ -405,7 +464,7 @@ describe("Scheduled maintenance side menu", () => {
       await renderScheduledMaintenanceMenu();
 
       linksIn("Rules")
-        .concat(linksIn("Settings"), linksIn("Overview"))
+        .concat(linksIn("Settings"), linksIn("Overview"), linksIn("Calendar"))
         .forEach((link: MenuLink) => {
           expect(link.href).toContain(ROOT);
           expect(link.href).not.toContain(":");
@@ -424,6 +483,13 @@ describe("Scheduled maintenance side menu", () => {
       await renderScheduledMaintenanceMenu();
 
       expect(mobileSummaryText()).toContain("Rules / Runbook Rules");
+    });
+
+    test("names the Calendar section on the calendar", async () => {
+      goTo(`${ROOT}/calendar`);
+      await renderScheduledMaintenanceMenu();
+
+      expect(mobileSummaryText()).toContain("Calendar / Maintenance Calendar");
     });
 
     test("still names the Settings section on a settings page", async () => {
