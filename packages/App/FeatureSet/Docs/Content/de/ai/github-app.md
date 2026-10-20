@@ -5,6 +5,7 @@ Die OneUptime GitHub App ist mehr als eine Verbindung zu Ihrem Code: Sie können
 :::cards
 - [Die Befehle](#die-befehle): Was Sie in einem Issue oder einem Pull Request schreiben.
 - [Wie es im Thread aussieht](#wie-es-im-thread-aussieht): Ein Kommentar, der der Arbeit folgt.
+- [Reviews mit Produktionskontext](#reviews-mit-produktionskontext): Was die Produktion über den geänderten Code sagt.
 - [Wer ihr Befehle geben darf](#wer-ihr-befehle-geben-darf): Personen mit Schreibzugriff, sonst niemand.
 - [Fehlerbehebung](#fehlerbehebung): Wenn eine Erwähnung nichts bewirkt.
 :::
@@ -45,7 +46,7 @@ Jeder Befehl beginnt mit einer Erwähnung der App. Die Erwähnung kann irgendwo 
 
 | Befehl | Was passiert | Ebenfalls verstanden |
 | --- | --- | --- |
-| `@oneuptime review` | Klont den Branch, liest den geänderten Code und den Code drumherum und veröffentlicht ein Review als Kommentar. Ändert nichts. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime review` | Klont den Branch, liest den geänderten Code und den Code drumherum, prüft, was die Produktion darüber sagt, und veröffentlicht ein Review als Kommentar. Ändert nichts. | `code review`, `please review`, `can you review`, `review this` |
 | `@oneuptime revise this — <what you want changed>` | Klont den eigenen Branch des Pull Requests, nimmt die Änderung vor und pusht neue Commits auf diesen Branch. Öffnet nie einen zweiten Pull Request. | `revise`, `please revise`, `rework`, `redo` |
 
 Alles, was Sie nach der Erwähnung schreiben und kein bekannter Befehl ist, wird als Überarbeitungsanfrage gelesen, weil es fast immer genau das ist:
@@ -86,6 +87,19 @@ Ein Befehl erzeugt **einen Kommentar**, den die App bearbeitet, während die Arb
 
 Findet sie nichts, was sich zu ändern lohnt, sagt sie das, statt einen spekulativen Pull Request zu öffnen. Das ist ein normales Ergebnis, kein Fehler: Geben Sie ihr mehr Richtung und fragen Sie erneut.
 
+## Reviews mit Produktionskontext
+
+OneUptime hat die Telemetrie des Codes, den es prüft, also kann ein Review sagen, was kein Prüfer, der den Diff liest, sagen kann. Für die Dienste, die zum Repository gehören, prüft es:
+
+- die Ausnahmen, die in den letzten 7 Tagen in den geänderten Dateien und Funktionen geworfen wurden;
+- wie stark ausgelastet und wie langsam die Endpunkte und Operationen sind, die der Diff berührt;
+- die Vorfälle, die mit den geänderten Dateien verknüpft sind;
+- die jüngsten Deploys der Dienste, die OneUptime als Regressionen markiert hat.
+
+Was es findet, steht im Review unter einer Überschrift **Production context**, jeder Punkt mit den Zahlen und dem Zeitfenster, aus denen er stammt, zum Beispiel: "`chargeCard` hat in den letzten 7 Tagen 1.240-mal `TypeError: Cannot read properties of undefined` geworfen; diese Änderung fügt die Null-Prüfung hinzu, die das verhindert." Wenn die Produktion nichts zeigt, was den Diff betrifft, lässt das Review die Überschrift weg, statt zu sagen, dass alles in Ordnung ist.
+
+Es muss nichts eingerichtet werden: Die Dienste sind die, für die OneUptime dieses Repository findet, wie bei einer Korrektur (siehe [Produktionstelemetrie in einer Korrektur](/docs/ai/ai-agent#produktionstelemetrie-in-einer-korrektur)). Die Abfragen lesen nur, laufen auf dem OneUptime-Server und lesen nichts aus einem anderen Dienst, einem anderen Projekt oder einem privaten Vorfall. Ein Repository, dessen Dienste keine Telemetrie an das Projekt senden, wird allein anhand seines Codes geprüft.
+
 ## Wer ihr Befehle geben darf
 
 **Nur Personen mit Write-, Maintain- oder Admin-Zugriff auf das Repository.** OneUptime fragt GitHub jedes Mal nach der Berechtigung der kommentierenden Person für dieses Repository; dem Abzeichen "contributor", das GitHub neben einem Kommentar zeigt, vertraut es nicht, denn es beschreibt frühere Aktivität, nicht den aktuellen Zugriff.
@@ -104,7 +118,7 @@ Sie ignoriert außerdem jeden Kommentar, den ein Bot geschrieben hat, ihre eigen
 
 ## Was es kostet und wie Sie es begrenzen
 
-Jeder Befehl, der Arbeit startet, ist ein vollständiger Agent-Lauf: ein Klon, bis zu 40 LLM-Aufrufe und 100.000 Ausgabe-Tokens sowie die Build- und Testbefehle Ihres Repositorys, wenn Sie sie gesetzt haben.
+Jeder Befehl, der Arbeit startet, ist ein vollständiger Agent-Lauf: ein Klon, bis zu 40 LLM-Aufrufe und 100.000 Ausgabe-Tokens sowie die Build- und Testbefehle Ihres Repositorys, wenn Sie sie gesetzt haben. Die Produktionsabfragen eines Reviews, höchstens 12, zählen zu denselben 40 Aufrufen.
 
 GitHub-Befehle sind KI-Arbeit außerhalb von Vorfällen und Warnungen, daher gilt für sie kein tägliches Limit für Korrekturaufgaben; die eigenen täglichen KI-Limits des Projekts gelten, wenn das Projekt sie festlegt. Die einzige weitere Grenze ist die, die bereits für die Aufgaben in [Code](/docs/ai/ai-agent) gilt:
 
