@@ -573,6 +573,46 @@ describe("every step's options are simpler", () => {
     );
   });
 
+  test("an AI step's provider is always set - the project default when nothing is pinned - so it is not marked optional and has nothing to clear", async () => {
+    await renderSteps();
+    open("Summarize");
+
+    const fold: HTMLElement = openMoreFields(7);
+    const label: HTMLElement = within(fold).getByText("LLM provider");
+
+    expect(label.tagName).toBe("LABEL");
+    expect(label).toHaveTextContent(/^LLM provider$/);
+    expect(within(fold).queryByText("(optional)")).toBeNull();
+    // Picked: the project default, as the picker shows it.
+    expect(fold.querySelector(".ou-select__single-value")).toHaveTextContent(
+      "Project default",
+    );
+    expect(fold.querySelector(".ou-select__clear-indicator")).toBeNull();
+  });
+
+  test("every step's header names its type, for a screen reader on a phone too", async () => {
+    await renderSteps();
+
+    const expected: Array<[number, string]> = [
+      [0, "Manual"],
+      [1, "JavaScript"],
+      [2, "HTTP"],
+      [4, "Bash"],
+      [5, "SSH"],
+      [6, "kubectl"],
+      [7, "AI"],
+    ];
+
+    for (const [index, type] of expected) {
+      const element: HTMLElement = screen.getByTestId(
+        `runbook-step-${index}-type`,
+      );
+
+      expect({ index, type: element.textContent }).toEqual({ index, type });
+      expect(headers()[index]!.contains(element)).toBe(true);
+    }
+  });
+
   test("a step on one of the project's Runners says, in one line, where it runs", async () => {
     await renderSteps();
     open("Capture state");
