@@ -31975,6 +31975,8 @@
   "No value to group by": "Geen waarde om op te groeperen",
   "Not every item has a value to group by": "Niet elk item heeft een waarde om op te groeperen",
   "Nothing new to open": "Niets nieuws te openen",
+  "Put back on the cluster: {{fields}}": "Teruggezet op het cluster: {{fields}}",
+  "Temporary fix": "Tijdelijke oplossing",
   "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "De achtergrondcontrole heeft het laatste verzoek opnieuw gelezen. Criterium {{criteria}} opent alleen per waarde iets wanneer er een verzoek binnenkomt.",
   "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "Dit verzoek heeft geen waarde op {{path}} en meldde herstel, dus criterium {{criteria}} heeft niets nieuws geopend.",
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "Dit verzoek heeft geen waarde op {{path}}, dus criterium {{criteria}} heeft het zonder groeperen afgehandeld, één keer voor de hele monitor.",

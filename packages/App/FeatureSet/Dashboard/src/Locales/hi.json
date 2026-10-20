@@ -31975,6 +31975,8 @@
   "No value to group by": "समूह बनाने के लिए कोई मान नहीं",
   "Not every item has a value to group by": "कुछ आइटम में समूह बनाने के लिए मान नहीं है",
   "Nothing new to open": "खोलने के लिए कुछ नया नहीं",
+  "Put back on the cluster: {{fields}}": "क्लस्टर पर वापस बदला गया: {{fields}}",
+  "Temporary fix": "अस्थायी सुधार",
   "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "बैकग्राउंड जांच ने आखिरी अनुरोध दोबारा पढ़ा। मानदंड {{criteria}} हर मान के लिए एक तभी खोलता है जब कोई अनुरोध आता है।",
   "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "इस अनुरोध में {{path}} पर कोई मान नहीं है और इसने ठीक होने की सूचना दी, इसलिए मानदंड {{criteria}} ने कुछ नया नहीं खोला।",
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "इस अनुरोध में {{path}} पर कोई मान नहीं है, इसलिए मानदंड {{criteria}} ने इसे बिना समूह बनाए, पूरे मॉनिटर के लिए एक बार संभाला।",

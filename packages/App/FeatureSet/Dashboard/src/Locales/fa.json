@@ -31975,6 +31975,8 @@
   "No value to group by": "مقداری برای گروه‌بندی نیست",
   "Not every item has a value to group by": "برخی موارد مقداری برای گروه‌بندی ندارند",
   "Nothing new to open": "چیز تازه‌ای برای باز کردن نیست",
+  "Put back on the cluster: {{fields}}": "در خوشه برگردانده شد: {{fields}}",
+  "Temporary fix": "اصلاح موقت",
   "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "بررسی پس‌زمینه آخرین درخواست را دوباره خواند. معیار {{criteria}} فقط وقتی درخواستی برسد برای هر مقدار یکی باز می‌کند.",
   "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "این درخواست در {{path}} مقداری ندارد و بهبود را گزارش کرد، پس معیار {{criteria}} چیز تازه‌ای باز نکرد.",
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "این درخواست در {{path}} مقداری ندارد، پس معیار {{criteria}} آن را بدون گروه‌بندی، یک بار برای کل مانیتور رسیدگی کرد.",

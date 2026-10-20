@@ -31975,6 +31975,8 @@
   "No value to group by": "그룹화할 값이 없음",
   "Not every item has a value to group by": "그룹화할 값이 없는 항목이 있음",
   "Nothing new to open": "새로 열 항목 없음",
+  "Put back on the cluster: {{fields}}": "클러스터에서 되돌려짐: {{fields}}",
+  "Temporary fix": "임시 수정",
   "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "백그라운드 검사가 마지막 요청을 다시 읽었습니다. {{criteria}} 기준은 요청이 도착할 때만 값마다 하나씩 엽니다.",
   "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "이 요청에는 {{path}} 값이 없고 복구를 보고했으므로 {{criteria}} 기준은 새로 아무것도 열지 않았습니다.",
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "이 요청에는 {{path}} 값이 없어서 {{criteria}} 기준은 그룹화하지 않고 모니터 전체에 대해 한 번 처리했습니다.",

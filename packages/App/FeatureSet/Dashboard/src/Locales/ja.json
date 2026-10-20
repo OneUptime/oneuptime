@@ -31975,6 +31975,8 @@
   "No value to group by": "グループ化する値がありません",
   "Not every item has a value to group by": "グループ化する値がない項目があります",
   "Nothing new to open": "新たに開くものはありません",
+  "Put back on the cluster: {{fields}}": "クラスターで元に戻されました: {{fields}}",
+  "Temporary fix": "一時的な修正",
   "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "バックグラウンドチェックが最後のリクエストを読み直しました。条件 {{criteria}} が値ごとに開くのは、リクエストが届いたときだけです。",
   "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "このリクエストには {{path}} の値がなく、回復を報告したため、条件 {{criteria}} は新たに何も開きませんでした。",
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "このリクエストには {{path}} の値がないため、条件 {{criteria}} はグループ化せずに、モニター全体として 1 回処理しました。",
