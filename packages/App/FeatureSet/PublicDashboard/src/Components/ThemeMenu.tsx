@@ -27,7 +27,14 @@ import React, { FunctionComponent, ReactElement } from "react";
  * (?theme=, a wall screen's or an embedding site's) offers no menu.
  */
 
+/*
+ * The menu's wrapper, which says what the page is drawn in
+ * (data-color-scheme) and what the visitor picked (data-visitor-choice); its
+ * button is `${id}-button`.
+ */
 export const THEME_MENU_TEST_ID: string = "public-dashboard-theme-menu";
+
+export const THEME_MENU_BUTTON_TEST_ID: string = `${THEME_MENU_TEST_ID}-button`;
 
 // A choice's menu item.
 export const getThemeMenuChoiceTestId: (
@@ -56,37 +63,43 @@ const ThemeMenu: FunctionComponent = (): ReactElement => {
   }
 
   return (
-    <MoreMenu
-      menuIcon={
-        colorScheme === DASHBOARD_DARK_SCHEME ? IconProp.Moon : IconProp.Sun
-      }
-      text=""
-      ariaLabel={THEME_MENU_LABEL}
-      dataTestId={THEME_MENU_TEST_ID}
+    <div
+      data-testid={THEME_MENU_TEST_ID}
+      data-color-scheme={colorScheme}
+      data-visitor-choice={visitorChoice}
     >
-      {THEME_MENU_CHOICES.map(
-        (item: {
-          choice: DashboardVisitorThemeChoice;
-          title: string;
-        }): ReactElement => {
-          const isInUse: boolean = item.choice === visitorChoice;
+      <MoreMenu
+        menuIcon={
+          colorScheme === DASHBOARD_DARK_SCHEME ? IconProp.Moon : IconProp.Sun
+        }
+        text=""
+        ariaLabel={THEME_MENU_LABEL}
+        dataTestId={THEME_MENU_BUTTON_TEST_ID}
+      >
+        {THEME_MENU_CHOICES.map(
+          (item: {
+            choice: DashboardVisitorThemeChoice;
+            title: string;
+          }): ReactElement => {
+            const isInUse: boolean = item.choice === visitorChoice;
 
-          return (
-            <MoreMenuItem
-              key={item.choice}
-              text={item.title}
-              icon={isInUse ? IconProp.Check : undefined}
-              isIconSpaceReserved={true}
-              isChecked={isInUse}
-              dataTestId={getThemeMenuChoiceTestId(item.choice)}
-              onClick={() => {
-                DashboardThemeUtil.setVisitorChoice(item.choice);
-              }}
-            />
-          );
-        },
-      )}
-    </MoreMenu>
+            return (
+              <MoreMenuItem
+                key={item.choice}
+                text={item.title}
+                icon={isInUse ? IconProp.Check : undefined}
+                isIconSpaceReserved={true}
+                isChecked={isInUse}
+                dataTestId={getThemeMenuChoiceTestId(item.choice)}
+                onClick={() => {
+                  DashboardThemeUtil.setVisitorChoice(item.choice);
+                }}
+              />
+            );
+          },
+        )}
+      </MoreMenu>
+    </div>
   );
 };
 

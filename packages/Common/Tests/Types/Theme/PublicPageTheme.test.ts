@@ -134,7 +134,10 @@ describe("what a write may hold", () => {
   });
 
   test.each([
-    ["another case, which a Terraform plan would read back as a change", "dark"],
+    [
+      "another case, which a Terraform plan would read back as a change",
+      "dark",
+    ],
     ["an empty string", ""],
     ["a padded value", " Light"],
     ["an unknown theme", "Sepia"],
