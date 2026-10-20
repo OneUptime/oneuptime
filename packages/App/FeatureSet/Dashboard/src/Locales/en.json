@@ -32083,5 +32083,20 @@
   "Custom headers": "Custom headers",
   "Show all {{count}} tools": "Show all {{count}} tools",
   "Show all {{count}} tools_one": "Show all {{count}} tool",
-  "The changes of this fix could not be shown.": "The changes of this fix could not be shown."
+  "The changes of this fix could not be shown.": "The changes of this fix could not be shown.",
+  "Approve and run": "Approve and run",
+  "Approved by": "Approved by",
+  "If this step fails, the run goes on instead of stopping.": "If this step fails, the run goes on instead of stopping.",
+  "Instructions": "Instructions",
+  "Leave this on {{projectDefault}} unless this step needs a specific model.": "Leave this on {{projectDefault}} unless this step needs a specific model.",
+  "Require approval": "Require approval",
+  "Require approval before running this step": "Require approval before running this step",
+  "Runs on this Runner, in your own infrastructure.": "Runs on this Runner, in your own infrastructure.",
+  "The AI's answer becomes this step's output. AI calls are metered like any other AI feature.": "The AI's answer becomes this step's output. AI calls are metered like any other AI feature.",
+  "The run stops before this step until someone approves it.": "The run stops before this step until someone approves it.",
+  "This step runs once someone approves it.": "This step runs once someone approves it.",
+  "Waiting for approval to continue after \"{{title}}\".": "Waiting for approval to continue after \"{{title}}\".",
+  "Waiting for approval to run \"{{title}}\".": "Waiting for approval to run \"{{title}}\".",
+  "Waiting on \"{{title}}\". Tick it off below to continue.": "Waiting on \"{{title}}\". Tick it off below to continue.",
+  "What should the responder do or check? Markdown is supported.": "What should the responder do or check? Markdown is supported."
 }
