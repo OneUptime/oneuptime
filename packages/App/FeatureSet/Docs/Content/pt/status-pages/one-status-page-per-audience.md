@@ -70,7 +70,7 @@ Crie uma página por público, por exemplo de `Site 01` a `Site 10`. Torne-as pr
 
 ### Colocar o monitor compartilhado em cada página
 
-Adicione o monitor compartilhado a cada página como recurso (veja [Recursos e grupos da página de status](/docs/status-pages/resources-and-groups)). Uma regra em **Recursos → Monitor Rules** pode fazer isso por você a partir dos rótulos do monitor.
+Adicione o monitor compartilhado a cada página como recurso (veja [Recursos e grupos da página de status](/docs/status-pages/resources-and-groups)). Uma regra em **Regras → Monitor Rules** pode fazer isso por você a partir dos rótulos do monitor.
 
 ### Ligar Mostrar apenas incidentes limitados a esta página
 

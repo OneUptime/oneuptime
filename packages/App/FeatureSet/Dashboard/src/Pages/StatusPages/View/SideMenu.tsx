@@ -77,12 +77,29 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.AltGlobe}
         />
-        {/*
-         * Rules belong beside the resources they write, not filed under
-         * Advanced. Somebody populating a group from a label is standing on
-         * the Resources screen, and a rule is the only thing that keeps that
-         * group populated as monitors are added.
-         */}
+      </SideMenuSection>
+
+      {/*
+       * What the page shows (Basic, Resources) is what this menu is opened
+       * for, so those two start open. Every section after them folds down to
+       * its title until opened, and opens by itself on its own pages:
+       *
+       *  - Rules: the monitor rules that fill the page. A rule is written
+       *    once and then runs by itself, putting every monitor that matches
+       *    into its group as monitors are created or relabelled, and the Add
+       *    Monitors dialog writes one when a group is filled from a label
+       *    (#3418). So it is set up rather than visited, and has a section of
+       *    its own, as an SLO's rules do, right below the resources it
+       *    writes: not three sections down under Advanced, where the person
+       *    who filed #3418 never found it.
+       *  - Subscribers sign themselves up and are managed now and then.
+       *  - Notification logs, branding, security and AI are set up once or
+       *    checked when something needs checking.
+       *
+       * Subscribers says so itself; the others fold by their titles (see
+       * SideMenuSectionState.ts).
+       */}
+      <SideMenuSection title="Rules">
         <SideMenuItem
           link={{
             title: "Monitor Rules",
@@ -95,16 +112,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      {/*
-       * What the page shows (Basic, Resources) is what this menu is opened
-       * for. The sections after it look after its audience and setup:
-       * subscribers sign themselves up and are managed now and then, and
-       * notification logs, branding, security and AI are set up once or
-       * checked when something needs checking. So they fold down to their
-       * titles until opened, and each opens by itself on its own pages.
-       * Subscribers says so here; the others fold by their titles (see
-       * SideMenuSectionState.ts).
-       */}
       <SideMenuSection title="Subscribers" defaultCollapsed={true}>
         <SideMenuItem
           link={{

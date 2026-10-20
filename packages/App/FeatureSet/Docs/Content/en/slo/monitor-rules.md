@@ -1,6 +1,6 @@
 # Monitors and Monitor Rules
 
-An SLO measures the uptime of the monitors attached to it. Attach them by hand, let monitor rules attach every monitor that matches, or do both. This page covers an SLO's **Monitors** and **Monitor Rules** pages, both under **Configuration** in its side menu.
+An SLO measures the uptime of the monitors attached to it. Attach them by hand, let monitor rules attach every monitor that matches, or do both. This page covers an SLO's **Monitors** page, under **Configuration** in its side menu, and its **Monitor Rules** page, under **Rules**.
 
 :::cards
 - [Pick monitors by hand](#attach-monitors-by-hand): Best for a small, fixed set.

@@ -70,7 +70,7 @@ Erstellen Sie eine Seite pro Zielgruppe, zum Beispiel `Site 01` bis `Site 10`. M
 
 ### Den gemeinsamen Monitor auf jede Seite setzen
 
-Fügen Sie den gemeinsamen Monitor jeder Seite als Ressource hinzu (siehe [Statusseiten – Ressourcen & Gruppen](/docs/status-pages/resources-and-groups)). Eine Regel unter **Ressourcen → Monitor-Regeln** kann das anhand der Beschriftungen des Monitors für Sie erledigen.
+Fügen Sie den gemeinsamen Monitor jeder Seite als Ressource hinzu (siehe [Statusseiten – Ressourcen & Gruppen](/docs/status-pages/resources-and-groups)). Eine Regel unter **Regeln → Monitor-Regeln** kann das anhand der Beschriftungen des Monitors für Sie erledigen.
 
 ### Nur auf diese Seite beschränkte Vorfälle anzeigen einschalten
 

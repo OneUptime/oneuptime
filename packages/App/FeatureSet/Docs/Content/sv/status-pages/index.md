@@ -81,12 +81,13 @@ Därefter, ungefär i ordning efter nytta:
 
 ## Var allt finns
 
-När du har öppnat en statussida är dess egen vänstermeny indelad i nio sektioner. Använd den som karta för resten av den här delen av dokumentationen.
+När du har öppnat en statussida är dess egen vänstermeny indelad i tio sektioner. Använd den som karta för resten av den här delen av dokumentationen.
 
 | Sektion | Vad den innehåller |
 | --- | --- |
 | **Grundläggande** | **Översikt**, **Meddelanden**, **Ägare**. |
-| **Resurser** | En enda skärm **Resurser** (grupperna till vänster, den valda gruppens monitorer till höger) och **Monitor Rules**. |
+| **Resurser** | En enda skärm **Resurser** (grupperna till vänster, den valda gruppens monitorer till höger). |
+| **Regler** | **Monitor Rules**: regler som lägger till varje monitor som matchar på sidan, nu och senare. |
 | **Prenumeranter** | **E-postprenumeranter**, **SMS-prenumeranter**, **Slack-prenumeranter**, **Microsoft Teams-prenumeranter**, **Webhook-prenumeranter**, **Prenumerantinställningar**. |
 | **Aviseringsloggar** | **Aviseringsloggar**: vad som har skickats till prenumeranterna. |
 | **Varumärke** | **Varumärke** (logotyp, titel, favicon, länkar, sidfot, färger och språk, på en sida), **Anpassade domäner**, **HTML, CSS och JavaScript**. |

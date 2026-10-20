@@ -75,7 +75,7 @@ SLO 소진율 규칙을 만들 권한이 필요합니다.
 :::steps
 ### Burn Rate Rules 열기
 
-SLO를 열고 **Burn Rate Rules** 로 이동한 다음 **SLO Burn Rate Rule 만들기** 를 클릭하거나, 기본 규칙 중 하나를 편집합니다.
+SLO를 열고 사이드 메뉴의 **규칙** 섹션에 있는 **Burn Rate Rules** 로 이동한 다음 **SLO Burn Rate Rule 만들기** 를 클릭하거나, 기본 규칙 중 하나를 편집합니다.
 
 ### 규칙 이름 정하기
 

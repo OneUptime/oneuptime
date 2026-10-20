@@ -75,7 +75,7 @@ Du skal have tilladelse til at oprette SLO-forbrugsrateregler.
 :::steps
 ### Åbn Burn Rate Rules
 
-Åbn SLO'et, gå til **Burn Rate Rules**, og klik på **Opret SLO Burn Rate Rule**, eller redigér en af standardreglerne.
+Åbn SLO'et, gå til **Burn Rate Rules** i sektionen **Regler** i dets sidemenu, og klik på **Opret SLO Burn Rate Rule**, eller redigér en af standardreglerne.
 
 ### Giv reglen et navn
 

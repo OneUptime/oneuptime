@@ -164,7 +164,7 @@ Open een SLO om zijn pagina's in het zijmenu te zien:
 | **Auditlogboeken** | Wie de SLO, zijn regels en zijn eigenaren heeft gewijzigd, en wanneer. |
 | **Delete SLO** | Verwijdert de SLO definitief en lost de open waarschuwingen en incidenten voor verbruikssnelheid op. |
 
-**Monitoren**, **Monitor Rules** en **Burn Rate Rules** staan in een sectie **Configuratie**, en **Eigenaren**, **Instellingen**, **Auditlogboeken** en **Delete SLO** in een sectie **Management**. Beide beginnen ingeklapt, net als een sectie **Ontwikkelaars** om de SLO vanuit code te beheren: klik op de titel van een sectie om hem te openen.
+**Monitoren** staat in een sectie **Configuratie**, **Monitor Rules** en **Burn Rate Rules** in een sectie **Regels**, en **Eigenaren**, **Instellingen**, **Auditlogboeken** en **Delete SLO** in een sectie **Management**. Alle drie beginnen ingeklapt, net als een sectie **Ontwikkelaars** om de SLO vanuit code te beheren: klik op de titel van een sectie om hem te openen.
 
 Als iets een SLO verhindert te meten, zegt een banner bovenaan elk van zijn pagina's wat er mis is en linkt hij naar de pagina die het oplost: zie [Problemen oplossen](#problemen-oplossen).
 

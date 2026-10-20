@@ -81,12 +81,13 @@ Ensuite, à peu près par ordre d'utilité :
 
 ## Où se trouve chaque chose
 
-Une fois une page de statut ouverte, son propre menu latéral gauche est réparti en neuf sections. Servez-vous-en comme d'une carte pour le reste de cette partie de la documentation.
+Une fois une page de statut ouverte, son propre menu latéral gauche est réparti en dix sections. Servez-vous-en comme d'une carte pour le reste de cette partie de la documentation.
 
 | Section | Ce qu'elle contient |
 | --- | --- |
 | **Basique** | **Vue d'ensemble**, **Annonces**, **Propriétaires**. |
-| **Ressources** | Un seul écran **Ressources** — les groupes à gauche, les moniteurs du groupe sélectionné à droite — et **Règles de moniteurs**. |
+| **Ressources** | Un seul écran **Ressources** — les groupes à gauche, les moniteurs du groupe sélectionné à droite. |
+| **Règles** | **Règles de moniteurs** — des règles qui ajoutent à la page chaque moniteur correspondant, maintenant et plus tard. |
 | **Abonnés** | **Abonnés e-mail**, **Abonnés SMS**, **Abonnés Slack**, **Abonnés Microsoft Teams**, **Abonnés au webhook**, **Paramètres des abonnés**. |
 | **Journaux de notification** | **Journaux de notification** — ce qui a été envoyé aux abonnés. |
 | **Image de marque** | **Image de marque** (logo, titre, favicon, liens, pied de page, couleurs et langues, sur une seule page), **Domaines personnalisés**, **HTML, CSS et JavaScript**. |

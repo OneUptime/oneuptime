@@ -164,7 +164,7 @@ Open an SLO to see its pages in the side menu:
 | **Audit Logs** | Who changed the SLO, its rules and its owners, and when. |
 | **Delete SLO** | Deletes the SLO for good, and resolves the burn rate alerts and incidents it had open. |
 
-**Monitors**, **Monitor Rules** and **Burn Rate Rules** sit in a **Configuration** section, and **Owners**, **Settings**, **Audit Logs** and **Delete SLO** in a **Management** section. Both start folded, as does a **Developer** section for managing the SLO from code: click a section's title to open it.
+**Monitors** sits in a **Configuration** section, **Monitor Rules** and **Burn Rate Rules** in a **Rules** section, and **Owners**, **Settings**, **Audit Logs** and **Delete SLO** in a **Management** section. All three start folded, as does a **Developer** section for managing the SLO from code: click a section's title to open it.
 
 When something stops an SLO from measuring, a banner at the top of each of its pages says what is wrong and links to the page that fixes it: see [Troubleshooting](#troubleshooting).
 

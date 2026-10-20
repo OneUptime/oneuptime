@@ -204,12 +204,12 @@ Zet de service waarover het meest wordt gevraagd bovenaan. Bezoekers die tijdens
 
 ## Monitoren automatisch toevoegen met monitorregels
 
-Een monitorregel voegt monitoren voor u aan de pagina toe: beschrijf de monitoren één keer, en elke overeenkomende monitor komt in de groep die u kiest. Regels staan onder **Middelen → Monitor Rules**, naast het scherm Middelen.
+Een monitorregel voegt monitoren voor u aan de pagina toe: beschrijf de monitoren één keer, en elke overeenkomende monitor komt in de groep die u kiest. U vindt ze onder **Regels → Monitor Rules**, direct onder Middelen in het zijmenu van de pagina.
 
 :::steps
 ### Monitor Rules openen
 
-Open de statuspagina, kies **Monitor Rules** in de sectie **Middelen** van het zijmenu en klik op **Monitorregel aanmaken**.
+Open de statuspagina, kies **Monitor Rules** in de sectie **Regels** van het zijmenu (klik op de titel van de sectie als die is ingeklapt) en klik op **Monitorregel aanmaken**.
 
 ### Zeggen met welke monitoren hij overeenkomt
 

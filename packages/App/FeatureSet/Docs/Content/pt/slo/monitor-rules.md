@@ -1,6 +1,6 @@
 # Monitores e regras de monitor
 
-Um SLO mede a disponibilidade dos monitores associados a ele. Associe-os à mão, deixe que regras de monitor associem cada monitor que corresponde, ou faça as duas coisas. Esta página trata das páginas **Monitores** e **Monitor Rules** de um SLO, ambas em **Configuração** no menu lateral dele.
+Um SLO mede a disponibilidade dos monitores associados a ele. Associe-os à mão, deixe que regras de monitor associem cada monitor que corresponde, ou faça as duas coisas. Esta página trata da página **Monitores** de um SLO, em **Configuração** no menu lateral dele, e da página **Monitor Rules**, em **Regras**.
 
 :::cards
 - [Escolher monitores à mão](#associar-monitores-à-mão): Ideal para um conjunto pequeno e fixo.

@@ -89,7 +89,7 @@ const SLO_VIEW_TABS: Array<string> = [
 /*
  * A side-menu section's toggle, by its heading's text (the heading is drawn
  * in capitals by CSS). Rarely used sections start folded away in every menu:
- * Advanced on the SLO list (it holds Archived), and Configuration and
+ * Advanced on the SLO list (it holds Archived), and Configuration, Rules and
  * Management on an SLO's own page. Their rows are hidden, so getByRole does
  * not find them until the section is opened.
  */
@@ -146,8 +146,16 @@ const openSideMenuAdvanced: OpenSideMenuAdvancedFunction = async (
   await openSideMenuSection(page, "Advanced");
 };
 
-// The SLO view menu's sections that start folded on its overview.
-const SLO_VIEW_FOLDED_SECTIONS: Array<string> = ["Configuration", "Management"];
+/*
+ * The SLO view menu's sections that start folded on its overview: its
+ * monitors (Configuration), its Monitor Rules and Burn Rate Rules (Rules), and
+ * its owners, settings and the rest (Management).
+ */
+const SLO_VIEW_FOLDED_SECTIONS: Array<string> = [
+  "Configuration",
+  "Rules",
+  "Management",
+];
 
 type ProjectUrlFunction = (data: { projectId: string; path: string }) => string;
 
@@ -583,9 +591,9 @@ test.describe("SLOs", () => {
     });
 
     /*
-     * Configuration and Management are folded down to their titles on the
-     * overview, like every rarely used section: their pages are hidden until
-     * the section is opened.
+     * Configuration, Rules and Management are folded down to their titles on
+     * the overview, like every rarely used section: their pages are hidden
+     * until the section is opened.
      */
     for (const section of SLO_VIEW_FOLDED_SECTIONS) {
       await expect(sideMenuSectionToggle(page, section)).toHaveAttribute(
@@ -599,6 +607,26 @@ test.describe("SLOs", () => {
     );
     await expect(burnRateRulesRow).toHaveCount(1);
     await expect(burnRateRulesRow).toBeHidden();
+    const monitorRulesRow: Locator = sideMenu.locator(
+      "a[href$='/monitor-rules']",
+    );
+    await expect(monitorRulesRow).toHaveCount(1);
+    await expect(monitorRulesRow).toBeHidden();
+
+    /*
+     * Both rules pages sit in the Rules section: the element its toggle
+     * shows and hides holds them.
+     */
+    const rulesBodyId: string | null = await sideMenuSectionToggle(
+      page,
+      "Rules",
+    ).getAttribute("aria-controls");
+    expect(rulesBodyId).toBeTruthy();
+    const rulesBody: Locator = page.locator(`[id="${rulesBodyId}"]`);
+    await expect(rulesBody.locator("a[href$='/monitor-rules']")).toHaveCount(1);
+    await expect(rulesBody.locator("a[href$='/burn-rate-rules']")).toHaveCount(
+      1,
+    );
 
     for (const section of SLO_VIEW_FOLDED_SECTIONS) {
       await openSideMenuSection(page, section);

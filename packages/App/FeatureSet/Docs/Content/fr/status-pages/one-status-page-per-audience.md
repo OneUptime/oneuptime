@@ -70,7 +70,7 @@ Créez une page par public, par exemple `Site 01` à `Site 10`. Rendez-les priv�
 
 ### Placer le moniteur partagé sur chaque page
 
-Ajoutez le moniteur partagé à chaque page comme ressource (voir [Ressources et groupes de la page de statut](/docs/status-pages/resources-and-groups)). Une règle sous **Ressources → Règles de moniteurs** peut le faire pour vous à partir des étiquettes du moniteur.
+Ajoutez le moniteur partagé à chaque page comme ressource (voir [Ressources et groupes de la page de statut](/docs/status-pages/resources-and-groups)). Une règle sous **Règles → Règles de moniteurs** peut le faire pour vous à partir des étiquettes du moniteur.
 
 ### Activer Afficher uniquement les incidents limités à cette page
 

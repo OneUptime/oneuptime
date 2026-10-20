@@ -75,7 +75,7 @@ Sie brauchen die Berechtigung, SLO-Burn-Rate-Regeln zu erstellen.
 :::steps
 ### Burn-Rate-Regeln öffnen
 
-Öffnen Sie das SLO, gehen Sie zu **Burn-Rate-Regeln** und klicken Sie auf **SLO-Burn-Rate-Regel erstellen**, oder bearbeiten Sie eine der Standardregeln.
+Öffnen Sie das SLO, gehen Sie zu **Burn-Rate-Regeln** im Abschnitt **Regeln** seines Seitenmenüs und klicken Sie auf **SLO-Burn-Rate-Regel erstellen**, oder bearbeiten Sie eine der Standardregeln.
 
 ### Die Regel benennen
 

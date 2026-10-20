@@ -1,6 +1,6 @@
 # Monitore und Monitor-Regeln
 
-Ein SLO misst die Verfügbarkeit der Monitore, die ihm zugeordnet sind. Ordnen Sie sie von Hand zu, lassen Sie Monitor-Regeln jeden passenden Monitor zuordnen, oder beides. Diese Seite behandelt die Seiten **Monitore** und **Monitor-Regeln** eines SLO, beide unter **Konfiguration** in seinem Seitenmenü.
+Ein SLO misst die Verfügbarkeit der Monitore, die ihm zugeordnet sind. Ordnen Sie sie von Hand zu, lassen Sie Monitor-Regeln jeden passenden Monitor zuordnen, oder beides. Diese Seite behandelt die Seite **Monitore** eines SLO, unter **Konfiguration** in seinem Seitenmenü, und seine Seite **Monitor-Regeln**, unter **Regeln**.
 
 :::cards
 - [Monitore von Hand auswählen](#monitore-von-hand-zuordnen): Am besten für eine kleine, feste Auswahl.
