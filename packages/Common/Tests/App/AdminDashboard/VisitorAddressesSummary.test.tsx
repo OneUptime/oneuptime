@@ -35,9 +35,11 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - lists the shared addresses, how many people each, and how many more
  *     there are;
  *   - names the settings that change it - IPv6 for OneUptime's network in
- *     docker-compose.override.yml and TRUSTED_PROXY_HOPS=2 with Docker
- *     Compose, nginx.service.externalTrafficPolicy: Local with the Helm
- *     chart - and opens the guides that say how;
+ *     docker-compose.override.yml with Docker Compose, and behind a proxy
+ *     of the operator's own TRUSTED_PROXY_HOPS=2, never without making the
+ *     proxy the only way in first (OneUptime's ports on 127.0.0.1 when the
+ *     proxy is on the same server); nginx.service.externalTrafficPolicy:
+ *     Local with the Helm chart - and opens the guides that say how;
  *   - reads in every language the Admin Dashboard speaks, with the settings
  *     exactly as written.
  *
@@ -332,10 +334,14 @@ describe("the card", () => {
     expect(settings).toEqual([
       "docker-compose.override.yml",
       "TRUSTED_PROXY_HOPS=2",
+      "127.0.0.1",
       "nginx.service.externalTrafficPolicy: Local",
     ]);
     expect(card.textContent).toContain(
-      "Docker Compose: turn IPv6 on for OneUptime's network in docker-compose.override.yml when people come over IPv6, and set TRUSTED_PROXY_HOPS=2 behind a proxy of your own on the server.",
+      "Docker Compose: when people come over IPv6, turn IPv6 on for OneUptime's network in docker-compose.override.yml.",
+    );
+    expect(card.textContent).toContain(
+      "Docker Compose behind a proxy of your own: make the proxy the only way in, then set TRUSTED_PROXY_HOPS=2. With the proxy on the same server, publish OneUptime's ports on 127.0.0.1 only.",
     );
     expect(card.textContent).toContain(
       "Kubernetes: set nginx.service.externalTrafficPolicy: Local in the Helm chart's values.",
@@ -390,7 +396,8 @@ const SENTENCES: Array<string> = [
   VISITOR_ADDRESSES_COPY.title,
   VISITOR_ADDRESSES_COPY.description,
   VISITOR_ADDRESSES_COPY.cause,
-  VISITOR_ADDRESSES_COPY.compose,
+  VISITOR_ADDRESSES_COPY.composeIpv6,
+  VISITOR_ADDRESSES_COPY.composeProxy,
   VISITOR_ADDRESSES_COPY.kubernetes,
   VISITOR_ADDRESSES_COPY.nothingToChange,
   VISITOR_ADDRESSES_COPY.composeGuide,
@@ -465,9 +472,15 @@ describe("the card in every language", () => {
         String(entries[VISITOR_ADDRESSES_COPY.nothingToChange]),
       );
       expect(text).toContain(
-        String(entries[VISITOR_ADDRESSES_COPY.compose])
-          .replace("{{file}}", "docker-compose.override.yml")
-          .replace("{{hops}}", "TRUSTED_PROXY_HOPS=2"),
+        String(entries[VISITOR_ADDRESSES_COPY.composeIpv6]).replace(
+          "{{file}}",
+          "docker-compose.override.yml",
+        ),
+      );
+      expect(text).toContain(
+        String(entries[VISITOR_ADDRESSES_COPY.composeProxy])
+          .replace("{{hops}}", "TRUSTED_PROXY_HOPS=2")
+          .replace("{{loopback}}", "127.0.0.1"),
       );
       expect(text).toContain(
         String(entries[VISITOR_ADDRESSES_COPY.kubernetes]).replace(
@@ -478,6 +491,62 @@ describe("the card in every language", () => {
       // No English sentence left behind.
       expect(text).not.toContain(VISITOR_ADDRESSES_COPY.cause);
       expect(text).not.toContain(VISITOR_ADDRESSES_COPY.nothingToChange);
+    },
+  );
+});
+
+/*
+ * TRUSTED_PROXY_HOPS=2 has OneUptime read each visitor's address from what
+ * the operator's proxy writes, which is the visitor's own only while that
+ * proxy is the one way in. In no language does the card name the setting
+ * without the step that makes the proxy the only way in: the same item
+ * shows 127.0.0.1, where OneUptime's ports go when the proxy runs on the
+ * same server, and in English that step comes first.
+ */
+describe("the card never names TRUSTED_PROXY_HOPS=2 on its own", () => {
+  test("in English, the proxy is made the only way in before the setting is changed", () => {
+    const sentence: string = VISITOR_ADDRESSES_COPY.composeProxy;
+
+    expect(sentence.indexOf("make the proxy the only way in")).toBeGreaterThan(
+      -1,
+    );
+    expect(sentence.indexOf("make the proxy the only way in")).toBeLessThan(
+      sentence.indexOf("then set {{hops}}"),
+    );
+    expect(sentence).toContain(
+      "With the proxy on the same server, publish OneUptime's ports on {{loopback}} only.",
+    );
+    // The IPv6 sentence names no proxy setting at all.
+    expect(VISITOR_ADDRESSES_COPY.composeIpv6).not.toContain("{{hops}}");
+  });
+
+  test.each(["en", ...OTHER_LOCALES])(
+    "in %s, the item that shows TRUSTED_PROXY_HOPS=2 shows 127.0.0.1 too",
+    async (locale: string) => {
+      mockGet.mockResolvedValue(answer(SHARED));
+
+      const card: HTMLElement = (await renderIn(locale)) as HTMLElement;
+      const settings: Array<Element> = Array.from(
+        card.querySelectorAll("code"),
+      );
+      const hops: Array<Element> = settings.filter(
+        (element: Element): boolean => {
+          return element.textContent === "TRUSTED_PROXY_HOPS=2";
+        },
+      );
+
+      expect(hops).toHaveLength(1);
+
+      const item: Element | null = hops[0]!.closest("li");
+
+      expect(item).not.toBeNull();
+      expect(
+        Array.from(item!.querySelectorAll("code")).map(
+          (element: Element): string => {
+            return element.textContent || "";
+          },
+        ),
+      ).toEqual(expect.arrayContaining(["TRUSTED_PROXY_HOPS=2", "127.0.0.1"]));
     },
   );
 });

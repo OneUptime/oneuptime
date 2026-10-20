@@ -127,7 +127,7 @@ tests:
       - matchRegexRaw:
           pattern: 'set\s+nginx\.service\.externalTrafficPolicy=Local and run helm upgrade\.'
       - matchRegexRaw:
-          pattern: 'until the load balancer''s health check catches up, a few seconds as a rule, a\s+node without one refuses visitors, so switch at a quiet time\.'
+          pattern: 'until the load balancer''s health check catches up, from seconds to about a\s+minute depending on its interval, a node without one refuses visitors, so\s+switch at a quiet time\.'
       - matchRegexRaw:
           pattern: 'To keep things as they are, set nginx\.service\.externalTrafficPolicy=Cluster\.'
 

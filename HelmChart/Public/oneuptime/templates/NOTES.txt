@@ -182,10 +182,11 @@ If your load balancer passes visitors' addresses through (MetalLB, and the
 network load balancers of most clouds), set
 nginx.service.externalTrafficPolicy=Local and run helm upgrade. Each visitor
 then keeps their own address, and is sent only to nodes that run a gateway pod;
-until the load balancer's health check catches up, a few seconds as a rule, a
-node without one refuses visitors, so switch at a quiet time. A load balancer
-that ends the connection itself hides the address from the cluster either way:
-docs/configuration.md in the chart, "Visitor addresses", says what to do then.
+until the load balancer's health check catches up, from seconds to about a
+minute depending on its interval, a node without one refuses visitors, so
+switch at a quiet time. A load balancer that ends the connection itself hides
+the address from the cluster either way: docs/configuration.md in the chart,
+"Visitor addresses", says what to do then.
 
 To keep things as they are, set nginx.service.externalTrafficPolicy=Cluster.
 {{- end }}

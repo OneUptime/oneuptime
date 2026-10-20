@@ -615,9 +615,10 @@ nginx:
 Under `Local`, Kubernetes sends visitors only to nodes that run a gateway pod,
 and gives the Service a `healthCheckNodePort` that tells the load balancer
 which nodes those are. When you switch a live install, a node without a gateway
-pod refuses visitors until the load balancer's health check catches up, a few
-seconds as a rule, so switch at a quiet time. Spreading the gateway's replicas
-across nodes (`nginx.topologySpreadConstraints`) keeps more nodes serving.
+pod refuses visitors until the load balancer's health check catches up, from
+seconds to about a minute depending on its interval, so switch at a quiet time.
+Spreading the gateway's replicas across nodes
+(`nginx.topologySpreadConstraints`) keeps more nodes serving.
 
 **Load balancers that end the connection themselves** - an AWS Classic Load
 Balancer, and the load balancers of DigitalOcean, Hetzner and Linode, among

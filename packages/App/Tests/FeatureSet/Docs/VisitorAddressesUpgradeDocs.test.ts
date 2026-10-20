@@ -22,7 +22,8 @@ import path from "path";
  * Docker Compose's network is turned on in docker-compose.override.yml (the
  * compose files OneUptime ships leave the network as installs made it, so an
  * upgrade never recreates it), a proxy on the same server publishes the
- * ingress on 127.0.0.1, the Helm chart's
+ * ingress on 127.0.0.1 (and npm start says so while it is still published
+ * on every address: Scripts/Install/CheckIngressPorts.js), the Helm chart's
  * nginx.service.externalTrafficPolicy (and helm install / helm upgrade saying
  * so while it is unset), the Admin Dashboard's OneUptime Health page, and
  * NGINX_LISTEN_OPTIONS working again. It sits after the note on the global
@@ -95,6 +96,7 @@ describe("the English upgrade note on visitor addresses", () => {
     for (const claim of [
       "Its ingress now listens on IPv6 as well as IPv4, and IPv6 can be turned on for Docker Compose's network in `docker-compose.override.yml` (Docker Engine 27 or later)",
       "publish the ingress on `127.0.0.1` only (`ONEUPTIME_HTTP_PORT=127.0.0.1:8080`)",
+      "through the proxy alone; `npm start` says so while it is still published on every address.",
       "With Helm, `nginx.service.externalTrafficPolicy: Local` keeps each visitor's address through a load balancer that passes it on; while that is unset, `helm install` and `helm upgrade` say so.",
       "**Admin Dashboard → OneUptime Health** says when several people sign in from one private network address.",
       "Networks and Services stay as they are until you set one of these.",
@@ -152,6 +154,40 @@ describe("the note and the guide are true to the install", () => {
     // The primary's own listen carries no socket options: nginx takes them once per port.
     expect(template).toContain(
       "    listen ${NGINX_LISTEN_ADDRESS}7849;\n${NGINX_IPV6_LISTEN_DIRECTIVE}\n",
+    );
+  });
+
+  it("npm start says so while a proxy is counted and the ingress, moved off its ports, is still published on every address", () => {
+    const scripts: Record<string, string> = (
+      JSON.parse(source("package.json")) as { scripts: Record<string, string> }
+    ).scripts;
+    const commands: Array<string> = (scripts["start"] || "").split(" && ");
+    const check: number = commands.indexOf(
+      "node ./Scripts/Install/CheckIngressPorts.js",
+    );
+
+    // A step of the start script, before Compose starts anything.
+    expect(check).toBeGreaterThan(-1);
+    expect(check).toBeLessThan(
+      commands.findIndex((command: string): boolean => {
+        return command.startsWith("docker compose up ");
+      }),
+    );
+    expect(scripts["update"]).toMatch(/&& npm run start$/);
+
+    const checkSource: string = source("Scripts/Install/CheckIngressPorts.js");
+
+    expect(checkSource).toContain(
+      '{ setting: "ONEUPTIME_HTTP_PORT", defaultPort: "80" }',
+    );
+    expect(checkSource).toContain(
+      '{ setting: "STATUS_PAGE_HTTPS_PORT", defaultPort: "443" }',
+    );
+    expect(checkSource).toContain(
+      '"https://oneuptime.com/docs/installation/docker-compose#use-your-own-reverse-proxy"',
+    );
+    expect(slugifyMarkdownHeading("Use your own reverse proxy")).toBe(
+      "use-your-own-reverse-proxy",
     );
   });
 

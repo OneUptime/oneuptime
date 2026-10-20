@@ -597,6 +597,9 @@ const LISTEN_SETTINGS = [
   { address: "", options: "", ipv6: true },
   { address: "", options: "", ipv6: false },
   { address: "", options: "backlog=1024", ipv6: true },
+  // Options that would clash on a second socket of the port stay off the twin.
+  { address: "", options: "ipv6only=off", ipv6: true },
+  { address: "", options: "reuseport backlog=4096", ipv6: true },
   { address: "[::]:", options: "ipv6only=off", ipv6: true },
   { address: "[::]:", options: "", ipv6: true },
   { address: "127.0.0.1:", options: "", ipv6: true },
@@ -636,6 +639,60 @@ for (const setting of LISTEN_SETTINGS) {
     },
   );
 }
+
+/*
+ * The same with PROVISION_SSL, where the primary listens on 7850 as well:
+ * its own listen and its twin carry no socket options, so every setting
+ * still gives each socket its options once. Inside the ingress image only
+ * (provisionSslSkipReason), as the script writes the placeholder
+ * certificate there.
+ */
+test(
+  "nginx -t accepts the PROVISION_SSL config for every listen setting operators may set",
+  { skip: provisionSslSkipReason || nginxSkipReason },
+  () => {
+    for (const setting of LISTEN_SETTINGS) {
+      const prefix = makePrefix();
+
+      try {
+        const rendered = runScript(
+          template,
+          containerEnvironment({
+            NGINX_LISTEN_ADDRESS: setting.address,
+            NGINX_LISTEN_OPTIONS: setting.options,
+            NGINX_IPV6_SUPPORT_FILE: ipv6SupportFile(setting.ipv6),
+            PROVISION_SSL: "true",
+            PRIMARY_DOMAIN: "oneuptime.example.com",
+          }),
+        );
+
+        // The primary listens on 7850 too, which it does only with PROVISION_SSL.
+        assert.ok(
+          listensOf(rendered).filter((listen) => {
+            return /7850 ssl;$/.test(listen);
+          }).length >= 1,
+          `${setting.address} ${setting.options}: no primary 7850 listen`,
+        );
+
+        fs.writeFileSync(path.join(prefix, "conf.d", "default.conf"), rendered);
+
+        const result = spawnSync(
+          "nginx",
+          ["-t", "-p", prefix, "-c", path.join(prefix, "nginx.conf")],
+          { encoding: "utf8" },
+        );
+
+        assert.equal(
+          result.status,
+          0,
+          `NGINX_LISTEN_ADDRESS="${setting.address}" NGINX_LISTEN_OPTIONS="${setting.options}": ${result.stderr}`,
+        );
+      } finally {
+        fs.rmSync(prefix, { recursive: true, force: true });
+      }
+    }
+  },
+);
 
 /** A stand-in app that answers with the addresses the ingress handed it. */
 function startApp() {

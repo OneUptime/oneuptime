@@ -1515,7 +1515,8 @@ API, SSO, or the Slack and Microsoft Teams apps.
   them on from. If a reverse proxy of your own on the same server is the way
   in, publish the ingress on `127.0.0.1` only
   (`ONEUPTIME_HTTP_PORT=127.0.0.1:8080`), so that visitors reach OneUptime
-  through the proxy alone. With Helm,
+  through the proxy alone; `npm start` says so while it is still published
+  on every address. With Helm,
   `nginx.service.externalTrafficPolicy: Local` keeps each visitor's address
   through a load balancer that passes it on; while that is unset,
   `helm install` and `helm upgrade` say so.

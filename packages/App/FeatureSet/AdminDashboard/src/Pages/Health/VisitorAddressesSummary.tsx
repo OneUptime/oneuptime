@@ -54,12 +54,19 @@ export const VISITOR_ADDRESSES_KUBERNETES_GUIDE: string =
 /*
  * The card's own words. The description names the 30 days the server looks
  * back (SHARED_VISITOR_ADDRESS_WINDOW_DAYS).
+ *
+ * TRUSTED_PROXY_HOPS=2 has OneUptime read each visitor's address from what
+ * the operator's proxy writes, which is the visitor's own only while that
+ * proxy is the one way in. So the card never names the setting on its own:
+ * the proxy is made the only way in first (on the same server, OneUptime's
+ * ports published on 127.0.0.1 alone), then the setting is changed.
  */
 export const VISITOR_ADDRESSES_COPY: {
   title: string;
   description: string;
   cause: string;
-  compose: string;
+  composeIpv6: string;
+  composeProxy: string;
   kubernetes: string;
   nothingToChange: string;
   people: { one: string; other: string };
@@ -72,8 +79,10 @@ export const VISITOR_ADDRESSES_COPY: {
     "Several people signed in from one private network address in the last 30 days. OneUptime counts them as one visitor, so one person's failed sign-ins can lock the others out.",
   cause:
     "Usually something in front of OneUptime hands it every visitor from an address of its own:",
-  compose:
-    "Docker Compose: turn IPv6 on for OneUptime's network in {{file}} when people come over IPv6, and set {{hops}} behind a proxy of your own on the server.",
+  composeIpv6:
+    "Docker Compose: when people come over IPv6, turn IPv6 on for OneUptime's network in {{file}}.",
+  composeProxy:
+    "Docker Compose behind a proxy of your own: make the proxy the only way in, then set {{hops}}. With the proxy on the same server, publish OneUptime's ports on {{loopback}} only.",
   kubernetes: "Kubernetes: set {{setting}} in the Helm chart's values.",
   nothingToChange:
     "Nothing needs to change if these people share one computer or one VPN.",
@@ -247,10 +256,18 @@ const VisitorAddressesSummary: FunctionComponent = (): ReactElement => {
           <ul className="list-disc space-y-1 pl-5">
             <li>
               <TranslatedSentence
-                template={VISITOR_ADDRESSES_COPY.compose}
+                template={VISITOR_ADDRESSES_COPY.composeIpv6}
                 slots={{
                   file: <Setting text="docker-compose.override.yml" />,
+                }}
+              />
+            </li>
+            <li>
+              <TranslatedSentence
+                template={VISITOR_ADDRESSES_COPY.composeProxy}
+                slots={{
                   hops: <Setting text="TRUSTED_PROXY_HOPS=2" />,
+                  loopback: <Setting text="127.0.0.1" />,
                 }}
               />
             </li>
