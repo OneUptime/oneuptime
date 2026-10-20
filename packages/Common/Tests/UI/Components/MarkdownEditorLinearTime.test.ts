@@ -1075,7 +1075,8 @@ describe("HTML built to be slow is written back quickly", () => {
 
 describe("the editor's other readers of a line read it quickly", () => {
   test("a pasted line with a bullet glyph, a long run and a line separator", () => {
-    const text: string = "\u2022" + repeat(" ", LENGTH) + "x" + LINE_SEPARATOR + "y";
+    const text: string =
+      "\u2022" + repeat(" ", LENGTH) + "x" + LINE_SEPARATOR + "y";
 
     expect(
       timeOf(() => {
@@ -1105,9 +1106,7 @@ describe("the editor's other readers of a line read it quickly", () => {
       }),
     ).toBeLessThan(2000);
     // The space that ends the bold words goes outside them, as before.
-    expect(pastedHtmlToMarkdown("<p>x <b>a b \t</b>y</p>")).toBe(
-      "x **a b** y",
-    );
+    expect(pastedHtmlToMarkdown("<p>x <b>a b \t</b>y</p>")).toBe("x **a b** y");
   });
 
   test("Tab and the list buttons on a note with a long list line", () => {
