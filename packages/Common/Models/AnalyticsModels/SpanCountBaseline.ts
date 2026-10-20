@@ -89,7 +89,7 @@ export default class SpanCountBaseline extends AnalyticsBaseModel {
       key: "hourOfWeek",
       title: "Hour Of Week",
       description:
-        "(toDayOfWeek(startTime, 1) - 1) * 24 + toHour(startTime). Range 0..167 with Mon 00:00 = 0.",
+        "(toDayOfWeek(startTime) - 1) * 24 + toHour(startTime), ISO weekday Monday = 1. Range 0..167 with Mon 00:00 = 0.",
       required: true,
       type: TableColumnType.UInt8,
     });
@@ -148,7 +148,7 @@ SELECT
   primaryEntityId,
   toUInt8(coalesce(statusCode, 0)) AS statusCode,
   toDate(startTime) AS day,
-  toUInt8((toDayOfWeek(startTime, 1) - 1) * 24 + toHour(startTime)) AS hourOfWeek,
+  toUInt8((toDayOfWeek(startTime) - 1) * 24 + toHour(startTime)) AS hourOfWeek,
   toUInt8(toMinute(startTime)) AS minuteOfHour,
   countState() AS spanCountState
 FROM SpanItemV3

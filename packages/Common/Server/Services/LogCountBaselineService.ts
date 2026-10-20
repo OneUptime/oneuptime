@@ -104,7 +104,7 @@ export class LogCountBaselineService extends AnalyticsDatabaseService<LogCountBa
       WHERE projectId = '${projectIdStr}'
         ${serviceIdClause}
         ${severityClause}
-        AND hourOfWeek = ${hour}
+        AND ${MetricBaselineService.hourOfWeekCellFilter(hour)}
         AND day >= today() - INTERVAL ${windowDays} DAY
       GROUP BY day, minuteOfHour
     `;
