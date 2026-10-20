@@ -33,7 +33,7 @@ stateDiagram-v2
     Cancelled --> [*]
 ```
 
-Ein neuer Lauf ist **Geplant**, bis ein Worker ihn übernimmt und als **Wird ausgeführt** markiert. Er pausiert als **Wartet auf Sie** an einem Manual-Schritt oder nach einem Schritt, der eine Freigabe braucht, und geht zurück in die Warteschlange, sobald jemand handelt. Ein Lauf, der auf eine Person wartet, läuft nie in ein Timeout. Er endet **Abgeschlossen**, **Fehlgeschlagen** oder **Abgebrochen**.
+Ein neuer Lauf ist **Geplant**, bis ein Worker ihn übernimmt und als **Wird ausgeführt** markiert. Er pausiert als **Wartet auf Sie** an einem Manual-Schritt oder vor einem Schritt, der eine Freigabe braucht, und geht zurück in die Warteschlange, sobald jemand handelt. Ein Lauf, der auf eine Person wartet, läuft nie in ein Timeout. Er endet **Abgeschlossen**, **Fehlgeschlagen** oder **Abgebrochen**.
 
 ## Einen Lauf starten
 
@@ -64,18 +64,19 @@ Einen Lauf zu starten, erfordert Project Owner, Project Admin, Project Member, R
 
 Öffnen Sie eine Ausführung, um ihre Checkliste zu sehen. Oben auf der Seite stehen der **Status** des Laufs, sein **Fortschritt** (erledigte Schritte von allen Schritten), **Begonnen** (wann er startete) und **Ausgelöst von** (was ihn gestartet hat). Jeder Schritt zeigt:
 
-- **Status-Badge** — Ausstehend, Wird ausgeführt, Wartet auf Sie, Fertig, Übersprungen, Fehlgeschlagen oder Abgebrochen.
+- **Status-Badge** — Ausstehend, Wird ausgeführt, Wartet auf Sie, Wartet auf Genehmigung, Fertig, Übersprungen, Fehlgeschlagen oder Abgebrochen.
 - **Titel und Beschreibung** — beim Start der Ausführung aus dem Runbook kopiert.
 - **Ausgabe** (einklappbar) — stdout, Rückgabewerte, HTTP-Antworten oder die Antwort der KI.
 - **Fehlermeldung**, falls der Schritt fehlgeschlagen ist.
-- An dem Schritt, auf den der Lauf wartet: **Als abgeschlossen markieren** (ein Manual-Schritt) oder **Genehmigen & fortfahren** (ein Schritt mit **Genehmigung erforderlich**) sowie **Überspringen**.
+- An dem Schritt, auf den der Lauf wartet: **Als abgeschlossen markieren** (ein Manual-Schritt) oder **Genehmigen und ausführen** (ein Schritt mit **Genehmigung erforderlich**, der noch nicht gelaufen ist) sowie **Überspringen**.
+- **Genehmigt von** an einem Schritt, der auf eine Genehmigung gewartet hat, sobald er gelaufen ist.
 - Solange der Lauf pausiert, **Überspringen** an späteren automatisierten Schritten, die keine Freigabe brauchen.
 
 Solange der Lauf in Gang ist, aktualisiert sich die Seite alle 30 Sekunden. Klicken Sie auf **Aktualisieren**, um den neuesten Stand sofort zu sehen.
 
 ## Schritte abschließen, genehmigen und überspringen
 
-Nur der Schritt, auf den der Lauf wartet, kann als abgeschlossen markiert, genehmigt oder übersprungen werden, um den Lauf fortzusetzen. Ein Manual-Schritt oder ein Schritt mit **Genehmigung erforderlich** lässt sich nicht abhaken oder überspringen, bevor der Lauf ihn erreicht — seine Aufgabe ist, den Lauf anzuhalten, also nimmt er erst eine Entscheidung an, wenn der Lauf dort ist (bei einer Freigabe, sobald der Schritt gelaufen ist und Sie seine Ausgabe sehen).
+Nur der Schritt, auf den der Lauf wartet, kann als abgeschlossen markiert, genehmigt oder übersprungen werden, um den Lauf fortzusetzen. Ein Manual-Schritt oder ein Schritt mit **Genehmigung erforderlich** lässt sich nicht abhaken oder überspringen, bevor der Lauf ihn erreicht — seine Aufgabe ist, den Lauf anzuhalten, also nimmt er erst eine Entscheidung an, wenn der Lauf dort ist. Ein Schritt mit **Genehmigung erforderlich** wartet, bevor er läuft, lesen Sie also zuerst, was die Schritte davor gefunden haben: **Genehmigen und ausführen** führt ihn aus, **Überspringen** verhindert, dass er läuft, und so oder so geht der Lauf weiter. Ein Lauf, der begann, bevor Genehmigungen an den Schritt wanderten, den sie schützen, wartet stattdessen nach einem solchen Schritt, sobald er gelaufen ist: **Genehmigen & fortfahren** lässt diesen Lauf weitergehen.
 
 Solange der Lauf pausiert, können Sie auch einen späteren automatisierten Schritt ohne Freigabe überspringen, damit er nicht läuft, wenn der Lauf weitergeht. Der Lauf bleibt an dem Schritt pausiert, der auf Sie wartet. Überspringen ist nicht möglich, während Schritte laufen — warten Sie, bis der Lauf pausiert, oder brechen Sie ihn ab. Jeder Schritt hält fest, wer ihn abgeschlossen oder übersprungen hat.
 
@@ -145,7 +146,7 @@ Die Meldung lautet "No runbook agent picked up this step before the wait window 
 :::
 
 :::details Der Lauf wartet seit Stunden
-Ein Lauf, der auf eine Person wartet, läuft nie in ein Timeout. Öffnen Sie ihn und handeln Sie an dem Schritt, der **Wartet auf Sie** zeigt, oder klicken Sie auf **Ausführung abbrechen**.
+Ein Lauf, der auf eine Person wartet, läuft nie in ein Timeout. Öffnen Sie ihn und handeln Sie an dem Schritt, der **Wartet auf Sie** oder **Wartet auf Genehmigung** zeigt, oder klicken Sie auf **Ausführung abbrechen**.
 :::
 
 :::details Ein Schritt meldet, er sei möglicherweise teilweise gelaufen

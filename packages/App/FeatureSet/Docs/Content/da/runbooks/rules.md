@@ -157,7 +157,7 @@ Kontrollér i denne rækkefølge:
 - Reglen er **Aktiveret**.
 - Hvert runbook har **Kør dette runbook** slået til på sin side **Indstillinger** og mindst ét gemt trin.
 - Hændelsen eller advarslen blev ikke oprettet allerede løst.
-- Runbookets udførelse venter ikke bare: åbn den fra begivenhedens side **Runbooks**. Et Manual-trin eller en godkendelse viser **Venter på dig**.
+- Runbookets udførelse venter ikke bare: åbn den fra begivenhedens side **Runbooks**. Et Manual-trin viser **Venter på dig**, og et trin, der kræver godkendelse, **Venter på godkendelse**.
 :::
 
 :::details En regel matcher aldrig

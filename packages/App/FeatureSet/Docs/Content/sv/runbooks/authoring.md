@@ -5,7 +5,7 @@ Du skriver ett runbook som en ordnad lista med steg på dess sida **Steg**. Den 
 :::cards
 - [Skapa ett runbook](#skapa-ett-runbook): Från ett tomt runbook till sparade steg.
 - [Stegtyper](#stegtyper): Manual, JavaScript, HTTP request, Bash, SSH, kubectl och AI.
-- [Felhantering och godkännanden](#felhantering-och-godkännanden): Vad som händer när ett steg misslyckas eller lyckas.
+- [Felhantering och godkännanden](#felhantering-och-godkännanden): Vad som händer när ett steg misslyckas eller väntar på godkännande.
 - [Ett genomgånget exempel](#ett-genomgånget-exempel): En databas-failover i fem steg.
 :::
 
@@ -47,9 +47,9 @@ Varje steg har de här fälten. Ett automatiserat steg visar sin **Titel** och i
 | Fält | Syfte |
 | --- | --- |
 | **Titel** | En kort etikett som visas i steglistan och vid varje körning. |
-| **Beskrivning** | Valfri kontext för den som hanterar incidenten, i Markdown, under **Fler fält**. På ett Manual-steg är det den instruktion personen läser, visad under titeln. |
+| **Beskrivning** | Valfri kontext för den som hanterar incidenten, i Markdown, under **Fler fält**. På ett Manual-steg är det de **Instruktioner** personen läser och följer, visade under titeln. |
 | **Fortsätt vid fel** | Bara automatiserade steg. När den är påslagen stoppar ett steg som misslyckas inte körningen: nästa steg körs ändå. |
-| **Kräv godkännande** | Bara automatiserade steg. När den är påslagen pausar runbooket efter det här steget och väntar på att en person godkänner innan nästa steg körs. Brytaren heter **Kräv godkännande innan nästa steg körs**. |
+| **Kräv godkännande** | Bara automatiserade steg. När den är påslagen stannar körningen före det här steget tills någon godkänner det, och först då körs det. Brytaren heter **Kräv godkännande innan det här steget körs**, och stegets rubrik visar **Kräver godkännande**. |
 | Typspecifika inställningar | Skriptet, URL:en, Runnern, en hemlig variabel eller prompten. Se [Stegtyper](#stegtyper). |
 
 ## Stegtyper
@@ -64,11 +64,11 @@ Varje steg har de här fälten. Ett automatiserat steg visar sin **Titel** och i
 | [kubectl](#kubectl) | En Runner | En Runner och en kubeconfig-variabel eller Runnerns egen åtkomst |
 | [AI](#ai) | OneUptime Worker | En LLM-leverantör |
 
-I varje steg nedan ligger tidsgränserna, **Beskrivning**, **Fortsätt vid fel** och **Kräv godkännande** under stegets **Fler fält**, och det gör även ett AI-stegs leverantör och kontextbrytare.
+I varje automatiserat steg nedan innehåller stegets **Fler fält** först **Kräv godkännande** och **Fortsätt vid fel**, sedan stegets egna inställningar - ett HTTP-anrops headers, ett SSH-stegs port och nyckelns lösenfras, ett AI-stegs leverantör och kontextbrytare - och sist **Beskrivning** och tidsgränserna.
 
 ### Manual
 
-En checklistepunkt för en person. Körningen pausar när den når ett Manual-steg och stannar i `WaitingForManualStep` (**Väntar på dig**) tills någon klickar på **Mark complete** eller **Hoppa över**. En körning som väntar på en person löper aldrig ut.
+En checklistepunkt för en person: stegets **Instruktioner** säger vad som ska göras eller kontrolleras. Körningen pausar när den når ett Manual-steg och stannar i `WaitingForManualStep` (**Väntar på dig**) tills någon klickar på **Markera som klar** eller **Hoppa över**. En körning som väntar på en person löper aldrig ut. Ett Manual-steg har ingen godkännandebrytare: det stoppar redan körningen för en person.
 
 Använd det för det som bara en människa kan kontrollera eller göra: "Bekräfta i lastbalanserarens instrumentpanel att trafiken har flyttats till den sekundära regionen."
 
@@ -100,8 +100,8 @@ Ett utgående HTTP-anrop som görs av OneUptime Worker. Ingen Runner behövs.
 | --- | --- | --- |
 | **Method** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` eller `HEAD`. | `GET` |
 | **URL** | Slutpunkten som ska anropas. | Tom |
-| **Headers (JSON)** | Ett JSON-objekt, till exempel `{ "Authorization": "Bearer ..." }`. Headers som inte är giltig JSON får steget att misslyckas. | Inga |
-| **Body** | Skickas som JSON när den kan tolkas som JSON, annars som text. | Ingen |
+| **Headers (JSON)** | Under **Fler fält**. Ett JSON-objekt, till exempel `{ "Authorization": "Bearer ..." }`. Headers som inte är giltig JSON får steget att misslyckas. | Inga |
+| **Body** | Visas för `POST`, `PUT`, `PATCH` och `DELETE`. Skickas som JSON när den kan tolkas som JSON, annars som text. | Ingen |
 | **Request timeout** | Hur länge det väntas på slutpunktens svar innan steget misslyckas. | 30 sekunder |
 
 Steget lyckas vid ett `2xx`- eller `3xx`-svar och misslyckas vid allt annat, med `HTTP <status>` som fel. Omdirigeringar följs inte. Svarets status, headers och body registreras, upp till 50 KB.
@@ -194,7 +194,7 @@ Be AI att analysera, sammanfatta eller besluta något mitt i körningen. Svaret 
 | **Include previous step context** | När den är påslagen ser AI:n allt om de steg som kördes före det här: titel, typ, status, output och felmeddelanden. Den får upp till 4 000 tecken av varje stegs output. |
 | **Include trigger context** | När den är påslagen ser AI:n vad som startade körningen: den kopplade incidenten, larmet eller den schemalagda underhållshändelsen (beskrivning, allvarlighetsgrad, aktuellt tillstånd, berörda monitorer, grundorsak, tillståndstidslinje och publika anteckningar), eller vem som körde runbooket manuellt. |
 
-Kombinera ett AI-steg med **Kräv godkännande** för att hålla en människa i loopen: AI:n analyserar, en person läser svaret och godkänner, och först därefter körs nästa (åtgärdande) steg.
+För att hålla en människa i loopen slår du på **Kräv godkännande** på steget efter ett AI-steg: AI:n analyserar, en person läser svaret, och det åtgärdande steget körs först när personen godkänner det.
 
 **Vad AI:n aldrig ser.** Svaret från ett AI-steg sparas som stegoutput på körningen, och körningar kan läsas av alla med läsbehörighet för runbooks, en bredare publik än incidentens. Därför utelämnar utlösarkontexten **privata interna anteckningar** och **kanalmeddelanden från Slack och Microsoft Teams**. Outputen från tidigare steg genomsöks efter hemligheter (tokens, nycklar, autentiseringsuppgifter), som maskeras innan den skickas till modellen. Inbäddade bilder och långa kodade data, till exempel en skärmbild som klistrats in i en incidents beskrivning, utelämnas också, med en kort notering i stället.
 
@@ -202,19 +202,27 @@ AI-steg mäts och faktureras som alla andra AI-funktioner. Steget misslyckas med
 
 ## Felhantering och godkännanden
 
-```mermaid title="Vad som händer efter ett automatiserat steg"
+```mermaid title="Vad som händer vid ett automatiserat steg"
 flowchart TB
-    run["Ett automatiserat<br/>steg körs"] --> ok{"Lyckades det?"}
-    ok -->|"ja"| approval{"Kräv godkännande<br/>påslaget?"}
+    reach["Körningen når ett<br/>automatiserat steg"] --> approval{"Kräv godkännande<br/>påslaget?"}
     approval -->|"ja"| wait["Körningen<br/>väntar på att en<br/>person godkänner"]
-    approval -->|"nej"| next["Nästa steg körs"]
-    wait --> next
+    wait -->|"godkänt"| run["Steget körs"]
+    approval -->|"nej"| run
+    wait -->|"överhoppat"| next["Nästa steg"]
+    run --> ok{"Lyckades det?"}
+    ok -->|"ja"| next
     ok -->|"nej"| cont{"Fortsätt vid<br/>fel påslaget?"}
     cont -->|"ja"| next
     cont -->|"nej"| failed["Körningen stoppar<br/>som misslyckad"]
 ```
 
-Som standard stoppar ett steg som misslyckas körningen och markerar den som `Failed`, med stegets fel som orsak. Med **Fortsätt vid fel** påslaget registreras felet och nästa steg körs, vilket passar runbooks av typen "prova de här tre sakerna och meddela sedan". **Kräv godkännande** gäller efter att ett steg har lyckats: körningen väntar på det steget tills någon klickar på **Approve & continue** eller **Hoppa över**.
+Som standard stoppar ett steg som misslyckas körningen och markerar den som `Failed`, med stegets fel som orsak. Med **Fortsätt vid fel** påslaget registreras felet och nästa steg körs, vilket passar runbooks av typen "prova de här tre sakerna och meddela sedan".
+
+**Kräv godkännande** gäller innan ett steg körs, vad som än hände före det: körningen väntar tills någon klickar på **Godkänn och kör**, och steget körs, eller på **Hoppa över**, och det körs aldrig. Slå på det för steget som ändrar något - omstarten, failovern, nedskalningen - så att en person först ser vad stegen före det hittade. Godkännandet hör till steget, så flyttar du steget följer det med.
+
+:::note
+Via API:t och Terraform är brytaren ett stegs fält `requireApprovalBeforeRunning`. Ett stegs fält `requireApproval`, som runbooks skrev innan godkännanden flyttade till steget de skyddar, fungerar fortfarande och betyder det det betydde: ett godkännande efter det steget. OneUptime läser det som ett godkännande före nästa steg eller, efter det sista steget, som ett Manual-steg i slutet med titeln **Approve the result**.
+:::
 
 ## Spara och redigera
 

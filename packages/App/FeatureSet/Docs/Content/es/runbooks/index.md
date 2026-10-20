@@ -158,7 +158,7 @@ La ejecución se queda en la página **Runbooks** del incidente. Cuando escribas
 - **Vaciado de caché**: una solicitud HTTP y después un paso Manual «confirmar que la tasa de aciertos de la caché se recupera».
 - **Incidente con impacto en clientes**: Manual «publicar una actualización en la página de estado», una solicitud HTTP para avisar al equipo de soporte, JavaScript para obtener la lista de cuentas afectadas.
 - **Comprobación previa de un mantenimiento programado**: tomar instantáneas de métricas, confirmar la ventana de cambio con las partes interesadas (Manual), activar el modo de mantenimiento en el balanceador de carga (HTTP request).
-- **Diagnosticar y luego corregir**: un paso Bash recoge diagnósticos, un paso de IA con **Requerir aprobación** los lee y recomienda una corrección, y un paso kubectl reinicia la carga de trabajo solo cuando una persona lo ha aprobado.
+- **Diagnosticar y luego corregir**: un paso Bash recoge diagnósticos, un paso de IA los lee y recomienda una corrección, y un paso kubectl con **Requerir aprobación** reinicia la carga de trabajo solo cuando una persona lo ha aprobado.
 - **Higiene que siempre se ejecuta**: una regla sin condiciones que captura el estado del sistema en cada incidente, para el postmortem.
 
 ## Cómo encajan los runbooks con el resto de OneUptime

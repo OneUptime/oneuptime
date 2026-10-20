@@ -157,7 +157,7 @@ Controlla, in quest'ordine:
 - La regola è **Abilitato**.
 - Ogni runbook ha **Esegui questo runbook** attivo, nella sua pagina **Impostazioni**, e almeno un passaggio salvato.
 - L'incidente o l'avviso non è stato creato già risolto.
-- L'esecuzione del runbook non sta semplicemente aspettando: aprila dalla pagina **Runbook** dell'evento. Un passaggio Manual o un'approvazione mostra **In attesa di te**.
+- L'esecuzione del runbook non sta semplicemente aspettando: aprila dalla pagina **Runbook** dell'evento. Un passaggio Manual mostra **In attesa di te**, e un passaggio che richiede approvazione **In attesa di approvazione**.
 :::
 
 :::details Una regola non corrisponde mai

@@ -157,7 +157,7 @@ Verifique, nesta ordem:
 - A regra está **Habilitado**.
 - Cada runbook tem **Executar este runbook** ligado, na página **Configurações** dele, e pelo menos uma etapa salva.
 - O incidente ou alerta não foi criado já resolvido.
-- A execução do runbook não está simplesmente esperando: abra-a pela página **Runbooks** do evento. Uma etapa Manual ou uma aprovação mostra **Aguardando você**.
+- A execução do runbook não está simplesmente esperando: abra-a pela página **Runbooks** do evento. Uma etapa Manual mostra **Aguardando você**, e uma etapa que precisa de aprovação, **Aguardando aprovação**.
 :::
 
 :::details Uma regra nunca corresponde

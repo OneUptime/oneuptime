@@ -372,6 +372,22 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/Runbook/RunbookVariablesMovePostgres.test.ts --forceExit
 
+      # Clones the migrated runbook and run tables into an isolated schema and
+      # moves every runbook's approval after a step to the step it held back
+      # (or to a Manual step after the last one): a compare-and-set of jsonb
+      # against the steps read, so a save made meanwhile wins; runs already
+      # started keep their own steps; a second run changes nothing.
+      - name: Test moving runbook approvals before their steps against Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_RUNBOOK_APPROVALS_TESTS: "true"
+          RUNBOOK_APPROVALS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          RUNBOOK_APPROVALS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          RUNBOOK_APPROVALS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Runbook/RunbookApprovalsMovePostgres.test.ts --forceExit
+
       # Clones the migrated RunnerJob and Project tables into an isolated
       # schema and runs the global Runners' claim against them: the oldest
       # global JavaScript step of whichever project, never a step aimed at a

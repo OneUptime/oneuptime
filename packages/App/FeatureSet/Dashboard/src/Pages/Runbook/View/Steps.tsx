@@ -36,9 +36,16 @@ import RunbookVariableChoicesLoader, {
   getUnknownVariableReferences,
 } from "../../../Components/Runbook/Steps/RunbookVariableChoices";
 import {
+  CONTINUE_ON_FAILURE_DESCRIPTION,
+  CONTINUE_ON_FAILURE_TITLE,
+  HTTP_HEADERS_TITLE,
   KUBECONFIG_TITLE,
   KUBECTL_EXAMPLES,
+  MANUAL_INSTRUCTIONS_TITLE,
+  NEEDS_APPROVAL_LABEL,
   NO_PASSPHRASE_LABEL,
+  REQUIRE_APPROVAL_DESCRIPTION,
+  REQUIRE_APPROVAL_TITLE,
   RUNNER_OWN_KUBECONFIG_LABEL,
   SSH_EXAMPLES,
   SSH_PASSPHRASE_TITLE,
@@ -52,8 +59,12 @@ import {
   formatSshTarget,
   getFirstCommand,
   getStepMoreFieldsItems,
+  isHttpBodyShown,
   isLegacyCredentialStep,
+  readStepsForEditor,
+  setStepRequiresApproval,
 } from "../../../Components/Runbook/Steps/RunbookStepEditorModel";
+import { stepRequiresApprovalBeforeRunning } from "Common/Types/Runbook/RunbookStepApproval";
 import RunnerChoicesLoader, {
   RunnerChoices,
 } from "../../../Components/Runner/RunnerChoices";
@@ -473,7 +484,7 @@ function newStep(type: RunbookStepType, order: number): RunbookStep {
   };
   if (isAutomatedStep(type)) {
     base.continueOnFailure = false;
-    base.requireApproval = false;
+    base.requireApprovalBeforeRunning = false;
   }
   return base;
 }
@@ -681,17 +692,14 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       setVariableChoices(loadedVariableChoices);
 
-      const loaded: RunbookStep[] =
-        (runbook?.steps as unknown as RunbookStep[]) || [];
-      loaded.sort((a: RunbookStep, b: RunbookStep) => {
-        return (a.order ?? 0) - (b.order ?? 0);
-      });
+      /*
+       * In the order they run, each with an id - and every approval on the
+       * step it holds back, so a runbook an API client wrote with the old
+       * "approval after this step" shows the way it runs.
+       */
+      const loaded: RunbookStep[] = readStepsForEditor(runbook?.steps);
       const initialCollapsed: Record<string, boolean> = {};
-      loaded.forEach((s: RunbookStep, idx: number) => {
-        s.order = idx;
-        if (!s.id) {
-          s.id = UUID.generate();
-        }
+      loaded.forEach((s: RunbookStep) => {
         // Default existing steps to collapsed so the page is scannable.
         initialCollapsed[s.id] = true;
       });
@@ -1027,16 +1035,19 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
       ...providerOptions,
     ];
 
+    /*
+     * Always set to something - the project default when nothing is pinned -
+     * so the field is not marked optional and has nothing to clear: picking
+     * the project default is how a pin is taken off.
+     */
     return (
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1.5">
-          {translator.translateText("LLM provider")}{" "}
-          <span className="text-gray-400">
-            {translator.translateText("(optional)")}
-          </span>
+          {translator.translateText("LLM provider")}
         </label>
         <Dropdown
           options={options}
+          isClearable={false}
           value={staleOption || knownOption || defaultOption}
           placeholder="Project default"
           onChange={(
@@ -1060,7 +1071,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
             </span>
           ) : (
             <TranslatedSentence
-              template="Leave this on {{projectDefault}} unless this step needs a specific model — a cheaper one for routine triage, or a self-hosted one for data that should not leave your network. Changing the project default later moves every step still set to default; a pinned step stays where you put it."
+              template="Leave this on {{projectDefault}} unless this step needs a specific model."
               slots={{
                 projectDefault: (
                   <strong>{translator.translateText("Project default")}</strong>
@@ -1156,17 +1167,26 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     );
   };
 
+  /*
+   * A step's description: on a Manual step, the instructions the responder
+   * reads and follows, on the card; on any other step, notes about it,
+   * under More fields.
+   */
   const renderDescriptionField: (
     step: RunbookStep,
     idx: number,
   ) => ReactElement = (step: RunbookStep, idx: number): ReactElement => {
+    const isManual: boolean = step.type === RunbookStepType.Manual;
+
     return (
       <div>
         <label
           htmlFor={`runbook-step-${idx}-description`}
           className="block text-xs font-medium text-gray-700 mb-1.5"
         >
-          {translator.translateText("Description")}
+          {translator.translateText(
+            isManual ? MANUAL_INSTRUCTIONS_TITLE : "Description",
+          )}
           <span className="ml-2 text-[10px] font-normal text-gray-400">
             {translator.translateText("Markdown supported")}
           </span>
@@ -1180,8 +1200,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
             });
           }}
           placeholder={
-            step.type === RunbookStepType.Manual
-              ? "Instructions the responder will see when they reach this step. Markdown is supported."
+            isManual
+              ? "What should the responder do or check? Markdown is supported."
               : "Optional notes about what this step does. Markdown is supported."
           }
         />
@@ -1189,30 +1209,39 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     );
   };
 
-  // Continue on failure and Require approval, which every automated step has.
-  const renderFailureToggles: (
+  /*
+   * The two switches every automated step has, first under its More fields:
+   * whether the run stops before this step for someone to approve it, and
+   * whether a failure stops the run.
+   */
+  const renderRunSwitches: (step: RunbookStep, idx: number) => ReactElement = (
     step: RunbookStep,
     idx: number,
-  ) => ReactElement = (step: RunbookStep, idx: number): ReactElement => {
+  ): ReactElement => {
     return (
       <div className="flex flex-col gap-3">
         <Toggle
-          title="Continue on failure"
-          description="If this step fails, continue to the next step instead of stopping the runbook."
-          value={Boolean(step.continueOnFailure)}
+          title={REQUIRE_APPROVAL_TITLE}
+          description={REQUIRE_APPROVAL_DESCRIPTION}
+          value={stepRequiresApprovalBeforeRunning(step)}
+          dataTestId={`runbook-step-${idx}-require-approval`}
           onChange={(v: boolean) => {
-            return updateStep(idx, {
-              continueOnFailure: v,
+            setSteps((prev: RunbookStep[]) => {
+              const copy: RunbookStep[] = [...prev];
+              copy[idx] = setStepRequiresApproval(copy[idx]!, v);
+              return copy;
             });
+            markDirty();
           }}
         />
         <Toggle
-          title="Require approval before running the next step"
-          description="After this step completes, pause the runbook and wait for a user to approve before running the next step."
-          value={Boolean(step.requireApproval)}
+          title={CONTINUE_ON_FAILURE_TITLE}
+          description={CONTINUE_ON_FAILURE_DESCRIPTION}
+          value={Boolean(step.continueOnFailure)}
+          dataTestId={`runbook-step-${idx}-continue-on-failure`}
           onChange={(v: boolean) => {
             return updateStep(idx, {
-              requireApproval: v,
+              continueOnFailure: v,
             });
           }}
         />
@@ -1319,6 +1348,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           step,
           idx,
           <>
+            {renderRunSwitches(step, idx)}
             {renderDescriptionField(step, idx)}
             {renderAgentTimeouts({
               idx,
@@ -1332,7 +1362,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               ),
               executionBounds: STEP_EXECUTION_TIMEOUT_BOUNDS,
             })}
-            {renderFailureToggles(step, idx)}
           </>,
         )}
       </>
@@ -1359,7 +1388,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           helperText: (
             <>
               {translator.translateText(
-                "JavaScript runs on the selected Runner, in your own infrastructure. The step waits for that Runner to pick it up, or fails after the claim timeout.",
+                "Runs on this Runner, in your own infrastructure.",
               )}
             </>
           ),
@@ -1388,6 +1417,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           step,
           idx,
           <>
+            {renderRunSwitches(step, idx)}
             {renderDescriptionField(step, idx)}
             {renderAgentTimeouts({
               idx,
@@ -1405,7 +1435,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   ? GLOBAL_RUNNER_STEP_EXECUTION_TIMEOUT_BOUNDS
                   : STEP_EXECUTION_TIMEOUT_BOUNDS,
             })}
-            {renderFailureToggles(step, idx)}
           </>,
         )}
       </>
@@ -1427,6 +1456,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
             </label>
             <Dropdown
               options={HTTP_METHOD_OPTIONS}
+              // A request always has a method: nothing to clear.
+              isClearable={false}
               value={HTTP_METHOD_OPTIONS.find((o: DropdownOption) => {
                 return o.value === (config.method || "GET");
               })}
@@ -1458,67 +1489,81 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
             />
           </div>
         </div>
-        <div>
-          <label
-            htmlFor={`runbook-step-${idx}-http-headers`}
-            className="block text-xs font-medium text-gray-700 mb-1.5"
-          >
-            {translator.translateText("Headers (JSON)")}
-          </label>
-          <CodeEditor
-            id={`runbook-step-${idx}-http-headers`}
-            type={CodeType.JSON}
-            value={config.headersJson || ""}
-            onChange={(v: string) => {
-              return updateConfig(idx, {
-                headersJson: v,
-              });
-            }}
-            placeholder={'{ "Authorization": "Bearer ..." }'}
-          />
-        </div>
-        <div>
-          <label
-            htmlFor={`runbook-step-${idx}-http-body`}
-            className="block text-xs font-medium text-gray-700 mb-1.5"
-          >
-            {translator.translateText("Body")}
-          </label>
-          <CodeEditor
-            id={`runbook-step-${idx}-http-body`}
-            type={CodeType.JSON}
-            value={config.body || ""}
-            onChange={(v: string) => {
-              return updateConfig(idx, {
-                body: v,
-              });
-            }}
-            placeholder='{ "message": "..." }'
-          />
-        </div>
+        {/*
+         * The body a POST, PUT, PATCH or DELETE sends. A GET or HEAD sends
+         * none, so it shows no Body - unless it has one, which it sends.
+         */}
+        {isHttpBodyShown(config) ? (
+          <div>
+            <label
+              htmlFor={`runbook-step-${idx}-http-body`}
+              className="block text-xs font-medium text-gray-700 mb-1.5"
+            >
+              {translator.translateText("Body")}
+            </label>
+            <CodeEditor
+              id={`runbook-step-${idx}-http-body`}
+              type={CodeType.JSON}
+              value={config.body || ""}
+              onChange={(v: string) => {
+                return updateConfig(idx, {
+                  body: v,
+                });
+              }}
+              placeholder='{ "message": "..." }'
+            />
+          </div>
+        ) : (
+          <></>
+        )}
         {renderMoreFields(
           step,
           idx,
           <>
+            {renderRunSwitches(step, idx)}
+            <div>
+              <label
+                htmlFor={`runbook-step-${idx}-http-headers`}
+                className="block text-xs font-medium text-gray-700 mb-1.5"
+              >
+                {translator.translateText(HTTP_HEADERS_TITLE)}
+              </label>
+              <CodeEditor
+                id={`runbook-step-${idx}-http-headers`}
+                type={CodeType.JSON}
+                value={config.headersJson || ""}
+                onChange={(v: string) => {
+                  return updateConfig(idx, {
+                    headersJson: v,
+                  });
+                }}
+                placeholder={'{ "Authorization": "Bearer ..." }'}
+              />
+            </div>
             {renderDescriptionField(step, idx)}
-            <StepTimeoutInput
-              label="Request timeout"
-              value={config.timeoutInMs}
-              bounds={STEP_EXECUTION_TIMEOUT_BOUNDS}
-              description={
-                <>
-                  {translator.translateText(
-                    "How long to wait for the endpoint to respond before failing the step.",
-                  )}
-                </>
-              }
-              onChange={(timeoutInMs: number | undefined) => {
-                updateConfig(idx, {
-                  timeoutInMs,
-                });
-              }}
-            />
-            {renderFailureToggles(step, idx)}
+            {/*
+             * Half the width, as every other step's timeouts are: a number
+             * of seconds needs no more.
+             */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <StepTimeoutInput
+                label="Request timeout"
+                value={config.timeoutInMs}
+                bounds={STEP_EXECUTION_TIMEOUT_BOUNDS}
+                description={
+                  <>
+                    {translator.translateText(
+                      "How long to wait for the endpoint to respond before failing the step.",
+                    )}
+                  </>
+                }
+                onChange={(timeoutInMs: number | undefined) => {
+                  updateConfig(idx, {
+                    timeoutInMs,
+                  });
+                }}
+              />
+            </div>
           </>,
         )}
       </>
@@ -1545,7 +1590,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           helperText: (
             <>
               {translator.translateText(
-                "Bash runs on the selected Runner, in your own infrastructure. The step waits for that Runner to pick it up, or fails after the claim timeout.",
+                "Runs on this Runner, in your own infrastructure.",
               )}
             </>
           ),
@@ -1572,6 +1617,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           step,
           idx,
           <>
+            {renderRunSwitches(step, idx)}
             {renderDescriptionField(step, idx)}
             {renderAgentTimeouts({
               idx,
@@ -1586,7 +1632,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               ),
               executionBounds: STEP_EXECUTION_TIMEOUT_BOUNDS,
             })}
-            {renderFailureToggles(step, idx)}
           </>,
         )}
       </>
@@ -1681,6 +1726,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           step,
           idx,
           <>
+            {renderRunSwitches(step, idx)}
             <div className="max-w-xs">
               <label
                 htmlFor={`runbook-step-${idx}-ssh-port`}
@@ -1731,7 +1777,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               ),
               executionBounds: STEP_EXECUTION_TIMEOUT_BOUNDS,
             })}
-            {renderFailureToggles(step, idx)}
           </>,
         )}
       </>
@@ -1814,6 +1859,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           step,
           idx,
           <>
+            {renderRunSwitches(step, idx)}
             {renderDescriptionField(step, idx)}
             {renderAgentTimeouts({
               idx,
@@ -1828,7 +1874,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               ),
               executionBounds: STEP_EXECUTION_TIMEOUT_BOUNDS,
             })}
-            {renderFailureToggles(step, idx)}
           </>,
         )}
       </>
@@ -1858,7 +1903,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           />
           <p className="text-xs text-gray-500 mt-1.5">
             {translator.translateText(
-              "Runs on the LLM provider selected below (Project Settings › AI › LLM Providers). Calls are metered like any other AI feature. Pair with “Require approval” below to have a human review the AI’s answer before the next step runs.",
+              "The AI's answer becomes this step's output. AI calls are metered like any other AI feature.",
             )}
           </p>
           <div className="mt-2">
@@ -1876,6 +1921,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           step,
           idx,
           <>
+            {renderRunSwitches(step, idx)}
             {renderLlmProviderPicker({
               currentProviderId: config.llmProviderId || "",
               onChange: (id: string): void => {
@@ -1905,7 +1951,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               }}
             />
             {renderDescriptionField(step, idx)}
-            {renderFailureToggles(step, idx)}
           </>,
         )}
       </>
@@ -1981,7 +2026,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <Fragment>
       <Card
         title="Runbook Steps"
-        description="Steps run in order. A manual step waits until someone ticks it off. Drag a step to move it."
+        description="Steps run in order. A manual step waits until someone ticks it off, and a step that needs approval until someone approves it. Drag a step to move it."
         rightElement={
           steps.length > 0 ? (
             <div className="flex items-center gap-2">
@@ -2116,7 +2161,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                    */}
                                   <div
                                     data-testid="runbook-step-header"
-                                    className="relative flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
+                                    className="relative flex items-center gap-2 px-4 py-3 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors sm:gap-3"
                                   >
                                     <div
                                       {...draggableProvided.dragHandleProps}
@@ -2139,7 +2184,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                       onClick={() => {
                                         toggleCollapsed(stepId);
                                       }}
-                                      className="flex min-w-0 flex-1 items-center gap-3 text-left after:absolute after:inset-0 focus:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-indigo-500"
+                                      className="flex min-w-0 flex-1 items-center gap-2 text-left after:absolute after:inset-0 focus:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-indigo-500 sm:gap-3"
                                     >
                                       <Icon
                                         icon={
@@ -2154,8 +2199,17 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                       >
                                         {idx + 1}
                                       </div>
-                                      <span
-                                        className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${meta.bg} ${meta.iconColor} ring-1 ring-inset ${meta.ring} flex-shrink-0`}
+                                      {/*
+                                       * The step's type: its icon and name.
+                                       * Not drawn on a phone, where the title
+                                       * needs the room - the number's colour
+                                       * and the line under the title say the
+                                       * type there - but still read out by a
+                                       * screen reader.
+                                       */}
+                                      <div
+                                        className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${meta.bg} ${meta.iconColor} ring-1 ring-inset ${meta.ring} flex-shrink-0 max-sm:sr-only`}
+                                        data-testid={`runbook-step-${idx}-type`}
                                       >
                                         <Icon
                                           icon={meta.icon}
@@ -2163,10 +2217,56 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                           className={meta.iconColor}
                                         />
                                         {meta.shortLabel}
-                                      </span>
+                                      </div>
                                       <div className="min-w-0 flex-1">
-                                        <div className="text-sm font-semibold text-gray-900 truncate">
-                                          {step.title || meta.label}
+                                        <div className="flex min-w-0 items-center gap-2 max-sm:items-start">
+                                          {/*
+                                           * One line, cut short, beside the
+                                           * step's type; on a phone up to two,
+                                           * so a title reads as more than its
+                                           * first word.
+                                           */}
+                                          <div
+                                            className="text-sm font-semibold text-gray-900 truncate max-sm:whitespace-normal max-sm:break-words max-sm:line-clamp-2"
+                                            data-testid={`runbook-step-${idx}-title-text`}
+                                          >
+                                            {step.title || meta.label}
+                                          </div>
+                                          {/*
+                                           * Where the run stops for a person
+                                           * to approve: on the step it holds
+                                           * back, open or folded - drawn as a
+                                           * security playbook step says it.
+                                           */}
+                                          {stepRequiresApprovalBeforeRunning(
+                                            step,
+                                          ) ? (
+                                            /*
+                                             * A phone shows the lock alone,
+                                             * so the title keeps its room;
+                                             * the words stay for a screen
+                                             * reader.
+                                             */
+                                            <div
+                                              className="inline-flex flex-shrink-0 items-center gap-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-600"
+                                              title={translator.translateText(
+                                                NEEDS_APPROVAL_LABEL,
+                                              )}
+                                              data-testid={`runbook-step-${idx}-needs-approval`}
+                                            >
+                                              <Icon
+                                                icon={IconProp.Lock}
+                                                className="h-3 w-3"
+                                              />
+                                              <span className="max-sm:sr-only">
+                                                {translator.translateText(
+                                                  NEEDS_APPROVAL_LABEL,
+                                                )}
+                                              </span>
+                                            </div>
+                                          ) : (
+                                            <></>
+                                          )}
                                         </div>
                                         {isCollapsed && (
                                           <div className="text-xs text-gray-500 truncate">

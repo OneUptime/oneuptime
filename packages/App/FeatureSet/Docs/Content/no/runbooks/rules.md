@@ -157,7 +157,7 @@ Kontroller i denne rekkefølgen:
 - Regelen er **Aktivert**.
 - Hvert runbook har **Kjør dette runbooket** slått på på siden **Innstillinger** og minst ett lagret trinn.
 - Hendelsen eller varselet ble ikke opprettet allerede løst.
-- Kjøringen av runbooket venter ikke bare: åpne den fra begivenhetens side **Runbooks**. Et Manual-trinn eller en godkjenning viser **Venter på deg**.
+- Kjøringen av runbooket venter ikke bare: åpne den fra begivenhetens side **Runbooks**. Et Manual-trinn viser **Venter på deg**, og et trinn som krever godkjenning, **Venter på godkjenning**.
 :::
 
 :::details En regel treffer aldri

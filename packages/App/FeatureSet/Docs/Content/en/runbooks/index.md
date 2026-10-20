@@ -158,7 +158,7 @@ The execution stays on the incident's **Runbooks** page. When you write the post
 - **Cache flush**: one HTTP request, then a Manual "confirm the cache hit rate is recovering".
 - **Customer-impacting incident**: Manual "post a status page update", HTTP request to notify the support team, JavaScript to pull the list of affected accounts.
 - **Scheduled maintenance pre-flight**: snapshot metrics, confirm the change window with stakeholders (Manual), enable maintenance mode on the load balancer (HTTP request).
-- **Diagnose, then fix**: a Bash step collects diagnostics, an AI step with **Require approval** reads them and recommends a fix, and a kubectl step restarts the workload only once a person has approved.
+- **Diagnose, then fix**: a Bash step collects diagnostics, an AI step reads them and recommends a fix, and a kubectl step with **Require approval** restarts the workload only once a person has approved it.
 - **Always-run hygiene**: a rule with no conditions that captures system state on every incident, for the postmortem.
 
 ## How runbooks fit with the rest of OneUptime

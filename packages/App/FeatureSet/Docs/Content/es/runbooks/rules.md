@@ -157,7 +157,7 @@ Comprueba, en orden:
 - La regla está **Habilitado**.
 - Cada runbook tiene **Ejecutar este runbook** activado, en su página **Ajustes**, y al menos un paso guardado.
 - El incidente o la alerta no se creó ya resuelto.
-- La ejecución del runbook no está simplemente esperando: ábrela desde la página **Runbooks** del evento. Un paso Manual o una aprobación muestra **Esperándote**.
+- La ejecución del runbook no está simplemente esperando: ábrela desde la página **Runbooks** del evento. Un paso Manual muestra **Esperándote**, y un paso que necesita aprobación, **Esperando aprobación**.
 :::
 
 :::details Una regla nunca coincide
