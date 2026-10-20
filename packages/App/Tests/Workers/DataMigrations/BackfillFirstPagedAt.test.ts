@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import FirstPagedAt from "Common/Server/Utils/OnCall/FirstPagedAt";
 import logger from "Common/Server/Utils/Logger";
 import BackfillFirstPagedAt from "../../../FeatureSet/Workers/DataMigrations/BackfillFirstPagedAt";
@@ -75,7 +76,7 @@ describe("BackfillFirstPagedAt", () => {
   });
 
   test("runs the backfill and says what it filled", async () => {
-    const backfill: jest.SpiedFunction<typeof FirstPagedAt.backfill> = jest
+    const backfill: SpyInstance<typeof FirstPagedAt.backfill> = jest
       .spyOn(FirstPagedAt, "backfill")
       .mockResolvedValue({
         filledByTable: {
@@ -106,8 +107,10 @@ describe("BackfillFirstPagedAt", () => {
   });
 
   test("has nothing to roll back", async () => {
-    const backfill: jest.SpiedFunction<typeof FirstPagedAt.backfill> =
-      jest.spyOn(FirstPagedAt, "backfill");
+    const backfill: SpyInstance<typeof FirstPagedAt.backfill> = jest.spyOn(
+      FirstPagedAt,
+      "backfill",
+    );
 
     await expect(new BackfillFirstPagedAt().rollback()).resolves.toBe(
       undefined,
