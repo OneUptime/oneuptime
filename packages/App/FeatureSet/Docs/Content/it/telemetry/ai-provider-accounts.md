@@ -36,10 +36,6 @@ L'utilizzo di un account è ciò che gli è stato addebitato, un giorno alla vol
 
 Apri **Prodotti → AI / LLM → Collega**. In **I tuoi account dei provider di IA**, fai clic sul riquadro del provider.
 
-### Leggi da dove viene la credenziale
-
-**Configura** dice cosa ti serve, cosa arriva e dove questa pagina lo spiega.
-
 ### Incolla la credenziale
 
 In **Credenziali**, compila ciò che il provider chiede. I segreti sono salvati cifrati e non vengono mai più mostrati, né nella Dashboard né tramite l'API. **Nome** e le impostazioni che quasi nessuno cambia sono in **Altri campi**.

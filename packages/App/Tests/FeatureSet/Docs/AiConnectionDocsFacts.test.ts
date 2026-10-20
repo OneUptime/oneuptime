@@ -466,8 +466,8 @@ describe("the AI Provider Accounts page", () => {
     const budgets: string = source("budgets");
 
     expect(budgets).toContain('title: "Count spend from",');
-    expect(budgets).toContain('label: "Provider accounts",');
-    expect(budgets).toContain('label: "Your AI calls",');
+    expect(budgets).toContain('title: "Provider accounts",');
+    expect(budgets).toContain('title: "Your AI calls",');
     expect(page).toContain("set **Count spend from** to **Provider accounts**");
   });
 
@@ -496,9 +496,13 @@ describe("connecting, on both pages", () => {
   it("walks through the form's own steps and its Connect button", () => {
     const form: string = source("form");
 
-    for (const step of ["Set up", "Credentials", "Privacy", "Test"]) {
+    for (const step of ["Credentials", "Privacy", "Test"]) {
       expect(form).toContain(`title: "${step}" }`);
     }
+
+    // No step only reads aloud: where a credential comes from is said on
+    // Credentials, above the field it goes in.
+    expect(form).not.toContain('title: "Set up" }');
 
     expect(form).toContain(
       'submitButtonText={isEditing ? "Save changes" : "Connect"}',
@@ -518,7 +522,7 @@ describe("connecting, on both pages", () => {
     );
     expect(
       section(englishPage(PROVIDER_ACCOUNTS), "Connect an account"),
-    ).toContain("**Set up**");
+    ).not.toContain("**Set up**");
   });
 
   it("opens each kind under the tiles' own card titles", () => {
@@ -605,8 +609,9 @@ describe("the Company AI Tools page", () => {
 
     expect(form).toContain('title: "Who can read conversations",');
     expect(form).toContain("defaultValue: LlmConversationReaders.Admins,");
-    expect(form).toContain('label: "Project owners and admins",');
-    expect(form).toContain('label: "Everyone who can read AI calls",');
+    // Two answers in view, as radio buttons.
+    expect(form).toContain('title: "Project owners and admins",');
+    expect(form).toContain('title: "Everyone who can read AI calls",');
     expect(readers[1]).toContain(
       "**Project owners and admins**, the default: nobody else in the project sees these conversations",
     );

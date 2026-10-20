@@ -36,10 +36,6 @@ Forbruket til en konto er det den ble fakturert for, én dag om gangen. Det inne
 
 Åpne **Produkter → AI / LLM → Koble til**. Under **Kontoene dine hos AI-leverandører** klikker du på leverandørens flis.
 
-### Les hvor påloggingsinformasjonen kommer fra
-
-**Konfigurer** sier hva du trenger, hva som kommer inn og hvor denne siden forklarer det.
-
 ### Lim inn påloggingsinformasjonen
 
 Under **Påloggingsinformasjon** fyller du ut det leverandøren ber om. Hemmeligheter lagres kryptert og vises aldri igjen, verken i Dashboardet eller via API-et. **Navn** og innstillingene de fleste lar være, ligger under **Flere felt**.

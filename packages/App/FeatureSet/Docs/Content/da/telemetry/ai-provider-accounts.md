@@ -36,10 +36,6 @@ En kontos forbrug er det, den blev faktureret for, én dag ad gangen. Det indeho
 
 Åbn **Produkter → AI / LLM → Forbind**. Under **Dine konti hos AI-udbydere** klikker du på udbyderens felt.
 
-### Læs, hvor legitimationsoplysningerne kommer fra
-
-**Konfigurer** fortæller, hvad du skal bruge, hvad der kommer ind, og hvor denne side forklarer det.
-
 ### Indsæt legitimationsoplysningerne
 
 Under **Loginoplysninger** udfylder du det, udbyderen beder om. Hemmeligheder gemmes krypteret og vises aldrig igen, hverken i Dashboardet eller via API'et. **Navn** og de indstillinger, de fleste lader være, ligger under **Flere felter**.

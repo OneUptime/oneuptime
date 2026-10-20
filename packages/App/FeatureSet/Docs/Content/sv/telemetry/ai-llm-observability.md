@@ -33,7 +33,7 @@ flowchart TB
 | **Varningar** | Färdiga varningar för när AI:n svarar dåligt, och dina AI / LLM-monitorer. |
 | **Budgetar** | Dagliga kostnadsgränser, publicerade som mätvärden som du kan varna på. |
 | **Priser** | Dina egna priser för modeller som den inbyggda prislistan inte känner till. |
-| **Anslut** | De tre vägarna in, med en checklista som bockar av var och en så fort den fungerar. |
+| **Anslut** | De tre vägarna in, sida vid sida, var och en avbockad så fort den fungerar. |
 
 I trace-visaren har spannet för varje AI-anrop också en **LLM**-flik: leverantör, modell, tokens, kostnad, begärandeparametrar samt prompten och svaret.
 

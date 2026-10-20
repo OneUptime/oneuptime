@@ -33,7 +33,7 @@ Ouvrez **Produits → IA / LLM**, sous **Observabilité**. Le produit compte sep
 | **Alertes** | Des alertes prêtes à l'emploi pour quand l'IA répond mal, et vos moniteurs IA / LLM. |
 | **Budgets** | Des plafonds de coût quotidiens, publiés sous forme de métriques sur lesquelles alerter. |
 | **Tarifs** | Vos propres prix pour les modèles que la liste de prix intégrée ne connaît pas. |
-| **Connecter** | Les trois façons d'entrer, avec une liste qui coche chacune dès qu'elle fonctionne. |
+| **Connecter** | Les trois façons d'entrer, côte à côte, chacune cochée dès qu'elle fonctionne. |
 
 Dans la visionneuse de traces, le span de chaque appel d'IA a aussi un onglet **LLM** : fournisseur, modèle, jetons, coût, paramètres de la requête, ainsi que le prompt et la réponse.
 

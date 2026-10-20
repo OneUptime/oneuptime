@@ -36,10 +36,6 @@ O uso de uma conta é o que foi cobrado dela, um dia de cada vez. Ele não tem c
 
 Abra **Produtos → AI / LLM → Conectar**. Em **Suas contas de provedores de IA**, clique no bloco do provedor.
 
-### Leia de onde vem a credencial
-
-**Configurar** diz do que você precisa, o que chega e onde esta página explica.
-
 ### Cole a credencial
 
 Em **Credenciais**, preencha o que o provedor pede. Os segredos são guardados criptografados e nunca mais são mostrados, nem no Dashboard nem pela API. **Nome** e as configurações que quase ninguém muda ficam em **Mais campos**.

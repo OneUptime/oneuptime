@@ -36,10 +36,6 @@ An account's usage is what it was billed for, a day at a time. It holds no conve
 
 Open **Products → AI / LLM → Connect**. Under **Your AI provider accounts**, click the provider's tile.
 
-### Read where the credential comes from
-
-**Set up** says what you need, what arrives and where this page explains it.
-
 ### Paste the credential
 
 On **Credentials**, fill in what the provider asks for. Secrets are stored encrypted and are never shown again, in the Dashboard or through the API. **Name** and the settings most people leave alone are under **More fields**.

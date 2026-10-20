@@ -36,10 +36,6 @@ L'utilisation d'un compte est ce qui lui a été facturé, jour après jour. Ell
 
 Ouvrez **Produits → IA / LLM → Connecter**. Sous **Vos comptes de fournisseurs d'IA**, cliquez sur la tuile du fournisseur.
 
-### Lire d'où vient l'identifiant
-
-**Configurer** indique ce qu'il vous faut, ce qui arrive et où cette page l'explique.
-
 ### Coller l'identifiant
 
 Dans **Identifiants**, remplissez ce que demande le fournisseur. Les secrets sont stockés chiffrés et ne sont plus jamais affichés, ni dans le Dashboard ni par l'API. **Nom** et les réglages que la plupart des gens laissent tels quels se trouvent sous **Plus de champs**.

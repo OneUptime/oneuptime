@@ -33,7 +33,7 @@ Open **Producten → AI / LLM**, onder **Observability**. Het product heeft zeve
 | **Waarschuwingen** | Kant-en-klare waarschuwingen voor als de AI slecht antwoordt, en je AI / LLM-monitors. |
 | **Budgetten** | Dagelijkse kostenlimieten, gepubliceerd als metrieken waarop je kunt waarschuwen. |
 | **Prijzen** | Je eigen prijzen voor modellen die de ingebouwde prijslijst niet kent. |
-| **Koppelen** | De drie manieren erin, met een checklist die elke manier afvinkt zodra die werkt. |
+| **Koppelen** | De drie manieren erin, naast elkaar, elk afgevinkt zodra die werkt. |
 
 In de traceviewer heeft de span van elke AI-aanroep ook een tabblad **LLM**: provider, model, tokens, kosten, aanvraagparameters, en de prompt en het antwoord.
 

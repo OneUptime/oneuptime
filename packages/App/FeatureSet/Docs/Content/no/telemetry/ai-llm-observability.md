@@ -33,7 +33,7 @@ flowchart TB
 | **Varsler** | Ferdige varsler for når AI-en svarer dårlig, og AI / LLM-monitorene dine. |
 | **Budsjetter** | Daglige kostnadsgrenser, publisert som målinger du kan varsle på. |
 | **Priser** | Dine egne priser for modeller den innebygde prislisten ikke kjenner. |
-| **Koble til** | De tre veiene inn, med en sjekkliste som krysser av hver av dem så snart den virker. |
+| **Koble til** | De tre veiene inn, side om side, hver krysset av så snart den virker. |
 
 I trace-visningen har spannet for hvert AI-kall også en **LLM**-fane: leverandør, modell, tokens, kostnad, forespørselsparametere og prompten og svaret.
 

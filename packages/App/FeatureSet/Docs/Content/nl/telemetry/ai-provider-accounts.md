@@ -36,10 +36,6 @@ Het gebruik van een account is wat er in rekening is gebracht, dag voor dag. Het
 
 Open **Producten → AI / LLM → Koppelen**. Klik onder **Je accounts bij AI-providers** op de tegel van de provider.
 
-### Lees waar de inloggegevens vandaan komen
-
-**Instellen** zegt wat je nodig hebt, wat er binnenkomt en waar deze pagina het uitlegt.
-
 ### Plak de inloggegevens
 
 Vul bij **Inloggegevens** in wat de provider vraagt. Geheimen worden versleuteld opgeslagen en nooit meer getoond, niet in het Dashboard en niet via de API. **Naam** en de instellingen die de meeste mensen laten staan, vind je onder **Meer velden**.

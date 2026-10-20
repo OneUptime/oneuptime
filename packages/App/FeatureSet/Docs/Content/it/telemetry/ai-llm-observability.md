@@ -33,7 +33,7 @@ Apri **Prodotti → AI / LLM**, sotto **Osservabilità**. Il prodotto ha sette s
 | **Avvisi** | Avvisi pronti per quando l'IA risponde male, e i tuoi monitor IA / LLM. |
 | **Budget** | Limiti di costo giornalieri, pubblicati come metriche su cui impostare avvisi. |
 | **Prezzi** | I tuoi prezzi per i modelli che il listino integrato non conosce. |
-| **Collega** | Le tre vie d'ingresso, con una checklist che spunta ognuna appena inizia a funzionare. |
+| **Collega** | Le tre vie d'ingresso, una accanto all'altra, ognuna spuntata appena inizia a funzionare. |
 
 Nel visualizzatore di tracce, lo span di ogni chiamata di IA ha anche una scheda **LLM**: provider, modello, token, costo, parametri della richiesta, e il prompt e la risposta.
 

@@ -33,7 +33,7 @@ Abre **Productos → IA / LLM**, bajo **Observabilidad**. El producto tiene siet
 | **Alertas** | Alertas listas para cuando la IA responde mal, y tus monitores de IA / LLM. |
 | **Presupuestos** | Límites de coste diarios, publicados como métricas sobre las que alertar. |
 | **Precios** | Tus propios precios para modelos que la lista de precios integrada no conoce. |
-| **Conectar** | Las tres vías de entrada, con una lista que marca cada una en cuanto empieza a funcionar. |
+| **Conectar** | Las tres vías de entrada, una al lado de otra, cada una marcada en cuanto empieza a funcionar. |
 
 En el visor de trazas, el span de cada llamada de IA tiene además una pestaña **LLM**: proveedor, modelo, tokens, coste, parámetros de la solicitud, y el prompt y la respuesta.
 

@@ -33,7 +33,7 @@ Abra **Produtos → AI / LLM**, em **Observabilidade**. O produto tem sete abas:
 | **Alertas** | Alertas prontos para quando a IA responde mal, e seus monitores de IA / LLM. |
 | **Orçamentos** | Limites de custo diários, publicados como métricas sobre as quais você pode alertar. |
 | **Preços** | Seus próprios preços para modelos que a lista de preços embutida não conhece. |
-| **Conectar** | As três formas de entrada, com uma lista que marca cada uma assim que ela começa a funcionar. |
+| **Conectar** | As três formas de entrada, lado a lado, cada uma marcada assim que começa a funcionar. |
 
 No visualizador de traces, o span de cada chamada de IA também tem uma aba **LLM**: provedor, modelo, tokens, custo, parâmetros da requisição, e o prompt e a resposta.
 

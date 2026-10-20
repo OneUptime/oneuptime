@@ -36,10 +36,6 @@ El uso de una cuenta es lo que se le facturó, día a día. No contiene conversa
 
 Abre **Productos → IA / LLM → Conectar**. En **Tus cuentas de proveedores de IA**, haz clic en el mosaico del proveedor.
 
-### Lee de dónde sale la credencial
-
-**Configurar** dice qué necesitas, qué llega y dónde lo explica esta página.
-
 ### Pega la credencial
 
 En **Credenciales**, rellena lo que pide el proveedor. Los secretos se guardan cifrados y no se vuelven a mostrar nunca, ni en el Dashboard ni por la API. **Nombre** y los ajustes que casi nadie cambia están en **Más campos**.

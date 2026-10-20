@@ -36,10 +36,6 @@ Die Nutzung eines Kontos ist das, was ihm in Rechnung gestellt wurde, Tag für T
 
 Öffnen Sie **Produkte → KI / LLM → Verbinden**. Klicken Sie unter **Deine KI-Anbieterkonten** auf die Kachel des Anbieters.
 
-### Lesen, woher die Zugangsdaten kommen
-
-**Einrichten** sagt, was Sie brauchen, was ankommt und wo diese Seite es erklärt.
-
 ### Die Zugangsdaten einfügen
 
 Füllen Sie unter **Anmeldedaten** aus, was der Anbieter verlangt. Geheimnisse werden verschlüsselt gespeichert und nie wieder angezeigt, weder im Dashboard noch über die API. **Name** und die Einstellungen, die die meisten unverändert lassen, liegen unter **Weitere Felder**.

@@ -33,7 +33,7 @@ Open **Products → AI / LLM**, under **Observability**. The product has seven t
 | **Alerts** | Ready-made alerts for when the AI answers badly, and your AI / LLM monitors. |
 | **Budgets** | Daily cost limits, published as metrics you can alert on. |
 | **Pricing** | Your own prices for models the built-in price list does not know. |
-| **Connect** | The three ways in, with a checklist that ticks each one as it starts working. |
+| **Connect** | The three ways in, side by side, each ticked once it starts working. |
 
 In the trace viewer, the span of each AI call also has an **LLM** tab: provider, model, tokens, cost, request parameters, and the prompt and the answer.
 

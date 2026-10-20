@@ -33,7 +33,7 @@ flowchart TB
 | **Warnungen** | Fertige Warnungen für den Fall, dass die KI schlecht antwortet, und Ihre KI- / LLM-Monitore. |
 | **Budgets** | Tägliche Kostenlimits, als Metriken veröffentlicht, auf die Sie Warnungen setzen können. |
 | **Preise** | Ihre eigenen Preise für Modelle, die die integrierte Preisliste nicht kennt. |
-| **Verbinden** | Die drei Wege hinein, mit einer Checkliste, die jeden abhakt, sobald er funktioniert. |
+| **Verbinden** | Die drei Wege hinein, nebeneinander, jeder abgehakt, sobald er funktioniert. |
 
 Im Trace-Viewer hat der Span jedes KI-Aufrufs außerdem einen Tab **LLM**: Anbieter, Modell, Tokens, Kosten, Anfrageparameter sowie den Prompt und die Antwort.
 

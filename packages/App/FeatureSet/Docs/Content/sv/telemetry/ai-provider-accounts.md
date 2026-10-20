@@ -36,10 +36,6 @@ Ett kontos användning är det som det fakturerades för, en dag i taget. Den in
 
 Öppna **Produkter → AI / LLM → Anslut**. Under **Dina konton hos AI-leverantörer** klickar du på leverantörens ruta.
 
-### Läs var inloggningsuppgifterna kommer från
-
-**Konfigurera** berättar vad du behöver, vad som kommer in och var den här sidan förklarar det.
-
 ### Klistra in inloggningsuppgifterna
 
 Under **Autentiseringsuppgifter** fyller du i det som leverantören ber om. Hemligheter sparas krypterade och visas aldrig igen, varken i Dashboarden eller via API:et. **Namn** och de inställningar som de flesta låter vara finns under **Fler fält**.
