@@ -452,3 +452,154 @@ describe("Navigation page checks ignore case the way React Router does", () => {
     ]);
   });
 });
+
+/*
+ * isStartWith answers "is the user on this route, or on a page below it?" -
+ * the nav bar's "you are here", the products menu's current product and the
+ * category it opens on. React Router reads `/settings`, `/settings/` and the
+ * `/settings/*` it mounts pages under as one place, and so must this:
+ * Project Settings' route is `/dashboard/:projectId/settings/`, and while the
+ * trailing slash counted as one more segment no page of Settings matched it,
+ * so the nav bar told people in Settings they were in "Products".
+ */
+describe("Navigation.isStartWith reads a route as the place it names", () => {
+  const setPath: (pathname: string) => void = (pathname: string): void => {
+    Navigation.setLocation({
+      pathname: pathname,
+      search: "",
+      hash: "",
+      state: null,
+      key: "navigation-start-with",
+    });
+  };
+
+  afterEach(() => {
+    (Navigation as unknown as { location: unknown }).location = undefined;
+  });
+
+  const SETTINGS_SPELLINGS: Array<string> = [
+    "/dashboard/:projectId/settings",
+    "/dashboard/:projectId/settings/",
+    "/dashboard/:projectId/settings//",
+    "/dashboard/:projectId/settings/*",
+  ];
+
+  const PAGES_IN_SETTINGS: Array<string> = [
+    "/dashboard/abc/settings",
+    "/dashboard/abc/settings/",
+    "/dashboard/abc/settings/labels",
+    "/dashboard/abc/settings/api-keys/65f00000000000000000aaaa",
+    "/dashboard/abc/Settings/Labels",
+  ];
+
+  const PAGES_OUTSIDE_SETTINGS: Array<string> = [
+    "/dashboard/abc",
+    "/dashboard/abc/",
+    "/dashboard/abc/home",
+    "/dashboard/abc/user-settings/on-call-rules",
+    "/dashboard/abc/settingsx",
+    "/dashboard/abc/settings-archive/labels",
+    "/dashboard/abc/monitors/settings",
+    "/dashboard/settings",
+  ];
+
+  for (const spelling of SETTINGS_SPELLINGS) {
+    test.each(PAGES_IN_SETTINGS)(
+      `${spelling} holds %s`,
+      (currentPath: string) => {
+        setPath(currentPath);
+
+        expect(Navigation.isStartWith(new Route(spelling))).toBe(true);
+      },
+    );
+
+    test.each(PAGES_OUTSIDE_SETTINGS)(
+      `${spelling} does not hold %s`,
+      (currentPath: string) => {
+        setPath(currentPath);
+
+        expect(Navigation.isStartWith(new Route(spelling))).toBe(false);
+      },
+    );
+  }
+
+  test("a wildcard mount point holds its own landing page and every page below it", () => {
+    const userSettings: Route = new Route(
+      "/dashboard/:projectId/user-settings/*",
+    );
+
+    for (const page of [
+      "/dashboard/abc/user-settings",
+      "/dashboard/abc/user-settings/notification-methods",
+      "/dashboard/abc/user-settings/on-call-rules",
+      "/dashboard/abc/user-settings/on-call-logs/65f00000000000000000aaaa",
+    ]) {
+      setPath(page);
+      expect(Navigation.isStartWith(userSettings)).toBe(true);
+    }
+
+    for (const page of [
+      "/dashboard/abc/settings",
+      "/dashboard/abc/user-settingsx/on-call-rules",
+      "/dashboard/abc",
+    ]) {
+      setPath(page);
+      expect(Navigation.isStartWith(userSettings)).toBe(false);
+    }
+  });
+
+  test("a route that names one page still holds only that page and the pages below it", () => {
+    const notificationMethods: Route = new Route(
+      "/dashboard/:projectId/user-settings/notification-methods",
+    );
+
+    setPath("/dashboard/abc/user-settings/notification-methods");
+    expect(Navigation.isStartWith(notificationMethods)).toBe(true);
+
+    setPath("/dashboard/abc/user-settings/on-call-rules");
+    expect(Navigation.isStartWith(notificationMethods)).toBe(false);
+  });
+
+  test("a parameter in the route still needs a value in the page", () => {
+    const monitorView: Route = new Route("/dashboard/:projectId/monitors/:id/");
+
+    setPath("/dashboard/abc/monitors/65f00000000000000000aaaa/criteria");
+    expect(Navigation.isStartWith(monitorView)).toBe(true);
+
+    setPath("/dashboard/abc/monitors");
+    expect(Navigation.isStartWith(monitorView)).toBe(false);
+
+    setPath("/dashboard/abc/monitors/");
+    expect(Navigation.isStartWith(monitorView)).toBe(false);
+  });
+
+  test("a filled-in route keeps matching the way a pattern does", () => {
+    const filledIn: Route = new Route(
+      "/dashboard/65f00000000000000000aaaa/settings/",
+    );
+
+    setPath("/dashboard/65f00000000000000000aaaa/settings/labels");
+    expect(Navigation.isStartWith(filledIn)).toBe(true);
+
+    setPath("/dashboard/65f00000000000000000bbbb/settings/labels");
+    expect(Navigation.isStartWith(filledIn)).toBe(false);
+  });
+
+  test.each(["/", "/*", "//"])(
+    "the root route %s still means the root page only, not every page",
+    (rootSpelling: string) => {
+      setPath("/");
+      expect(Navigation.isStartWith(new Route(rootSpelling))).toBe(true);
+
+      setPath("/dashboard/abc/monitors");
+      expect(Navigation.isStartWith(new Route(rootSpelling))).toBe(false);
+    },
+  );
+
+  test("only a trailing wildcard is read as 'and below': one in the middle is a segment like any other", () => {
+    const middleWildcard: Route = new Route("/dashboard/:projectId/*/labels");
+
+    setPath("/dashboard/abc/settings/labels");
+    expect(Navigation.isStartWith(middleWildcard)).toBe(false);
+  });
+});
