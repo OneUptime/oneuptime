@@ -206,8 +206,8 @@ AI-trin måles og faktureres som enhver anden AI-funktion. Trinnet fejler med en
 flowchart TB
     reach["Kørslen når et<br/>automatiseret trin"] --> approval{"Kræv godkendelse<br/>slået til?"}
     approval -->|"ja"| wait["Kørslen venter på, at<br/>en person godkender"]
-    approval -->|"nej"| run["Trinnet kører"]
-    wait -->|"godkendt"| run
+    wait -->|"godkendt"| run["Trinnet kører"]
+    approval -->|"nej"| run
     wait -->|"sprunget over"| next["Næste trin"]
     run --> ok{"Lykkedes?"}
     ok -->|"ja"| next

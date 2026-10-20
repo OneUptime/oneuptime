@@ -206,8 +206,8 @@ AI-steg mäts och faktureras som alla andra AI-funktioner. Steget misslyckas med
 flowchart TB
     reach["Körningen når ett<br/>automatiserat steg"] --> approval{"Kräv godkännande<br/>påslaget?"}
     approval -->|"ja"| wait["Körningen<br/>väntar på att en<br/>person godkänner"]
-    approval -->|"nej"| run["Steget körs"]
-    wait -->|"godkänt"| run
+    wait -->|"godkänt"| run["Steget körs"]
+    approval -->|"nej"| run
     wait -->|"överhoppat"| next["Nästa steg"]
     run --> ok{"Lyckades det?"}
     ok -->|"ja"| next

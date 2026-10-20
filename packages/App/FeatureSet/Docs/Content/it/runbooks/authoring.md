@@ -206,8 +206,8 @@ I passaggi IA vengono misurati e fatturati come qualsiasi altra funzione di IA. 
 flowchart TB
     reach["L'esecuzione<br/>raggiunge un<br/>passaggio automatico"] --> approval{"Richiedi<br/>approvazione<br/>attivo?"}
     approval -->|"sì"| wait["L'esecuzione<br/>attende<br/>l'approvazione<br/>di una persona"]
-    approval -->|"no"| run["Il passaggio<br/>viene eseguito"]
-    wait -->|"approvato"| run
+    wait -->|"approvato"| run["Il passaggio<br/>viene eseguito"]
+    approval -->|"no"| run
     wait -->|"saltato"| next["Passaggio successivo"]
     run --> ok{"Riuscito?"}
     ok -->|"sì"| next

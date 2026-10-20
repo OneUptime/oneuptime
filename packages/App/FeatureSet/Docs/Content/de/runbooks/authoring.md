@@ -206,8 +206,8 @@ KI-Schritte werden wie jede andere KI-Funktion gemessen und abgerechnet. Der Sch
 flowchart TB
     reach["Der Lauf erreicht einen<br/>automatisierten Schritt"] --> approval{"Genehmigung<br/>erforderlich an?"}
     approval -->|"ja"| wait["Lauf wartet auf<br/>die Zustimmung<br/>einer Person"]
-    approval -->|"nein"| run["Der Schritt läuft"]
-    wait -->|"genehmigt"| run
+    wait -->|"genehmigt"| run["Der Schritt läuft"]
+    approval -->|"nein"| run
     wait -->|"übersprungen"| next["Nächster Schritt"]
     run --> ok{"Erfolgreich?"}
     ok -->|"ja"| next

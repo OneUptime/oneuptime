@@ -206,8 +206,8 @@ Les étapes IA sont mesurées et facturées comme toute autre fonctionnalité d'
 flowchart TB
     reach["L'exécution atteint<br/>une étape automatisée"] --> approval{"Exiger une<br/>approbation activé ?"}
     approval -->|"oui"| wait["L'exécution attend<br/>l'approbation<br/>d'une personne"]
-    approval -->|"non"| run["L'étape s'exécute"]
-    wait -->|"approuvée"| run
+    wait -->|"approuvée"| run["L'étape s'exécute"]
+    approval -->|"non"| run
     wait -->|"ignorée"| next["Étape suivante"]
     run --> ok{"Réussie ?"}
     ok -->|"oui"| next

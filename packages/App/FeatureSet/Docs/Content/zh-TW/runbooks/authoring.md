@@ -206,8 +206,8 @@ AI 步驟與其他 AI 功能一樣計量和計費。當步驟沒有提示詞、�
 flowchart TB
     reach["執行到達自動步驟"] --> approval{"開啟了需要核准嗎？"}
     approval -->|"是"| wait["執行等待人員核准"]
-    approval -->|"否"| run["執行該步驟"]
-    wait -->|"已核准"| run
+    wait -->|"已核准"| run["執行該步驟"]
+    approval -->|"否"| run
     wait -->|"已略過"| next["下一個步驟"]
     run --> ok{"成功了嗎？"}
     ok -->|"是"| next

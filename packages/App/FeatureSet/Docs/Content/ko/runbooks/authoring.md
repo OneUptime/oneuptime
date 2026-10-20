@@ -206,8 +206,8 @@ AI 단계는 다른 AI 기능과 똑같이 측정되고 청구됩니다. 프롬�
 flowchart TB
     reach["실행이 자동<br/>단계에 도달"] --> approval{"승인 필요가 켜져 있나요?"}
     approval -->|"예"| wait["실행이 사람의<br/>승인을 기다림"]
-    approval -->|"아니요"| run["단계 실행"]
-    wait -->|"승인됨"| run
+    wait -->|"승인됨"| run["단계 실행"]
+    approval -->|"아니요"| run
     wait -->|"건너뜀"| next["다음 단계"]
     run --> ok{"성공했나요?"}
     ok -->|"예"| next

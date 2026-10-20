@@ -206,8 +206,8 @@ AI ステップはほかの AI 機能と同じように計測され、課金さ�
 flowchart TB
     reach["実行が自動<br/>ステップに達する"] --> approval{"承認を要求がオン？"}
     approval -->|"はい"| wait["実行は人の<br/>承認を待つ"]
-    approval -->|"いいえ"| run["ステップを実行"]
-    wait -->|"承認"| run
+    wait -->|"承認"| run["ステップを実行"]
+    approval -->|"いいえ"| run
     wait -->|"スキップ"| next["次のステップ"]
     run --> ok{"成功した？"}
     ok -->|"はい"| next

@@ -206,8 +206,8 @@ As etapas de IA são medidas e cobradas como qualquer outro recurso de IA. A eta
 flowchart TB
     reach["A execução chega a<br/>uma etapa automatizada"] --> approval{"Exigir aprovação<br/>ligado?"}
     approval -->|"sim"| wait["A execução espera<br/>a aprovação<br/>de uma pessoa"]
-    approval -->|"não"| run["A etapa roda"]
-    wait -->|"aprovada"| run
+    wait -->|"aprovada"| run["A etapa roda"]
+    approval -->|"não"| run
     wait -->|"pulada"| next["Próxima etapa"]
     run --> ok{"Deu certo?"}
     ok -->|"sim"| next

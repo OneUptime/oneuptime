@@ -206,8 +206,8 @@ kubectl rollout status deployment/checkout-api --namespace checkout --timeout=12
 flowchart TB
     reach["اجرا به یک<br/>گام خودکار می‌رسد"] --> approval{"تأیید لازم<br/>است روشن است؟"}
     approval -->|"بله"| wait["اجرا منتظر تأیید<br/>یک نفر می‌ماند"]
-    approval -->|"خیر"| run["گام اجرا می‌شود"]
-    wait -->|"تأییدشده"| run
+    wait -->|"تأییدشده"| run["گام اجرا می‌شود"]
+    approval -->|"خیر"| run
     wait -->|"ردشده"| next["گام بعدی"]
     run --> ok{"موفق شد؟"}
     ok -->|"بله"| next

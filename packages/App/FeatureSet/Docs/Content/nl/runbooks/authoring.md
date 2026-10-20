@@ -206,8 +206,8 @@ AI-stappen worden gemeten en gefactureerd zoals elke andere AI-functie. De stap 
 flowchart TB
     reach["De uitvoering bereikt<br/>een geautomatiseerde stap"] --> approval{"Goedkeuring vereisen aan?"}
     approval -->|"ja"| wait["De uitvoering wacht<br/>op goedkeuring<br/>van een persoon"]
-    approval -->|"nee"| run["De stap loopt"]
-    wait -->|"goedgekeurd"| run
+    wait -->|"goedgekeurd"| run["De stap loopt"]
+    approval -->|"nee"| run
     wait -->|"overgeslagen"| next["Volgende stap"]
     run --> ok{"Geslaagd?"}
     ok -->|"ja"| next
