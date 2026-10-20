@@ -306,9 +306,9 @@ jobs:
           # took 16 to 23 minutes and every other group 15 to 27: together
           # they would have taken it to 27. Auto Remediation Rules (about two
           # minutes with its bundle locally, Chromium only) joined them the
-          # same day: the lightest group by far. Custom Roles (about 2.5
+          # same day: the lightest group by far. Custom Roles (about 3
           # minutes with its bundle, Chromium only) moved here from group 6
-          # the same day too, when its Add a Role spec added about 45 seconds
+          # the same day too, when its Add a Role spec added about a minute
           # to a group already at 16 to 23 minutes.
           - group: 7
             browsers: chromium
