@@ -117,6 +117,8 @@ Un rôle regroupe tout un domaine du produit à l'un de trois niveaux :
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer`, etc. Les rôles conviennent dans la quasi-totalité des cas — ils restent corrects à mesure que OneUptime ajoute des fonctionnalités, car une nouvelle table liée aux moniteurs est rattachée aux rôles moniteurs existants au lieu d'exiger une nouvelle attribution de votre part.
 
+**Ajouter un rôle** demande d'abord jusqu'où le rôle s'étend. **Tout le projet** liste les quatre rôles qui couvrent tout le projet — Project Owner, Administrateur du projet, Membre du projet et Lecteur — chacun avec une ligne sur ce à quoi il sert. **Un domaine** liste les domaines, chacun avec l'icône de son produit : choisissez-en un, puis son niveau. **Rechercher des rôles** trouve n'importe quel rôle par son nom, son domaine ou ce qu'il fait.
+
 Les workflows et les runbooks font exception. Tous deux exécutent du code dans votre projet — un workflow ses étapes, un runbook ses scripts sur vos Runners —, donc `WorkflowMember` ouvre les workflows et leurs exécutions et les lance à la main, et `RunbookMember` ouvre les runbooks et leurs exécutions et les exécute : il lance une exécution, termine ou ignore ses étapes et l'annule. Aucun des deux ne crée, ne modifie ni ne supprime ce qu'il exécute ; `WorkflowAdmin` et `RunbookAdmin` les construisent. Un rôle n'exécute que les runbooks que sa portée atteint : un `RunbookMember` limité à certaines étiquettes exécute les runbooks qui les portent. Voir [Autorisations des workflows](/docs/workflows/configuration#autorisations) et [Autorisations des runbooks](/docs/runbooks/configuration#autorisations).
 
 Les règles d'un domaine (règles d'étiquettes, de propriétaires, d'astreinte, de regroupement et de rappel), les champs personnalisés, les SLA et les secrets relèvent de la configuration du projet : ils demandent `ProjectAdmin`, quel que soit le rôle de domaine de la personne. Il en va de même des clés API, des équipes et de leurs permissions, des étiquettes, du SSO et des domaines — les rôles Settings s'occupent des services, sondes, infrastructures et intégrations du projet, pas de qui peut faire quoi.
@@ -188,7 +190,7 @@ Seul l'état est écrit pour vous. Une note publiée avec un changement l'est en
 
 ## Portée : jusqu'où va une autorisation accordée
 
-Chaque autorisation accordée l'est avec une portée, choisie sous **Portée** au moment de l'ajout :
+Chaque autorisation accordée l'est avec une portée : au moment de l'ajout, **Portée** se trouve sous **Plus de champs** et commence sur la première de ces réponses :
 
 | Portée | Signification |
 | --- | --- |

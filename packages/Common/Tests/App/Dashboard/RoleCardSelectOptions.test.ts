@@ -9,6 +9,10 @@ import {
   getRoleCardSummary,
   getRoleIcon,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/RoleCardSelectOptions";
+import {
+  ROLE_AREAS,
+  RoleArea,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/RoleCatalog";
 import IconProp from "../../../Types/Icon/IconProp";
 import Permission, {
   PermissionHelper,
@@ -21,11 +25,13 @@ import {
 } from "../../../UI/Components/CardSelect/CardSelect";
 
 /*
- * The role cards every "Add Role" shows - a team's permissions, an API key's
- * permissions - and the roles the Access question of a new API key or team
- * offers (Dashboard/src/Components/Permission/RoleCardSelectOptions). One
- * list, so a role reads and looks the same wherever it is picked. It moved
- * out of the team permission table unchanged; these pin what it was.
+ * The roles as cards and list entries (Dashboard/src/Components/Permission/
+ * RoleCardSelectOptions): each role's icon and one line, read by the role
+ * picker of every Add Role, the roles a new custom role starts with, the
+ * Built-in Roles card and the Access question of a new API key or team.
+ * One list, so a role reads and looks the same wherever it is met, grouped
+ * as the role catalog arranges the roles (RoleCatalog): the whole project,
+ * then one group per area - where Add Role's picker finds them too.
  */
 
 const DASHBOARD_SRC: string = path.resolve(
@@ -42,56 +48,75 @@ function valuesOf(group: CardSelectOptionGroup): Array<string> {
 describe("the role cards", () => {
   const groups: Array<CardSelectOptionGroup> = getRoleCardSelectOptions();
 
-  test("come in four groups, widest first", () => {
+  test("come in the catalog's groups: the whole project, then one per area", () => {
     expect(
       groups.map((group: CardSelectOptionGroup): string => {
         return group.label;
       }),
-    ).toEqual(["Owner", "Project Roles", "Administration", "Domain Roles"]);
-  });
-
-  test("Owner holds the project's owner and admin", () => {
-    expect(valuesOf(groups[0]!)).toEqual([
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
+    ).toEqual([
+      "Whole project",
+      "Incidents",
+      "Alerts",
+      "Monitors",
+      "Status Pages",
+      "On-Call",
+      "Scheduled Maintenance",
+      "Telemetry",
+      "Security",
+      "Workflows",
+      "Runbooks",
+      "Settings",
+      "Billing",
     ]);
   });
 
-  test("Project Roles holds the project's member and viewer", () => {
-    expect(valuesOf(groups[1]!)).toEqual([
+  test("Whole project holds Project Owner, Project Admin, Project Member and Viewer, widest first", () => {
+    expect(valuesOf(groups[0]!)).toEqual([
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
     ]);
   });
 
-  test("Administration holds the settings and billing roles", () => {
-    expect(new Set(valuesOf(groups[2]!))).toEqual(
-      new Set<string>([
-        Permission.SettingsAdmin,
-        Permission.SettingsMember,
-        Permission.SettingsViewer,
-        Permission.BillingAdmin,
-        Permission.BillingMember,
-        Permission.BillingViewer,
-      ]),
-    );
-  });
+  test("each area's group holds its Admin, Member and Viewer, in that order", () => {
+    ROLE_AREAS.forEach((area: RoleArea, index: number): void => {
+      const group: CardSelectOptionGroup = groups[index + 1]!;
 
-  test("Domain Roles holds the product areas", () => {
-    const domain: Array<string> = valuesOf(groups[3]!);
+      expect(group.label).toBe(area.title);
+      expect(valuesOf(group)).toEqual([
+        area.roles.Admin,
+        area.roles.Member,
+        area.roles.Viewer,
+      ]);
+    });
 
-    for (const role of [
+    expect(valuesOf(groups[1]!)).toEqual([
       Permission.IncidentAdmin,
       Permission.IncidentMember,
       Permission.IncidentViewer,
-      Permission.MonitorMember,
-      Permission.StatusPageViewer,
-      Permission.OnCallAdmin,
-      Permission.TelemetryMember,
-      Permission.WorkflowViewer,
-      Permission.RunbookAdmin,
+    ]);
+    expect(valuesOf(groups[12]!)).toEqual([
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ]);
+  });
+
+  test("the old headings are gone: no Owner, Project Roles, Administration or Domain Roles", () => {
+    const labels: Array<string> = groups.map(
+      (group: CardSelectOptionGroup): string => {
+        return group.label;
+      },
+    );
+
+    for (const old of [
+      "Owner",
+      "Project Roles",
+      "Administration",
+      "Domain Roles",
     ]) {
-      expect(domain).toContain(role);
+      expect(labels).not.toContain(old);
     }
   });
 
@@ -148,18 +173,26 @@ describe("the role cards", () => {
     }
   });
 
-  test("keep the icons they had: an area's icon for each of its roles", () => {
+  /*
+   * A whole-project role keeps its own icon. An area's roles wear their
+   * area's, which is the icon its product wears in the Products menu
+   * (RoleCatalog): Alerts the exclamation in a circle, Monitors the globe,
+   * not the bell and the pulse line the old cards drew.
+   */
+  test("show a whole-project role's own icon, and an area's role its product's", () => {
     expect(getRoleIcon(Permission.ProjectOwner)).toBe(IconProp.ShieldCheck);
     expect(getRoleIcon(Permission.ProjectAdmin)).toBe(IconProp.User);
     expect(getRoleIcon(Permission.ProjectMember)).toBe(IconProp.Team);
     expect(getRoleIcon(Permission.Viewer)).toBe(IconProp.Eye);
     expect(getRoleIcon(Permission.IncidentMember)).toBe(IconProp.Alert);
-    expect(getRoleIcon(Permission.AlertViewer)).toBe(IconProp.BellAlert);
-    expect(getRoleIcon(Permission.MonitorAdmin)).toBe(IconProp.Activity);
-    expect(getRoleIcon(Permission.StatusPageMember)).toBe(IconProp.Globe);
-    expect(getRoleIcon(Permission.OnCallViewer)).toBe(IconProp.Phone);
+    expect(getRoleIcon(Permission.AlertViewer)).toBe(
+      IconProp.ExclaimationCircle,
+    );
+    expect(getRoleIcon(Permission.MonitorAdmin)).toBe(IconProp.AltGlobe);
+    expect(getRoleIcon(Permission.StatusPageMember)).toBe(IconProp.CheckCircle);
+    expect(getRoleIcon(Permission.OnCallViewer)).toBe(IconProp.Call);
     expect(getRoleIcon(Permission.ScheduledMaintenanceAdmin)).toBe(
-      IconProp.Calendar,
+      IconProp.Clock,
     );
     expect(getRoleIcon(Permission.TelemetryMember)).toBe(IconProp.ChartBar);
     expect(getRoleIcon(Permission.SecurityViewer)).toBe(
@@ -167,8 +200,15 @@ describe("the role cards", () => {
     );
     expect(getRoleIcon(Permission.SettingsAdmin)).toBe(IconProp.Settings);
     expect(getRoleIcon(Permission.BillingMember)).toBe(IconProp.CreditCard);
-    expect(getRoleIcon(Permission.WorkflowAdmin)).toBe(IconProp.Workflow);
-    expect(getRoleIcon(Permission.RunbookViewer)).toBe(IconProp.PlayCircle);
+    expect(getRoleIcon(Permission.WorkflowAdmin)).toBe(IconProp.FlowDiagram);
+    expect(getRoleIcon(Permission.RunbookViewer)).toBe(IconProp.BookOpen);
+
+    // Every role of an area wears the same icon.
+    for (const area of ROLE_AREAS) {
+      expect(getRoleIcon(area.roles.Admin)).toBe(area.icon);
+      expect(getRoleIcon(area.roles.Member)).toBe(area.icon);
+      expect(getRoleIcon(area.roles.Viewer)).toBe(area.icon);
+    }
   });
 
   test("give a role with no icon of its own a lock, and every role an icon", () => {
@@ -309,8 +349,8 @@ describe("the role cards' one-line summaries", () => {
 });
 
 /*
- * A custom role's Add Role shows these cards without Project Owner, which no
- * role holds: left out of its group, and nothing else changes.
+ * A new custom role's starting roles leave out Project Owner, which no role
+ * holds: left out of its group, and nothing else changes.
  */
 describe("the role cards without some roles", () => {
   test("leave each one out of its group, and keep the rest in order", () => {
@@ -322,12 +362,20 @@ describe("the role cards without some roles", () => {
     expect(PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE).toEqual([
       Permission.ProjectOwner,
     ]);
-    expect(valuesOf(groups[0]!)).toEqual([Permission.ProjectAdmin]);
+    expect(valuesOf(groups[0]!)).toEqual([
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ]);
     expect(
       groups.map((group: CardSelectOptionGroup): string => {
         return group.label;
       }),
-    ).toEqual(["Owner", "Project Roles", "Administration", "Domain Roles"]);
+    ).toEqual(
+      all.map((group: CardSelectOptionGroup): string => {
+        return group.label;
+      }),
+    );
     for (let index: number = 1; index < all.length; index++) {
       expect(groups[index]).toEqual(all[index]);
     }
@@ -335,14 +383,21 @@ describe("the role cards without some roles", () => {
 
   test("a group left with no role is not shown", () => {
     const groups: Array<CardSelectOptionGroup> = getRoleCardSelectOptions({
-      excludeRoles: [Permission.ProjectOwner, Permission.ProjectAdmin],
+      excludeRoles: [
+        Permission.BillingAdmin,
+        Permission.BillingMember,
+        Permission.BillingViewer,
+      ],
     });
-
-    expect(
-      groups.map((group: CardSelectOptionGroup): string => {
+    const labels: Array<string> = groups.map(
+      (group: CardSelectOptionGroup): string => {
         return group.label;
-      }),
-    ).toEqual(["Project Roles", "Administration", "Domain Roles"]);
+      },
+    );
+
+    expect(labels).not.toContain("Billing");
+    expect(labels).toHaveLength(12);
+    expect(labels[labels.length - 1]).toBe("Settings");
   });
 
   test("no filter, or an empty one, is every role", () => {
@@ -353,66 +408,72 @@ describe("the role cards without some roles", () => {
   });
 });
 
-describe("every Add Role uses this one list", () => {
-  test("a team's permissions", () => {
-    const source: string = fs.readFileSync(
-      path.join(DASHBOARD_SRC, "Components/Team/TeamPermissionTable.tsx"),
-      "utf8",
-    );
+describe("every place roles are offered reads them from here", () => {
+  /*
+   * Add Role - a team's, an API key's, a custom role's - is the role
+   * picker (Components/Permission/RolePicker), which reads its roles, their
+   * lines and their icons from here and the catalog. None of them draws a
+   * grid of cards of its own any more: the forty look-alike cards the
+   * maintainer found "very confusing".
+   */
+  test.each([
+    ["a team's", "Components/Team/TeamPermissionTable.tsx", "TeamPermission"],
+    [
+      "an API key's",
+      "Components/ApiKey/ApiKeyPermissionTable.tsx",
+      "ApiKeyPermission",
+    ],
+    [
+      "a custom role's",
+      "Components/CustomRole/CustomRolePermissionTable.tsx",
+      "CustomRolePermission",
+    ],
+  ])(
+    "%s Add Role is the role picker, not a grid of cards",
+    (_name: string, file: string, model: string) => {
+      const source: string = fs.readFileSync(
+        path.join(DASHBOARD_SRC, file),
+        "utf8",
+      );
 
-    expect(source).toContain("getRoleCardSelectOptions()");
-    // No list of its own left behind.
-    expect(source).not.toContain("roleIconMap");
+      expect(source).toContain(`getRolePickerFormField<${model}>(`);
+      expect(source).not.toContain("FormFieldSchemaType.CardSelect");
+      expect(source).not.toContain("getRoleCardSelectOptions");
+      // No list of its own left behind.
+      expect(source).not.toContain("roleIconMap");
+      expect(source).not.toContain("getRolePermissionProps");
+    },
+  );
+
+  test("the roles a new custom role starts with", () => {
+    // Read as one line, so a wrap the formatter picks does not matter.
+    const source: string = fs
+      .readFileSync(
+        path.join(
+          DASHBOARD_SRC,
+          "Components/CustomRole/CustomRoleCreateForm.ts",
+        ),
+        "utf8",
+      )
+      .split(/\s+/)
+      .join(" ");
+
+    expect(source).toContain(
+      "getRoleCardSelectOptions({ excludeRoles: PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE, })",
+    );
     expect(source).not.toContain("getRolePermissionProps");
   });
 
-  test("an API key's permissions", () => {
+  test("the list is built from Permission's own roles", () => {
     const source: string = fs.readFileSync(
-      path.join(DASHBOARD_SRC, "Components/ApiKey/ApiKeyPermissionTable.tsx"),
+      path.join(
+        DASHBOARD_SRC,
+        "Components/Permission/RoleCardSelectOptions.ts",
+      ),
       "utf8",
     );
 
-    expect(source).toContain("cardSelectOptions: getRoleCardSelectOptions()");
-  });
-
-  test("a custom role's permissions, and the roles a new custom role starts with", () => {
-    for (const file of [
-      "Components/CustomRole/CustomRolePermissionTable.tsx",
-      "Components/CustomRole/CustomRoleCreateForm.ts",
-    ]) {
-      // Read as one line, so a wrap the formatter picks does not matter.
-      const source: string = fs
-        .readFileSync(path.join(DASHBOARD_SRC, file), "utf8")
-        .split(/\s+/)
-        .join(" ");
-
-      expect(source).toContain(
-        "getRoleCardSelectOptions({ excludeRoles: PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE, })",
-      );
-      expect(source).not.toContain("getRolePermissionProps");
-    }
-  });
-
-  /*
-   * The roles read the same wherever they are picked: a plain grid under
-   * their four headings, which is how the maintainer keeps a team's
-   * (App/Tests/Dashboard/MonitorTypePickerWiring: "team permission table
-   * stays a plain grid"). A key's Add Role does not grow a search box or
-   * folding of its own.
-   */
-  test.each([
-    ["a team's", "Components/Team/TeamPermissionTable.tsx"],
-    ["an API key's", "Components/ApiKey/ApiKeyPermissionTable.tsx"],
-    ["a custom role's", "Components/CustomRole/CustomRolePermissionTable.tsx"],
-  ])("%s Add Role is the same plain grid", (_name: string, file: string) => {
-    const source: string = fs.readFileSync(
-      path.join(DASHBOARD_SRC, file),
-      "utf8",
-    );
-
-    expect(source).toContain("FormFieldSchemaType.CardSelect");
-    expect(source).not.toContain("cardSelectSearchable");
-    expect(source).not.toContain("cardSelectCatalog");
+    expect(source).toContain("PermissionHelper.getRolePermissionProps()");
   });
 
   test("the Access question of a new API key or team", () => {

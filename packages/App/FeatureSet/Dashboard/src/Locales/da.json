@@ -13793,7 +13793,7 @@
   "Nothing is held back or combined, ever. This is exactly how OneUptime delivered owner notifications before rollup existed, and it is the right choice if you file, filter or forward mail one event at a time.": "Nothing is held back or combined, ever. This is exactly how OneUptime delivered owner notifications before rollup existed, and it is the right choice if you file, filter or forward mail one event at a time.",
   "Nothing left to set up here": "Nothing left to set up here",
   "Nothing logged yet": "Nothing logged yet",
-  "Nothing matches every word you typed.": "Nothing matches every word you typed.",
+  "Nothing matches every word you typed.": "Intet passer til alle de ord, du har skrevet.",
   "Nothing matches every word you typed. Closest matches:": "Nothing matches every word you typed. Closest matches:",
   "Nothing on this map needs attention": "Nothing on this map needs attention",
   "Nothing open": "Nothing open",
@@ -31936,5 +31936,11 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio har accepteret test-SMS'en fra {{phoneNumber}}. Den bør nå frem inden for få minutter.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio har accepteret test-SMS'en. Den bør nå frem inden for få minutter.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio ringer fra {{phoneNumber}}. Din telefon bør ringe inden for et minut.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio foretager testopkaldet. Din telefon bør ringe inden for et minut."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio foretager testopkaldet. Din telefon bør ringe inden for et minut.",
+  "Access level": "Adgangsniveau",
+  "Admin": "Administrator",
+  "One area": "Ét område",
+  "Pick an area": "Vælg et område",
+  "Then choose Admin, Member or Viewer.": "Vælg derefter Administrator, Medlem eller Seer.",
+  "Whole project": "Hele projektet"
 }
