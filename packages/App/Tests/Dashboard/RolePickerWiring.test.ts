@@ -310,7 +310,7 @@ describe("the picker", () => {
      * it, so switching answers moves nothing; no guessed minimum height.
      */
     expect(picker).toContain(
-      '<div className="mt-4 grid" data-testid="role-picker-body">',
+      '<div className="relative mt-4 grid" data-testid="role-picker-body">',
     );
     expect(picker).toContain("renderGhost(renderWholeProject(true))");
     expect(picker).toContain("renderGhost(renderOneArea(true))");
@@ -343,6 +343,20 @@ describe("the picker", () => {
 
   test("while the search lists matches, neither answer is pressed", () => {
     expect(picker).toContain("value={isSearching ? null : reach}");
+  });
+
+  /*
+   * A centred dialog that grew and shrank with each letter typed moved the
+   * search box from under the caret: from sm up the matches scroll inside
+   * the answers' room, and a match the arrow keys reach is scrolled into
+   * view whole (its radio is a pixel at the row's top).
+   */
+  test("a search never moves the search box, and every match it reaches is seen whole", () => {
+    expect(picker).toContain(
+      'const SEARCH_RESULTS_IN_ROOM: string = "sm:absolute sm:inset-0 sm:-m-1 sm:overflow-y-auto sm:overscroll-contain sm:p-1 sm:pb-6',
+    );
+    expect(picker).toContain('isSearching ? SEARCH_RESULTS_IN_ROOM : ""');
+    expect(picker).toContain('row.scrollIntoView({ block: "nearest" });');
   });
 
   test.each([

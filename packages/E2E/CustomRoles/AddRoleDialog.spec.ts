@@ -870,11 +870,72 @@ test.describe("Add a Role never moves under the pointer", () => {
       await reach(form, "WholeProject").click();
       await check("back to Whole project");
 
-      await form.getByTestId("role-picker-search").fill("zebra");
-      await expect(form.getByTestId("role-picker-no-results")).toBeVisible();
-      await check("a search with no match");
+      /*
+       * Typed a letter at a time: a broad search lists more matches than
+       * the answers have room for, and the search box must not move from
+       * under the caret.
+       */
+      const search: Locator = form.getByTestId("role-picker-search");
+
+      for (const typed of ["m", "me", "member", "member v", "zebra"]) {
+        await search.fill(typed);
+        await expect(
+          form
+            .getByTestId("role-picker-results")
+            .or(form.getByTestId("role-picker-no-results")),
+        ).toBeVisible();
+        await check(`a search for "${typed}"`);
+      }
 
       expect(moved).toEqual([]);
     });
   }
+
+  test("on a laptop a broad search scrolls inside the room, and the arrow keys bring each match fully into view", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openTeamPermissions(page);
+    const form: Locator = await openAddRole(page);
+
+    await form.getByTestId("role-picker-search").fill("member");
+
+    const list: Locator = form.getByTestId("role-picker-body-on-screen");
+    const matches: Locator = form
+      .getByTestId("role-picker-results")
+      .getByRole("radio");
+
+    // Thirteen roles say Member: more than the room shows at once.
+    await expect(matches).toHaveCount(13);
+    const overflows: boolean = await list.evaluate(
+      (element: Element): boolean => {
+        return element.scrollHeight > element.clientHeight;
+      },
+    );
+    expect(overflows).toBe(true);
+
+    await form.getByTestId("role-picker-search").press("ArrowDown");
+
+    for (let step: number = 0; step < 8; step++) {
+      await page.keyboard.press("ArrowDown");
+
+      const focusedRow: Box = await boxOf(
+        form.locator("label:has(input:focus)"),
+      );
+      const room: Box = await boxOf(list);
+
+      // The whole row is on screen, above the list's faded foot.
+      expect(focusedRow.y).toBeGreaterThanOrEqual(room.y - 1);
+      expect(focusedRow.y + focusedRow.height).toBeLessThanOrEqual(
+        room.y + room.height + 1,
+      );
+    }
+
+    // The arrows picked as they went, as a radio group does.
+    await expect(
+      form.locator("label:has(input:focus)").getByRole("radio"),
+    ).toBeChecked();
+  });
 });

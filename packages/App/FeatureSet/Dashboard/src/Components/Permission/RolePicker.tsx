@@ -153,6 +153,17 @@ const CHOICE_AT_REST: string =
   "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50";
 
 /*
+ * From sm up, the search's matches scroll inside the answers' room: a
+ * centred dialog that grew and shrank with each letter typed moved the
+ * search box from under the caret. The room's edge leaves the keyboard's
+ * focus ring 4 px; its foot fades out, so a list cut there reads as one
+ * that goes on, and the last match scrolls clear of the fade. On a phone
+ * the sheet's body scrolls them as one.
+ */
+const SEARCH_RESULTS_IN_ROOM: string =
+  "sm:absolute sm:inset-0 sm:-m-1 sm:overflow-y-auto sm:overscroll-contain sm:p-1 sm:pb-6 sm:[mask-image:linear-gradient(to_bottom,black_calc(100%-1.5rem),transparent)]";
+
+/*
  * The room the form's More fields line takes under the picker - its line
  * of text and the gap above it (FoldedSection's line, BasicForm's row gap) -
  * kept while the line is not drawn (keepsMoreFieldsRoom). A flex column, so
@@ -461,6 +472,19 @@ const RolePicker: FunctionComponent<ComponentProps> = (
             aria-describedby={summaryId}
             onChange={() => {
               onPick(role);
+            }}
+            onFocus={(event: React.FocusEvent<HTMLInputElement>) => {
+              /*
+               * The radio is a pixel at the row's top, so the browser
+               * scrolls only that into view: the arrow keys left a match
+               * half under the foot of the search's list. Its whole row.
+               */
+              const row: HTMLElement | null =
+                event.currentTarget.closest("label");
+
+              if (row && typeof row.scrollIntoView === "function") {
+                row.scrollIntoView({ block: "nearest" });
+              }
             }}
           />
         )}
@@ -893,9 +917,9 @@ const RolePicker: FunctionComponent<ComponentProps> = (
        * cell is as tall as the taller answer in the reader's language at
        * this width, so switching answers moves nothing (on a phone the
        * sheet grew or shrank by up to a hundred pixels, and took the switch
-       * just pressed with it), and a search keeps the dialog's size.
+       * just pressed with it).
        */}
-      <div className="mt-4 grid" data-testid="role-picker-body">
+      <div className="relative mt-4 grid" data-testid="role-picker-body">
         {isSearching || reach !== RoleReach.WholeProject ? (
           renderGhost(renderWholeProject(true))
         ) : (
@@ -906,7 +930,14 @@ const RolePicker: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
-        <div className="col-start-1 row-start-1 min-w-0">{renderBody()}</div>
+        <div
+          className={`col-start-1 row-start-1 min-w-0 ${
+            isSearching ? SEARCH_RESULTS_IN_ROOM : ""
+          }`}
+          data-testid="role-picker-body-on-screen"
+        >
+          {renderBody()}
+        </div>
       </div>
 
       {props.keepsMoreFieldsRoom ? (

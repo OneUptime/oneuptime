@@ -956,6 +956,69 @@ describe("the search", () => {
     ).toBeChecked();
   });
 
+  /*
+   * A centred dialog that grew and shrank with each letter typed moved the
+   * search box from under the caret: from sm up the matches scroll inside
+   * the answers' room, its foot faded so a cut list reads as one that goes
+   * on. On a phone the sheet's body scrolls them as one.
+   */
+  test("its matches scroll inside the answers' room from sm up, the foot faded", () => {
+    render(<Harness />);
+
+    const onScreen: HTMLElement = screen.getByTestId(
+      "role-picker-body-on-screen",
+    );
+
+    expect(onScreen.className).not.toContain("sm:absolute");
+
+    typeSearch("member");
+
+    for (const token of [
+      "sm:absolute",
+      "sm:inset-0",
+      "sm:overflow-y-auto",
+      "sm:overscroll-contain",
+      "sm:pb-6",
+      "sm:[mask-image:linear-gradient(to_bottom,black_calc(100%-1.5rem),transparent)]",
+    ]) {
+      expect(onScreen.className.split(" ")).toContain(token);
+    }
+    // The room it scrolls in: both answers', kept out of sight.
+    expect(screen.getAllByTestId("role-picker-body-room")).toHaveLength(2);
+  });
+
+  test("a match the arrow keys reach is scrolled into view whole, not just its radio", () => {
+    const scrolled: Array<{ element: Element; options: unknown }> = [];
+    const original: unknown = (
+      HTMLElement.prototype as unknown as { scrollIntoView?: unknown }
+    ).scrollIntoView;
+
+    (
+      HTMLElement.prototype as unknown as {
+        scrollIntoView: (options?: unknown) => void;
+      }
+    ).scrollIntoView = function (this: Element, options?: unknown): void {
+      scrolled.push({ element: this, options: options });
+    };
+
+    try {
+      render(<Harness />);
+      typeSearch("member");
+
+      act(() => {
+        radioIn(roleRow(Permission.MonitorMember)).focus();
+      });
+
+      expect(scrolled).toHaveLength(1);
+      expect(scrolled[0]!.element).toBe(roleRow(Permission.MonitorMember));
+      expect(scrolled[0]!.options).toEqual({ block: "nearest" });
+    } finally {
+      (
+        HTMLElement.prototype as unknown as { scrollIntoView?: unknown }
+      ).scrollIntoView = original;
+    }
+  });
+
   test("picking an answer clears the search", () => {
     render(<Harness />);
 
