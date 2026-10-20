@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 31337,
-    "untranslated": 4901
+    "keys": 31872,
+    "untranslated": 4910
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -198,6 +198,7 @@
     "Google Play",
     "Google SecOps",
     "Google UDM",
+    "Goroutines",
     "Grenada",
     "Groq",
     "Growth",

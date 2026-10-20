@@ -45,6 +45,7 @@ import {
 import ExceptionInstanceTable from "../../Exceptions/ExceptionInstanceTable";
 import DashboardLogsViewer from "../../Logs/LogsViewer";
 import TraceScopedFlamegraph from "../TraceScopedFlamegraph";
+import TraceProfilerLink from "./TraceProfilerLink";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 
 export type CorrelatedSignalTab = "logs" | "exceptions" | "metrics" | "profile";
@@ -53,6 +54,12 @@ export interface ComponentProps {
   traceId: string;
   // The trace's wall-clock window; null until spans load.
   traceWindow: { startTime: Date; endTime: Date } | null;
+  /*
+   * The service of the trace's root span, and its name: the Profiler is
+   * offered for it, around the trace's time, when it was profiled then.
+   */
+  rootServiceId?: string | null | undefined;
+  rootServiceName?: string | null | undefined;
 }
 
 // Server-enforced cap on POST /telemetry/metrics/for-trace.
@@ -447,6 +454,15 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
           <p className="text-xs text-gray-500">
             Logs, exceptions, metrics and profiles recorded during this trace.
           </p>
+          {props.traceWindow && props.rootServiceId ? (
+            <TraceProfilerLink
+              serviceId={props.rootServiceId}
+              serviceName={props.rootServiceName || null}
+              traceStart={props.traceWindow.startTime}
+            />
+          ) : (
+            <></>
+          )}
         </div>
         <div
           className="-mb-px flex gap-1 overflow-x-auto"

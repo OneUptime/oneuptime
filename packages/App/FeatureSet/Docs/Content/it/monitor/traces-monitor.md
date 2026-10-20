@@ -66,7 +66,7 @@ Fate clic su **Crea monitor**. Il monitor si apre sulla sua pagina **Panoramica*
 | **Tracce del monitor per (time)** | Span iniziati negli ultimi 5 secondi fino alle ultime 24 ore. | **Ultimo minuto** |
 | **Filtra per stato dello span** | Span con uno qualsiasi degli stati scelti: **Non impostato**, **Ok** o **Errore**. | Vuoto: tutti gli stati |
 | **Filtra per servizio di telemetria** (in **Altri campi**) | Span di uno qualsiasi dei servizi scelti. | Vuoto: tutti i servizi |
-| **Filter by Infrastructure Entity** (in **Altri campi**) | Span di uno qualsiasi degli host, pod, container e altre entità scelti. | Vuoto: tutte le entità |
+| **Filtra per entità dell'infrastruttura** (in **Altri campi**) | Span di uno qualsiasi degli host, pod, container e altre entità scelti. | Vuoto: tutte le entità |
 | **Filtra per attributi** (in **Altri campi**) | Span i cui attributi soddisfano ogni condizione. Ogni condizione ha il proprio operatore, come «uguale a» o «contiene». | Vuoto: nessuna condizione |
 
 Tutti i filtri che impostate devono corrispondere perché uno span venga contato.

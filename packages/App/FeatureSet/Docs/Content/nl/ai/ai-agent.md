@@ -44,6 +44,7 @@ Klik op **Taak starten** of druk op Enter. De pagina van de taak opent, en het w
 | **Monitor** | Het type, de status en de beschrijving. |
 | **Trace** | De spans: hun namen, tijden en fouten. |
 | **Logboeken** | De nieuwste 20 logregels die je zoekterm bevatten, uit het afgelopen uur, de afgelopen dag of de afgelopen week. |
+| **Prestatieprofiel** | Waar de tijd van een functie heen gaat in de profielen van haar service: wie haar aanroept, wat ze aanroept en haar heetste regels. |
 
 Een verzoek bevat hooguit 10 stukken context. Tokens, sleutels, wachtwoorden en e-mailadressen in wat OneUptime leest, worden afgeschermd voordat AI ze ziet, zoals overal waar OneUptime AI je gegevens leest.
 
@@ -78,7 +79,7 @@ flowchart TB
     P --> H["Een mens beoordeelt<br/>en merget de pull request"]
 ```
 
-1. Je klikt op **Taak starten** in een repository, of op **Fix with AI** bij een onopgeloste uitzondering, of een andere knop of trigger start een taak (zie [Waar hersteltaken starten](#waar-hersteltaken-starten)).
+1. Je klikt op **Taak starten** in een repository, of op **Oplossen met AI** bij een onopgeloste uitzondering, of een andere knop of trigger start een taak (zie [Waar hersteltaken starten](#waar-hersteltaken-starten)).
 2. De taak komt in de wachtrij van zijn repository, en de Runner die de repository kiest pakt hem op: een van je Runners, of een globale Runner als hij er geen kiest (zie [De Runner van de repository kiezen](#de-runner-van-de-repository-kiezen)).
 3. De Runner haalt de context van de taak op. Bij een verzoek zijn dat de woorden, de toegevoegde context en het gesprek tot dan toe; bij een uitzondering het type, het bericht en de stack trace.
 4. Hij kloont de repository naar een eigen werkruimte en maakt een branch. Een herstel van een uitzondering heet `oneuptime-fix-exception-` gevolgd door de eerste tekens van de id van de run. Een antwoord werkt in plaats daarvan op de branch van de open pull request van de taak.
@@ -94,15 +95,16 @@ Elke run is gebonden aan budgetten die de server afdwingt: hoogstens **40 LLM-aa
 
 | Waar | Klik | De pull request |
 | --- | --- | --- |
-| De pagina **AI Assistance** van een uitzondering | **Fix with AI** | Herstelt de bug achter de uitzondering. |
+| De pagina **AI Assistance** van een uitzondering | **Oplossen met AI** | Herstelt de bug achter de uitzondering. |
 | De pagina **AI Assistance** van een uitzondering | **Generate Regression Test** | Voegt een test toe die de uitzondering reproduceert en faalt tot de bug is hersteld. |
 | De pagina **AI Assistance** van een uitzondering | **Foutafhandeling verbeteren** | Voor een verwachte fout, zoals ongeldige invoer: haalt gebruikersgegevens uit het bericht, valideert de invoer eerder en markeert de fout als afgehandeld, zonder het gedrag te veranderen. |
 | De kaart **AI Investigation** van een incident of een waarschuwing | **Open Fix PR from this analysis** | Herstelt de hoofdoorzaak die het onderzoek plaatste (zie [Automatische codeherstellingen uit onderzoeken](#automatische-codeherstellingen-uit-onderzoeken)). |
 | Een trace die het verhelpen waard is | **Versnellen met AI** | Herstelt het trage patroon dat de knop noemt, zoals een N+1-query of aanroepen die parallel zouden kunnen lopen. |
 | De pagina **Logboeken** van een service | **Logging verbeteren** | Maakt de logs van de service gestructureerd, met de juiste ernst en gekoppeld aan zijn traces, zonder het gedrag te veranderen. |
 | De pagina **Traces** van een service | **Tracing verbeteren** | Voegt spans en attributen toe waar de tracing van de service ontbreekt, zonder het gedrag te veranderen. |
+| Een functie in **Prestatieprofielen** | **Oplossen met AI** | Laat de functie hetzelfde werk doen met minder tijd of geheugen, met haar profiel als bewijs. |
 
-Deze knoppen verschijnen alleen waar ze een taak kunnen starten. Staat AI voor het project uit, dan verschijnt er geen en heeft het zijmenu van een uitzondering geen **AI Assistance**. **Logging verbeteren** en **Tracing verbeteren** verschijnen zodra er een repository is gekoppeld, en **Versnellen met AI** alleen bij een trace die het verhelpen waard is (zie [Traceverkenner](/docs/telemetry/traces-explorer)).
+Deze knoppen verschijnen alleen waar ze een taak kunnen starten. Staat AI voor het project uit, dan verschijnt er geen en heeft het zijmenu van een uitzondering geen **AI Assistance**. **Logging verbeteren** en **Tracing verbeteren** verschijnen zodra er een repository is gekoppeld, en **Versnellen met AI** alleen bij een trace die het verhelpen waard is (zie [Traceverkenner](/docs/telemetry/traces-explorer)). **Oplossen met AI** bij een functie verschijnt alleen bij de eigen code van de applicatie die minstens 5% van de tijd of het geheugen van het profiel inneemt, of waarvan het aandeel met 3 punten of meer is gegroeid sinds het venster waarmee het wordt vergeleken (zie [Continue profilering](/docs/telemetry/profiles)).
 
 Om de pagina **AI Assistance** van een uitzondering te openen, open je de uitzondering onder **Producten → Observability → Uitzonderingen** en kies je **AI Assistance** in het zijmenu. Een opgeloste of gearchiveerde uitzondering moet eerst als onopgelost worden gemarkeerd.
 

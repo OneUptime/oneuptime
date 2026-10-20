@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 31337,
-    "untranslated": 16755
+    "keys": 31872,
+    "untranslated": 16692
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -27,6 +27,7 @@
     "Filter:",
     "Filter: {{expression}}",
     "Gateway",
+    "Goroutines",
     "Hardware",
     "ICMP (ping)",
     "Incident",
@@ -35,6 +36,7 @@
     "Interface {{index}}",
     "Interfaces",
     "Label: {{name}}",
+    "Locks",
     "Marketplace",
     "Model",
     "Monitor",
@@ -50,6 +52,7 @@
     "Records",
     "Runbook: {{name}}",
     "Runner",
+    "Runtime",
     "Service",
     "Service:",
     "Status",
@@ -69,9 +72,11 @@
     "Workspaces",
     "agent {{version}}",
     "cluster",
+    "goroutines",
     "host",
     "kubectl set image deployment/web * -n web",
     "probe",
+    "samples",
     "services",
     "syslog",
     "tag",
@@ -83,6 +88,7 @@
     "{{count}} incident",
     "{{count}} open pull requests",
     "{{count}} product",
+    "{{count}} samples",
     "{{field}} is {{value}}",
     "{{tokens}} tokens"
   ]

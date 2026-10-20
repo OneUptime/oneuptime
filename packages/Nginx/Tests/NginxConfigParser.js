@@ -251,6 +251,17 @@ function ingressListenEnvironment({
   };
 }
 
+/**
+ * What envsubst-on-templates.sh exports to name the primary server by: HOST
+ * without its port, which is all of a Host header that nginx compares with a
+ * server name.
+ *
+ * PrimaryServerName.test.js runs the real script and holds it to this.
+ */
+function primaryServerNameEnvironment(host = "") {
+  return { HOST_WITHOUT_PORT: host.split(":")[0] };
+}
+
 function readNginxConf() {
   return fs.readFileSync(NGINX_CONF_PATH, "utf8");
 }
@@ -262,6 +273,7 @@ module.exports = {
   readTemplate,
   readNginxConf,
   ingressListenEnvironment,
+  primaryServerNameEnvironment,
   stripComments,
   findBlocks,
   getServerBlocks,

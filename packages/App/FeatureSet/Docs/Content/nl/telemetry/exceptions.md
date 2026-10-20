@@ -111,7 +111,7 @@ De pagina **AI Assistance** biedt drie taken. Elke taak loopt als AI-taak die ee
 
 | Taak | Wat de pull request doet |
 | --- | --- |
-| **Fix this exception with AI** | Verhelpt de oorzaak. Start de taak met **Fix with AI**. |
+| **Fix this exception with AI** | Verhelpt de oorzaak. Start de taak met **Oplossen met AI**. |
 | **Generate Regression Test** | Voegt een test toe die faalt totdat de bug is verholpen. |
 | **Foutafhandeling verbeteren** | Voor verwachte fouten: controleert invoer eerder, houdt gebruikersgegevens uit berichten en markeert de fout als afgehandeld. |
 

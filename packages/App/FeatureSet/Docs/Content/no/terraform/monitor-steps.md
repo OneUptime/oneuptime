@@ -309,7 +309,7 @@ Et filter kan også bedømme et tidsvindu i stedet for den siste sjekken: angi `
 | Logger | `Log Count` |
 | Spor | `Span Count` |
 | Unntak | `Exception Count` |
-| Profiler | `Profile Count` |
+| Profiler | `Profile Count`, `Function Share (in %)` |
 | KI / LLM | `Bad AI Answers (in %)`, `Bad AI Answers`, `AI Answers` |
 | Metrikker | `Metric Value` (metrikkfiltre kan ta JSON i `metric_monitor_options`) |
 | Egendefinert kode / Synthetic | `Result Value` (kan sammenligne ett felt i de returnerte dataene, angitt i JSON-en i `custom_code_monitor_options`, f.eks. `jsonencode({ resultValuePath = "status" })` — se nedenfor), `Error`, `Execution Time (in ms)` |

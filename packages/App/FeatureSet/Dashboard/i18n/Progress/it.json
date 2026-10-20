@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 31337,
-    "untranslated": 16694
+    "keys": 31872,
+    "untranslated": 16629
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -13,6 +13,7 @@
     "Embedding",
     "Failover",
     "Gateway",
+    "Goroutines",
     "Hardware",
     "ICMP (ping)",
     "Marketplace",
@@ -28,6 +29,7 @@
     "Report",
     "Runbook: {{name}}",
     "Runner",
+    "Runtime",
     "Standard",
     "Stratum",
     "Tag",

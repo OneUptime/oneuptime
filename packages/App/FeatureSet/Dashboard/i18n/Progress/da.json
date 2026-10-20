@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 31337,
-    "untranslated": 16698
+    "keys": 31872,
+    "untranslated": 16637
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -21,6 +21,7 @@
     "Filter: {{expression}}",
     "Find",
     "Gateway",
+    "Goroutines",
     "Hardware",
     "ICMP (ping)",
     "Information",
@@ -46,16 +47,19 @@
     "Start import",
     "Status",
     "Stratum",
+    "System",
     "Team",
     "Test",
     "Test {{name}}",
     "Tip",
     "Tokens",
+    "Total",
     "Tunnel",
     "Workspaces",
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",
     "port {{port}}",
+    "samples",
     "syslog",
     "teams",
     "{{count}} B",
@@ -64,6 +68,7 @@
     "{{count}} alarm",
     "{{count}} match",
     "{{count}} rotation",
+    "{{count}} samples",
     "{{tokens}} tokens"
   ]
 }

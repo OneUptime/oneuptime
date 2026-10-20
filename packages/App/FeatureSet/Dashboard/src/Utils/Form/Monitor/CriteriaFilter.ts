@@ -42,6 +42,12 @@ export const LLM_CHECK_ON_LABELS: ReadonlyArray<string> = [
   translationKey("AI Answers"),
 ];
 
+// The same for a Profiles monitor's criteria (MonitorType.Profiles).
+export const PROFILE_CHECK_ON_LABELS: ReadonlyArray<string> = [
+  translationKey("Profile Count"),
+  translationKey("Function Share (in %)"),
+];
+
 export default class CriteriaFilterUtil {
   /*
    * The window a filter is given when "Evaluate this criteria over a period
@@ -714,7 +720,10 @@ export default class CriteriaFilterUtil {
 
     if (monitorType === MonitorType.Profiles) {
       options = options.filter((i: DropdownOption) => {
-        return i.value === CheckOn.ProfileCount;
+        return (
+          i.value === CheckOn.ProfileCount ||
+          i.value === CheckOn.ProfileFunctionShare
+        );
       });
     }
 
@@ -960,6 +969,33 @@ export default class CriteriaFilterUtil {
       ];
 
       options = llmComparisons
+        .map((filterType: FilterType): DropdownOption | undefined => {
+          return options.find((i: DropdownOption) => {
+            return i.value === filterType;
+          });
+        })
+        .filter(
+          (option: DropdownOption | undefined): option is DropdownOption => {
+            return Boolean(option);
+          },
+        );
+    }
+
+    /*
+     * A function's share of the window is judged by ProfileMonitorCriteria
+     * with CompareCriteria.compareCriteriaNumbers: above or below a share.
+     * Greater Than leads, so a new filter reads "more than 30% of the CPU
+     * time"; equal-to a share of sampled time would never fire.
+     */
+    if (checkOn === CheckOn.ProfileFunctionShare) {
+      const shareComparisons: Array<FilterType> = [
+        FilterType.GreaterThan,
+        FilterType.GreaterThanOrEqualTo,
+        FilterType.LessThan,
+        FilterType.LessThanOrEqualTo,
+      ];
+
+      options = shareComparisons
         .map((filterType: FilterType): DropdownOption | undefined => {
           return options.find((i: DropdownOption) => {
             return i.value === filterType;
@@ -1951,6 +1987,11 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.LlmAnswerCount) {
       return "0";
+    }
+
+    // A share of the window, in percent.
+    if (checkOn === CheckOn.ProfileFunctionShare) {
+      return "30";
     }
 
     if (checkOn === CheckOn.DisconnectedProbes) {

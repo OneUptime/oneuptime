@@ -427,15 +427,11 @@ const TELEMETRY_PAGES: Array<TelemetryPage> = [
   },
 ];
 
-// Every telemetry page but Profiles, which Create Monitor does not offer.
-const PICKABLE_PAGES: Array<TelemetryPage> = TELEMETRY_PAGES.filter(
-  (entry: TelemetryPage): boolean => {
-    return entry.monitorType !== MonitorType.Profiles;
-  },
-);
+// Every telemetry page: Create Monitor offers each type under Telemetry.
+const PICKABLE_PAGES: Array<TelemetryPage> = TELEMETRY_PAGES;
 
 describe("the telemetry monitors in Create Monitor", () => {
-  it("offers Logs, Metrics, Traces, Exceptions and AI / LLM under Telemetry, and Profiles nowhere", () => {
+  it("offers Logs, Metrics, Traces, Exceptions, AI / LLM and Profiles under Telemetry, and Profiles nowhere else", () => {
     const categories: Array<MonitorTypeCategory> =
       MonitorTypeHelper.getMonitorTypeCategories();
     const telemetry: MonitorTypeCategory | undefined = categories.find(
@@ -451,6 +447,7 @@ describe("the telemetry monitors in Create Monitor", () => {
         MonitorType.Traces,
         MonitorType.Exceptions,
         MonitorType.Llm,
+        MonitorType.Profiles,
       ]),
     );
 
@@ -458,7 +455,10 @@ describe("the telemetry monitors in Create Monitor", () => {
       expect({
         category: category.label,
         offersProfiles: category.monitorTypes.includes(MonitorType.Profiles),
-      }).toEqual({ category: category.label, offersProfiles: false });
+      }).toEqual({
+        category: category.label,
+        offersProfiles: category.label === "Telemetry",
+      });
     }
   });
 
@@ -498,13 +498,101 @@ describe("the telemetry monitors in Create Monitor", () => {
     ).toContain(anchor);
   });
 
-  it("says Create Monitor does not offer Profiles, which is still a monitor type the worker checks and whose criteria can be edited", () => {
-    expect(PROFILES).toContain(
-      "**Create Monitor** in the dashboard does not offer Profiles: there is no form for its filters yet.",
+  it("walks the Profiles form Create Monitor draws: the function, the kind, the window, and what it reads now", () => {
+    const form: string = dashboardSource(
+      "Components/Form/Monitor/ProfileMonitor/ProfileMonitorStepForm.tsx",
     );
-    expect(PROFILES).toContain(
-      "Once it exists, you can view and edit its criteria on the monitor's **Criteria** page in the dashboard",
+    const copy: string = dashboardSource(
+      "Components/Form/Monitor/ProfileMonitor/ProfileMonitorCopy.ts",
     );
+    const fields: Array<SourceField> = sourceFields(form);
+
+    expect(
+      oneLine(dashboardSource("Components/Form/Monitor/MonitorStep.tsx")),
+    ).toContain('title="Profiles Monitor Configuration"');
+    expect(
+      fields.map((field: SourceField): string => {
+        return `${field.title}${field.section ? " (folded)" : ""}`;
+      }),
+    ).toEqual([
+      "Function",
+      "What to analyze",
+      "Monitor profiles for (time)",
+      "Filter by Telemetry Service (folded)",
+      "Filter by Infrastructure Entity (folded)",
+    ]);
+    expect(copy).toContain('"What this monitor reads now"');
+    expect(copy).toContain('"Every kind of profile"');
+
+    const step: string = sectionOf(PROFILES, "## Create a profiles monitor");
+
+    for (const label of [
+      "Profiles Monitor Configuration",
+      "Function",
+      "What to analyze",
+      "Monitor profiles for (time)",
+      "What this monitor reads now",
+      "More fields",
+    ]) {
+      expect(step).toContain(`**${label}**`);
+    }
+
+    // A new monitor reads CPU time over the last five minutes.
+    const fiveMinutes: DurationOption | undefined = durationOptions(form).find(
+      (option: DurationOption): boolean => {
+        return (
+          option.seconds ===
+          MonitorStepProfileMonitorUtil.getDefault().lastXSecondsOfProfiles
+        );
+      },
+    );
+
+    expect(fiveMinutes?.label).toBe("Last 5 minutes");
+    expect(MonitorStepProfileMonitorUtil.getDefault().profileTypes).toContain(
+      "cpu",
+    );
+    expect(step).toContain(
+      `A new monitor reads **CPU time** over the **${fiveMinutes?.label}**.`,
+    );
+  });
+
+  it("says a Profiles monitor started from Create Monitor checks that profiles arrive, as the default criteria do", () => {
+    const offline: MonitorCriteriaInstance | null =
+      MonitorCriteriaInstance.getDefaultOfflineMonitorCriteriaInstance({
+        monitorType: MonitorType.Profiles,
+        monitorStatusId: ObjectID.generate(),
+        incidentSeverityId: ObjectID.generate(),
+        alertSeverityId: ObjectID.generate(),
+        monitorName: "Checkout",
+      });
+    const online: MonitorCriteriaInstance | null =
+      MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance({
+        monitorType: MonitorType.Profiles,
+        monitorStatusId: ObjectID.generate(),
+        monitorName: "Checkout",
+      });
+
+    expect(offline?.data?.filters).toEqual([
+      expect.objectContaining({
+        checkOn: CheckOn.ProfileCount,
+        filterType: FilterType.EqualTo,
+        value: 0,
+      }),
+    ]);
+    expect(offline?.data?.incidents?.length).toBe(1);
+    expect(online?.data?.filters).toEqual([
+      expect.objectContaining({
+        checkOn: CheckOn.ProfileCount,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+      }),
+    ]);
+    expect(PROFILES).toContain(
+      "A monitor started from **Create Monitor** has two criteria: offline, with an incident, when the **Profile Count** is 0, and online when it is above 0.",
+    );
+  });
+
+  it("Profiles is a monitor type the worker checks, whose criteria can be edited", () => {
     expect(MonitorTypeHelper.getActiveMonitorTypes()).toContain(
       MonitorType.Profiles,
     );
@@ -1047,10 +1135,22 @@ const COUNT_PAGES: Array<CountPage> = [
     checkOn: CheckOn.ExceptionCount,
     header: ["Filter Condition", "Matches when the exception count is…"],
   },
+];
+
+/*
+ * A Profiles monitor's criteria compare one of two numbers - a function's
+ * share of the window, or the profile count - each with a table of its
+ * own (see "the Profiles monitor's criteria" below).
+ */
+const PROFILE_CRITERIA: Array<{
+  checkOn: CheckOn;
+  header: Array<string>;
+}> = [
   {
-    name: "Profiles",
-    markdown: PROFILES,
-    monitorType: MonitorType.Profiles,
+    checkOn: CheckOn.ProfileFunctionShare,
+    header: ["Filter Condition", "Matches when the function's share is…"],
+  },
+  {
     checkOn: CheckOn.ProfileCount,
     header: ["Filter Condition", "Matches when the profile count is…"],
   },
@@ -1118,6 +1218,19 @@ describe("criteria", () => {
           CheckOn.MetricValue,
         ].includes(entry.checkOn),
       });
+    }
+
+    for (const criteria of PROFILE_CRITERIA) {
+      expect({
+        checkOn: criteria.checkOn,
+        hasAnomaly: offeredConditions(criteria.checkOn).some(
+          (condition: string): boolean => {
+            return CommonCriteriaFilterUtil.isAnomalyFilterType(
+              condition as FilterType,
+            );
+          },
+        ),
+      }).toEqual({ checkOn: criteria.checkOn, hasAnomaly: false });
     }
 
     expect(EXCEPTIONS).toContain(
@@ -1788,6 +1901,105 @@ describe("the Exceptions monitor", () => {
   });
 });
 
+describe("the Profiles monitor's criteria", () => {
+  it("compare a function's share or the profile count, which the page names", () => {
+    expect(
+      CriteriaFilterUtil.getCheckOnOptionsByMonitorType(
+        MonitorType.Profiles,
+      ).map((option: { value: unknown }): unknown => {
+        return option.value;
+      }),
+    ).toEqual(
+      PROFILE_CRITERIA.map((criteria: { checkOn: CheckOn }): CheckOn => {
+        return criteria.checkOn;
+      }).reverse(),
+    );
+
+    for (const criteria of PROFILE_CRITERIA) {
+      expect(PROFILES).toContain(`**${criteria.checkOn}**`);
+    }
+  });
+
+  it.each(PROFILE_CRITERIA)(
+    "$checkOn: the conditions table lists exactly the conditions the form offers",
+    (criteria: { checkOn: CheckOn; header: Array<string> }) => {
+      const listed: Array<string> = tableRows(PROFILES, criteria.header).map(
+        (cells: Array<string>): string => {
+          return plain(cells[0] as string);
+        },
+      );
+
+      expect([...listed].sort()).toEqual(
+        [...offeredConditions(criteria.checkOn)].sort(),
+      );
+    },
+  );
+
+  it("a function's share is the window's time in stacks with a frame that contains the text, any case, each stack once", () => {
+    const query: string = oneLine(
+      readSource("Common/Server/Services/ProfileAggregationService.ts"),
+    );
+
+    expect(query).toContain(
+      "toFloat64(sumIf(value, arrayExists(x -> positionCaseInsensitiveUTF8(x, ${{ type: TableColumnType.Text, value: request.frameText, }}) > 0, stacktrace))) AS matchedValue, toFloat64(sum(value)) AS windowTotal,",
+    );
+    expect(oneLine(PROFILES)).toContain(
+      "**Function Share (in %)** is the share of the window's time, from 0 to 100, that ran through the monitor's function: each stack with a frame that matches `functionName` counts once, whatever its depth, so the function's own code and everything it calls are both in it.",
+    );
+  });
+
+  it("reads one unit, and judges no share when nothing was profiled", () => {
+    const share: string = oneLine(
+      readSource("Common/Server/Utils/Profile/ProfileMonitorShare.ts"),
+    );
+    const criteria: string = oneLine(
+      readSource(
+        "Common/Server/Utils/Monitor/Criteria/ProfileMonitorCriteria.ts",
+      ),
+    );
+
+    expect(share).toContain(
+      "query.profileType = new Includes( narrowProfileTypesToOneUnit(types, activity), );",
+    );
+    expect(criteria).toContain(
+      "if (!reading || !(reading.windowSampleCount > 0)) { return null; }",
+    );
+    expect(PROFILES).toContain(
+      "- **One unit at a time.** A share adds up samples of one unit",
+    );
+    expect(PROFILES).toContain(
+      "a **Function Share (in %)** criteria does not match a window with nothing in it",
+    );
+  });
+
+  it("the Profiler's alert link: a threshold above today, an alert that resolves itself, the incident switched off", () => {
+    const view: string = oneLine(dashboardSource("Utils/ProfilesView.ts"));
+    const prefill: string = oneLine(
+      dashboardSource("Utils/ProfileMonitorPrefill.ts"),
+    );
+
+    expect(view).toContain(
+      "const above: number = share + Math.max(10, share * 0.5); const rounded: number = Math.ceil(above / 5) * 5;",
+    );
+    expect(PROFILES).toContain(
+      "The Profiler suggests 30%: half again above today's share, at least 10 points more, rounded up to a multiple of 5.",
+    );
+    expect(prefill).toContain(
+      "checkOn: CheckOn.ProfileFunctionShare, filterType: FilterType.GreaterThan, value: data.link.threshold,",
+    );
+    expect(prefill).toContain(
+      "checkOn: CheckOn.ProfileFunctionShare, filterType: FilterType.LessThanOrEqualTo, value: data.link.threshold,",
+    );
+    expect(prefill).toContain("autoResolveAlert: true,");
+    expect(prefill).toContain(
+      "changeMonitorStatus: Boolean(data.seeds.unhealthyMonitorStatusId), createIncidents: false, createAlerts: Boolean(alertSeverityId),",
+    );
+    expect(oneLine(PROFILES)).toContain(
+      "**Function Share (in %)** **Greater Than** `30` raises an alert, which resolves itself, and marks the monitor degraded; **Less Than Or Equal To** `30` marks it operational. The incident is filled in but switched off: turn it on to page someone.",
+    );
+  });
+});
+
 describe("the Profiles monitor", () => {
   it("the configuration example is a step the product reads, and the fields table names every field it has", () => {
     const example: JSONObject = jsonBlockOf(
@@ -1811,6 +2023,9 @@ describe("the Profiles monitor", () => {
 
     expect(step.profileTypes).toEqual(["cpu"]);
     expect(step.lastXSecondsOfProfiles).toBe(300);
+    expect(MonitorStepProfileMonitorUtil.getFunctionName(step)).toBe(
+      "parseOrder",
+    );
 
     expect(
       tableRows(PROFILES, ["Field"])

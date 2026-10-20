@@ -66,7 +66,7 @@ Klikk på **Opprett monitor**. Monitoren åpnes på siden **Oversikt**, og den f
 | **Overvåk spor i (tid)** | Spans som startet de siste 5 sekundene opp til de siste 24 timene. | **Siste 1 minutt** |
 | **Filtrer etter span-status** | Spans med en av de valgte statusene: **Ikke angitt**, **OK** eller **Feil**. | Tom: alle statuser |
 | **Filtrer etter telemetritjeneste** (under **Flere felt**) | Spans fra en av de valgte tjenestene. | Tom: alle tjenester |
-| **Filter by Infrastructure Entity** (under **Flere felt**) | Spans fra en av de valgte vertene, podene, containerne og andre entitetene. | Tom: alle entiteter |
+| **Filtrer etter infrastrukturenhet** (under **Flere felt**) | Spans fra en av de valgte vertene, podene, containerne og andre entitetene. | Tom: alle entiteter |
 | **Filtrer etter attributter** (under **Flere felt**) | Spans der attributtene oppfyller alle vilkår. Hvert vilkår har sin egen operator, som «er lik» eller «inneholder». | Tom: ingen vilkår |
 
 Alle filtrene du angir, må samsvare for at et span skal telles.

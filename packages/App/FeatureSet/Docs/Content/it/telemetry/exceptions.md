@@ -111,7 +111,7 @@ La pagina **AI Assistance** offre tre attività. Ognuna viene eseguita come atti
 
 | Attività | Che cosa fa la pull request |
 | --- | --- |
-| **Fix this exception with AI** | Corregge la causa principale. Avviatela con **Fix with AI**. |
+| **Fix this exception with AI** | Corregge la causa principale. Avviatela con **Correggi con l'IA**. |
 | **Generate Regression Test** | Aggiunge un test che fallisce finché il bug non viene corretto. |
 | **Migliora la gestione degli errori** | Per gli errori previsti: convalida prima l'input, tiene i dati degli utenti fuori dai messaggi e segna l'errore come gestito. |
 

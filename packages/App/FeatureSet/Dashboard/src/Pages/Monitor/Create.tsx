@@ -99,6 +99,11 @@ import {
 } from "../../Utils/LlmMonitorPrefill";
 import { fetchLlmMonitorSeedIds } from "../../Utils/LlmMonitorData";
 import {
+  ProfileMonitorLink,
+  buildProfileMonitorPrefill,
+  readProfileMonitorLink,
+} from "../../Utils/ProfileMonitorPrefill";
+import {
   NETWORK_EVENT_ALERT_QUERY_PARAM,
   NETWORK_EVENT_DEVICE_QUERY_PARAM,
   NETWORK_EVENT_UNKNOWN_ALERT_ERROR,
@@ -1011,6 +1016,41 @@ const MonitorCreate: FunctionComponent<
    * form would read as the prefill having silently failed.
    */
   /*
+   * "Alert me when its share passes 25%" from the Profiler's function
+   * panel: open on a Profiles monitor of the service whose Function Share
+   * criteria raises an alert above the threshold, built with the project's
+   * own statuses and severities (ProfileMonitorPrefill).
+   */
+  const preSeedFromProfileLink: (
+    link: ProfileMonitorLink,
+  ) => Promise<void> = async (link: ProfileMonitorLink): Promise<void> => {
+    let seeds: LlmMonitorSeedIds = {
+      operationalMonitorStatusId: null,
+      unhealthyMonitorStatusId: null,
+      rankedIncidentSeverityIds: [],
+      rankedAlertSeverityIds: [],
+    };
+
+    try {
+      seeds = await fetchLlmMonitorSeedIds();
+    } catch {
+      /*
+       * Recoverable: the criteria come without the parts that need these
+       * ids, and the form asks for them.
+       */
+    }
+
+    const prefill: JSONObject | null = buildProfileMonitorPrefill({
+      link,
+      seeds,
+    });
+
+    if (prefill) {
+      setInitialValues(prefill);
+    }
+  };
+
+  /*
    * "Create alert" from an AI alert template (AI / LLM > Alerts): open on
    * the AI / LLM monitor the template describes, with criteria built from
    * the project's own statuses and severities. A link naming no template
@@ -1290,6 +1330,19 @@ const MonitorCreate: FunctionComponent<
     if (llmMonitorTemplateId) {
       setIsLoading(true);
       preSeedFromLlmMonitorTemplate(llmMonitorTemplateId.trim()).finally(() => {
+        setIsLoading(false);
+      });
+      return;
+    }
+
+    const profileMonitorLink: ProfileMonitorLink | null =
+      readProfileMonitorLink((name: string): string | null => {
+        return Navigation.getQueryStringByName(name);
+      });
+
+    if (profileMonitorLink) {
+      setIsLoading(true);
+      preSeedFromProfileLink(profileMonitorLink).finally(() => {
         setIsLoading(false);
       });
       return;

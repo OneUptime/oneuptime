@@ -533,10 +533,10 @@ describe("no page in the area is left out", () => {
     }
   });
 
-  test("the host flame graph is not a time series and keeps its own frame zoom", () => {
+  test("the host's profiles are not a time series: the Profiler's overview keeps its own frame zoom", () => {
     const source: string = readSquashed("Pages/Host/View/Profiles.tsx");
 
-    expect(source).toContain("<AggregatedFlamegraph ");
+    expect(source).toContain("<ProfilesOverview ");
     expect(source).not.toContain("TimeRangeZoom");
   });
 });
