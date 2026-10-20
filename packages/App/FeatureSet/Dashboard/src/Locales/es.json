@@ -31937,6 +31937,12 @@
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio aceptó el SMS de prueba. Debería llegar en unos minutos.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio está llamando desde {{phoneNumber}}. Tu teléfono debería sonar en menos de un minuto.",
   "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio está haciendo la llamada de prueba. Tu teléfono debería sonar en menos de un minuto.",
+  "Access level": "Nivel de acceso",
+  "Admin": "Administrador",
+  "One area": "Un área",
+  "Pick an area": "Elige un área",
+  "Then choose Admin, Member or Viewer.": "Luego elige Administrador, Miembro o Visor.",
+  "Whole project": "Todo el proyecto",
   "Put back on the cluster: {{fields}}": "Restablecido en el clúster: {{fields}}",
   "Temporary fix": "Solución temporal"
 }

@@ -117,6 +117,8 @@ En roll samlar ett helt produktområde på en av tre nivåer:
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` och så vidare. Roller är nästan alltid det du vill ha — de förblir korrekta i takt med att OneUptime lägger till funktioner, eftersom en ny övervakarrelaterad tabell läggs till i de befintliga övervakarrollerna i stället för att kräva en ny tilldelning från dig.
 
+**Lägg till roll** frågar först hur långt rollen når. **Hela projektet** visar de fyra roller som når hela projektet — Project Owner, Projektadministratör, Projektmedlem och Tittare — var och en med en rad om vad den är till för. **Ett område** visar områdena, vart och ett med sin produkts ikon: välj ett, och sedan nivån. **Sök roller** hittar vilken roll som helst efter namn, område eller vad den gör.
+
 Arbetsflöden och runbooks är undantaget. Båda kör kod i ditt projekt — ett arbetsflöde sina steg, en runbook sina skript på dina Runners —, så `WorkflowMember` öppnar arbetsflöden och deras körningar och kör dem manuellt, och `RunbookMember` öppnar runbooks och deras körningar och kör dem: den startar en körning, slutför eller hoppar över dess steg och avbryter den. Ingen av dem skapar, ändrar eller tar bort det den kör; `WorkflowAdmin` och `RunbookAdmin` bygger dem. En roll kör bara de runbooks som dess omfattning når, så en `RunbookMember` som är begränsad till några etiketter kör de runbooks som bär dem. Se [Behörigheter för arbetsflöden](/docs/workflows/configuration#behörigheter) och [Behörigheter för runbooks](/docs/runbooks/configuration#behörigheter).
 
 Ett områdes regler (etikett-, ägar-, jour-, grupperings- och påminnelseregler), anpassade fält, SLA:er och hemligheter är projektkonfiguration: de kräver `ProjectAdmin`, oavsett vilken områdesroll någon har. Detsamma gäller API-nycklar, team och deras behörigheter, etiketter, SSO och domäner — Settings-rollerna tar hand om projektets tjänster, prober, infrastruktur och integrationer, inte om vem som får göra vad.
@@ -188,7 +190,7 @@ Bara tillståndet skrivs åt dig. En anteckning som skickas med en ändring skic
 
 ## Omfattning: hur långt en tillåten behörighet når
 
-Varje tillåten behörighet ges med en omfattning, vald under **Omfattning** när du lägger till den:
+Varje tillåten behörighet ges med en omfattning: när du lägger till den ligger **Omfattning** under **Fler fält** och börjar på det första av dessa svar:
 
 | Omfattning | Betydelse |
 | --- | --- |

@@ -375,9 +375,32 @@ export class Service extends ProjectReferencesService<Model> {
     stackTrace: string | null;
     serviceName: string | null;
   }): Promise<RepoResolution | null> {
+    const resolvable: Array<ResolvableRepository> =
+      await this.getResolvableRepositories(data.projectId);
+
+    if (resolvable.length === 0) {
+      return null;
+    }
+
+    return resolveRepositoryForExceptionFix({
+      stackTrace: data.stackTrace,
+      serviceName: data.serviceName,
+      repositories: resolvable,
+      getTreePaths: Service.getRepositoryTreePaths,
+    });
+  }
+
+  /*
+   * The project's repositories a fix can be resolved to: every one the
+   * agent could clone and push.
+   */
+  @CaptureSpan()
+  public async getResolvableRepositories(
+    projectId: ObjectID,
+  ): Promise<Array<ResolvableRepository>> {
     const repositories: Array<Model> = await this.findBy({
       query: {
-        projectId: data.projectId,
+        projectId: projectId,
       },
       select: {
         _id: true,
@@ -403,9 +426,9 @@ export class Service extends ProjectReferencesService<Model> {
      * initiative (GHSA-xx95-gmcf-7q86).
      */
     const boundInstallationId: string | null =
-      await GitHubInstallationBinding.getBoundInstallationId(data.projectId);
+      await GitHubInstallationBinding.getBoundInstallationId(projectId);
 
-    const resolvable: Array<ResolvableRepository> = repositories
+    return repositories
       .filter((repository: Model) => {
         return (
           repository.repositoryHostedAt === CodeRepositoryType.GitHub &&
@@ -425,25 +448,17 @@ export class Service extends ProjectReferencesService<Model> {
           gitHubAppInstallationId: repository.gitHubAppInstallationId || null,
         };
       });
+  }
 
-    if (resolvable.length === 0) {
-      return null;
-    }
-
-    return resolveRepositoryForExceptionFix({
-      stackTrace: data.stackTrace,
-      serviceName: data.serviceName,
-      repositories: resolvable,
-      getTreePaths: (
-        repository: ResolvableRepository,
-      ): Promise<Array<string>> => {
-        return GitHubUtil.getRepositoryTreePaths({
-          installationId: repository.gitHubAppInstallationId!,
-          organizationName: repository.organizationName,
-          repositoryName: repository.repositoryName,
-          branchName: repository.mainBranchName,
-        });
-      },
+  // A resolvable repository's file tree, cached (GitHubUtil).
+  public static getRepositoryTreePaths(
+    repository: ResolvableRepository,
+  ): Promise<Array<string>> {
+    return GitHubUtil.getRepositoryTreePaths({
+      installationId: repository.gitHubAppInstallationId!,
+      organizationName: repository.organizationName,
+      repositoryName: repository.repositoryName,
+      branchName: repository.mainBranchName,
     });
   }
 }
