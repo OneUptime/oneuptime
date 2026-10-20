@@ -115,7 +115,7 @@ En anden beskyttelse dækker udgående forbindelser, hvis mål et projektmedlem 
 - OIDC-discovery til single sign-on
 - verificering af egne domæner for statussider og dashboards
 - HTTP-trin i runbooks
-- URL'en til Grafana OnCall-API'et, som en import læser fra (**Projektindstillinger** > **Grundlæggende** > **Importér fra et andet værktøj**)
+- URL'en til Grafana OnCall-API'et, som en import læser fra (**Projektindstillinger** > **Avanceret** > **Importér fra et andet værktøj**)
 
 Denne beskyttelse virker omvendt af webhook-indstillingerne. På en selvhostet installation **tillader** den det private niveau som standard, fordi databasen, mailserveren eller modelserveren, som disse forbindelser går til, som regel ligger på dit eget netværk. Det forbudte niveau – loopback, link-local og cloud-metadata-endpointet – afvises under alle omstændigheder, og der findes ingen tilladelsesliste for det.
 

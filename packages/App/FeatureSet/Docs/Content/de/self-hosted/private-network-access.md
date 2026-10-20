@@ -115,7 +115,7 @@ Eine zweite Schutzschicht deckt ausgehende Verbindungen ab, deren Ziel ein Proje
 - OIDC-Discovery für Single Sign-on
 - die Überprüfung eigener Domains von Statusseiten und Dashboards
 - HTTP-Schritte in Runbooks
-- die URL der Grafana-OnCall-API, aus der ein Import liest (**Projekteinstellungen** > **Grundlegend** > **Aus einem anderen Tool importieren**)
+- die URL der Grafana-OnCall-API, aus der ein Import liest (**Projekteinstellungen** > **Erweitert** > **Aus einem anderen Tool importieren**)
 
 Diese Schutzschicht funktioniert umgekehrt zu den Webhook-Einstellungen. Bei einer selbst gehosteten Installation **erlaubt** sie die private Stufe standardmäßig, weil die Datenbank, der Mailserver oder der Modellserver, mit denen sich diese Verbindungen verbinden, meist in Ihrem eigenen Netzwerk liegen. Die verbotene Stufe – Loopback, Link-Local und der Cloud-Metadaten-Endpunkt – wird in jedem Fall verweigert, und dafür gibt es keine Allowlist.
 

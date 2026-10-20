@@ -36,7 +36,7 @@ flowchart TB
 在 Better Stack 中，依序進入 **API tokens** > **Team-based tokens**，然後選擇你的團隊。在 **Uptime API tokens** 下建立一個名為 `OneUptime import` 的權杖並複製。
 
 ### 開啟匯入頁面
-在 OneUptime 中，前往 **專案設定** > **從其他工具匯入**，然後選擇 **Better Stack**。
+在 OneUptime 中，前往 **專案設定** > **進階** > **從其他工具匯入**，然後選擇 **Better Stack**。
 
 ### 連線 Better Stack
 將權杖貼到 **Better Stack API 金鑰** 中，然後選擇 **讀取我的 Better Stack 帳戶**。大型帳戶需要幾分鐘，讀取期間你可以離開頁面。

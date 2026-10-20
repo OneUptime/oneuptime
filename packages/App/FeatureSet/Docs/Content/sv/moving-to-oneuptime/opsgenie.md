@@ -36,7 +36,7 @@ flowchart TB
 Gå till **Settings** > **API key management** i Opsgenie och välj **Add new API key**. Kalla den `OneUptime import`, ge den bara **Read** och **Configuration access**, och kopiera nyckeln.
 
 ### Öppna importsidan
-Gå till **Projektinställningar** > **Importera från ett annat verktyg** i OneUptime och välj **Opsgenie**.
+Gå till **Projektinställningar** > **Avancerad** > **Importera från ett annat verktyg** i OneUptime och välj **Opsgenie**.
 
 ### Anslut Opsgenie
 Under **Var finns ditt Opsgenie-konto?** väljer du **USA** eller **Europa**. Klistra in nyckeln i **Opsgenie-API-nyckel** och välj **Läs mitt Opsgenie-konto**. Ett stort konto tar några minuter, och du kan lämna sidan medan det läses.

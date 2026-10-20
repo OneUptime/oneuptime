@@ -30,12 +30,12 @@ flowchart LR
 
 | 區段 | 頁面 | 詳細閱讀 |
 | --- | --- | --- |
-| **基礎** | **專案**、**標籤**、**從其他工具匯入** | [專案詳細資訊](#專案詳細資訊)、[標籤](#標籤)、[從 Opsgenie 移轉](/docs/moving-to-oneuptime/opsgenie)及其他移轉指南 |
+| **基礎** | **專案**、**標籤** | [專案詳細資訊](#專案詳細資訊)、[標籤](#標籤) |
 | **工作區** | **Slack**、**Microsoft Teams**、**Video Calls** | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[視訊通話](/docs/workspace-connections/video-calls) |
 | **遙測與 APM** | **擷取金鑰**、**資料保留** | [擷取金鑰](/docs/telemetry/ingestion-keys)、[資料保留](/docs/telemetry/data-retention) |
 | **通知** | **通知設定**、**通知日誌**、**行動應用程式** | [通知](#通知) |
 | **人工智慧** | **AI Features**、**LLM 提供商**、**AI 點數**、**AI 日誌**、**MCP 伺服器** | [LLM 提供者](/docs/ai/llm-provider)、[MCP 伺服器](/docs/ai/mcp-server)、[AI SRE](/docs/ai/ai-sre#成本控制) |
-| **進階** | **網域**、**API 金鑰**、**功能旗標** | [自訂網域](/docs/status-pages/branding-and-domains#自訂網域)、[API 金鑰](/docs/permissions/index#api-金鑰)、[功能旗標](#功能旗標) |
+| **進階** | **網域**、**API 金鑰**、**功能旗標**、**從其他工具匯入** | [自訂網域](/docs/status-pages/branding-and-domains#自訂網域)、[API 金鑰](/docs/permissions/index#api-金鑰)、[功能旗標](#功能旗標)、[從 Opsgenie 移轉](/docs/moving-to-oneuptime/opsgenie)及其他移轉指南 |
 | **安全性** | **SSO**、**SCIM** | [SSO](/docs/identity/sso)、[SCIM](/docs/identity/scim) |
 | **帳單與發票** | **帳單**、**使用歷程**、**發票** | [帳單與用量](/docs/configuration/billing) |
 | **稽核日誌** | **稽核日誌**、**設定** | [稽核日誌](/docs/configuration/audit-logs) |

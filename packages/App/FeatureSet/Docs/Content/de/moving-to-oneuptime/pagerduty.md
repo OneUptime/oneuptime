@@ -36,7 +36,7 @@ flowchart TB
 Öffnen Sie in PagerDuty **Integrations** > **Developer Tools** > **API Access Keys** und wählen Sie **Create New API Key**. Beschreiben Sie ihn als `OneUptime import`, wählen Sie **Read-only API Key**, dann **Create Key**, und kopieren Sie den Schlüssel.
 
 ### Die Importseite öffnen
-Öffnen Sie in OneUptime **Projekteinstellungen** > **Aus einem anderen Tool importieren** und wählen Sie **PagerDuty**.
+Öffnen Sie in OneUptime **Projekteinstellungen** > **Erweitert** > **Aus einem anderen Tool importieren** und wählen Sie **PagerDuty**.
 
 ### PagerDuty verbinden
 Wählen Sie unter **Wo ist Ihr PagerDuty-Konto?** **Vereinigte Staaten** oder **Europa**. Fügen Sie den Schlüssel in **PagerDuty-API-Schlüssel** ein und wählen Sie **Mein PagerDuty-Konto einlesen**. Ein großes Konto dauert einige Minuten, und Sie können die Seite währenddessen verlassen.

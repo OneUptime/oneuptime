@@ -36,7 +36,7 @@ flowchart TB
 Öffnen Sie in Uptime Kuma 1 **Settings** > **Backup** und wählen Sie **Export**. Fügen Sie in Uptime Kuma 2 unter **Settings** > **API Keys** einen Schlüssel hinzu, öffnen Sie `/metrics` auf Ihrem Uptime Kuma, melden Sie sich ohne Benutzernamen mit dem Schlüssel als Passwort an und speichern Sie die Seite als Textdatei.
 
 ### Die Importseite öffnen
-Öffnen Sie in OneUptime **Projekteinstellungen** > **Aus einem anderen Tool importieren** und wählen Sie **Uptime Kuma**.
+Öffnen Sie in OneUptime **Projekteinstellungen** > **Erweitert** > **Aus einem anderen Tool importieren** und wählen Sie **Uptime Kuma**.
 
 ### Die Datei einlesen
 Wählen Sie unter **Sicherungs- oder Metrikdatei von Uptime Kuma** **Datei auswählen**, wählen Sie die gespeicherte Datei und dann **Datei lesen**. OneUptime liest sie sofort und zeigt, was es gefunden hat.

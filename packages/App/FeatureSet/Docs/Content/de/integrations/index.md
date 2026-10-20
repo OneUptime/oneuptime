@@ -98,7 +98,7 @@ Beginnen Sie oben in der Tabelle: Je weiter oben ein Weg steht, desto weniger gi
 
 ## Wechsel von einem anderen Werkzeug
 
-Wenn Sie ein anderes Bereitschafts-, Uptime- oder Statusseiten-Werkzeug verlassen, holen Sie Ihr Team herüber, statt beide zu verbinden. **Projekteinstellungen → Aus einem anderen Tool importieren** liest Ihr Konto mit einem API-Schlüssel, zeigt Ihnen, was es gefunden hat, und legt an, was Sie ankreuzen. Für jedes Werkzeug gibt es eine Anleitung:
+Wenn Sie ein anderes Bereitschafts-, Uptime- oder Statusseiten-Werkzeug verlassen, holen Sie Ihr Team herüber, statt beide zu verbinden. **Projekteinstellungen → Erweitert → Aus einem anderen Tool importieren** liest Ihr Konto mit einem API-Schlüssel, zeigt Ihnen, was es gefunden hat, und legt an, was Sie ankreuzen. Für jedes Werkzeug gibt es eine Anleitung:
 
 - Bereitschafts- und Vorfallwerkzeuge: [Opsgenie](/docs/moving-to-oneuptime/opsgenie), [PagerDuty](/docs/moving-to-oneuptime/pagerduty), [incident.io](/docs/moving-to-oneuptime/incident-io), [Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) und [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall).
 - Uptime- und Statusseiten-Werkzeuge: [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot), [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage), [Better Stack](/docs/moving-to-oneuptime/better-stack), [Pingdom](/docs/moving-to-oneuptime/pingdom), [StatusCake](/docs/moving-to-oneuptime/statuscake) und [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma).

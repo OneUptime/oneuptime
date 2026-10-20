@@ -98,7 +98,7 @@ flowchart TB
 
 ## 從其他工具移轉
 
-如果要離開其他待命、正常運作時間監控或狀態頁工具，請把團隊移轉過來，而不是把兩者連接起來。**專案設定 → 從其他工具匯入** 會用 API 金鑰讀取你的帳戶，顯示它找到的內容，並建立你勾選的項目。每個工具都有一份指南：
+如果要離開其他待命、正常運作時間監控或狀態頁工具，請把團隊移轉過來，而不是把兩者連接起來。**專案設定 → 進階 → 從其他工具匯入** 會用 API 金鑰讀取你的帳戶，顯示它找到的內容，並建立你勾選的項目。每個工具都有一份指南：
 
 - 待命和事件工具：[Opsgenie](/docs/moving-to-oneuptime/opsgenie)、[PagerDuty](/docs/moving-to-oneuptime/pagerduty)、[incident.io](/docs/moving-to-oneuptime/incident-io)、[Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) 和 [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall)。
 - 正常運作時間和狀態頁工具：[UptimeRobot](/docs/moving-to-oneuptime/uptimerobot)、[Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage)、[Better Stack](/docs/moving-to-oneuptime/better-stack)、[Pingdom](/docs/moving-to-oneuptime/pingdom)、[StatusCake](/docs/moving-to-oneuptime/statuscake) 和 [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma)。
