@@ -1942,11 +1942,18 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
           "Height of the dashboard in grid units. It grows to fit its widgets.",
       },
       {
+        name: "timeRange",
+        type: "string",
+        required: false,
+        description:
+          "The time range the dashboard opens on: Past 5 Mins, Past 15 Mins, Past 30 Mins, Past 1 Hour, Past 2 Hours, Past 3 Hours, Past 1 Day, Past 2 Days, Past 1 Week, Past 2 Weeks, Past 1 Month or Past 3 Months. Left out, it opens on Past 1 Hour. Each viewer can still pick their own, which their browser remembers; any other value is refused.",
+      },
+      {
         name: "refreshInterval",
         type: "string",
         required: false,
         description:
-          "How often the dashboard refreshes itself: off, 5s, 10s, 30s, 1m, 5m or 15m.",
+          "How often the dashboard refreshes itself when it opens: off, 5s, 10s, 30s, 1m, 5m or 15m. Left out, it is off. Each viewer can still pick their own, which their browser remembers; any other value is refused.",
       },
       {
         name: "variables",

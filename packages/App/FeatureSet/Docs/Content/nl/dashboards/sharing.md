@@ -46,7 +46,7 @@ De keuze wordt opgeslagen in drie kolommen, die de API en Terraform lezen en sch
 Een openbaar dashboard:
 
 - Opent altijd om te lezen. Bezoekers kunnen het niet bewerken, en zien de bewerkknoppen nooit.
-- Bevat de variabelen die je hebt toegevoegd. Bezoekers kiezen uit dezelfde kiezers die je team gebruikt, en kunnen het tijdsbereik wijzigen, inzoomen, automatisch vernieuwen aanzetten en naar volledig scherm gaan.
+- Bevat de variabelen die je hebt toegevoegd. Bezoekers kiezen uit dezelfde kiezers die je team gebruikt, en kunnen het tijdsbereik wijzigen, inzoomen, automatisch vernieuwen aanzetten en naar volledig scherm gaan. Het opent op de standaardperiode en het standaard automatisch vernieuwen van het dashboard, en de browser van elke bezoeker onthoudt diens eigen keuzes.
 - Gebruikt de huisstijl die je instelt op de pagina **Huisstijl** van het dashboard: paginatitel, beschrijving, logo, thema, favicon.
 - Laat elke bezoeker met een knop met een zon of een maan in de werkbalk wisselen tussen het lichte en het donkere dashboard; [Thema](#thema) legt uit hoe.
 
@@ -197,7 +197,7 @@ Om een ingesloten dashboard de stijl van je site te geven, voeg je `?theme=light
 
 ## Een link sturen
 
-De openbare link opent het dashboard op de opgeslagen standaardwaarden. Om een link te sturen die op een bepaalde waarde opent, voeg je de variabele eraan toe als `?var-<name>=<value>`, zoals de adresbalk doet als een bezoeker een waarde kiest; meerdere waarden worden gescheiden door komma's. Het tijdsbereik maakt geen deel uit van de link: elk bezoek begint bij het afgelopen uur. Om het dashboard in een thema te openen, voeg je `theme=light`, `theme=dark` of `theme=system` toe, zoals [Insluiten](#insluiten) beschrijft.
+De openbare link opent het dashboard op de opgeslagen standaardwaarden. Om een link te sturen die op een bepaalde waarde opent, voeg je de variabele eraan toe als `?var-<name>=<value>`, zoals de adresbalk doet als een bezoeker een waarde kiest; meerdere waarden worden gescheiden door komma's. Om het op een eigen tijdsbereik of automatisch vernieuwen te openen, voeg je op dezelfde manier `range` en `refresh` toe: `?range=1d&refresh=1m` opent op de afgelopen dag en vernieuwt elke minuut, zoals een wandscherm zou doen. `range` accepteert `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` of `3mo`, en `refresh` accepteert `off`, `5s`, `10s`, `30s`, `1m`, `5m` of `15m`. Ze gaan voor op de standaardwaarden van het dashboard en de eigen keuzes van de bezoeker, die ze nog steeds kan wijzigen. Om het dashboard in een thema te openen, voeg je `theme=light`, `theme=dark` of `theme=system` toe, zoals [Insluiten](#insluiten) beschrijft.
 
 ## Volgende stappen
 

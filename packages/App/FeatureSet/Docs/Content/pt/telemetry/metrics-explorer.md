@@ -91,7 +91,7 @@ Os botões acima dos gráficos trabalham no intervalo de tempo que você está v
 | --- | --- |
 | **Registros** | Abre o [Explorador de registros](/docs/telemetry/logs-explorer) para este intervalo de tempo e seus filtros. |
 | **Traços** | Abre o [Explorador de traços](/docs/telemetry/traces-explorer) para este intervalo de tempo e seus filtros. |
-| **Investigate** | Abre um painel lateral com os registros, os traços e as exceções deste intervalo de tempo. |
+| **Investigar** | Abre um painel lateral com os registros, os traços e as exceções deste intervalo de tempo. |
 | **Eventos** | Marca nos gráficos os incidentes e os alertas deste intervalo de tempo. |
 | **Compare** | Desenha o período anterior em cada gráfico como linha tracejada, para você ver o que mudou. |
 

@@ -68,7 +68,9 @@ const SHARED_RECORD_QUERIES: Dictionary<Dictionary<unknown>> = {
  * call and SMS provider a status page or an incoming call policy uses, the
  * credential the AI reaches a cluster with, the SNMP credentials a network
  * device or site is polled with, the video call provider a meeting is
- * started with, and the API key a permission is granted to.
+ * started with, the API key a permission is granted to, and the outside MCP
+ * servers whose tools OneUptime AI uses for an investigation or an auto
+ * remediation rule, signed in with what the server holds.
  *
  * Their records are read as a whole table - no label or owner narrows a
  * read of them - so a write that names one is held to its caller's
@@ -83,6 +85,7 @@ const SHARED_RECORD_QUERIES: Dictionary<Dictionary<unknown>> = {
  */
 const CREDENTIAL_SETTINGS: Array<string> = [
   "ApiKey",
+  "ExternalMcpServer",
   "NetworkSnmpCredentialProfile",
   "ProjectCallSMSConfig",
   "ProjectSMTPConfig",
@@ -127,7 +130,8 @@ const CREDENTIAL_SETTINGS: Array<string> = [
  * monitor statuses, files - are not held to a read here: every member reads
  * them, and the reference check answers a record that is not the project's.
  * The settings that hold credentials (SMTP, call and SMS, credentials, SNMP
- * credentials, video call providers, API keys) are read as a whole table
+ * credentials, video call providers, API keys, outside MCP servers) are
+ * read as a whole table
  * too, and a write names one only when its caller may read that table
  * (CREDENTIAL_SETTINGS, isHeldToTableRead) - never through a workflow's
  * step, which holds no read of them.

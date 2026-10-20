@@ -105,7 +105,7 @@ Custom List는 쉼표로 구분해 입력한 값을 제공합니다. Text Input�
 https://oneuptime.com/dashboard/<project-id>/dashboards/<dashboard-id>?var-service=payments
 ```
 
-링크에는 변수만 담깁니다. 시간 범위는 방문할 때마다 최근 한 시간에서 시작하므로, 링크를 보내는 사람에게 어느 구간을 봐야 하는지 알려 주거나, 상대가 연 뒤에 확대하세요.
+링크에는 고른 시간 범위와 자동 새로 고침도 `range`와 `refresh`로 담기므로, 받는 사람도 같은 화면을 봅니다. 값 목록은 [링크 보내기](/docs/dashboards/sharing#링크-보내기)에 있습니다.
 
 ## 예시: 서비스마다 대시보드 하나
 

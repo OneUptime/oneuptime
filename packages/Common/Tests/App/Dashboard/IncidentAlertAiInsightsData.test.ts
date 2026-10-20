@@ -77,6 +77,7 @@ const ALL_REASON_CODES: Array<InvestigationNotStartedCode> = [
   "severity_below_threshold",
   "monitor_cooldown",
   "created_resolved",
+  "resolved_before_investigation",
   "daily_budget_exhausted",
   "budget_check_failed",
   "enqueue_failed",
@@ -568,6 +569,18 @@ describe("why incidents were not investigated", () => {
     expect(describeNotInvestigatedReason("alert", "created_resolved")).toBe(
       "They were created already resolved.",
     );
+  });
+
+  test("an incident or alert resolved during an investigation rule's wait says so (issue #5074)", () => {
+    expect(
+      describeNotInvestigatedReason(
+        "incident",
+        "resolved_before_investigation",
+      ),
+    ).toBe("They were resolved during an investigation rule's wait.");
+    expect(
+      describeNotInvestigatedReason("alert", "resolved_before_investigation"),
+    ).toBe("They were resolved during an investigation rule's wait.");
   });
 
   test("a project that reached its own daily AI limit says so", () => {

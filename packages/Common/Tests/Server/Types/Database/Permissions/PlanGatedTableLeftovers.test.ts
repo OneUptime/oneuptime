@@ -138,6 +138,7 @@ const RESTRICTION_COLUMN: RegExp = /^is(Block|Deny|Excluded?)/;
  * switched off. A table with no switch is stopped by deleting its records.
  */
 const SWITCHABLE_TABLES: ReadonlyArray<string> = [
+  "ExternalMcpServer",
   "Form",
   "OnCallDutyPolicyScheduleCalendarFeed",
   "ProjectOIDC",

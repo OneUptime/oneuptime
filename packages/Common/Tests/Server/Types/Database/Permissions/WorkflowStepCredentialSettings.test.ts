@@ -9,6 +9,7 @@ import AllModelTypes from "../../../../../Models/DatabaseModels/Index";
 import ApiKey from "../../../../../Models/DatabaseModels/ApiKey";
 import ApiKeyPermission from "../../../../../Models/DatabaseModels/ApiKeyPermission";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import ExternalMcpServer from "../../../../../Models/DatabaseModels/ExternalMcpServer";
 import IncomingCallPolicy from "../../../../../Models/DatabaseModels/IncomingCallPolicy";
 import NetworkSnmpCredentialProfile from "../../../../../Models/DatabaseModels/NetworkSnmpCredentialProfile";
 import ProjectCallSMSConfig from "../../../../../Models/DatabaseModels/ProjectCallSMSConfig";
@@ -274,6 +275,7 @@ describe("a workflow's step naming a setting that holds credentials", () => {
   test("answers a step as no reader of any setting that holds credentials, and a reader of the rest", () => {
     for (const modelType of [
       ApiKey,
+      ExternalMcpServer,
       NetworkSnmpCredentialProfile,
       ProjectCallSMSConfig,
       ProjectSmtpConfig,
@@ -298,6 +300,7 @@ describe("a workflow's step naming a setting that holds credentials", () => {
     expect(RelationListPermission.getCredentialSettingsTables().sort()).toEqual(
       [
         new ApiKey().tableName!,
+        new ExternalMcpServer().tableName!,
         new NetworkSnmpCredentialProfile().tableName!,
         new ProjectCallSMSConfig().tableName!,
         new ProjectSmtpConfig().tableName!,

@@ -5,6 +5,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
@@ -26,9 +27,19 @@ import DashboardVariableSelector from "./DashboardVariableSelector";
 import DashboardVariablesModal from "./DashboardVariablesModal";
 import Icon from "Common/UI/Components/Icon/Icon";
 import AddWidgetModal from "./AddWidgetModal";
+import DashboardDefaultsBar from "./DashboardDefaultsBar";
+import useToolbarChoiceMenuKeys from "./UseToolbarChoiceMenuKeys";
+import {
+  AUTO_REFRESH_DEFAULT_CHOICE_TEST_ID,
+  getAutoRefreshChoiceLabel,
+} from "./DashboardDefaultsCopy";
 import DashboardStackingLayers from "Common/UI/Utils/DashboardStackingLayers";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TimeRange from "Common/Types/Time/TimeRange";
+import { DASHBOARD_TIME_RANGE_FALLBACK } from "Common/Types/Dashboard/DashboardTimeRange";
+import { DASHBOARD_AUTO_REFRESH_FALLBACK } from "Common/Types/Dashboard/DashboardAutoRefresh";
+import { getDefaultChoiceLabel } from "Common/UI/Utils/DefaultChoiceLabel";
 
 export interface ComponentProps {
   onEditClick: () => void;
@@ -97,6 +108,31 @@ export interface ComponentProps {
    */
   isAddWidgetModalOpen?: boolean | undefined;
   onAddWidgetModalOpenChange?: ((isOpen: boolean) => void) | undefined;
+  /*
+   * The dashboard's own defaults, which each viewer's time range picker and
+   * auto-refresh menu offer first as "Default (...)", the way back from a
+   * pick of their own (issue #5080). isOnDefault... says the viewer is on
+   * the default, so that choice is the one ticked. Left out, neither picker
+   * offers it.
+   */
+  defaultTimeRange?: TimeRange | undefined;
+  isOnDefaultTimeRange?: boolean | undefined;
+  onDefaultTimeRangeSelect?: (() => void) | undefined;
+  defaultAutoRefreshInterval?: AutoRefreshInterval | undefined;
+  isOnDefaultAutoRefresh?: boolean | undefined;
+  onDefaultAutoRefreshSelect?: (() => void) | undefined;
+  /*
+   * While editing: the dashboard's defaults as the editor sets them, in a
+   * row under the toolbar's buttons (DashboardDefaultsBar), read from and
+   * written to the config being edited, so Save Changes saves them and
+   * Discard Changes throws them away. Left out, there is no such row.
+   */
+  onDashboardDefaultsChange?:
+    | ((defaults: {
+        timeRange?: TimeRange | undefined;
+        refreshInterval?: AutoRefreshInterval | undefined;
+      }) => void)
+    | undefined;
 }
 
 interface CountdownCircleProps {
@@ -210,6 +246,10 @@ interface AutoRefreshDropdownProps {
   isAutoRefreshActive: boolean;
   isRefreshing: boolean;
   onAutoRefreshIntervalChange: (interval: AutoRefreshInterval) => void;
+  // "Default (1m)", first: the dashboard's own, and the way back to it.
+  defaultInterval?: AutoRefreshInterval | undefined;
+  isOnDefault?: boolean | undefined;
+  onDefaultSelect?: (() => void) | undefined;
 }
 
 const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
@@ -217,8 +257,30 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  const menuId: string = useId();
   const dropdownRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
+  const buttonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+  const menuRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+
+  const hasDefaultChoice: boolean = Boolean(
+    props.defaultInterval && props.onDefaultSelect,
+  );
+
+  const close: () => void = useCallback((): void => {
+    setIsOpen(false);
+  }, []);
+
+  // Arrows, Home, End, Escape and Tab, as the product's other menus take them.
+  useToolbarChoiceMenuKeys({ isOpen, menuRef, buttonRef, close });
+
+  // A choice made: the menu closes, and the focus goes back to its button.
+  const choose: (pick: () => void) => void = (pick: () => void): void => {
+    pick();
+    setIsOpen(false);
+    buttonRef.current?.focus();
+  };
 
   // Close on outside click
   useEffect(() => {
@@ -243,8 +305,9 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
     <div className="relative inline-block" ref={dropdownRef}>
       {/* Trigger: countdown circle when active, refresh icon when not */}
       <button
+        ref={buttonRef}
         type="button"
-        className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 transition-colors cursor-pointer border ${
+        className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 transition-colors cursor-pointer border focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
           props.isAutoRefreshActive
             ? "bg-indigo-50/50 border-indigo-100 hover:bg-indigo-50"
             : "bg-gray-50 border-gray-200/60 hover:bg-gray-100"
@@ -253,6 +316,9 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
           setIsOpen(!isOpen);
         }}
         title={translator.translateText("Auto-refresh settings")}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        aria-controls={isOpen ? menuId : undefined}
       >
         {props.isAutoRefreshActive && props.autoRefreshMs ? (
           <CountdownCircle
@@ -275,10 +341,19 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
         )}
       </button>
 
-      {/* Dropdown */}
+      {/*
+       * Dropdown: as wide as its longest choice, so none wraps in a long
+       * language, and hung from the button's end - its right, its left in
+       * a right-to-left language - so it opens over the board, not past
+       * the toolbar's edge.
+       */}
       {isOpen && (
         <div
-          className="absolute right-0 mt-2 w-56 origin-top-right rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none py-1"
+          ref={menuRef}
+          id={menuId}
+          role="menu"
+          aria-label={translator.translateText("Auto-refresh settings")}
+          className="absolute end-0 mt-2 w-max min-w-[14rem] rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none py-1"
           /*
            * Issue #3660: this used to be `z-10`, which lost to a clicked
            * widget's raise and left the picker opening behind the board. The
@@ -287,23 +362,63 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
            */
           style={{ zIndex: DashboardStackingLayers.toolbarPopup }}
         >
+          {hasDefaultChoice && props.defaultInterval ? (
+            <div className="mb-1 border-b border-gray-100 pb-1" role="none">
+              <button
+                type="button"
+                role="menuitemradio"
+                aria-checked={Boolean(props.isOnDefault)}
+                tabIndex={-1}
+                data-testid={AUTO_REFRESH_DEFAULT_CHOICE_TEST_ID}
+                className={`w-full text-start whitespace-nowrap px-4 py-2 text-sm flex items-center gap-2 hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-100 ${
+                  props.isOnDefault
+                    ? "text-indigo-600 font-medium"
+                    : "text-gray-700"
+                }`}
+                onClick={() => {
+                  choose(() => {
+                    props.onDefaultSelect?.();
+                  });
+                }}
+              >
+                <span className="w-4 shrink-0 text-center" aria-hidden="true">
+                  {props.isOnDefault ? "\u2713" : ""}
+                </span>
+                {getDefaultChoiceLabel({
+                  translator,
+                  value: getAutoRefreshChoiceLabel(props.defaultInterval),
+                })}
+              </button>
+            </div>
+          ) : (
+            <></>
+          )}
           {Object.values(AutoRefreshInterval).map(
             (interval: AutoRefreshInterval) => {
+              /*
+               * While the viewer is on the default, its own choice above is
+               * the one ticked, not the interval it names.
+               */
               const isSelected: boolean =
-                interval === props.autoRefreshInterval;
+                interval === props.autoRefreshInterval &&
+                !(hasDefaultChoice && props.isOnDefault);
               return (
                 <button
                   type="button"
+                  role="menuitemradio"
+                  aria-checked={isSelected}
+                  tabIndex={-1}
                   key={interval}
-                  className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 hover:bg-gray-50 ${
+                  className={`w-full text-start whitespace-nowrap px-4 py-2 text-sm flex items-center gap-2 hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-100 ${
                     isSelected ? "text-indigo-600 font-medium" : "text-gray-700"
                   }`}
                   onClick={() => {
-                    props.onAutoRefreshIntervalChange(interval);
-                    setIsOpen(false);
+                    choose(() => {
+                      props.onAutoRefreshIntervalChange(interval);
+                    });
                   }}
                 >
-                  <span className="w-4 text-center">
+                  <span className="w-4 shrink-0 text-center" aria-hidden="true">
                     {isSelected ? "\u2713" : ""}
                   </span>
                   {interval === AutoRefreshInterval.OFF
@@ -358,6 +473,13 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
 
   const isAutoRefreshActive: boolean =
     props.autoRefreshInterval !== AutoRefreshInterval.OFF;
+
+  // The defaults in the config being edited, as the editing row shows them.
+  const editedDefaultTimeRange: TimeRange =
+    props.dashboardViewConfig.timeRange || DASHBOARD_TIME_RANGE_FALLBACK;
+  const editedDefaultAutoRefreshInterval: AutoRefreshInterval =
+    props.dashboardViewConfig.refreshInterval ||
+    DASHBOARD_AUTO_REFRESH_FALLBACK;
   const autoRefreshMs: number | null = getAutoRefreshIntervalInMs(
     props.autoRefreshInterval,
   );
@@ -424,6 +546,9 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   onChange={(startAndEndDate: RangeStartAndEndDateTime) => {
                     props.onStartAndEndDateChange(startAndEndDate);
                   }}
+                  defaultRange={props.defaultTimeRange}
+                  isOnDefaultRange={props.isOnDefaultTimeRange}
+                  onDefaultRangeSelect={props.onDefaultTimeRangeSelect}
                 />
 
                 {props.isTimeRangeZoomed && props.onResetTimeRangeZoom && (
@@ -455,6 +580,9 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   onAutoRefreshIntervalChange={
                     props.onAutoRefreshIntervalChange
                   }
+                  defaultInterval={props.defaultAutoRefreshInterval}
+                  isOnDefault={props.isOnDefaultAutoRefresh}
+                  onDefaultSelect={props.onDefaultAutoRefreshSelect}
                 />
               </>
             )}
@@ -586,6 +714,31 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
             )}
           </div>
         </div>
+
+        {/*
+         * While editing: what everyone who opens the dashboard starts on,
+         * set on purpose and saved with the rest of it. Once it has a
+         * widget, as the viewer's own time range and auto-refresh: an
+         * empty dashboard has nothing to open on a range, and its editor
+         * has only one thing to do - add a widget.
+         */}
+        {isEditMode &&
+        hasComponents &&
+        props.canEditDashboard &&
+        props.onDashboardDefaultsChange ? (
+          <DashboardDefaultsBar
+            timeRange={editedDefaultTimeRange}
+            refreshInterval={editedDefaultAutoRefreshInterval}
+            onTimeRangeChange={(timeRange: TimeRange) => {
+              props.onDashboardDefaultsChange?.({ timeRange });
+            }}
+            onRefreshIntervalChange={(refreshInterval: AutoRefreshInterval) => {
+              props.onDashboardDefaultsChange?.({ refreshInterval });
+            }}
+          />
+        ) : (
+          <></>
+        )}
       </div>
 
       {showCancelModal ? (
