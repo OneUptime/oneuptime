@@ -19,6 +19,7 @@ import LlmSpanUtil, {
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import TimeoutException from "../../../../Types/Exception/TimeoutException";
 import LlmType from "../../../../Types/LLM/LlmType";
+import { LlmCostCatalogUtil } from "../../../../Types/Telemetry/LlmCostCatalog";
 import { LlmAnswerIssue } from "../../../../Types/Telemetry/LlmAnswerIssue";
 import { LlmCallKind } from "../../../../Types/Telemetry/LlmCallKind";
 import LlmConversationTranscriptUtil, {
@@ -1218,5 +1219,112 @@ describe("bounding holds for conversations of every shape", () => {
     expect(keptWhole).toBeGreaterThan(10);
     expect(cutOnly).toBeGreaterThan(10);
     expect(oldestLeftOut).toBeGreaterThan(10);
+  });
+});
+
+/*
+ * Issue #5073: an Anthropic call that reads its conversation from the prompt
+ * cache reports input_tokens without the cached tokens, which LLMService adds
+ * back. OneUptime's own spans now say what the conventions ask - every input
+ * token in gen_ai.usage.input_tokens, and how many of them the cache served
+ * or took - so its AI / LLM observability prices the call at the cache rates
+ * instead of seeing a fraction of the input (the cached tokens left out), or,
+ * on the OpenAI wire, pricing cached input as fresh.
+ */
+describe("a call that used the provider's prompt cache", () => {
+  const CLAUDE: string = "claude-sonnet-5-5";
+
+  // The usage LLMService reads off Anthropic's usage block.
+  const CACHED_USAGE: LLMUsage = {
+    promptTokens: 3_271 + 20_654 + 4_216,
+    completionTokens: 1_571,
+    totalTokens: 3_271 + 20_654 + 4_216 + 1_571,
+    cachedInputTokens: 20_654,
+    cacheCreationTokens: 4_216,
+  };
+
+  function cachedCall(callUsage: LLMUsage): Attributes {
+    return {
+      ...LLMCallTelemetry.getRequestAttributes({
+        llmType: LlmType.Anthropic,
+        modelName: CLAUDE,
+        feature: FEATURE,
+        conversationId: "run-5073",
+        messages: SECOND_CALL,
+        recordContent: false,
+      }),
+      ...LLMCallTelemetry.getResponseAttributes({
+        modelName: CLAUDE,
+        response: SECOND_ANSWER,
+        usage: callUsage,
+        recordContent: false,
+      }),
+    };
+  }
+
+  test("says every input token, and how many the cache served and took", () => {
+    const attributes: Attributes = cachedCall(CACHED_USAGE);
+
+    expect(attributes["gen_ai.usage.input_tokens"]).toBe(28_141);
+    expect(attributes["gen_ai.usage.output_tokens"]).toBe(1_571);
+    expect(attributes["gen_ai.usage.total_tokens"]).toBe(29_712);
+    expect(attributes["gen_ai.usage.cache_read.input_tokens"]).toBe(20_654);
+    expect(attributes["gen_ai.usage.cache_creation.input_tokens"]).toBe(4_216);
+  });
+
+  test("a call that used no cache carries no cache counts", () => {
+    const attributes: Attributes = cachedCall({
+      promptTokens: 900,
+      completionTokens: 40,
+      totalTokens: 940,
+    });
+
+    expect(attributes["gen_ai.usage.input_tokens"]).toBe(900);
+    expect(attributes["gen_ai.usage.cache_read.input_tokens"]).toBeUndefined();
+    expect(
+      attributes["gen_ai.usage.cache_creation.input_tokens"],
+    ).toBeUndefined();
+  });
+
+  test("an OpenAI-wire call says how much of its input was cached", () => {
+    const attributes: Attributes = cachedCall({
+      promptTokens: 50,
+      completionTokens: 5,
+      totalTokens: 55,
+      cachedInputTokens: 40,
+    });
+
+    expect(attributes["gen_ai.usage.input_tokens"]).toBe(50);
+    expect(attributes["gen_ai.usage.cache_read.input_tokens"]).toBe(40);
+  });
+
+  test("ingest stores every input token and prices the cached ones at the cache rates", () => {
+    const fields: LlmSpanFields = extract(cachedCall(CACHED_USAGE));
+
+    expect(fields).toMatchObject({
+      isLlmSpan: true,
+      llmRequestModel: CLAUDE,
+      llmInputTokens: 28_141,
+      llmOutputTokens: 1_571,
+      llmTotalTokens: 29_712,
+    });
+
+    const atCacheRates: number | null = LlmCostCatalogUtil.computeCostInUSD({
+      model: CLAUDE,
+      inputTokens: 28_141,
+      outputTokens: 1_571,
+      cacheReadTokens: 20_654,
+      cacheWriteTokens: 4_216,
+    });
+    const allFresh: number | null = LlmCostCatalogUtil.computeCostInUSD({
+      model: CLAUDE,
+      inputTokens: 28_141,
+      outputTokens: 1_571,
+    });
+
+    expect(atCacheRates).not.toBeNull();
+    expect(fields.llmCost).toBe(atCacheRates);
+    // Cheaper than the same tokens read fresh: the reads cost a fraction.
+    expect(fields.llmCost).toBeLessThan(allFresh as number);
   });
 });

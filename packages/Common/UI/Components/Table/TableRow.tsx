@@ -44,6 +44,7 @@ import {
   DraggableStateSnapshot,
 } from "react-beautiful-dnd";
 import LongTextViewer from "../LongText/LongTextViewer";
+import InfoTooltip from "../Tooltip/InfoTooltip";
 import DragHandle from "./DragHandle";
 
 export interface ComponentProps<T extends GenericObject> {
@@ -438,7 +439,25 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                     }}
                   >
                     <dt className={TABLE_MOBILE_FIELD_NAME_CLASS_NAME}>
-                      {translateString(column.title) ?? column.title}
+                      {/*
+                       * A card has no header row, so the (i) a column's
+                       * header carries on a wide screen sits beside the
+                       * field's name here - or what the column's numbers
+                       * mean could not be asked on a phone at all.
+                       */}
+                      {column.headerTooltip?.trim() ? (
+                        <span className="inline-flex items-center gap-1">
+                          <span>
+                            {translateString(column.title) ?? column.title}
+                          </span>
+                          <InfoTooltip
+                            label={column.title}
+                            text={column.headerTooltip}
+                          />
+                        </span>
+                      ) : (
+                        translateString(column.title) ?? column.title
+                      )}
                     </dt>
                     <dd
                       className={

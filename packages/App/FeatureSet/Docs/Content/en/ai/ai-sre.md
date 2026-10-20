@@ -382,6 +382,12 @@ They are folded under **More settings** at the bottom of each signal type's AI s
 
 AI work outside incidents and alerts — insight triage, and fix tasks for exceptions, insights and performance regressions — has no setting of its own and none of the limits in the table; only the project's own daily limits (below) apply to it. Its pull requests count against a repository's **Max Open Fix Pull Requests** (on the repository's **Settings** page) once you set one; unset means no cap, and 0 blocks AI fix pull requests for that repository.
 
+### How tokens are counted
+
+Every token limit on this page counts a call's tokens by what they cost, and so do the AI Logs and, on OneUptime Cloud, the AI credits. A token the model reads fresh, and every token it writes, counts as one. An investigation or an Ask AI answer is many calls, and each call sends the whole conversation again: the provider serves the part it has already seen from its prompt cache, at a fraction of the price. A token read from that cache counts as a tenth of a token, and a token written to it as one and a quarter.
+
+The AI Logs (**Project Settings → AI → AI Logs**) list each call with the tokens that count and, under them, how many tokens it used in all and how many of them came from the cache or went into it. With Anthropic, Claude in Microsoft Foundry included, OneUptime marks the system prompt, the tools and the conversation for the cache, so each call of an investigation reads everything before its newest tool results from it. OpenAI and Azure OpenAI cache a repeated prompt on their own.
+
 ### The project's own daily limits
 
 Above every limit in the table, a project can cap what OneUptime AI uses in a day, whatever it is doing: Ask AI, investigations, postmortem drafts, fix pull requests, insight triage, workflows, runbooks, and Slack or Microsoft Teams questions alike. The limits are on **Project Settings → AI → AI Features**, folded under **More settings**, in its **Daily limits** section:

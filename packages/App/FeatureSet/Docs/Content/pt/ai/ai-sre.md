@@ -382,6 +382,12 @@ Eles ficam recolhidos em **Mais configurações** no fim da página de configura
 
 O trabalho de IA fora de incidentes e alertas (a triagem de insights e as tarefas de correção de exceções, insights e regressões de desempenho) não tem configuração própria nem nenhum dos limites da tabela; só os limites diários do próprio projeto (abaixo) se aplicam a ele. Os pull requests dele contam no **Max Open Fix Pull Requests** de um repositório (na página **Configurações** do repositório) assim que você define um; não definido significa sem teto, e 0 bloqueia os pull requests de correção de IA para esse repositório.
 
+### Como os tokens são contados
+
+Cada limite de tokens desta página conta os tokens de uma chamada pelo que eles custam, assim como os Registros de IA e, no OneUptime Cloud, os créditos de IA. Um token que o modelo lê pela primeira vez, e cada token que ele escreve, conta como um. Uma investigação ou uma resposta do Pergunte à IA são muitas chamadas, e cada chamada envia a conversa inteira de novo: o provedor serve a parte que já viu a partir do seu cache de prompts, por uma fração do preço. Um token lido desse cache conta como um décimo de token, e um token gravado nele como um e um quarto.
+
+Os Registros de IA (**Configurações do projeto → IA → Registros de IA**) listam cada chamada com os tokens que contam e, abaixo deles, quantos tokens ela usou no total e quantos deles vieram do cache ou foram gravados nele. Com a Anthropic, incluindo o Claude no Microsoft Foundry, o OneUptime marca o prompt do sistema, as ferramentas e a conversa para o cache, de modo que cada chamada de uma investigação lê dele tudo o que vem antes dos seus resultados de ferramentas mais recentes. A OpenAI e o Azure OpenAI fazem cache de um prompt repetido por conta própria.
+
 ### Os limites diários do próprio projeto
 
 Acima de todos os limites da tabela, um projeto pode limitar o que a OneUptime AI usa em um dia, seja o que for que ela esteja fazendo: Pergunte à IA, investigações, rascunhos de post-mortem, pull requests de correção, triagem de insights, workflows, runbooks e perguntas no Slack ou no Microsoft Teams, todos igualmente. Os limites ficam em **Configurações do projeto → IA → AI Features**, recolhidos em **Mais configurações**, na seção **Limites diários** dela:

@@ -382,6 +382,12 @@ Sie sind unten auf der KI-Einstellungsseite jedes Signaltyps unter **Weitere Ein
 
 KI-Arbeit außerhalb von Vorfällen und Warnungen – die Einordnung von Einblicken und Korrekturaufgaben für Ausnahmen, Einblicke und Leistungsrückgänge – hat keine eigene Einstellung und keines der Limits aus der Tabelle; für sie gelten nur die eigenen täglichen Limits des Projekts (unten). Ihre Pull-Requests zählen gegen **Max. offene Korrektur-Pull-Requests** eines Repositorys (auf der Seite **Einstellungen** des Repositorys), sobald Sie einen Wert setzen; nicht gesetzt bedeutet keine Obergrenze, und 0 blockiert KI-Korrektur-Pull-Requests für dieses Repository.
 
+### Wie Token gezählt werden
+
+Jedes Token-Limit auf dieser Seite zählt die Token eines Aufrufs nach dem, was sie kosten, und ebenso die KI-Protokolle und, auf OneUptime Cloud, das KI-Guthaben. Ein Token, das das Modell neu liest, und jedes Token, das es schreibt, zählt als eins. Eine Untersuchung oder eine Antwort von KI fragen besteht aus vielen Aufrufen, und jeder Aufruf sendet die ganze Unterhaltung erneut: Den Teil, den der Anbieter schon kennt, liefert er aus seinem Prompt-Cache, zu einem Bruchteil des Preises. Ein aus diesem Cache gelesenes Token zählt als ein Zehntel Token, ein hineingeschriebenes als eineinviertel.
+
+Die KI-Protokolle (**Projekteinstellungen → KI → KI-Protokolle**) führen jeden Aufruf mit den Token auf, die zählen, und darunter, wie viele Token er insgesamt verbraucht hat und wie viele davon aus dem Cache kamen oder in ihn geschrieben wurden. Bei Anthropic, einschließlich Claude in Microsoft Foundry, markiert OneUptime den Systemprompt, die Tools und die Unterhaltung für den Cache, sodass jeder Aufruf einer Untersuchung alles vor seinen neuesten Tool-Ergebnissen aus ihm liest. OpenAI und Azure OpenAI speichern einen wiederholten Prompt von selbst im Cache.
+
 ### Die eigenen täglichen Limits des Projekts
 
 Über jedem Limit der Tabelle kann ein Projekt begrenzen, was OneUptime AI an einem Tag verbraucht, egal was es tut: KI fragen, Untersuchungen, Postmortem-Entwürfe, Korrektur-Pull-Requests, die Einordnung von Einblicken, Workflows, Runbooks sowie Fragen in Slack oder Microsoft Teams gleichermaßen. Die Limits stehen auf **Projekteinstellungen → KI → KI-Funktionen**, eingeklappt unter **Weitere Einstellungen**, in deren Abschnitt **Tägliche Limits**:
