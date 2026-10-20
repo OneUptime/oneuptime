@@ -478,6 +478,30 @@ const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
             ? "No monitors match this SLO's enabled monitor rules yet. Monitors are attached as soon as one matches."
             : "No monitors attached. Add monitors by hand, or create a monitor rule to attach matching monitors automatically."
         }
+        /*
+         * The empty list names two ways to attach monitors, so it offers
+         * both: the card's Add Monitors, which it repeats, and the way to a
+         * monitor rule. Monitor Rules is folded away under the side menu's
+         * Rules section, so it gets a button here, as on the Overview's
+         * monitors card. While a rule is enabled, the banner above links to
+         * the rules instead.
+         */
+        emptyState={
+          enabledMonitorRuleCount > 0
+            ? undefined
+            : {
+                actions: [
+                  {
+                    title: "Create a monitor rule",
+                    icon: IconProp.Filter,
+                    dataTestId: "slo-monitors-create-monitor-rule",
+                    onClick: (): void => {
+                      Navigation.navigate(monitorRulesRoute);
+                    },
+                  },
+                ],
+              }
+        }
         sortBy="name"
         sortOrder={SortOrder.Ascending}
         selectMoreFields={{

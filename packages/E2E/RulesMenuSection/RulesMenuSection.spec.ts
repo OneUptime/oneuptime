@@ -25,7 +25,8 @@ import path from "path";
  * from the keyboard and lead to its pages; to open by itself on a page inside
  * it, one rule's own page included; to stay open while the pages change; to
  * open in the phone menu without closing it; and to read in German and in
- * dark mode.
+ * dark mode. And, since Monitor Rules is now out of sight, an SLO's real
+ * Monitors page, with nothing attached, offers a button to it.
  */
 
 const PORT: string = process.env["RULES_MENU_SECTION_FIXTURE_PORT"] || "4385";
@@ -499,6 +500,86 @@ test.describe("an SLO's side menu", () => {
     await expectOpen(menu, "Rules");
     await expect(link(menu, `${SLO_PATH}/monitor-rules`)).toBeVisible();
     await expectFolded(menu, "Configuration");
+  });
+
+  /*
+   * With Monitor Rules folded away under Rules, the real Monitors page of an
+   * SLO with nothing attached is where people learn rules exist: its empty
+   * list names two ways to attach monitors, and offers a button for each.
+   */
+  test("with nothing attached, the Monitors page's empty list offers Create a monitor rule, which opens Monitor Rules with Rules open", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${SLO_PATH}/monitors`);
+    const menu: Locator = desktopMenu(page);
+    const monitorRules: Locator = link(menu, `${SLO_PATH}/monitor-rules`);
+    const emptyList: Locator = page.getByTestId("table-empty-state");
+    const addMonitors: Locator = emptyList.getByTestId(
+      "empty-table-create-button",
+    );
+    const createRule: Locator = emptyList.getByTestId(
+      "slo-monitors-create-monitor-rule",
+    );
+
+    // The page keeps its own section open; Rules stays folded.
+    await expectOpen(menu, "Configuration");
+    await expectFolded(menu, "Rules");
+    await expect(monitorRules).toBeHidden();
+
+    await expect(emptyList).toContainText("No monitors attached");
+    await expect(emptyList).toContainText(
+      "Add monitors by hand, or create a monitor rule",
+    );
+    await expect(addMonitors).toHaveText("Add Monitors");
+    await expect(createRule).toHaveText("Create a monitor rule");
+    await expect(createRule.locator("svg")).toHaveCount(1);
+    await expect(page.getByTestId("slo-monitors-managed-by-rules")).toHaveCount(
+      0,
+    );
+
+    // Side by side, Add Monitors first, and the next stop after it.
+    expect(Math.round(await topOf(createRule))).toBe(
+      Math.round(await topOf(addMonitors)),
+    );
+    await addMonitors.focus();
+    await page.keyboard.press("Tab");
+    await expect(createRule).toBeFocused();
+
+    await screenshot(page, "slo-monitors-empty");
+
+    await page.keyboard.press("Enter");
+
+    await expectPath(page, `${SLO_PATH}/monitor-rules`);
+    await expectStandIn(page, "Monitor Rules");
+    await expectOpen(menu, "Rules");
+    await expect(monitorRules).toBeVisible();
+    expect(await isMarked(monitorRules)).toBe(true);
+  });
+
+  test("while monitor rules are enabled, the empty Monitors page links to them from its banner instead", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${SLO_PATH}/monitors?rules=2`);
+    const menu: Locator = desktopMenu(page);
+    const banner: Locator = page.getByTestId("slo-monitors-managed-by-rules");
+
+    await expect(banner).toContainText("2 enabled monitor rules decide");
+    await expect(page.getByTestId("table-empty-state")).toContainText(
+      "No monitors match this SLO's enabled monitor rules yet",
+    );
+    await expect(
+      page.getByTestId("slo-monitors-create-monitor-rule"),
+    ).toHaveCount(0);
+
+    await banner.getByRole("link", { name: "Manage Monitor Rules" }).click();
+
+    await expectPath(page, `${SLO_PATH}/monitor-rules`);
+    await expectOpen(menu, "Rules");
+    expect(await isMarked(link(menu, `${SLO_PATH}/monitor-rules`))).toBe(true);
   });
 
   test("folded sections are out of the keyboard's way: Tab walks Configuration, Rules, Developer", async ({

@@ -11,12 +11,16 @@
  * Each layout is one route the pages are children of, so it stays mounted
  * while the pages change, as in the Dashboard: a section someone opened
  * stays open from page to page. The pages inside are stand-ins that name
- * the page they stand for - this suite is about the menu beside them.
+ * the page they stand for - this suite is about the menu beside them - but
+ * one: an SLO's Monitors page is the real one, for an SLO with no monitors
+ * attached, because its empty list is the way to Monitor Rules when Rules
+ * is folded.
  *
  * Only the ModelAPI / API data boundary and the signed-in user are
  * replaced. Steered by the query string:
  *   - groups=1     the project has monitor groups on: a status page's
  *                  resources entry reads Resources rather than Monitors
+ *   - rules=2      the SLO has two enabled monitor rules (none by default)
  *   - lang=de      the Dashboard's German words
  *   - theme=dark   dark mode
  *
@@ -40,6 +44,7 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import StatusPageViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Layout";
 import SloViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/Layout";
+import SloMonitorsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/Monitors";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -63,6 +68,8 @@ const USER_ID = "40000000-0000-4000-8000-0000000000f4";
 
 const params = new URLSearchParams(window.location.search);
 const monitorGroupsOn = params.get("groups") === "1";
+// How many enabled monitor rules the SLO has.
+const enabledMonitorRules = Number(params.get("rules") || 0);
 const language = params.get("lang") === "de" ? "de" : "en";
 
 window.__rulesMenuFixture = { unhandled: [] };
@@ -107,6 +114,9 @@ statusPage.name = "Acme Public Status";
 const slo = new ServiceLevelObjective();
 slo._id = SLO_ID;
 slo.name = "Checkout availability";
+// Nothing attached yet: the Monitors page shows its empty list.
+slo.monitors = [];
+slo.autoAddedMonitors = [];
 
 function state(model, id, name, order, isResolvedState) {
   const record = new model();
@@ -194,6 +204,9 @@ ModelAPI.getList = async (options) => {
   const itemsByTable = {
     IncidentState: incidentStates,
     AlertState: alertStates,
+    // The SLO Monitors page's table: no monitors, and no saved views.
+    Monitor: [],
+    TableView: [],
   };
   const items = itemsByTable[table];
 
@@ -220,6 +233,15 @@ ModelAPI.count = async (options) => {
   }
 
   if (table === "Alert") {
+    return 0;
+  }
+
+  // The SLO Monitors page: its enabled rules, and its table's rows.
+  if (table === "ServiceLevelObjectiveMonitorRule") {
+    return enabledMonitorRules;
+  }
+
+  if (table === "Monitor") {
     return 0;
   }
 
@@ -305,6 +327,20 @@ function StandInPage(props) {
 }
 
 /*
+ * An SLO's real Monitors page, drawn inside the layout once the layout has
+ * told Navigation where it is.
+ */
+function SloMonitors() {
+  return (
+    <SloMonitorsPage
+      pageRoute={Navigation.getCurrentRoute()}
+      currentProject={project}
+      hasPaymentMethod={true}
+    />
+  );
+}
+
+/*
  * The record's real view layout around the page, as the Dashboard draws
  * it. One route the pages are children of, so it stays mounted.
  */
@@ -343,6 +379,7 @@ createRoot(document.getElementById("root")).render(
         element={<LayoutShell layout={SloViewLayout} />}
       >
         <PageRoute index element={<StandInPage recordId={SLO_ID} />} />
+        <PageRoute path="monitors" element={<SloMonitors />} />
         <PageRoute path="*" element={<StandInPage recordId={SLO_ID} />} />
       </PageRoute>
     </Routes>

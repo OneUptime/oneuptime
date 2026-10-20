@@ -15,7 +15,9 @@ fixture bundles the production layouts with esbuild, replaces only the
 `ModelAPI` / `API` data boundary and the signed-in user, and serves them on
 `127.0.0.1:4385` (`RULES_MENU_SECTION_FIXTURE_PORT` moves it). The pages inside
 the layouts are stand-ins that name the page they stand for: the suite is
-about the menu beside them. No Docker, no database, no sign-in.
+about the menu beside them. The one real page is an SLO's Monitors page, for
+an SLO with nothing attached (`?rules=2` gives it two enabled monitor rules).
+No Docker, no database, no sign-in.
 
 ```sh
 cd packages/E2E
@@ -40,6 +42,10 @@ packages/Common read the classes a folded section carries):
 - on an SLO's Overview, Configuration, Rules and Management are folded; Rules
   holds Monitor Rules above Burn Rate Rules, and Burn Rate Rules (or one
   monitor rule's page) opens it while Configuration stays folded;
+- an SLO's Monitors page with nothing attached keeps Rules folded, and its
+  empty list offers Create a monitor rule beside Add Monitors (the next Tab
+  stop), which opens Monitor Rules with Rules open; while rules are enabled,
+  the banner's Manage Monitor Rules link does that instead;
 - on a phone, Rules opens in the menu without closing it, Monitor Rules leads
   to its page, and the menu's summary names "Rules / Monitor Rules";
 - in German (`?lang=de`) the section is "Regeln" and still folds by its English
