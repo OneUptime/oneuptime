@@ -102,8 +102,34 @@ function asStringMap(value: unknown): Record<string, string> {
   return map;
 }
 
+/*
+ * A Kubernetes object name (a DNS-1123 subdomain: lowercase letters,
+ * digits, "-" and "."), which every name a marker gives is - an Argo CD
+ * Application's, a Flux object's, a Helm release's, a workload's.
+ */
+const KUBERNETES_NAME: RegExp = /^[a-z0-9](?:[-a-z0-9.]{0,251}[a-z0-9])?$/;
+
+// A kind as an owner reference gives it, lowercased: one word.
+const KUBERNETES_KIND: RegExp = /^[a-z][a-z0-9]{0,62}$/;
+
+/*
+ * A name a marker gives, or "" when it is not a Kubernetes name. Markers
+ * are cluster data that reach prompts, cards and feed items, so text that
+ * cannot be a name - words, an instruction - names nobody (the controller
+ * is still told by the marker's key).
+ */
 function cleanMarkerValue(value: string | undefined): string {
-  return (value || "").trim().slice(0, MAX_MARKER_VALUE_CHARS);
+  const trimmed: string = (value || "").trim();
+
+  return trimmed.length <= MAX_MARKER_VALUE_CHARS &&
+    KUBERNETES_NAME.test(trimmed)
+    ? trimmed
+    : "";
+}
+
+// A marker is there when its key carries any value at all.
+function hasMarker(value: string | undefined): boolean {
+  return (value || "").trim().length > 0;
 }
 
 interface ManagedFieldsEntry {
@@ -152,17 +178,17 @@ export function parseArgoCdTrackingId(trackingId: string): {
   name: string;
   namespace?: string | undefined;
 } {
-  const app: string = cleanMarkerValue(trackingId.split(":")[0]);
+  const app: string = (trackingId.split(":")[0] || "").trim();
   const underscore: number = app.indexOf("_");
 
   if (underscore > 0) {
-    return {
-      namespace: app.slice(0, underscore),
-      name: app.slice(underscore + 1),
-    };
+    const namespace: string = cleanMarkerValue(app.slice(0, underscore));
+    const name: string = cleanMarkerValue(app.slice(underscore + 1));
+
+    return namespace && name ? { namespace, name } : { name: "" };
   }
 
-  return { name: app };
+  return { name: cleanMarkerValue(app) };
 }
 
 /*
@@ -180,9 +206,9 @@ export function readGitOpsOwner(
   );
   const managedFields: Array<ManagedFieldsEntry> = readManagedFields(object);
 
-  const trackingId: string = cleanMarkerValue(
-    annotations[ARGOCD_TRACKING_ID_ANNOTATION],
-  );
+  const trackingId: string = (
+    annotations[ARGOCD_TRACKING_ID_ANNOTATION] || ""
+  ).trim();
 
   if (trackingId) {
     const app: { name: string; namespace?: string | undefined } =
@@ -197,13 +223,11 @@ export function readGitOpsOwner(
     };
   }
 
-  const argoInstance: string = cleanMarkerValue(labels[ARGOCD_INSTANCE_LABEL]);
-
-  if (argoInstance) {
+  if (hasMarker(labels[ARGOCD_INSTANCE_LABEL])) {
     return {
       controller: GitOpsController.ArgoCD,
       ownerKind: "Application",
-      ownerName: argoInstance,
+      ownerName: cleanMarkerValue(labels[ARGOCD_INSTANCE_LABEL]),
       evidence: `label ${ARGOCD_INSTANCE_LABEL}`,
     };
   }
@@ -223,11 +247,7 @@ export function readGitOpsOwner(
     };
   }
 
-  const helmReleaseName: string = cleanMarkerValue(
-    labels[FLUX_HELMRELEASE_NAME_LABEL],
-  );
-
-  if (helmReleaseName) {
+  if (hasMarker(labels[FLUX_HELMRELEASE_NAME_LABEL])) {
     const namespace: string = cleanMarkerValue(
       labels[FLUX_HELMRELEASE_NAMESPACE_LABEL],
     );
@@ -235,17 +255,13 @@ export function readGitOpsOwner(
     return {
       controller: GitOpsController.Flux,
       ownerKind: "HelmRelease",
-      ownerName: helmReleaseName,
+      ownerName: cleanMarkerValue(labels[FLUX_HELMRELEASE_NAME_LABEL]),
       ...(namespace ? { ownerNamespace: namespace } : {}),
       evidence: `label ${FLUX_HELMRELEASE_NAME_LABEL}`,
     };
   }
 
-  const kustomizationName: string = cleanMarkerValue(
-    labels[FLUX_KUSTOMIZATION_NAME_LABEL],
-  );
-
-  if (kustomizationName) {
+  if (hasMarker(labels[FLUX_KUSTOMIZATION_NAME_LABEL])) {
     const namespace: string = cleanMarkerValue(
       labels[FLUX_KUSTOMIZATION_NAMESPACE_LABEL],
     );
@@ -253,7 +269,7 @@ export function readGitOpsOwner(
     return {
       controller: GitOpsController.Flux,
       ownerKind: "Kustomization",
-      ownerName: kustomizationName,
+      ownerName: cleanMarkerValue(labels[FLUX_KUSTOMIZATION_NAME_LABEL]),
       ...(namespace ? { ownerNamespace: namespace } : {}),
       evidence: `label ${FLUX_KUSTOMIZATION_NAME_LABEL}`,
     };
@@ -287,11 +303,7 @@ export function readGitOpsOwner(
     };
   }
 
-  const releaseName: string = cleanMarkerValue(
-    annotations[HELM_RELEASE_NAME_ANNOTATION],
-  );
-
-  if (releaseName) {
+  if (hasMarker(annotations[HELM_RELEASE_NAME_ANNOTATION])) {
     const namespace: string = cleanMarkerValue(
       annotations[HELM_RELEASE_NAMESPACE_ANNOTATION],
     );
@@ -299,7 +311,7 @@ export function readGitOpsOwner(
     return {
       controller: GitOpsController.Helm,
       ownerKind: "release",
-      ownerName: releaseName,
+      ownerName: cleanMarkerValue(annotations[HELM_RELEASE_NAME_ANNOTATION]),
       ...(namespace ? { ownerNamespace: namespace } : {}),
       evidence: `annotation ${HELM_RELEASE_NAME_ANNOTATION}`,
     };
@@ -356,11 +368,19 @@ export function readControllerReference(
     const kind: unknown = reference["kind"];
     const name: unknown = reference["name"];
 
-    if (typeof kind === "string" && kind && typeof name === "string" && name) {
-      return {
-        kind: kind.toLowerCase().slice(0, MAX_MARKER_VALUE_CHARS),
-        name: name.slice(0, MAX_MARKER_VALUE_CHARS),
-      };
+    if (typeof kind !== "string" || typeof name !== "string") {
+      continue;
+    }
+
+    /*
+     * Both are read again from the cluster with kubectl: a kind is a word,
+     * a name a Kubernetes name, or the reference is not followed.
+     */
+    const cleanKind: string = kind.toLowerCase();
+    const cleanName: string = cleanMarkerValue(name);
+
+    if (KUBERNETES_KIND.test(cleanKind) && cleanName) {
+      return { kind: cleanKind, name: cleanName };
     }
   }
 
