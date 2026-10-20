@@ -1,9 +1,9 @@
 # Opret et dashboard
 
-For at oprette et dashboard åbner du **Produkter → Dashboards**, klikker på **Opret Dashboard** og vælger en skabelon, eller **Blank Dashboard** for at starte fra bunden. En skabelon udfylder dashboardets navn for dig (nummereret, som i "Kubernetes Dashboard 2", når projektet allerede har et); et tomt dashboard beder dig om et navn. Klik på **Opret Dashboard**, og det nye dashboard åbner. Et tomt dashboard åbner på sit tomme lærred med en knap **Tilføj widget** til den første widget.
+For at oprette et dashboard åbner du **Produkter → Dashboards** og klikker på **Opret dashboard**. Dialogboksen **Opret et dashboard** spørger, hvordan du vil starte, og derefter om et navn. **Start fra bunden** giver dig et tomt dashboard; en skabelon bygger sine widgets, og ofte sine variabler, for dig og udfylder sit navn (nummereret, som i "Kubernetes Dashboard 2", når projektet allerede har et). Klik på **Opret dashboard**, og det nye dashboard åbner. Et tomt dashboard åbner på sit lærred med en knap **Tilføj widget** til den første widget.
 
 :::cards
-- [Opret dashboardet](#opret-dashboardet): Start fra en skabelon eller fra et tomt lærred.
+- [Opret dashboardet](#opret-dashboardet): Start fra bunden eller fra en skabelon.
 - [Rediger og gem](#rediger-og-gem): Intet ændrer sig for nogen, før du klikker på Gem ændringer.
 - [Tilføj en widget](#tilføj-en-widget): Vælg den i kataloget, sæt den op, og sæt den på plads.
 - [Zoom ind på en spids](#zoom-ind-på-en-spids): Træk hen over et diagram for at læse hele dashboardet i det øjeblik.
@@ -16,33 +16,32 @@ Projektejere og -administratorer kan oprette og redigere alle dashboards. Alle a
 ## Opret dashboardet
 
 :::steps
-### Åbn skabelonvælgeren
+### Vælg, hvordan du starter
 
-Åbn **Produkter → Dashboards**, og klik på **Opret Dashboard**. Dialogboksen **Opret fra skabelon** viser **Blank Dashboard** og femten skabeloner, grupperet efter hvad de overvåger.
+Åbn **Produkter → Dashboards**, og klik på **Opret dashboard**. Dialogboksen **Opret et dashboard** åbner på **Start fra bunden**, et tomt dashboard til dine egne widgets. Under den viser **Eller start fra en skabelon** seks skabeloner under **Anbefalet**.
 
 ### Vælg en skabelon
 
-Klik på et kort. En skabelon bygger sine widgets, og ofte sine variabler, for dig; **Blank Dashboard** starter med et tomt lærred.
+Klik på en skabelon for at se, hvad den tilføjer: dens widgets, navngivet som i **Tilføj widget**, og de variabler, du indsnævrer den med i dens værktøjslinje. For de andre vælger du en kategori ved siden af søgefeltet, eller **Alle skabeloner**, eller skriver i **Søg i skabeloner…**: hvert ord, du skriver, skal passe. Klik derefter på **Brug denne skabelon**, eller dobbeltklik på skabelonen. I søgefeltet vælger piletasterne en skabelon, og **Enter** bruger den.
 
 ### Navngiv dashboardet
 
-En skabelons navn er udfyldt, nummereret forbi de navne, projektet allerede har. Et tomt dashboards navn er tomt: skriv et. Beskrivelsen er valgfri, foldet sammen under **Flere felter**, og du kan tilføje den senere på dashboardets side **Oversigt**.
+En skabelons navn er udfyldt, nummereret forbi de navne, projektet allerede har. **Start fra bunden** lader det være tomt: skriv et. Beskrivelsen er valgfri, foldet sammen under **Flere felter**, og du kan tilføje den senere på dashboardets side **Oversigt**. **Tilbage** fører dig tilbage til skabelonerne, som du forlod dem.
 
 ### Opret det
 
-Klik på **Opret Dashboard**. Det nye dashboard åbner: med en skabelons widgets med det samme, eller med et tomt dashboards tomme lærred med **Tilføj widget** på.
+Klik på **Opret dashboard**. Det nye dashboard åbner: med en skabelons widgets med det samme, eller med et tomt lærred med **Tilføj widget** på.
 :::
 
-Skabelonerne, efter den gruppe, vælgeren viser dem under:
+Skabelonerne, efter den kategori, vælgeren viser dem under:
 
-| Gruppe | Skabeloner |
+| Kategori | Skabeloner |
 | --- | --- |
-| Get Started | Blank Dashboard |
-| Monitoring & APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
-| Incident Response | Incident Dashboard, Alert Dashboard |
-| Infrastructure | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
+| Overvågning og APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
+| Hændelseshåndtering | Incident Dashboard, Alert Dashboard |
+| Infrastruktur | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
 
-En skabelon er et udgangspunkt, ikke en forbindelse: når dashboardet er oprettet, ændrer du det, som du vil. Skabelonen opdaterer det ikke senere.
+**Anbefalet** rummer Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard og Metrics Dashboard. En skabelon er et udgangspunkt, ikke et link: når dashboardet er oprettet, ændrer du det, som du vil. Skabelonen opdaterer det ikke senere.
 
 ## Rediger og gem
 

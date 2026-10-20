@@ -1,9 +1,9 @@
 # Creare una dashboard
 
-Per creare una dashboard, apri **Prodotti → Dashboard**, fai clic su **Crea: Dashboard** e scegli un modello, oppure **Blank Dashboard** per partire da zero. Un modello compila per te il nome della dashboard (numerato, come "Kubernetes Dashboard 2", se il progetto ne ha già una); una dashboard vuota ti chiede un nome. Fai clic su **Crea: Dashboard** e la nuova dashboard si apre. Una dashboard vuota si apre sul suo canvas vuoto, con un pulsante **Aggiungi widget** per il primo widget.
+Per creare una dashboard, apri **Prodotti → Dashboard** e fai clic su **Crea dashboard**. La finestra di dialogo **Crea una dashboard** ti chiede come vuoi iniziare, poi un nome. **Parti da zero** ti dà una dashboard vuota; un modello crea per te i suoi widget, e spesso le sue variabili, e ne compila il nome (numerato, come "Kubernetes Dashboard 2", se il progetto ne ha già una). Fai clic su **Crea dashboard** e la nuova dashboard si apre. Una dashboard vuota si apre sul suo canvas, con un pulsante **Aggiungi widget** per il primo widget.
 
 :::cards
-- [Creare la dashboard](#creare-la-dashboard): Partire da un modello o da un canvas vuoto.
+- [Creare la dashboard](#creare-la-dashboard): Partire da zero o da un modello.
 - [Modificare e salvare](#modificare-e-salvare): Non cambia nulla per nessuno finché non fai clic su Salva modifiche.
 - [Aggiungere un widget](#aggiungere-un-widget): Sceglierlo dal catalogo, configurarlo e posizionarlo.
 - [Ingrandire un picco](#ingrandire-un-picco): Trascina su un grafico per leggere tutta la dashboard in quel momento.
@@ -16,33 +16,32 @@ I proprietari e gli amministratori del progetto possono creare e modificare tutt
 ## Creare la dashboard
 
 :::steps
-### Aprire il selettore dei modelli
+### Scegliere come iniziare
 
-Apri **Prodotti → Dashboard** e fai clic su **Crea: Dashboard**. La finestra di dialogo **Crea da modello** mostra **Blank Dashboard** e quindici modelli, raggruppati in base a ciò che osservano.
+Apri **Prodotti → Dashboard** e fai clic su **Crea dashboard**. La finestra di dialogo **Crea una dashboard** si apre su **Parti da zero**, una dashboard vuota per i tuoi widget. Sotto, **Oppure parti da un modello** elenca sei modelli **Consigliati**.
 
 ### Scegliere un modello
 
-Fai clic su una scheda. Un modello crea per te i suoi widget, e spesso le sue variabili; **Blank Dashboard** parte da un canvas vuoto.
+Fai clic su un modello per vedere cosa aggiunge: i suoi widget, chiamati come in **Aggiungi widget**, e le variabili con cui lo restringi nella sua barra degli strumenti. Per gli altri, scegli una categoria accanto alla casella di ricerca, oppure **Tutti i modelli**, o digita in **Cerca modelli…**: ogni parola che digiti deve corrispondere. Poi fai clic su **Usa questo modello**, oppure fai doppio clic sul modello. Nella casella di ricerca, le frecce scelgono un modello e **Enter** lo usa.
 
 ### Dare un nome alla dashboard
 
-Il nome di un modello è già compilato, numerato oltre i nomi che il progetto ha già. Il nome di una dashboard vuota è vuoto: scrivine uno. La descrizione è facoltativa, si trova chiusa in **Altri campi**, e puoi aggiungerla in seguito nella pagina **Panoramica** della dashboard.
+Il nome di un modello è già compilato, numerato oltre i nomi che il progetto ha già. **Parti da zero** lo lascia vuoto: scrivine uno. La descrizione è facoltativa, si trova chiusa in **Altri campi**, e puoi aggiungerla in seguito nella pagina **Panoramica** della dashboard. **Indietro** ti riporta ai modelli come li avevi lasciati.
 
 ### Crearla
 
-Fai clic su **Crea: Dashboard**. La nuova dashboard si apre: subito con i widget di un modello, oppure con il canvas vuoto di una dashboard vuota, con **Aggiungi widget** sopra.
+Fai clic su **Crea dashboard**. La nuova dashboard si apre: subito con i widget di un modello, oppure con un canvas vuoto con **Aggiungi widget** sopra.
 :::
 
-I modelli, in base al gruppo sotto cui li elenca il selettore:
+I modelli, in base alla categoria sotto cui li elenca il selettore:
 
-| Gruppo | Modelli |
+| Categoria | Modelli |
 | --- | --- |
-| Get Started | Blank Dashboard |
-| Monitoring & APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
-| Incident Response | Incident Dashboard, Alert Dashboard |
-| Infrastructure | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
+| Monitoraggio e APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
+| Risposta agli incidenti | Incident Dashboard, Alert Dashboard |
+| Infrastruttura | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
 
-Un modello è un punto di partenza, non un collegamento: una volta creata la dashboard, cambiala come vuoi. Il modello non la aggiorna più in seguito.
+**Consigliati** contiene Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard e Metrics Dashboard. Un modello è un punto di partenza, non un collegamento: una volta creata la dashboard, modificala come vuoi. Il modello non la aggiorna più in seguito.
 
 ## Modificare e salvare
 

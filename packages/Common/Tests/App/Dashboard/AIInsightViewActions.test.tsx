@@ -69,12 +69,18 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getItem: () => {
         return Promise.resolve(buildInsight());
       },
+      // The fix task's pull requests, with what production showed.
+      getList: (...args: Array<any>) => {
+        return getListMock(...args);
+      },
       getCommonHeaders: () => {
         return {};
       },
     },
   };
 });
+
+const getListMock: jest.Mock<any, any> = jest.fn() as jest.Mock<any, any>;
 
 import AIInsightViewPage from "../../../../App/FeatureSet/Dashboard/src/Pages/AIInsights/View/Index";
 import AIInsight from "../../../Models/DatabaseModels/AIInsight";
@@ -238,6 +244,8 @@ describe("AI insight detail — human actions", () => {
     postMock.mockImplementation((args: any) => {
       return handlePost(args);
     });
+    getListMock.mockReset();
+    getListMock.mockResolvedValue({ data: [], count: 0, skip: 0, limit: 5 });
   });
 
   afterEach(() => {
@@ -389,6 +397,63 @@ describe("AI insight detail — human actions", () => {
       return expect(screen.getByText("Needs Attention")).toBeInTheDocument();
     });
     expect(row.humanVerdict).toBeNull();
+  });
+
+  /*
+   * Merged is not fixed: the fix task's pull request says what production
+   * showed once it shipped - which is what resolved the insight, or put it
+   * back in front of people.
+   */
+  test("a fix production showed did not work says so beside its task", async () => {
+    row.fixAiRunId = new ObjectID("33333333-3333-4333-8333-333333333333");
+    getListMock.mockResolvedValue({
+      data: [
+        {
+          productionStatus: "Regressed",
+          productionCheck: "Performance",
+          productionSummary:
+            'The p99 of "GET /orders" is 2.5 s in the 26 hours since version 2.3.2 shipped the fix (900 spans), against 2.4 s in the 7 days before it merged, so the fix did not make it faster.',
+        },
+      ],
+      count: 1,
+      skip: 0,
+      limit: 5,
+    });
+
+    await renderPage();
+
+    const verdict: HTMLElement = await screen.findByTestId(
+      "ai-insight-fix-production",
+    );
+    expect(verdict).toHaveTextContent("Still slow after the fix");
+    expect(verdict).toHaveTextContent("so the fix did not make it faster");
+
+    // Read once, for the fix task's run only.
+    expect(getListMock).toHaveBeenCalledTimes(1);
+    expect(String(getListMock.mock.calls[0]![0].query.aiRunId)).toBe(
+      "33333333-3333-4333-8333-333333333333",
+    );
+  });
+
+  test("an insight with no fix task, or a fix with no verdict, shows none", async () => {
+    await renderPage();
+
+    expect(getListMock).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("ai-insight-fix-production")).toBeNull();
+
+    cleanup();
+    row.fixAiRunId = new ObjectID("33333333-3333-4333-8333-333333333333");
+    getListMock.mockRejectedValue(new Error("Not on this plan"));
+
+    await renderPage();
+
+    await waitFor(() => {
+      return expect(getListMock).toHaveBeenCalled();
+    });
+    expect(screen.queryByTestId("ai-insight-fix-production")).toBeNull();
+    expect(
+      screen.getByText("View the fix task and pull request"),
+    ).toBeInTheDocument();
   });
 
   test("a failed action rolls back and says so instead of failing silently", async () => {

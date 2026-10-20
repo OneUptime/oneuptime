@@ -1,9 +1,9 @@
 # Een dashboard maken
 
-Om een dashboard te maken, open je **Producten → Dashboards**, klik je op **Dashboard aanmaken** en kies je een sjabloon, of **Blank Dashboard** om helemaal opnieuw te beginnen. Een sjabloon vult de naam van het dashboard voor je in (genummerd, zoals "Kubernetes Dashboard 2", als het project er al een heeft); bij een leeg dashboard geef je zelf een naam op. Klik op **Dashboard aanmaken** en het nieuwe dashboard opent. Een leeg dashboard opent op zijn lege canvas, met een knop **Widget toevoegen** voor de eerste widget.
+Om een dashboard te maken, open je **Producten → Dashboards** en klik je op **Dashboard aanmaken**. Het dialoogvenster **Een dashboard aanmaken** vraagt hoe je wilt beginnen, en daarna om een naam. **Vanaf nul beginnen** geeft je een leeg dashboard; een sjabloon maakt zijn widgets, en vaak zijn variabelen, voor je aan en vult zijn naam in (genummerd, zoals "Kubernetes Dashboard 2", als het project er al een heeft). Klik op **Dashboard aanmaken** en het nieuwe dashboard opent. Een leeg dashboard opent op zijn canvas, met een knop **Widget toevoegen** voor de eerste widget.
 
 :::cards
-- [Het dashboard maken](#het-dashboard-maken): Begin vanuit een sjabloon of vanaf een leeg canvas.
+- [Het dashboard maken](#het-dashboard-maken): Vanaf nul beginnen of met een sjabloon.
 - [Bewerken en opslaan](#bewerken-en-opslaan): Er verandert voor niemand iets totdat je op Wijzigingen opslaan klikt.
 - [Een widget toevoegen](#een-widget-toevoegen): Kies hem uit de catalogus, stel hem in en zet hem op zijn plek.
 - [Inzoomen op een piek](#inzoomen-op-een-piek): Sleep over een grafiek om het hele dashboard op dat moment te lezen.
@@ -16,33 +16,32 @@ Projecteigenaren en -beheerders kunnen elk dashboard maken en bewerken. Alle and
 ## Het dashboard maken
 
 :::steps
-### Open de sjabloonkiezer
+### Kies hoe je begint
 
-Open **Producten → Dashboards** en klik op **Dashboard aanmaken**. Het dialoogvenster **Maken op basis van sjabloon** toont **Blank Dashboard** en vijftien sjablonen, gegroepeerd naar wat ze bewaken.
+Open **Producten → Dashboards** en klik op **Dashboard aanmaken**. Het dialoogvenster **Een dashboard aanmaken** opent op **Vanaf nul beginnen**, een leeg dashboard voor je eigen widgets. Daaronder toont **Of begin met een sjabloon** zes sjablonen onder **Aanbevolen**.
 
 ### Kies een sjabloon
 
-Klik op een kaart. Een sjabloon maakt zijn widgets, en vaak zijn variabelen, voor je aan; **Blank Dashboard** begint met een leeg canvas.
+Klik op een sjabloon om te zien wat het toevoegt: zijn widgets, genoemd zoals **Widget toevoegen** ze noemt, en de variabelen waarmee je het in zijn werkbalk beperkt. Voor de andere kies je een categorie naast het zoekvak, of **Alle sjablonen**, of typ je in **Sjablonen zoeken…**: elk woord dat je typt moet overeenkomen. Klik dan op **Dit sjabloon gebruiken**, of dubbelklik op het sjabloon. In het zoekvak kiezen de pijltjestoetsen een sjabloon en gebruikt **Enter** het.
 
 ### Geef het dashboard een naam
 
-De naam van een sjabloon is al ingevuld, genummerd voorbij de namen die het project al heeft. De naam van een leeg dashboard is leeg: typ er een. De beschrijving is optioneel, ingeklapt onder **Meer velden**, en je kunt haar later toevoegen op de pagina **Overzicht** van het dashboard.
+De naam van een sjabloon is al ingevuld, genummerd voorbij de namen die het project al heeft. **Vanaf nul beginnen** laat hem leeg: typ er een. De beschrijving is optioneel, ingeklapt onder **Meer velden**, en je kunt haar later toevoegen op de pagina **Overzicht** van het dashboard. **Terug** brengt je terug naar de sjablonen zoals je ze verliet.
 
 ### Maak het aan
 
-Klik op **Dashboard aanmaken**. Het nieuwe dashboard opent: meteen met de widgets van een sjabloon, of met het lege canvas van een leeg dashboard, met **Widget toevoegen** erop.
+Klik op **Dashboard aanmaken**. Het nieuwe dashboard opent: meteen met de widgets van een sjabloon, of met een leeg canvas met **Widget toevoegen** erop.
 :::
 
-De sjablonen, per groep waaronder de kiezer ze toont:
+De sjablonen, per categorie waaronder de kiezer ze toont:
 
-| Groep | Sjablonen |
+| Categorie | Sjablonen |
 | --- | --- |
-| Get Started | Blank Dashboard |
-| Monitoring & APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
-| Incident Response | Incident Dashboard, Alert Dashboard |
-| Infrastructure | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
+| Bewaking en APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
+| Incidentrespons | Incident Dashboard, Alert Dashboard |
+| Infrastructuur | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
 
-Een sjabloon is een vertrekpunt, geen koppeling: zodra het dashboard is gemaakt, pas je het aan zoals je wilt. Het sjabloon werkt het daarna niet meer bij.
+**Aanbevolen** bevat Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard en Metrics Dashboard. Een sjabloon is een beginpunt, geen koppeling: zodra het dashboard is gemaakt, pas je het aan zoals je wilt. Het sjabloon werkt het later niet meer bij.
 
 ## Bewerken en opslaan
 

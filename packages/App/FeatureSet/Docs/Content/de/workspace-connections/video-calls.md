@@ -76,7 +76,7 @@ Eine Microsoft-Teams-Verbindung, die angemeldet wurde, während **Anrufe zu Vorf
 
 ### Angemeldet bleiben
 
-OneUptime bewahrt das Refresh-Token der Anmeldung verschlüsselt auf und erneuert es mindestens einmal pro Woche, sodass es nie durch Nichtbenutzung abläuft, wie lange das Projekt auch ohne Vorfall bleibt. Funktioniert die Anmeldung nicht mehr (das Konto hat OneUptime entfernt, wurde gelöscht oder gesperrt, oder die Richtlinie Ihrer Organisation verlangt eine neue Anmeldung), zeigt die Zeile der Verbindung **Not working** mit dem Grund, und zwar an dem Tag, an dem OneUptime es bemerkt, nicht erst beim nächsten Vorfall. **Reconnect** in der Zeile meldet sie erneut an.
+OneUptime bewahrt das Refresh-Token der Anmeldung verschlüsselt auf und erneuert es mindestens einmal pro Woche, sodass es nie durch Nichtbenutzung abläuft, wie lange das Projekt auch ohne Vorfall bleibt. Funktioniert die Anmeldung nicht mehr (das Konto hat OneUptime entfernt, wurde gelöscht oder gesperrt, oder die Richtlinie Ihrer Organisation verlangt eine neue Anmeldung), zeigt die Zeile der Verbindung **Funktioniert nicht** mit dem Grund, und zwar an dem Tag, an dem OneUptime es bemerkt, nicht erst beim nächsten Vorfall. **Reconnect** in der Zeile meldet sie erneut an.
 
 Verbindungen, die mit demselben Konto angemeldet sind, teilen sich eine Anmeldung, in jedem Projekt: Zoom behält nur eine Anmeldung pro Konto, daher ersetzt ein erneutes Verbinden desselben Zoom-Benutzers sie für alle.
 
@@ -84,7 +84,7 @@ Verbindungen, die mit demselben Konto angemeldet sind, teilen sich eine Anmeldun
 
 **Reconnect** in der Zeile einer Verbindung meldet sie erneut an, mit demselben oder einem anderen Konto. Nutzen Sie es, nachdem das Konto OneUptime entfernt hat, oder um Vorfall-Meetings auf ein anderes Konto zu verlegen.
 
-Das Löschen einer Verbindung entzieht OneUptime den Zugriff bei Zoom und Google, sobald keine andere Verbindung die Anmeldung nutzt. Bei Microsoft entfernen Sie OneUptime unter **My Apps** (myapps.microsoft.com) des Kontos. Das Entfernen von OneUptime aus Ihrem Zoom-Konto im Zoom App Marketplace löscht seine Anmeldung aus jeder Verbindung, die mit diesem Konto angemeldet ist, und sie zeigen **Not working**, bis sie neu verbunden werden.
+Das Löschen einer Verbindung entzieht OneUptime den Zugriff bei Zoom und Google, sobald keine andere Verbindung die Anmeldung nutzt. Bei Microsoft entfernen Sie OneUptime unter **My Apps** (myapps.microsoft.com) des Kontos. Das Entfernen von OneUptime aus Ihrem Zoom-Konto im Zoom App Marketplace löscht seine Anmeldung aus jeder Verbindung, die mit diesem Konto angemeldet ist, und sie zeigen **Funktioniert nicht**, bis sie neu verbunden werden.
 
 ### Wenn Microsoft nach einem Administrator fragt
 
@@ -288,7 +288,7 @@ Prüfen Sie, dass die Regel zum Vorfall gepasst hat (**Regel testen**), dass ihr
 Der Anbieter hat abgelehnt, und der Feed nennt seinen Grund. Starten Sie in der Zwischenzeit einen Anruf von der Seite des Vorfalls. Führen Sie dann **Testen** in der Zeile der Verbindung aus: Es zeigt denselben Grund, während Sie die Einrichtung beim Anbieter korrigieren, etwa ein abgelaufenes Client Secret oder eine fehlende Berechtigung.
 :::
 
-:::details Eine Verbindung zeigt Not working
+:::details Eine Verbindung zeigt Funktioniert nicht
 Ihre Anmeldung funktioniert nicht mehr: Das Konto hat OneUptime entfernt, wurde gelöscht oder gesperrt, oder muss sich neu anmelden. Klicken Sie in ihrer Zeile auf **Reconnect**. Bis dahin können die Anrufe, die sie starten soll, nicht starten.
 :::
 

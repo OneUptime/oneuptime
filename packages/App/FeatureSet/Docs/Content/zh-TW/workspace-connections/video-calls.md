@@ -76,7 +76,7 @@ flowchart TB
 
 ### 維持登入
 
-OneUptime 會加密保存登入的重新整理權杖，並至少每週更新一次，因此無論專案多久沒有發生事件，權杖都不會因閒置而過期。如果登入失效（帳戶移除了 OneUptime、帳戶被刪除或停用，或您組織的原則要求重新登入），連線所在列會在 OneUptime 發現的當天顯示 **Not working** 及原因，而不是等到下一個事件。該列上的 **Reconnect** 會重新登入。
+OneUptime 會加密保存登入的重新整理權杖，並至少每週更新一次，因此無論專案多久沒有發生事件，權杖都不會因閒置而過期。如果登入失效（帳戶移除了 OneUptime、帳戶被刪除或停用，或您組織的原則要求重新登入），連線所在列會在 OneUptime 發現的當天顯示 **異常** 及原因，而不是等到下一個事件。該列上的 **Reconnect** 會重新登入。
 
 以同一帳戶登入的連線在所有專案中共用一次登入：Zoom 每個帳戶只保留一次登入，因此再次連接同一個 Zoom 使用者會取代所有這些連線的登入。
 
@@ -84,7 +84,7 @@ OneUptime 會加密保存登入的重新整理權杖，並至少每週更新一�
 
 連線所在列的 **Reconnect** 會以同一帳戶或其他帳戶重新登入。在帳戶移除 OneUptime 之後，或要把事件會議轉到其他帳戶時使用它。
 
-刪除連線後，一旦沒有其他連線使用該登入，OneUptime 在 Zoom 和 Google 的存取權就會被撤銷。對於 Microsoft，請在該帳戶的 **My Apps** （myapps.microsoft.com）中移除 OneUptime。在 Zoom App Marketplace 中從您的 Zoom 帳戶移除 OneUptime，會從所有以該帳戶登入的連線中刪除其登入，這些連線在重新連接之前都會顯示 **Not working**。
+刪除連線後，一旦沒有其他連線使用該登入，OneUptime 在 Zoom 和 Google 的存取權就會被撤銷。對於 Microsoft，請在該帳戶的 **My Apps** （myapps.microsoft.com）中移除 OneUptime。在 Zoom App Marketplace 中從您的 Zoom 帳戶移除 OneUptime，會從所有以該帳戶登入的連線中刪除其登入，這些連線在重新連接之前都會顯示 **異常**。
 
 ### 如果 Microsoft 要求管理員
 
@@ -288,7 +288,7 @@ OneUptime Cloud 擁有自己的 Zoom、Google 和 Microsoft 應用程式，用�
 服務供應商拒絕了，動態提供了原因。在此期間，請從事件頁面開始通話。然後在連線所在列執行 **測試**：在您修正服務供應商處的設定（例如過期的用戶端密碼或缺少的權限）時，它會顯示同樣的原因。
 :::
 
-:::details 連線顯示 Not working
+:::details 連線顯示 異常
 它的登入已失效：帳戶移除了 OneUptime、帳戶被刪除或停用，或需要重新登入。在其所在列按一下 **Reconnect**。在此之前，它原本應該開始的通話都無法開始。
 :::
 

@@ -1,9 +1,9 @@
 # Crear un panel
 
-Para crear un panel, abre **Productos → Paneles**, haz clic en **Crear Panel** y elige una plantilla, o **Blank Dashboard** para empezar desde cero. Una plantilla rellena el nombre del panel por ti (numerado, como "Kubernetes Dashboard 2", si el proyecto ya tiene uno); un panel en blanco te pide un nombre. Haz clic en **Crear Panel** y se abre el nuevo panel. Uno en blanco se abre en su lienzo vacío, con un botón **Añadir widget** para su primer widget.
+Para crear un panel, abre **Productos → Paneles** y haz clic en **Crear panel**. El cuadro de diálogo **Crear un panel** te pregunta cómo quieres empezar y después un nombre. **Empezar desde cero** te da un panel vacío; una plantilla crea sus widgets, y a menudo sus variables, por ti, y rellena su nombre (numerado, como "Kubernetes Dashboard 2", si el proyecto ya tiene uno). Haz clic en **Crear panel** y se abre el nuevo panel. Uno vacío se abre en su lienzo, con un botón **Añadir widget** para su primer widget.
 
 :::cards
-- [Crear el panel](#crear-el-panel): Empezar desde una plantilla o desde un lienzo en blanco.
+- [Crear el panel](#crear-el-panel): Empezar desde cero o desde una plantilla.
 - [Editar y guardar](#editar-y-guardar): Nada cambia para nadie hasta que haces clic en Guardar cambios.
 - [Añadir un widget](#añadir-un-widget): Elegirlo en el catálogo, configurarlo y colocarlo.
 - [Hacer zoom en un pico](#hacer-zoom-en-un-pico): Arrastra sobre un gráfico para leer todo el panel en ese momento.
@@ -16,33 +16,32 @@ Los propietarios y administradores del proyecto pueden crear y editar todos los 
 ## Crear el panel
 
 :::steps
-### Abrir el selector de plantillas
+### Elegir cómo empezar
 
-Abre **Productos → Paneles** y haz clic en **Crear Panel**. El cuadro de diálogo **Crear desde plantilla** muestra **Blank Dashboard** y quince plantillas, agrupadas según lo que vigilan.
+Abre **Productos → Paneles** y haz clic en **Crear panel**. El cuadro de diálogo **Crear un panel** se abre en **Empezar desde cero**, un panel vacío para tus propios widgets. Debajo, **O empieza con una plantilla** muestra seis plantillas **Recomendadas**.
 
 ### Elegir una plantilla
 
-Haz clic en una tarjeta. Una plantilla crea sus widgets, y a menudo sus variables, por ti; **Blank Dashboard** empieza con un lienzo vacío.
+Haz clic en una plantilla para ver lo que añade: sus widgets, con los nombres de **Añadir widget**, y las variables con las que lo acotas en su barra de herramientas. Para las demás, elige una categoría junto al cuadro de búsqueda, o **Todas las plantillas**, o escribe en **Buscar plantillas…**: cada palabra que escribes tiene que coincidir. Después haz clic en **Usar esta plantilla**, o haz doble clic en la plantilla. En el cuadro de búsqueda, las flechas eligen una plantilla e **Intro** la usa.
 
 ### Poner nombre al panel
 
-El nombre de una plantilla viene rellenado, numerado después de los nombres que el proyecto ya tiene. El nombre de un panel en blanco está vacío: escribe uno. La descripción es opcional, está plegada en **Más campos**, y puedes añadirla más tarde en la página **Vista general** del panel.
+El nombre de una plantilla viene rellenado, numerado después de los nombres que el proyecto ya tiene. **Empezar desde cero** lo deja vacío: escribe uno. La descripción es opcional, está plegada en **Más campos**, y puedes añadirla más tarde en la página **Vista general** del panel. **Atrás** te lleva a las plantillas tal como las dejaste.
 
 ### Crearlo
 
-Haz clic en **Crear Panel**. Se abre el nuevo panel: los widgets de una plantilla de inmediato, o el lienzo vacío de un panel en blanco con **Añadir widget** encima.
+Haz clic en **Crear panel**. Se abre el nuevo panel: los widgets de una plantilla de inmediato, o un lienzo vacío con **Añadir widget** encima.
 :::
 
-Las plantillas, según el grupo en el que las muestra el selector:
+Las plantillas, según la categoría en la que las muestra el selector:
 
-| Grupo | Plantillas |
+| Categoría | Plantillas |
 | --- | --- |
-| Get Started | Blank Dashboard |
-| Monitoring & APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
-| Incident Response | Incident Dashboard, Alert Dashboard |
-| Infrastructure | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
+| Monitoreo y APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
+| Respuesta a incidentes | Incident Dashboard, Alert Dashboard |
+| Infraestructura | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
 
-Una plantilla es un punto de partida, no un vínculo: una vez creado el panel, cámbialo como quieras. La plantilla no vuelve a actualizarlo después.
+**Recomendadas** reúne Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard y Metrics Dashboard. Una plantilla es un punto de partida, no un vínculo: una vez creado el panel, cámbialo como quieras. La plantilla no vuelve a actualizarlo después.
 
 ## Editar y guardar
 

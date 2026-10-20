@@ -672,6 +672,68 @@ describe("how a stored value reads", () => {
         EventMeasurementState.Running,
       );
     });
+
+    /*
+     * "Time to acknowledge after paging" starts at First Paged At, when an
+     * on-call policy or a direct page first notified somebody. Nobody is
+     * paged about an event that is over.
+     */
+    describe("from the first page", () => {
+      const afterPaging: MeasurementFunction = (): MeasurementValues => {
+        return incidentMeasurement({
+          name: "Time to acknowledge after paging",
+          startAnchorType: "First Paged At",
+        });
+      };
+
+      test("an incident paged and not yet acknowledged is running since the page", () => {
+        const reading: EventMeasurementReading = readOne({
+          measurement: afterPaging(),
+          value: pending({ startedAt: minutesAgo(4) }),
+        });
+
+        expect(reading.state).toBe(EventMeasurementState.Running);
+        expect(reading.startedAt?.getTime()).toBe(minutesAgo(4).getTime());
+      });
+
+      test("an open incident nobody has been paged about has not started yet", () => {
+        expect(
+          readOne({
+            measurement: afterPaging(),
+            value: pending({
+              startedAt: null,
+              statusMessage: "First Paged At has not been recorded yet",
+            }),
+          }).state,
+        ).toBe(EventMeasurementState.NotStarted);
+      });
+
+      test("an incident resolved without anybody being paged never reached its start", () => {
+        const reading: EventMeasurementReading = readOne({
+          measurement: afterPaging(),
+          value: pending({
+            startedAt: null,
+            endedAt: minutesAgo(16),
+            statusMessage: "First Paged At has not been recorded yet",
+          }),
+          isEventOver: true,
+        });
+
+        expect(reading.state).toBe(EventMeasurementState.NotReached);
+        expect(shouldEventMeasurementsTick([reading])).toBe(false);
+      });
+
+      test("a paged and acknowledged incident reads its duration", () => {
+        const reading: EventMeasurementReading = readOne({
+          measurement: afterPaging(),
+          value: incidentValue({ valueInSeconds: 240 }),
+          isEventOver: true,
+        });
+
+        expect(reading.state).toBe(EventMeasurementState.Recorded);
+        expect(reading.valueInSeconds).toBe(240);
+      });
+    });
   });
 
   test("keeps the order the measurements came in, and skips one with no id", () => {

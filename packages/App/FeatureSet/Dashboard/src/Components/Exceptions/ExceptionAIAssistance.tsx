@@ -36,14 +36,12 @@ import {
   AIReadinessProgress,
   AITaskCardState,
   AITaskPresentation,
-  AITaskTone,
   AI_TASK_PRESENTATION,
+  AI_TASK_TONE_CLASS_NAMES,
   EXCEPTION_AI_TASK_TYPES,
   ExceptionAITaskType,
-  FIX_PRODUCTION_LABELS,
   ReadinessCheckLink,
   findLatestAITask,
-  getFixProductionTone,
   getAIReadinessProgress,
   getAITaskCardState,
   getReadinessCheckLink,
@@ -56,6 +54,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import useAiOffered from "../../Utils/UseAiOffered";
 import CodeBlockerNotice from "../Code/CodeBlockerNotice";
+import FixProductionVerdict from "../AI/FixProductionVerdict";
 import { CodeTaskBlockerType } from "Common/Types/AI/CodeTask";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
@@ -66,13 +65,8 @@ import {
 // How often an active task is re-read.
 export const AI_TASK_POLL_INTERVAL_MS: number = 5000;
 
-export const AI_TASK_TONE_CLASS_NAMES: Record<AITaskTone, string> = {
-  neutral: "bg-gray-50 text-gray-600 ring-gray-500/20",
-  info: "bg-sky-50 text-sky-700 ring-sky-600/20",
-  success: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
-  warning: "bg-amber-50 text-amber-700 ring-amber-600/20",
-  danger: "bg-red-50 text-red-700 ring-red-600/20",
-};
+// Kept here too, where it was first exported.
+export { AI_TASK_TONE_CLASS_NAMES };
 
 export interface ComponentProps {
   telemetryExceptionId: ObjectID;
@@ -499,23 +493,11 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
               shipped (FixProductionVerifier).
             */}
             {task?.production && (
-              <div
-                className={`mt-3 max-w-3xl rounded-lg px-3 py-2 text-sm ring-1 ring-inset ${
-                  AI_TASK_TONE_CLASS_NAMES[
-                    getFixProductionTone(task.production.status)
-                  ]
-                }`}
-                data-testid="exception-ai-task-production"
-              >
-                <p className="font-medium">
-                  {translator.translateText(
-                    FIX_PRODUCTION_LABELS[task.production.status],
-                  )}
-                </p>
-                {task.production.summary && (
-                  <p className="mt-1">{task.production.summary}</p>
-                )}
-              </div>
+              <FixProductionVerdict
+                production={task.production}
+                testId="exception-ai-task-production"
+                className="mt-3"
+              />
             )}
           </div>
 

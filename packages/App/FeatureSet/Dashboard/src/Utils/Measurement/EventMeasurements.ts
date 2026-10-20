@@ -262,12 +262,23 @@ const STATE_ANCHOR_TYPES: Array<string> = [
   IncidentMeasurementAnchorType.StateRoleEntered,
 ];
 
-type IsStateAnchorFunction = (anchorType: string | undefined) => boolean;
+/*
+ * The anchors that only an open event reaches: the two above, and the first
+ * page about it (First Paged At, the same in the incident and alert enums) -
+ * nobody is paged about an event that is over. An event resolved without
+ * anybody being paged has not "not started yet": its start never came.
+ */
+const OPEN_EVENT_ANCHOR_TYPES: Array<string> = [
+  ...STATE_ANCHOR_TYPES,
+  IncidentMeasurementAnchorType.FirstPagedAt,
+];
 
-const isStateAnchor: IsStateAnchorFunction = (
+type IsOpenEventAnchorFunction = (anchorType: string | undefined) => boolean;
+
+const isOpenEventAnchor: IsOpenEventAnchorFunction = (
   anchorType: string | undefined,
 ): boolean => {
-  return Boolean(anchorType && STATE_ANCHOR_TYPES.includes(anchorType));
+  return Boolean(anchorType && OPEN_EVENT_ANCHOR_TYPES.includes(anchorType));
 };
 
 /*
@@ -372,15 +383,16 @@ const getReading: GetReadingFunction = (data: {
 
   /*
    * The server leaves a state that was never reached Pending - a resolved
-   * incident can be reopened and acknowledged after all. On a page that
-   * says the event is over, a clock still "running" since it was declared
-   * would read as days and counting, so it says what happened instead.
+   * incident can be reopened and acknowledged after all - and a first page
+   * that never came, too. On a page that says the event is over, a clock
+   * still "running" since it was declared would read as days and counting,
+   * so it says what happened instead.
    */
   if (
     data.isEventOver &&
     unresolvedAnchorTypes.length > 0 &&
     unresolvedAnchorTypes.every((anchorType: string | undefined): boolean => {
-      return isStateAnchor(anchorType);
+      return isOpenEventAnchor(anchorType);
     })
   ) {
     reading.state = EventMeasurementState.NotReached;

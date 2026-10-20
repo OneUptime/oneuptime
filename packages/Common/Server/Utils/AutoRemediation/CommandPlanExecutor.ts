@@ -52,6 +52,11 @@ import KubectlJobRunner, {
   KubectlTerminalJobFacts,
 } from "../AI/ClusterAccess/KubectlJobRunner";
 import RemediationCommandToolkit from "../AI/Remediation/RemediationCommandTools";
+import GitOpsInspector, {
+  GitOpsCommandInspection,
+} from "../AI/Remediation/GitOpsInspector";
+import { AiRemediationRevertWatch } from "../../../Types/AutoRemediation/AiRemediationGitOps";
+import { describeGitOpsOwner } from "../../../Utils/AiRemediation/GitOpsOwnership";
 import ResourceCommandJobRunner, {
   ResourceCommandRunState,
   ResourceCommandTerminalJobFacts,
@@ -292,6 +297,17 @@ export default class CommandPlanExecutor {
         }
 
         /*
+         * A kubectl change's object, read before it runs: who declares it
+         * now (the card showed what was read when the plan was composed),
+         * and its fields to compare with after it ran — the revert watch.
+         * Read outside the plan lock: it takes seconds and changes nothing.
+         */
+        const inspection: GitOpsCommandInspection | null =
+          command.stepType === RunbookStepType.Kubectl
+            ? await this.inspectBeforeRun({ suggestion, command })
+            : null;
+
+        /*
          * Start the command under the plan lock: the stand-down check, the
          * Pending marker, the enqueue and the write that names the job. The
          * rollback arm reads the plan under the same lock, so it either sees
@@ -349,6 +365,13 @@ export default class CommandPlanExecutor {
 
         const state: AiRemediationCommandExecutionState =
           await this.finishOneCommand({ command, started });
+
+        if (
+          inspection &&
+          state.status === AiRemediationCommandExecutionStatus.Succeeded
+        ) {
+          await this.recordRevertWatch({ suggestion, command, inspection });
+        }
 
         command.execution = state;
         await this.persistPlan(suggestion, plan, "executor");
@@ -565,13 +588,60 @@ export default class CommandPlanExecutor {
         anyFailed = true;
       }
 
+      /*
+       * A change verification saw put back on the cluster — by the GitOps
+       * controller or Helm release that declares the object, or anything
+       * else — is not undone again: its object is already back at what it
+       * was, and an undo now could re-apply the fix (the undo of a rollout
+       * undo or a set image is another rollout undo, which goes back to the
+       * fix's own revision) and start it flapping. One put back only in
+       * part is left for a human, with what is still applied.
+       */
+      for (const command of plan.commands) {
+        const watch: AiRemediationRevertWatch | undefined = command.revertWatch;
+
+        if (
+          !watch?.putBackAt ||
+          command.execution?.status !==
+            AiRemediationCommandExecutionStatus.Succeeded ||
+          !command.rollbackCommand ||
+          command.rollbackExecution
+        ) {
+          continue;
+        }
+
+        const stillApplied: Array<string> = watch.deleted
+          ? []
+          : watch.fields
+              .map((field: { path: string }): string => {
+                return field.path;
+              })
+              .filter((path: string): boolean => {
+                return !(watch.putBackFields || []).includes(path);
+              });
+
+        if (stillApplied.length > 0 || watch.moreFields) {
+          command.rollbackExecution = {
+            status: AiRemediationCommandExecutionStatus.Skipped,
+            errorMessage: `Rollback not run: ${this.describeWhoPutItBack(command)} put back part of this change, so its undo would now change more than the change did. ${
+              stillApplied.length > 0
+                ? `Still applied: ${stillApplied.slice(0, 5).join(", ")}. `
+                : ""
+            }If that should go too, undo it manually: ${command.rollbackCommand}`,
+          };
+          leftForHuman.push(command);
+          anyFailed = true;
+        }
+      }
+
       const rollbackTargets: Array<AiRemediationCommand> = plan.commands
         .filter((command: AiRemediationCommand) => {
           return (
             command.execution?.status ===
               AiRemediationCommandExecutionStatus.Succeeded &&
             Boolean(command.rollbackCommand) &&
-            !command.rollbackExecution
+            !command.rollbackExecution &&
+            !command.revertWatch?.putBackAt
           );
         })
         .reverse();
@@ -1791,14 +1861,157 @@ export default class CommandPlanExecutor {
     return mayHaveRun;
   }
 
+  /*
+   * Records what verification's reads of watched objects found (each
+   * command's revert watch, by sequence) on the stored plan, under the plan
+   * lock: only those watches change, so neither the executor's nor the
+   * rollback arm's record is erased. Best effort.
+   */
+  public static async recordRevertChecks(data: {
+    suggestionId: ObjectID;
+    watches: Map<number, AiRemediationRevertWatch>;
+  }): Promise<void> {
+    if (data.watches.size === 0) {
+      return;
+    }
+
+    const mutex: SemaphoreMutex | null = await this.lockPlan(data.suggestionId);
+
+    try {
+      const stored: AiRemediationCommandPlan | null = await this.readStoredPlan(
+        data.suggestionId,
+      );
+
+      if (!stored) {
+        return;
+      }
+
+      for (const command of stored.commands) {
+        const watch: AiRemediationRevertWatch | undefined = data.watches.get(
+          command.sequence,
+        );
+
+        if (watch) {
+          command.revertWatch = watch;
+        }
+      }
+
+      await AutoRemediationSuggestionService.updateOneById({
+        id: data.suggestionId,
+        data: {
+          commandPlan: AiRemediationCommandPlanUtil.toJSON(stored),
+        } as never,
+        props: { isRoot: true },
+      });
+    } catch (error) {
+      logger.error(
+        `CommandPlanExecutor: could not record verification's revert checks on suggestion ${data.suggestionId.toString()}: ${error}`,
+      );
+    } finally {
+      await this.unlockPlan(mutex);
+    }
+  }
+
+  /*
+   * Who put a change back, for a note: its GitOps owner when OneUptime
+   * read one, "the cluster" otherwise.
+   */
+  private static describeWhoPutItBack(command: AiRemediationCommand): string {
+    return command.gitOps ? describeGitOpsOwner(command.gitOps) : "the cluster";
+  }
+
+  /*
+   * Before an approved kubectl command runs: who declares its object now,
+   * and the object as it is (for the revert watch). Best effort — a read
+   * that fails leaves the command exactly as it was approved.
+   */
+  private static async inspectBeforeRun(data: {
+    suggestion: AutoRemediationSuggestion;
+    command: AiRemediationCommand;
+  }): Promise<GitOpsCommandInspection | null> {
+    const { suggestion, command } = data;
+    const aiRunId: ObjectID | undefined = suggestion.aiRunId;
+
+    if (!aiRunId || !suggestion.projectId) {
+      return null;
+    }
+
+    const projectId: ObjectID = suggestion.projectId;
+
+    const inspection: GitOpsCommandInspection | null =
+      await GitOpsInspector.safely(
+        "reading an approved kubectl change's object before it ran",
+        () => {
+          return GitOpsInspector.inspectCommandOnCluster({
+            projectId,
+            aiRunId,
+            kubernetesClusterId: command.kubernetesClusterId,
+            command: command.command,
+            stepIdPrefix: `ai-gitops-approved-${command.sequence}`,
+          });
+        },
+      );
+
+    if (inspection?.gitOps) {
+      command.gitOps = inspection.gitOps;
+    }
+
+    return inspection;
+  }
+
+  // After an approved kubectl command succeeded: what it did, to watch.
+  private static async recordRevertWatch(data: {
+    suggestion: AutoRemediationSuggestion;
+    command: AiRemediationCommand;
+    inspection: GitOpsCommandInspection;
+  }): Promise<void> {
+    const { suggestion, command } = data;
+    const aiRunId: ObjectID | undefined = suggestion.aiRunId;
+
+    if (!aiRunId || !suggestion.projectId) {
+      return;
+    }
+
+    const projectId: ObjectID = suggestion.projectId;
+
+    const watch: AiRemediationRevertWatch | null = await GitOpsInspector.safely(
+      "reading an approved kubectl change's object after it ran",
+      () => {
+        return GitOpsInspector.captureRevertWatchOnCluster({
+          projectId,
+          aiRunId,
+          kubernetesClusterId: command.kubernetesClusterId,
+          inspection: data.inspection,
+          stepId: `ai-gitops-approved-${command.sequence}-after`,
+        });
+      },
+    );
+
+    if (watch) {
+      command.revertWatch = watch;
+    }
+  }
+
   private static describeRollbackOutcome(
     plan: AiRemediationCommandPlan | null,
   ): CommandPlanRollbackOutcome {
     let rolledBack: number = 0;
     let failed: number = 0;
     let leftForHuman: number = 0;
+    // Undos not run because the cluster had already put the change back.
+    let alreadyPutBack: number = 0;
 
     for (const command of plan?.commands || []) {
+      if (
+        command.revertWatch?.putBackAt &&
+        command.rollbackCommand &&
+        !command.rollbackExecution &&
+        command.execution?.status ===
+          AiRemediationCommandExecutionStatus.Succeeded
+      ) {
+        alreadyPutBack += 1;
+      }
+
       switch (command.rollbackExecution?.status) {
         case AiRemediationCommandExecutionStatus.Succeeded:
           rolledBack += 1;
@@ -1833,13 +2046,20 @@ export default class CommandPlanExecutor {
 
     let summary: string;
 
+    const putBackNote: string =
+      alreadyPutBack > 0
+        ? ` ${alreadyPutBack} command(s) were not undone: the cluster had already put back what they changed.`
+        : "";
+
     switch (rollbackStatus) {
       case AiRemediationRollbackStatus.Completed:
-        summary = `Rollback completed: ${rolledBack} command(s) undone.`;
+        summary = `Rollback completed: ${rolledBack} command(s) undone.${putBackNote}`;
         break;
       case AiRemediationRollbackStatus.NotApplicable:
         summary =
-          "Nothing was rolled back: no executed command carried a rollback command.";
+          alreadyPutBack > 0
+            ? `Nothing was rolled back:${putBackNote}`
+            : "Nothing was rolled back: no executed command carried a rollback command.";
         break;
       case AiRemediationRollbackStatus.Failed:
         summary = `Rollback did NOT fully complete: ${rolledBack} command(s) undone, ${failed} rollback(s) failed, ${leftForHuman} left for a human to undo — the change may still be applied.`;

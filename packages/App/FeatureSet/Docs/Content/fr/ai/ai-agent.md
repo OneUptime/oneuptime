@@ -162,6 +162,19 @@ Une modification qui échoue toujours à la vérification n'est pas jetée : la 
 
 Les commandes sont des paramètres du dépôt que votre équipe écrit, exécutés sur votre propre Runner : le même modèle de confiance que les étapes Bash d'un runbook. L'IA ne les écrit ni ne les modifie jamais. Un Runner global, que OneUptime fait tourner pour chaque projet, ne les exécute jamais : sur un Runner global, la correction est écrite et ouverte pour relecture, la vérification est signalée comme ignorée, et la CI de votre dépôt vérifie la modification. [Faites tourner votre propre Runner](#faire-tourner-votre-propre-runner) pour que les corrections soient compilées et testées avant l'ouverture de la pull request.
 
+## Après la fusion d'un correctif
+
+Fusionner un correctif ne corrige rien tant qu'il ne tourne pas. Dès qu'une pull request de correctif est fusionnée, OneUptime attend un déploiement enregistré qui la contient (voir [Déploiements et changements](/docs/telemetry/change-events)) et surveille, dans ce déploiement, ce à quoi servait le correctif. La pull request de la tâche dans Code dit comment cela s'est passé, tout comme la page **Assistance IA** de l'exception, les journaux IA de l'incident et l'insight IA d'où vient le correctif :
+
+| Un correctif de | Ce qui est surveillé | Il a fonctionné | Il n'a pas fonctionné |
+| --- | --- | --- | --- |
+| Une exception | Si l'exception se reproduit | **Corrigé en production** | **Se produit encore après le correctif** |
+| Une trace lente ou un insight de latence | Le p99 de l'opération que nomme le correctif | **Plus rapide en production** | **Toujours lent après le correctif** |
+| La cause racine d'un incident ou d'une alerte | Si son moniteur en déclenche un autre | **Corrigé en production** | **Survenu de nouveau après le correctif** |
+| Télémétrie, journalisation ou traçage manquants | Ce que le correctif ajoute, et le reste de la télémétrie du service | **Arrive en production** | **Télémétrie interrompue après le correctif** |
+
+Tant qu'aucun déploiement ne le livre, le correctif affiche **Fusionné, en attente d'un déploiement**, puis **Déployé, surveillé en production** pendant qu'il est surveillé. Un correctif qu'aucun déploiement enregistré ne contient dans les 14 jours, ou dont la production ne peut rien dire, affiche **Non vérifié en production**. [Correctifs de code automatiques](/docs/ai/ai-sre#correctifs-de-code-automatiques) donne les règles. Un test de non-régression, une meilleure gestion des erreurs, une revue et une demande dans Code ne sont pas surveillés : la production ne peut pas montrer ce qu'ils changent.
+
 ## Avant de commencer
 
 Une tâche a besoin de trois choses. La page d'un dépôt dans Code et la page **Assistance IA** de l'exception vérifient les trois avant de proposer de démarrer, et indiquent ce qui manque.

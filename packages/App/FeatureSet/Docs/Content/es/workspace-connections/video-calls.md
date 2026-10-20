@@ -76,7 +76,7 @@ Una conexión de Microsoft Teams iniciada mientras **Grabar y transcribir las ll
 
 ### Mantener la sesión iniciada
 
-OneUptime guarda el token de actualización del inicio de sesión, cifrado, y lo renueva al menos una vez por semana, así que nunca caduca por falta de uso, por mucho tiempo que el proyecto pase sin un incidente. Si el inicio de sesión deja de funcionar (la cuenta quitó OneUptime, se eliminó o se suspendió, o la política de tu organización le pide volver a iniciar sesión), la fila de la conexión muestra **Not working** con el motivo el día en que OneUptime lo detecta, no en el próximo incidente. **Reconnect** en la fila vuelve a iniciar sesión.
+OneUptime guarda el token de actualización del inicio de sesión, cifrado, y lo renueva al menos una vez por semana, así que nunca caduca por falta de uso, por mucho tiempo que el proyecto pase sin un incidente. Si el inicio de sesión deja de funcionar (la cuenta quitó OneUptime, se eliminó o se suspendió, o la política de tu organización le pide volver a iniciar sesión), la fila de la conexión muestra **No funciona** con el motivo el día en que OneUptime lo detecta, no en el próximo incidente. **Reconnect** en la fila vuelve a iniciar sesión.
 
 Las conexiones que iniciaron sesión con la misma cuenta comparten un único inicio de sesión, en todos los proyectos: Zoom guarda solo un inicio de sesión por cuenta, así que conectar de nuevo el mismo usuario de Zoom lo sustituye para todas ellas.
 
@@ -84,7 +84,7 @@ Las conexiones que iniciaron sesión con la misma cuenta comparten un único ini
 
 **Reconnect** en la fila de una conexión vuelve a iniciar sesión, con la misma cuenta o con otra. Úsalo después de que la cuenta haya quitado OneUptime, o para pasar las reuniones de incidentes a otra cuenta.
 
-Eliminar una conexión retira el acceso de OneUptime en Zoom y Google en cuanto ninguna otra conexión usa ese inicio de sesión. En Microsoft, quita OneUptime en **My Apps** (myapps.microsoft.com) de la cuenta. Quitar OneUptime de tu cuenta de Zoom en el Zoom App Marketplace elimina su inicio de sesión de todas las conexiones que lo usaban con esa cuenta, y muestran **Not working** hasta que se reconectan.
+Eliminar una conexión retira el acceso de OneUptime en Zoom y Google en cuanto ninguna otra conexión usa ese inicio de sesión. En Microsoft, quita OneUptime en **My Apps** (myapps.microsoft.com) de la cuenta. Quitar OneUptime de tu cuenta de Zoom en el Zoom App Marketplace elimina su inicio de sesión de todas las conexiones que lo usaban con esa cuenta, y muestran **No funciona** hasta que se reconectan.
 
 ### Si Microsoft pide un administrador
 
@@ -288,7 +288,7 @@ Comprueba que la regla coincidió con el incidente (**Probar regla**), que su pa
 El proveedor la rechazó, y el feed da su motivo. Mientras tanto, inicia una llamada desde la página del incidente. Luego ejecuta **Probar** en la fila de la conexión: muestra el mismo motivo mientras corriges la configuración en el proveedor, como un secreto de cliente caducado o un permiso que falta.
 :::
 
-:::details Una conexión muestra Not working
+:::details Una conexión muestra No funciona
 Su inicio de sesión dejó de funcionar: la cuenta quitó OneUptime, se eliminó o se suspendió, o debe volver a iniciar sesión. Haz clic en **Reconnect** en su fila. Hasta entonces, las llamadas que debería iniciar no pueden iniciarse.
 :::
 

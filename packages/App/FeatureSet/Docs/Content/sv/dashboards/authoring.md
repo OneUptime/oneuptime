@@ -1,9 +1,9 @@
 # Skapa en instrumentpanel
 
-För att skapa en instrumentpanel öppnar du **Produkter → Instrumentpaneler**, klickar på **Skapa Instrumentpanel** och väljer en mall, eller **Blank Dashboard** för att börja från början. En mall fyller i instrumentpanelens namn åt dig (numrerat, som i "Kubernetes Dashboard 2", när projektet redan har en); en tom instrumentpanel ber dig om ett namn. Klicka på **Skapa Instrumentpanel** så öppnas den nya instrumentpanelen. En tom instrumentpanel öppnas på sin tomma arbetsyta, med knappen **Lägg till widget** för den första widgeten.
+För att skapa en instrumentpanel öppnar du **Produkter → Instrumentpaneler** och klickar på **Skapa instrumentpanel**. Dialogrutan **Skapa en instrumentpanel** frågar hur du vill börja och sedan efter ett namn. **Börja från grunden** ger dig en tom instrumentpanel; en mall bygger sina widgetar, och ofta sina variabler, åt dig och fyller i sitt namn (numrerat, som i "Kubernetes Dashboard 2", när projektet redan har en). Klicka på **Skapa instrumentpanel** så öppnas den nya instrumentpanelen. En tom instrumentpanel öppnas på sin arbetsyta, med knappen **Lägg till widget** för den första widgeten.
 
 :::cards
-- [Skapa instrumentpanelen](#skapa-instrumentpanelen): Börja från en mall eller från en tom arbetsyta.
+- [Skapa instrumentpanelen](#skapa-instrumentpanelen): Börja från grunden eller från en mall.
 - [Redigera och spara](#redigera-och-spara): Inget ändras för någon förrän du klickar på Spara ändringar.
 - [Lägg till en widget](#lägg-till-en-widget): Välj den i katalogen, ställ in den och placera den.
 - [Zooma in på en topp](#zooma-in-på-en-topp): Dra över ett diagram för att läsa hela instrumentpanelen i det ögonblicket.
@@ -16,33 +16,32 @@ Projektägare och -administratörer kan skapa och redigera alla instrumentpanele
 ## Skapa instrumentpanelen
 
 :::steps
-### Öppna mallväljaren
+### Välj hur du börjar
 
-Öppna **Produkter → Instrumentpaneler** och klicka på **Skapa Instrumentpanel**. Dialogrutan **Skapa från mall** visar **Blank Dashboard** och femton mallar, grupperade efter vad de övervakar.
+Öppna **Produkter → Instrumentpaneler** och klicka på **Skapa instrumentpanel**. Dialogrutan **Skapa en instrumentpanel** öppnas på **Börja från grunden**, en tom instrumentpanel för dina egna widgetar. Under den listar **Eller börja från en mall** sex mallar under **Rekommenderade**.
 
 ### Välj en mall
 
-Klicka på ett kort. En mall bygger sina widgetar, och ofta sina variabler, åt dig; **Blank Dashboard** börjar med en tom arbetsyta.
+Klicka på en mall för att se vad den lägger till: dess widgetar, namngivna som i **Lägg till widget**, och variablerna du smalnar av den med i dess verktygsfält. För de andra väljer du en kategori bredvid sökrutan, eller **Alla mallar**, eller skriver i **Sök mallar…**: varje ord du skriver måste stämma. Klicka sedan på **Använd den här mallen**, eller dubbelklicka på mallen. I sökrutan väljer piltangenterna en mall och **Enter** använder den.
 
 ### Namnge instrumentpanelen
 
-En malls namn är ifyllt, numrerat förbi de namn som projektet redan har. En tom instrumentpanels namn är tomt: skriv ett. Beskrivningen är valfri, hopfälld under **Fler fält**, och du kan lägga till den senare på instrumentpanelens sida **Översikt**.
+En malls namn är ifyllt, numrerat förbi de namn som projektet redan har. **Börja från grunden** lämnar det tomt: skriv ett. Beskrivningen är valfri, hopfälld under **Fler fält**, och du kan lägga till den senare på instrumentpanelens sida **Översikt**. **Tillbaka** tar dig tillbaka till mallarna som du lämnade dem.
 
 ### Skapa den
 
-Klicka på **Skapa Instrumentpanel**. Den nya instrumentpanelen öppnas: med en malls widgetar direkt, eller med en tom instrumentpanels tomma arbetsyta med **Lägg till widget** på.
+Klicka på **Skapa instrumentpanel**. Den nya instrumentpanelen öppnas: med en malls widgetar direkt, eller med en tom arbetsyta med **Lägg till widget** på.
 :::
 
-Mallarna, efter den grupp som väljaren listar dem under:
+Mallarna, efter den kategori som väljaren listar dem under:
 
-| Grupp | Mallar |
+| Kategori | Mallar |
 | --- | --- |
-| Get Started | Blank Dashboard |
-| Monitoring & APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
-| Incident Response | Incident Dashboard, Alert Dashboard |
-| Infrastructure | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
+| Övervakning och APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
+| Incidenthantering | Incident Dashboard, Alert Dashboard |
+| Infrastruktur | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
 
-En mall är en utgångspunkt, inte en koppling: när instrumentpanelen är skapad ändrar du den som du vill. Mallen uppdaterar den inte senare.
+**Rekommenderade** innehåller Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard och Metrics Dashboard. En mall är en utgångspunkt, inte en koppling: när instrumentpanelen är skapad ändrar du den som du vill. Mallen uppdaterar den inte senare.
 
 ## Redigera och spara
 

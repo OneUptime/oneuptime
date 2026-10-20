@@ -38,6 +38,8 @@ Linjen øverst nævner det mest presserende, der er åbent, i en tilsvarende far
 
 Ved siden af siger Hjem, hvornår den sidst læste projektet, og **Opdater** læser det igen. Når du vender tilbage til en fane med Hjem efter et minut eller mere, opdaterer den sig selv.
 
+Så længe intet overvåges endnu, slutter linjen med knappen **Opret din første overvågning**, som åbner formularen, der opretter en monitor. Kun personer, der har lov til at oprette monitorer, ser den.
+
 ### De fem tal
 
 Hvert tal tæller noget, siger, om det kræver din opmærksomhed, og åbner listen bag det.

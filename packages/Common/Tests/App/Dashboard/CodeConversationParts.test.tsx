@@ -14,6 +14,8 @@ import React, { ReactElement } from "react";
 import { I18nextProvider, initReactI18next } from "react-i18next";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
+import FixProductionCheck from "../../../Types/AI/FixProductionCheck";
+import FixProductionStatus from "../../../Types/AI/FixProductionStatus";
 import {
   CodeTaskBlockerType,
   CodeTaskContextType,
@@ -651,6 +653,90 @@ describe("a turn: the AI's side", () => {
     ).toEqual(["Merged", "Closed"]);
   });
 
+  /*
+   * Merged is not fixed: a merged fix's pull request says what production
+   * showed once a deploy shipped it, in words that fit the kind of fix.
+   */
+  test("a merged fix says what production showed, in the words of its kind", () => {
+    draw(
+      <ol>
+        <CodeTaskTurn
+          isLatest={true}
+          turn={turn({
+            recipe: CodeFixTaskType.FixPerformance,
+            pullRequests: [
+              {
+                number: 402,
+                url: "https://github.com/a/b/pull/402",
+                state: "merged",
+                production: {
+                  status: FixProductionStatus.Verified,
+                  check: FixProductionCheck.Performance,
+                  summary:
+                    'The p99 of "GET /orders" fell from 2.4 s to 310 ms in the 26 hours since version 2.3.2 shipped the fix (1,204 spans).',
+                },
+              },
+              {
+                number: 403,
+                url: "https://github.com/a/b/pull/403",
+                state: "merged",
+                production: {
+                  status: FixProductionStatus.Regressed,
+                  check: FixProductionCheck.Recurrence,
+                  summary:
+                    'Monitor "API health" raised incident INC-57 after version 2.3.2 shipped the fix, so the fix did not stop it.',
+                },
+              },
+              {
+                number: 404,
+                url: "https://github.com/a/b/pull/404",
+                state: "merged",
+              },
+            ],
+          })}
+        />
+      </ol>,
+    );
+
+    const verdicts: Array<HTMLElement> = screen.getAllByTestId(
+      "code-turn-pull-request-production",
+    );
+
+    expect(verdicts).toHaveLength(2);
+    expect(verdicts[0]).toHaveTextContent("Faster in production");
+    expect(verdicts[0]).toHaveTextContent("fell from 2.4 s to 310 ms");
+    expect(verdicts[0]!.className).toContain("bg-emerald-50");
+    expect(verdicts[1]).toHaveTextContent("Happened again after the fix");
+    expect(verdicts[1]!.className).toContain("bg-red-50");
+  });
+
+  test("the verdict reads in the reader's language", () => {
+    drawInGerman(
+      <ol>
+        <CodeTaskTurn
+          isLatest={true}
+          turn={turn({
+            pullRequests: [
+              {
+                number: 402,
+                url: "https://github.com/a/b/pull/402",
+                state: "merged",
+                production: {
+                  status: FixProductionStatus.Watching,
+                  check: FixProductionCheck.Telemetry,
+                },
+              },
+            ],
+          })}
+        />
+      </ol>,
+    );
+
+    expect(
+      screen.getByTestId("code-turn-pull-request-production"),
+    ).toHaveTextContent("Deployt, wird in Produktion beobachtet");
+  });
+
   test("waiting for you: the question stands out, marked as AI's", () => {
     draw(
       <ol>
@@ -1047,6 +1133,50 @@ describe("a task row", () => {
     expect(meta).toHaveTextContent("Fix Exception");
     expect(meta).not.toHaveTextContent("From an exception");
     expect(meta).not.toHaveTextContent("Asked by");
+  });
+
+  test("a merged fix's row says what production showed, the sentence behind it on hover", () => {
+    draw(
+      <ul>
+        <CodeTaskRow
+          task={summary({
+            recipe: CodeFixTaskType.ImproveTracing,
+            pullRequest: {
+              number: 418,
+              state: "merged",
+              production: {
+                status: FixProductionStatus.Unverifiable,
+                check: FixProductionCheck.Telemetry,
+                summary:
+                  "None of the 4 names it adds arrived in the 7 days since version 2.3.2 shipped the fix: the code that sends them may not have run.",
+              },
+            },
+          })}
+        />
+      </ul>,
+    );
+
+    const verdict: HTMLElement = screen.getByTestId("code-task-row-production");
+    expect(verdict).toHaveTextContent("Not verified in production");
+    expect(verdict).toHaveAttribute(
+      "title",
+      "None of the 4 names it adds arrived in the 7 days since version 2.3.2 shipped the fix: the code that sends them may not have run.",
+    );
+    expect(
+      within(screen.getByTestId("code-task-row-meta")).getByTestId(
+        "code-task-row-production",
+      ),
+    ).toBe(verdict);
+  });
+
+  test("a row without a verdict shows none", () => {
+    draw(
+      <ul>
+        <CodeTaskRow task={summary({})} />
+      </ul>,
+    );
+
+    expect(screen.queryByTestId("code-task-row-production")).toBeNull();
   });
 
   test("a task with no title is named by its kind", () => {

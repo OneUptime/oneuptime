@@ -1,9 +1,9 @@
 # Ein Dashboard erstellen
 
-Um ein Dashboard zu erstellen, öffnen Sie **Produkte → Dashboards**, klicken auf **Dashboard erstellen** und wählen eine Vorlage, oder **Blank Dashboard**, um bei null zu beginnen. Eine Vorlage füllt den Namen des Dashboards für Sie aus (nummeriert, etwa „Kubernetes Dashboard 2“, wenn das Projekt schon eines hat); ein leeres Dashboard fragt Sie nach einem Namen. Klicken Sie auf **Dashboard erstellen**, und das neue Dashboard öffnet sich. Ein leeres öffnet sich auf seiner leeren Arbeitsfläche, mit einer Schaltfläche **Widget hinzufügen** für sein erstes Widget.
+Um ein Dashboard zu erstellen, öffnen Sie **Produkte → Dashboards** und klicken auf **Dashboard erstellen**. Der Dialog **Dashboard erstellen** fragt, wie Sie beginnen möchten, und dann nach einem Namen. **Ohne Vorlage beginnen** gibt Ihnen ein leeres Dashboard; eine Vorlage baut ihre Widgets und oft ihre Variablen für Sie auf und füllt ihren Namen aus (nummeriert, etwa „Kubernetes Dashboard 2“, wenn das Projekt schon eines hat). Klicken Sie auf **Dashboard erstellen**, und das neue Dashboard öffnet sich. Ein leeres öffnet sich auf seiner Arbeitsfläche, mit einer Schaltfläche **Widget hinzufügen** für sein erstes Widget.
 
 :::cards
-- [Ein Dashboard anlegen](#ein-dashboard-anlegen): Mit einer Vorlage oder einer leeren Arbeitsfläche beginnen.
+- [Ein Dashboard anlegen](#ein-dashboard-anlegen): Ohne Vorlage oder mit einer Vorlage beginnen.
 - [Bearbeiten und speichern](#bearbeiten-und-speichern): Für niemanden ändert sich etwas, bevor Sie auf Änderungen speichern klicken.
 - [Ein Widget hinzufügen](#ein-widget-hinzufügen): Aus dem Katalog wählen, einrichten, an seinen Platz bringen.
 - [In eine Spitze zoomen](#in-eine-spitze-zoomen): Ziehen Sie über ein Diagramm, um das ganze Dashboard in diesem Moment zu lesen.
@@ -16,33 +16,32 @@ Projektinhaber und -administratoren können jedes Dashboard erstellen und bearbe
 ## Ein Dashboard anlegen
 
 :::steps
-### Die Vorlagenauswahl öffnen
+### Wählen, wie Sie beginnen
 
-Öffnen Sie **Produkte → Dashboards** und klicken Sie auf **Dashboard erstellen**. Der Dialog **Aus Vorlage erstellen** zeigt **Blank Dashboard** und fünfzehn Vorlagen, gruppiert nach dem, was sie überwachen.
+Öffnen Sie **Produkte → Dashboards** und klicken Sie auf **Dashboard erstellen**. Der Dialog **Dashboard erstellen** öffnet sich auf **Ohne Vorlage beginnen**, einem leeren Dashboard für Ihre eigenen Widgets. Darunter führt **Oder mit einer Vorlage beginnen** sechs Vorlagen unter **Empfohlen** auf.
 
 ### Eine Vorlage wählen
 
-Klicken Sie auf eine Karte. Eine Vorlage baut ihre Widgets und oft ihre Variablen für Sie auf; **Blank Dashboard** beginnt mit einer leeren Arbeitsfläche.
+Klicken Sie auf eine Vorlage, um zu sehen, was sie hinzufügt: ihre Widgets, benannt wie in **Widget hinzufügen**, und die Variablen, mit denen Sie sie in ihrer Werkzeugleiste eingrenzen. Für die anderen wählen Sie neben dem Suchfeld eine Kategorie oder **Alle Vorlagen**, oder Sie tippen in **Vorlagen durchsuchen…**: Jedes Wort, das Sie tippen, muss passen. Klicken Sie dann auf **Diese Vorlage verwenden**, oder doppelklicken Sie auf die Vorlage. Im Suchfeld wählen die Pfeiltasten eine Vorlage, und **Enter** verwendet sie.
 
 ### Das Dashboard benennen
 
-Der Name einer Vorlage ist ausgefüllt und über die Namen hinaus nummeriert, die das Projekt schon hat. Der Name eines leeren Dashboards ist leer: Geben Sie einen ein. Die Beschreibung ist optional, unter **Weitere Felder** eingeklappt, und Sie können sie später auf der Seite **Übersicht** des Dashboards hinzufügen.
+Der Name einer Vorlage ist ausgefüllt und über die Namen hinaus nummeriert, die das Projekt schon hat. Mit **Ohne Vorlage beginnen** bleibt er leer: Geben Sie einen ein. Die Beschreibung ist optional, unter **Weitere Felder** eingeklappt, und Sie können sie später auf der Seite **Übersicht** des Dashboards hinzufügen. **Zurück** bringt Sie zu den Vorlagen zurück, wie Sie sie verlassen haben.
 
 ### Es erstellen
 
-Klicken Sie auf **Dashboard erstellen**. Das neue Dashboard öffnet sich: die Widgets einer Vorlage sofort, oder die leere Arbeitsfläche eines leeren Dashboards mit **Widget hinzufügen** darauf.
+Klicken Sie auf **Dashboard erstellen**. Das neue Dashboard öffnet sich: die Widgets einer Vorlage sofort, oder eine leere Arbeitsfläche mit **Widget hinzufügen** darauf.
 :::
 
-Die Vorlagen, nach der Gruppe, unter der die Auswahl sie aufführt:
+Die Vorlagen, nach der Kategorie, unter der die Auswahl sie aufführt:
 
-| Gruppe | Vorlagen |
+| Kategorie | Vorlagen |
 | --- | --- |
-| Get Started | Blank Dashboard |
-| Monitoring & APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
-| Incident Response | Incident Dashboard, Alert Dashboard |
-| Infrastructure | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
+| Überwachung & APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
+| Reaktion auf Vorfälle | Incident Dashboard, Alert Dashboard |
+| Infrastruktur | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
 
-Eine Vorlage ist ein Ausgangspunkt, keine Verknüpfung: Sobald das Dashboard erstellt ist, ändern Sie es nach Belieben. Später aktualisiert die Vorlage es nicht mehr.
+**Empfohlen** enthält Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard und Metrics Dashboard. Eine Vorlage ist ein Ausgangspunkt, keine Verknüpfung: Sobald das Dashboard erstellt ist, ändern Sie es nach Belieben. Später aktualisiert die Vorlage es nicht mehr.
 
 ## Bearbeiten und speichern
 

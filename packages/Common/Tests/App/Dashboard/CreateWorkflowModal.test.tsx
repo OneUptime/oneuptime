@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -1260,6 +1261,116 @@ describe("CreateWorkflowModal wizard state and validation", () => {
     expect(screen.getByTestId("workflow-name-input")).not.toHaveAttribute(
       "aria-invalid",
     );
+  });
+});
+
+/*
+ * Enter in the name goes on, as the footer's button does - Next when the
+ * template asks for settings, Create Workflow when it does not - as it
+ * does in Create a dashboard, which shares the step (Utils/TemplatePicker/
+ * WizardKeys). Before the UI review of Create a dashboard, Enter there did
+ * nothing at all. Not the Enter an input method commits characters with,
+ * not a held key's repeats, and never a second workflow while the first is
+ * being written.
+ */
+describe("CreateWorkflowModal: Enter in the name", () => {
+  type PressEnterFunction = (
+    init?: KeyboardEventInit & { keyCode?: number },
+  ) => Promise<void>;
+
+  const pressEnterInName: PressEnterFunction = async (
+    init: KeyboardEventInit & { keyCode?: number } = {},
+  ): Promise<void> => {
+    await act(async (): Promise<void> => {
+      fireEvent.keyDown(screen.getByTestId("workflow-name-input"), {
+        key: "Enter",
+        keyCode: 13,
+        ...init,
+      });
+      await Promise.resolve();
+    });
+  };
+
+  test("with a template that asks for nothing, it creates the workflow", async () => {
+    const created: Workflow = createdWorkflow();
+    mockCreate.mockResolvedValue({ data: created });
+    const harness: ModalHarness = renderModal();
+    selectTemplate(ZERO_CONFIG_TEMPLATE_ID);
+
+    await pressEnterInName();
+
+    await waitFor(() => {
+      expect(harness.onCreated).toHaveBeenCalledWith(created);
+    });
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+  });
+
+  test("with a template that asks for settings, it goes on to Configure, as Next does", async () => {
+    renderModal();
+    selectTemplate(EMAIL_TEMPLATE_ID);
+
+    await pressEnterInName();
+
+    expectActiveStep("Configure");
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  test("a name under two letters is refused, saying why", async () => {
+    renderModal();
+    fireEvent.click(screen.getByTestId("workflow-start-from-scratch"));
+    fireEvent.change(screen.getByTestId("workflow-name-input"), {
+      target: { value: "a" },
+    });
+
+    await pressEnterInName();
+
+    expect(
+      screen.getByText(
+        "Please give this workflow a name of at least 2 letters.",
+      ),
+    ).toBeInTheDocument();
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  test("the Enter an input method commits its characters with, and a held key's repeats, do nothing", async () => {
+    renderModal();
+    selectTemplate(EMAIL_TEMPLATE_ID);
+
+    await pressEnterInName({ isComposing: true });
+    await pressEnterInName({ keyCode: 229 });
+    await pressEnterInName({ repeat: true });
+
+    expectActiveStep("Name");
+  });
+
+  test("a second Enter while the workflow is being written writes no second one", async () => {
+    let answer: ((value: unknown) => void) | null = null;
+    mockCreate.mockImplementation((): Promise<unknown> => {
+      return new Promise((resolve: (value: unknown) => void): void => {
+        answer = resolve;
+      });
+    });
+    const harness: ModalHarness = renderModal();
+    fireEvent.click(screen.getByTestId("workflow-start-from-scratch"));
+    fireEvent.change(screen.getByTestId("workflow-name-input"), {
+      target: { value: "Page the on-call" },
+    });
+
+    await pressEnterInName();
+    await pressEnterInName();
+
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+
+    const created: Workflow = createdWorkflow();
+
+    await act(async (): Promise<void> => {
+      answer?.({ data: created });
+    });
+
+    await waitFor(() => {
+      expect(harness.onCreated).toHaveBeenCalledWith(created);
+    });
+    expect(mockCreate).toHaveBeenCalledTimes(1);
   });
 });
 
