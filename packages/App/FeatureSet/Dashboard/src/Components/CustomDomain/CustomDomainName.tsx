@@ -56,13 +56,17 @@ const CustomDomainName: FunctionComponent<ComponentProps> = (
   /*
    * A plain anchor: the domain is opened as stored, never parsed into a
    * URL, which refuses some names (a label past DNS's 63 characters).
+   *
+   * The table's cell clips what is drawn past its sides, a focus ring's
+   * left edge included, so the keyboard's focus is a heavy underline under
+   * the name instead - drawn inside the cell, where hover draws its own.
    */
   return (
     <a
       href={getCustomDomainUrl(fullDomain)}
       target="_blank"
       rel="noopener noreferrer"
-      className="group inline-flex max-w-full items-center gap-1 break-all text-gray-900 hover:text-indigo-600 hover:underline"
+      className="group inline-flex max-w-full items-center gap-1 break-all text-gray-900 hover:text-indigo-600 hover:underline focus:outline-none focus-visible:underline focus-visible:decoration-2 focus-visible:underline-offset-4"
       data-testid={CUSTOM_DOMAIN_NAME_TEST_IDS.link}
     >
       <span>{fullDomain}</span>

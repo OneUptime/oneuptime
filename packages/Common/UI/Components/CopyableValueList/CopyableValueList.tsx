@@ -55,8 +55,14 @@ const CopyableValueList: FunctionComponent<ComponentProps> = (
       data-testid={props.dataTestId}
     >
       {props.values.map((item: CopyableValue): ReactElement => {
-        const label: string =
-          translator.translateText(item.label) || item.label;
+        /*
+         * The name as a row's heading says it: without the colon its key
+         * ends with, which a name over its value does not need (the DNS
+         * Setup record reads "Type", "Name", "Value").
+         */
+        const name: string = getCopyableValueName(
+          translator.translateText(item.label) || item.label,
+        );
 
         return (
           <div
@@ -64,7 +70,7 @@ const CopyableValueList: FunctionComponent<ComponentProps> = (
             className="flex items-center justify-between gap-3 px-3 py-2"
           >
             <div className="min-w-0">
-              <dt className="text-xs font-medium text-gray-500">{label}</dt>
+              <dt className="text-xs font-medium text-gray-500">{name}</dt>
               <dd
                 className="mt-0.5 break-all font-mono text-sm text-gray-900"
                 data-testid={item.dataTestId}
@@ -79,7 +85,7 @@ const CopyableValueList: FunctionComponent<ComponentProps> = (
             <CopyTextButton
               textToBeCopied={item.value}
               title={translator.translateTemplate("Copy {{name}}", {
-                name: getCopyableValueName(label),
+                name: name,
               })}
               size="sm"
               variant="ghost"

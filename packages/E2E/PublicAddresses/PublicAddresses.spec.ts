@@ -514,13 +514,26 @@ test.describe("a status page's Overview: the Status Page Link card", () => {
 
     // Copy link sits under the address, lined up with its text.
     const live: Locator = row(page, "status.acme.com");
-    const address: Box = await box(live.getByRole("link"));
+    const address: Box = await box(live.locator("span[title]"));
     const copy: Box = await box(
       live.getByRole("button", { name: "Copy link to status.acme.com" }),
     );
 
     expect(copy.y).toBeGreaterThanOrEqual(address.y + address.height);
     expect(Math.abs(copy.x - address.x)).toBeLessThanOrEqual(1);
+
+    /*
+     * On a phone the tile gives its width to the address: the address
+     * starts at the row's own padding, and so does each row's text.
+     */
+    const phoneRow: Box = await box(live);
+
+    for (const tile of await page
+      .getByTestId("public-address-tile")
+      .all()) {
+      await expect(tile).toBeHidden();
+    }
+    expect(address.x - phoneRow.x).toBeLessThanOrEqual(17);
 
     // From sm up it is beside the address, at the row's right.
     await page.setViewportSize({ width: 1280, height: 900 });
@@ -535,8 +548,81 @@ test.describe("a status page's Overview: the Status Page Link card", () => {
       wideRow.x + wideRow.width - (wideCopy.x + wideCopy.width),
     ).toBeLessThanOrEqual(20);
 
+    // ...with the tile beside each address saying what kind it is.
+    await expect(live.getByTestId("public-address-tile")).toBeVisible();
+
     await page.setViewportSize({ width: 390, height: 900 });
     await screenshot(page, "status-page-several-390");
+  });
+
+  test("a live address is a link only as wide as its words: a click beside it opens nothing, and the keyboard's focus ring stays on its line", async ({
+    page,
+    context,
+  }: {
+    page: Page;
+    context: BrowserContext;
+  }) => {
+    await open(page, `${STATUS_PAGE}?${SEVERAL}`, 1280);
+
+    const live: Locator = row(page, "status.acme.com");
+    const link: Locator = live.getByRole("link");
+    const linkBox: Box = await box(link);
+    const words: Box = await box(live.locator("span[title]"));
+    const rowBox: Box = await box(live);
+
+    // The link ends with its words and their icon, far from the row's end.
+    expect(linkBox.width).toBeLessThan(words.width + 40);
+    expect(linkBox.x + linkBox.width).toBeLessThan(rowBox.x + rowBox.width / 2);
+
+    // The empty space beside it is not the link: a click there opens nothing.
+    const beside: { x: number; y: number } = {
+      x: linkBox.x + linkBox.width + 60,
+      y: linkBox.y + linkBox.height / 2,
+    };
+
+    expect(
+      await page.evaluate((point: { x: number; y: number }): boolean => {
+        const hit: Element | null = document.elementFromPoint(
+          point.x,
+          point.y,
+        );
+        return Boolean(hit && hit.closest("a"));
+      }, beside),
+    ).toBe(false);
+
+    const tabs: number = context.pages().length;
+
+    await page.mouse.click(beside.x, beside.y);
+    await page.waitForTimeout(300);
+    expect(context.pages()).toHaveLength(tabs);
+
+    // Tab to it: the ring is drawn inside its line, over nothing under it.
+    let focused: boolean = false;
+
+    for (let i: number = 0; i < 60 && !focused; i++) {
+      await page.keyboard.press("Tab");
+      focused = await link.evaluate((element: Element): boolean => {
+        return document.activeElement === element;
+      });
+    }
+
+    expect(focused).toBe(true);
+
+    const ring: string = await link.evaluate((element: Element): string => {
+      return getComputedStyle(element).boxShadow;
+    });
+
+    expect(ring).toContain("inset");
+    expect(ring).toContain("rgb(99, 102, 241)");
+
+    const focusedBox: Box = await box(link);
+    const whatItIs: Box = await box(live.getByText("Custom domain"));
+
+    expect(focusedBox.y + focusedBox.height).toBeLessThanOrEqual(
+      whatItIs.y + 0.5,
+    );
+
+    await screenshot(page, "status-page-link-focus-1280");
   });
 
   test("the sign-in and password lines, under the addresses and before the offer to add a domain", async ({

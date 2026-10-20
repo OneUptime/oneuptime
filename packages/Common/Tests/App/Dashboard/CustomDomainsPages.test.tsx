@@ -556,6 +556,26 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
       );
     });
 
+    /*
+     * The table's cells clip what is drawn past their sides (overflow-x:
+     * clip), so a focus ring round the link lost its left edge. The
+     * keyboard's focus is a heavy underline, drawn inside the cell.
+     */
+    test("a live domain shows the keyboard's focus as a heavy underline, not a ring the cell would clip", () => {
+      renderPage();
+
+      const link: HTMLElement = within(domainCellOf(PROVISIONED)).getByTestId(
+        CUSTOM_DOMAIN_NAME_TEST_IDS.link,
+      );
+
+      expect(link).toHaveClass(
+        "focus:outline-none",
+        "focus-visible:underline",
+        "focus-visible:decoration-2",
+      );
+      expect(link.className).not.toContain("focus-visible:ring");
+    });
+
     test("the column still reads, sorts and filters by the domain's full name", () => {
       renderPage();
 

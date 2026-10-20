@@ -20835,7 +20835,7 @@
   "Copy {{field}}": "Copy {{field}}",
   "Copy {{key}}": "Copy {{key}}",
   "Copy {{language}} to clipboard": "Copy {{language}} to clipboard",
-  "Copy {{name}}": "Copy {{name}}",
+  "Copy {{name}}": "Kopier {{name}}",
   "Copy {{subject}} as": "Copy {{subject}} as",
   "Copy {{subject}} as JSON": "Copy {{subject}} as JSON",
   "Core monitoring never depends on it.": "Core monitoring never depends on it.",

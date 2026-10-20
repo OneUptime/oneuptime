@@ -120,6 +120,22 @@ const DOMAIN_SORT: Sort<CustomDomainModel> = {
 const ROW_ACTION_CLASS_NAME: string =
   "inline-flex items-center justify-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
+/*
+ * A live address: only as wide as its words, so a click on the empty space
+ * beside it opens nothing. The keyboard's focus ring is drawn inside its
+ * line, round a little padding the negative margin gives back, so it never
+ * covers the line under it.
+ */
+const ADDRESS_LINK_CLASS_NAME: string =
+  "group -mx-1 flex min-w-0 items-center gap-1 rounded px-1 text-sm font-medium leading-6 text-gray-900 hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500";
+
+/*
+ * The tile beside each address says what kind it is. On a phone it gives
+ * its width to the address, which is what people read there.
+ */
+const ADDRESS_TILE_CLASS_NAME: string =
+  "flex h-8 w-8 flex-none items-center justify-center rounded-md bg-gray-100 text-gray-500 max-sm:hidden";
+
 const PublicAddresses: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -265,7 +281,7 @@ const PublicAddresses: FunctionComponent<ComponentProps> = (
         className="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3"
         data-testid={PUBLIC_ADDRESS_TEST_IDS.loading}
       >
-        <Skeleton className="h-8 w-8 flex-none rounded-md" />
+        <Skeleton className="h-8 w-8 flex-none rounded-md max-sm:hidden" />
         <div className="min-w-0 flex-1 space-y-2">
           <Skeleton className="h-3.5 w-2/3" />
           <Skeleton className="h-3 w-1/4" />
@@ -371,7 +387,8 @@ const PublicAddresses: FunctionComponent<ComponentProps> = (
         <div className="flex min-w-0 flex-1 items-start gap-3">
           <div
             aria-hidden="true"
-            className="flex h-8 w-8 flex-none items-center justify-center rounded-md bg-gray-100 text-gray-500"
+            className={ADDRESS_TILE_CLASS_NAME}
+            data-testid={PUBLIC_ADDRESS_TEST_IDS.tile}
           >
             <Icon
               icon={isCustomDomain ? IconProp.Globe : IconProp.Link}
@@ -383,38 +400,42 @@ const PublicAddresses: FunctionComponent<ComponentProps> = (
               /*
                * A plain anchor, not Link: the address is opened as stored,
                * never parsed - a name the URL type refuses (a label past
-               * DNS's 63 characters) must not take the card down.
+               * DNS's 63 characters) must not take the card down. Its own
+               * line holds it at the width of its words, cut short when
+               * the row has less.
                */
-              <a
-                href={address.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex min-w-0 max-w-full items-center gap-1 text-sm font-medium leading-6 text-gray-900 hover:text-indigo-600"
-                data-testid={PUBLIC_ADDRESS_TEST_IDS.link}
-              >
-                {/*
-                 * The whole address on hover: a long one is cut short to
-                 * fit the row.
-                 */}
-                <span className="min-w-0 truncate" title={address.url}>
-                  {address.host}
-                  {address.path ? (
-                    <span className="font-normal text-gray-500 group-hover:text-indigo-600">
-                      {address.path}
-                    </span>
-                  ) : (
-                    <></>
-                  )}
-                </span>
-                <Icon
-                  icon={IconProp.ExternalLink}
-                  className="h-3.5 w-3.5 flex-none text-gray-400 group-hover:text-indigo-600"
-                />
-                <span className="sr-only">
-                  {" "}
-                  {translator.translateText(PublicAddressCopy.opensInNewTab)}
-                </span>
-              </a>
+              <div className="flex min-w-0">
+                <a
+                  href={address.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={ADDRESS_LINK_CLASS_NAME}
+                  data-testid={PUBLIC_ADDRESS_TEST_IDS.link}
+                >
+                  {/*
+                   * The whole address on hover: a long one is cut short to
+                   * fit the row.
+                   */}
+                  <span className="min-w-0 truncate" title={address.url}>
+                    {address.host}
+                    {address.path ? (
+                      <span className="font-normal text-gray-500 group-hover:text-indigo-600">
+                        {address.path}
+                      </span>
+                    ) : (
+                      <></>
+                    )}
+                  </span>
+                  <Icon
+                    icon={IconProp.ExternalLink}
+                    className="h-3.5 w-3.5 flex-none text-gray-400 group-hover:text-indigo-600"
+                  />
+                  <span className="sr-only">
+                    {" "}
+                    {translator.translateText(PublicAddressCopy.opensInNewTab)}
+                  </span>
+                </a>
+              </div>
             ) : (
               <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                 <span
@@ -452,11 +473,9 @@ const PublicAddresses: FunctionComponent<ComponentProps> = (
         {action ? (
           /*
            * Beside the address from sm up; under it on a phone, lined up
-           * with its text (the 32px tile and its 12px gap: pl-11).
+           * with its text (the tile is not drawn there).
            */
-          <div className="flex flex-none items-center gap-2 pl-11 sm:pl-0">
-            {action}
-          </div>
+          <div className="flex flex-none items-center gap-2">{action}</div>
         ) : (
           <></>
         )}

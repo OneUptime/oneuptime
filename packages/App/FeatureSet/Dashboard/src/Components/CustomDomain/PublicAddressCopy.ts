@@ -320,6 +320,8 @@ export const PublicAddressCopy: {
 export const PUBLIC_ADDRESS_TEST_IDS: {
   list: string;
   row: string;
+  // The tile beside an address, saying what kind it is (not on a phone).
+  tile: string;
   link: string;
   notLive: string;
   reason: string;
@@ -330,6 +332,7 @@ export const PUBLIC_ADDRESS_TEST_IDS: {
 } = {
   list: "public-addresses",
   row: "public-address",
+  tile: "public-address-tile",
   link: "public-address-link",
   notLive: "public-address-not-live",
   reason: "public-address-reason",

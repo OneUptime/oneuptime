@@ -98,14 +98,20 @@ describe("one row per value", () => {
       },
     );
 
+    /*
+     * Each name heads its value as the DNS Setup record's "Type", "Name"
+     * and "Value" do: without the colon its key ends with.
+     */
     expect(terms).toEqual([
-      "Identifier (Entity ID):",
-      "Reply URL (Assertion Consumer Service URL):",
+      "Identifier (Entity ID)",
+      "Reply URL (Assertion Consumer Service URL)",
     ]);
 
     // The value is its term's next sibling, and nothing else.
     for (const item of VALUES) {
-      const term: HTMLElement = screen.getByText(item.label);
+      const term: HTMLElement = screen.getByText(
+        getCopyableValueName(item.label),
+      );
 
       expect(term.nextElementSibling?.textContent).toBe(item.value);
       expect(screen.getByTestId(item.dataTestId)).toHaveTextContent(item.value);
@@ -200,14 +206,45 @@ describe("in the reader's language", () => {
   test("the name and the button are German; the value is as it is", () => {
     render(<I18nextProvider i18n={german}>{list()}</I18nextProvider>);
 
-    expect(screen.getByText("Kennung (Entitäts-ID):")).toBeInTheDocument();
+    expect(screen.getByText("Kennung (Entitäts-ID)")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Kennung (Entitäts-ID) kopieren" }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("entity-id")).toHaveTextContent(ENTITY_ID);
     // A name with no German yet stays English, whole.
     expect(
-      screen.getByText("Reply URL (Assertion Consumer Service URL):"),
+      screen.getByText("Reply URL (Assertion Consumer Service URL)"),
+    ).toBeInTheDocument();
+  });
+
+  test("a language that sets its colon apart (French) loses it too, space and all", async () => {
+    const french: i18n = createInstance();
+
+    await french.init({
+      lng: "fr",
+      fallbackLng: false,
+      resources: {
+        fr: {
+          translation: {
+            "Identifier (Entity ID):": "Identifiant (Entity ID) :",
+            "Copy {{name}}": "Copier {{name}}",
+          },
+        },
+      },
+      keySeparator: false,
+      nsSeparator: false,
+      interpolation: { escapeValue: false },
+    });
+
+    render(<I18nextProvider i18n={french}>{list()}</I18nextProvider>);
+
+    const term: HTMLElement = screen
+      .getByTestId("the-values")
+      .querySelector("dt") as HTMLElement;
+
+    expect(term.textContent).toBe("Identifiant (Entity ID)");
+    expect(
+      screen.getByRole("button", { name: "Copier Identifiant (Entity ID)" }),
     ).toBeInTheDocument();
   });
 });

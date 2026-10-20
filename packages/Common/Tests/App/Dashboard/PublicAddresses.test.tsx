@@ -1216,3 +1216,89 @@ describe("a note about every address", () => {
     ).toBeTruthy();
   });
 });
+
+/*
+ * What the UI review changed in each row, as far as jsdom can tell; the
+ * offline browser suite (packages/E2E/PublicAddresses) measures it.
+ */
+describe("a row's look", () => {
+  test("the tile says what kind each address is, is not read out, and gives way to the address on a phone", async () => {
+    domains = [
+      { id: domainId(1), fullDomain: "status.acme.com", state: "live" },
+      { id: domainId(2), fullDomain: "status-eu.acme.com", state: "dns" },
+    ];
+
+    await renderList();
+
+    for (const address of [
+      "status.acme.com",
+      "status-eu.acme.com",
+      oneUptimeText(STATUS_PAGE),
+    ]) {
+      const tile: HTMLElement = within(rowFor(address)).getByTestId(
+        PUBLIC_ADDRESS_TEST_IDS.tile,
+      );
+
+      expect(tile).toHaveAttribute("aria-hidden", "true");
+      // Below sm the address takes its width: the address is what is read.
+      expect(tile).toHaveClass("max-sm:hidden");
+      // Never the bare class a foreign stylesheet's .hidden would match.
+      expect(tile).not.toHaveClass("hidden");
+    }
+
+    /*
+     * With no tile on a phone, the action under the address needs no
+     * indent to line up with it.
+     */
+    const copy: HTMLElement = within(rowFor("status.acme.com")).getByRole(
+      "button",
+      { name: "Copy link to status.acme.com" },
+    );
+
+    expect(copy.parentElement).not.toHaveClass("pl-11");
+  });
+
+  test("a live address is on a line of its own, which holds the link at the width of its words", async () => {
+    domains = [
+      { id: domainId(1), fullDomain: "status.acme.com", state: "live" },
+    ];
+
+    await renderList();
+
+    const link: HTMLElement = within(rowFor("status.acme.com")).getByRole(
+      "link",
+    );
+
+    /*
+     * A flex line: the link inside it is as wide as its words and shrinks
+     * to cut a long one short. As a block of its own, the link used to run
+     * to the action, so a click on the empty space opened the page.
+     */
+    expect(link.parentElement).toHaveClass("flex", "min-w-0");
+    expect(link).not.toHaveClass("max-w-full");
+    expect(link).toHaveClass("min-w-0");
+  });
+
+  test("the keyboard's focus ring is drawn inside the link's line, round padding its negative margin gives back", async () => {
+    domains = [
+      { id: domainId(1), fullDomain: "status.acme.com", state: "live" },
+    ];
+
+    await renderList();
+
+    for (const address of ["status.acme.com", oneUptimeText(STATUS_PAGE)]) {
+      const link: HTMLElement = within(rowFor(address)).getByRole("link");
+
+      expect(link).toHaveClass(
+        "focus:outline-none",
+        "focus-visible:ring-2",
+        "focus-visible:ring-inset",
+        "focus-visible:ring-indigo-500",
+        "px-1",
+        "-mx-1",
+      );
+      // An outer ring's offset painted over the line under the address.
+      expect(link).not.toHaveClass("focus-visible:ring-offset-2");
+    }
+  });
+});

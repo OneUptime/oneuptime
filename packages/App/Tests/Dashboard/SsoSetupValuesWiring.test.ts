@@ -214,3 +214,63 @@ describe("the list in the dark theme", () => {
     ).toEqual([]);
   });
 });
+
+/*
+ * Each copy button is named for its value - "Copy Identifier (Entity ID)" -
+ * through the key "Copy {{name}}", which the list shares with the inventory
+ * and exception attribute lists. Only Japanese had it translated, so a
+ * German reader's button said "Copy Kennung (Entity ID)". The UI review
+ * translated it in every language.
+ */
+describe("the copy buttons' name in every Dashboard language", () => {
+  const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
+  const KEY: string = "Copy {{name}}";
+  const PLACEHOLDER: string = "{{name}}";
+
+  const LANGUAGES: Array<string> = fs
+    .readdirSync(LOCALES_DIR)
+    .filter((file: string): boolean => {
+      return file.endsWith(".json") && file !== "en.json";
+    })
+    .map((file: string): string => {
+      return file.replace(".json", "");
+    })
+    .sort();
+
+  function valueIn(language: string): string {
+    const locale: Record<string, unknown> = JSON.parse(
+      fs.readFileSync(path.join(LOCALES_DIR, `${language}.json`), "utf8"),
+    ) as Record<string, unknown>;
+
+    return String(locale[KEY]);
+  }
+
+  test("reads all sixteen languages", () => {
+    expect(LANGUAGES).toHaveLength(16);
+    expect(codeOf(LIST)).toContain(`translateTemplate("${KEY}"`);
+  });
+
+  test.each([
+    ["da", "Kopiér {{name}}"],
+    ["de", "{{name}} kopieren"],
+    ["es", "Copiar {{name}}"],
+    ["fr", "Copier {{name}}"],
+    ["ja", "{{name}} をコピー"],
+    ["ru", "Скопировать {{name}}"],
+    ["zh-CN", "复制{{name}}"],
+  ])("%s says %s", (language: string, expected: string) => {
+    expect(valueIn(language)).toBe(expected);
+  });
+
+  test("every language has its own words for it, and keeps the name's place", () => {
+    for (const language of LANGUAGES) {
+      const value: string = valueIn(language);
+
+      expect([language, value === KEY]).toEqual([language, false]);
+      expect([language, value.split(PLACEHOLDER).length - 1]).toEqual([
+        language,
+        1,
+      ]);
+    }
+  });
+});

@@ -24,8 +24,12 @@ The suite (`PublicAddresses.spec.ts`) checks in Chromium what jsdom cannot:
   dialog) where there is something to do, and Check now reading the list
   again;
 - a long address cut short with "..." inside its row, with the whole of it
-  on hover; at a phone's width every row inside its card, its action under
+  on hover; at a phone's width every row inside its card, the tile beside
+  each address not drawn so the address has its width, its action under
   the address, nothing scrolling sideways; Copy link and DNS Setup one size;
+- a live address is a link only as wide as its words, so a click on the
+  empty space beside it opens nothing, and the keyboard's focus ring is
+  drawn inside its line, never over the line under it;
 - the line saying visitors sign in or enter the password, under the
   addresses and before the offer to add a domain;
 - someone who may not read the custom domains is not asked about them; a
