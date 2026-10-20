@@ -848,6 +848,101 @@ test.describe("the visitor's theme menu", () => {
     await expectScheme(page, "dark");
     expect(await kept(page)).toBe("dark");
   });
+
+  test("draws each choice with its icon, ticks the one in use at the right end of its row, and Auto says what it gives", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // A Dark dashboard, turned light by this visitor.
+    await page.emulateMedia({ colorScheme: "light" });
+    await openDashboard(page, "dark");
+    await pickTheme(page, "light");
+    await press(page.getByTestId("public-dashboard-theme-menu-button"));
+
+    const rows: Array<{
+      choice: string;
+      icon: boolean;
+      tick: boolean;
+      tickAfterName: boolean;
+      tickAtRowEnd: boolean;
+    }> = await page.evaluate(() => {
+      return ["light", "dark", "auto"].map((choice: string) => {
+        const row: Element = document.querySelector(
+          `[data-testid="public-dashboard-theme-menu-${choice}"]`,
+        )!;
+        const icon: Element | null = row.querySelector("svg");
+        const tick: Element | null = row.querySelector(
+          `[data-testid="public-dashboard-theme-menu-${choice}-check"]`,
+        );
+        const rowBox: DOMRect = row.getBoundingClientRect();
+        const iconBox: DOMRect | null = icon
+          ? icon.getBoundingClientRect()
+          : null;
+        const tickBox: DOMRect | null = tick
+          ? tick.getBoundingClientRect()
+          : null;
+        const name: Element | null = row.querySelector(".font-medium");
+        const nameBox: DOMRect | null = name
+          ? name.getBoundingClientRect()
+          : null;
+
+        return {
+          choice,
+          // Its own icon, ahead of its name, drawn at the icons' size.
+          icon: Boolean(
+            iconBox &&
+              nameBox &&
+              iconBox.width >= 14 &&
+              iconBox.right <= nameBox.left,
+          ),
+          tick: Boolean(tick),
+          tickAfterName: Boolean(
+            tickBox && nameBox && tickBox.left >= nameBox.left + 20,
+          ),
+          tickAtRowEnd: Boolean(tickBox && rowBox.right - tickBox.right < 24),
+        };
+      });
+    });
+
+    expect(rows).toEqual([
+      {
+        choice: "light",
+        icon: true,
+        tick: true,
+        tickAfterName: true,
+        tickAtRowEnd: true,
+      },
+      {
+        choice: "dark",
+        icon: true,
+        tick: false,
+        tickAfterName: false,
+        tickAtRowEnd: false,
+      },
+      {
+        choice: "auto",
+        icon: true,
+        tick: false,
+        tickAfterName: false,
+        tickAtRowEnd: false,
+      },
+    ]);
+    await expect(
+      page.getByRole("menuitemradio", { name: "Light" }),
+    ).toHaveAttribute("aria-checked", "true");
+
+    await shoot(page, testInfo, "theme-menu-picked");
+
+    // Resting on Auto says what it turns this dashboard into: its own Dark.
+    if (!test.info().project.use.isMobile) {
+      await page.getByRole("menuitemradio", { name: "Auto" }).hover();
+      await expect(page.getByRole("tooltip")).toHaveText(
+        "The dashboard's own theme: dark",
+      );
+      await shoot(page, testInfo, "theme-menu-auto-hint");
+    }
+  });
 });
 
 test.describe("a link's own theme", () => {

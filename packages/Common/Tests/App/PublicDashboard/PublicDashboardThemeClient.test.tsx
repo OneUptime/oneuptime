@@ -13,6 +13,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import React from "react";
@@ -32,10 +33,13 @@ import DashboardThemeUtil, {
 } from "../../../../App/FeatureSet/PublicDashboard/src/Utils/DashboardTheme";
 import { useDashboardTheme } from "../../../../App/FeatureSet/PublicDashboard/src/Utils/UseDashboardTheme";
 import ThemeMenu, {
+  THEME_MENU_AUTO_MARK_TEST_ID,
   THEME_MENU_BUTTON_TEST_ID,
   THEME_MENU_CHOICES,
   THEME_MENU_LABEL,
   THEME_MENU_TEST_ID,
+  getThemeMenuAutoHint,
+  getThemeMenuCheckTestId,
   getThemeMenuChoiceTestId,
 } from "../../../../App/FeatureSet/PublicDashboard/src/Components/ThemeMenu";
 import LogoPlate, {
@@ -767,18 +771,137 @@ describe("the toolbar's theme menu", () => {
       }),
     ).toEqual(["false", "false", "true"]);
     expect(menu()).toHaveAttribute("data-visitor-choice", "auto");
+  });
 
-    // The tick is drawn on the choice in use only; the others keep its space.
-    const tick: string = svgOf(
-      screen.getByTestId(getThemeMenuChoiceTestId("auto")),
+  test("draws each choice with its own icon, as theme menus do: a sun, a moon, and a half-filled circle for Auto", () => {
+    const sun: string = drawingOf(IconProp.Sun);
+    const moon: string = drawingOf(IconProp.Moon);
+
+    render(<ThemeMenu />);
+    openMenu();
+
+    const light: HTMLElement = screen.getByTestId(
+      getThemeMenuChoiceTestId("light"),
+    );
+    const dark: HTMLElement = screen.getByTestId(
+      getThemeMenuChoiceTestId("dark"),
+    );
+    const auto: HTMLElement = screen.getByTestId(
+      getThemeMenuChoiceTestId("auto"),
     );
 
-    expect(tick).not.toBe("");
+    // Each row's first drawing is its icon, ahead of its name.
+    expect(svgOf(light)).toBe(sun);
+    expect(svgOf(dark)).toBe(moon);
     expect(
-      screen
-        .getByTestId(getThemeMenuChoiceTestId("light"))
-        .querySelector("svg"),
-    ).toBeNull();
+      THEME_MENU_CHOICES.map((choice: { icon?: IconProp | undefined }) => {
+        return choice.icon;
+      }),
+    ).toEqual([IconProp.Sun, IconProp.Moon, undefined]);
+
+    /*
+     * Auto's is its own mark: a circle, half filled in the text's colour -
+     * light and dark at once - never a screen, which would promise the
+     * device's scheme on a dashboard set to Light or Dark.
+     */
+    const mark: HTMLElement = within(auto).getByTestId(
+      THEME_MENU_AUTO_MARK_TEST_ID,
+    );
+
+    expect(auto.querySelector("svg")).toBe(mark);
+    expect(mark).toHaveAttribute("aria-hidden", "true");
+    expect(mark).toHaveAttribute("stroke", "currentColor");
+    expect(mark.querySelectorAll("circle")).toHaveLength(1);
+    expect(mark.querySelector("path")).toHaveAttribute("fill", "currentColor");
+    expect(svgOf(auto)).not.toBe(drawingOf(IconProp.ComputerDesktop));
+
+    // The icons are drawings only: each choice is named by its word alone.
+    expect(light).toHaveAccessibleName("Light");
+    expect(dark).toHaveAccessibleName("Dark");
+    expect(auto).toHaveAccessibleName("Auto");
+  });
+
+  test("ticks the choice in use at the right end of its row, and no other", () => {
+    const check: string = drawingOf(IconProp.Check);
+
+    render(<ThemeMenu />);
+    openMenu();
+
+    const auto: HTMLElement = screen.getByTestId(
+      getThemeMenuChoiceTestId("auto"),
+    );
+    const tick: HTMLElement = screen.getByTestId(
+      getThemeMenuCheckTestId("auto"),
+    );
+
+    expect(auto).toContainElement(tick);
+    expect(svgOf(tick)).toBe(check);
+
+    // After the name: the row's last drawing, its icon still the first.
+    const drawings: NodeListOf<SVGElement> = auto.querySelectorAll("svg");
+
+    expect(drawings).toHaveLength(2);
+    expect(drawings[1]).toBe(tick.querySelector("svg"));
+    expect(drawings[0]).toBe(
+      within(auto).getByTestId(THEME_MENU_AUTO_MARK_TEST_ID),
+    );
+
+    // In the accent colour, which the dark theme lightens (Theme.css).
+    expect(tick.querySelector("svg")).toHaveClass("text-indigo-600");
+
+    for (const choice of [
+      "light",
+      "dark",
+    ] as Array<DashboardVisitorThemeChoice>) {
+      expect(screen.queryByTestId(getThemeMenuCheckTestId(choice))).toBeNull();
+      expect(
+        screen
+          .getByTestId(getThemeMenuChoiceTestId(choice))
+          .querySelectorAll("svg"),
+      ).toHaveLength(1);
+    }
+  });
+
+  test.each([
+    [DashboardTheme.Light, "The dashboard's own theme: light"],
+    [DashboardTheme.Dark, "The dashboard's own theme: dark"],
+    [DashboardTheme.System, "The dashboard's own theme: matches your device"],
+  ])(
+    "Auto says what it gives on a %s dashboard when the pointer rests on it",
+    async (theme: DashboardTheme, hint: string) => {
+      expect(getThemeMenuAutoHint(theme)).toBe(hint);
+
+      act(() => {
+        DashboardThemeUtil.setDashboardTheme(theme);
+      });
+
+      render(<ThemeMenu />);
+      openMenu();
+
+      fireEvent.mouseEnter(
+        screen.getByTestId(getThemeMenuChoiceTestId("auto")),
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole("tooltip")).toHaveTextContent(hint);
+      });
+    },
+  );
+
+  test("Light and Dark say nothing more: their names are what they do", async () => {
+    render(<ThemeMenu />);
+    openMenu();
+
+    fireEvent.mouseEnter(screen.getByTestId(getThemeMenuChoiceTestId("light")));
+    fireEvent.mouseEnter(screen.getByTestId(getThemeMenuChoiceTestId("dark")));
+
+    await act(async () => {
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 50);
+      });
+    });
+
+    expect(screen.queryAllByRole("tooltip")).toEqual([]);
   });
 
   test.each([
@@ -811,6 +934,18 @@ describe("the toolbar's theme menu", () => {
           checked: true,
         }),
       ).toHaveTextContent(choice === "dark" ? "Dark" : "Light");
+
+      // The tick moved with the pick: on it, and on nothing else.
+      expect(
+        screen.getByTestId(
+          getThemeMenuChoiceTestId(choice as DashboardVisitorThemeChoice),
+        ),
+      ).toContainElement(
+        screen.getByTestId(
+          getThemeMenuCheckTestId(choice as DashboardVisitorThemeChoice),
+        ),
+      );
+      expect(screen.queryByTestId(getThemeMenuCheckTestId("auto"))).toBeNull();
     },
   );
 

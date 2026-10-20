@@ -1,6 +1,9 @@
 import HtmlWidgetDocument, {
   HtmlWidgetColorScheme,
 } from "../../../Utils/Dashboard/HtmlWidgetDocument";
+import DashboardHtmlComponentUtil from "../../../Utils/Dashboard/Components/DashboardHtmlComponent";
+import { ComponentArgument } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
+import DashboardHtmlComponent from "../../../Types/Dashboard/DashboardComponents/DashboardHtmlComponent";
 import { getContrastRatio, parseColor } from "../../../Utils/ColorContrast";
 import { RGB } from "../../../Types/Color";
 import { DARK_THEME_CARD } from "../../../Utils/StatusPage/StatusColorsOnDark";
@@ -135,5 +138,35 @@ describe("the dark theme's document", () => {
     expect(dark.body.innerHTML).toBe(light.body.innerHTML);
     expect(dark.querySelector("base")?.getAttribute("target")).toBe("_blank");
     expect(dark.querySelectorAll("script")).toHaveLength(2);
+  });
+});
+
+describe("the widget's CSS field", () => {
+  /*
+   * Where the author writes the styles is where they learn how to style
+   * the dark theme: the field names the very rule the dark document
+   * answers to, so an author need not find the guide first.
+   */
+  const cssField: ComponentArgument<DashboardHtmlComponent> | undefined =
+    DashboardHtmlComponentUtil.getComponentConfigArguments().find(
+      (argument: ComponentArgument<DashboardHtmlComponent>): boolean => {
+        return argument.id === "css";
+      },
+    );
+
+  it("says that a rule starting with html.dark styles only the dark theme", () => {
+    expect(cssField?.description).toBe(
+      "Styles for the markup above. The widget starts transparent — set a background on body to fill the card. Rules that start with html.dark style only the dark theme.",
+    );
+  });
+
+  it("names the rule the dark document really answers to: its <html> has the class dark, the light one's has none", () => {
+    expect(cssField?.description).toContain("html.dark");
+    expect(
+      parse(build("dark")).documentElement.classList.contains("dark"),
+    ).toBe(true);
+    expect(parse(build()).documentElement.classList.contains("dark")).toBe(
+      false,
+    );
   });
 });
