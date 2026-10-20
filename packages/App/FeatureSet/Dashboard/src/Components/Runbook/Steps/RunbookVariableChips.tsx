@@ -10,6 +10,7 @@ import {
   RunbookVariableChoice,
   RunbookVariableChoices,
 } from "./RunbookVariableChoices";
+import { COPY_REFERENCE_TITLE } from "../RunbookVariableCopy";
 
 /*
  * Under a step's script, in the panel beside its examples: the variables it
@@ -78,6 +79,13 @@ const RunbookVariableChips: FunctionComponent<ComponentProps> = (
               key={choice.reference}
               type="button"
               title={choice.reference}
+              /*
+               * Named for what pressing it does, as the variables list's
+               * copy buttons are: the chip's own words are in the name.
+               */
+              aria-label={translator.translateTemplate(COPY_REFERENCE_TITLE, {
+                reference: choice.reference,
+              })}
               onClick={async () => {
                 const succeeded: boolean = await Clipboard.copyToClipboard(
                   choice.reference,

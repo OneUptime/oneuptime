@@ -612,10 +612,17 @@ describe("an SSH step", () => {
     expect(
       within(panel).getByRole("button", { name: /Check the machine/ }),
     ).toBeInTheDocument();
-    // Each variable is a chip that copies its reference.
+    // Each variable is a chip that copies its reference, and says so.
     expect(
       within(variables).getByTitle("{{global.variables.PROD_DB_SSH_KEY}}"),
     ).toHaveTextContent("PROD_DB_SSH_KEY");
+    expect(
+      within(variables).getByRole("button", {
+        name: "Copy {{global.variables.PROD_DB_SSH_KEY}}",
+      }),
+    ).toBe(
+      within(variables).getByTitle("{{global.variables.PROD_DB_SSH_KEY}}"),
+    );
     expect(
       within(variables).getByTitle("{{local.variables.NAMESPACE}}"),
     ).toHaveTextContent("local.NAMESPACE");
