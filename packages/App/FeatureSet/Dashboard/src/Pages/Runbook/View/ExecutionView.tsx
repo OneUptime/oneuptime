@@ -870,6 +870,12 @@ const ExecutionView: FunctionComponent<
                       stepExecutions: steps,
                       stepId: stepExec.step.id,
                     }).allowed;
+                    /*
+                     * What moves the run on from the step it waits on: Mark
+                     * complete, Approve and run, or Approve & continue.
+                     */
+                    const waitingStepButtonTitle: string =
+                      getWaitingStepButtonTitle(wait || RunbookStepWait.Manual);
                     return (
                       <li key={stepExec.step.id} className="relative pl-12">
                         {/* Timeline dot */}
@@ -955,9 +961,7 @@ const ExecutionView: FunctionComponent<
                             <div className="flex items-center gap-2 empty:hidden sm:flex-shrink-0">
                               {canComplete && (
                                 <Button
-                                  title={getWaitingStepButtonTitle(
-                                    wait || RunbookStepWait.Manual,
-                                  )}
+                                  title={waitingStepButtonTitle}
                                   buttonStyle={ButtonStyleType.PRIMARY}
                                   buttonSize={ButtonSize.Small}
                                   icon={IconProp.Check}

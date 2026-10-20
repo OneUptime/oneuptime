@@ -94,7 +94,8 @@ describe("the execution page draws these words, and no others for a waiting step
 
   test("its buttons, pill, card sentence, note and approver come from the copy", () => {
     for (const name of [
-      "getWaitingStepButtonTitle(",
+      "getWaitingStepButtonTitle(wait || RunbookStepWait.Manual)",
+      "title={waitingStepButtonTitle}",
       "getWaitingStepStatusLabel(wait)",
       "getRunWaitingTemplate(awaitingWait)",
       "APPROVE_TO_RUN_NOTE",
