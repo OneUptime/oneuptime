@@ -25,10 +25,10 @@ import StoredDashboardViewConfig from "Common/Utils/Dashboard/StoredDashboardVie
 import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
-import useDashboardTimeRangeZoom, {
-  DashboardTimeRangeZoom,
-} from "Common/UI/Utils/UseDashboardTimeRangeZoom";
-import TimeRange from "Common/Types/Time/TimeRange";
+import { DashboardTimeRangeZoom } from "Common/UI/Utils/UseDashboardTimeRangeZoom";
+import useDashboardViewerSettings, {
+  DashboardViewerSettings,
+} from "Common/UI/Utils/UseDashboardViewerSettings";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import DashboardVariableUrlState from "Common/Utils/Dashboard/VariableUrlState";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
@@ -44,6 +44,10 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import PoweredByFooter from "../../Components/PoweredByFooter";
 import ThemeMenu from "../../Components/ThemeMenu";
 import LogoPlate from "../../Components/LogoPlate";
+import { getDefaultChoiceLabel } from "Common/UI/Components/Date/RangeStartAndEndDateEdit";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { PUBLIC_AUTO_REFRESH_DEFAULT_CHOICE_TEST_ID } from "./DashboardToolbarCopy";
 
 export interface ComponentProps {
   dashboardId: ObjectID;
@@ -53,19 +57,26 @@ export interface ComponentProps {
 const DashboardViewPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   /*
-   * The board's one time range plus the undo behind drag-to-zoom, shared
-   * with the authenticated dashboard so a panel gesture means the same
+   * The board's time range and auto-refresh as this visitor has them,
+   * shared with the authenticated dashboard (issue #5080): the link's
+   * (?range=, ?refresh=), else the visitor's own pick that their browser
+   * remembers for this dashboard, else the dashboard's defaults, else the
+   * past hour with no auto-refresh. Inside it, the board's one time range
+   * plus the undo behind drag-to-zoom, so a panel gesture means the same
    * thing on both surfaces.
    */
-  const timeRangeZoom: DashboardTimeRangeZoom = useDashboardTimeRangeZoom({
-    range: TimeRange.PAST_ONE_HOUR,
+  const viewerSettings: DashboardViewerSettings = useDashboardViewerSettings({
+    dashboardId: props.dashboardId.toString(),
   });
+  const timeRangeZoom: DashboardTimeRangeZoom = viewerSettings.timeRangeZoom;
   const startAndEndDate: RangeStartAndEndDateTime =
     timeRangeZoom.startAndEndDate;
 
-  const [autoRefreshInterval, setAutoRefreshInterval] =
-    useState<AutoRefreshInterval>(AutoRefreshInterval.OFF);
+  const autoRefreshInterval: AutoRefreshInterval =
+    viewerSettings.autoRefreshInterval;
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [dashboardVariables, setDashboardVariables] = useState<
     Array<DashboardVariable>
@@ -154,9 +165,11 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
         setLogoUrl(`data:${fileType};base64,${fileData}`);
       }
 
-      if (config.refreshInterval) {
-        setAutoRefreshInterval(config.refreshInterval);
-      }
+      /*
+       * The dashboard's own default time range and auto-refresh, for a
+       * visitor on the default; a link's or the visitor's own pick stays.
+       */
+      viewerSettings.applySavedDefaults(config);
 
       if (config.variables) {
         const urlSelections: ReturnType<
@@ -344,31 +357,60 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
                       : ""
                   }
                 >
-                  {Object.values(AutoRefreshInterval).map(
-                    (interval: AutoRefreshInterval) => {
-                      /*
-                       * A list of choices, so its mark is the tick on the
-                       * one in use - as the dashboard's own auto-refresh
-                       * picker shows it - and the others keep the tick's
-                       * space, so every label lines up.
-                       */
-                      return (
-                        <MoreMenuItem
-                          key={interval}
-                          text={getAutoRefreshIntervalLabel(interval)}
-                          icon={
-                            interval === autoRefreshInterval
-                              ? IconProp.Check
-                              : undefined
-                          }
-                          isIconSpaceReserved={true}
-                          onClick={() => {
-                            setAutoRefreshInterval(interval);
-                          }}
-                        />
-                      );
-                    },
-                  )}
+                  {[
+                    /*
+                     * First, the dashboard's own interval, "Default (1m)":
+                     * the way back from a pick of the visitor's own, which
+                     * their browser remembers for this dashboard.
+                     */
+                    <MoreMenuItem
+                      key="default"
+                      text={getDefaultChoiceLabel({
+                        translator,
+                        value: getAutoRefreshIntervalLabel(
+                          viewerSettings.defaultAutoRefreshInterval,
+                        ),
+                      })}
+                      icon={
+                        viewerSettings.isOnDefaultAutoRefresh
+                          ? IconProp.Check
+                          : undefined
+                      }
+                      isIconSpaceReserved={true}
+                      isChecked={viewerSettings.isOnDefaultAutoRefresh}
+                      dataTestId={PUBLIC_AUTO_REFRESH_DEFAULT_CHOICE_TEST_ID}
+                      onClick={() => {
+                        viewerSettings.pickDefaultAutoRefreshInterval();
+                      }}
+                    />,
+                    ...Object.values(AutoRefreshInterval).map(
+                      (interval: AutoRefreshInterval) => {
+                        /*
+                         * A list of choices, so its mark is the tick on the
+                         * one in use - as the dashboard's own auto-refresh
+                         * picker shows it - and the others keep the tick's
+                         * space, so every label lines up. While the visitor
+                         * is on the default, its choice above has the tick.
+                         */
+                        const isInUse: boolean =
+                          !viewerSettings.isOnDefaultAutoRefresh &&
+                          interval === autoRefreshInterval;
+
+                        return (
+                          <MoreMenuItem
+                            key={interval}
+                            text={getAutoRefreshIntervalLabel(interval)}
+                            icon={isInUse ? IconProp.Check : undefined}
+                            isIconSpaceReserved={true}
+                            isChecked={isInUse}
+                            onClick={() => {
+                              viewerSettings.pickAutoRefreshInterval(interval);
+                            }}
+                          />
+                        );
+                      },
+                    ),
+                  ]}
                 </MoreMenu>
               )}
 
@@ -408,10 +450,15 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
                     /*
                      * An explicit pick is a new baseline, not a zoom — it
                      * retires the "reset" affordance instead of offering
-                     * to jump back to a range the user just left.
+                     * to jump back to a range the user just left. A preset
+                     * is remembered for this dashboard and goes in the
+                     * address; a custom range is not.
                      */
-                    timeRangeZoom.setStartAndEndDate(newRange);
+                    viewerSettings.pickTimeRange(newRange);
                   }}
+                  defaultRange={viewerSettings.defaultTimeRange}
+                  isOnDefaultRange={viewerSettings.isOnDefaultTimeRange}
+                  onDefaultRangeSelect={viewerSettings.pickDefaultTimeRange}
                 />
               </div>
 

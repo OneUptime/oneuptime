@@ -1,6 +1,6 @@
-import DashboardViewConfig, {
-  AutoRefreshInterval,
-} from "../../Types/Dashboard/DashboardViewConfig";
+import DashboardViewConfig from "../../Types/Dashboard/DashboardViewConfig";
+import { isDashboardAutoRefreshInterval } from "../../Types/Dashboard/DashboardAutoRefresh";
+import { isDashboardTimeRange } from "../../Types/Dashboard/DashboardTimeRange";
 import DashboardBaseComponent from "../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardComponentType from "../../Types/Dashboard/DashboardComponentType";
 import DashboardVariable, {
@@ -36,8 +36,8 @@ import ObjectID from "../../Types/ObjectID";
  *   newer, or misspelt. Those are KEPT, so the dashboard can say which
  *   widget it cannot show and the user can remove it - and so a widget a
  *   newer version wrote survives a save made here.
- * - Variables and an auto-refresh interval that are not what the toolbar
- *   reads.
+ * - Variables, a default time range and an auto-refresh interval that are
+ *   not what the toolbar reads.
  *
  * Every reader of a stored config starts here: the dashboard and the public
  * dashboard when they load one, Add to Dashboard before it appends a chart,
@@ -206,12 +206,6 @@ function getStoredIdText(componentId: unknown): string | null {
   return null;
 }
 
-function isAutoRefreshInterval(value: unknown): value is AutoRefreshInterval {
-  return (
-    typeof value === "string" &&
-    (Object.values(AutoRefreshInterval) as Array<string>).includes(value)
-  );
-}
 
 export default class StoredDashboardViewConfig {
   /*
@@ -400,9 +394,22 @@ export default class StoredDashboardViewConfig {
       ),
     };
 
+    /*
+     * The dashboard's defaults: a time range or an auto-refresh it cannot
+     * open on - Custom, a typo, a value from another version - is read as
+     * none, so it opens on the past hour, with auto-refresh off.
+     */
+    const timeRange: unknown = stored["timeRange"];
+
+    if (isDashboardTimeRange(timeRange)) {
+      config.timeRange = timeRange;
+    } else {
+      delete config.timeRange;
+    }
+
     const refreshInterval: unknown = stored["refreshInterval"];
 
-    if (isAutoRefreshInterval(refreshInterval)) {
+    if (isDashboardAutoRefreshInterval(refreshInterval)) {
       config.refreshInterval = refreshInterval;
     } else {
       delete config.refreshInterval;

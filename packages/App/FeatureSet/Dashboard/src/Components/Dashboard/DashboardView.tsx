@@ -15,6 +15,7 @@ import DashboardViewConfig, {
   AutoRefreshInterval,
   getAutoRefreshIntervalInMs,
 } from "Common/Types/Dashboard/DashboardViewConfig";
+import TimeRange from "Common/Types/Time/TimeRange";
 import { ObjectType } from "Common/Types/JSON";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardChartComponent";
@@ -84,10 +85,10 @@ import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricUtil from "../Metrics/Utils/Metrics";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
-import useDashboardTimeRangeZoom, {
-  DashboardTimeRangeZoom,
-} from "Common/UI/Utils/UseDashboardTimeRangeZoom";
-import TimeRange from "Common/Types/Time/TimeRange";
+import { DashboardTimeRangeZoom } from "Common/UI/Utils/UseDashboardTimeRangeZoom";
+import useDashboardViewerSettings, {
+  DashboardViewerSettings,
+} from "Common/UI/Utils/UseDashboardViewerSettings";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import DashboardVariable, {
   DashboardVariableOption,
@@ -127,15 +128,23 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     useState<boolean>(false);
 
   /*
-   * The board's one time range, plus the undo that makes drag-to-zoom on a
-   * panel reversible. A drag-selection on any time-series widget retimes
-   * every widget; a double-click on one puts them all back.
+   * The board's time range and auto-refresh as this viewer has them, shared
+   * with the public dashboard (issue #5080): a link's, else their own pick
+   * that their browser remembers for this dashboard, else the dashboard's
+   * defaults (applied as its config loads), else the past hour with no
+   * auto-refresh. Inside it, the board's one time range plus the undo that
+   * makes drag-to-zoom on a panel reversible: a drag-selection on any
+   * time-series widget retimes every widget; a double-click on one puts them
+   * all back.
    */
-  const timeRangeZoom: DashboardTimeRangeZoom = useDashboardTimeRangeZoom({
-    range: TimeRange.PAST_ONE_HOUR,
+  const viewerSettings: DashboardViewerSettings = useDashboardViewerSettings({
+    dashboardId: props.dashboardId.toString(),
   });
+  const timeRangeZoom: DashboardTimeRangeZoom = viewerSettings.timeRangeZoom;
   const startAndEndDate: RangeStartAndEndDateTime =
     timeRangeZoom.startAndEndDate;
+  const autoRefreshInterval: AutoRefreshInterval =
+    viewerSettings.autoRefreshInterval;
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
@@ -165,9 +174,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
   const canEditDashboard: boolean = editGate.isAllowed;
 
-  // Auto-refresh state
-  const [autoRefreshInterval, setAutoRefreshInterval] =
-    useState<AutoRefreshInterval>(AutoRefreshInterval.OFF);
+  // Auto-refresh state: the interval itself is the viewer settings'.
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [dashboardVariables, setDashboardVariables] = useState<
     Array<DashboardVariable>
@@ -231,11 +238,9 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
   /*
    * Takes the config to persist as an argument rather than reading the
-   * `dashboardViewConfig` state. The caller stamps the auto-refresh interval
-   * onto the config immediately before saving, and a setState is not visible
-   * to the closure that scheduled it - so reading the state here wrote the
-   * board the user had *before* their last change to the refresh interval,
-   * and that setting only landed on the following save.
+   * `dashboardViewConfig` state, so what is written is exactly the board the
+   * caller hands over - a setState is not visible to the closure that
+   * scheduled it.
    *
    * Returns whether the write actually happened, so the caller can keep the
    * user in edit mode with their work intact when it did not.
@@ -342,10 +347,12 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         dashboard.pageDescription || dashboard.description || "",
       );
 
-      // Restore saved auto-refresh interval
-      if (config.refreshInterval) {
-        setAutoRefreshInterval(config.refreshInterval);
-      }
+      /*
+       * The dashboard's own default time range and auto-refresh. They move
+       * the board only for a viewer on the default: a link's or the
+       * viewer's own pick stays, on load and on Discard Changes alike.
+       */
+      viewerSettings.applySavedDefaults(config);
 
       /*
        * Restore saved variables, with URL overrides applied so shared
@@ -610,14 +617,17 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         dashboardDescription={dashboardDescription}
         isSaving={isSaving}
         onSaveClick={() => {
-          // Save auto-refresh interval with the config
-          const configWithRefresh: DashboardViewConfig = {
-            ...dashboardViewConfig,
-            refreshInterval: autoRefreshInterval,
-          };
-          setDashboardViewConfig(configWithRefresh);
+          /*
+           * The board as it was edited, its defaults included - and only
+           * those. Save Changes used to stamp whatever auto-refresh the
+           * editor had last picked while viewing onto the dashboard, so an
+           * editor who had turned refresh off for a while turned it off for
+           * every viewer with an unrelated save (issue #5080). The defaults
+           * change only through the editing row (onDashboardDefaultsChange).
+           */
+          const configToSave: DashboardViewConfig = dashboardViewConfig;
 
-          saveDashboardViewConfig(configWithRefresh)
+          saveDashboardViewConfig(configToSave)
             .then((didSave: boolean) => {
               /*
                * Only leave edit mode once the board is actually persisted.
@@ -625,6 +635,13 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
                * looked exactly like a successful one.
                */
               if (didSave) {
+                /*
+                 * An editor who changed a default sees it at once: their
+                 * own pick of that setting gives way to it.
+                 */
+                viewerSettings.applySavedDefaults(configToSave, {
+                  followChangedDefaults: true,
+                });
                 setDashboardMode(DashboardMode.View);
               }
             })
@@ -636,8 +653,15 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         onStartAndEndDateChange={(
           newStartAndEndDate: RangeStartAndEndDateTime,
         ) => {
-          timeRangeZoom.setStartAndEndDate(newStartAndEndDate);
+          /*
+           * An explicit pick, a new baseline: a preset is remembered for
+           * this dashboard and goes in the address, a custom range is not.
+           */
+          viewerSettings.pickTimeRange(newStartAndEndDate);
         }}
+        defaultTimeRange={viewerSettings.defaultTimeRange}
+        isOnDefaultTimeRange={viewerSettings.isOnDefaultTimeRange}
+        onDefaultTimeRangeSelect={viewerSettings.pickDefaultTimeRange}
         isTimeRangeZoomed={timeRangeZoom.isZoomed}
         onResetTimeRangeZoom={timeRangeZoom.resetZoom}
         onCancelEditClick={async () => {
@@ -654,7 +678,32 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         onAddWidgetModalOpenChange={setIsAddWidgetModalOpen}
         autoRefreshInterval={autoRefreshInterval}
         onAutoRefreshIntervalChange={(interval: AutoRefreshInterval) => {
-          setAutoRefreshInterval(interval);
+          viewerSettings.pickAutoRefreshInterval(interval);
+        }}
+        defaultAutoRefreshInterval={viewerSettings.defaultAutoRefreshInterval}
+        isOnDefaultAutoRefresh={viewerSettings.isOnDefaultAutoRefresh}
+        onDefaultAutoRefreshSelect={viewerSettings.pickDefaultAutoRefreshInterval}
+        onDashboardDefaultsChange={(defaults: {
+          timeRange?: TimeRange | undefined;
+          refreshInterval?: AutoRefreshInterval | undefined;
+        }) => {
+          /*
+           * Set on purpose, in the config being edited: saved with Save
+           * Changes, thrown away with Discard Changes.
+           */
+          setDashboardViewConfig((previous: DashboardViewConfig) => {
+            const next: DashboardViewConfig = { ...previous };
+
+            if (defaults.timeRange) {
+              next.timeRange = defaults.timeRange;
+            }
+
+            if (defaults.refreshInterval) {
+              next.refreshInterval = defaults.refreshInterval;
+            }
+
+            return next;
+          });
         }}
         isRefreshing={isRefreshing}
         variables={dashboardVariables}

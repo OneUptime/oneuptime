@@ -12,7 +12,11 @@ import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import { getTimeRangeLabel } from "./TimeRangePickerDropdown";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
-import { Translator } from "../../Utils/TranslateTemplate";
+import {
+  Translator,
+  translatableTerm,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
@@ -24,7 +28,41 @@ export interface ComponentProps {
    * go through onChange so the user can fine-tune before applying.
    */
   onApply?: ((startAndEndDate: RangeStartAndEndDateTime) => void) | undefined;
+  /*
+   * A dashboard's own default time range (issue #5080). Given, the quick
+   * ranges start with "Default (Past 1 Day)": the way back from a range the
+   * viewer picked to the one the dashboard opens on. Picking it calls
+   * onSelectDefault - the parent forgets the viewer's pick - and
+   * isDefaultSelected says when it is the choice in use. Left out, the
+   * picker has no such choice, as everywhere but a dashboard.
+   */
+  defaultRange?: TimeRange | undefined;
+  isDefaultSelected?: boolean | undefined;
+  onSelectDefault?: (() => void) | undefined;
 }
+
+/*
+ * The test id of the "Default (...)" quick range, and of the preview it
+ * shows when it is the choice in use.
+ */
+export const DEFAULT_TIME_RANGE_OPTION_TEST_ID: string =
+  "time-range-default-option";
+
+/*
+ * "Default (Past 1 Day)", "Default (1m)": a dashboard setting's way back to
+ * the value the dashboard keeps for everyone, in the reader's language.
+ */
+export const DEFAULT_CHOICE_TEMPLATE: string =
+  translationKey("Default ({{value}})");
+
+export const getDefaultChoiceLabel: (data: {
+  translator: Translator;
+  value: string;
+}) => string = (data: { translator: Translator; value: string }): string => {
+  return data.translator.translateTemplate(DEFAULT_CHOICE_TEMPLATE, {
+    value: translatableTerm(data.value),
+  });
+};
 
 /*
  * Quick ranges shown in the left rail, in display order. Custom is handled
@@ -52,6 +90,20 @@ const RangeStartAndEndDateEdit: FunctionComponent<ComponentProps> = (
   const selectedRange: TimeRange =
     props.value?.range || TimeRange.PAST_ONE_HOUR;
   const isCustom: boolean = selectedRange === TimeRange.CUSTOM;
+
+  const defaultRange: TimeRange | undefined =
+    props.defaultRange && props.onSelectDefault
+      ? props.defaultRange
+      : undefined;
+
+  /*
+   * The default is the choice in use while the viewer has no range of their
+   * own: then it is ticked, and the preset it names is not, so the picker
+   * says which of the two the dashboard is on.
+   */
+  const isDefaultActive: boolean = Boolean(
+    defaultRange && props.isDefaultSelected && !isCustom,
+  );
 
   /*
    * Absolute window for the current selection. Used to preview a quick range
@@ -131,9 +183,35 @@ const RangeStartAndEndDateEdit: FunctionComponent<ComponentProps> = (
         <div className="px-1 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
           {translator.translateText("Quick ranges")}
         </div>
+        {defaultRange ? (
+          <div className="mb-1 border-b border-gray-100 pb-1">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={isDefaultActive}
+              data-testid={DEFAULT_TIME_RANGE_OPTION_TEST_ID}
+              onClick={() => {
+                props.onSelectDefault?.();
+              }}
+              className={`w-full rounded-md px-3 py-1.5 text-left text-sm transition-colors ${
+                isDefaultActive
+                  ? "bg-indigo-50 font-medium text-indigo-700"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              {getDefaultChoiceLabel({
+                translator,
+                value: getTimeRangeLabel(defaultRange),
+              })}
+            </button>
+          </div>
+        ) : (
+          <></>
+        )}
         <div className="grid grid-cols-2 gap-1 md:grid-cols-1">
           {QUICK_RANGES.map((range: TimeRange) => {
-            const isActive: boolean = !isCustom && selectedRange === range;
+            const isActive: boolean =
+              !isCustom && !isDefaultActive && selectedRange === range;
 
             return (
               <button
@@ -221,12 +299,21 @@ const RangeStartAndEndDateEdit: FunctionComponent<ComponentProps> = (
         ) : (
           <div>
             <div className="text-sm font-medium text-gray-900">
-              {translator.translateText(getTimeRangeLabel(selectedRange))}
+              {isDefaultActive && defaultRange
+                ? getDefaultChoiceLabel({
+                    translator,
+                    value: getTimeRangeLabel(defaultRange),
+                  })
+                : translator.translateText(getTimeRangeLabel(selectedRange))}
             </div>
             <div className="mt-0.5 text-xs text-gray-500">
-              {translator.translateText(
-                "Relative to now — updates every time the dashboard loads.",
-              )}
+              {isDefaultActive
+                ? translator.translateText(
+                    "The time range this dashboard opens on, relative to now.",
+                  )
+                : translator.translateText(
+                    "Relative to now — updates every time the dashboard loads.",
+                  )}
             </div>
             <div className="mt-3 space-y-2 rounded-md border border-gray-200 bg-gray-50 p-3">
               <div className="flex items-center justify-between text-sm">

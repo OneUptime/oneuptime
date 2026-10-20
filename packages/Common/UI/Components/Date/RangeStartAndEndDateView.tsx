@@ -15,6 +15,17 @@ import useTranslator from "../../Utils/UseTranslator";
 export interface ComponentProps {
   dashboardStartAndEndDate: RangeStartAndEndDateTime;
   onChange: (startAndEndDate: RangeStartAndEndDateTime) => void;
+  /*
+   * A dashboard's own default time range (issue #5080): the picker's quick
+   * ranges then start with "Default (Past 1 Day)", which calls
+   * onDefaultRangeSelect - the way back from the viewer's own pick to the
+   * range the dashboard opens on. isOnDefaultRange says the viewer is on
+   * it, so that choice is the one ticked. Left out, as on every page that
+   * is not a dashboard, the picker has no such choice.
+   */
+  defaultRange?: TimeRange | undefined;
+  isOnDefaultRange?: boolean | undefined;
+  onDefaultRangeSelect?: (() => void) | undefined;
 }
 
 const DashboardStartAndEndDateView: FunctionComponent<ComponentProps> = (
@@ -25,6 +36,15 @@ const DashboardStartAndEndDateView: FunctionComponent<ComponentProps> = (
     useState<RangeStartAndEndDateTime | null>(null);
   const [showTimeSelectModal, setShowTimeSelectModal] =
     useState<boolean>(false);
+  /*
+   * Whether the default is the choice the open picker shows: it is while
+   * the viewer is on it, until they move to another range in the picker.
+   */
+  const [isTempOnDefault, setIsTempOnDefault] = useState<boolean>(false);
+
+  const hasDefaultChoice: boolean = Boolean(
+    props.defaultRange && props.onDefaultRangeSelect,
+  );
 
   const isCustomRange: boolean =
     props.dashboardStartAndEndDate.range === TimeRange.CUSTOM;
@@ -59,6 +79,7 @@ const DashboardStartAndEndDateView: FunctionComponent<ComponentProps> = (
 
   const closeModal: () => void = (): void => {
     setTempStartAndEndDate(null);
+    setIsTempOnDefault(false);
     setShowTimeSelectModal(false);
   };
 
@@ -100,6 +121,9 @@ const DashboardStartAndEndDateView: FunctionComponent<ComponentProps> = (
             className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 transition-colors cursor-pointer border bg-gray-50 border-gray-200/60 hover:bg-gray-100"
             onClick={() => {
               setTempStartAndEndDate(props.dashboardStartAndEndDate);
+              setIsTempOnDefault(
+                hasDefaultChoice && Boolean(props.isOnDefaultRange),
+              );
               setShowTimeSelectModal(true);
             }}
           >
@@ -116,6 +140,16 @@ const DashboardStartAndEndDateView: FunctionComponent<ComponentProps> = (
             disableSubmitButton={!isSelectionValid(tempStartAndEndDate)}
             onClose={closeModal}
             onSubmit={() => {
+              /*
+               * Apply on the default keeps the viewer on it, rather than
+               * turning the range it names into a pick of their own.
+               */
+              if (isTempOnDefault && hasDefaultChoice) {
+                props.onDefaultRangeSelect?.();
+                closeModal();
+                return;
+              }
+
               if (tempStartAndEndDate) {
                 commitSelection(tempStartAndEndDate);
               }
@@ -125,12 +159,24 @@ const DashboardStartAndEndDateView: FunctionComponent<ComponentProps> = (
               <RangeStartAndEndDateEdit
                 value={tempStartAndEndDate || undefined}
                 onChange={(startAndEndDate: RangeStartAndEndDateTime) => {
+                  setIsTempOnDefault(false);
                   setTempStartAndEndDate(startAndEndDate);
                 }}
                 onApply={(startAndEndDate: RangeStartAndEndDateTime) => {
                   // Quick ranges apply immediately and close the modal.
                   commitSelection(startAndEndDate);
                 }}
+                defaultRange={hasDefaultChoice ? props.defaultRange : undefined}
+                isDefaultSelected={isTempOnDefault}
+                onSelectDefault={
+                  hasDefaultChoice
+                    ? () => {
+                        // Like a quick range, the default applies at once.
+                        props.onDefaultRangeSelect?.();
+                        closeModal();
+                      }
+                    : undefined
+                }
               />
             </div>
           </Modal>
