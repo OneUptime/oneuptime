@@ -150,6 +150,107 @@ describe("what starts a run", () => {
 });
 
 describe("a run that starts", () => {
+  test("snapshots a runbook still saved the old way with every approval before the step it held back, and leaves the runbook as it is", async () => {
+    const saved: Array<Record<string, unknown>> = [
+      {
+        id: "notify",
+        order: 3,
+        type: RunbookStepType.HttpRequest,
+        title: "Post the all-clear",
+        config: { method: "POST", url: "https://hooks.example.com/x" },
+        requireApproval: true,
+      },
+      {
+        id: "check",
+        order: 1,
+        type: RunbookStepType.Bash,
+        title: "Check the replica",
+        config: { script: "pg_isready", agentId: "" },
+        requireApproval: true,
+      },
+      {
+        id: "promote",
+        order: 2,
+        type: RunbookStepType.Kubernetes,
+        title: "Promote the replica",
+        config: { script: "kubectl get pods", agentId: "" },
+      },
+    ];
+    runbooks.rows[0]!["steps"] = saved;
+    const before: string = JSON.stringify(runbooks.rows[0]);
+
+    const result: RunbookStartResult = await start();
+
+    expect(result.isStarted).toBe(true);
+
+    const steps: Array<RunbookStepExecutionState> = writtenRuns()[0]![
+      "stepExecutions"
+    ] as Array<RunbookStepExecutionState>;
+
+    expect(
+      steps.map((state: RunbookStepExecutionState) => {
+        return [
+          state.step.id,
+          state.step.type,
+          state.step.requireApprovalBeforeRunning === true,
+          state.status,
+        ];
+      }),
+    ).toEqual([
+      ["check", RunbookStepType.Bash, false, RunbookStepExecutionStatus.Pending],
+      [
+        "promote",
+        RunbookStepType.Kubernetes,
+        true,
+        RunbookStepExecutionStatus.Pending,
+      ],
+      [
+        "notify",
+        RunbookStepType.HttpRequest,
+        false,
+        RunbookStepExecutionStatus.Pending,
+      ],
+      [
+        "notify-approval",
+        RunbookStepType.Manual,
+        false,
+        RunbookStepExecutionStatus.Pending,
+      ],
+    ]);
+    // No run started now carries the old flag.
+    expect(JSON.stringify(steps)).not.toContain('"requireApproval"');
+    // Starting a run reads the runbook; it writes nothing to it.
+    expect(JSON.stringify(runbooks.rows[0])).toBe(before);
+  });
+
+  test("a step's own approval before it is kept in the snapshot as it is", () => {
+    const steps: Array<RunbookStepExecutionState> =
+      RunbookStarterClass.getStepExecutions([
+        {
+          id: "a",
+          order: 0,
+          type: RunbookStepType.Bash,
+          title: "A",
+          config: {},
+          requireApprovalBeforeRunning: true,
+        },
+      ]);
+
+    expect(steps).toEqual([
+      {
+        step: {
+          id: "a",
+          order: 0,
+          type: RunbookStepType.Bash,
+          title: "A",
+          config: {},
+          requireApprovalBeforeRunning: true,
+        },
+        status: RunbookStepExecutionStatus.Pending,
+      },
+    ]);
+  });
+
   test("snapshots the steps in order, each waiting to run, and queues the run", async () => {
     const result: RunbookStartResult = await start();
 

@@ -553,4 +553,191 @@ describe("Runbook approval gates cannot be pre-approved or skipped", () => {
       },
     );
   });
+
+  /*
+   * A step that asks for approval before it runs: the run waits before it,
+   * with nothing of it run. Complete approves it - the step goes back to
+   * Pending, approved, so the resumed run runs it; it is never marked done
+   * by the route. Skip keeps it from running.
+   */
+  describe("a step that asks for approval before it runs", () => {
+    function waitingForApproval(): RunbookExecution {
+      return execution(RunbookExecutionStatus.WaitingForManualStep, [
+        {
+          step: step("diagnose", RunbookStepType.Bash),
+          status: RunbookStepExecutionStatus.Completed,
+        },
+        {
+          step: step("restart", RunbookStepType.Kubernetes, {
+            title: "Restart checkout",
+            requireApprovalBeforeRunning: true,
+          }),
+          status: RunbookStepExecutionStatus.WaitingForUser,
+        },
+        {
+          step: step("notify", RunbookStepType.HttpRequest, {
+            title: "Post to Slack",
+          }),
+          status: RunbookStepExecutionStatus.Pending,
+        },
+      ]);
+    }
+
+    test("approving it puts it back to run, approved by whom and when, and resumes the run exactly once", async () => {
+      givenExecution(waitingForApproval());
+
+      const result: CallResult = await call(COMPLETE, "restart", {
+        notes: "go ahead, traffic is drained",
+      });
+
+      expect(result.thrown).toBeUndefined();
+
+      const write: CompareAndSetCall = onlyWrite();
+      expect(write.expectedData).toEqual({
+        status: RunbookExecutionStatus.WaitingForManualStep,
+        version: 7,
+      });
+      expect(write.data.status).toBe(RunbookExecutionStatus.Scheduled);
+      expect(write.data.version).toBe(8);
+
+      const approved: RunbookStepExecutionState = writtenStep(
+        write,
+        "restart",
+      );
+      // Not done: it has not run. The resumed run runs it.
+      expect(approved.status).toBe(RunbookStepExecutionStatus.Pending);
+      expect(approved.approvedByUserId).toBe(userId.toString());
+      expect(Number.isNaN(Date.parse(approved.approvedAt!))).toBe(false);
+      expect(approved.notes).toBe("go ahead, traffic is drained");
+      expect(approved.completedAt).toBeUndefined();
+      expect(approved.completedByUserId).toBeUndefined();
+
+      // The step after it is untouched.
+      expect(writtenStep(write, "notify").status).toBe(
+        RunbookStepExecutionStatus.Pending,
+      );
+
+      expect(startExecutionMock).toHaveBeenCalledTimes(1);
+      expect(Response.sendJsonObjectResponse).toHaveBeenCalledTimes(1);
+    });
+
+    test("skipping it marks it Skipped by whom, so it never runs, and resumes the run", async () => {
+      givenExecution(waitingForApproval());
+
+      const result: CallResult = await call(SKIP, "restart", {
+        reason: "rolled back by hand instead",
+      });
+
+      expect(result.thrown).toBeUndefined();
+
+      const write: CompareAndSetCall = onlyWrite();
+      const skipped: RunbookStepExecutionState = writtenStep(
+        write,
+        "restart",
+      );
+      expect(skipped.status).toBe(RunbookStepExecutionStatus.Skipped);
+      expect(skipped.completedByUserId).toBe(userId.toString());
+      expect(skipped.notes).toBe("rolled back by hand instead");
+      expect(skipped.approvedAt).toBeUndefined();
+      expect(write.data.status).toBe(RunbookExecutionStatus.Scheduled);
+      expect(startExecutionMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("a later plain step can be skipped ahead of time while the run waits for the approval, and the run stays paused", async () => {
+      givenExecution(waitingForApproval());
+
+      const result: CallResult = await call(SKIP, "notify");
+
+      expect(result.thrown).toBeUndefined();
+      const write: CompareAndSetCall = onlyWrite();
+      expect(writtenStep(write, "notify").status).toBe(
+        RunbookStepExecutionStatus.Skipped,
+      );
+      expect(writtenStep(write, "restart").status).toBe(
+        RunbookStepExecutionStatus.WaitingForUser,
+      );
+      expect(write.data.status).toBeUndefined();
+      expect(startExecutionMock).not.toHaveBeenCalled();
+    });
+
+    test("REGRESSION: a later one cannot be approved before the run reaches it", async () => {
+      givenExecution(
+        execution(RunbookExecutionStatus.WaitingForManualStep, [
+          {
+            step: step("check", RunbookStepType.Manual, {
+              title: "Check the dashboards",
+            }),
+            status: RunbookStepExecutionStatus.WaitingForUser,
+          },
+          {
+            step: step("restart", RunbookStepType.Kubernetes, {
+              title: "Restart checkout",
+              requireApprovalBeforeRunning: true,
+            }),
+            status: RunbookStepExecutionStatus.Pending,
+          },
+        ]),
+      );
+
+      expectRefusedUntouched(
+        await call(COMPLETE, "restart"),
+        'Step "Restart checkout" has not been reached yet',
+      );
+    });
+
+    test("REGRESSION: a later one cannot be skipped ahead of time", async () => {
+      givenExecution(
+        execution(RunbookExecutionStatus.WaitingForManualStep, [
+          {
+            step: step("check", RunbookStepType.Manual, {
+              title: "Check the dashboards",
+            }),
+            status: RunbookStepExecutionStatus.WaitingForUser,
+          },
+          {
+            step: step("restart", RunbookStepType.Kubernetes, {
+              title: "Restart checkout",
+              requireApprovalBeforeRunning: true,
+            }),
+            status: RunbookStepExecutionStatus.Pending,
+          },
+        ]),
+      );
+
+      expectRefusedUntouched(
+        await call(SKIP, "restart"),
+        'Step "Restart checkout" needs approval before it runs, so it can only be approved or skipped once the execution reaches it.',
+      );
+    });
+
+    test("REGRESSION: a second approval that loses the race does not resume the run again", async () => {
+      givenExecution(waitingForApproval());
+      compareAndSetSpy.mockResolvedValue(false);
+
+      const result: CallResult = await call(COMPLETE, "restart");
+
+      expect(result.thrown).toBeInstanceOf(BadDataException);
+      expect(startExecutionMock).not.toHaveBeenCalled();
+    });
+
+    test("once approved and queued, a second approval is refused: the run is not waiting any more", async () => {
+      const queued: RunbookExecution = waitingForApproval();
+      const steps: Array<RunbookStepExecutionState> =
+        queued.stepExecutions as unknown as Array<RunbookStepExecutionState>;
+      steps[1] = {
+        ...steps[1]!,
+        status: RunbookStepExecutionStatus.Pending,
+        approvedAt: "2026-10-20T10:00:00.000Z",
+        approvedByUserId: userId.toString(),
+      };
+      (queued as unknown as { status: RunbookExecutionStatus }).status =
+        RunbookExecutionStatus.Scheduled;
+      givenExecution(queued);
+
+      expectRefusedUntouched(
+        await call(COMPLETE, "restart"),
+        "not waiting on a step right now",
+      );
+    });
+  });
 });

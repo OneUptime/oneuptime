@@ -67,11 +67,10 @@ import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import RunbookTriggerType from "Common/Types/Runbook/RunbookTriggerType";
 import {
   RunbookStepAction,
+  applyRunbookStepAction,
   decideRunbookStepAction,
 } from "Common/Types/Runbook/RunbookStepAction";
 import {
-  RunbookStepWait,
-  getRunbookStepWait,
   hasApprovalAfterStep,
   isApprovalNeededBeforeRunning,
 } from "Common/Types/Runbook/RunbookStepApproval";
@@ -544,22 +543,14 @@ function act(action, stepId) {
   const stepExecution = steps.find((candidate) => {
     return candidate.step.id === stepId;
   });
-  const isApprovalToRun =
-    action === RunbookStepAction.Complete &&
-    getRunbookStepWait(stepExecution) === RunbookStepWait.ApprovalToRun;
 
-  if (isApprovalToRun) {
-    stepExecution.status = RunbookStepExecutionStatus.Pending;
-    stepExecution.approvedAt = new Date().toISOString();
-    stepExecution.approvedByUserId = USER_ID;
-  } else {
-    stepExecution.status =
-      action === RunbookStepAction.Complete
-        ? RunbookStepExecutionStatus.Completed
-        : RunbookStepExecutionStatus.Skipped;
-    stepExecution.completedAt = new Date().toISOString();
-    stepExecution.completedByUserId = USER_ID;
-  }
+  // What the step routes write: an approved step goes back to run.
+  applyRunbookStepAction({
+    stepExecution,
+    action,
+    at: new Date(),
+    userId: USER_ID,
+  });
 
   if (decision.resumesExecution) {
     resume(steps);

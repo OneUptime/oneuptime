@@ -37,6 +37,8 @@ import { RunbookStepExecutionState } from "./RunbookStepExecution";
 import RunbookStepExecutionStatus from "./RunbookStepExecutionStatus";
 import RunbookStepType from "./RunbookStepType";
 import {
+  RunbookStepWait,
+  getRunbookStepWait,
   hasApprovalAfterStep,
   stepRequiresApprovalBeforeRunning,
 } from "./RunbookStepApproval";
@@ -207,4 +209,54 @@ export function decideRunbookStepAction(data: {
 
 function refuse(reason: string): RunbookStepActionDecision {
   return { allowed: false, reason };
+}
+
+/*
+ * What an action decideRunbookStepAction allowed writes on the step, as the
+ * step routes save it:
+ *
+ *   - approving a step that waits for approval before it runs: the step has
+ *     not run, so it goes back to Pending, approved (approvedAt, and who),
+ *     and the resumed run runs it - it is not marked done here;
+ *   - any other Complete: the step is Completed - a Manual step ticked off,
+ *     or a step of an older run that ran and waited for approval;
+ *   - Skip: the step is Skipped, and never runs.
+ *
+ * `notes` is what the person wrote with it, kept on the step either way.
+ */
+export function applyRunbookStepAction(data: {
+  stepExecution: RunbookStepExecutionState;
+  action: RunbookStepAction;
+  at: Date;
+  userId?: string | undefined;
+  notes?: string | undefined;
+}): void {
+  const stepExecution: RunbookStepExecutionState = data.stepExecution;
+  const at: string = data.at.toISOString();
+
+  if (
+    data.action === RunbookStepAction.Complete &&
+    getRunbookStepWait(stepExecution) === RunbookStepWait.ApprovalToRun
+  ) {
+    stepExecution.status = RunbookStepExecutionStatus.Pending;
+    stepExecution.approvedAt = at;
+
+    if (data.userId) {
+      stepExecution.approvedByUserId = data.userId;
+    }
+  } else {
+    stepExecution.status =
+      data.action === RunbookStepAction.Complete
+        ? RunbookStepExecutionStatus.Completed
+        : RunbookStepExecutionStatus.Skipped;
+    stepExecution.completedAt = at;
+
+    if (data.userId) {
+      stepExecution.completedByUserId = data.userId;
+    }
+  }
+
+  if (data.notes) {
+    stepExecution.notes = data.notes;
+  }
 }

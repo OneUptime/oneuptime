@@ -32,14 +32,11 @@ import RunbookStepExecutionStatus from "Common/Types/Runbook/RunbookStepExecutio
 import { RunbookStep } from "Common/Types/Runbook/RunbookStep";
 import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecution";
 import {
+  applyRunbookStepAction,
   decideRunbookStepAction,
   RunbookStepAction,
   RunbookStepActionDecision,
 } from "Common/Types/Runbook/RunbookStepAction";
-import {
-  RunbookStepWait,
-  getRunbookStepWait,
-} from "Common/Types/Runbook/RunbookStepApproval";
 import RunRunbook from "../Services/RunRunbook";
 import RunbookRunAccess from "Common/Server/Utils/Runbook/RunbookRunAccess";
 import { RunbookStarterClass } from "Common/Server/Utils/Runbook/RunbookStarter";
@@ -590,35 +587,18 @@ async function advanceStep(args: {
     JSON.stringify(stepExecutions),
   ) as JSONArray;
 
-  const nowIso: string = new Date().toISOString();
-
-  if (
-    args.action === RunbookStepAction.Complete &&
-    getRunbookStepWait(stepExec) === RunbookStepWait.ApprovalToRun
-  ) {
-    /*
-     * Approving a step that asks for approval before it runs: the step has
-     * not run yet, so it goes back to Pending, approved, and the resumed
-     * run runs it (RunRunbook) - it is not marked done here.
-     */
-    stepExec.status = RunbookStepExecutionStatus.Pending;
-    stepExec.approvedAt = nowIso;
-    if (args.userId) {
-      stepExec.approvedByUserId = args.userId;
-    }
-  } else {
-    stepExec.status =
-      args.action === RunbookStepAction.Complete
-        ? RunbookStepExecutionStatus.Completed
-        : RunbookStepExecutionStatus.Skipped;
-    stepExec.completedAt = nowIso;
-    if (args.userId) {
-      stepExec.completedByUserId = args.userId;
-    }
-  }
-  if (args.notes) {
-    stepExec.notes = args.notes;
-  }
+  /*
+   * Ticking a Manual step off, skipping a step, or approving one: a step
+   * that waits for approval before it runs goes back to Pending, approved,
+   * and the resumed run runs it (RunRunbook) - it is not marked done here.
+   */
+  applyRunbookStepAction({
+    stepExecution: stepExec,
+    action: args.action,
+    at: new Date(),
+    userId: args.userId,
+    notes: args.notes,
+  });
 
   const version: number | undefined =
     typeof execution.version === "number" ? execution.version : undefined;

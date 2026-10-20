@@ -1,13 +1,24 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  CONTINUE_ON_FAILURE_DESCRIPTION,
+  HTTP_METHODS_WITH_BODY,
+  MANUAL_INSTRUCTIONS_TITLE,
+  NEEDS_APPROVAL_LABEL,
+  REQUIRE_APPROVAL_DESCRIPTION,
+  REQUIRE_APPROVAL_FOLDED_TITLE,
+  REQUIRE_APPROVAL_TITLE,
   applyStepConfigChange,
   convertLegacyCredentialStep,
   formatSshTarget,
   getFirstCommand,
+  getHttpHeaderCount,
   getStepMoreFieldsItems,
+  isHttpBodyShown,
   isLegacyCredentialStep,
   isRunnerStep,
   parseSshTarget,
+  readStepsForEditor,
+  setStepRequiresApproval,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runbook/Steps/RunbookStepEditorModel";
 import {
   KubernetesAction,
@@ -33,8 +44,14 @@ import { FoldedSectionItem } from "../../../UI/Components/FoldedSection/FoldedSe
  *
  *   - an SSH step's machine is written as after `ssh`: user@host;
  *   - a step's More fields line names what its fold holds, and what of it
- *     is set - and a step written with a credential (through the API) folds
- *     no port and no passphrase, which its credential holds;
+ *     is set - Require approval and Continue on failure first - and a step
+ *     written with a credential (through the API) folds no port and no
+ *     passphrase, which its credential holds;
+ *   - the approval switch is on the step it holds back ("Require approval
+ *     before running this step"), and a runbook a client saved with the old
+ *     approval after a step shows it there;
+ *   - an HTTP request shows its body only for a method that sends one, and
+ *     folds its headers, counted, never quoted;
  *   - such a step is told apart, and turns into the script step that does
  *     what it did;
  *   - a kubectl step moved from a Kubernetes action loses the action it kept
@@ -56,6 +73,10 @@ function step(
     ...(extra || {}),
   };
 }
+
+// What UUID.generate gives a step saved without an id.
+const UUID_SHAPE: RegExp =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 function keys(items: Array<FoldedSectionItem>): Array<string> {
   return items.map((item: FoldedSectionItem): string => {
@@ -146,7 +167,57 @@ describe("the machine an SSH step signs in to", () => {
 });
 
 describe("a step's More fields", () => {
-  test("an SSH step folds its port, its key passphrase, its notes, timeouts and switches", () => {
+  test("every automated step folds Require approval and Continue on failure first: the line names them before it runs out of room", () => {
+    for (const type of [
+      RunbookStepType.JavaScript,
+      RunbookStepType.HttpRequest,
+      RunbookStepType.Bash,
+      RunbookStepType.SSH,
+      RunbookStepType.Kubernetes,
+      RunbookStepType.AI,
+    ]) {
+      expect({
+        type,
+        first: keys(getStepMoreFieldsItems(step(type, {}))).slice(0, 2),
+      }).toEqual({
+        type,
+        first: ["requireApprovalBeforeRunning", "continueOnFailure"],
+      });
+    }
+  });
+
+  test("the folded line names the switch short - 'Require approval' - and says 'On' when it is on", () => {
+    const items: Array<FoldedSectionItem> = getStepMoreFieldsItems(
+      step(
+        RunbookStepType.Kubernetes,
+        { kubeconfig: "", script: "kubectl get pods" },
+        { requireApprovalBeforeRunning: true },
+      ),
+    );
+
+    expect(items[0]).toEqual({
+      key: "requireApprovalBeforeRunning",
+      title: "Require approval",
+      isSet: true,
+      value: "On",
+      translateValue: true,
+    });
+    expect(REQUIRE_APPROVAL_FOLDED_TITLE).toBe("Require approval");
+  });
+
+  test("the old flag alone is not shown as on: the editor reads it onto the next step first", () => {
+    const items: Array<FoldedSectionItem> = getStepMoreFieldsItems(
+      step(RunbookStepType.Bash, { script: "uptime" }, { requireApproval: true }),
+    );
+
+    expect(items[0]).toMatchObject({
+      key: "requireApprovalBeforeRunning",
+      isSet: false,
+    });
+    expect(items[0]!.value).toBeUndefined();
+  });
+
+  test("an SSH step folds the switches, its port, its key passphrase, its notes and timeouts", () => {
     const items: Array<FoldedSectionItem> = getStepMoreFieldsItems(
       step(RunbookStepType.SSH, {
         host: "10.0.4.21",
@@ -157,12 +228,12 @@ describe("a step's More fields", () => {
     );
 
     expect(keys(items)).toEqual([
+      "requireApprovalBeforeRunning",
+      "continueOnFailure",
       "port",
       "passphrase",
       "description",
       "timeouts",
-      "continueOnFailure",
-      "requireApproval",
     ]);
     expect(setKeys(items)).toEqual([]);
   });
@@ -199,16 +270,16 @@ describe("a step's More fields", () => {
     );
 
     expect(keys(items)).toEqual([
+      "requireApprovalBeforeRunning",
+      "continueOnFailure",
       "description",
       "timeouts",
-      "continueOnFailure",
-      "requireApproval",
     ]);
     // Its own timeout is still said to be set.
     expect(setKeys(items)).toEqual(["timeouts"]);
   });
 
-  test("a kubectl step folds its notes, timeouts and switches; what is on is said", () => {
+  test("a kubectl step folds the switches, its notes and timeouts; what is on is said", () => {
     const items: Array<FoldedSectionItem> = getStepMoreFieldsItems(
       step(
         RunbookStepType.Kubernetes,
@@ -218,61 +289,287 @@ describe("a step's More fields", () => {
           timeoutInMs: DEFAULT_STEP_EXECUTION_TIMEOUT_IN_MS,
           claimTimeoutInMs: DEFAULT_AGENT_CLAIM_TIMEOUT_IN_MS,
         },
-        { requireApproval: true, description: "Needs a look first." },
+        {
+          requireApprovalBeforeRunning: true,
+          continueOnFailure: true,
+          description: "Needs a look first.",
+        },
       ),
     );
 
     expect(keys(items)).toEqual([
+      "requireApprovalBeforeRunning",
+      "continueOnFailure",
       "description",
       "timeouts",
-      "continueOnFailure",
-      "requireApproval",
     ]);
-    // Timeouts at their defaults are not set; the switch on is, with "On".
-    expect(setKeys(items)).toEqual(["description", "requireApproval"]);
+    // Timeouts at their defaults are not set; the switches on are, with "On".
+    expect(setKeys(items)).toEqual([
+      "requireApprovalBeforeRunning",
+      "continueOnFailure",
+      "description",
+    ]);
     expect(
       items.find((item: FoldedSectionItem): boolean => {
-        return item.key === "requireApproval";
+        return item.key === "continueOnFailure";
       }),
     ).toMatchObject({ value: "On", translateValue: true });
   });
 
-  test("an AI step folds its provider and the context it reads; a manual step folds nothing", () => {
+  test("an HTTP request folds its headers - how many, never their values - its notes and its timeout", () => {
+    const items: Array<FoldedSectionItem> = getStepMoreFieldsItems(
+      step(RunbookStepType.HttpRequest, {
+        method: "POST",
+        url: "https://events.pagerduty.com/v2/enqueue",
+        headersJson:
+          '{ "Authorization": "Token token=s3cr3t", "X-Request-Id": "1" }',
+        body: "{}",
+      }),
+    );
+
+    expect(keys(items)).toEqual([
+      "requireApprovalBeforeRunning",
+      "continueOnFailure",
+      "headersJson",
+      "description",
+      "timeouts",
+    ]);
+
+    const headers: FoldedSectionItem = items[2]!;
+    expect(headers).toEqual({
+      key: "headersJson",
+      title: "Headers (JSON)",
+      isSet: true,
+      value: "2",
+    });
+    expect(JSON.stringify(items)).not.toContain("s3cr3t");
+
+    // Headers that are not a JSON object are set, with nothing to count.
+    const broken: FoldedSectionItem = getStepMoreFieldsItems(
+      step(RunbookStepType.HttpRequest, { headersJson: "{ Authorization" }),
+    )[2]!;
+    expect(broken).toMatchObject({ key: "headersJson", isSet: true });
+    expect(broken.value).toBeUndefined();
+
+    // None: not set.
     expect(
-      keys(
-        getStepMoreFieldsItems(
-          step(RunbookStepType.AI, {
-            prompt: "Summarize.",
-            includePreviousStepContext: false,
-            includeTriggerContext: true,
-          }),
-        ),
-      ),
-    ).toEqual([
+      getStepMoreFieldsItems(
+        step(RunbookStepType.HttpRequest, { headersJson: "  " }),
+      )[2],
+    ).toMatchObject({ key: "headersJson", isSet: false });
+  });
+
+  test("an AI step folds the switches, its provider and the context it reads; context off is said 'Off'", () => {
+    const items: Array<FoldedSectionItem> = getStepMoreFieldsItems(
+      step(RunbookStepType.AI, {
+        prompt: "Summarize.",
+        includePreviousStepContext: false,
+        includeTriggerContext: true,
+      }),
+    );
+
+    expect(keys(items)).toEqual([
+      "requireApprovalBeforeRunning",
+      "continueOnFailure",
       "llmProviderId",
       "includePreviousStepContext",
       "includeTriggerContext",
       "description",
-      "continueOnFailure",
-      "requireApproval",
     ]);
+    expect(setKeys(items)).toEqual(["includePreviousStepContext"]);
+    expect(items[3]).toMatchObject({ value: "Off", translateValue: true });
+
+    // An AI step written without the switches runs without the context: said.
     expect(
       setKeys(
-        getStepMoreFieldsItems(
-          step(RunbookStepType.AI, {
-            prompt: "Summarize.",
-            includePreviousStepContext: false,
-            includeTriggerContext: true,
-          }),
-        ),
+        getStepMoreFieldsItems(step(RunbookStepType.AI, { prompt: "Hi." })),
       ),
-    ).toEqual(["includePreviousStepContext"]);
+    ).toEqual(["includePreviousStepContext", "includeTriggerContext"]);
+  });
 
+  test("a manual step folds nothing: its instructions are what the responder reads", () => {
     expect(
       getStepMoreFieldsItems(
-        step(RunbookStepType.Manual, {}, { description: "Check it." }),
+        step(
+          RunbookStepType.Manual,
+          {},
+          { description: "Check it.", requireApprovalBeforeRunning: true },
+        ),
       ),
     ).toEqual([]);
+  });
+});
+
+describe("the approval switch", () => {
+  test("says, in the maintainer's words, that it asks before running this step", () => {
+    expect(REQUIRE_APPROVAL_TITLE).toBe(
+      "Require approval before running this step",
+    );
+    expect(REQUIRE_APPROVAL_DESCRIPTION).toBe(
+      "The run stops before this step until someone approves it.",
+    );
+    expect(NEEDS_APPROVAL_LABEL).toBe("Needs approval");
+    expect(CONTINUE_ON_FAILURE_DESCRIPTION).toBe(
+      "If this step fails, the run goes on instead of stopping.",
+    );
+    expect(MANUAL_INSTRUCTIONS_TITLE).toBe("Instructions");
+  });
+
+  test("turns a step's approval on and off, and changes nothing else", () => {
+    const original: RunbookStep = step(
+      RunbookStepType.Bash,
+      { script: "uptime", agentId: "x" },
+      { continueOnFailure: true, description: "notes" },
+    );
+
+    const on: RunbookStep = setStepRequiresApproval(original, true);
+    expect(on).toEqual({ ...original, requireApprovalBeforeRunning: true });
+    expect(on).not.toBe(original);
+    expect(original.requireApprovalBeforeRunning).toBeUndefined();
+
+    expect(setStepRequiresApproval(on, false)).toEqual({
+      ...original,
+      requireApprovalBeforeRunning: false,
+    });
+  });
+
+  test("a Manual step has no approval switch: it stops the run for a person already", () => {
+    const manual: RunbookStep = step(RunbookStepType.Manual, {});
+
+    expect(setStepRequiresApproval(manual, true)).toBe(manual);
+  });
+});
+
+describe("an HTTP request step's body", () => {
+  test("shows for a method that sends one, and never for GET or HEAD unless the step has one", () => {
+    for (const method of ["POST", "PUT", "PATCH", "DELETE"] as const) {
+      expect({ method, shown: isHttpBodyShown({ url: "x", method }) }).toEqual({
+        method,
+        shown: true,
+      });
+    }
+
+    for (const method of ["GET", "HEAD"] as const) {
+      expect({ method, shown: isHttpBodyShown({ url: "x", method }) }).toEqual({
+        method,
+        shown: false,
+      });
+      // A body it has is sent, so it shows: nothing the step does is hidden.
+      expect(
+        isHttpBodyShown({ url: "x", method, body: '{ "ping": true }' }),
+      ).toBe(true);
+    }
+
+    // A step written without a method sends GET.
+    expect(isHttpBodyShown({ url: "x" } as never)).toBe(false);
+    expect(HTTP_METHODS_WITH_BODY).toEqual(["POST", "PUT", "PATCH", "DELETE"]);
+  });
+
+  test("its headers are counted from the JSON object they are, and nothing else", () => {
+    expect(getHttpHeaderCount('{ "A": "1" }')).toBe(1);
+    expect(getHttpHeaderCount('{ "A": "1", "B": "2", "C": "3" }')).toBe(3);
+    expect(getHttpHeaderCount("{}")).toBeUndefined();
+    expect(getHttpHeaderCount("[1, 2]")).toBeUndefined();
+    expect(getHttpHeaderCount('"text"')).toBeUndefined();
+    expect(getHttpHeaderCount("null")).toBeUndefined();
+    expect(getHttpHeaderCount("{ broken")).toBeUndefined();
+    expect(getHttpHeaderCount("")).toBeUndefined();
+    expect(getHttpHeaderCount(undefined)).toBeUndefined();
+  });
+});
+
+describe("the steps the editor holds", () => {
+  test("are in the order they run, numbered from 0, each with an id", () => {
+    const steps: Array<RunbookStep> = readStepsForEditor([
+      { ...step(RunbookStepType.Bash, {}), id: "b", order: 7 },
+      { ...step(RunbookStepType.Manual, {}), id: "", order: 3 },
+      { ...step(RunbookStepType.HttpRequest, {}), id: "c", order: 9 },
+    ]);
+
+    expect(
+      steps.map((each: RunbookStep) => {
+        return [each.type, each.order];
+      }),
+    ).toEqual([
+      [RunbookStepType.Manual, 0],
+      [RunbookStepType.Bash, 1],
+      [RunbookStepType.HttpRequest, 2],
+    ]);
+    // A step saved without an id is given one.
+    expect(steps[0]!.id).toMatch(UUID_SHAPE);
+    expect(steps[1]!.id).toBe("b");
+  });
+
+  test("a runbook a client saved with the old approval after a step shows it on the step it held back", () => {
+    const steps: Array<RunbookStep> = readStepsForEditor([
+      {
+        ...step(RunbookStepType.SSH, { script: "uptime" }),
+        id: "stop",
+        order: 0,
+        requireApproval: true,
+      },
+      {
+        ...step(RunbookStepType.Kubernetes, { script: "kubectl get pods" }),
+        id: "promote",
+        order: 1,
+      },
+      {
+        ...step(RunbookStepType.AI, { prompt: "Summarize." }),
+        id: "summary",
+        order: 2,
+        requireApproval: true,
+      },
+    ]);
+
+    expect(
+      steps.map((each: RunbookStep) => {
+        return [each.id, each.type, each.requireApprovalBeforeRunning === true];
+      }),
+    ).toEqual([
+      ["stop", RunbookStepType.SSH, false],
+      ["promote", RunbookStepType.Kubernetes, true],
+      ["summary", RunbookStepType.AI, false],
+      ["summary-approval", RunbookStepType.Manual, false],
+    ]);
+    // What the editor saves never says it the old way.
+    expect(JSON.stringify(steps)).not.toContain('"requireApproval"');
+  });
+
+  test("no steps, or what is not a list of steps, is no steps", () => {
+    expect(readStepsForEditor(undefined)).toEqual([]);
+    expect(readStepsForEditor(null)).toEqual([]);
+    expect(readStepsForEditor({})).toEqual([]);
+  });
+
+  test("moving a step moves its approval with it: the approval is the step's own", () => {
+    const steps: Array<RunbookStep> = readStepsForEditor([
+      {
+        ...step(RunbookStepType.Bash, {}),
+        id: "a",
+        order: 0,
+      },
+      {
+        ...step(RunbookStepType.Kubernetes, {}),
+        id: "b",
+        order: 1,
+        requireApprovalBeforeRunning: true,
+      },
+    ]);
+
+    // The person drags b above a.
+    const moved: Array<RunbookStep> = readStepsForEditor([
+      { ...steps[1]!, order: 0 },
+      { ...steps[0]!, order: 1 },
+    ]);
+
+    expect(
+      moved.map((each: RunbookStep) => {
+        return [each.id, each.requireApprovalBeforeRunning === true];
+      }),
+    ).toEqual([
+      ["b", true],
+      ["a", false],
+    ]);
   });
 });
 
