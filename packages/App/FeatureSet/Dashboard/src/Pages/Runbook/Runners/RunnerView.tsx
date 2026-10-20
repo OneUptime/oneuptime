@@ -1,6 +1,10 @@
 import RunnerInstallInstructions from "../../../Components/Runner/InstallInstructions";
 import RunnerStatusElement from "../../../Components/Runner/RunnerStatus";
-import RunnerCodeRepositories from "../../../Components/Runner/RunnerCodeRepositories";
+import RunnerCodeRepositoryList, {
+  RunnerCodeRepositoriesCopy,
+  RunnerCodeRepositoryRow,
+  loadRunnerCodeRepositories,
+} from "../../../Components/Runner/RunnerCodeRepositories";
 import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import { isKubernetesAgentRunnerRow } from "../../Kubernetes/Utils/KubernetesAgentRunner";
@@ -34,6 +38,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
   useState,
 } from "react";
 import OwnersCard from "../../../Components/Owners/OwnersCard";
@@ -55,6 +60,36 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
     useState<RunnerFormRestrictions>(NO_RUNNER_FORM_RESTRICTIONS);
   const kubernetesAgentRunnerNote: string | null =
     getKubernetesAgentRunnerFormNote(formRestrictions);
+
+  /*
+   * The code repositories that pick this Runner (AI works in them on it),
+   * read once: undefined while on their way, null when they cannot be read
+   * - by someone who may not read code repositories, or on a plan without
+   * Code - and then Runner Details has no row for them.
+   */
+  const [codeRepositories, setCodeRepositories] = useState<
+    Array<RunnerCodeRepositoryRow> | null | undefined
+  >(undefined);
+
+  useEffect(() => {
+    let isMounted: boolean = true;
+
+    loadRunnerCodeRepositories(modelId)
+      .then((rows: Array<RunnerCodeRepositoryRow> | null) => {
+        if (isMounted) {
+          setCodeRepositories(rows);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setCodeRepositories(null);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [modelId.toString()]);
 
   const translator: Translator = useTranslator();
 
@@ -153,6 +188,33 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
               field: { canRunAiCommands: true },
               title: "Runs AI Remediation Commands",
               fieldType: FieldType.Boolean,
+            },
+            /*
+             * What replaced the "Runs AI Code Fixes" switch, where it was:
+             * the code repositories that pick this Runner, each linked to
+             * its settings in Code, where a repository picks its Runner -
+             * or, with none, where that is done. Not on an in-cluster
+             * Runner the Kubernetes agent chart installed, which no
+             * repository may pick, nor for someone who cannot read the
+             * repositories.
+             */
+            {
+              field: { _id: true },
+              title: RunnerCodeRepositoriesCopy.title,
+              fieldType: FieldType.Element,
+              showIf: (item: Runner): boolean => {
+                return (
+                  Array.isArray(codeRepositories) &&
+                  !isKubernetesAgentRunnerRow(item)
+                );
+              },
+              getElement: (): ReactElement => {
+                return (
+                  <RunnerCodeRepositoryList
+                    repositories={codeRepositories || []}
+                  />
+                );
+              },
             },
             {
               field: {
@@ -317,37 +379,24 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
       />
 
       {/*
-       * The code repositories that pick this Runner: AI works in them on it.
-       * A repository picks its Runner in its settings in Code, so this is
-       * where a Runner says what code work it has (a Runner has no switch
-       * for it). Not drawn on an in-cluster Runner the Kubernetes agent
-       * chart installed, which no repository may pick.
-       */}
-      {isRunnerLoaded && !formRestrictions.areShellCapabilitiesLocked ? (
-        <RunnerCodeRepositories runnerId={modelId} />
-      ) : (
-        <></>
-      )}
-
-      {/*
        * Gated on the load, not on the key. A reader who cannot see the key
        * used to get no Setup Instructions card at all and no hint that one
        * exists; now they get the card explaining who can hand them the
        * command. Waiting for the load keeps that explanation from flashing up
        * before we know whether the key is coming.
+       *
+       * The instructions are the card's body, not its description: a card
+       * hides its description below md, which left a phone with the title
+       * and no command, and a description is a paragraph, which cannot hold
+       * the command's block.
        */}
       {isRunnerLoaded && (
-        <Card
-          title="Setup Instructions"
-          description={
-            <div className="mt-5">
-              <RunnerInstallInstructions
-                runnerId={modelId}
-                runnerKey={agentKey || ""}
-              />
-            </div>
-          }
-        />
+        <Card title="Setup Instructions">
+          <RunnerInstallInstructions
+            runnerId={modelId}
+            runnerKey={agentKey || ""}
+          />
+        </Card>
       )}
 
       {/*

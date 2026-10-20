@@ -698,8 +698,9 @@ test.describe("a repository's page: ask AI", () => {
     },
     {
       type: "RunnerNotOnline",
+      // The server names the Runner the repository picks.
       sentence:
-        "The Runner this repository picks is not online. Check that its container is running, or pick another Runner.",
+        "The Runner this repository picks, prod-eu-west-1, is not online. Check that its container is running, or pick another Runner.",
       fix: "Pick a Runner",
       href: SETTINGS_OF_CHECKOUT,
     },
@@ -914,6 +915,24 @@ test.describe("a repository's Runner", () => {
     return modal;
   }
 
+  /*
+   * The card's Runner: its name, and how it is doing as the Runners page
+   * draws it - a status dot read out as "Status: Connected".
+   */
+  async function expectRunnerValue(
+    page: Page,
+    name: string,
+    status: string,
+  ): Promise<Locator> {
+    const value: Locator = page.getByTestId("code-repository-runner");
+    await expect(value).toContainText(name);
+    await expect(value.getByRole("status")).toHaveAttribute(
+      "aria-label",
+      `Status: ${status}`,
+    );
+    return value;
+  }
+
   async function save(
     page: Page,
     modal: Locator,
@@ -940,8 +959,20 @@ test.describe("a repository's Runner", () => {
   }, testInfo: TestInfo) => {
     await page.goto(SETTINGS);
 
-    const value: Locator = page.getByTestId("code-repository-runner");
-    await expect(value).toHaveText("Global Runner · Connected");
+    const value: Locator = await expectRunnerValue(
+      page,
+      "Global Runner",
+      "Connected",
+    );
+    // Global Runner is no page of the project's to link to.
+    await expect(value.getByRole("link")).toHaveCount(0);
+    /*
+     * The repository has setup, build and test commands, which Global
+     * Runner never runs: said under it, above the commands the card lists.
+     */
+    await expect(value.getByTestId("code-repository-runner-skips")).toHaveText(
+      "Run by OneUptime for every project. It skips your setup, build and test commands.",
+    );
     await expect(settingsCard(page)).toContainText(
       "Where AI works in this repository.",
     );
@@ -957,6 +988,17 @@ test.describe("a repository's Runner", () => {
     await page.goto(SETTINGS);
     const modal: Locator = await openRunnerStep(page);
 
+    /*
+     * A field like the dialog's others: the form's title and the card's
+     * own description above the menu, which the title names, and no
+     * "(Optional)" - empty is Global Runner, an answer of its own.
+     */
+    await expect(modal).toContainText("Where AI works in this repository.");
+    await expect(modal).not.toContainText("(Optional)");
+    await expect(runnerPicker(page).locator("label")).toHaveCount(0);
+    await expect(runnerPicker(page).getByRole("combobox")).toHaveAccessibleName(
+      "Runner",
+    );
     await expect(runnerPicker(page)).toContainText("Global Runner · Connected");
     await expect(
       page.getByTestId("code-repository-runner-picker-help"),
@@ -990,8 +1032,16 @@ test.describe("a repository's Runner", () => {
     expect(saved["runnerId"]).toBe(RUNNER.prod);
 
     // The card names it, linked to its page, with how it is doing.
-    const value: Locator = page.getByTestId("code-repository-runner");
-    await expect(value).toHaveText("prod-eu-west-1 · Connected");
+    const value: Locator = await expectRunnerValue(
+      page,
+      "prod-eu-west-1",
+      "Connected",
+    );
+    await expect(value.getByRole("link")).toHaveText("prod-eu-west-1");
+    // Its own Runner runs the commands: nothing is said about skipping them.
+    await expect(value.getByTestId("code-repository-runner-skips")).toHaveCount(
+      0,
+    );
     await expect(value.getByRole("link")).toHaveAttribute(
       "href",
       `${DASHBOARD}/runbooks/runners/${RUNNER.prod}`,
@@ -1004,9 +1054,7 @@ test.describe("a repository's Runner", () => {
     page: Page;
   }) => {
     await page.goto(`${SETTINGS}?runner=prod`);
-    await expect(page.getByTestId("code-repository-runner")).toHaveText(
-      "prod-eu-west-1 · Connected",
-    );
+    await expectRunnerValue(page, "prod-eu-west-1", "Connected");
 
     const modal: Locator = await openRunnerStep(page);
     await expect(runnerPicker(page)).toContainText(
@@ -1017,9 +1065,7 @@ test.describe("a repository's Runner", () => {
 
     const saved: Record<string, unknown> = await save(page, modal);
     expect(saved["runnerId"]).toBeNull();
-    await expect(page.getByTestId("code-repository-runner")).toHaveText(
-      "Global Runner · Connected",
-    );
+    await expectRunnerValue(page, "Global Runner", "Connected");
   });
 
   test("a project that turned global Runners off says so, and its picker asks for one of the project's own", async ({
@@ -1045,7 +1091,7 @@ test.describe("a repository's Runner", () => {
     ]);
   });
 
-  test("a server with no global Runner, and a pick the project no longer has, are said as they are", async ({
+  test("a server with no global Runner, and a pick the reader is not shown, are said as they are", async ({
     page,
   }: {
     page: Page;
@@ -1054,16 +1100,32 @@ test.describe("a repository's Runner", () => {
     await expect(page.getByTestId("code-repository-runner")).toHaveText(
       "None: this server runs no global Runner",
     );
-
-    await page.goto(`${SETTINGS}?runner=gone`);
-    await expect(page.getByTestId("code-repository-runner")).toHaveText(
-      "A Runner this project no longer has",
-    );
+    // Nothing is picked: the step says what to do, not what a pick does.
     await openRunnerStep(page);
     await expect(
       page.getByTestId("code-repository-runner-picker-help"),
     ).toHaveText(
-      "This repository picked a Runner that is not one of this project's Runners any more, so AI cannot work in it. Pick another Runner.",
+      "This server runs no global Runner: pick one of your Runners for this repository.",
+    );
+
+    /*
+     * A repository can only pick one of its project's Runners, and a
+     * deleted one leaves it on Global Runner: one the page cannot name is
+     * one the reader may not see - never an id, never a warning.
+     */
+    await page.goto(`${SETTINGS}?runner=gone`);
+    await expect(page.getByTestId("code-repository-runner")).toHaveText(
+      "A Runner you do not have access to",
+    );
+    await openRunnerStep(page);
+    await expect(runnerPicker(page)).toContainText(
+      "A Runner you do not have access to",
+    );
+    await expect(runnerPicker(page)).not.toContainText("60000000-");
+    await expect(
+      page.getByTestId("code-repository-runner-picker-help"),
+    ).toHaveText(
+      "This repository picks a Runner you do not have access to. Pick another Runner to change it.",
     );
   });
 
@@ -1073,9 +1135,7 @@ test.describe("a repository's Runner", () => {
     page: Page;
   }) => {
     await page.goto(`${SETTINGS}?gstatus=disconnected`);
-    await expect(page.getByTestId("code-repository-runner")).toHaveText(
-      "Global Runner · Disconnected",
-    );
+    await expectRunnerValue(page, "Global Runner", "Disconnected");
 
     await openRunnerStep(page);
     await expect(

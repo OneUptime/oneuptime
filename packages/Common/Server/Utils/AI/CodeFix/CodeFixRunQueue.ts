@@ -154,9 +154,14 @@ export default class CodeFixRunQueue {
     }
   }
 
-  // What an orphaned run fails with: how long it waited, why, what to do.
+  /*
+   * What an orphaned run fails with: how long it waited, then why and what
+   * to do - each reason ends with its own next step. Nothing after it: the
+   * failed turn has its own Try again, and "Then start the task again"
+   * after "try again once the global Runner is back" said it twice.
+   */
   public static getOrphanedRunMessage(why: string): string {
-    return `No Runner picked this task up within ${ORPHANED_QUEUED_TIMEOUT_MINUTES} minutes. ${why} Then start the task again.`;
+    return `No Runner picked this task up within ${ORPHANED_QUEUED_TIMEOUT_MINUTES} minutes. ${why}`;
   }
 
   /*

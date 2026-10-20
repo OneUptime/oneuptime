@@ -88,9 +88,24 @@ export const CODE_GLOBAL_RUNNER_NOT_CONNECTED_TEXT: string = translationKey(
   "No global Runner is connected right now, so AI cannot work in this repository until one is.",
 );
 
-// Under a code repository's picker that names a Runner the project no longer has.
-export const CODE_UNKNOWN_RUNNER_HELPER_TEXT: string = translationKey(
-  "This repository picked a Runner that is not one of this project's Runners any more, so AI cannot work in it. Pick another Runner.",
+/*
+ * A repository's pick that is not among the Runners the reader was shown.
+ * A repository can only pick one of its project's own Runners, and one that
+ * is deleted leaves the repository on Global Runner (SET NULL), so such a
+ * pick is a Runner the reader may not see - not a broken one: the menu, the
+ * line under it and the settings card say so, without an id or a warning.
+ */
+export const CODE_HIDDEN_RUNNER_LABEL: string = translationKey(
+  "A Runner you do not have access to",
+);
+
+export const CODE_HIDDEN_RUNNER_HELPER_TEXT: string = translationKey(
+  "This repository picks a Runner you do not have access to. Pick another Runner to change it.",
+);
+
+// Under a code repository's picker that picked none, on a server with no global Runner.
+export const CODE_NO_GLOBAL_RUNNER_HELPER_TEXT: string = translationKey(
+  "This server runs no global Runner: pick one of your Runners for this repository.",
 );
 
 export interface RunnerPickerRunner {
@@ -128,7 +143,10 @@ export interface RunnerPickerFacts {
 export enum RunnerPickerOptionKind {
   Global = "global",
   Project = "project",
-  // A Runner the step names that is not one of the project's any more.
+  /*
+   * A Runner the step names that is not one of the project's any more - or,
+   * for a repository, one the reader may not see (CODE_HIDDEN_RUNNER_LABEL).
+   */
   Unknown = "unknown",
 }
 

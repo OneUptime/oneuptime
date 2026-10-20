@@ -1211,6 +1211,58 @@ describe("what stops AI working", () => {
     },
   );
 
+  /*
+   * The server names the Runner the repository picks when it is offline
+   * (CodeTaskBlocker.runnerName): the notice says which one to check, its
+   * name drawn in bold inside the sentence, in the reader's language.
+   */
+  test("RunnerNotOnline names the Runner the repository picks, in bold, when the server names it", () => {
+    grant([Permission.ProjectUser, Permission.ProjectOwner]);
+    draw(
+      <CodeBlockerNotice
+        blocker={{
+          type: CodeTaskBlockerType.RunnerNotOnline,
+          message: "The server's words.",
+          runnerName: "prod-eu-west-1",
+        }}
+        repositoryId={REPOSITORY_ID}
+      />,
+    );
+
+    const notice: HTMLElement = screen.getByTestId("code-blocker");
+
+    expect(notice).toHaveTextContent(
+      "The Runner this repository picks, prod-eu-west-1, is not online. Check that its container is running, or pick another Runner.",
+    );
+    const name: HTMLElement = within(notice).getByTestId("code-blocker-runner");
+    expect(name).toHaveTextContent("prod-eu-west-1");
+    expect(name.className).toContain("font-semibold");
+    // Never the server's English words, and still the one fix.
+    expect(notice).not.toHaveTextContent("The server's words.");
+    expect(within(notice).getByTestId("code-blocker-fix")).toHaveTextContent(
+      "Pick a Runner",
+    );
+  });
+
+  test("negative control: a Runner name on any other blocker is not drawn", () => {
+    grant([Permission.ProjectUser, Permission.ProjectOwner]);
+    draw(
+      <CodeBlockerNotice
+        blocker={{
+          type: CodeTaskBlockerType.NoAgent,
+          message: "x",
+          runnerName: "prod-eu-west-1",
+        }}
+        repositoryId={REPOSITORY_ID}
+      />,
+    );
+
+    expect(screen.getByTestId("code-blocker")).not.toHaveTextContent(
+      "prod-eu-west-1",
+    );
+    expect(screen.queryByTestId("code-blocker-runner")).toBeNull();
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });

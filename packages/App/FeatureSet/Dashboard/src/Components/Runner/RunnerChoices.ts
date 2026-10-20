@@ -91,6 +91,11 @@ export default class RunnerChoicesLoader {
    * A code repository's Runner picker: the project's own Runners a
    * repository may pick, the global Runners for code, and the project's
    * switch for global Runners.
+   *
+   * Each is read on its own: someone who may change a repository's settings
+   * but not read Runners (Settings Member) is still told the repository is
+   * on Global Runner and how it is doing - not that the server runs none -
+   * and a Runner it picks is one they do not have access to.
    */
   public static async loadForCodeRepository(
     projectId: ObjectID,
@@ -102,6 +107,8 @@ export default class RunnerChoicesLoader {
     ] = await Promise.all([
       RunnerChoicesLoader.loadProjectRunners(projectId, {
         forCodeRepository: true,
+      }).catch((): Array<RunnerPickerRunner> => {
+        return [];
       }),
       RunnerChoicesLoader.loadGlobalCodeRunners(),
       RunnerChoicesLoader.loadProjectUsesGlobalRunners(projectId),

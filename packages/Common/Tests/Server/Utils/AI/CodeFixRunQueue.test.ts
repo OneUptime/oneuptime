@@ -320,16 +320,22 @@ describe("CodeFixRunQueue.failOrphanedQueuedRuns", () => {
     );
   });
 
-  test("the message says how long it waited, why, and to start it again - never the old switch", () => {
+  /*
+   * Each reason ends with its own next step, and the failed turn has its own
+   * Try again: nothing follows the reason ("Then start the task again" after
+   * "try again once the global Runner is back" said it twice).
+   */
+  test("the message says how long it waited, then why and what to do - once, never the old switch", () => {
     const message: string = CodeFixRunQueue.getOrphanedRunMessage(
       NO_GLOBAL_RUNNER_ONLINE_DETAIL,
     );
 
-    expect(
-      message.startsWith("No Runner picked this task up within 30 minutes."),
-    ).toBe(true);
-    expect(message).toContain(NO_GLOBAL_RUNNER_ONLINE_DETAIL);
-    expect(message.endsWith("Then start the task again.")).toBe(true);
+    expect(message).toBe(
+      `No Runner picked this task up within 30 minutes. ${NO_GLOBAL_RUNNER_ONLINE_DETAIL}`,
+    );
+    expect(message.endsWith(NO_GLOBAL_RUNNER_ONLINE_DETAIL)).toBe(true);
+    expect(message.toLowerCase().split("again").length - 1).toBe(1);
+    expect(message).not.toContain("start the task again");
     expect(message).not.toContain("Code Fixes");
   });
 });

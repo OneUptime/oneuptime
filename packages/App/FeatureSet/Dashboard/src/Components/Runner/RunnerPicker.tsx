@@ -21,7 +21,9 @@ import {
   CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
   CODE_GLOBAL_RUNNER_HELPER_TEXT,
   CODE_GLOBAL_RUNNER_NOT_CONNECTED_TEXT,
-  CODE_UNKNOWN_RUNNER_HELPER_TEXT,
+  CODE_HIDDEN_RUNNER_HELPER_TEXT,
+  CODE_HIDDEN_RUNNER_LABEL,
+  CODE_NO_GLOBAL_RUNNER_HELPER_TEXT,
   GLOBAL_RUNNERS_OFF_HELPER_TEXT,
   GLOBAL_RUNNER_CHOICE_DESCRIPTION,
   GLOBAL_RUNNER_CHOICE_LABEL,
@@ -70,6 +72,16 @@ export interface ComponentProps {
   // The line under the picker when one of the project's own Runners is picked.
   ownRunnerHelperText: ReactNode;
   dataTestId?: string | undefined;
+  /*
+   * A field of a form (a code repository's settings): the form draws the
+   * field's title and description above the picker, as it does for every
+   * other field, so the picker draws no "Runner" label of its own and its
+   * lines under the menu are the size of a form's. Left out, the picker is
+   * the compact one of a runbook step, with its own small label.
+   */
+  isFormField?: boolean | undefined;
+  // The id of the label the form drew for the field, read out with the menu.
+  ariaLabelledby?: string | undefined;
 }
 
 export const RUNNER_PICKER_TEST_ID: string = "runner-picker";
@@ -124,12 +136,20 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
       };
     }
 
+    /*
+     * A repository can only pick one of its project's Runners, and a Runner
+     * that is deleted leaves it on Global Runner, so a pick the picker
+     * cannot name is one the reader may not see: said so, not as an id.
+     */
     if (option.kind === RunnerPickerOptionKind.Unknown) {
       return {
         value: option.value,
-        label: translator.translateTemplate("Unknown Runner ({{id}})", {
-          id: option.value,
-        }),
+        label: isForCodeRepository
+          ? translator.translateText(CODE_HIDDEN_RUNNER_LABEL) ||
+            CODE_HIDDEN_RUNNER_LABEL
+          : translator.translateTemplate("Unknown Runner ({{id}})", {
+              id: option.value,
+            }),
       };
     }
 
@@ -235,29 +255,50 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
       );
     }
 
+    /*
+     * A repository's pick the reader may not see still works: nothing is
+     * wrong with it, so it is said plainly, not as a warning.
+     */
     if (model.outcome === RunnerPickerOutcome.UnknownRunner) {
+      if (isForCodeRepository) {
+        return translator.translateText(CODE_HIDDEN_RUNNER_HELPER_TEXT);
+      }
+
       return (
         <span className="text-amber-700">
           {translator.translateText(
-            isForCodeRepository
-              ? CODE_UNKNOWN_RUNNER_HELPER_TEXT
-              : "This step picked a Runner that is not one of this project's Runners any more, so it will fail when it runs. Pick another Runner.",
+            "This step picked a Runner that is not one of this project's Runners any more, so it will fail when it runs. Pick another Runner.",
           )}
         </span>
       );
     }
 
+    // A repository that picked none, on a server with no global Runner.
+    if (
+      isForCodeRepository &&
+      model.outcome === RunnerPickerOutcome.NoGlobalRunner
+    ) {
+      return translator.translateText(CODE_NO_GLOBAL_RUNNER_HELPER_TEXT);
+    }
+
     return props.ownRunnerHelperText;
   };
 
+  // A form's lines are its descriptions' size; a step's are smaller.
+  const lineClassName: string = props.isFormField ? "text-sm" : "text-xs";
+
   return (
     <div data-testid={dataTestId}>
-      <label className="block text-xs font-medium text-gray-700 mb-1.5">
-        {translator.translateText("Runner")}
-      </label>
+      {props.isFormField ? (
+        <></>
+      ) : (
+        <label className="block text-xs font-medium text-gray-700 mb-1.5">
+          {translator.translateText("Runner")}
+        </label>
+      )}
       {options.length === 0 ? (
         <div
-          className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+          className={`rounded-md border border-amber-200 bg-amber-50 px-3 py-2 ${lineClassName} text-amber-800`}
           data-testid={`${dataTestId}-nothing-to-pick`}
         >
           {renderNothingToPick()}
@@ -271,6 +312,7 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
             isClearable={false}
             dataTestId={`${dataTestId}-dropdown`}
             ariaLabel="Runner"
+            ariaLabelledby={props.ariaLabelledby}
             onChange={(
               value: DropdownValue | Array<DropdownValue> | null,
             ): void => {
@@ -284,14 +326,16 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
             }}
           />
           <p
-            className="text-xs text-gray-500 mt-1.5"
+            className={`${lineClassName} text-gray-500 ${
+              props.isFormField ? "mt-2" : "mt-1.5"
+            }`}
             data-testid={`${dataTestId}-help`}
           >
             {renderHelperText()}
           </p>
           {isGlobalRunnerChoiceWaiting(model) ? (
             <p
-              className="text-xs text-amber-700 mt-1"
+              className={`${lineClassName} text-amber-700 mt-1`}
               data-testid={`${dataTestId}-global-waiting`}
             >
               {translator.translateText(

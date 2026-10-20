@@ -222,6 +222,11 @@ export enum CodeTaskBlockerType {
 export interface CodeTaskBlocker {
   type: CodeTaskBlockerType;
   message: string;
+  /*
+   * RunnerNotOnline: the name of the Runner the repository picks, so the
+   * page says which one to check. Left out when it is not known.
+   */
+  runnerName?: string | undefined;
 }
 
 export interface CodeTaskStateInput {

@@ -55,8 +55,10 @@ The suite drives the pages the way a person does:
   Remediation Commands - and never about AI code fixes, which a code
   repository's settings in Code pick a Runner for; the Runners list shows no
   AI code fix capability; a Runner's own page (`?page=runner&custom=1`)
-  lists the code repositories that pick it, each linked to its settings in
-  Code, or says none does (`&picks=0`);
+  lists the code repositories that pick it in its Runner Details, where the
+  switch was, each linked to its settings in Code, or says none does and
+  where a repository picks its Runner (`&picks=0`); on a phone its Setup
+  Instructions show the command;
 - a phone (nothing runs off the screen, the open picker fits), dark mode
   (`?theme=dark`) and German (`?lang=de`).
 

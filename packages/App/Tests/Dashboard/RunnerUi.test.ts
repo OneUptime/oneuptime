@@ -201,12 +201,12 @@ const NEW_STRINGS: Array<string> = [
   "You do not have permission to view this Runner's key",
   /*
    * A Runner has no "Runs AI Code Fixes" switch any more: a code repository
-   * picks its Runner in Code, and the Runner's page lists the repositories
-   * that pick it.
+   * picks its Runner in Code, and the Runner's details list the
+   * repositories that pick it, where the switch was.
    */
-  "AI works in these repositories on this Runner.",
-  "No code repository picks this Runner. To have AI work in a repository on it, pick it in the repository's settings in Code.",
-  "What this Runner may do is set in OneUptime, not in the container: it adopts a change on its next heartbeat. A code repository that picks it in its settings in Code has AI work on it: it clones the repository and opens pull requests for review — it never writes to your default or protected branches, and never merges.",
+  "Code Repositories",
+  "None. A repository picks its Runner in its settings in Code.",
+  "What this Runner may do is set in OneUptime, not in the container: it adopts a change on its next heartbeat. For each code repository that picks this Runner, it clones the repository for AI and opens pull requests for review — it never writes to your default or protected branches, and never merges.",
 ];
 
 describe("the Runner status element is the single source of truth", () => {

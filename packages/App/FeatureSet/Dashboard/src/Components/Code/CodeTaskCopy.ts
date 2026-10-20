@@ -313,6 +313,15 @@ export const CODE_TASK_BLOCKER_SENTENCES: Partial<
 };
 
 /*
+ * RunnerNotOnline when the server names the Runner (CodeTaskBlocker
+ * .runnerName): which one to check, said in the sentence above's words.
+ * {{runner}} is the Runner's own name, drawn in bold.
+ */
+export const CODE_TASK_RUNNER_NOT_ONLINE_NAMED: string = translationKey(
+  "The Runner this repository picks, {{runner}}, is not online. Check that its container is running, or pick another Runner.",
+);
+
+/*
  * What fixes each thing that stops AI working in a repository: the page and
  * the words on its link. No link where there is nothing the reader can open
  * (a permission they have to ask for, a limit that resets at midnight). AI

@@ -90,6 +90,15 @@ export function getRepositoryRunnerBlocker(
         ? CodeTaskBlockerType.GlobalRunnersOff
         : CodeTaskBlockerType.NoAgent;
 
+  /*
+   * The Runner the repository picks is named, so Code's notice says which
+   * one to check: the person reading it may pick Runners for the project's
+   * repositories, and sees the name in the repository's settings anyway.
+   */
+  if (type === CodeTaskBlockerType.RunnerNotOnline && status.runnerName) {
+    return { type, message, runnerName: status.runnerName };
+  }
+
   return { type, message };
 }
 

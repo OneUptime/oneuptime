@@ -1,6 +1,9 @@
 import RunnerPicker from "../Runner/RunnerPicker";
 import RunnerChoicesLoader, { RunnerChoices } from "../Runner/RunnerChoices";
+import { RunnerLiveStatusBubble } from "../Runner/RunnerStatus";
 import {
+  CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
+  CODE_HIDDEN_RUNNER_LABEL,
   CODE_OWN_RUNNER_HELPER_TEXT,
   GLOBAL_RUNNER_CHOICE_LABEL,
   GLOBAL_RUNNER_CHOICE_VALUE,
@@ -16,9 +19,8 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import { getRepositoryRunnerId } from "Common/Types/Runner/CodeRepositoryRunner";
-import { getRunnerLiveStatusLabel } from "Common/Types/Runner/RunnerLiveStatus";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Link from "Common/UI/Components/Link/Link";
+import Skeleton from "Common/UI/Components/Skeleton/Skeleton";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -41,9 +43,14 @@ import React, {
  * once - always draw the choices as they are now:
  *
  *   - CodeRepositoryRunnerPicker, the form's field: the one Runner picker
- *     (RunnerPicker), for a repository;
+ *     (RunnerPicker), for a repository, drawn as a field of the form - the
+ *     form gives it its title and description, as every other field;
  *   - CodeRepositoryRunnerValue, the card's value: what the repository
- *     runs on, with how it is doing.
+ *     runs on, with how it is doing, drawn as the Runners page draws a
+ *     Runner's status (RunnerLiveStatusBubble).
+ *
+ * While the choices are on their way, each holds the room it will take - a
+ * line of text, a menu - so nothing below it jumps when they arrive.
  */
 
 export const CODE_REPOSITORY_RUNNER_PICKER_TEST_ID: string =
@@ -52,11 +59,19 @@ export const CODE_REPOSITORY_RUNNER_PICKER_TEST_ID: string =
 export const CODE_REPOSITORY_RUNNER_VALUE_TEST_ID: string =
   "code-repository-runner";
 
+// The line under Global Runner when the repository has commands it skips.
+export const CODE_REPOSITORY_RUNNER_SKIPS_TEST_ID: string =
+  "code-repository-runner-skips";
+
 export const CodeRepositoryRunnerCopy: {
   fieldTitle: string;
   fieldDescription: string;
-  // The card's value for a pick the project no longer has.
-  unknownRunner: string;
+  /*
+   * The card's value for a pick the reader is not shown: one of the
+   * project's Runners they may not see (a repository can pick no other, and
+   * a deleted one leaves it on Global Runner).
+   */
+  hiddenRunner: string;
   // The card's value for no pick, in a project that does not use global Runners.
   noneGlobalRunnersOff: string;
   // The card's value for no pick, on a server that runs no global Runner.
@@ -64,7 +79,7 @@ export const CodeRepositoryRunnerCopy: {
 } = {
   fieldTitle: translationKey("Runner"),
   fieldDescription: translationKey("Where AI works in this repository."),
-  unknownRunner: translationKey("A Runner this project no longer has"),
+  hiddenRunner: CODE_HIDDEN_RUNNER_LABEL,
   noneGlobalRunnersOff: translationKey(
     "None: this project does not use global Runners",
   ),
@@ -92,8 +107,10 @@ export function useCodeRepositoryRunnerChoices(): RunnerChoices | null {
       })
       .catch(() => {
         /*
-         * With nothing read, the picker offers what a project starts with:
-         * none of its own Runners, no global one known.
+         * With nothing read (the loader answers what it could read on its
+         * own, so this is a failure it did not expect), the picker offers
+         * what a project starts with: none of its own Runners, no global one
+         * known.
          */
         if (isMounted) {
           setChoices({
@@ -123,7 +140,12 @@ export interface CodeRepositoryRunnerPickerProps {
   value: unknown;
   // The Runner picked: its id, or null for Global Runner.
   onChange: (runnerId: string | null) => void;
+  // The label the form drew for the field, read out with the menu.
+  ariaLabelledby?: string | undefined;
 }
+
+export const CODE_REPOSITORY_RUNNER_LOADING_TEST_ID: string =
+  "code-repository-runner-loading";
 
 export const CodeRepositoryRunnerPicker: FunctionComponent<
   CodeRepositoryRunnerPickerProps
@@ -132,12 +154,20 @@ export const CodeRepositoryRunnerPicker: FunctionComponent<
   const choices: RunnerChoices | null = useCodeRepositoryRunnerChoices();
 
   if (!choices) {
-    return <ComponentLoader />;
+    // The menu's own height, so the step does not jump when it arrives.
+    return (
+      <Skeleton
+        className="h-10 w-full rounded-md"
+        dataTestId={CODE_REPOSITORY_RUNNER_LOADING_TEST_ID}
+      />
+    );
   }
 
   return (
     <RunnerPicker
       work={RunnerPickerWork.CodeRepository}
+      isFormField={true}
+      ariaLabelledby={props.ariaLabelledby}
       stepType=""
       value={getRepositoryRunnerId(props.value)}
       onChange={(runnerId: string): void => {
@@ -156,12 +186,22 @@ export const CodeRepositoryRunnerPicker: FunctionComponent<
 
 export interface CodeRepositoryRunnerValueProps {
   runnerId: unknown;
+  /*
+   * Whether the repository has a setup, build or test command: on Global
+   * Runner, which never runs them, the card says so under the Runner, next
+   * to the commands it lists.
+   */
+  hasCommands?: boolean | undefined;
 }
 
 /*
- * What the repository runs on, as the card shows it: "Global Runner ·
- * Connected", or the Runner's name - a link to its page - and how it is
- * doing.
+ * What the repository runs on, as the card shows it: "Global Runner", or
+ * the Runner's name - a link to its page - and how it is doing, as the
+ * Runners page draws it (a green dot for Connected, red for Disconnected,
+ * grey for Never connected). It stays still: a settings value, not a live
+ * view. On Global Runner, a repository with commands is told under it that
+ * they are skipped - the card lists them right below, and nothing else
+ * there would say they never run.
  */
 export const CodeRepositoryRunnerValue: FunctionComponent<
   CodeRepositoryRunnerValueProps
@@ -171,7 +211,13 @@ export const CodeRepositoryRunnerValue: FunctionComponent<
   const runnerId: string = getRepositoryRunnerId(props.runnerId);
 
   if (!choices) {
-    return <ComponentLoader />;
+    // A value's own line, so the rows below do not jump when it arrives.
+    return (
+      <Skeleton
+        className="my-1 h-4 w-40"
+        dataTestId={CODE_REPOSITORY_RUNNER_LOADING_TEST_ID}
+      />
+    );
   }
 
   const model: RunnerPickerModel = buildRunnerPickerModel({
@@ -183,42 +229,63 @@ export const CodeRepositoryRunnerValue: FunctionComponent<
     projectUsesGlobalRunners: choices.projectUsesGlobalRunners,
   });
 
-  const status: string | null = model.selected?.liveStatus
-    ? translator.translateText(
-        getRunnerLiveStatusLabel(model.selected.liveStatus),
-      ) || null
-    : null;
-
-  const statusSuffix: ReactElement = status ? (
-    <span className="text-gray-500"> · {status}</span>
-  ) : (
-    <></>
-  );
+  const withStatus: (
+    name: ReactElement,
+    note?: string | undefined,
+  ) => ReactElement = (
+    name: ReactElement,
+    note?: string | undefined,
+  ): ReactElement => {
+    return (
+      <div data-testid={CODE_REPOSITORY_RUNNER_VALUE_TEST_ID}>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          {name}
+          {model.selected?.liveStatus ? (
+            <RunnerLiveStatusBubble
+              status={model.selected.liveStatus}
+              isConnectedAnimated={false}
+            />
+          ) : (
+            <></>
+          )}
+        </div>
+        {note ? (
+          <p
+            className="mt-0.5 text-xs text-gray-500"
+            data-testid={CODE_REPOSITORY_RUNNER_SKIPS_TEST_ID}
+          >
+            {translator.translateText(note)}
+          </p>
+        ) : (
+          <></>
+        )}
+      </div>
+    );
+  };
 
   if (model.selected?.kind === RunnerPickerOptionKind.Project) {
-    return (
-      <span data-testid={CODE_REPOSITORY_RUNNER_VALUE_TEST_ID}>
-        <Link
-          to={RouteUtil.populateRouteParams(
-            RouteMap[PageMap.RUNBOOKS_RUNNER_VIEW] as Route,
-            { modelId: model.selected.value },
-          )}
-          className="font-medium text-indigo-600 hover:text-indigo-500 hover:underline"
-        >
-          <>{model.selected.name}</>
-        </Link>
-        {statusSuffix}
-      </span>
+    return withStatus(
+      <Link
+        to={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.RUNBOOKS_RUNNER_VIEW] as Route,
+          { modelId: model.selected.value },
+        )}
+        className="min-w-0 break-words font-medium text-indigo-600 hover:text-indigo-500 hover:underline"
+      >
+        <>{model.selected.name}</>
+      </Link>,
     );
   }
 
+  /*
+   * A pick the reader is not shown: one of the project's Runners they may
+   * not see. Nothing is wrong with it, so it is said in the value's own
+   * colour.
+   */
   if (model.outcome === RunnerPickerOutcome.UnknownRunner) {
     return (
-      <span
-        className="text-amber-700"
-        data-testid={CODE_REPOSITORY_RUNNER_VALUE_TEST_ID}
-      >
-        {translator.translateText(CodeRepositoryRunnerCopy.unknownRunner)}
+      <span data-testid={CODE_REPOSITORY_RUNNER_VALUE_TEST_ID}>
+        {translator.translateText(CodeRepositoryRunnerCopy.hiddenRunner)}
       </span>
     );
   }
@@ -246,10 +313,8 @@ export const CodeRepositoryRunnerValue: FunctionComponent<
     );
   }
 
-  return (
-    <span data-testid={CODE_REPOSITORY_RUNNER_VALUE_TEST_ID}>
-      {translator.translateText(GLOBAL_RUNNER_CHOICE_LABEL)}
-      {statusSuffix}
-    </span>
+  return withStatus(
+    <span>{translator.translateText(GLOBAL_RUNNER_CHOICE_LABEL)}</span>,
+    props.hasCommands ? CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION : undefined,
   );
 };

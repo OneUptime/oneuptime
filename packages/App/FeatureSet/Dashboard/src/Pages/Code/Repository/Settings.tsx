@@ -280,18 +280,21 @@ const CodeRepositorySettings: FunctionComponent<
           /*
            * The Runner AI works in the repository on: the one Runner picker,
            * with Global Runner first (empty), then the project's own Runners.
-           * It draws its own label and the line under it.
+           * A field like the others: the form draws its title and the line
+           * under it (the card's own words), the picker the menu and what
+           * the Runner picked means for AI's work. Empty is Global Runner,
+           * an answer of its own, so it is not "(Optional)".
            */
           {
             field: {
               runnerId: true,
             },
             title: CodeRepositoryRunnerCopy.fieldTitle,
+            description: CodeRepositoryRunnerCopy.fieldDescription,
             stepId: "runner",
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
-            customElementDrawsOwnLabel: true,
-            hideColumnDescription: true,
+            hideOptionalLabel: true,
             dataTestId: "code-repository-runner",
             getCustomElement: (
               values: FormValues<CodeRepository>,
@@ -300,6 +303,7 @@ const CodeRepositorySettings: FunctionComponent<
               return (
                 <CodeRepositoryRunnerPicker
                   value={values.runnerId}
+                  ariaLabelledby={elementProps.ariaLabelledby}
                   onChange={(runnerId: string | null): void => {
                     elementProps.onChange?.(runnerId);
                   }}
@@ -418,7 +422,16 @@ const CodeRepositorySettings: FunctionComponent<
               description: CodeRepositoryRunnerCopy.fieldDescription,
               fieldType: FieldType.Element,
               getElement: (item: CodeRepository): ReactElement => {
-                return <CodeRepositoryRunnerValue runnerId={item.runnerId} />;
+                return (
+                  <CodeRepositoryRunnerValue
+                    runnerId={item.runnerId}
+                    hasCommands={Boolean(
+                      item.setupCommand ||
+                        item.buildCommand ||
+                        item.testCommand,
+                    )}
+                  />
+                );
               },
             },
             {

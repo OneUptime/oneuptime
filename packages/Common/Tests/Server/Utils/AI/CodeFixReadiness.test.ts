@@ -476,6 +476,23 @@ describe("why nothing can do a repository's work, in words and as Code's blocker
     expect(getRepositoryRunnerBlocker(online)).toBeNull();
   });
 
+  test("a Runner whose name is not known is not named", () => {
+    const blocker: ReturnType<typeof getRepositoryRunnerBlocker> =
+      getRepositoryRunnerBlocker({
+        decision: {
+          kind: CodeRepositoryRunnerChoiceKind.Custom,
+          runnerId: "0a1b2c3d-1111-4222-8333-944455556666",
+        },
+        isOnline: false,
+      });
+
+    expect(blocker).toEqual({
+      type: CodeTaskBlockerType.RunnerNotOnline,
+      message: getRepositoryRunnerOfflineDetail(undefined),
+    });
+    expect(Object.keys(blocker || {})).not.toContain("runnerName");
+  });
+
   test("each kind of decision is its own blocker", () => {
     expect(
       getRepositoryRunnerBlocker({
@@ -489,6 +506,8 @@ describe("why nothing can do a repository's work, in words and as Code's blocker
     ).toEqual({
       type: CodeTaskBlockerType.RunnerNotOnline,
       message: getRepositoryRunnerOfflineDetail("prod-runner"),
+      // Named, so Code's notice says which Runner to check.
+      runnerName: "prod-runner",
     });
     expect(
       getRepositoryRunnerBlocker({

@@ -67,6 +67,9 @@ const EXECUTION_TIMEOUT_LABEL: RegExp = /^Execution timeout/;
 // The old line under a folded step, which named no Runner.
 const OLD_FOLDED_LINE: RegExp = /on a Runner$/;
 
+// Runs of white space, read as one space.
+const WHITE_SPACE_RUNS: RegExp = /\s+/g;
+
 interface Recorded {
   updates: Array<{ model: string; id: string; data: Record<string, unknown> }>;
   creates: Array<{ model: string; data: Record<string, unknown> }>;
@@ -834,18 +837,24 @@ test.describe("a Runner and AI code fixes", () => {
     await expect(customCard).not.toContainText("AI code fixes");
   });
 
-  test("a Runner's page lists the code repositories that pick it, each linked to its settings in Code", async ({
+  /*
+   * Where the "Runs AI Code Fixes" switch was: Runner Details lists the
+   * code repositories that pick the Runner, after what it may run - not a
+   * card of its own between Runner Status and the setup command.
+   */
+  test("a Runner's details list the code repositories that pick it, each linked to its settings in Code", async ({
     page,
   }: {
     page: Page;
   }) => {
     await page.goto(`${RUNNER_PAGE}?page=runner&custom=1`);
 
-    const repositories: Locator = card(page, "Code Repositories");
-    await expect(repositories).toBeVisible();
-    await expect(repositories).toContainText(
-      "AI works in these repositories on this Runner.",
+    const details: Locator = card(page, "Runner Details");
+    const repositories: Locator = details.getByTestId(
+      "runner-code-repositories",
     );
+    await expect(repositories).toBeVisible();
+    await expect(details).toContainText("Code Repositories");
     const link: Locator = repositories.getByRole("link", {
       name: "checkout-service",
     });
@@ -856,26 +865,65 @@ test.describe("a Runner and AI code fixes", () => {
     // A repository that picks no Runner works on a global Runner: not listed.
     await expect(repositories).not.toContainText("web-app");
 
+    // The row comes after what the Runner may run, and before its labels.
+    const text: string = (await details.innerText()).replace(
+      WHITE_SPACE_RUNS,
+      " ",
+    );
+    const runsRemediation: number = text.indexOf(
+      "Runs AI Remediation Commands",
+    );
+    const row: number = text.indexOf("Code Repositories");
+    const labels: number = text.indexOf("Labels");
+    expect(runsRemediation).toBeGreaterThan(-1);
+    expect(row).toBeGreaterThan(runsRemediation);
+    expect(labels).toBeGreaterThan(row);
+
+    // Not a card of its own any more.
+    await expect(card(page, "Code Repositories")).toHaveCount(0);
     // The Runner's details say what it may run, and nothing about code fixes.
-    const details: Locator = card(page, "Runner Details");
     await expect(details).toContainText("Runs Runbooks");
     await expect(details).not.toContainText("Runs AI Code Fixes");
     await screenshot(page, "runner-code-repositories");
   });
 
-  test("no repository picks it: the card says so, and where a repository picks it", async ({
+  test("no repository picks it: one short line says so, and where a repository picks its Runner", async ({
     page,
   }: {
     page: Page;
   }) => {
     await page.goto(`${RUNNER_PAGE}?page=runner&custom=1&picks=0`);
 
-    await expect(page.getByTestId("runner-code-repositories-empty")).toHaveText(
-      "No code repository picks this Runner. To have AI work in a repository on it, pick it in the repository's settings in Code.",
+    const details: Locator = card(page, "Runner Details");
+    await expect(
+      details.getByTestId("runner-code-repositories-empty"),
+    ).toHaveText(
+      "None. A repository picks its Runner in its settings in Code.",
     );
-    await expect(card(page, "Code Repositories").getByRole("link")).toHaveCount(
+    await expect(details.getByTestId("runner-code-repositories")).toHaveCount(
       0,
     );
+  });
+
+  /*
+   * The setup command is the card's body, not its description: a card
+   * hides its description below md, which left a phone with "Setup
+   * Instructions" and nothing under it.
+   */
+  test("on a phone, Setup Instructions show the command", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${RUNNER_PAGE}?page=runner&custom=1`);
+
+    const setup: Locator = card(page, "Setup Instructions");
+    await expect(setup).toBeVisible();
+    await expect(setup).toContainText("docker run --name oneuptime-runner");
+    await expect(
+      setup.getByText("docker run --name oneuptime-runner"),
+    ).toBeVisible();
   });
 });
 

@@ -39,8 +39,9 @@
  *   - refuse=create|reply  the server refuses that send (its sentence)
  *   - fail=repositories|repository|list|task  that read fails
  *   - runner=prod|gone  the Runner checkout-api picks in its settings:
- *                       prod-eu-west-1, or one the project no longer has;
- *                       by default none (a global Runner)
+ *                       prod-eu-west-1, or one the page is not shown (a
+ *                       Runner the reader does not have access to); by
+ *                       default none (a global Runner)
  *   - uses=0            the project turned global Runners off
  *   - global=0          the server runs no global Runner for code;
  *                       gstatus=disconnected: it is not heard from
@@ -832,6 +833,14 @@ function blockerFor(repository) {
     };
   }
   if (blockerParam && BLOCKER_MESSAGES[blockerParam]) {
+    // The server names the Runner a repository picks when it is offline.
+    if (blockerParam === CodeTaskBlockerType.RunnerNotOnline) {
+      return {
+        type: blockerParam,
+        message: BLOCKER_MESSAGES[blockerParam],
+        runnerName: "prod-eu-west-1",
+      };
+    }
     return { type: blockerParam, message: BLOCKER_MESSAGES[blockerParam] };
   }
   if (repository && !repository.isConnected) {

@@ -4,7 +4,7 @@ import "@testing-library/jest-dom";
  * the global jest.SpiedFunction annotations here do not accept.
  */
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import React, { ReactElement } from "react";
 
 /*
@@ -14,13 +14,16 @@ import React, { ReactElement } from "react";
  *
  *   - the repository's settings form has a Runner step, between GitHub
  *     Commands and Build & Test, whose one field is the Runner picker for a
- *     repository (CodeRepositoryRunnerPicker): optional, Global Runner when
- *     empty, and it writes the Runner's id, or nothing for Global Runner;
+ *     repository (CodeRepositoryRunnerPicker): a field like the others -
+ *     the form draws its title and the card's own description, with no
+ *     "(Optional)" since empty is Global Runner - and it writes the
+ *     Runner's id, or nothing for Global Runner;
  *   - the settings card says what the repository runs on
  *     (CodeRepositoryRunnerValue);
- *   - a Runner's page lists the repositories that pick it, each linked to
- *     the repository's settings - or says none does, and how to change
- *     that.
+ *   - a Runner's page lists the repositories that pick it in its Runner
+ *     Details, where the "Runs AI Code Fixes" switch was, each linked to
+ *     the repository's settings - or says none does, and where a
+ *     repository picks its Runner.
  */
 
 const mockDetails: Array<Record<string, unknown>> = [];
@@ -53,10 +56,12 @@ import {
   CodeRepositoryRunnerPicker,
   CodeRepositoryRunnerValue,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoryRunner";
-import RunnerCodeRepositories, {
+import RunnerCodeRepositoryList, {
   MAX_LISTED_CODE_REPOSITORIES,
   RUNNER_CODE_REPOSITORIES_TEST_ID,
   RunnerCodeRepositoriesCopy,
+  RunnerCodeRepositoryRow,
+  loadRunnerCodeRepositories,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerCodeRepositories";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
@@ -120,7 +125,7 @@ describe("a repository's settings: its Runner", () => {
     expect(steps[2]!.title).toBe("Runner");
   });
 
-  test("its one field is the Runner picker for a repository, optional, and it writes the Runner picked or nothing", () => {
+  test("its one field is the Runner picker for a repository, a field like the others, and it writes the Runner picked or nothing", () => {
     const fields: Array<FormField> = page()["formFields"] as Array<FormField>;
     const runner: FormField | undefined = fields.find((field: FormField) => {
       return Boolean(
@@ -133,7 +138,14 @@ describe("a repository's settings: its Runner", () => {
     expect(runner!.title).toBe(CodeRepositoryRunnerCopy.fieldTitle);
     expect(runner!.fieldType).toBe(FormFieldSchemaType.CustomComponent);
     expect(runner!.required).toBe(false);
-    expect(runner!.customElementDrawsOwnLabel).toBe(true);
+    /*
+     * The form draws the title and the line under it, as for every other
+     * field of the dialog - the card's own words - and no "(Optional)":
+     * empty is Global Runner, an answer of its own.
+     */
+    expect(runner!.customElementDrawsOwnLabel).toBeFalsy();
+    expect(runner!.description).toBe(CodeRepositoryRunnerCopy.fieldDescription);
+    expect(runner!.hideOptionalLabel).toBe(true);
 
     const written: Array<unknown> = [];
     const element: ReactElement = runner!.getCustomElement!(
@@ -142,11 +154,14 @@ describe("a repository's settings: its Runner", () => {
         onChange: (value: unknown): void => {
           written.push(value);
         },
+        ariaLabelledby: "field-label-runner",
       } as CustomElementProps,
     ) as ReactElement;
 
     expect(element.type).toBe(CodeRepositoryRunnerPicker);
     expect(String(element.props.value)).toBe(RUNNER_ID);
+    // The menu is named by the label the form drew.
+    expect(element.props.ariaLabelledby).toBe("field-label-runner");
 
     element.props.onChange(null);
     element.props.onChange(RUNNER_ID);
@@ -175,6 +190,20 @@ describe("a repository's settings: its Runner", () => {
 
     expect(element.type).toBe(CodeRepositoryRunnerValue);
     expect(String(element.props.runnerId)).toBe(RUNNER_ID);
+    // No command set: nothing for Global Runner to skip.
+    expect(element.props.hasCommands).toBe(false);
+
+    // Any one of the three commands is one Global Runner would skip.
+    for (const command of [
+      "setupCommand",
+      "buildCommand",
+      "testCommand",
+    ] as const) {
+      const withCommand: CodeRepository = new CodeRepository();
+      withCommand[command] = "npm ci";
+
+      expect(runner!.getElement!(withCommand).props.hasCommands).toBe(true);
+    }
   });
 });
 
@@ -203,71 +232,97 @@ describe("a Runner's page: the repositories that pick it", () => {
       });
   }
 
-  test("each repository that picks it, linked to the repository's settings", async () => {
+  test("the repositories that pick it are read by their Runner, by name, as many as the row lists", async () => {
     const getList: jest.SpiedFunction<typeof ModelAPI.getList> = lists([
       { id: REPOSITORY_ID, name: "checkout" },
     ]);
 
-    render(<RunnerCodeRepositories runnerId={new ObjectID(RUNNER_ID)} />);
+    const rows: Array<RunnerCodeRepositoryRow> | null =
+      await loadRunnerCodeRepositories(new ObjectID(RUNNER_ID));
 
-    const card: HTMLElement = await screen.findByTestId(
-      RUNNER_CODE_REPOSITORIES_TEST_ID,
-    );
-
-    expect(card).toHaveTextContent("checkout");
-    expect(
-      screen.getByTestId(`${RUNNER_CODE_REPOSITORIES_TEST_ID}-link`),
-    ).toHaveAttribute(
-      "href",
-      `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/settings`,
-    );
-    expect(
-      screen.getByText(RunnerCodeRepositoriesCopy.description),
-    ).toBeInTheDocument();
+    expect(rows).toEqual([{ id: REPOSITORY_ID, name: "checkout" }]);
 
     const read: {
       modelType: unknown;
       query: Record<string, unknown>;
       select: Record<string, unknown>;
+      sort: Record<string, unknown>;
       limit: number;
     } = getList.mock.calls[0]![0] as unknown as {
       modelType: unknown;
       query: Record<string, unknown>;
       select: Record<string, unknown>;
+      sort: Record<string, unknown>;
       limit: number;
     };
 
     expect(read.modelType).toBe(CodeRepository);
     expect(String(read.query["runnerId"])).toBe(RUNNER_ID);
     expect(read.select).toEqual({ _id: true, name: true });
+    expect(Object.keys(read.sort)).toEqual(["name"]);
     expect(read.limit).toBe(MAX_LISTED_CODE_REPOSITORIES);
   });
 
-  test("none: it says so, and where a repository picks it", async () => {
-    lists([]);
+  test("a read that is refused is null - the row is left out - not an empty list", async () => {
+    lists(new Error("Permission denied"));
 
-    render(<RunnerCodeRepositories runnerId={new ObjectID(RUNNER_ID)} />);
-
-    expect(
-      await screen.findByTestId(`${RUNNER_CODE_REPOSITORIES_TEST_ID}-empty`),
-    ).toHaveTextContent(RunnerCodeRepositoriesCopy.empty);
+    expect(await loadRunnerCodeRepositories(new ObjectID(RUNNER_ID))).toBe(
+      null,
+    );
   });
 
-  test("someone who may not read repositories sees no card at all", async () => {
-    const getList: jest.SpiedFunction<typeof ModelAPI.getList> = lists(
-      new Error("Permission denied"),
+  test("each repository that picks it, linked to the repository's settings", () => {
+    render(
+      <RunnerCodeRepositoryList
+        repositories={[
+          { id: REPOSITORY_ID, name: "checkout" },
+          { id: "eeeeeeee-0000-4000-8000-000000000022", name: "web-app" },
+        ]}
+      />,
     );
 
-    render(<RunnerCodeRepositories runnerId={new ObjectID(RUNNER_ID)} />);
+    const list: HTMLElement = screen.getByTestId(
+      RUNNER_CODE_REPOSITORIES_TEST_ID,
+    );
+    const links: Array<HTMLElement> = screen.getAllByTestId(
+      `${RUNNER_CODE_REPOSITORIES_TEST_ID}-link`,
+    );
 
-    await waitFor(() => {
-      expect(getList).toHaveBeenCalled();
-    });
-
-    expect(screen.queryByTestId(RUNNER_CODE_REPOSITORIES_TEST_ID)).toBeNull();
+    expect(list.tagName).toBe("UL");
+    expect(links).toHaveLength(2);
+    expect(links[0]).toHaveTextContent("checkout");
+    expect(links[0]).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/settings`,
+    );
+    expect(links[1]).toHaveTextContent("web-app");
+    expect(
+      screen.queryByTestId(`${RUNNER_CODE_REPOSITORIES_TEST_ID}-empty`),
+    ).toBeNull();
   });
 
-  test("the Runner's page draws it once the Runner loads, and never for the Kubernetes agent's Runner", () => {
+  test("none: one short line says so, and where a repository picks its Runner", () => {
+    render(<RunnerCodeRepositoryList repositories={[]} />);
+
+    const empty: HTMLElement = screen.getByTestId(
+      `${RUNNER_CODE_REPOSITORIES_TEST_ID}-empty`,
+    );
+
+    expect(empty).toHaveTextContent(RunnerCodeRepositoriesCopy.empty);
+    expect(RunnerCodeRepositoriesCopy.empty).toBe(
+      "None. A repository picks its Runner in its settings in Code.",
+    );
+    expect(empty.className).toContain("text-gray-500");
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+
+  /*
+   * Where the "Runs AI Code Fixes" switch was: a row of Runner Details,
+   * after what the Runner may run and before its labels - not a card of its
+   * own, which put an empty box between Runner Status and the setup
+   * command on every Runner no repository picks.
+   */
+  test("the Runner's page lists them in Runner Details, after what the Runner may run, and never for the Kubernetes agent's Runner or a reader who cannot read them", () => {
     const source: string = fs.readFileSync(
       path.join(
         __dirname,
@@ -276,9 +331,50 @@ describe("a Runner's page: the repositories that pick it", () => {
       "utf8",
     );
 
-    expect(source).toContain(
-      "{isRunnerLoaded && !formRestrictions.areShellCapabilitiesLocked ? (",
+    const remediation: number = source.indexOf(
+      'title: "Runs AI Remediation Commands"',
     );
-    expect(source).toContain("<RunnerCodeRepositories runnerId={modelId} />");
+    const row: number = source.indexOf(
+      "title: RunnerCodeRepositoriesCopy.title",
+    );
+    const labels: number = source.indexOf('title: "Labels"');
+    const statusCard: number = source.indexOf('name="Runner Status"');
+
+    expect(remediation).toBeGreaterThan(-1);
+    expect(row).toBeGreaterThan(remediation);
+    expect(labels).toBeGreaterThan(row);
+    // Inside Runner Details, which ends where Runner Status begins.
+    expect(statusCard).toBeGreaterThan(labels);
+
+    const rowSource: string = source.slice(row, labels);
+
+    expect(rowSource).toContain("Array.isArray(codeRepositories)");
+    expect(rowSource).toContain("!isKubernetesAgentRunnerRow(item)");
+    expect(rowSource).toContain("<RunnerCodeRepositoryList");
+
+    // No card of its own any more.
+    expect(source).not.toContain("<RunnerCodeRepositories ");
+    expect(source).toContain("loadRunnerCodeRepositories(modelId)");
+  });
+
+  /*
+   * The setup command is the card's body: a card hides its description
+   * below md, so a phone showed "Setup Instructions" and nothing under it.
+   */
+  test("the Setup Instructions are the card's body, so a phone shows them", () => {
+    const source: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerView.tsx",
+      ),
+      "utf8",
+    );
+    const card: number = source.indexOf('<Card title="Setup Instructions">');
+
+    expect(card).toBeGreaterThan(-1);
+    // The card's tag closes after its title: no description holds them.
+    const body: string = source.slice(card, source.indexOf("</Card>", card));
+
+    expect(body).toContain("<RunnerInstallInstructions");
   });
 });

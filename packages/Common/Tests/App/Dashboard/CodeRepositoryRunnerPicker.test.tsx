@@ -39,8 +39,10 @@ import {
   CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
   CODE_GLOBAL_RUNNER_HELPER_TEXT,
   CODE_GLOBAL_RUNNER_NOT_CONNECTED_TEXT,
+  CODE_HIDDEN_RUNNER_HELPER_TEXT,
+  CODE_HIDDEN_RUNNER_LABEL,
+  CODE_NO_GLOBAL_RUNNER_HELPER_TEXT,
   CODE_OWN_RUNNER_HELPER_TEXT,
-  CODE_UNKNOWN_RUNNER_HELPER_TEXT,
   GLOBAL_RUNNER_CHOICE_DESCRIPTION,
   GLOBAL_RUNNER_CHOICE_LABEL,
   RunnerPickerModel,
@@ -51,7 +53,9 @@ import {
   offersGlobalRunner,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel";
 import {
+  CODE_REPOSITORY_RUNNER_LOADING_TEST_ID,
   CODE_REPOSITORY_RUNNER_PICKER_TEST_ID,
+  CODE_REPOSITORY_RUNNER_SKIPS_TEST_ID,
   CODE_REPOSITORY_RUNNER_VALUE_TEST_ID,
   CodeRepositoryRunnerCopy,
   CodeRepositoryRunnerPicker,
@@ -125,32 +129,47 @@ let changes: Array<string> = [];
 function Harness(props: {
   initialValue: string;
   choices: RunnerChoices;
+  isFormField?: boolean | undefined;
 }): ReactElement {
   const [value, setValue] = useState<string>(props.initialValue);
 
   return (
-    <RunnerPicker
-      work={RunnerPickerWork.CodeRepository}
-      stepType=""
-      value={value}
-      onChange={(next: string) => {
-        changes.push(next);
-        setValue(next);
-      }}
-      choices={props.choices}
-      ownRunnerHelperText={<>{CODE_OWN_RUNNER_HELPER_TEXT}</>}
-      dataTestId={PICKER}
-    />
+    <>
+      {props.isFormField ? (
+        <span id="form-runner-label">Runner field</span>
+      ) : (
+        <></>
+      )}
+      <RunnerPicker
+        work={RunnerPickerWork.CodeRepository}
+        stepType=""
+        value={value}
+        onChange={(next: string) => {
+          changes.push(next);
+          setValue(next);
+        }}
+        choices={props.choices}
+        ownRunnerHelperText={<>{CODE_OWN_RUNNER_HELPER_TEXT}</>}
+        dataTestId={PICKER}
+        isFormField={props.isFormField}
+        ariaLabelledby={props.isFormField ? "form-runner-label" : undefined}
+      />
+    </>
   );
 }
 
 function renderPicker(
-  props: { value?: string; choices?: RunnerChoices } = {},
+  props: {
+    value?: string;
+    choices?: RunnerChoices;
+    isFormField?: boolean;
+  } = {},
 ): RenderResult {
   return render(
     <Harness
       initialValue={props.value || ""}
       choices={props.choices || choices()}
+      isFormField={props.isFormField}
     />,
   );
 }
@@ -288,12 +307,30 @@ describe("a repository's Runner picker", () => {
     expect(help()).toHaveTextContent(CODE_GLOBAL_RUNNER_HELPER_TEXT);
   });
 
-  test("a Runner the project no longer has is named as unknown, with what it means for the repository", () => {
+  /*
+   * A repository can only pick one of its project's Runners, and a deleted
+   * one leaves it on Global Runner (SET NULL): a pick the picker was not
+   * shown is a Runner the reader may not see - said so, in the value's own
+   * colour, never as an id or as a Runner that is gone.
+   */
+  test("a pick the reader is not shown is a Runner they do not have access to - not an id, not a warning", () => {
     renderPicker({ value: GONE_ID });
 
-    expect(shown()).toBe(`Unknown Runner (${GONE_ID})`);
-    expect(help()).toHaveTextContent(CODE_UNKNOWN_RUNNER_HELPER_TEXT);
+    expect(shown()).toBe(CODE_HIDDEN_RUNNER_LABEL);
+    expect(shown()).not.toContain(GONE_ID);
+    expect(help()).toHaveTextContent(CODE_HIDDEN_RUNNER_HELPER_TEXT);
     expect(help()).not.toHaveTextContent("step");
+    expect(help().querySelector(".text-amber-700")).toBeNull();
+    expect(help().className).toContain("text-gray-500");
+  });
+
+  test("a repository that picked none on a server with no global Runner is told to pick one of its own - not what a picked Runner does", () => {
+    renderPicker({ choices: choices({ globalRunners: [] }) });
+
+    expect(shown()).toBe("");
+    expect(help()).toHaveTextContent(CODE_NO_GLOBAL_RUNNER_HELPER_TEXT);
+    expect(help()).not.toHaveTextContent(CODE_OWN_RUNNER_HELPER_TEXT);
+    expect(openMenu()).toHaveLength(2);
   });
 
   test("a project that turned global Runners off is told to pick one of its own, for this repository", () => {
@@ -320,6 +357,55 @@ describe("a repository's Runner picker", () => {
 
     expect(screen.getByTestId(`${PICKER}-global-waiting`)).toHaveTextContent(
       CODE_GLOBAL_RUNNER_NOT_CONNECTED_TEXT,
+    );
+  });
+
+  /*
+   * In the repository's settings form the picker is a field like the
+   * others: the form draws its title and description, the picker no label
+   * of its own, and its lines are the form's size, not the step editor's.
+   */
+  test("as a form field: no label of its own, named by the form's label, and lines at the form's size", () => {
+    renderPicker({ isFormField: true });
+
+    const picker: HTMLElement = screen.getByTestId(PICKER);
+
+    expect(picker.querySelector("label")).toBeNull();
+    expect(within(picker).getByRole("combobox")).toHaveAttribute(
+      "aria-labelledby",
+      "form-runner-label",
+    );
+    expect(help().className).toContain("text-sm");
+    expect(help().className).not.toContain("text-xs");
+  });
+
+  test("negative control: in a runbook step it keeps its own small label and lines", () => {
+    renderPicker();
+
+    const picker: HTMLElement = screen.getByTestId(PICKER);
+
+    expect(picker.querySelector("label")).toHaveTextContent("Runner");
+    expect(help().className).toContain("text-xs");
+  });
+
+  test("as a form field with no global Runner connected, the waiting line is the form's size too", () => {
+    renderPicker({
+      isFormField: true,
+      choices: choices({
+        globalRunners: [
+          {
+            id: "",
+            name: "Global Runner",
+            description: "",
+            liveStatus: RunnerLiveStatus.Disconnected,
+            runsRunbooks: false,
+          },
+        ],
+      }),
+    });
+
+    expect(screen.getByTestId(`${PICKER}-global-waiting`).className).toContain(
+      "text-sm",
     );
   });
 
@@ -466,6 +552,35 @@ describe("what a repository's picker loads", () => {
     }
   });
 
+  /*
+   * Someone who may change a repository's settings but not read Runners (a
+   * Settings Member): the project's Runners cannot be read, but the global
+   * Runners and the switch still can - the repository is on Global Runner,
+   * not on a server that runs none.
+   */
+  test("a project Runner read that is refused still loads the global Runners and the switch", async () => {
+    stubReads(
+      new HTTPResponse<JSONObject>(
+        200,
+        { globalRunners: [{ liveStatus: RunnerLiveStatus.Connected }] },
+        {},
+      ),
+    );
+    jest.spyOn(ModelAPI, "getList").mockImplementation((async () => {
+      throw new Error("You do not have permission to read");
+    }) as never);
+
+    const loaded: RunnerChoices =
+      await RunnerChoicesLoader.loadForCodeRepository(new ObjectID(PROJECT_ID));
+
+    expect(loaded.projectRunners).toEqual([]);
+    expect(loaded.globalRunners).toHaveLength(1);
+    expect(loaded.globalRunners[0]!.liveStatus).toBe(
+      RunnerLiveStatus.Connected,
+    );
+    expect(loaded.projectUsesGlobalRunners).toBe(true);
+  });
+
   test("a status the server does not name reads as never connected", () => {
     expect(readGlobalCodeRunnerLiveStatus("connected")).toBe(
       RunnerLiveStatus.Connected,
@@ -530,6 +645,12 @@ describe("the Settings page's Runner field and value", () => {
     expect(shown(CODE_REPOSITORY_RUNNER_PICKER_TEST_ID)).toBe(
       "staging-runner · Disconnected",
     );
+    // A field of the form: the form draws its label.
+    expect(
+      screen
+        .getByTestId(CODE_REPOSITORY_RUNNER_PICKER_TEST_ID)
+        .querySelector("label"),
+    ).toBeNull();
     expect(help(CODE_REPOSITORY_RUNNER_PICKER_TEST_ID)).toHaveTextContent(
       CODE_OWN_RUNNER_HELPER_TEXT,
     );
@@ -569,37 +690,138 @@ describe("the Settings page's Runner field and value", () => {
   async function value(
     runnerId: unknown,
     loaded: RunnerChoices,
+    hasCommands?: boolean,
   ): Promise<HTMLElement> {
     loads(loaded);
 
-    render(<CodeRepositoryRunnerValue runnerId={runnerId} />);
+    render(
+      <CodeRepositoryRunnerValue
+        runnerId={runnerId}
+        hasCommands={hasCommands}
+      />,
+    );
 
     return await screen.findByTestId(CODE_REPOSITORY_RUNNER_VALUE_TEST_ID);
   }
 
-  test("a repository on one of the project's Runners names it, linked to its page, with how it is doing", async () => {
+  // What the status dot says, as a screen reader reads it.
+  function statusOf(element: HTMLElement): string {
+    return within(element).getByRole("status").getAttribute("aria-label") || "";
+  }
+
+  test("a repository on one of the project's Runners names it, linked to its page, with how it is doing as the Runners page draws it", async () => {
     const shownValue: HTMLElement = await value(
       new ObjectID(BASTION_ID),
       choices(),
     );
 
-    expect(shownValue).toHaveTextContent("prod-bastion · Connected");
-    expect(within(shownValue).getByRole("link")).toHaveAttribute(
+    const link: HTMLElement = within(shownValue).getByRole("link");
+
+    expect(link).toHaveTextContent("prod-bastion");
+    expect(link).toHaveAttribute(
       "href",
       `/dashboard/${PROJECT_ID}/runbooks/runners/${BASTION_ID}`,
     );
+    expect(statusOf(shownValue)).toBe("Status: Connected");
+    // A settings value: the connected dot stays still.
+    expect(shownValue.querySelector(".motion-safe\\:animate-ping")).toBeNull();
+  });
+
+  test("a disconnected Runner is said so, beside its name", async () => {
+    const shownValue: HTMLElement = await value(STAGING_ID, choices());
+
+    expect(within(shownValue).getByRole("link")).toHaveTextContent(
+      "staging-runner",
+    );
+    expect(statusOf(shownValue)).toBe("Status: Disconnected");
   });
 
   test("a repository that picked none shows Global Runner, with how it is doing", async () => {
-    expect(await value(null, choices())).toHaveTextContent(
-      `${GLOBAL_RUNNER_CHOICE_LABEL} · Connected`,
-    );
+    const shownValue: HTMLElement = await value(null, choices());
+
+    expect(shownValue).toHaveTextContent(GLOBAL_RUNNER_CHOICE_LABEL);
+    expect(within(shownValue).queryByRole("link")).toBeNull();
+    expect(statusOf(shownValue)).toBe("Status: Connected");
   });
 
-  test("a pick the project no longer has, and no Runner at all, are said as they are", async () => {
-    expect(await value(GONE_ID, choices())).toHaveTextContent(
-      CodeRepositoryRunnerCopy.unknownRunner,
+  /*
+   * Global Runner never runs a repository's setup, build and test
+   * commands: a repository that has some is told so under its Runner, right
+   * above the commands the card lists - and only then.
+   */
+  test("on Global Runner, a repository with commands is told they are skipped", async () => {
+    const shownValue: HTMLElement = await value(null, choices(), true);
+
+    expect(
+      within(shownValue).getByTestId(CODE_REPOSITORY_RUNNER_SKIPS_TEST_ID),
+    ).toHaveTextContent(CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION);
+  });
+
+  test("negative controls: no commands, or one of the project's own Runners, and nothing is said about skipping", async () => {
+    await value(null, choices(), false);
+    expect(
+      screen.queryByTestId(CODE_REPOSITORY_RUNNER_SKIPS_TEST_ID),
+    ).toBeNull();
+    cleanup();
+
+    await value(BASTION_ID, choices(), true);
+    expect(
+      screen.queryByTestId(CODE_REPOSITORY_RUNNER_SKIPS_TEST_ID),
+    ).toBeNull();
+    cleanup();
+
+    // No global Runner to run on: the value says that, not what one skips.
+    await value(null, choices({ projectUsesGlobalRunners: false }), true);
+    expect(
+      screen.queryByTestId(CODE_REPOSITORY_RUNNER_SKIPS_TEST_ID),
+    ).toBeNull();
+  });
+
+  test("while the choices are on their way, a line's room - not the page loader", async () => {
+    jest
+      .spyOn(RunnerChoicesLoader, "loadForCodeRepository")
+      .mockImplementation(() => {
+        return new Promise<RunnerChoices>(() => {});
+      });
+
+    render(<CodeRepositoryRunnerValue runnerId={null} />);
+
+    const loading: HTMLElement = screen.getByTestId(
+      CODE_REPOSITORY_RUNNER_LOADING_TEST_ID,
     );
+
+    expect(loading.className).toContain("h-4");
+    expect(screen.queryByTestId("component-loader")).toBeNull();
+    expect(
+      screen.queryByTestId(CODE_REPOSITORY_RUNNER_VALUE_TEST_ID),
+    ).toBeNull();
+  });
+
+  test("the field holds a menu's room while its choices are on their way", () => {
+    jest
+      .spyOn(RunnerChoicesLoader, "loadForCodeRepository")
+      .mockImplementation(() => {
+        return new Promise<RunnerChoices>(() => {});
+      });
+
+    render(<CodeRepositoryRunnerPicker value={null} onChange={() => {}} />);
+
+    expect(
+      screen.getByTestId(CODE_REPOSITORY_RUNNER_LOADING_TEST_ID).className,
+    ).toContain("h-10");
+    expect(screen.queryByTestId("component-loader")).toBeNull();
+  });
+
+  test("a pick the reader is not shown, and no Runner at all, are said as they are", async () => {
+    const hidden: HTMLElement = await value(GONE_ID, choices());
+
+    expect(hidden).toHaveTextContent(CodeRepositoryRunnerCopy.hiddenRunner);
+    expect(CodeRepositoryRunnerCopy.hiddenRunner).toBe(
+      "A Runner you do not have access to",
+    );
+    // Nothing is wrong with it: no warning colour, no id.
+    expect(hidden.className).not.toContain("amber");
+    expect(hidden).not.toHaveTextContent(GONE_ID);
     cleanup();
 
     expect(

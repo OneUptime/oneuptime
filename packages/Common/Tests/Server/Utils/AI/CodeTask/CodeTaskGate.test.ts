@@ -451,6 +451,7 @@ describe("CodeTaskGate.getBlocker", () => {
     expect(await blocker()).toEqual({
       type: CodeTaskBlockerType.RunnerNotOnline,
       message: getRepositoryRunnerOfflineDetail("prod-runner"),
+      runnerName: "prod-runner",
     });
   });
 

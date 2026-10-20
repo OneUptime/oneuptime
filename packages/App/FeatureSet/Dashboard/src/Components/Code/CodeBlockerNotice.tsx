@@ -4,6 +4,7 @@ import {
   CODE_TASK_BLOCKER_SENTENCES,
   CODE_TASK_BLOCKER_WHO_CAN_FIX,
   CODE_TASK_REPOSITORY_SETTINGS_FIXES,
+  CODE_TASK_RUNNER_NOT_ONLINE_NAMED,
   CodeTaskBlockerFix,
 } from "./CodeTaskCopy";
 import {
@@ -22,6 +23,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Permission from "Common/Types/Permission";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -158,9 +160,26 @@ const CodeBlockerNotice: FunctionComponent<ComponentProps> = (
       />
       <div className="min-w-0 flex-1">
         <p className="leading-6">
-          {sentence
-            ? translator.translateText(sentence)
-            : props.blocker.message}
+          {props.blocker.type === CodeTaskBlockerType.RunnerNotOnline &&
+          props.blocker.runnerName ? (
+            <TranslatedSentence
+              template={CODE_TASK_RUNNER_NOT_ONLINE_NAMED}
+              slots={{
+                runner: (
+                  <span
+                    className="break-words font-semibold"
+                    data-testid="code-blocker-runner"
+                  >
+                    {props.blocker.runnerName}
+                  </span>
+                ),
+              }}
+            />
+          ) : sentence ? (
+            translator.translateText(sentence)
+          ) : (
+            props.blocker.message
+          )}
         </p>
         {fix && access === ProjectBalanceAccess.Yes ? (
           <Link
