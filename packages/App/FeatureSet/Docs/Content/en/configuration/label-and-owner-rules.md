@@ -121,6 +121,8 @@ Two kinds of pattern cannot run that way. A rule with one is refused when you sa
 
 A rule saved with one before matches nothing until you change its pattern. This holds for every kind of rule that has patterns, not only label and owner rules.
 
+A project's rules of one kind also share an allowance of work for each resource they check. It is far more than real rules need: ten thousand plain patterns fit in it, and every rule may read a long description. A rule whose patterns need more than is left does not match that resource, even when its condition is that a text does not match. A privacy rule that cannot be checked in full counts as matching instead: the incident, alert or episode is made private, and its feed names the rules that could not be checked.
+
 ## Next steps
 
 :::cards

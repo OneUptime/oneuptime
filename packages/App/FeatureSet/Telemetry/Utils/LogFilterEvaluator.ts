@@ -8,6 +8,7 @@ import {
   PatternProblemError,
   PatternWorkLimitError,
 } from "Common/Utils/LinearRegExp/PatternProblem";
+import { patternWorkRefusesQuestions } from "Common/Utils/LinearRegExp/PatternWork";
 
 /*
  * Filter evaluator for log / span rows used by pipelines, drop
@@ -417,6 +418,13 @@ class UnansweredConditionError extends Error {
   }
 }
 
+/*
+ * Made once: a batch can have millions of conditions without an answer once
+ * its allowance is spent, and an error's stack costs more than the question.
+ */
+const UNANSWERED_CONDITION: UnansweredConditionError =
+  new UnansweredConditionError();
+
 function isUnansweredPatternError(error: unknown): boolean {
   return (
     error instanceof PatternWorkLimitError ||
@@ -427,11 +435,16 @@ function isUnansweredPatternError(error: unknown): boolean {
 
 // Whether a LIKE pattern matches the value; throws when there is no answer.
 function likeMatches(pattern: LinearRegExpHandle, value: string): boolean {
+  if (patternWorkRefusesQuestions(value)) {
+    // The batch's work allowance is spent: no answer, without a lookup.
+    throw UNANSWERED_CONDITION;
+  }
+
   try {
     return pattern.get().test(value);
   } catch (error: unknown) {
     if (isUnansweredPatternError(error)) {
-      throw new UnansweredConditionError();
+      throw UNANSWERED_CONDITION;
     }
 
     throw error;
@@ -556,7 +569,7 @@ function evaluateExpr(logRow: JSONObject, expr: FilterExpression): boolean {
             return getLinearRegExp(`^${pattern}$`, "i").test(fieldVal);
           } catch (error: unknown) {
             if (error instanceof PatternWorkLimitError) {
-              throw new UnansweredConditionError();
+              throw UNANSWERED_CONDITION;
             }
 
             // A LIKE pattern too large to run matches nothing.

@@ -143,7 +143,9 @@ function withOwnAllowance(
  * (PatternWorkAllowance.forRuleEvaluation).
  */
 export function RuleEvaluation(): MethodDecorator {
-  return withOwnAllowance(PatternWorkAllowance.forRuleEvaluation);
+  return withOwnAllowance((): PatternWorkAllowance => {
+    return PatternWorkAllowance.forRuleEvaluation();
+  });
 }
 
 /*
@@ -154,5 +156,7 @@ export function RuleEvaluation(): MethodDecorator {
  * them adds its share to (PatternWorkScope.handOverRecord).
  */
 export function TelemetryBatch(): MethodDecorator {
-  return withOwnAllowance(PatternWorkAllowance.forTelemetryBatch);
+  return withOwnAllowance((): PatternWorkAllowance => {
+    return PatternWorkAllowance.forTelemetryBatch();
+  });
 }

@@ -13,6 +13,7 @@ import {
   PatternProblemError,
   PatternWorkLimitError,
 } from "../../Utils/LinearRegExp/PatternProblem";
+import { patternWorkRefusesQuestions } from "../../Utils/LinearRegExp/PatternWork";
 
 /*
  * WHAT A LOG OR TRACE SCRUB RULE STARTS WITH, AND WHAT MAKES ONE SCRUB
@@ -88,6 +89,11 @@ class CustomScrubRegExp implements ScrubRegExp {
   }
 
   public test(text: string): boolean {
+    if (patternWorkRefusesQuestions(text)) {
+      // The batch's work allowance is spent: taken as holding, as below.
+      return true;
+    }
+
     try {
       return this.handle.get().test(text);
     } catch (error: unknown) {
@@ -105,6 +111,15 @@ class CustomScrubRegExp implements ScrubRegExp {
     text: string,
     replacer: (matchedText: string) => string,
   ): string {
+    if (patternWorkRefusesQuestions(text)) {
+      /*
+       * The batch's work allowance is spent
+       * (Utils/LinearRegExp/PatternWork.ts): the whole value is scrubbed,
+       * as below, without looking the pattern up.
+       */
+      return replacer(text);
+    }
+
     let pattern: LinearRegExp;
 
     try {

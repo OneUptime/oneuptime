@@ -127,7 +127,7 @@ Hash:   Payment failed for [HASHED:8c87b489]
 - **Unntak kommer fra den rensede posten.** Et unntak som finnes i en loggpost, lages etter rensingen, og reglene som renser span-hendelser, renser også unntakene som er registrert på dem.
 - **Session Replays renses også.** Scrub-regler for logger kjører også over Session Replay-opptak, i tillegg til maskeringen opptakeren gjør i nettleseren.
 - **Regler kjører i listens rekkefølge.** Hver regel ser det reglene før den etterlot.
-- **Et egendefinert mønster tar tid i forhold til posten.** Det beholder JavaScripts syntaks og svar, lookaheads og lookbehinds medregnet, uansett hvordan det er skrevet. En tilbakereferanse, som `\1`, kan ikke kjøres på den måten: en regel med en slik avvises når du lagrer den, slik et mønster som er for stort til å kjøres også gjør. Hvis det å finne hvert treff ville kreve at en lang verdi ble lest om og om igjen, renser regelen hele verdien.
+- **Et egendefinert mønster tar tid i forhold til posten.** Det beholder JavaScripts syntaks og svar, lookaheads og lookbehinds medregnet, uansett hvordan det er skrevet. En tilbakereferanse, som `\1`, kan ikke kjøres på den måten: en regel med en slik avvises når du lagrer den, slik et mønster som er for stort til å kjøres også gjør. Hvis det å finne hvert treff ville kreve at en lang verdi ble lest om og om igjen, renser regelen hele verdien. Et prosjekts drop-filtre, scrub-regler og pipelines deler også en arbeidskvote for hver bunt det sender, i forhold til buntens størrelse: når mønstrene deres trenger mer, renser en egendefinert scrub-regel hele verdien, og et filter som ikke kan besvares, gjelder ikke for posten.
 
 ## Se hva et filter forkastet
 

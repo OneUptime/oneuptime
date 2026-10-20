@@ -178,7 +178,7 @@ Extrai campos estruturados de uma linha de formato fixo. Um padrão grok é uma 
 
 Uma captura é armazenada como texto, a menos que você lhe dê um tipo: `%{NUMBER:status:int}` a armazena como número. Os tipos são `int`, `long`, `float`, `double`, `boolean` e `string`. Teste um padrão com uma linha de exemplo em **Test Your Pattern** antes de salvar.
 
-Um padrão grok é executado em um tempo que só cresce com a linha que ele lê, seja qual for a forma como foi escrito, e mantém a sintaxe do JavaScript: lookaheads e lookbehinds funcionam. Um padrão que não pode ser executado assim, por exemplo um com uma referência retroativa como `\1`, é recusado ao salvar, com uma mensagem que diz o que mudar.
+Um padrão grok é executado em um tempo que só cresce com a linha que ele lê, seja qual for a forma como foi escrito, e mantém a sintaxe do JavaScript: lookaheads e lookbehinds funcionam. Um padrão que não pode ser executado assim, por exemplo um com uma referência retroativa como `\1`, é recusado ao salvar, com uma mensagem que diz o que mudar. Um padrão grok também divide a cota de trabalho de cada lote com os outros padrões do projeto: quando precisam de mais, a linha fica sem análise.
 
 | Corpo do registro | Padrão | Atributos adicionados |
 | --- | --- | --- |

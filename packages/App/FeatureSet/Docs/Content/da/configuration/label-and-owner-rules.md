@@ -121,6 +121,8 @@ To slags mønstre kan ikke køres på den måde. En regel med et af dem afvises,
 
 En regel, der tidligere er gemt med et af dem, matcher intet, indtil du ændrer dens mønster. Det gælder for alle slags regler med mønstre, ikke kun etiket- og ejerregler.
 
+Et projekts regler af én slags deler også en arbejdskvote for hver ressource, de tjekker. Den er langt større, end rigtige regler har brug for: ti tusind enkle mønstre kan være i den, og hver regel kan læse en lang beskrivelse. En regel, hvis mønstre kræver mere, end der er tilbage, matcher ikke den ressource, heller ikke når dens betingelse er, at en tekst ikke matcher. En privatlivsregel, der ikke kan tjekkes helt, tæller i stedet som et match: hændelsen, advarslen eller episoden gøres privat, og dens feed nævner de regler, der ikke kunne tjekkes.
+
 ## Næste trin
 
 :::cards

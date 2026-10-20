@@ -94,6 +94,7 @@ class RunbookRuleEngineServiceClass {
    * (they run first and update incident.labels in memory).
    */
   @CaptureSpan()
+  @RuleEvaluation()
   public async applyRulesToIncident(incident: Incident): Promise<void> {
     if (!incident.id || !incident.projectId) {
       return;
@@ -109,6 +110,7 @@ class RunbookRuleEngineServiceClass {
   }
 
   @CaptureSpan()
+  @RuleEvaluation()
   public async applyRulesToAlert(alert: Alert): Promise<void> {
     if (!alert.id || !alert.projectId) {
       return;
@@ -124,6 +126,7 @@ class RunbookRuleEngineServiceClass {
   }
 
   @CaptureSpan()
+  @RuleEvaluation()
   public async applyRulesToScheduledMaintenance(
     event: ScheduledMaintenance,
   ): Promise<void> {
@@ -141,7 +144,6 @@ class RunbookRuleEngineServiceClass {
   }
 
   @CaptureSpan()
-  @RuleEvaluation()
   private async applyRules(data: {
     projectId: ObjectID;
     triggerEntityType: RunbookRuleTriggerEntity;

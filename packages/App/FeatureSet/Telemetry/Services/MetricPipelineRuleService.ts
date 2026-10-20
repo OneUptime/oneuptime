@@ -19,6 +19,7 @@ import {
   getLinearRegExp,
 } from "Common/Utils/LinearRegExp/PatternCache";
 import { PatternWorkLimitError } from "Common/Utils/LinearRegExp/PatternProblem";
+import { patternWorkRefusesQuestions } from "Common/Utils/LinearRegExp/PatternWork";
 
 export interface MetricRulesForProject {
   projectRules: Array<MetricPipelineRule>;
@@ -473,6 +474,14 @@ export default class MetricPipelineRuleService {
         return actual.endsWith(expectedValue);
       case MetricPipelineRuleFilterConditionType.MatchesRegex:
       case MetricPipelineRuleFilterConditionType.DoesNotMatchRegex: {
+        if (patternWorkRefusesQuestions(actual)) {
+          /*
+           * The batch's work allowance is spent: no answer, so the filter
+           * does not match (as below), without a lookup.
+           */
+          return false;
+        }
+
         let matched: boolean;
 
         try {

@@ -121,6 +121,8 @@ Deux sortes de modèles ne peuvent pas s'exécuter ainsi. Une règle qui en cont
 
 Une règle enregistrée plus tôt avec l'un d'eux ne correspond à rien tant que vous ne changez pas son modèle. Cela vaut pour toute sorte de règle qui a des modèles, pas seulement les règles d'étiquettes et de propriétaires.
 
+Les règles d'un même type d'un projet partagent aussi une réserve de travail pour chaque ressource qu'elles vérifient. Elle dépasse de loin ce dont de vraies règles ont besoin : dix mille modèles simples y tiennent, et chaque règle peut lire une longue description. Une règle dont les modèles demandent plus que ce qui reste ne correspond pas à cette ressource, même quand sa condition est qu'un texte ne corresponde pas. Une règle de confidentialité qui ne peut pas être vérifiée entièrement compte au contraire comme correspondante : l'incident, l'alerte ou l'épisode devient privé, et son fil d'activité nomme les règles qui n'ont pas pu être vérifiées.
+
 ## Étapes suivantes
 
 :::cards

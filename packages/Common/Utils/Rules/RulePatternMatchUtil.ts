@@ -28,6 +28,7 @@
 
 import CidrMatchUtil from "../NetworkSite/CidrMatchUtil";
 import { getLinearRegExp } from "../LinearRegExp/PatternCache";
+import { patternWorkRefusesQuestions } from "../LinearRegExp/PatternWork";
 import {
   describePatternProblemReason,
   PatternProblemError,
@@ -166,6 +167,11 @@ export class RulePatternMatchUtil {
    * privacy rule keeps the record private.
    */
   public static testRegex(pattern: string, value: string): boolean {
+    if (patternWorkRefusesQuestions(value)) {
+      // The evaluation's allowance is spent: no answer, without a lookup.
+      return false;
+    }
+
     try {
       return getLinearRegExp(pattern, "i").test(value);
     } catch (error: unknown) {

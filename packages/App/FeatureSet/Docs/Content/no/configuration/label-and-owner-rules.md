@@ -121,6 +121,8 @@ To slags mønstre kan ikke kjøres på den måten. En regel med ett av dem avvis
 
 En regel som tidligere er lagret med ett av dem, treffer ingenting før du endrer mønsteret dens. Det gjelder for alle slags regler med mønstre, ikke bare etikett- og eierregler.
 
+Et prosjekts regler av én sort deler også en arbeidskvote for hver ressurs de sjekker. Den er langt større enn virkelige regler trenger: ti tusen enkle mønstre får plass i den, og hver regel kan lese en lang beskrivelse. En regel der mønstrene trenger mer enn det som er igjen, treffer ikke den ressursen, heller ikke når betingelsen er at en tekst ikke treffer. En personvernregel som ikke kan sjekkes helt, teller i stedet som et treff: hendelsen, varselet eller episoden gjøres privat, og feeden dens nevner reglene som ikke kunne sjekkes.
+
 ## Neste steg
 
 :::cards

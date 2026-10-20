@@ -74,6 +74,14 @@ export const STATE_WORK: number = 64;
 export const STATE_WORK_PER_EIGHT_MOVES: number = 1;
 
 /*
+ * What finding a state among those kept costs, per step it holds: its steps
+ * are sorted and written out as its key. A pattern built to meet a new
+ * state of thousands of steps at every character spends most of its time
+ * there.
+ */
+export const STATE_KEY_WORK_PER_STEP: number = 8;
+
+/*
  * One evaluation of a project's rules of one kind for one resource: about
  * half a second of work. The pool covers compiling and asking some fourteen
  * thousand plain patterns that are not compiled yet - more than the 10,000
@@ -146,6 +154,12 @@ export class PatternWorkAllowance {
   private readonly grantedTexts: Set<string> = new Set<string>();
   // A record handed over whose share is added when its first question runs.
   private pendingRecord: unknown = undefined;
+  /*
+   * What every question stops with once nothing is left: made once, as a
+   * batch can ask millions of questions after that and an error's stack
+   * costs more than the question.
+   */
+  private spentError: PatternWorkAllowanceSpentError | null = null;
 
   public constructor(options: PatternWorkAllowanceOptions) {
     this.allowed = options.pool;
@@ -240,12 +254,30 @@ export class PatternWorkAllowance {
    * left.
    */
   public beforeCompile(): void {
+    if (this.refuses()) {
+      throw this.stopError();
+    }
+  }
+
+  /*
+   * Whether a question asked now about this text would stop at once - what
+   * was handed over and the text add their share first - counting it as
+   * stopped when it would. A caller that asks many questions asks this
+   * first, and answers "no answer" without looking its pattern up.
+   */
+  public refuses(text?: string): boolean {
     this.grantPendingRecord();
 
-    if (this.isSpent) {
-      this.stopped++;
-      throw new PatternWorkAllowanceSpentError();
+    if (text !== undefined) {
+      this.grantText(text);
     }
+
+    if (!this.isSpent) {
+      return false;
+    }
+
+    this.stopped++;
+    return true;
   }
 
   /*
@@ -257,7 +289,7 @@ export class PatternWorkAllowance {
 
     if (this.used > this.allowed) {
       this.stopped++;
-      throw new PatternWorkAllowanceSpentError();
+      throw this.stopError();
     }
   }
 
@@ -272,6 +304,14 @@ export class PatternWorkAllowance {
   // A question that stopped at its own limit.
   public noteStopped(): void {
     this.stopped++;
+  }
+
+  private stopError(): PatternWorkAllowanceSpentError {
+    if (this.spentError === null) {
+      this.spentError = new PatternWorkAllowanceSpentError();
+    }
+
+    return this.spentError;
   }
 
   private grantPendingRecord(): void {
@@ -353,6 +393,18 @@ export function providePatternWorkAllowance(
 // The allowance the current question counts against, if any.
 export function getPatternWorkAllowance(): PatternWorkAllowance | undefined {
   return allowanceProvider();
+}
+
+/*
+ * Whether a question asked now about this text would stop at once, the
+ * allowance of the piece of work under way being spent
+ * (PatternWorkAllowance.refuses): a caller answers "no answer" then without
+ * looking its pattern up. False outside any piece of work.
+ */
+export function patternWorkRefusesQuestions(text: string): boolean {
+  const allowance: PatternWorkAllowance | undefined = allowanceProvider();
+
+  return allowance !== undefined && allowance.refuses(text);
 }
 
 // A question asked outside any allowance stopped at its own limit.

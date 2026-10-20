@@ -27,6 +27,7 @@ import {
   AUTOMATON_WORK_PER_STEP,
   noteQuestionStoppedOutsideAllowance,
   PatternWorkAllowance,
+  STATE_KEY_WORK_PER_STEP,
   STATE_WORK,
   STATE_WORK_PER_EIGHT_MOVES,
 } from "./PatternWork";
@@ -753,7 +754,12 @@ class LazyDfa {
     }
   }
 
-  // The next position, in reading order, whose code unit ahead can start a match.
+  /*
+   * The next position, in reading order, whose code unit ahead can start a
+   * match - or, READ_COUNT_INTERVAL code units on, the position reached, so
+   * that a long stretch with no candidate is counted as it is read
+   * (scan carries on from there with the idle state).
+   */
   private nextCandidate(
     firstCodeUnits: CharacterSet,
     text: string,
@@ -762,20 +768,24 @@ class LazyDfa {
     let position: number = from;
 
     if (this.forwards) {
+      const last: number = Math.min(text.length, from + READ_COUNT_INTERVAL);
+
       do {
         position++;
       } while (
-        position < text.length &&
+        position < last &&
         !firstCodeUnits.has(text.charCodeAt(position))
       );
 
       return position;
     }
 
+    const first: number = Math.max(0, from - READ_COUNT_INTERVAL);
+
     do {
       position--;
     } while (
-      position > 0 &&
+      position > first &&
       !firstCodeUnits.has(text.charCodeAt(position - 1))
     );
 
@@ -1020,6 +1030,13 @@ class LazyDfa {
     const behind: number = this.behindAfter(ahead);
     this.reachedEnd = reachedEnd;
 
+    /*
+     * Reading the steps found and setting up the next state - its list of
+     * steps, sorted and keyed when it is kept - is work of its own,
+     * counted for the shared allowance as the steps it handles.
+     */
+    this.meter.spendShared(foundLength + next.length);
+
     return this.keptStateFor(next, behind);
   }
 
@@ -1044,6 +1061,12 @@ class LazyDfa {
         ends: null,
       };
     }
+
+    /*
+     * Finding the state: sorting its steps and writing them out as its key -
+     * work in line with how many steps it holds, counted as that.
+     */
+    this.meter.spendShared(STATE_KEY_WORK_PER_STEP * pcs.length);
 
     // A set of ways: their order does not matter for where one ends.
     pcs.sort((left: number, right: number): number => {

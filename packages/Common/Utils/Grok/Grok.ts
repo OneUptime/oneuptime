@@ -5,6 +5,7 @@ import {
   PatternProblemError,
   PatternWorkLimitError,
 } from "../LinearRegExp/PatternProblem";
+import { patternWorkRefusesQuestions } from "../LinearRegExp/PatternWork";
 import GrokPatterns from "./GrokPatterns";
 
 /*
@@ -383,6 +384,14 @@ export function matchGrokPattern(
   }
 
   if (input.length > MAX_GROK_INPUT_LENGTH) {
+    return null;
+  }
+
+  if (patternWorkRefusesQuestions(input)) {
+    /*
+     * The batch's work allowance is spent
+     * (LinearRegExp/PatternWork.ts): the line stays unparsed.
+     */
     return null;
   }
 
