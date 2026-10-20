@@ -2806,13 +2806,6 @@ export default class RemediationCommandToolkit {
   }
 
   /*
-   * Keep a kubectl change refused only for want of a human's click, so a
-   * cluster round that executes nothing can propose it when it settles.
-   * Policy refusals (Denied, a bad rollback, a Read) carry no
-   * approvalReason and are never kept. The same command twice is kept
-   * once; at most a plan's worth is kept.
-   */
-  /*
    * ------------------------------------------------------------------
    * GitOps: who declares what a kubectl change touches
    * ------------------------------------------------------------------
@@ -2942,6 +2935,13 @@ export default class RemediationCommandToolkit {
     }
   }
 
+  /*
+   * Keep a kubectl change refused only for want of a human's click, so a
+   * cluster round that executes nothing can propose it when it settles.
+   * Policy refusals (Denied, a bad rollback, a Read) carry no
+   * approvalReason and are never kept. The same command twice is kept
+   * once; at most a plan's worth is kept.
+   */
   private recordNeedingApproval(
     command: AiRemediationCommand,
     refusal: FullAutoRefusal,
