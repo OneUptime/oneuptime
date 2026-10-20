@@ -164,7 +164,7 @@ Abra um SLO para ver suas páginas no menu lateral:
 | **Registros de auditoria** | Quem mudou o SLO, suas regras e seus proprietários, e quando. |
 | **Delete SLO** | Exclui o SLO para sempre e resolve os alertas e incidentes de taxa de consumo que ele tinha abertos. |
 
-**Monitores**, **Monitor Rules** e **Burn Rate Rules** ficam em uma seção **Configuração**, e **Proprietários**, **Configurações**, **Registros de auditoria** e **Delete SLO** em uma seção **Management**. As duas começam recolhidas, assim como uma seção **Desenvolvedores** para gerenciar o SLO a partir de código: clique no título de uma seção para abri-la.
+**Monitores** fica em uma seção **Configuração**, **Monitor Rules** e **Burn Rate Rules** em uma seção **Regras**, e **Proprietários**, **Configurações**, **Registros de auditoria** e **Delete SLO** em uma seção **Management**. As três começam recolhidas, assim como uma seção **Desenvolvedores** para gerenciar o SLO a partir de código: clique no título de uma seção para abri-la.
 
 Quando algo impede um SLO de medir, um banner no topo de cada uma das suas páginas diz o que está errado e leva à página que resolve: veja [Solução de problemas](#solução-de-problemas).
 

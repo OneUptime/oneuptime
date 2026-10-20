@@ -70,7 +70,7 @@ Opprett én side per målgruppe, for eksempel `Site 01` til `Site 10`. Gjør dem
 
 ### Sett den delte monitoren på hver side
 
-Legg til den delte monitoren på hver side som en ressurs (se [Statusside – ressurser og grupper](/docs/status-pages/resources-and-groups)). En regel under **Ressurser → Monitor Rules** kan gjøre dette for deg ut fra monitorens etiketter.
+Legg til den delte monitoren på hver side som en ressurs (se [Statusside – ressurser og grupper](/docs/status-pages/resources-and-groups)). En regel under **Regler → Monitor Rules** kan gjøre dette for deg ut fra monitorens etiketter.
 
 ### Slå på Vis bare hendelser som er begrenset til denne siden
 

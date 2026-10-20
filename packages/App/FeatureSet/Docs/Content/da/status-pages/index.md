@@ -81,12 +81,13 @@ Derefter, nogenlunde i rækkefølge efter nytte:
 
 ## Hvor alting bor
 
-Når du har åbnet en statusside, er dens egen venstremenu delt op i ni sektioner. Brug den som kort over resten af denne del af dokumentationen.
+Når du har åbnet en statusside, er dens egen venstremenu delt op i ti sektioner. Brug den som kort over resten af denne del af dokumentationen.
 
 | Sektion | Hvad den indeholder |
 | --- | --- |
 | **Grundlæggende** | **Oversigt**, **Meddelelser**, **Ejere**. |
-| **Ressourcer** | Én skærm **Ressourcer** (grupperne til venstre, den valgte gruppes monitorer til højre) og **Monitor Rules**. |
+| **Ressourcer** | Én skærm **Ressourcer** (grupperne til venstre, den valgte gruppes monitorer til højre). |
+| **Regler** | **Monitor Rules**: regler, der tilføjer hver monitor, der matcher, til siden, nu og senere. |
 | **Abonnenter** | **E-mail-abonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **Microsoft Teams-abonnenter**, **Webhook-abonnenter**, **Abonnementsindstillinger**. |
 | **Notifikationslogs** | **Notifikationslogs**: hvad der er sendt til abonnenterne. |
 | **Branding** | **Branding** (logo, titel, favicon, links, sidefod, farver og sprog, på én side), **Brugerdefinerede domæner**, **HTML, CSS og JavaScript**. |

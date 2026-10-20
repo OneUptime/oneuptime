@@ -595,11 +595,8 @@ describe("SLOs Overview, against the product", () => {
       );
     }
 
-    expect(sections["Configuration"]).toEqual([
-      "Monitors",
-      "Monitor Rules",
-      "Burn Rate Rules",
-    ]);
+    expect(sections["Configuration"]).toEqual(["Monitors"]);
+    expect(sections["Rules"]).toEqual(["Monitor Rules", "Burn Rate Rules"]);
     expect(sections["Management"]).toEqual([
       "Owners",
       "Settings",
@@ -608,7 +605,14 @@ describe("SLOs Overview, against the product", () => {
     ]);
     expect(menu).toContain("getDeveloperSideMenuSection(");
 
-    for (const title of ["Configuration", "Management", "Developer"]) {
+    // In the menu's order: Configuration, then Rules, then Management.
+    expect(
+      Object.keys(sections).filter((title: string): boolean => {
+        return ["Configuration", "Rules", "Management"].includes(title);
+      }),
+    ).toEqual(["Configuration", "Rules", "Management"]);
+
+    for (const title of ["Configuration", "Rules", "Management", "Developer"]) {
       expect({ title, folded: startsFolded(title) }).toEqual({
         title,
         folded: true,
@@ -616,7 +620,25 @@ describe("SLOs Overview, against the product", () => {
     }
 
     expect(page).toContain(
-      "**Monitors**, **Monitor Rules** and **Burn Rate Rules** sit in a **Configuration** section, and **Owners**, **Settings**, **Audit Logs** and **Delete SLO** in a **Management** section. Both start folded, as does a **Developer** section",
+      "**Monitors** sits in a **Configuration** section, **Monitor Rules** and **Burn Rate Rules** in a **Rules** section, and **Owners**, **Settings**, **Audit Logs** and **Delete SLO** in a **Management** section. All three start folded, as does a **Developer** section",
+    );
+  });
+
+  it("says where the Monitors and Monitor Rules pages sit in the side menu", () => {
+    const menu: string = readSource("sloViewSideMenu");
+    const sections: Record<string, Array<string>> = {};
+
+    for (const match of Array.from(menu.matchAll(SIDE_MENU_SECTION))) {
+      sections[match[1] as string] = allMatches(
+        match[2] as string,
+        TITLE_ENTRY,
+      );
+    }
+
+    expect(sections["Configuration"]).toContain("Monitors");
+    expect(sections["Rules"]).toContain("Monitor Rules");
+    expect(englishPage(MONITOR_RULES)).toContain(
+      "This page covers an SLO's **Monitors** page, under **Configuration** in its side menu, and its **Monitor Rules** page, under **Rules**.",
     );
   });
 

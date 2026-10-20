@@ -81,12 +81,13 @@ Daarna, ongeveer in volgorde van nut:
 
 ## Waar alles staat
 
-Zodra u een statuspagina hebt geopend, is haar eigen linkermenu in negen secties ingedeeld. Gebruik het als kaart voor de rest van dit deel van de documentatie.
+Zodra u een statuspagina hebt geopend, is haar eigen linkermenu in tien secties ingedeeld. Gebruik het als kaart voor de rest van dit deel van de documentatie.
 
 | Sectie | Wat erin staat |
 | --- | --- |
 | **Basis** | **Overzicht**, **Aankondigingen**, **Eigenaren**. |
-| **Middelen** | Eén scherm **Middelen** (de groepen links, de monitoren van de geselecteerde groep rechts) en **Monitor Rules**. |
+| **Middelen** | Eén scherm **Middelen** (de groepen links, de monitoren van de geselecteerde groep rechts). |
+| **Regels** | **Monitor Rules**: regels die elke overeenkomende monitor aan de pagina toevoegen, nu en later. |
 | **Abonnees** | **E-mail-abonnees**, **SMS-abonnees**, **Slack-abonnees**, **Microsoft Teams-abonnees**, **Webhook-abonnees**, **Abonneeinstellingen**. |
 | **Meldingslogboeken** | **Meldingslogboeken**: wat er naar abonnees is verzonden. |
 | **Huisstijl** | **Huisstijl** (logo, titel, favicon, links, voettekst, kleuren en talen, op één pagina), **Aangepaste domeinen**, **HTML, CSS & JavaScript**. |

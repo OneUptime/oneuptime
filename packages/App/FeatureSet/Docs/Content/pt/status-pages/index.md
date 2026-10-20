@@ -81,12 +81,13 @@ Em seguida, mais ou menos em ordem de utilidade:
 
 ## Onde fica cada coisa
 
-Depois de abrir uma página de status, o menu lateral esquerdo dela é agrupado em nove seções. Use-o como mapa para o resto desta parte da documentação.
+Depois de abrir uma página de status, o menu lateral esquerdo dela é agrupado em dez seções. Use-o como mapa para o resto desta parte da documentação.
 
 | Seção | O que contém |
 | --- | --- |
 | **Básico** | **Visão geral**, **Anúncios**, **Proprietários**. |
-| **Recursos** | Uma única tela **Recursos** (os grupos à esquerda, os monitores do grupo selecionado à direita) e **Monitor Rules**. |
+| **Recursos** | Uma única tela **Recursos** (os grupos à esquerda, os monitores do grupo selecionado à direita). |
+| **Regras** | **Monitor Rules**: regras que adicionam à página cada monitor que corresponde, agora e depois. |
 | **Assinantes** | **Assinantes de e-mail**, **Assinantes de SMS**, **Assinantes do Slack**, **Assinantes do Microsoft Teams**, **Assinantes de webhook**, **Configurações de assinantes**. |
 | **Logs de notificação** | **Logs de notificação**: o que foi enviado aos assinantes. |
 | **Marca** | **Marca** (logotipo, título, favicon, links, rodapé, cores e idiomas, em uma única página), **Domínios personalizados**, **HTML, CSS e JavaScript**. |

@@ -204,12 +204,12 @@ Placez en haut le service sur lequel on vous interroge le plus. Les visiteurs qu
 
 ## Ajouter des moniteurs automatiquement avec des règles de moniteurs
 
-Une règle de moniteurs ajoute des moniteurs à la page pour vous : décrivez les moniteurs une fois, et chaque moniteur correspondant atterrit dans le groupe que vous avez choisi. Les règles se trouvent sous **Ressources → Règles de moniteurs**, à côté de l'écran Ressources.
+Une règle de moniteurs ajoute des moniteurs à la page pour vous : décrivez les moniteurs une fois, et chaque moniteur correspondant atterrit dans le groupe que vous avez choisi. Vous les trouverez sous **Règles → Règles de moniteurs**, juste sous Ressources dans le menu latéral de la page.
 
 :::steps
 ### Ouvrir Règles de moniteurs
 
-Ouvrez la page de statut, choisissez **Règles de moniteurs** dans la section **Ressources** de son menu latéral, et cliquez sur **Créer une règle de moniteurs**.
+Ouvrez la page de statut, choisissez **Règles de moniteurs** dans la section **Règles** de son menu latéral (cliquez sur le titre de la section si elle est repliée), et cliquez sur **Créer une règle de moniteurs**.
 
 ### Indiquer à quels moniteurs elle s'applique
 
