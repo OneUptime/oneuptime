@@ -43,7 +43,6 @@ import {
   SteppedModalFooter,
   getSteppedModalFooter,
 } from "Common/UI/Components/Forms/Utils/SteppedFormFooter";
-import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
@@ -78,6 +77,7 @@ import {
   withWorkflowTemplateSelected,
 } from "../../Utils/Workflow/WorkflowTemplatePickerUtil";
 import WorkflowTemplatePicker from "./WorkflowTemplatePicker";
+import ChosenTemplate from "../TemplatePicker/ChosenTemplate";
 
 export interface ComponentProps {
   onClose: () => void;
@@ -361,23 +361,13 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
     return (
       <div className="space-y-5">
         {selectedTemplate ? (
-          <div className="flex items-start gap-3 rounded-lg border border-indigo-100 bg-indigo-50/50 p-4">
-            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-100">
-              <Icon
-                icon={selectedTemplate.icon}
-                size={SizeProp.Large}
-                className="h-5 w-5 text-indigo-600"
-              />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">
-                {selectedTemplate.name}
-              </p>
-              <p className="mt-1 text-sm text-gray-600">
-                {selectedTemplate.teaches}
-              </p>
-            </div>
-          </div>
+          // What the builder will show once it opens, as Create a dashboard says what its template shows.
+          <ChosenTemplate
+            icon={selectedTemplate.icon}
+            name={selectedTemplate.name}
+            line={selectedTemplate.teaches}
+            dataTestId="workflow-template-chosen"
+          />
         ) : (
           <></>
         )}

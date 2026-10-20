@@ -54,6 +54,8 @@ const SOURCE_PATHS: Array<string> = [
   SHARED_DETAILS_PATH,
   path.join(COMPONENTS_DIR, "WorkflowTemplatePicker.tsx"),
   path.join(COMPONENTS_DIR, "CreateWorkflowModal.tsx"),
+  // The chosen template at the top of the Name step, shared too.
+  path.join(COMPONENTS_DIR, "..", "TemplatePicker", "ChosenTemplate.tsx"),
   path.join(
     __dirname,
     "..",
