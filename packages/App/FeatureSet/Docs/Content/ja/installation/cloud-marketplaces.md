@@ -47,21 +47,26 @@ AWS では、OneUptime は EKS が Kubernetes サービスアカウントに付�
 
 :::steps
 1. AWS Marketplace で OneUptime Enterprise をサブスクライブし、**Continue to Configuration** を選び、バージョンを選んでから **Continue to Launch** を選びます。
-2. クラスターに IAM OIDC プロバイダーがまだなければ、関連付けます。続いて `oneuptime` サービスアカウントを IAM ロール付きで作成する `eksctl` コマンドが起動ページに表示されるので、それを実行します。
-3. 起動ページのコマンドで Helm をリスティングのレジストリにログインさせ、値ファイルを渡してチャートをインストールします。
+2. クラスターに IAM OIDC プロバイダーがまだなければ関連付け、下のコマンドで `oneuptime` サービスアカウントを、`AWSMarketplaceMeteringFullAccess` ポリシーを持つ IAM ロール付きで作成します。これらは、起動ページの **General launch instructions** のステップ 1 にある `eksctl` コマンドの代わりに実行します。そのコマンドは、先に自分で作成しておく必要があるロールを関連付けるものです。
+3. **General launch instructions** のステップ 2 のコマンドで Helm をリスティングのレジストリにログインさせ、チャートをインストールします。`helm install` コマンドでは、`serviceAccount.name` を `oneuptime` に、`host` をドメイン名に、OneUptime の前に証明書がある場合は `httpProtocol` を `https` に設定します。
 4. [OneUptime を開きます](#oneuptime-を開く)。
 :::
 
 ```bash
 eksctl utils associate-iam-oidc-provider --cluster <cluster> --approve
+eksctl create iamserviceaccount --name oneuptime --namespace oneuptime --cluster <cluster> \
+  --attach-policy-arn arn:aws:iam::aws:policy/AWSMarketplaceMeteringFullAccess \
+  --approve --override-existing-serviceaccounts
 ```
+
+ステップ 3 の値はファイルに保存しておき、`helm upgrade` を実行するたびに渡します。
 
 ```yaml title="values.yaml"
 host: oneuptime.example.com
 httpProtocol: https
+serviceAccount:
+  name: oneuptime
 ```
-
-このファイルは保管しておいてください。`helm upgrade` を実行するたびに渡します。
 
 ### Microsoft Marketplace
 
@@ -159,7 +164,7 @@ OneUptime は、新しいリリースの起動時にデータベースのマイ�
 :::details エディションラベルに Enterprise Edition（マーケットプレイスへの報告が失敗中）と表示される
 OneUptime がマーケットプレイスに報告できていません。これについて OneUptime が出力するログ行は、すべて `OneUptime Enterprise marketplace billing` で始まります。使用量が「cannot be reported」と書かれた行には、何が足りないかが示されています。よくある原因は次のとおりです。
 
-- **AWS:** `oneuptime` サービスアカウントに IAM ロールがないか、ロールに `AWSMarketplaceMeteringFullAccess` ポリシーがありません。起動ページの `eksctl` コマンドで作成してください。
+- **AWS:** `oneuptime` サービスアカウントに IAM ロールがないか、ロールに `AWSMarketplaceMeteringFullAccess` ポリシーがありません (`AWSMarketplaceMeteringRegisterUsage` では足りません)。ロールにポリシーを関連付けるか、[AWS Marketplace](#aws-marketplace) の `eksctl` コマンドでロールを作成してから、`kubectl rollout restart deployment --namespace oneuptime` で OneUptime の Pod を再起動してください。
 - **Azure:** インストールが Microsoft Marketplace のアプリケーションではないため (Helm でインストールした場合など)、報告に使う ID もプランもありません。Azure portal からインストールしてください。
 - **Google Cloud:** デプロイの報告用シークレットが削除されたか、置き換えられています。
 - **すべてのマーケットプレイス:** ファイアウォールかプロキシが送信 HTTPS ([始める前に](#始める前に) を参照) をブロックしています。
