@@ -1690,7 +1690,16 @@ const MonitorCreate: FunctionComponent<
                   description:
                     "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.",
                   fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                  required: false,
+                  /*
+                   * So the form will not create a monitor that is never
+                   * checked: a project whose default set is empty (global
+                   * probes turned off for new monitors, no probe of its own
+                   * picked for them), or a picker someone cleared, has to
+                   * name one first. Only while there are probes to pick
+                   * (showIf), and only on this step, which the types no
+                   * probe checks (Manual, Incoming Request, ...) never show.
+                   */
+                  required: true,
                   placeholder: "Select Probes",
                   dropdownOptions: probeOptions,
                   showIf: () => {
