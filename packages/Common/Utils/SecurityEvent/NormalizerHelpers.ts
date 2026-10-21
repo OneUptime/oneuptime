@@ -331,6 +331,37 @@ export function namesProcess(reading: ProcessReading | undefined): boolean {
   );
 }
 
+function fileNameOf(reading: ProcessReading | undefined): string {
+  return (
+    (reading?.name || "").trim() || fileNameOfPath(reading?.path || "")
+  ).toLowerCase();
+}
+
+/*
+ * One process from two readings of it, field by field, the first reading's
+ * fields first: a launch's parent as `process.parent_process` (often only a
+ * pid and a name) and as the actor's process (often the path and command
+ * line). Two readings that name different processes are not mixed: the
+ * first stands alone.
+ */
+export function mergeProcessReadings(
+  first: ProcessReading | undefined,
+  second: ProcessReading | undefined,
+): ProcessReading {
+  const firstName: string = fileNameOf(first);
+  const secondName: string = fileNameOf(second);
+
+  if (firstName && secondName && firstName !== secondName) {
+    return { ...first };
+  }
+
+  return {
+    name: (first?.name || "").trim() || second?.name,
+    path: (first?.path || "").trim() || second?.path,
+    commandLine: (first?.commandLine || "").trim() || second?.commandLine,
+  };
+}
+
 /*
  * The six process fields of an event from the process it is about and that
  * process's parent. A source that gives a path but no name gets the path's

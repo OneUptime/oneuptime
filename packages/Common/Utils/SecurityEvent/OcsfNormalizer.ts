@@ -18,6 +18,7 @@ import {
   contentHashEventUid,
   flattenPayload,
   joinPath,
+  mergeProcessReadings,
   namesProcess,
   parseEventTime,
   readNumber,
@@ -82,10 +83,11 @@ function isLaunch(payload: JSONObject, classUid: number): boolean {
 /*
  * The process an event is about, and its parent. `process` is the process
  * Process Activity acted on; in a launch the actor's process is the one that
- * started it, its parent, and in any other activity (an open, an injection)
- * it is some other process, so only `process.parent_process` names the
- * parent. Classes without `process` (network, file, module activity) name
- * the actor's process, which is then the one the event is about.
+ * started it, its parent, read together with `process.parent_process`, and
+ * in any other activity (an open, an injection) it is some other process,
+ * so only `process.parent_process` names the parent. Classes without
+ * `process` (network, file, module activity) name the actor's process,
+ * which is then the one the event is about.
  */
 function readOcsfProcesses(
   payload: JSONObject,
@@ -103,7 +105,7 @@ function readOcsfProcesses(
 
     return buildProcessFields({
       process: target,
-      parent: namesProcess(ownParent) ? ownParent : launch ? actor : undefined,
+      parent: launch ? mergeProcessReadings(ownParent, actor) : ownParent,
     });
   }
 

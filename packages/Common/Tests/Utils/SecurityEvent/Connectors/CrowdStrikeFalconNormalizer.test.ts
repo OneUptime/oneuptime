@@ -477,3 +477,62 @@ describe("CrowdStrikeFalconNormalizer", () => {
     });
   });
 });
+
+/*
+ * The process a Falcon alert fired on, and the one that started it
+ * (parent_details): what Sigma's Image, CommandLine, ParentImage and
+ * ParentCommandLine read, so the rule library's endpoint rules read an
+ * imported alert the way they read the endpoint's own events.
+ */
+describe("CrowdStrikeFalconNormalizer: the process the alert is about", () => {
+  test("the alert's file, path and command line, and parent_details as its parent", () => {
+    const event: NormalizedSecurityEvent = CrowdStrikeFalconNormalizer.normalize(
+      buildAlert({
+        parent_details: {
+          filename: "explorer.exe",
+          filepath: "\\Device\\HarddiskVolume3\\Windows\\explorer.exe",
+          cmdline: "C:\\WINDOWS\\Explorer.EXE",
+          local_process_id: "4364",
+        },
+      }),
+    );
+
+    expect(event.processName).toBe(
+      "openvpn-abc-pfSense-UDP4-1194-pfsense-install-2.6.5-I001-amd64.exe",
+    );
+    expect(event.processPath).toBe(
+      "\\Device\\HarddiskVolume3\\Users\\mohit.jha\\Downloads\\openvpn-abc-pfSense-UDP4-1194-pfsense-install-2.6.5-I001-amd64.exe",
+    );
+    // Trimmed: Falcon ends the command line with a space.
+    expect(event.processCommandLine).toBe(
+      '"C:\\Users\\mohit.jha\\Downloads\\openvpn-abc-pfSense-UDP4-1194-pfsense-install-2.6.5-I001-amd64.exe"',
+    );
+    expect(event.parentProcessName).toBe("explorer.exe");
+    expect(event.parentProcessPath).toBe(
+      "\\Device\\HarddiskVolume3\\Windows\\explorer.exe",
+    );
+    expect(event.parentProcessCommandLine).toBe("C:\\WINDOWS\\Explorer.EXE");
+  });
+
+  test("an alert with no parent_details names no parent", () => {
+    const event: NormalizedSecurityEvent =
+      CrowdStrikeFalconNormalizer.normalize(buildAlert());
+
+    expect(event.processName).not.toBe("");
+    expect(event.parentProcessName).toBe("");
+    expect(event.parentProcessPath).toBe("");
+    expect(event.parentProcessCommandLine).toBe("");
+  });
+
+  test("a file name alone still names the process, by name", () => {
+    const event: NormalizedSecurityEvent = CrowdStrikeFalconNormalizer.normalize(
+      buildAlert({ filepath: "", cmdline: "" }),
+    );
+
+    expect(event.processName).toBe(
+      "openvpn-abc-pfSense-UDP4-1194-pfsense-install-2.6.5-I001-amd64.exe",
+    );
+    expect(event.processPath).toBe("");
+    expect(event.processCommandLine).toBe("");
+  });
+});

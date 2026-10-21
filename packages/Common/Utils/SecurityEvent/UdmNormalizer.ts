@@ -16,7 +16,7 @@ import {
   buildProcessFields,
   contentHashEventUid,
   flattenPayload,
-  namesProcess,
+  mergeProcessReadings,
   parseEventTime,
   readString,
   readStringArray,
@@ -206,10 +206,11 @@ function readUdmProcess(
 /*
  * The process an event is about, and its parent. A PROCESS_* event is about
  * its target process; in a PROCESS_LAUNCH the principal's process is the one
- * that started it, its parent, and in any other (an open, an injection) it
- * is some other process, so only the target's own parent_process names the
- * parent. Every other event (a connection, a file written, a module loaded)
- * is about the principal's process.
+ * that started it, its parent, read together with the target's own
+ * parent_process, and in any other (an open, an injection) it is some other
+ * process, so only the target's parent_process names the parent. Every
+ * other event (a connection, a file written, a module loaded) is about the
+ * principal's process.
  */
 function readUdmProcesses(
   payload: JSONObject,
@@ -237,11 +238,10 @@ function readUdmProcesses(
 
   return buildProcessFields({
     process: readUdmProcess(payload, ["target.process"]),
-    parent: namesProcess(ownParent)
-      ? ownParent
-      : eventType === "PROCESS_LAUNCH"
-        ? principal
-        : undefined,
+    parent:
+      eventType === "PROCESS_LAUNCH"
+        ? mergeProcessReadings(ownParent, principal)
+        : ownParent,
   });
 }
 
