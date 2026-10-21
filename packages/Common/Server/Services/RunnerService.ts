@@ -5,6 +5,7 @@ import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import { BUNDLED_GLOBAL_RUNNER_ID } from "../../Types/Runner/BundledGlobalRunner";
 import ProjectReferencesService from "./ProjectReferencesService";
 import ObjectID from "../../Types/ObjectID";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Version from "../../Types/Version";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ColumnLength from "../../Types/Database/ColumnLength";
