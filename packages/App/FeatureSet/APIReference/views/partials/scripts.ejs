@@ -318,11 +318,6 @@
    }
 
    /*
-    * "Copied!" only when the text reached the clipboard, and "Copy failed"
-    * when it did not - never the tick over an empty clipboard the button
-    * used to show when the browser refused (issue #5132).
-    */
-   /*
     * The alert drawn in a button's copy icon's place while it says Copy
     * failed - the triangle the rest of the product shows for it, so a
     * failure never looks like the copy icon it was. Made the first time a
@@ -345,6 +340,11 @@
       return alertIcon;
    }
 
+   /*
+    * "Copied!" only when the text reached the clipboard, and "Copy failed"
+    * when it did not - never the tick over an empty clipboard the button
+    * used to show when the browser refused (issue #5132).
+    */
    function showCopyResult(button, copied) {
       var copyIcon = button.querySelector('.copy-icon');
       var checkIcon = button.querySelector('.check-icon');
