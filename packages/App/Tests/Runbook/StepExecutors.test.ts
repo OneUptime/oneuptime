@@ -92,9 +92,7 @@ function stubRunnerChoiceFacts(): void {
   jest
     .spyOn(RunnerService, "hasGlobalRunnerForRunbooks")
     .mockResolvedValue(false);
-  jest
-    .spyOn(RunnerService, "findProjectDefaultRunner")
-    .mockResolvedValue(null);
+  jest.spyOn(RunnerService, "findProjectDefaultRunner").mockResolvedValue(null);
 }
 
 beforeEach(stubRunnerChoiceFacts);

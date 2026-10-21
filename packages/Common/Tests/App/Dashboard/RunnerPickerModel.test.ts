@@ -423,7 +423,8 @@ describe("a project with a default Runner", () => {
     expect(
       model.options.filter((option: RunnerPickerOption): boolean => {
         return (
-          option.runnerId === PROD_DEFAULT.id || option.value === PROD_DEFAULT.id
+          option.runnerId === PROD_DEFAULT.id ||
+          option.value === PROD_DEFAULT.id
         );
       }),
     ).toHaveLength(1);
@@ -468,7 +469,10 @@ describe("a project with a default Runner", () => {
 
   test("a step that picked another of the project's Runners keeps it", () => {
     const model: RunnerPickerModel = buildRunnerPickerModel(
-      withDefault({ stepType: RunbookStepType.Bash, currentRunnerId: BASTION.id }),
+      withDefault({
+        stepType: RunbookStepType.Bash,
+        currentRunnerId: BASTION.id,
+      }),
     );
 
     expect(model.selected?.value).toBe(BASTION.id);

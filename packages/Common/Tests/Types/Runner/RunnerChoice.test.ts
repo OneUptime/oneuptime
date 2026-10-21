@@ -230,9 +230,9 @@ describe("a step that picked no Runner, in a project with a default Runner", () 
 
   test("a default that is not a Runner id is no default", () => {
     for (const projectDefaultRunnerId of ["", "  ", "prod-runner", null]) {
-      expect(
-        decideRunnerChoice(facts({ projectDefaultRunnerId })).kind,
-      ).toBe("global");
+      expect(decideRunnerChoice(facts({ projectDefaultRunnerId })).kind).toBe(
+        "global",
+      );
     }
   });
 });
@@ -343,9 +343,7 @@ describe("a step that picked the Global Runner itself", () => {
   test("the pick is read whatever its case and spaces", () => {
     for (const chosenRunnerId of ["Global", " GLOBAL ", "global\n"]) {
       expect(isGlobalRunnerChoice(chosenRunnerId)).toBe(true);
-      expect(decideRunnerChoice(facts({ chosenRunnerId })).kind).toBe(
-        "global",
-      );
+      expect(decideRunnerChoice(facts({ chosenRunnerId })).kind).toBe("global");
     }
 
     expect(isGlobalRunnerChoice("globals")).toBe(false);

@@ -125,9 +125,7 @@ beforeEach(() => {
    * The project has no default Runner, so a step that picked none is
    * refused (InfraStepExecutors covers a project that has one).
    */
-  jest
-    .spyOn(RunnerService, "findProjectDefaultRunner")
-    .mockResolvedValue(null);
+  jest.spyOn(RunnerService, "findProjectDefaultRunner").mockResolvedValue(null);
 
   // The step's Runner is one of its project's own.
   jest

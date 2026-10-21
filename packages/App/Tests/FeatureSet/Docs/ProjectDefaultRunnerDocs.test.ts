@@ -174,15 +174,13 @@ describe("the project's default Runner on runbooks/agents", () => {
 
       [RunbookStepType.JavaScript, RunbookStepType.Bash].forEach(
         (stepType: RunbookStepType, index: number): void => {
-          const result: RunnerDefaultOrderResult = decideRunnerByDefaultOrder(
-            {
-              chosenRunnerId: "",
-              projectDefaultRunnerId: row.projectDefaultRunnerId,
-              canGlobalRunnersRunWork: canGlobalRunnersRunStepType(stepType),
-              projectUsesGlobalRunners: row.projectUsesGlobalRunners,
-              hasGlobalRunner: true,
-            },
-          );
+          const result: RunnerDefaultOrderResult = decideRunnerByDefaultOrder({
+            chosenRunnerId: "",
+            projectDefaultRunnerId: row.projectDefaultRunnerId,
+            canGlobalRunnersRunWork: canGlobalRunnersRunStepType(stepType),
+            projectUsesGlobalRunners: row.projectUsesGlobalRunners,
+            hasGlobalRunner: true,
+          });
 
           expect({
             project: row.project,
@@ -217,15 +215,13 @@ describe("the project's default Runner on runbooks/agents", () => {
       runnerId: "3f0c2b7a-1d9e-4c6b-8a25-7e4d9c1b0a5f",
     });
 
-    const pickedGlobal: RunnerDefaultOrderResult = decideRunnerByDefaultOrder(
-      {
-        chosenRunnerId: "global",
-        projectDefaultRunnerId: "8d1c5f3e-2a41-4f7b-9c55-0d6e1b2a3c4d",
-        canGlobalRunnersRunWork: true,
-        projectUsesGlobalRunners: true,
-        hasGlobalRunner: true,
-      },
-    );
+    const pickedGlobal: RunnerDefaultOrderResult = decideRunnerByDefaultOrder({
+      chosenRunnerId: "global",
+      projectDefaultRunnerId: "8d1c5f3e-2a41-4f7b-9c55-0d6e1b2a3c4d",
+      canGlobalRunnersRunWork: true,
+      projectUsesGlobalRunners: true,
+      hasGlobalRunner: true,
+    });
 
     expect(pickedGlobal).toEqual({ source: RunnerSource.Global });
     expect(SECTION).toContain(
@@ -311,9 +307,11 @@ describe("the Dashboard words the section names", () => {
     for (const word of words) {
       const drawn: string = drawnDashboardLabel(language, word);
 
-      expect({ word, drawn, named: translated.includes(`**${drawn}**`) }).toEqual(
-        { word, drawn, named: true },
-      );
+      expect({
+        word,
+        drawn,
+        named: translated.includes(`**${drawn}**`),
+      }).toEqual({ word, drawn, named: true });
     }
   });
 });

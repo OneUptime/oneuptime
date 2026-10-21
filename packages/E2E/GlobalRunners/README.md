@@ -32,15 +32,30 @@ The suite drives the pages the way a person does:
 - a server with no global Runner: one Runners card, as before, and a master
   admin is told where global Runners are added (Admin Dashboard → Global
   Runners, in a new tab);
+- each step's Runner sits under its More fields, whose folded line names it
+  ("Runner: Global Runner", "Runner: prod-eu-west-1"); a step that cannot run
+  as it is - a Bash step with no Runner and no project default - starts with
+  that fold open, on the Runner;
 - a JavaScript step starts on Global Runner, offered first with what it is;
   the keyboard picks one of the project's own and the mouse picks Global
   Runner again, and Save Steps sends the Runner the step picked (`""` for
   Global Runner);
-- a Bash step offers only the project's own Runners, and with none says what
-  to do, with a link to Runbooks › Runners in a new tab; a Runner added there
-  (`window.__fixture.addCustomRunner()`) is offered as soon as the window gets
-  focus again, with nothing saved; a project that turned global Runners off,
-  or a server with none, picks one of the project's own and is told why;
+- a Bash step offers the project's own Runners and shows the Global Runner
+  last, greyed out, saying it runs JavaScript steps only; with no Runner of
+  its own it says what to do, with a link to Runbooks › Runners in a new tab;
+  a Runner added there (`window.__fixture.addCustomRunner()`) is offered as
+  soon as the window gets focus again, with nothing saved; a project that
+  turned global Runners off, or a server with none, picks one of the
+  project's own and is told why;
+- a project with a default Runner (`&default=1`): every step that picked no
+  Runner runs on it - the Bash step too - and says so, folded; the picker
+  offers it first ("prod-eu-west-1 · Project default · Connected") and the
+  Global Runner next, whose pick saves `"global"`; a default that is not
+  connected (`&default=2`) is said so; Runbooks › Runners marks the default
+  with a pill, and Set as Project Default / Stop Using as Project Default in
+  a Runner's ⋯ menu ask first, saying which steps move; a Runner with Runs
+  Runbooks off (`&norunbooks=1`) cannot be made the default; a Runner's own
+  page has a Project Default card whose switch asks, then saves;
 - a JavaScript step on Global Runner offers the timeout range it gets (1–300
   seconds) and says a longer one is cut short, and one of the project's own
   the hour it had; with no global Runner connected, the picker says the step

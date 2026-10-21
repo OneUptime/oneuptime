@@ -19,8 +19,9 @@ The suite drives the pages the way a person does:
 
 - one step of every type a runbook author adds - Manual, JavaScript, HTTP
   request, Bash, SSH, kubectl and AI: what each card shows, and what its More
-  fields fold, "Require approval before running this step" and "Continue on
-  failure" first;
+  fields fold - a step that runs on a Runner names it first ("Runner: Global
+  Runner", "Runner: prod-bastion"), then "Require approval before running
+  this step" and "Continue on failure";
 - a Manual step's instructions, on the card, with nothing folded;
 - the step that needs approval says so on its header; turning the switch on
   another step says so there, the folded line says "Require approval: On",

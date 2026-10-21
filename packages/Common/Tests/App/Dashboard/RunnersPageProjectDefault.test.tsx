@@ -135,22 +135,20 @@ beforeEach(() => {
     return permissions;
   });
   jest.spyOn(PermissionUtil, "getGlobalPermissions").mockReturnValue(null);
-  jest.spyOn(PermissionUtil, "getProjectPermissions").mockImplementation(
-    () => {
-      return {
-        projectId: new ObjectID(PROJECT_ID),
-        userId: ObjectID.generate(),
-        permissions: permissions.map((permission: Permission) => {
-          return {
-            permission: permission,
-            labelIds: [],
-            _type: "UserPermission",
-          };
-        }),
-        _type: "UserTenantAccessPermission",
-      } as unknown as ReturnType<typeof PermissionUtil.getProjectPermissions>;
-    },
-  );
+  jest.spyOn(PermissionUtil, "getProjectPermissions").mockImplementation(() => {
+    return {
+      projectId: new ObjectID(PROJECT_ID),
+      userId: ObjectID.generate(),
+      permissions: permissions.map((permission: Permission) => {
+        return {
+          permission: permission,
+          labelIds: [],
+          _type: "UserPermission",
+        };
+      }),
+      _type: "UserTenantAccessPermission",
+    } as unknown as ReturnType<typeof PermissionUtil.getProjectPermissions>;
+  });
 
   jest
     .spyOn(ModelAPI, "getList")
@@ -472,9 +470,7 @@ describe("Set as Project Default", () => {
     // Connected: nothing more to say.
     expect(
       within(dialog).getByTestId("confirm-modal-description"),
-    ).toHaveTextContent(
-      ProjectDefaultRunnerCopy.makeDefaultConfirmDescription,
-    );
+    ).toHaveTextContent(ProjectDefaultRunnerCopy.makeDefaultConfirmDescription);
     expect(
       within(dialog).getByTestId("confirm-modal-description"),
     ).not.toHaveTextContent("not connected");

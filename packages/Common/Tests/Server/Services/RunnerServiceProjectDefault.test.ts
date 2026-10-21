@@ -319,9 +319,7 @@ describe("RunnerService's update hook", () => {
       stubRows(runner({ ...row, canRunRunbooks: false }));
 
       expect(
-        await refusal(
-          hooks.onBeforeUpdate(update({ isProjectDefault: true })),
-        ),
+        await refusal(hooks.onBeforeUpdate(update({ isProjectDefault: true }))),
       ).toContain("runs kubectl for its own cluster only");
     },
   );

@@ -1283,7 +1283,9 @@ describe("a step's options on the authoring page", () => {
       `In every automated step below, the step's **More fields** holds its **${RUNNER_FIELD_TITLE}** first, for a step that runs on one, then **${REQUIRE_APPROVAL_FOLDED_TITLE}** and **${CONTINUE_ON_FAILURE_TITLE}**, then the step's own extra settings - an HTTP request's headers, an SSH step's port and key passphrase, an AI step's provider and context switches - and last the **Description** and the timeouts. Folded, it names the step's Runner, so you see where a step runs without opening it.`,
     );
     expect(STEPS_PAGE).toContain("getStepMoreFieldsItems(");
-    expect(STEPS_PAGE).toContain("{ runner: getRunnerFoldedValue(runnerModel) }");
+    expect(STEPS_PAGE).toContain(
+      "{ runner: getRunnerFoldedValue(runnerModel) }",
+    );
     expect(AUTHORING).toContain(
       `| **${HTTP_HEADERS_TITLE}** | Under **More fields**.`,
     );

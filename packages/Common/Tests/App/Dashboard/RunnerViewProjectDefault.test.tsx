@@ -104,7 +104,10 @@ beforeEach(() => {
   permissions = ADMIN;
   rows = new Map<string, Runner>([
     [OFFICE_ID, makeRunner(OFFICE_ID, "office-runner")],
-    [PROD_ID, makeRunner(PROD_ID, "prod-eu-west-1", { isProjectDefault: true })],
+    [
+      PROD_ID,
+      makeRunner(PROD_ID, "prod-eu-west-1", { isProjectDefault: true }),
+    ],
   ]);
   writes = [];
 
@@ -113,22 +116,20 @@ beforeEach(() => {
     return permissions;
   });
   jest.spyOn(PermissionUtil, "getGlobalPermissions").mockReturnValue(null);
-  jest.spyOn(PermissionUtil, "getProjectPermissions").mockImplementation(
-    () => {
-      return {
-        projectId: new ObjectID(PROJECT_ID),
-        userId: ObjectID.generate(),
-        permissions: permissions.map((permission: Permission) => {
-          return {
-            permission: permission,
-            labelIds: [],
-            _type: "UserPermission",
-          };
-        }),
-        _type: "UserTenantAccessPermission",
-      } as unknown as ReturnType<typeof PermissionUtil.getProjectPermissions>;
-    },
-  );
+  jest.spyOn(PermissionUtil, "getProjectPermissions").mockImplementation(() => {
+    return {
+      projectId: new ObjectID(PROJECT_ID),
+      userId: ObjectID.generate(),
+      permissions: permissions.map((permission: Permission) => {
+        return {
+          permission: permission,
+          labelIds: [],
+          _type: "UserPermission",
+        };
+      }),
+      _type: "UserTenantAccessPermission",
+    } as unknown as ReturnType<typeof PermissionUtil.getProjectPermissions>;
+  });
 
   jest
     .spyOn(ModelAPI, "getItem")
@@ -229,7 +230,9 @@ describe("the Project Default card on a Runner's page", () => {
       ProjectDefaultRunnerCopy.switchOffDescription,
     );
     expect(
-      screen.getByRole("switch", { name: ProjectDefaultRunnerCopy.switchTitle }),
+      screen.getByRole("switch", {
+        name: ProjectDefaultRunnerCopy.switchTitle,
+      }),
     ).toBe(control);
 
     const details: HTMLElement = screen
@@ -244,8 +247,7 @@ describe("the Project Default card on a Runner's page", () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      card().compareDocumentPosition(status) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      card().compareDocumentPosition(status) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
