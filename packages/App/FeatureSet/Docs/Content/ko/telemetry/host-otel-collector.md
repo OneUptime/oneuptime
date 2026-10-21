@@ -2,6 +2,9 @@
 
 OpenTelemetry Collector를 Linux, macOS, Windows 머신에서 실행해 머신의 메트릭, 프로세스, 로그, 서비스 상태를 OneUptime으로 보냅니다. 머신은 **제품 → 인프라 → 호스트** 아래에 자체 페이지와 함께 나타나며, 설치할 OneUptime 에이전트는 없습니다. Collector는 업스트림 `otelcol-contrib` 릴리스입니다. [호스트 모니터](/docs/monitor/host-monitor)는 Collector가 보낸 데이터를 기준으로 알림을 보냅니다.
 
+> [!TIP]
+> 컬렉터 설치와 구성을 OneUptime에 맡길 수도 있습니다. [호스트](/docs/telemetry/hosts)에서는 명령 하나로 머신을 추가하고 구성을 최신 상태로 유지합니다. 이 페이지는 머신에서 직접 관리하는 `config.yaml`로 컬렉터를 실행하는 방법을 다룹니다.
+
 :::cards
 - [Collector 설치](#collector-설치): Linux, macOS, Windows에서 세 단계.
 - [수집할 항목 선택](#수집할-항목-선택): 메트릭, 파일 로그, 저널, 이벤트 로그, 서비스 상태.

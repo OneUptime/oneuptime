@@ -45,6 +45,7 @@ flowchart TB
 | **Playbooks** | Playbooks | Schritte, die auf Fällen laufen, von selbst oder per Hand |
 | **Wartet auf Genehmigung** | Playbooks | Die Playbook-Schritte, die darauf warten, dass jemand sie genehmigt oder ablehnt |
 | **Playbook-Ausführungen** | Playbooks | Was jedes Playbook getan hat, Schritt für Schritt |
+| **Protected Entities** | Playbooks | Die Benutzer und Hosts, die kein Playbook eindämmt |
 | **Verbindungen** | Verbindungen | Ihre Logs, die Sicherheitsprodukte, die OneUptime abfragt, und die SIEMs, an die es sendet |
 | **Einrichtungsanleitung** | Verbindungen | Snippets zum Senden von Ereignissen, mit Ihrem Ingestion-Schlüssel ausgefüllt |
 
@@ -307,7 +308,7 @@ OneUptime prüft jede Minute, welche aktivierten Regeln ihr Intervall seit ihrem
 - Die Fenster liegen lückenlos hintereinander, sie gleiten nicht. Bei einem Intervall von 10 Minuten können Fehlschläge um 09:58 und 10:01 in verschiedene Läufe fallen und werden getrennt gezählt, also lassen Sie bei der Wahl eines Schwellenwerts Spielraum.
 - Nach einer Lücke, etwa einem Worker-Ausfall oder einer wieder eingeschalteten Regel, deckt der nächste Lauf die ganze Lücke ab, bis zu den letzten 24 Stunden.
 - Ein Ereignis, das mehr als zwei Minuten zu spät ankommt, nachdem ein Lauf seine Zeit schon abgedeckt hat, wird gespeichert und ist durchsuchbar, aber diese Regel liest es nie.
-- Pro Lauf lösen höchstens 100 Gruppen aus: die mit den höchsten Zählungen.
+- Jede Gruppe, die den Schwellenwert erreicht, wird zu einem Detection Finding, bis zu 10.000 pro Lauf. Warnungen, Vorfälle und Fälle öffnen sich für die 100 mit den höchsten Zählungen; die übrigen teilen sich einen Fall zur Regel, und **Letzter Fehler** der Regel nennt, wie viele Gruppen passten.
 
 ### Schweregrad
 

@@ -19,8 +19,12 @@ import {
   getServerlessFunctionConnectionGuide,
   getStorageArrayConnectionGuide,
   getVMwareVCenterConnectionGuide,
+  HOST_COLLECTOR_FIRST_DATA_GRACE_MS,
+  isHostCollectorStillStarting,
   quoteForShell,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceConnection/ResourceConnectionGuides";
+import { getHostCollectorServiceCommands } from "../../../Utils/HostCollector/HostCollectorInstallCommand";
+import { HostCollectorOsType } from "../../../Types/HostCollector/HostCollector";
 import {
   SetupGuideContent,
   getSetupGuideMarkdown,
@@ -792,6 +796,119 @@ describe("Host guide", () => {
     expect(
       fullGuide(getHostSetupGuide({ ...VARS, method: "docker" })),
     ).toContain("--name otel-collector");
+  });
+});
+
+/*
+ * A host OneUptime installed the collector on (Add Host): it registers
+ * before its first metrics, so its overview first says it is starting -
+ * checks on a host that is fine would read as something being wrong - and,
+ * once its first data is late, says so with the checks.
+ */
+describe("Host guide, for a host OneUptime installed the collector on", () => {
+  const NOW: Date = new Date("2026-10-21T08:00:00.000Z");
+
+  function minutesAgo(minutes: number): Date {
+    return new Date(NOW.getTime() - minutes * 60 * 1000);
+  }
+
+  const DASHBOARD_EN: Record<string, string> = JSON.parse(
+    fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Locales/en.json",
+      ),
+      "utf8",
+    ),
+  ) as Record<string, string>;
+
+  test("for its first ten minutes it is starting, with nothing to check", () => {
+    expect(HOST_COLLECTOR_FIRST_DATA_GRACE_MS).toBe(10 * 60 * 1000);
+
+    for (const registeredAt of [minutesAgo(0), minutesAgo(9)]) {
+      const guide: ResourceConnectionGuide = getHostConnectionGuide("web-09", {
+        isManaged: true,
+        osType: "linux",
+        registeredAt,
+        now: NOW,
+      });
+
+      expect(guide.startingCopy?.title).toBe("This host is starting");
+      expect(guide.setupSteps).toEqual([]);
+      expect(guide.linkText).toBe("Open the Collector page");
+    }
+  });
+
+  test("after that its data is late, and the card shows how to check on it", () => {
+    for (const registeredAt of [minutesAgo(10), minutesAgo(60 * 24)]) {
+      const guide: ResourceConnectionGuide = getHostConnectionGuide("web-09", {
+        isManaged: true,
+        osType: "linux",
+        registeredAt: registeredAt.toISOString(),
+        now: NOW,
+      });
+
+      expect(guide.startingCopy?.title).toBe("No data from this host yet");
+      expect(
+        guide.setupSteps.map((step: ResourceConnectionGuideStep): string => {
+          return step.title;
+        }),
+      ).toEqual([
+        "Check the collector's config",
+        "Check the collector's service",
+        "Read the collector's log",
+      ]);
+    }
+  });
+
+  test("the checks are the commands of the host's own system", () => {
+    for (const [osType, system] of [
+      ["linux", HostCollectorOsType.Linux],
+      ["windows", HostCollectorOsType.Windows],
+      ["darwin", HostCollectorOsType.MacOS],
+    ] as Array<[string, HostCollectorOsType]>) {
+      const guide: ResourceConnectionGuide = getHostConnectionGuide("web-09", {
+        isManaged: true,
+        osType,
+        registeredAt: minutesAgo(30),
+        now: NOW,
+      });
+
+      expect(guide.setupSteps[1]!.code).toBe(
+        getHostCollectorServiceCommands(system).status,
+      );
+      expect(guide.setupSteps[2]!.code).toBe(
+        getHostCollectorServiceCommands(system).logs,
+      );
+    }
+  });
+
+  test("a host with no registration time, or one that is not a date, reads as starting", () => {
+    expect(isHostCollectorStillStarting({ registeredAt: null, now: NOW })).toBe(
+      true,
+    );
+    expect(isHostCollectorStillStarting({ now: NOW })).toBe(true);
+    expect(
+      isHostCollectorStillStarting({ registeredAt: "not a date", now: NOW }),
+    ).toBe(true);
+    expect(
+      isHostCollectorStillStarting({ registeredAt: minutesAgo(11), now: NOW }),
+    ).toBe(false);
+  });
+
+  test("what the card says is in the Dashboard's strings", () => {
+    for (const registeredAt of [minutesAgo(1), minutesAgo(30)]) {
+      const guide: ResourceConnectionGuide = getHostConnectionGuide("web-09", {
+        isManaged: true,
+        osType: "linux",
+        registeredAt,
+        now: NOW,
+      });
+
+      expect(DASHBOARD_EN[guide.startingCopy!.title]).toBeDefined();
+      expect(DASHBOARD_EN[guide.startingCopy!.description]).toBeDefined();
+      expect(DASHBOARD_EN[guide.linkText!]).toBeDefined();
+    }
   });
 });
 

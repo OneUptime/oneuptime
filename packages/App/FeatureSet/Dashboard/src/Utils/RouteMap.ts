@@ -518,6 +518,8 @@ export const HostRoutePath: Dictionary<string> = {
   [PageMap.HOST_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.HOST_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.HOST_ARCHIVED]: `archived`,
+  [PageMap.HOST_COLLECTOR_CONFIGS]: `collector-configs`,
+  [PageMap.HOST_COLLECTOR_CONFIG_VIEW]: `collector-configs/${RouteParams.ModelID}`,
 };
 
 export const ServerlessRoutePath: Dictionary<string> = {
@@ -778,6 +780,7 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
    */
   [PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL]: "playbook-runs",
   [PageMap.SECURITY_PLAYBOOK_RUNS]: "playbook-runs/all",
+  [PageMap.SECURITY_PROTECTED_ENTITIES]: "protected-entities",
 };
 
 // Metrics product routes
@@ -5264,6 +5267,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.HOST_COLLECTOR_CONFIGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_COLLECTOR_CONFIGS]
+    }`,
+  ),
+
+  [PageMap.HOST_COLLECTOR_CONFIG_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_COLLECTOR_CONFIG_VIEW]
+    }`,
+  ),
+
   // Serverless Functions
   [PageMap.SERVERLESS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/serverless/*`,
@@ -6733,6 +6748,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SECURITY_PLAYBOOK_RUNS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_PLAYBOOK_RUNS]
+    }`,
+  ),
+
+  [PageMap.SECURITY_PROTECTED_ENTITIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_PROTECTED_ENTITIES]
     }`,
   ),
 

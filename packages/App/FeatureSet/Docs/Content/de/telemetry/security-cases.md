@@ -144,16 +144,19 @@ Ein deaktiviertes Playbook läuft weder von selbst noch per Hand.
 | Benachrichtigen | Post to Microsoft Teams | Postet eine Zusammenfassung des Falls in einen Kanal von Microsoft Teams |
 | Eskalieren | Page on-call | Führt eine Bereitschaftsrichtlinie aus |
 | Eskalieren | Vorfall melden | Öffnet einen OneUptime-Vorfall, der mit dem Fall verknüpft ist |
-| Eindämmen | Suspend the user in Okta | Sperrt jeden Benutzer des Falls in Okta |
-| Eindämmen | End the user's Okta sessions | Meldet jeden Benutzer des Falls bei Okta ab und widerruft seine Tokens |
-| Eindämmen | Contain the host in CrowdStrike | Isoliert jeden Host des Falls mit CrowdStrike Falcon vom Netzwerk |
-| Eindämmen | Isolate the device in Microsoft Defender | Isoliert jeden Host des Falls mit Microsoft Defender for Endpoint |
+| Eindämmen | Suspend the user in Okta | Sperrt den Benutzer, um den es im Fall geht, in Okta |
+| Eindämmen | End the user's Okta sessions | Meldet den Benutzer, um den es im Fall geht, bei Okta ab und widerruft seine Tokens |
+| Eindämmen | Contain the host in CrowdStrike | Isoliert den Host, um den es im Fall geht, mit CrowdStrike Falcon vom Netzwerk |
+| Eindämmen | Isolate the device in Microsoft Defender | Isoliert den Host, um den es im Fall geht, mit Microsoft Defender for Endpoint |
+| Eindämmen | Unsuspend the user in Okta | Hebt die Sperre des Benutzers, um den es im Fall geht, in Okta auf |
+| Eindämmen | Lift containment in CrowdStrike | Hebt die Netzwerkisolierung durch CrowdStrike Falcon für den Host auf, um den es im Fall geht |
+| Eindämmen | Release the device in Microsoft Defender | Hebt die Isolierung des Hosts, um den es im Fall geht, in Microsoft Defender for Endpoint auf |
 | Automatisieren | Send a webhook | Sendet den Fall als JSON per POST an eine URL |
 | Automatisieren | Run a workflow | Startet einen OneUptime-Workflow mit dem Fall als Eingabe |
 
 Ein Playbook hat höchstens 25 Schritte. Sie laufen der Reihe nach, jeder, sobald der vorige fertig ist. Jeder Schritt kann außerdem:
 
-- **Needs Approval**: die Ausführung vor dem Schritt anhalten, bis jemand ihn am Fall genehmigt. Für die vier Eindämmungsschritte, die außerhalb von OneUptime handeln, ist das standardmäßig eingeschaltet.
+- **Needs Approval**: die Ausführung vor dem Schritt anhalten, bis jemand ihn am Fall genehmigt. Die vier Schritte, die jemanden aussperren, halten immer an, es sei denn, ein Security Admin schaltet das ab.
 - **Only If Threat Intel Matched**: den Schritt überspringen, sofern nicht ein früherer Schritt **Check entities against threat intel** derselben Ausführung einen bekannten Indikator gefunden hat.
 - **Carry On If It Fails**: den nächsten Schritt ausführen, auch wenn dieser fehlschlägt. Ist die Option aus, beendet ein fehlgeschlagener Schritt die Ausführung.
 
@@ -163,11 +166,28 @@ Die Eindämmungsschritte handeln über eine [Verbindung für Sicherheitsereignis
 
 | Schritt | Verbindung | Braucht |
 | --- | --- | --- |
-| Suspend the user in Okta, End the user's Okta sessions | Okta System Log | Ein API-Token, das Benutzer verwalten darf |
-| Contain the host in CrowdStrike | CrowdStrike Falcon | Einen API-Client mit Schreibrecht im Scope Hosts |
-| Isolate the device in Microsoft Defender | Microsoft Defender XDR | Eine App mit der Berechtigung Machine.Isolate |
+| Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Ein API-Token, das Benutzer verwalten darf |
+| Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | Einen API-Client mit Schreibrecht im Scope Hosts |
+| Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | Eine App mit der Berechtigung Machine.Isolate |
 
-Ein Eindämmungsschritt wirkt auf höchstens 10 der Benutzer oder Hosts des Falls. Er sucht jeden davon im Produkt nach seinem Namen und vermerkt am Fall, was er mit jedem getan hat: eingedämmt, bereits eingedämmt, nicht gefunden oder abgelehnt.
+Ein Eindämmungsschritt wirkt nur auf die Benutzer oder Hosts, um die es im Fall geht, nie auf alle, die der Fall nennt:
+
+- Der Wert, nach dem eine Erkennung des Falls gruppiert ist, etwa das Konto, nach dem eine Regel für unmögliche Ortswechsel gruppiert, oder der Host, den die Warnung eines verbundenen Produkts nennt.
+- Ein Benutzer oder Host des Falls, den Ihre Threat Intelligence als Indikator kennt.
+
+Bei einem Fall, der nach einer Adresse gruppiert ist, etwa einem Brute-Force-Angriff auf Ihr VPN, geht es um keines von beiden: Seine Eindämmungsschritte werden übersprungen, und das Konto, bei dem er es versucht hat, und das Gateway, das er getroffen hat, bleiben unangetastet. Ein Schritt wirkt auf höchstens 10 Benutzer oder Hosts. Er sucht jeden davon im Produkt nach seinem Namen und vermerkt an der Ausführung, was er mit jedem getan hat: erledigt, bereits erledigt, nicht gefunden, abgelehnt oder geschützt.
+
+#### Geschützte Entitäten
+
+**Protected Entities**, im Menü unter **Playbooks**, listet die Benutzer und Hosts, die kein Playbook eindämmt, etwa Notfallzugriffskonten, Domänencontroller und VPN-Gateways. Ein Wert passt unabhängig von der Groß- und Kleinschreibung, und `*` steht für eine beliebige Folge von Zeichen: `svc-*` schützt jedes Dienstkonto. Ein Schritt meldet einen geschützten Benutzer oder Host als geschützt und lässt ihn unangetastet. Security Admins pflegen die Liste.
+
+#### Genehmigung
+
+Die vier Schritte, die jemanden aussperren, warten auf Genehmigung. Nur ein Security Admin kann **Needs Approval** für einen von ihnen abschalten, und OneUptime hält fest, wer das getan hat. Die Genehmigung listet unter **Act On** die Benutzer oder Hosts, auf die der Schritt wirken würde, alle angehakt: Entfernen Sie den Haken bei allen, die er unangetastet lassen soll. Geschützte werden nicht angeboten. Wer eine Ausführung gestartet hat, kann ihre Schritte nicht genehmigen: Das tut jemand anderes, ablehnen kann er sie aber weiterhin.
+
+#### Rückgängig machen
+
+Die Schritte zum Rückgängigmachen wirken auf die Benutzer oder Hosts, um die es im Fall geht, wie die Schritte, die sie rückgängig machen. Sobald die Ausführung beendet ist, hat ein eingedämmter Benutzer oder Host an seinem Schritt außerdem eine eigene Schaltfläche: **Unsuspend**, **Lift Containment** oder **Freigeben**. Das Beenden einer Okta-Sitzung lässt sich nicht rückgängig machen. Jedes Rückgängigmachen wird in der Zeitachse des Falls und im Audit-Protokoll des Projekts festgehalten.
 
 ### Nachrichten
 
@@ -199,7 +219,7 @@ Jede Ausführung wird an ihrem Fall und unter **Produkte → Sicherheitsereignis
 | Fehlgeschlagen | Ein Schritt ist fehlgeschlagen, und die Ausführung wurde beendet |
 | Abgebrochen | Jemand hat sie abgebrochen oder einen Schritt abgelehnt |
 
-Ein Schritt, der auf Genehmigung wartet, zeigt an der Ausführung **Approve** und **Ablehnen**, mit einem optionalen Kommentar. Eine Genehmigung setzt die Ausführung ab diesem Schritt fort; eine Ablehnung beendet sie. Die Entscheidung, wer sie getroffen hat, und der Kommentar werden am Schritt und in der Zeitachse des Falls festgehalten. **Wartet auf Genehmigung**, im Menü unter **Playbooks**, listet die Ausführungen, die auf eine Entscheidung warten, und zählt sie; **Playbook-Ausführungen** listet jede Ausführung.
+Ein Schritt, der auf Genehmigung wartet, zeigt an der Ausführung **Approve** und **Ablehnen**, mit einem optionalen Kommentar. Eine Genehmigung setzt die Ausführung ab diesem Schritt fort; eine Ablehnung beendet sie. Die Entscheidung, wer sie getroffen hat, und der Kommentar werden am Schritt, in der Zeitachse des Falls und im Audit-Protokoll des Projekts festgehalten. **Wartet auf Genehmigung**, im Menü unter **Playbooks**, listet die Ausführungen, die auf eine Entscheidung warten, und zählt sie; **Playbook-Ausführungen** listet jede Ausführung.
 
 Eine Ausführung, von deren Worker nichts mehr kommt, etwa nach einem Neustart, wird wieder aufgegriffen: Eine Ausführung in der Warteschlange wird nach 2 Minuten erneut eingereiht, und eine Ausführung, die sich 30 Minuten lang nicht gemeldet hat, gilt als fehlgeschlagen.
 
@@ -223,7 +243,7 @@ Darüber zeigt ein Streifen, wie Sicherheit eingerichtet ist: ihre Quellen, Erke
 ## Automatisieren
 
 - **Arbeitsabläufe**: Ein Fall oder eine Notiz kann einen Workflow starten, wenn er oder sie erstellt, aktualisiert oder gelöscht wird. Ein Schritt **Run a workflow** startet einen Workflow, dessen Trigger ein Webhook ist.
-- **API**: Fälle, Notizen, Erkennungen, Playbooks und Ausführungen haben dieselbe REST-API wie der Rest von OneUptime, unter `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook` und `/security-playbook-run`. Siehe [API-Referenz](/docs/api-reference/api-reference).
+- **API**: Fälle, Notizen, Erkennungen, Playbooks, Ausführungen und geschützte Entitäten haben dieselbe REST-API wie der Rest von OneUptime, unter `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` und `/security-protected-entity`. Siehe [API-Referenz](/docs/api-reference/api-reference).
 - KI-Agenten: Der MCP-Server hat Werkzeuge für Fälle, Notizen, Erkennungen und Playbooks. Siehe [MCP-Server](/docs/ai/mcp-server).
 
 ## Fehlerbehebung
@@ -238,6 +258,10 @@ Prüfen Sie, dass es aktiviert ist, dass sein **Auslöser** passt (Case Opened l
 
 :::details Ein Eindämmungsschritt ist fehlgeschlagen
 Öffnen Sie die Ausführung am Fall: Der Schritt sagt für jeden Benutzer oder Host, ob das Produkt die Aktion abgelehnt hat, ihn nicht gefunden hat oder nicht erreichbar war. Prüfen Sie, dass die Zugangsdaten der Verbindung die Änderung vornehmen dürfen, und nutzen Sie **Verbindung testen** in ihrer Zeile.
+:::
+
+:::details Ein Eindämmungsschritt wurde übersprungen
+Im Fall geht es um keinen Benutzer und keinen Host, etwa nur um eine Adresse, oder jeder Benutzer oder Host, um den es darin geht, ist geschützt. Öffnen Sie die Ausführung am Fall: Der Schritt sagt, was davon zutrifft.
 :::
 
 ## Nächste Schritte

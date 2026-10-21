@@ -392,7 +392,7 @@ docker compose up -d
 
 PostgreSQL 接收器的 `postgresqlreceiver.preciselagmetrics` 功能閘道預設開啟，它把複寫時間延遲記錄為 `postgresql.wal.delay` 而不是 `postgresql.wal.lag`，而該指標在上游預設關閉，所以代理程式開啟了它。每份設定都在註解中列出了更多選用指標；可以用同樣的方式開啟其中任何一個。資料庫概覽中的 **Engine metrics** 區段會為本表中的每個引擎繪製一組精選指標（對於 Elasticsearch / OpenSearch：叢集健康狀態、節點、未指派的分片、待處理工作、JVM 堆積、可用磁碟、搜尋和索引；對於 Memcached：連線、記憶體、項目、get 命中和未命中、命令和收回），**指標** 分頁則包含所有指標。在那裡，概覽中繪製的指標會顯示概覽的值（其序列以同樣的方式合併，計數器以每秒速率顯示），並附有說明方式的標題（_total of series_、_per second, all series_）；其他每一列顯示其序列的平均值，在你依屬性篩選清單時，每一列也都顯示平均值。MariaDB 把 `mysql.buffer_pool.limit` 回報為緩衝集區的頁數，而不是接收器宣告的位元組數，因此在 MariaDB 資料庫上，該列及其圖表的單位是頁。MariaDB 沒有 `Innodb_rows_*` 狀態計數器，因此接收器不會為它傳送 `mysql.row_operations`，MariaDB 的概覽中也沒有 **Row operations** 圖表；它的資料列讀寫會顯示在 **Handler operations** 中。
 
-資料庫的 **Version** 來自接收器（如果接收器回報了版本）：`db.system.version`（MySQL / MariaDB、MongoDB）、`redis.version`（Redis、KeyDB）、`oracle.db.version`（Oracle）和 `elasticsearch.node.version`（Elasticsearch / OpenSearch）。PostgreSQL、SQL Server 和 Memcached 接收器不回報版本，因此僅有代理程式時，這些資料庫不顯示版本；同時在 Kubernetes、Docker 或 Podman 中執行的資料庫會顯示其容器映像檔的版本。
+資料庫的 **版本** 來自接收器（如果接收器回報了版本）：`db.system.version`（MySQL / MariaDB、MongoDB）、`redis.version`（Redis、KeyDB）、`oracle.db.version`（Oracle）和 `elasticsearch.node.version`（Elasticsearch / OpenSearch）。PostgreSQL、SQL Server 和 Memcached 接收器不回報版本，因此僅有代理程式時，這些資料庫不顯示版本；同時在 Kubernetes、Docker 或 Podman 中執行的資料庫會顯示其容器映像檔的版本。
 
 查詢樣本和熱門查詢會出現在資料庫的 **日誌** 分頁中，以查詢文字作為訊息。接收器傳送它們時本文為空，查詢位於 `db.query.text` 中；設定中的 `transform/query_event_body` 處理器會把它複製到本文並保留該屬性，並為沒有查詢文字的事件設定其事件名稱（`db.server.query_sample`、`db.server.top_query`）。
 

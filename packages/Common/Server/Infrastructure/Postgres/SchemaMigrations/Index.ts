@@ -148,7 +148,10 @@ import { AddScheduledMaintenanceExternalCalendars1805120000000 } from "./1805120
 import { AddOnCallRuleWorkingHours1805170000000 } from "./1805170000000-AddOnCallRuleWorkingHours";
 import { AddCloudConnection1805400000000 } from "./1805400000000-AddCloudConnection";
 import { AddCloudResourceCloudConnectionIndexAndKey1805450000000 } from "./1805450000000-AddCloudResourceCloudConnectionIndexAndKey";
-import { AddRunnerProjectDefault1805500000000 } from "./1805500000000-AddRunnerProjectDefault";
+import { AddHostCollectorManagement1805500000000 } from "./1805500000000-AddHostCollectorManagement";
+import { AddHostCollectorManagementIndexesAndKeys1805550000000 } from "./1805550000000-AddHostCollectorManagementIndexesAndKeys";
+import { AddSecurityProtectedEntity1805600000000 } from "./1805600000000-AddSecurityProtectedEntity";
+import { AddRunnerProjectDefault1805650000000 } from "./1805650000000-AddRunnerProjectDefault";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1499,5 +1502,8 @@ export default [
   AddOnCallRuleWorkingHours1805170000000,
   AddCloudConnection1805400000000,
   AddCloudResourceCloudConnectionIndexAndKey1805450000000,
-  AddRunnerProjectDefault1805500000000,
+  AddHostCollectorManagement1805500000000,
+  AddHostCollectorManagementIndexesAndKeys1805550000000,
+  AddSecurityProtectedEntity1805600000000,
+  AddRunnerProjectDefault1805650000000,
 ];

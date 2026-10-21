@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddRunnerProjectDefault1805500000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805500000000-AddRunnerProjectDefault";
+import { AddRunnerProjectDefault1805650000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805650000000-AddRunnerProjectDefault";
 import Runner from "../../../../Models/DatabaseModels/Runner";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 
@@ -23,7 +23,7 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
  * check finds nothing left to generate once it has run.)
  */
 
-const MIGRATION_TIMESTAMP: string = "1805500000000";
+const MIGRATION_TIMESTAMP: string = "1805650000000";
 const MIGRATION_BASE_NAME: string = "AddRunnerProjectDefault";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 
@@ -43,7 +43,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddRunnerProjectDefault1805500000000();
+    new AddRunnerProjectDefault1805650000000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -54,7 +54,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddRunnerProjectDefault1805500000000", () => {
+describe("AddRunnerProjectDefault1805650000000", () => {
   test("adds whether a Runner is its project's default, false for every Runner there is", async () => {
     expect(await statementsOf("up")).toEqual([
       `ALTER TABLE "Runner" ADD "isProjectDefault" boolean NOT NULL DEFAULT false`,
@@ -83,7 +83,7 @@ describe("AddRunnerProjectDefault1805500000000", () => {
     });
 
     expect(registered).toContain(MIGRATION_CLASS_NAME);
-    expect(new AddRunnerProjectDefault1805500000000().name).toBe(
+    expect(new AddRunnerProjectDefault1805650000000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
     expect(

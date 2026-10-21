@@ -138,7 +138,7 @@ Every minute, each enabled feed's active indicators are matched against the even
 - The first check covers the last 15 minutes. After an outage, the next check catches up on at most the last 24 hours.
 - Each window is checked once. Intel that arrives after its window was checked applies only to later events.
 - An event that arrives late, with a time from before the previous check, is still tagged as it arrives, but not matched.
-- Each check matches at most 100 indicator values per feed: the ones seen in the most events.
+- Each check records every matched indicator value as a finding, up to 10,000 per feed. Alerts, incidents and cases open for the 100 values seen in the most events; the rest share one case about the feed, and the feed's **Last Match Error** says how many matched.
 
 ### What a match does
 

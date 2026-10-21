@@ -41,6 +41,7 @@
     "Tokens",
     "Tunnel",
     "VMware vCenter",
+    "Version {{number}}",
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",
     "port {{port}}",

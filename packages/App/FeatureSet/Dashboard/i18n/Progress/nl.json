@@ -19,6 +19,7 @@
     "Client",
     "Cloud",
     "CloudWatch Metric Streams",
+    "Collector",
     "Component",
     "Context",
     "Details",

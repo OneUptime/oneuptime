@@ -219,7 +219,7 @@ async function isBelow(upper: Locator, lower: Locator): Promise<boolean> {
  * ---------------------------------------------------------------------------
  */
 
-test("a new project's Hosts: the empty table says what the list is, the guide under it what to do, and Create stays in the header", async ({
+test("a new project's Hosts: the empty table says what the list is, the guide under it what to do, and Add Host stays in the header", async ({
   page,
 }: {
   page: Page;
@@ -229,13 +229,13 @@ test("a new project's Hosts: the empty table says what the list is, the guide un
   await expect(emptyTable(page)).toBeVisible();
   await expect(emptyTable(page)).toContainText("No hosts yet");
   await expect(emptyTable(page)).toContainText(
-    "Hosts being monitored in this project. A host shows up here once its OpenTelemetry Collector sends data.",
+    "Hosts being monitored in this project. Add one with a single command on the host.",
   );
 
-  const guideTitle: Locator = page.getByText(
-    "Getting Started with Host Monitoring",
-    { exact: true },
-  );
+  // The guide is the one command that adds a host (Add Host).
+  const guideTitle: Locator = page.getByText("Add your first host", {
+    exact: true,
+  });
   const guideSentence: Locator = page.getByText(GUIDE_SENTENCE, {
     exact: true,
   });
@@ -243,8 +243,9 @@ test("a new project's Hosts: the empty table says what the list is, the guide un
   await expect(guideSentence).toBeVisible();
   expect(await isBelow(emptyTable(page), guideTitle)).toBe(true);
 
-  // Creating a host by hand connects nothing: the guide is the way in.
-  await expect(headerButton(page, "Create Host")).toBeVisible();
+  // Typing a host in by hand connects nothing: the one command is the way in.
+  await expect(headerButton(page, "Add Host")).toBeVisible();
+  await expect(headerButton(page, "Create Host")).toHaveCount(0);
   await expect(emptyTableCreate(page)).toHaveCount(0);
   // Nothing to filter yet: no chips over the empty table.
   await expect(chips(page)).toHaveCount(0);
@@ -282,9 +283,7 @@ test("the first host to report shows in the table, and the guide goes away, with
     tableCard(page).getByText("web-01", { exact: true }).first(),
   ).toBeVisible();
   await expect(emptyTable(page)).toHaveCount(0);
-  await expect(
-    page.getByText("Getting Started with Host Monitoring"),
-  ).toHaveCount(0);
+  await expect(page.getByText("Add your first host")).toHaveCount(0);
   await expect(page.getByText(GUIDE_SENTENCE)).toHaveCount(0);
   // With a host to filter, the chips are back.
   await expect(chips(page)).toBeVisible();
@@ -901,7 +900,7 @@ test("in German, the guide's sentence and the list's description are translated"
     ),
   ).toBeVisible();
   await expect(emptyTable(page)).toContainText(
-    "Hosts, die in diesem Projekt überwacht werden. Ein Host erscheint hier, sobald sein OpenTelemetry Collector Daten sendet.",
+    "Hosts, die in diesem Projekt überwacht werden. Fügen Sie einen mit einem einzigen Befehl auf dem Host hinzu.",
   );
   await expect(page.getByText(GUIDE_SENTENCE)).toHaveCount(0);
   await screenshot(page, "hosts-first-run-de");

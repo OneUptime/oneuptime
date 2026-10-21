@@ -2,6 +2,9 @@
 
 在 Linux、macOS 或 Windows 机器上运行 OpenTelemetry Collector，把机器的指标、进程、日志和服务状态发送到 OneUptime。机器会出现在 **产品 → 基础设施 → 主机** 下，并拥有自己的页面，无需安装任何 OneUptime 代理：Collector 就是上游的 `otelcol-contrib` 发行版。[主机监控](/docs/monitor/host-monitor) 会根据它发送的数据发出警报。
 
+> [!TIP]
+> 也可以让 OneUptime 为你安装和配置收集器：[主机](/docs/telemetry/hosts) 用一条命令添加机器，并保持其配置为最新。本页介绍如何使用你自己在机器上维护的 `config.yaml` 运行收集器。
+
 :::cards
 - [安装 Collector](#安装-collector): 在 Linux、macOS 或 Windows 上只需三步。
 - [选择要采集的内容](#选择要采集的内容): 指标、文件日志、journal、事件日志和服务状态。

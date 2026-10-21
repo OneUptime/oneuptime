@@ -44,7 +44,7 @@ OneUptime에는 머신용 모니터가 두 가지 있습니다. 같은 호스트
 
 ## 시작하기 전에
 
-- **호스트에서 OpenTelemetry Collector를 실행하세요**. `hostmetrics` 수신기를 씁니다. [호스트 OpenTelemetry 수집기](/docs/telemetry/host-otel-collector)에서 Linux, macOS, Windows를 다루며, **제품 → 인프라 → 호스트 → 문서** 에 바로 쓸 수 있는 구성이 있습니다.
+- **호스트에서 OpenTelemetry Collector를 실행하세요**. `hostmetrics` 수신기를 씁니다. 가장 빠른 방법은 [호스트](/docs/telemetry/hosts)입니다. 명령 하나로 컬렉터를 설치하고 OneUptime이 구성합니다. [호스트 OpenTelemetry 수집기](/docs/telemetry/host-otel-collector)에서 Linux, macOS, Windows를 다루며, **제품 → 인프라 → 호스트 → 문서** 에 바로 쓸 수 있는 구성이 있습니다.
 - **사용률 메트릭을 켜세요.** `system.cpu.utilization`, `system.memory.utilization`, `system.filesystem.utilization`은 수신기에서 선택 사항이지만 CPU, 메모리, 파일 시스템 템플릿에 필요합니다. 대시보드의 구성은 이것들을 켭니다.
 - **호스트가 등록되었는지 확인하세요.** 첫 데이터가 도착하면 `host.name` 이름으로 **제품 → 인프라 → 호스트 → 모든 호스트** 에 나타납니다.
 

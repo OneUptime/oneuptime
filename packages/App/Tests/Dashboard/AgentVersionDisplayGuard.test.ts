@@ -101,6 +101,9 @@ const DISPLAYS: Record<string, Array<string>> = {
   "packages/App/FeatureSet/Dashboard/src/Pages/Host/View/Overview.tsx": [
     "HostCollector",
   ],
+  // A managed host's Collector page: its collector release.
+  "packages/App/FeatureSet/Dashboard/src/Components/HostCollector/HostCollectorCard.tsx":
+    ["HostCollector"],
   "packages/App/FeatureSet/Dashboard/src/Pages/Proxmox/View/Index.tsx": [
     "ProxmoxAgent",
   ],

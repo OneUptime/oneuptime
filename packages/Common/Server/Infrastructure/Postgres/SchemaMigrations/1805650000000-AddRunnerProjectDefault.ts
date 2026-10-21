@@ -16,10 +16,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * default is looked up among the project's own Runners, which the projectId
  * index already narrows to a handful.
  */
-export class AddRunnerProjectDefault1805500000000
+export class AddRunnerProjectDefault1805650000000
   implements MigrationInterface
 {
-  public name: string = "AddRunnerProjectDefault1805500000000";
+  public name: string = "AddRunnerProjectDefault1805650000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

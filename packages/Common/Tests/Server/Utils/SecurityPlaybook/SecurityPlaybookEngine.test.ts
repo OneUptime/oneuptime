@@ -9,12 +9,14 @@ import SecurityPlaybookActions, {
 import SecurityPlaybookEngine, {
   SECURITY_PLAYBOOK_RUN_JOB,
 } from "../../../../Server/Utils/SecurityPlaybook/SecurityPlaybookEngine";
+import SecurityPlaybookTargets from "../../../../Server/Utils/SecurityPlaybook/SecurityPlaybookTargets";
 import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
 import SecurityPlaybookRun from "../../../../Models/DatabaseModels/SecurityPlaybookRun";
 import { SecurityCaseFeedEventType } from "../../../../Models/DatabaseModels/SecurityCaseFeed";
 import ObjectID from "../../../../Types/ObjectID";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import SecurityCasePriority from "../../../../Types/SecurityCase/SecurityCasePriority";
+import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntity";
 import { SecurityPlaybookActionType } from "../../../../Types/SecurityPlaybook/SecurityPlaybookAction";
 import SecurityPlaybookRunStatus, {
   SecurityPlaybookStepStatus,
@@ -23,6 +25,9 @@ import { SecurityPlaybookStep } from "../../../../Types/SecurityPlaybook/Securit
 import {
   SecurityPlaybookApprovalDecision,
   SecurityPlaybookStepResult,
+  SecurityPlaybookTarget,
+  SecurityPlaybookTargetReason,
+  SecurityPlaybookTargetState,
   buildPendingStepResults,
 } from "../../../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
 import FeedMarkdown, { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
@@ -60,6 +65,12 @@ function configFor(action: SecurityPlaybookActionType): JSONObject {
   }
 }
 
+// A containment step a Security Admin let run without approval.
+const RUNS_WITHOUT_APPROVAL: Partial<SecurityPlaybookStep> = {
+  requiresApproval: false,
+  approvalTurnedOff: { at: "2026-10-20T10:00:00.000Z" },
+};
+
 function step(
   action: SecurityPlaybookActionType,
   extra: Partial<SecurityPlaybookStep> = {},
@@ -88,9 +99,22 @@ interface RunState {
 
 let state: RunState;
 let executed: Array<SecurityPlaybookActionType>;
+let contexts: Array<PlaybookStepContext>;
 let outcomes: Array<PlaybookStepOutcome>;
 let feedItems: Array<{ eventType: string; markdown: string }>;
-let spies: { cas: Spy; enqueue: Spy };
+let spies: { cas: Spy; enqueue: Spy; selectTargets: Spy };
+
+function userTarget(
+  value: string,
+  state: SecurityPlaybookTargetState = SecurityPlaybookTargetState.Proposed,
+): SecurityPlaybookTarget {
+  return {
+    type: SecurityEntityType.User,
+    value,
+    reason: SecurityPlaybookTargetReason.GroupedOn,
+    state,
+  };
+}
 
 function useRun(
   steps: Array<SecurityPlaybookStep>,
@@ -125,10 +149,16 @@ function runModel(): SecurityPlaybookRun {
 
 beforeEach(() => {
   executed = [];
+  contexts = [];
   outcomes = [];
   feedItems = [];
 
   spies = {
+    // The case is about mallory: what the target rule picks unless a test says otherwise.
+    selectTargets: getJestSpyOn(
+      SecurityPlaybookTargets,
+      "selectTargets",
+    ).mockResolvedValue([userTarget("mallory@acme.com")] as never),
     cas: getJestSpyOn(
       SecurityPlaybookRunService,
       "compareAndSetColumnsByIdWithoutHooks",
@@ -212,6 +242,7 @@ beforeEach(() => {
   getJestSpyOn(SecurityPlaybookActions, "execute").mockImplementation(
     async (context: unknown) => {
       executed.push((context as PlaybookStepContext).step.action);
+      contexts.push(context as PlaybookStepContext);
       return (outcomes.shift() || {
         status: SecurityPlaybookStepStatus.Succeeded,
         summary: mdText`Done.`,
@@ -330,6 +361,148 @@ describe("SecurityPlaybookEngine.executeRun", () => {
     expect(state.stepResults[1]!.approval?.decidedByUserId).toBe("u1");
   });
 
+  test("holds a containment step for approval even when it says it needs none, unless a Security Admin stamped it off", async () => {
+    useRun([
+      step(SecurityPlaybookActionType.SuspendOktaUser, {
+        requiresApproval: false,
+      }),
+    ]);
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    expect(executed).toEqual([]);
+    expect(state.status).toBe(SecurityPlaybookRunStatus.WaitingForApproval);
+
+    useRun([
+      step(SecurityPlaybookActionType.SuspendOktaUser, {
+        requiresApproval: false,
+        approvalTurnedOff: {
+          byUserId: "77777777-7777-4777-8777-777777777777",
+          at: "2026-10-20T10:00:00.000Z",
+        },
+      }),
+    ]);
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    expect(executed).toEqual([SecurityPlaybookActionType.SuspendOktaUser]);
+    expect(state.status).toBe(SecurityPlaybookRunStatus.Succeeded);
+  });
+
+  test("picks a containment step's targets before it waits, keeps them on the step, and names them on the case", async () => {
+    spies.selectTargets.mockResolvedValue([
+      userTarget("mallory@acme.com"),
+      userTarget("breakglass@acme.com", SecurityPlaybookTargetState.Protected),
+    ] as never);
+
+    useRun([
+      step(SecurityPlaybookActionType.SuspendOktaUser, {
+        requiresApproval: true,
+      }),
+    ]);
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    expect(state.status).toBe(SecurityPlaybookRunStatus.WaitingForApproval);
+    expect(
+      state.stepResults[0]!.targets?.map(
+        (target: SecurityPlaybookTarget): string => {
+          return `${target.value}: ${target.state}`;
+        },
+      ),
+    ).toEqual(["mallory@acme.com: Proposed", "breakglass@acme.com: Protected"]);
+    expect(
+      feedItems.find((item: { eventType: string }) => {
+        return item.eventType === SecurityCaseFeedEventType.ApprovalRequested;
+      })?.markdown,
+    ).toContain("(Suspend the user in Okta) on `mallory@acme.com`.");
+  });
+
+  test("skips a containment step with nothing to act on, rather than ask for an approval of nothing", async () => {
+    spies.selectTargets.mockResolvedValue([
+      {
+        ...userTarget(
+          "breakglass@acme.com",
+          SecurityPlaybookTargetState.Protected,
+        ),
+        protectedBy: "breakglass@acme.com",
+      },
+    ] as never);
+
+    useRun([
+      step(SecurityPlaybookActionType.SuspendOktaUser, {
+        requiresApproval: true,
+      }),
+      step(SecurityPlaybookActionType.AddCaseNote),
+    ]);
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    expect(executed).toEqual([SecurityPlaybookActionType.AddCaseNote]);
+    expect(state.status).toBe(SecurityPlaybookRunStatus.Succeeded);
+    expect(state.stepResults[0]!.status).toBe(
+      SecurityPlaybookStepStatus.Skipped,
+    );
+    expect(state.stepResults[0]!.message).toBe(
+      "No user to act on: `breakglass@acme.com` is protected.",
+    );
+    expect(
+      feedItems.some((item: { eventType: string }) => {
+        return item.eventType === SecurityCaseFeedEventType.ApprovalRequested;
+      }),
+    ).toBe(false);
+  });
+
+  test("acts on the targets as the approver left them, and keeps what became of each", async () => {
+    const steps: Array<SecurityPlaybookStep> = [
+      step(SecurityPlaybookActionType.SuspendOktaUser, {
+        requiresApproval: true,
+      }),
+    ];
+    const results: Array<SecurityPlaybookStepResult> =
+      buildPendingStepResults(steps);
+    results[0]!.targets = [
+      userTarget("mallory@acme.com"),
+      userTarget("bob@acme.com", SecurityPlaybookTargetState.LeftOut),
+    ];
+    results[0]!.approval = {
+      decision: SecurityPlaybookApprovalDecision.Approved,
+      decidedByUserId: "u2",
+      decidedAt: "2026-10-14T09:00:00.000Z",
+      targets: ["mallory@acme.com"],
+    };
+
+    outcomes.push({
+      status: SecurityPlaybookStepStatus.Succeeded,
+      summary: mdText`Suspend the user in Okta: done for mallory.`,
+      targets: [
+        {
+          ...userTarget("mallory@acme.com"),
+          state: SecurityPlaybookTargetState.Done,
+          detail: "suspended",
+        },
+        userTarget("bob@acme.com", SecurityPlaybookTargetState.LeftOut),
+      ],
+    });
+
+    useRun(steps, { stepResults: results });
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    // The rule is not asked again: the approver decided on these.
+    expect(spies.selectTargets).not.toHaveBeenCalled();
+    expect(
+      contexts[0]!.targets?.map((target: SecurityPlaybookTarget): string => {
+        return `${target.value}: ${target.state}`;
+      }),
+    ).toEqual(["mallory@acme.com: Proposed", "bob@acme.com: Left Out"]);
+    expect(state.stepResults[0]!.targets?.[0]).toMatchObject({
+      value: "mallory@acme.com",
+      state: SecurityPlaybookTargetState.Done,
+      detail: "suspended",
+    });
+  });
+
   test("skips a step that waits on threat intel when nothing matched", async () => {
     useRun([
       step(SecurityPlaybookActionType.CheckThreatIntel),
@@ -358,6 +531,7 @@ describe("SecurityPlaybookEngine.executeRun", () => {
       step(SecurityPlaybookActionType.CheckThreatIntel),
       step(SecurityPlaybookActionType.SuspendOktaUser, {
         onlyIfThreatIntelMatched: true,
+        ...RUNS_WITHOUT_APPROVAL,
       }),
     ]);
 
@@ -378,7 +552,7 @@ describe("SecurityPlaybookEngine.executeRun", () => {
     });
 
     useRun([
-      step(SecurityPlaybookActionType.SuspendOktaUser),
+      step(SecurityPlaybookActionType.SuspendOktaUser, RUNS_WITHOUT_APPROVAL),
       step(SecurityPlaybookActionType.AddCaseNote),
     ]);
 

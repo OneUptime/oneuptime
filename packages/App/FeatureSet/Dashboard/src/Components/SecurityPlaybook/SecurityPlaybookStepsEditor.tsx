@@ -14,6 +14,7 @@ import {
 import {
   SECURITY_PLAYBOOK_MAX_STEPS,
   SecurityPlaybookStep,
+  doesStepNeedApproval,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
@@ -157,6 +158,11 @@ const SecurityPlaybookStepsEditor: FunctionComponent<ComponentProps> = (
                   translator,
                 );
                 const isLast: boolean = index === props.steps.length - 1;
+                const needsApproval: boolean = doesStepNeedApproval(step);
+                // A containment step a Security Admin let run without approval.
+                const runsUnapproved: boolean = Boolean(
+                  definition?.isDisruptive && !needsApproval,
+                );
 
                 return (
                   <li
@@ -196,14 +202,23 @@ const SecurityPlaybookStepsEditor: FunctionComponent<ComponentProps> = (
                           ) : (
                             <></>
                           )}
-                          {step.requiresApproval ||
+                          {needsApproval ||
+                          runsUnapproved ||
                           step.onlyIfThreatIntelMatched ||
                           step.continueOnFailure ? (
                             <div className="mt-2 flex flex-wrap gap-1.5">
-                              {step.requiresApproval ? (
+                              {needsApproval ? (
                                 <Flag
                                   icon={IconProp.Lock}
                                   text="Needs approval"
+                                />
+                              ) : (
+                                <></>
+                              )}
+                              {runsUnapproved ? (
+                                <Flag
+                                  icon={IconProp.LockOpen}
+                                  text="Runs without approval"
                                 />
                               ) : (
                                 <></>
