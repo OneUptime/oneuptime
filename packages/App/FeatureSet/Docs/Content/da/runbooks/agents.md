@@ -27,7 +27,7 @@ flowchart TB
     end
     worker --> ingest
     runner -->|"Udgående HTTPS, Runner-ID og nøgle"| ingest
-    ingest -->|"Overtaget job med dets hemmeligheder eller loginoplysning"| runner
+    ingest -->|"Overtaget job med dets hemmeligheder"| runner
     runner -->|"Script, SSH eller Kubernetes-API"| targets
 ```
 
@@ -61,13 +61,12 @@ Globale Runnere er de Runnere, OneUptime kører for alle projekter. Et JavaScrip
 | Hvad et trin kan nå | Offentlige internetadresser | Hvad dens vært kan nå |
 | Længste kørsel for et trin | 5 minutter | 1 time |
 | Hemmelige variabler | Dem, du lader globale Runnere bruge | Dem, der viser den |
-| Loginoplysninger | Ingen | Dem, du tildeler den |
 
 En global Runner kører trinnene fra mange projekter, så hvert trin holdes adskilt fra alle andre:
 
 - Hvert trin kører i sin egen `isolated-vm`-sandkasse, oprettet til det trin og smidt væk bagefter: ingen filer, ingen processer, ingen miljøvariabler og intet, der gemmes fra ét trin til det næste.
 - Dens HTTP-forespørgsler når kun offentlige internetadresser, aldrig en privat, loopback- eller link-local-adresse eller et cloud-metadata-endpoint, så en global Runner når aldrig dit netværk.
-- Den får kun en hemmelig variabel, når variablens kontakt **Globale Runnere må bruge den** er slået til, og kun for et trin i variablens eget projekt. Den får aldrig en loginoplysning.
+- Den får kun en hemmelig variabel, når variablens kontakt **Globale Runnere må bruge den** er slået til, og kun for et trin i variablens eget projekt.
 - Et projekt kører højst tre trin ad gangen på globale Runnere, så intet projekt holder dem for sig selv.
 
 Vælg en af dine egne Runnere til et trin, der skal nå dit netværk, eller for at holde trinnet på værter, du styrer. For at holde hvert trin på dine egne Runnere skal du slå **Brug globale Runnere** fra nederst på **Runbooks → Runbook-agenter**. Et JavaScript-trin, der ikke vælger nogen Runner, kører så på projektets standard-Runner eller fejler, hvis der ikke er angivet en, og siger det, indtil det vælger en af dine; et trin, der vælger en af dine Runnere, beholder den under alle omstændigheder. Et koderepositorie, der ikke vælger nogen Runner i sine indstillinger i Kode, arbejder også på en global Runner og skal bruge en af dine, mens kontakten er slået fra; se [Kode](/docs/ai/ai-agent#vælg-repositoriets-runner).
@@ -98,7 +97,7 @@ Gå til **Runbooks → Runbook-agenter**, og opret en ny agent. Klik på **Opret
 | **Kører runbooks** | Under **Flere felter** | Slået til som standard. Lader denne Runner overtage runbook-trin. |
 | **Etiketter** | Under **Flere felter** | Valgfri. |
 
-En Runner henter en ændring af sine funktioner ved sit næste heartbeat; den skal ikke genstartes. AI er ikke en funktion. Et koderepositorie vælger i sine indstillinger i Kode den Runner, AI arbejder i det på, og Runnerens side viser de repositorier, der vælger den. En regel for automatisk afhjælpning vælger den Runner, OneUptime AI kører sine kommandoer på, og en Kubernetes-klynges AI-indstillinger den Runner, dens kubectl kører på: Det er valget af en Runner der, der lader OneUptime AI's kommandoer køre på den. At vælge en, der har SSH-loginoplysninger, kræver tilladelse til at læse runbook-loginoplysninger; se [Runners, der kører OneUptime AI's kommandoer](/docs/runbooks/credentials#runners-der-kører-oneuptime-ais-kommandoer).
+En Runner henter en ændring af sine funktioner ved sit næste heartbeat; den skal ikke genstartes. AI er ikke en funktion. Et koderepositorie vælger i sine indstillinger i Kode den Runner, AI arbejder i det på, og Runnerens side viser de repositorier, der vælger den. En regel for automatisk afhjælpning vælger den Runner, OneUptime AI kører sine kommandoer på: Det er valget af en Runner der, der lader OneUptime AI's kommandoer køre på den.
 
 ### 2. Kopiér installationskommandoen
 

@@ -157,10 +157,10 @@ async function update(data: {
       props: {
         tenantId: tenantId,
         /*
-         * A project admin, who may read runbook credentials: the rule's
-         * other check on these columns - who may let a rule run AI commands
-         * without asking (AutoRemediationRuleUnattendedCommands) - then
-         * asks nothing, so what this file pins is the Runner check alone.
+         * A project admin. Saving a rule that runs AI commands without
+         * asking asks nothing more of anyone who may write the rule
+         * (AutoRemediationRuleUnattendedCommands), so what this file pins
+         * is the Runner check alone.
          */
         ...(tenantId
           ? {
@@ -242,7 +242,9 @@ describe("AutoRemediationRule Command Runners never include a kubernetes-agent R
       const message: string = (thrown as Error).message;
       expect(message).toContain('Runner "kubernetes-agent/prod-us"');
       expect(message).toContain("this rule's Runner");
-      expect(message).toContain("Bash or SSH");
+      // OneUptime AI composes Bash for a rule's Runner: no SSH any more.
+      expect(message).toContain("never the Bash commands a rule composes");
+      expect(message).not.toContain("SSH");
       expect(message).toContain("Kubernetes AI agent");
       expect(message).toContain("AI → Agent");
       expect(message).toContain("Runbooks → Runners");

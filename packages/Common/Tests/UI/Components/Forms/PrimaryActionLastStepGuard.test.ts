@@ -477,8 +477,6 @@ describe("the project's front ends", () => {
     for (const file of [
       "packages/Common/UI/Components/ModelFormModal/ModelFormModal.tsx",
       "packages/Common/UI/Components/FormModal/BasicFormModal.tsx",
-      // Change what AI may do: two steps when a Runner can be picked.
-      "packages/App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/AI/Agent.tsx",
       // Create a workflow: its own steps, Create Workflow only on the last.
       "packages/App/FeatureSet/Dashboard/src/Components/Workflow/CreateWorkflowModal.tsx",
       // Create a dashboard: how to start, then Name, where Create Dashboard is.

@@ -5,10 +5,6 @@ import QueryHelper from "../../Types/Database/QueryHelper";
 import RunnerService, {
   Service as RunnerServiceClass,
 } from "../../Services/RunnerService";
-import AiCommandCredentialReach, {
-  CredentialReachHold,
-} from "../AutoRemediation/AiCommandCredentialReach";
-import RunbookCredentialReaders from "../AutoRemediation/RunbookCredentialReaders";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Logger";
 
@@ -20,12 +16,9 @@ import logger, { LogAttributes } from "../Logger";
  * maintainer: "remove Run AI remediation commands as well, this should be in
  * Incident / Alert remediation settings on which runner to run from". So the
  * Runner is picked where the commands come from, and that pick is the
- * consent:
- *
- *   - an auto remediation rule picks it as its Runner (AutoRemediationRule
- *     .runnerId): OneUptime AI runs the rule's commands there;
- *   - a Kubernetes cluster's AI settings bind it (KubernetesCluster
- *     .aiAccessRunnerId): OneUptime AI runs that cluster's kubectl there.
+ * consent: an auto remediation rule picks it as its Runner
+ * (AutoRemediationRule.runnerId), and OneUptime AI runs the rule's commands
+ * there.
  *
  * The column the switch wrote (Runner.canRunAiCommands) stays as what every
  * check that serves, approves or runs such a command reads - the Runner's
@@ -41,15 +34,11 @@ import logger, { LogAttributes } from "../Logger";
  * it, nor for another project's Runner: the write is held to the project's
  * own Runners that are neither.
  *
- * And the pick asks what the switch asked. OneUptime AI picks among a
- * Runner's SSH credentials for the SSH commands it runs there, so a pick by
- * someone who may not read runbook credentials is refused for a Runner that
- * holds one (RunnerService.assertNoCredentialsForAiCommands), and holds the
- * project's lock from before it reads until it is written
- * (AiCommandCredentialReach): an SSH credential assigned to the Runner at
- * the same moment is either seen here, or sees the Runner run them. An SSH
- * credential comes within reach of OneUptime AI's commands only through
- * someone who may read it, whichever is saved first.
+ * Who may pick is decided where the pick is saved (the rule's own
+ * permissions). The pick asked one thing more while runbook credentials
+ * existed - OneUptime AI picked among a Runner's SSH credentials for the SSH
+ * commands it ran there - and asks nothing more now that they are gone:
+ * OneUptime AI's commands on a Runner run on that Runner's own host.
  */
 export default class RunnerAiCommandsPick {
   @CaptureSpan()
@@ -57,8 +46,8 @@ export default class RunnerAiCommandsPick {
     projectId: ObjectID | undefined | null;
     runnerIds: Array<ObjectID | string | null | undefined>;
     /*
-     * Who picks them, for the check above. Left out for OneUptime's own
-     * picks, which are not checked.
+     * Who picks them. Read for nothing any more: a pick asks no more than
+     * the write that saves it. Kept so every caller says who it acts for.
      */
     props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<void> {
@@ -76,79 +65,43 @@ export default class RunnerAiCommandsPick {
 
     const projectId: ObjectID = data.projectId;
 
-    const checkedProps: DatabaseCommonInteractionProps | null =
-      data.props &&
-      !data.props.isRoot &&
-      !RunbookCredentialReaders.mayRead(data.props, projectId)
-        ? data.props
-        : null;
+    const runners: Array<Runner> = await RunnerService.findBy({
+      query: {
+        _id: QueryHelper.any(ids),
+        projectId: projectId,
+        isGlobalRunner: false,
+        canRunAiCommands: false,
+      },
+      select: {
+        _id: true,
+        name: true,
+        hostInfo: true,
+      },
+      limit: ids.length,
+      skip: 0,
+      props: { isRoot: true },
+    });
 
-    let hold: CredentialReachHold | null = checkedProps
-      ? await AiCommandCredentialReach.take([projectId])
-      : null;
+    const toAllow: Array<Runner> = runners.filter((runner: Runner): boolean => {
+      return (
+        Boolean(runner._id) &&
+        !RunnerServiceClass.isKubernetesAgentRunnerRow(runner)
+      );
+    });
 
-    try {
-      const runners: Array<Runner> = await RunnerService.findBy({
-        query: {
-          _id: QueryHelper.any(ids),
-          projectId: projectId,
-          isGlobalRunner: false,
-          canRunAiCommands: false,
+    for (const runner of toAllow) {
+      await RunnerService.updateOneById({
+        id: new ObjectID(runner._id!.toString()),
+        data: {
+          canRunAiCommands: true,
         },
-        select: {
-          _id: true,
-          name: true,
-          hostInfo: true,
-        },
-        limit: ids.length,
-        skip: 0,
         props: { isRoot: true },
       });
 
-      const toAllow: Array<Runner> = runners.filter(
-        (runner: Runner): boolean => {
-          return (
-            Boolean(runner._id) &&
-            !RunnerServiceClass.isKubernetesAgentRunnerRow(runner)
-          );
-        },
+      logger.info(
+        `RunnerAiCommandsPick: Runner ${runner._id!.toString()} was picked for OneUptime AI's commands, so it now runs them.`,
+        { projectId: projectId.toString() } as LogAttributes,
       );
-
-      if (toAllow.length === 0) {
-        return;
-      }
-
-      if (checkedProps) {
-        await RunnerService.assertNoCredentialsForAiCommands(
-          toAllow,
-          checkedProps,
-        );
-
-        // Refused when the lock was lost since the check read (keepForWrite).
-        await AiCommandCredentialReach.keepForWrite(hold);
-      }
-
-      for (const runner of toAllow) {
-        await RunnerService.updateOneById({
-          id: new ObjectID(runner._id!.toString()),
-          data: {
-            canRunAiCommands: true,
-          },
-          props: { isRoot: true },
-        });
-
-        logger.info(
-          `RunnerAiCommandsPick: Runner ${runner._id!.toString()} was picked for OneUptime AI's commands, so it now runs them.`,
-          { projectId: projectId.toString() } as LogAttributes,
-        );
-      }
-    } catch (error) {
-      // A write the database may still apply keeps the lock until it could have.
-      await AiCommandCredentialReach.giveBackAfterFailedWrite(hold, error);
-      hold = null;
-      throw error;
-    } finally {
-      await AiCommandCredentialReach.giveBack(hold);
     }
   }
 }

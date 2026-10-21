@@ -78,7 +78,7 @@ Runbook 권한은 `Runbook` 권한 그룹에 있습니다.
 
 Runbook의 일정과 웹훅은 아무도 없을 때 실행을 시작하므로, 둘 중 하나를 설정하려면 Runbook을 편집하고 실행할 권한이 필요하며, 웹훅 URL을 볼 때도 마찬가지입니다. 끄는 데는 편집 권한만 있으면 됩니다. [Runbook 트리거](/docs/runbooks/triggers#트리거를-설정할-수-있는-사람)를 참고하세요.
 
-Runbook 변수와 자격 증명은 `RunbookAdmin`에 포함되지 않으며, 이 역할은 자신이 작성하는 단계에서 고르기 위해 변수를 읽기만 합니다. 변수를 관리하려면 `ProjectOwner`나 `ProjectAdmin`, 또는 `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret`, `ReadRunbookSecret` 권한이 필요합니다. 이것은 Runbook 시크릿의 권한으로, 시크릿이 변수가 될 때 이름을 그대로 유지했습니다. 자격 증명을 관리하려면 `ProjectOwner`나 `ProjectAdmin`, 또는 `CreateRunbookCredential`, `EditRunbookCredential`, `DeleteRunbookCredential`, `ReadRunbookCredential`이 필요합니다. [Runbook 변수](/docs/runbooks/variables)와 [AI 액세스](/docs/runbooks/credentials)를 참고하세요.
+Runbook 변수는 `RunbookAdmin`에 포함되지 않으며, 이 역할은 자신이 작성하는 단계에서 고르기 위해 변수를 읽기만 합니다. 변수를 관리하려면 `ProjectOwner`나 `ProjectAdmin`, 또는 `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret`, `ReadRunbookSecret` 권한이 필요합니다. 이것은 Runbook 시크릿의 권한으로, 시크릿이 변수가 될 때 이름을 그대로 유지했습니다. [Runbook 변수](/docs/runbooks/variables)를 참고하세요.
 
 **런북 → 설정** 아래의 소유자 규칙과 레이블 규칙도 `RunbookAdmin` 밖에 있습니다. 이를 관리하려면 `ProjectOwner` 또는 `ProjectAdmin`, 또는 `CreateRunbookOwnerRule`과 `CreateRunbookLabelRule` 권한과 각각의 편집, 삭제, 읽기 권한이 필요합니다.
 
@@ -95,9 +95,9 @@ Manual 단계가 API로 체크되면 실행은 다음 단계부터 계속하기 
 - **JavaScript, Bash, SSH, kubectl**는 OneUptime Worker가 아니라 여러분이 관리하는 Runner 호스트에서 실행됩니다. JavaScript는 메모리 128 MB의 별도 `isolated-vm` 격리 환경에서 실행되며 Runner의 파일 시스템이나 프로세스에 접근할 수 없습니다. `axios`로 HTTP 요청을 보낼 수 있지만 사설 네트워크, 루프백, 링크 로컬 주소로 가는 요청은 거부됩니다. Bash는 `bash -c`로 실행되며 타임아웃은 Runner에서 적용됩니다. 아무것도 고르지 않은 JavaScript 단계는 프로젝트 기본 Runner에서, 그것이 없으면 글로벌 Runner에서 실행됩니다.
 - **HTTP 단계**는 관대한 상태 검증기를 쓰므로 4xx나 5xx 응답이 예외로 던져지지 않고 실패한 단계로 기록되며, 기록된 출력은 상대편이 실제로 돌려준 내용을 반영합니다. 리디렉션은 따라가지 않습니다. Worker는 클라우드 메타데이터 엔드포인트 같은 루프백 또는 링크 로컬 주소를 절대 호출하지 않습니다. OneUptime Cloud에서는 사설 네트워크 주소도 거부하며, 자체 호스팅 OneUptime은 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`일 때 거부합니다.
 - **AI 단계**는 인시던트의 비공개 메모나 Slack과 Microsoft Teams 메시지를 절대 보지 않으며, 이전 단계의 출력은 시크릿이 있는지 검사해 모델에 닿기 전에 가립니다. 포함된 이미지와 긴 인코딩 데이터는 프롬프트에서 제외됩니다. [AI](/docs/runbooks/authoring#ai)를 참조하세요.
-- **글로벌 Runner**는 JavaScript 단계만 실행합니다. 각 단계는 그 단계를 위해 만들어지고 끝나면 버려지는 샌드박스에서, 공용 인터넷 주소에만 접근하며, 최대 5분 동안, 한 프로젝트당 동시에 최대 세 단계까지 실행됩니다. 글로벌 Runner는 단계가 속한 프로젝트의 시크릿 변수 중 글로벌 Runner에 켜 둔 것만 받으며, 자격 증명은 절대 받지 않습니다. 함께 제공되는 글로벌 Runner는 자체 키를 가지며 서버의 다른 것은 아무것도 갖지 않습니다. [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)를 참조하세요.
+- **글로벌 Runner**는 JavaScript 단계만 실행합니다. 각 단계는 그 단계를 위해 만들어지고 끝나면 버려지는 샌드박스에서, 공용 인터넷 주소에만 접근하며, 최대 5분 동안, 한 프로젝트당 동시에 최대 세 단계까지 실행됩니다. 글로벌 Runner는 단계가 속한 프로젝트의 시크릿 변수 중 글로벌 Runner에 켜 둔 것만 받습니다. 함께 제공되는 글로벌 Runner는 자체 키를 가지며 서버의 다른 것은 아무것도 갖지 않습니다. [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)를 참조하세요.
 - **Runner 인증**은 Runner 컨테이너에 환경 변수로 설정한 ID와 비밀 키로 합니다. 서버에서는 제시된 ID와 키에 해당하는 데이터베이스 행에서 Runner의 공식 신원을 가져오므로, 클라이언트는 키가 유출되었더라도 다른 Runner로 가장할 수 없습니다.
-- **시크릿 변수와 자격 증명**은 저장 시 암호화되고, API가 절대 반환하지 않으며, 그것을 지정하는 단계나 명령을 가져간 Runner 중 그것에 나열된 Runner에만 전달됩니다. 시크릿 변수는 변수가 글로벌 Runner의 사용을 허용하면, 변수가 속한 프로젝트의 단계를 가져간 글로벌 Runner에도 전달됩니다. Runner는 단계가 받은 각 시크릿을 단계 출력에서 `[REDACTED]`로 바꾸고, OneUptime도 출력을 저장하기 전에 다시 바꿉니다.
+- **시크릿 변수**는 저장 시 암호화되고, API가 절대 반환하지 않으며, 그것을 지정하는 단계를 가져간 Runner 중 그것에 나열된 Runner에만 전달됩니다. 시크릿 변수는 변수가 글로벌 Runner의 사용을 허용하면, 변수가 속한 프로젝트의 단계를 가져간 글로벌 Runner에도 전달됩니다. Runner는 단계가 받은 각 시크릿을 단계 출력에서 `[REDACTED]`로 바꾸고, OneUptime도 출력을 저장하기 전에 다시 바꿉니다.
 
 ## 데이터베이스 테이블
 
@@ -108,7 +108,6 @@ Manual 단계가 API로 체크되면 실행은 다음 단계부터 계속하기 
 | `RunbookRule` | 자동 트리거 규칙. 판별자 `triggerEntityType`(Incident, Alert, ScheduledMaintenance), 시작할 Runbook과의 다대다 관계, 그리고 일치 대상(JSON 열 `criteria`(조건)와 모니터, 인시던트 심각도, 알림 심각도, 레이블, 모니터 레이블에 대한 다대다 링크, 제목, 설명, 모니터 이름, 모니터 설명 패턴)이 있습니다. |
 | `Runner` | 설치된 Runner마다 한 행: 이름, 비밀 키, `lastAlive`, `connectionStatus`, 호스트 정보, 기능. 글로벌 Runner는 `isGlobalRunner`가 설정되어 있고 프로젝트가 없습니다. 프로젝트 기본 Runner는 `isProjectDefault`가 설정되어 있습니다. |
 | `RunnerJob` | Runner에 보낸 단계마다 한 행: `targetAgentId`(단계 작성자가 고른 Runner), 단계 유형, 스크립트 또는 페이로드, 상태(`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` 또는 `Cancelled`), claim 기한, 리스, 출력, 종료 코드. `runsOnGlobalRunner`는 어느 글로벌 Runner든 가져갈 수 있는 단계를 표시합니다. |
-| `RunbookCredential` | OneUptime AI의 명령이 사용하는 SSH와 Kubernetes 자격 증명. 시크릿 필드는 암호화되며, 할당된 Runner도 저장합니다. |
 | `RunbookVariable` | Runbook 변수. 프로젝트의 전역 변수와, `runbookId`로 Runbook을 지정하는 Runbook 자체 변수입니다. 시크릿 값은 암호화되며, 시크릿을 받을 수 있는 Runner도 저장합니다. |
 
 ## 운영 팁

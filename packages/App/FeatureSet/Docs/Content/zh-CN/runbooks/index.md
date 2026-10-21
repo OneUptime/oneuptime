@@ -95,7 +95,7 @@ Runbook 位于 **产品** 下的 **仪表板与自动化** 分组中。
 | Runbook 的 **所有者** | 添加对它负责的人员和团队。 |
 | Runbook 的 **设置** | 在不删除 Runbook 的情况下关闭 **运行此 Runbook** 。 |
 | **运行手册 → 执行** | 项目中所有 Runbook 的所有运行。 |
-| **运行手册 → Runbook 代理** 和 **运行手册 → Runbook 代理 → AI 访问** | 安装 [Runner](/docs/runbooks/agents)，并管理 OneUptime AI 的命令通过它们拥有的 [访问权限](/docs/runbooks/credentials)。 |
+| **运行手册 → Runbook 代理** | 安装运行手册步骤所运行的 [Runner](/docs/runbooks/agents)。 |
 | **运行手册 → 设置** | 管理每个 Runbook 都可以 [使用](/docs/runbooks/variables) 的 **全局变量** ，以及为新 Runbook 添加所有者和标签的 **所有者规则** 和 **标签规则** 。 |
 | **事件 / 警报 / 计划维护 → 规则 → Runbook 规则** | 创建自动启动 Runbook 的规则。 |
 | 事件、警报或维护事件 → **运行手册** | 查看与之关联的执行，并点击 **运行 Runbook** 启动新的执行。 |

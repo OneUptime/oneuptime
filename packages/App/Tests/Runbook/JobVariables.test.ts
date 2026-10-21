@@ -8,7 +8,6 @@ import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
-import { LEGACY_KUBERNETES_STEP_JOB_KEY } from "Common/Types/Runbook/RunbookLegacySteps";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -282,12 +281,19 @@ describe("a kubectl step that takes a script", () => {
     });
   });
 
-  test("a step moved from a Kubernetes action: the script and the kubeconfig, never the action it kept for older Runners", async () => {
+  /*
+   * A step moved from a Kubernetes action kept the action and its runbook
+   * credential for Runners older than kubectl scripts, and its job carried
+   * them under "legacyStep". Runbook credentials and that fallback were
+   * removed; a job queued before still carries them, and is handed the
+   * script and the kubeconfig alone.
+   */
+  test("a job that still carries the action a moved step kept: the script and the kubeconfig, never the action", async () => {
     const claimed: RunnerJob = job(RunbookStepType.Kubernetes, {
       payload: {
         kubeconfig: "{{global.variables.PROD_KUBECONFIG}}",
         script: "kubectl patch deployment api --namespace web --patch '{}'",
-        [LEGACY_KUBERNETES_STEP_JOB_KEY]: {
+        legacyStep: {
           credentialId: "33333333-3333-4333-8333-333333333333",
           action: "RestartWorkload",
           workloadKind: "Deployment",

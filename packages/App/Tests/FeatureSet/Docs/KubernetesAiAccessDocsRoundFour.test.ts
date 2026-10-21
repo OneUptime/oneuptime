@@ -46,9 +46,12 @@ import { describe, expect, it } from "@jest/globals";
  *   patch is the same change); `expose --overrides` is refused (the
  *   override decides what kind of object kubectl creates); pod-template
  *   patches of host ports, hostUsers and runtimeClassName are refused with
- *   the other security settings; and an ordinary Runner reports the write
- *   limits it was started with, so a fix outside them is refused before it
- *   reaches it.
+ *   the other security settings; and an ordinary Runner reported the write
+ *   limits it was started with, so a fix outside them was refused before it
+ *   reached it - until runbook credentials, which an ordinary Runner
+ *   reached a cluster with, were removed: the AI SRE page no longer tells
+ *   anyone to limit one, and says such a Runner no longer reaches a
+ *   cluster.
  */
 
 // A sentence ends at a full stop or a semicolon followed by a space.
@@ -469,9 +472,12 @@ describe("the round-four policy changes, in the docs", () => {
     }
   });
 
-  it("says an ordinary Runner reports its write limits, so a fix outside them is refused before it reaches it", () => {
-    expect(readFlat(AI_SRE_PAGE)).toContain(
-      "To limit where such a Runner may write, start it with `ONEUPTIME_KUBECTL_WRITE_NAMESPACES` (and `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false` to keep fixes off nodes): the Runner reports those limits, so OneUptime refuses a fix outside them when it is proposed or approved, before it reaches the Runner, and the Runner refuses it again.",
+  it("no longer tells anyone to limit an ordinary Runner's writes: a Runner outside the cluster no longer reaches it", () => {
+    const page: string = readFlat(AI_SRE_PAGE);
+
+    expect(page).not.toContain("To limit where such a Runner may write");
+    expect(page).toContain(
+      "A Runner outside the cluster no longer reaches it: it did so with a Kubernetes runbook credential, and runbook credentials were removed.",
     );
   });
 

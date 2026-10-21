@@ -1,9 +1,8 @@
 import KubernetesClusterService, {
-  AI_ACCESS_CREDENTIAL_REFUSAL,
-  getAiAccessCredentialRefusal,
+  AI_ACCESS_SETTING_KEYS,
+  getAiAccessRunnerOutsideClusterRefusal,
 } from "../../../Server/Services/KubernetesClusterService";
 import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
-import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
 import RunnerService from "../../../Server/Services/RunnerService";
 import RunnerAiCommandsPick from "../../../Server/Utils/Runner/RunnerAiCommandsPick";
 import DatabaseService from "../../../Server/Services/DatabaseService";
@@ -12,17 +11,18 @@ import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
-import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
-import { KubernetesAiRemediationMode } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import {
+  KubernetesAiRemediationMode,
+  getKubernetesAgentRunnerName,
+} from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
-import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
 import KubectlPolicy, {
   KUBECTL_ALLOWLIST_MAX_PATTERNS,
   KUBECTL_ALLOWLIST_MAX_PATTERN_LENGTH,
@@ -38,9 +38,11 @@ import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayW
 beforeEach(() => {
   stubProjectDirectory({});
   /*
-   * Binding a Runner lets it run OneUptime AI's commands
-   * (RunnerAiCommandsPick): a write of the Runner, read from the database,
-   * which these unit tests do not have.
+   * Binding a Runner let it run OneUptime AI's commands
+   * (RunnerAiCommandsPick) while a Runner outside the cluster could be
+   * bound. Only the cluster's own in-cluster Runner can be now, whose
+   * registration decides what it runs: the pick is never asked, which the
+   * stub lets the tests below see.
    */
   jest
     .spyOn(RunnerAiCommandsPick, "allowPickedRunners")
@@ -52,31 +54,32 @@ beforeEach(() => {
  * the shape of the AI remediation settings, and the "AI access was
  * configured" marker.
  *
- * aiAccessRunnerId and aiAccessCredentialId are ordinary CRUD columns, and
- * the framework checks only the tenant relation itself — never that a
- * ManyToOne target belongs to the row's project. Without this guard a
- * caller in project A could point their cluster at project B's Runner or
- * credential and then read that Runner's name, liveness and connection
- * status (or the credential's name and type) through the relation join,
- * and probe foreign ids through the foreign key. So KubernetesClusterService's
+ * aiAccessRunnerId is an ordinary CRUD column, and the framework checks
+ * only the tenant relation itself — never that a ManyToOne target belongs
+ * to the row's project. Without this guard a caller in project A could
+ * point their cluster at project B's Runner and then read that Runner's
+ * name, liveness and connection status through the relation join, and
+ * probe foreign ids through the foreign key. So KubernetesClusterService's
  * create and update hooks must:
  *
- * - resolve the Runner and the credential scoped to the cluster's project,
- *   under BOTH spellings the payload can use (FK column, relation object);
- * - refuse a Runner or credential from another project, or one that does
- *   not exist, with the same message MonitorProbeService uses — and give ONE
- *   answer for a credential that is missing and one that is not a
- *   Kubernetes credential, so the check is not a type oracle;
+ * - resolve the Runner scoped to the cluster's project, under BOTH
+ *   spellings the payload can use (FK column, relation object);
+ * - refuse a Runner from another project, or one that does not exist, with
+ *   the same message MonitorProbeService uses;
  * - let a clear (null) through, and do nothing for writes that do not
  *   touch the binding;
  * - on update, use the caller's tenant when there is one and otherwise the
  *   project of every cluster the query matches, failing closed when a
  *   binding cannot be checked against any project.
  *
- * WHO may bind (only the roles that may author a FullAuto remediation rule,
- * plus credential read for a credential) is covered in depth by
- * KubernetesClusterAiSettingsPermission.test.ts; the binding tests here run
- * as a project admin, who may, and this file pins the credential-read half.
+ * And the Runner an operator binds must be the cluster's own in-cluster
+ * Runner: a Runner outside the cluster reached it only with a Kubernetes
+ * runbook credential bound beside it, and runbook credentials were removed,
+ * the cluster's credential column with them.
+ *
+ * WHO may bind (only the roles that may author a FullAuto remediation rule)
+ * is covered in depth by KubernetesClusterAiSettingsPermission.test.ts; the
+ * binding tests here run as a project admin, who may.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -91,9 +94,29 @@ const CLUSTER_ID: ObjectID = new ObjectID(
 const RUNNER_ID: ObjectID = new ObjectID(
   "44444444-4444-4444-8444-444444444444",
 );
-const CREDENTIAL_ID: ObjectID = new ObjectID(
-  "55555555-5555-4555-8555-555555555555",
-);
+// The cluster's name in its telemetry, and its in-cluster Runner's name.
+const CLUSTER_IDENTIFIER: string = "prod-us";
+
+function inClusterRunner(): Runner {
+  return {
+    id: RUNNER_ID,
+    _id: RUNNER_ID.toString(),
+    name: getKubernetesAgentRunnerName(CLUSTER_IDENTIFIER),
+    hostInfo: {
+      kubernetes: { inCluster: true, clusterIdentifier: CLUSTER_IDENTIFIER },
+    },
+  } as unknown as Runner;
+}
+
+// A Runner someone installed on a host: it runs outside every cluster.
+function outsideRunner(name: string = "office-runner"): Runner {
+  return {
+    id: RUNNER_ID,
+    _id: RUNNER_ID.toString(),
+    name,
+    hostInfo: {},
+  } as unknown as Runner;
+}
 
 type Hooks = {
   onBeforeCreate: (
@@ -149,7 +172,7 @@ function userProps(
   } as DatabaseCommonInteractionProps;
 }
 
-// A project admin: may bind a Runner and read (so bind) credentials.
+// A project admin: may bind a Runner.
 function adminProps(
   tenantId: ObjectID | undefined = PROJECT_ID,
 ): DatabaseCommonInteractionProps {
@@ -236,29 +259,20 @@ function withoutKubernetesAiAgents(): jest.SpyInstance {
 
 describe("KubernetesClusterService AI access binding guard", () => {
   let runnerLookup: jest.SpyInstance;
-  let credentialLookup: jest.SpyInstance;
   let clusterLookup: jest.SpyInstance;
   let boundRunnerRead: jest.SpyInstance;
 
   beforeEach(() => {
     withoutKubernetesAiAgents();
     boundRunnerRead = jest.spyOn(RunnerService, "findBy").mockResolvedValue([]);
+    /*
+     * The cluster's own in-cluster Runner: the one Runner an operator's
+     * binding may name (see "only the cluster's own in-cluster Runner can
+     * be bound" below).
+     */
     runnerLookup = jest
       .spyOn(RunnerService, "findOneBy")
-      .mockResolvedValue({ id: RUNNER_ID } as unknown as Runner);
-    /*
-     * Assigned to RUNNER_ID: an operator's binding of a Runner and a
-     * credential together must be a pair that can work (the credential is
-     * assigned to the Runner) — see "the Runner and credential bound
-     * together must be able to work" below.
-     */
-    credentialLookup = jest
-      .spyOn(RunbookCredentialService, "findOneBy")
-      .mockResolvedValue({
-        id: CREDENTIAL_ID,
-        credentialType: RunbookCredentialType.Kubernetes,
-        runners: [{ id: RUNNER_ID, _id: RUNNER_ID.toString() }],
-      } as unknown as RunbookCredential);
+      .mockResolvedValue(inClusterRunner());
     /*
      * The cluster lives in PROJECT_ID. A read scoped to another project
      * (the operator-write settings read adds the caller's tenant) finds
@@ -280,6 +294,7 @@ describe("KubernetesClusterService AI access binding guard", () => {
             {
               id: CLUSTER_ID,
               projectId: PROJECT_ID,
+              clusterIdentifier: CLUSTER_IDENTIFIER,
             } as unknown as KubernetesCluster,
           ];
         },
@@ -373,101 +388,53 @@ describe("KubernetesClusterService AI access binding guard", () => {
       expect(runnerLookup).not.toHaveBeenCalled();
     });
 
-    it("checks the credential against the caller's project and requires a Kubernetes credential", async () => {
-      await hooks().onBeforeUpdate(
-        updateBy({ aiAccessCredentialId: CREDENTIAL_ID }),
-      );
-
-      expect(credentialLookup).toHaveBeenCalledTimes(1);
-      expect(lastQuery(credentialLookup)["_id"]).toBe(CREDENTIAL_ID.toString());
-      expect(lastQuery(credentialLookup)["projectId"]).toBe(PROJECT_ID);
-
-      credentialLookup.mockResolvedValue(null);
-      await expect(
-        hooks().onBeforeUpdate(
-          updateBy({ aiAccessCredentialId: CREDENTIAL_ID }),
-        ),
-      ).rejects.toThrow(AI_ACCESS_CREDENTIAL_REFUSAL);
-
-      credentialLookup.mockResolvedValue({
-        id: CREDENTIAL_ID,
-        credentialType: RunbookCredentialType.SSH,
-      } as unknown as RunbookCredential);
-      await expect(
-        hooks().onBeforeUpdate(
-          updateBy({ aiAccessCredential: { _id: CREDENTIAL_ID.toString() } }),
-        ),
-      ).rejects.toThrow(/must be a Kubernetes credential/);
-    });
-
     /*
-     * "Not found" and "wrong type" used to be two different messages, so a
-     * caller could learn from the refusal whether an id existed in the
-     * project and what kind of credential it was.
+     * A Runner outside the cluster reached it only with a Kubernetes runbook
+     * credential, bound beside it. Runbook credentials were removed, so an
+     * operator's binding of one is refused, saying so.
      */
-    it("gives the same refusal for a missing credential and a credential of another type", async () => {
-      const refusalFor: (
-        credential: RunbookCredential | null,
-      ) => Promise<string> = async (
-        credential: RunbookCredential | null,
-      ): Promise<string> => {
-        credentialLookup.mockResolvedValue(credential);
-        try {
-          await hooks().onBeforeUpdate(
-            updateBy({ aiAccessCredentialId: CREDENTIAL_ID }),
-          );
-        } catch (error) {
-          expect(error).toBeInstanceOf(BadDataException);
-          return (error as Error).message;
-        }
-        throw new Error("expected the credential to be refused");
-      };
+    it("refuses an operator's binding of a Runner outside the cluster, under both spellings", async () => {
+      runnerLookup.mockResolvedValue(outsideRunner());
 
-      const missing: string = await refusalFor(null);
-      const ssh: string = await refusalFor({
-        id: CREDENTIAL_ID,
-        credentialType: RunbookCredentialType.SSH,
-      } as unknown as RunbookCredential);
-
-      expect(missing).toBe(AI_ACCESS_CREDENTIAL_REFUSAL);
-      expect(ssh).toBe(missing);
+      for (const data of [
+        { aiAccessRunnerId: RUNNER_ID },
+        { aiAccessRunner: { _id: RUNNER_ID.toString() } },
+      ]) {
+        await expect(hooks().onBeforeUpdate(updateBy(data))).rejects.toThrow(
+          getAiAccessRunnerOutsideClusterRefusal("office-runner"),
+        );
+      }
     });
 
-    it("checks both when both are written, and reports the Runner first", async () => {
-      runnerLookup.mockResolvedValue(null);
-      credentialLookup.mockResolvedValue(null);
+    it("says why in words a cluster editor can act on", () => {
+      const refusal: string =
+        getAiAccessRunnerOutsideClusterRefusal("office-runner");
 
-      await expect(
-        hooks().onBeforeUpdate(
-          updateBy({
-            aiAccessRunnerId: RUNNER_ID,
-            aiAccessCredentialId: CREDENTIAL_ID,
-          }),
-        ),
-      ).rejects.toThrow(/Runner not found/);
-
-      runnerLookup.mockResolvedValue({ id: RUNNER_ID } as unknown as Runner);
-
-      await expect(
-        hooks().onBeforeUpdate(
-          updateBy({
-            aiAccessRunnerId: RUNNER_ID,
-            aiAccessCredentialId: CREDENTIAL_ID,
-          }),
-        ),
-      ).rejects.toThrow(/Credential not found/);
+      expect(refusal).toContain(
+        'Runner "office-runner" runs outside this cluster',
+      );
+      expect(refusal).toContain("runbook credentials were removed");
+      expect(refusal).toContain("Leave the Runner empty");
+      expect(refusal).toContain("Kubernetes AI agent");
     });
 
-    it("lets a clear (null) through without a Runner or credential lookup", async () => {
-      await hooks().onBeforeUpdate(
-        updateBy({ aiAccessRunnerId: null, aiAccessCredentialId: null }),
+    it("no AI access setting names a credential any more", () => {
+      expect(AI_ACCESS_SETTING_KEYS.slice().sort()).toEqual(
+        [
+          "aiAccessRunnerId",
+          "aiAccessRunner",
+          "isAiInvestigationEnabled",
+          "aiRemediationMode",
+          "aiKubectlCommandAllowlist",
+        ].sort(),
       );
-      await hooks().onBeforeUpdate(
-        updateBy({ aiAccessRunner: null, aiAccessCredential: null }),
-      );
+    });
+
+    it("lets a clear (null) through without a Runner lookup", async () => {
+      await hooks().onBeforeUpdate(updateBy({ aiAccessRunnerId: null }));
+      await hooks().onBeforeUpdate(updateBy({ aiAccessRunner: null }));
 
       expect(runnerLookup).not.toHaveBeenCalled();
-      expect(credentialLookup).not.toHaveBeenCalled();
       expect(projectOnlyLookups(clusterLookup)).toHaveLength(0);
     });
 
@@ -478,22 +445,21 @@ describe("KubernetesClusterService AI access binding guard", () => {
     it("lets a caller with no AI-access permission clear the binding", async () => {
       await hooks().onBeforeUpdate(
         updateBy(
-          { aiAccessRunnerId: null, aiAccessCredentialId: null },
+          { aiAccessRunnerId: null },
           userProps(PROJECT_ID, [Permission.ProjectMember]),
         ),
       );
 
       expect(runnerLookup).not.toHaveBeenCalled();
-      expect(credentialLookup).not.toHaveBeenCalled();
     });
 
     /*
      * Pinned before this change as "does nothing": a user's write of an AI
      * setting now reads the cluster's current settings (the baseline the
      * permission check compares against and the "before" half of the feed
-     * item). It still looks up no Runner, credential or project.
+     * item). It still looks up no Runner or project.
      */
-    it("looks up no Runner, credential or project for an update that does not touch the binding", async () => {
+    it("looks up no Runner or project for an update that does not touch the binding", async () => {
       const update: UpdateBy<KubernetesCluster> = updateBy({
         name: "renamed",
         isAiInvestigationEnabled: true,
@@ -504,7 +470,6 @@ describe("KubernetesClusterService AI access binding guard", () => {
 
       expect(result.updateBy).toBe(update);
       expect(runnerLookup).not.toHaveBeenCalled();
-      expect(credentialLookup).not.toHaveBeenCalled();
       // Nor the bound Runner: no agent here reports AI settings.
       expect(boundRunnerRead).not.toHaveBeenCalled();
       expect(projectOnlyLookups(clusterLookup)).toHaveLength(0);
@@ -619,147 +584,6 @@ describe("KubernetesClusterService AI access binding guard", () => {
   });
 
   /*
-   * The dashboard hides the credential picker from users who may not read
-   * credentials, but the CRUD API used to accept any credential id from
-   * anyone who may edit the cluster (an id is readable off another
-   * cluster's aiAccessCredentialId). The server now applies the picker's
-   * rule itself.
-   */
-  describe("binding a credential needs permission to read credentials", () => {
-    it("refuses a project member binding a same-project Kubernetes credential, before any credential lookup", async () => {
-      await expect(
-        hooks().onBeforeUpdate(
-          updateBy(
-            { aiAccessCredentialId: CREDENTIAL_ID },
-            userProps(PROJECT_ID, [Permission.ProjectMember]),
-          ),
-        ),
-      ).rejects.toThrow(NotAuthorizedException);
-
-      // Refused on who is asking, so the lookup is no oracle for them.
-      expect(credentialLookup).not.toHaveBeenCalled();
-    });
-
-    it("refuses a holder of Edit Auto Remediation Rule without credential read, under both spellings", async () => {
-      for (const data of [
-        { aiAccessCredentialId: CREDENTIAL_ID },
-        { aiAccessCredential: { _id: CREDENTIAL_ID.toString() } },
-      ]) {
-        await expect(
-          hooks().onBeforeUpdate(
-            updateBy(
-              data,
-              userProps(PROJECT_ID, [Permission.EditAutoRemediationRule]),
-            ),
-          ),
-        ).rejects.toThrow(getAiAccessCredentialRefusal());
-      }
-
-      expect(credentialLookup).not.toHaveBeenCalled();
-    });
-
-    it("names the permissions that would allow it", async () => {
-      await expect(
-        hooks().onBeforeUpdate(
-          updateBy(
-            { aiAccessCredentialId: CREDENTIAL_ID },
-            userProps(PROJECT_ID, [Permission.EditAutoRemediationRule]),
-          ),
-        ),
-      ).rejects.toThrow(
-        /Project Owner, Project Admin, Read Runbook Credential/,
-      );
-    });
-
-    it("accepts the same binding once the caller may read credentials", async () => {
-      await hooks().onBeforeUpdate(
-        updateBy(
-          { aiAccessCredentialId: CREDENTIAL_ID },
-          userProps(PROJECT_ID, [
-            Permission.EditAutoRemediationRule,
-            Permission.ReadRunbookCredential,
-          ]),
-        ),
-      );
-
-      expect(credentialLookup).toHaveBeenCalledTimes(1);
-    });
-
-    it("accepts a project admin and a project owner", async () => {
-      await hooks().onBeforeUpdate(
-        updateBy({ aiAccessCredentialId: CREDENTIAL_ID }, adminProps()),
-      );
-      await hooks().onBeforeUpdate(
-        updateBy(
-          { aiAccessCredential: { _id: CREDENTIAL_ID.toString() } },
-          userProps(PROJECT_ID, [Permission.ProjectOwner]),
-        ),
-      );
-
-      expect(credentialLookup).toHaveBeenCalledTimes(2);
-    });
-
-    it("does not read a block row for credential read as a grant", async () => {
-      const props: DatabaseCommonInteractionProps = userProps(PROJECT_ID, [
-        Permission.EditAutoRemediationRule,
-      ]);
-      props.userTenantAccessPermission![
-        PROJECT_ID.toString()
-      ]!.permissions.push({
-        _type: "UserPermission",
-        permission: Permission.ReadRunbookCredential,
-        labelIds: [],
-        isBlockPermission: true,
-      });
-
-      await expect(
-        hooks().onBeforeUpdate(
-          updateBy({ aiAccessCredentialId: CREDENTIAL_ID }, props),
-        ),
-      ).rejects.toThrow(NotAuthorizedException);
-    });
-
-    it("lets the in-cluster registration (root) bind without any permission rows", async () => {
-      await hooks().onBeforeUpdate(
-        updateBy(
-          {
-            aiAccessRunnerId: RUNNER_ID,
-            aiAccessCredentialId: CREDENTIAL_ID,
-          },
-          rootProps(),
-        ),
-      );
-
-      expect(credentialLookup).toHaveBeenCalledTimes(1);
-    });
-
-    /*
-     * The AI page posts every field of its form, so a member who only flips
-     * the investigation switch re-posts the credential an admin bound.
-     * Unchanged is not "binding".
-     */
-    it("lets a member re-post the credential that is already bound", async () => {
-      clusterLookup.mockResolvedValue([
-        {
-          id: CLUSTER_ID,
-          projectId: PROJECT_ID,
-          aiAccessCredentialId: CREDENTIAL_ID,
-        } as unknown as KubernetesCluster,
-      ]);
-
-      await hooks().onBeforeUpdate(
-        updateBy(
-          {
-            isAiInvestigationEnabled: false,
-            aiAccessCredential: { _id: CREDENTIAL_ID.toString() },
-          },
-          userProps(PROJECT_ID, [Permission.ProjectMember]),
-        ),
-      );
-    });
-  });
-
-  /*
    * A Settings Member cannot approve a single kubectl plan, so it must not
    * be able to remove the approval step either. The full role matrix lives
    * in KubernetesClusterAiSettingsPermission.test.ts; this is the shortest
@@ -815,17 +639,15 @@ describe("KubernetesClusterService AI access binding guard", () => {
         createBy({
           projectId: PROJECT_ID,
           name: "prod-us",
-          clusterIdentifier: "prod-us",
+          clusterIdentifier: CLUSTER_IDENTIFIER,
           aiAccessRunnerId: RUNNER_ID,
-          aiAccessCredentialId: CREDENTIAL_ID,
         }),
       );
 
       expect(lastQuery(runnerLookup)["projectId"]).toBe(PROJECT_ID);
-      expect(lastQuery(credentialLookup)["projectId"]).toBe(PROJECT_ID);
     });
 
-    it("refuses a foreign Runner and a foreign credential on create", async () => {
+    it("refuses a foreign Runner on create", async () => {
       runnerLookup.mockResolvedValue(null);
 
       await expect(
@@ -833,22 +655,11 @@ describe("KubernetesClusterService AI access binding guard", () => {
           createBy({
             projectId: PROJECT_ID,
             name: "prod-us",
+            clusterIdentifier: CLUSTER_IDENTIFIER,
             aiAccessRunner: { _id: RUNNER_ID.toString() },
           }),
         ),
       ).rejects.toThrow(/Runner not found/);
-
-      credentialLookup.mockResolvedValue(null);
-
-      await expect(
-        hooks().onBeforeCreate(
-          createBy({
-            projectId: PROJECT_ID,
-            name: "prod-us",
-            aiAccessCredentialId: CREDENTIAL_ID,
-          }),
-        ),
-      ).rejects.toThrow(/Credential not found/);
     });
 
     it("falls back to the project relation and then to the caller's tenant", async () => {
@@ -856,6 +667,7 @@ describe("KubernetesClusterService AI access binding guard", () => {
         createBy({
           project: { id: PROJECT_ID, _id: PROJECT_ID.toString() },
           name: "prod-us",
+          clusterIdentifier: CLUSTER_IDENTIFIER,
           aiAccessRunnerId: RUNNER_ID,
         }),
       );
@@ -866,7 +678,11 @@ describe("KubernetesClusterService AI access binding guard", () => {
 
       await hooks().onBeforeCreate(
         createBy(
-          { name: "prod-us", aiAccessRunnerId: RUNNER_ID },
+          {
+            name: "prod-us",
+            clusterIdentifier: CLUSTER_IDENTIFIER,
+            aiAccessRunnerId: RUNNER_ID,
+          },
           adminProps(OTHER_PROJECT_ID),
         ),
       );
@@ -899,38 +715,43 @@ describe("KubernetesClusterService AI access binding guard", () => {
 
       expect(result.createBy).toBe(create);
       expect(runnerLookup).not.toHaveBeenCalled();
-      expect(credentialLookup).not.toHaveBeenCalled();
     });
 
-    it("refuses a create that binds a credential for a caller without credential read", async () => {
+    it("refuses a master admin's create that binds a Runner outside the cluster", async () => {
+      runnerLookup.mockResolvedValue(outsideRunner());
+
       await expect(
         hooks().onBeforeCreate(
           createBy(
             {
               projectId: PROJECT_ID,
               name: "prod-us",
-              aiAccessCredentialId: CREDENTIAL_ID,
+              clusterIdentifier: CLUSTER_IDENTIFIER,
+              aiAccessRunnerId: RUNNER_ID,
             },
-            userProps(PROJECT_ID, [Permission.EditAutoRemediationRule]),
+            { isMasterAdmin: true, userId: ObjectID.generate() },
           ),
         ),
-      ).rejects.toThrow(NotAuthorizedException);
+      ).rejects.toThrow(
+        getAiAccessRunnerOutsideClusterRefusal("office-runner"),
+      );
     });
   });
 });
 
 /*
- * Known follow-up 9: the dashboard stopped offering these pairs, but the API
- * and Terraform could still bind them. An operator's binding must be a pair
- * that can work, per cluster, judged only where the pair changes (the AI
- * page re-posts unchanged values):
+ * Known follow-up 9: the dashboard stopped offering these bindings, but the
+ * API and Terraform could still send them. An operator's binding must be a
+ * Runner that can reach the cluster, per cluster, judged only where the
+ * binding changes (Terraform and the API re-post unchanged values):
  * - another cluster's kubernetes-agent Runner cannot be bound (by its name
  *   for another cluster, or a posture naming another cluster);
- * - a credential never goes with another cluster's agent Runner;
- * - a credential must be assigned to the Runner it is bound with — except
- *   with THIS cluster's agent Runner, whose own ServiceAccount wins.
+ * - a Runner outside the cluster cannot be bound: it reached the cluster
+ *   only with a Kubernetes runbook credential, and those were removed.
+ * Only the cluster's own in-cluster Runner - by its name for this cluster,
+ * or a posture naming it - binds.
  */
-describe("KubernetesClusterService: the Runner and credential bound together must be able to work", () => {
+describe("KubernetesClusterService: only the cluster's own in-cluster Runner can be bound", () => {
   const OTHER_AGENT_ID: ObjectID = new ObjectID(
     "66666666-6666-4666-8666-666666666666",
   );
@@ -940,6 +761,10 @@ describe("KubernetesClusterService: the Runner and credential bound together mus
   // Another cluster's agent row renamed by root: only its posture marks it.
   const RENAMED_OTHER_AGENT_ID: ObjectID = new ObjectID(
     "88888888-8888-4888-8888-888888888888",
+  );
+  // THIS cluster's agent row renamed by root: only its posture marks it.
+  const RENAMED_OWN_AGENT_ID: ObjectID = new ObjectID(
+    "99999999-8888-4888-8888-888888888888",
   );
 
   const runners: Record<string, Runner> = {
@@ -969,21 +794,17 @@ describe("KubernetesClusterService: the Runner and credential bound together mus
         kubernetes: { inCluster: true, clusterIdentifier: "prod-us" },
       },
     } as unknown as Runner,
+    [RENAMED_OWN_AGENT_ID.toString()]: {
+      id: RENAMED_OWN_AGENT_ID,
+      name: "prod-us in-cluster runner",
+      hostInfo: {
+        kubernetes: { inCluster: true, clusterIdentifier: "prod-us" },
+      },
+    } as unknown as Runner,
   };
 
   let runnerLookup: jest.SpyInstance;
-  let credentialLookup: jest.SpyInstance;
   let current: Record<string, unknown>;
-
-  function assignedCredential(assignedTo: Array<ObjectID>): RunbookCredential {
-    return {
-      id: CREDENTIAL_ID,
-      credentialType: RunbookCredentialType.Kubernetes,
-      runners: assignedTo.map((id: ObjectID) => {
-        return { id, _id: id.toString() };
-      }),
-    } as unknown as RunbookCredential;
-  }
 
   beforeEach(() => {
     withoutKubernetesAiAgents();
@@ -1000,9 +821,6 @@ describe("KubernetesClusterService: the Runner and credential bound together mus
         ).query;
         return runners[String(query["_id"])] || null;
       });
-    credentialLookup = jest
-      .spyOn(RunbookCredentialService, "findOneBy")
-      .mockResolvedValue(assignedCredential([RUNNER_ID]));
     jest
       .spyOn(KubernetesClusterService, "findBy")
       .mockImplementation(async (): Promise<Array<KubernetesCluster>> => {
@@ -1050,84 +868,70 @@ describe("KubernetesClusterService: the Runner and credential bound together mus
     });
   });
 
-  it("negative control: THIS cluster's agent Runner and an ordinary Runner bind", async () => {
+  it("negative control: THIS cluster's agent Runner binds, by its name or its posture", async () => {
     await expect(
       hooks().onBeforeUpdate(updateBy({ aiAccessRunnerId: OWN_AGENT_ID })),
     ).resolves.toBeDefined();
     await expect(
-      hooks().onBeforeUpdate(updateBy({ aiAccessRunnerId: RUNNER_ID })),
+      hooks().onBeforeUpdate(
+        updateBy({ aiAccessRunner: { _id: RENAMED_OWN_AGENT_ID.toString() } }),
+      ),
     ).resolves.toBeDefined();
   });
 
-  it("refuses a credential with another cluster's agent Runner that is already bound", async () => {
-    current["aiAccessRunnerId"] = OTHER_AGENT_ID;
+  /*
+   * An ordinary Runner bound to reach the cluster with a Kubernetes runbook
+   * credential: with no credential, it has nothing to reach it with.
+   */
+  it("refuses an ordinary Runner outside the cluster: it reached it only with a runbook credential", async () => {
+    const message: string = await refusalOf({ aiAccessRunnerId: RUNNER_ID });
 
-    const message: string = await refusalOf({
-      aiAccessCredentialId: CREDENTIAL_ID,
-    });
-
-    expect(message).toContain("never given a credential");
+    expect(message).toBe(
+      getAiAccessRunnerOutsideClusterRefusal("office-runner"),
+    );
+    // Never the other cluster's words: this Runner is in no cluster.
+    expect(message).not.toContain("another cluster");
   });
 
-  it("refuses a credential that is not assigned to the chosen Runner", async () => {
-    credentialLookup.mockResolvedValue(assignedCredential([]));
-
-    const message: string = await refusalOf({
-      aiAccessRunnerId: RUNNER_ID,
-      aiAccessCredentialId: CREDENTIAL_ID,
-    });
-
-    // Never names the credential: the refusal is readable to cluster editors.
-    expect(message).toContain('is not assigned to Runner "office-runner"');
-    expect(message).toContain("Runbooks → AI Access");
-  });
-
-  it("refuses switching the Runner while an unassigned credential stays bound", async () => {
+  it("refuses an outside Runner in place of THIS cluster's agent Runner too", async () => {
     current["aiAccessRunnerId"] = OWN_AGENT_ID;
-    current["aiAccessCredentialId"] = CREDENTIAL_ID;
-    credentialLookup.mockResolvedValue(assignedCredential([OWN_AGENT_ID]));
 
     await refusalOf({ aiAccessRunnerId: RUNNER_ID });
   });
 
-  it("negative control: the same credential assigned to the Runner binds", async () => {
+  /*
+   * A cluster bound to an outside Runner before the removal is cleared by
+   * its data migration; until then, an edit that re-posts the binding as
+   * it stands is no new binding.
+   */
+  it("negative control: re-posting an outside Runner still bound is not judged again", async () => {
+    current["aiAccessRunnerId"] = RUNNER_ID.toString();
+
     await expect(
       hooks().onBeforeUpdate(
         updateBy({
+          isAiInvestigationEnabled: true,
           aiAccessRunnerId: RUNNER_ID,
-          aiAccessCredentialId: CREDENTIAL_ID,
         }),
       ),
     ).resolves.toBeDefined();
   });
 
-  it("negative control: with THIS cluster's agent a stale credential is no obstacle (in-cluster access wins)", async () => {
-    current["aiAccessCredentialId"] = CREDENTIAL_ID;
-    credentialLookup.mockResolvedValue(assignedCredential([]));
-
-    await expect(
-      hooks().onBeforeUpdate(updateBy({ aiAccessRunnerId: OWN_AGENT_ID })),
-    ).resolves.toBeDefined();
-  });
-
-  it("negative control: re-posting an unchanged pair is not judged again", async () => {
-    current["aiAccessRunnerId"] = OTHER_AGENT_ID;
-    current["aiAccessCredentialId"] = CREDENTIAL_ID;
+  it("negative control: re-posting an unchanged binding is not judged again", async () => {
+    current["aiAccessRunnerId"] = OTHER_AGENT_ID.toString();
 
     await expect(
       hooks().onBeforeUpdate(
         updateBy({
           isAiInvestigationEnabled: true,
           aiAccessRunnerId: OTHER_AGENT_ID,
-          aiAccessCredentialId: CREDENTIAL_ID,
         }),
       ),
     ).resolves.toBeDefined();
   });
 
-  it("negative control: clearing the Runner never needs a pair check", async () => {
+  it("negative control: clearing the Runner never needs a check", async () => {
     current["aiAccessRunnerId"] = OTHER_AGENT_ID;
-    current["aiAccessCredentialId"] = CREDENTIAL_ID;
 
     await expect(
       hooks().onBeforeUpdate(updateBy({ aiAccessRunnerId: null })),
@@ -1135,47 +939,39 @@ describe("KubernetesClusterService: the Runner and credential bound together mus
   });
 
   /*
-   * A Runner has no "Runs AI Remediation Commands" switch any more: binding
-   * it to a cluster is what lets OneUptime AI run that cluster's kubectl on
-   * it (RunnerAiCommandsPick), once the binding passed every check.
+   * A Runner has no "Runs AI Remediation Commands" switch any more. Binding
+   * a Runner outside the cluster to it was what let OneUptime AI run that
+   * cluster's kubectl there (RunnerAiCommandsPick). Only the cluster's own
+   * in-cluster Runner binds now, and its registration decides what it runs:
+   * a binding turns nothing on.
    */
-  describe("binding a Runner lets it run OneUptime AI's commands", () => {
+  describe("binding a Runner turns nothing on", () => {
     function allowSpy(): jest.SpyInstance {
       return jest.mocked(RunnerAiCommandsPick.allowPickedRunners);
     }
 
-    it("lets the Runner an operator binds run them, in the cluster's project", async () => {
-      await hooks().onBeforeUpdate(updateBy({ aiAccessRunnerId: RUNNER_ID }));
-
-      expect(allowSpy()).toHaveBeenCalledTimes(1);
-      const call: { projectId: ObjectID; runnerIds: Array<ObjectID> } =
-        allowSpy().mock.calls[0]![0];
-      expect(call.projectId.toString()).toBe(PROJECT_ID.toString());
-      expect(
-        call.runnerIds.map((id: ObjectID): string => {
-          return id.toString();
-        }),
-      ).toEqual([RUNNER_ID.toString()]);
-    });
-
-    it("reads the Runner from the relation too", async () => {
+    it("binding THIS cluster's in-cluster Runner asks the pick nothing, under either spelling", async () => {
       await hooks().onBeforeUpdate(
-        updateBy({ aiAccessRunner: { _id: RUNNER_ID.toString() } }),
+        updateBy({ aiAccessRunnerId: OWN_AGENT_ID }),
+      );
+      await hooks().onBeforeUpdate(
+        updateBy({ aiAccessRunner: { _id: OWN_AGENT_ID.toString() } }),
       );
 
-      expect(allowSpy()).toHaveBeenCalledTimes(1);
+      expect(allowSpy()).not.toHaveBeenCalled();
     });
 
     it("asks nothing for a binding that is cleared", async () => {
-      current["aiAccessRunnerId"] = RUNNER_ID;
+      current["aiAccessRunnerId"] = OWN_AGENT_ID;
 
       await hooks().onBeforeUpdate(updateBy({ aiAccessRunnerId: null }));
 
       expect(allowSpy()).not.toHaveBeenCalled();
     });
 
-    it("never lets a refused binding's Runner run them", async () => {
+    it("never for a refused binding's Runner", async () => {
       await refusalOf({ aiAccessRunnerId: OTHER_AGENT_ID });
+      await refusalOf({ aiAccessRunnerId: RUNNER_ID });
 
       expect(allowSpy()).not.toHaveBeenCalled();
     });
@@ -1192,10 +988,7 @@ describe("KubernetesClusterService: the Runner and credential bound together mus
   it("negative control: the server's own (root) writes are not operator choices", async () => {
     await expect(
       hooks().onBeforeUpdate(
-        updateBy(
-          { aiAccessRunnerId: OTHER_AGENT_ID, aiAccessCredentialId: null },
-          rootProps(),
-        ),
+        updateBy({ aiAccessRunnerId: OTHER_AGENT_ID }, rootProps()),
       ),
     ).resolves.toBeDefined();
     expect(runnerLookup).toHaveBeenCalledTimes(1);
@@ -1660,13 +1453,13 @@ describe("KubernetesClusterService AI access configured marker", () => {
 
   beforeEach(() => {
     withoutKubernetesAiAgents();
-    jest
-      .spyOn(RunnerService, "findOneBy")
-      .mockResolvedValue({ id: RUNNER_ID } as unknown as Runner);
+    // The one Runner an operator can bind: the cluster's own in-cluster one.
+    jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(inClusterRunner());
     jest.spyOn(KubernetesClusterService, "findBy").mockResolvedValue([
       {
         id: CLUSTER_ID,
         projectId: PROJECT_ID,
+        clusterIdentifier: CLUSTER_IDENTIFIER,
       } as unknown as KubernetesCluster,
     ]);
 
@@ -1782,7 +1575,7 @@ describe("KubernetesClusterService AI access configured marker", () => {
 
   it.each([
     [{ aiAccessRunnerId: null }],
-    [{ aiAccessCredential: null }],
+    [{ aiAccessRunner: null }],
     [{ aiKubectlCommandAllowlist: [] }],
     [{ aiRemediationMode: KubernetesAiRemediationMode.Disabled }],
     [{ isAiInvestigationEnabled: true }],
@@ -1903,18 +1696,11 @@ describe("KubernetesClusterService AI access configured marker", () => {
     );
 
     it("negative control: clearing the Runner, or any other AI setting, does not stamp it", async () => {
-      jest.spyOn(RunbookCredentialService, "findOneBy").mockResolvedValue({
-        id: CREDENTIAL_ID,
-        credentialType: RunbookCredentialType.Kubernetes,
-        runners: [],
-      } as unknown as RunbookCredential);
-
       await runUpdate({ aiAccessRunnerId: null }, adminProps());
       await runUpdate(
         { aiRemediationMode: KubernetesAiRemediationMode.Automatic },
         adminProps(),
       );
-      await runUpdate({ aiAccessCredentialId: CREDENTIAL_ID }, adminProps());
 
       expect(boundMarkerWrites()).toHaveLength(0);
     });
@@ -1930,6 +1716,7 @@ describe("KubernetesClusterService AI access configured marker", () => {
         {
           projectId: PROJECT_ID,
           name: "prod-us",
+          clusterIdentifier: CLUSTER_IDENTIFIER,
           aiAccessRunnerId: RUNNER_ID,
         },
         { isMasterAdmin: true, userId: ObjectID.generate() },

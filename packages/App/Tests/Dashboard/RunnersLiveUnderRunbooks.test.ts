@@ -217,12 +217,7 @@ describe("the Runner pages are Runbooks pages", () => {
       fs
         .readdirSync(path.join(DASHBOARD_SRC, "Pages", "Runbook", "Runners"))
         .sort(),
-    ).toEqual([
-      "RunnerCredentials.tsx",
-      "RunnerFormFields.tsx",
-      "RunnerView.tsx",
-      "Runners.tsx",
-    ]);
+    ).toEqual(["RunnerFormFields.tsx", "RunnerView.tsx", "Runners.tsx"]);
   });
 
   test("Pages/Settings holds no Runner page", () => {
@@ -235,7 +230,7 @@ describe("the Runner pages are Runbooks pages", () => {
     ).toEqual([]);
   });
 
-  test("the Runbooks route group routes all three, and Settings routes none", () => {
+  test("the Runbooks route group routes both, forwards AI Access's address to the Runners, and Settings routes none", () => {
     const runbookRoutes: string = read(
       "App",
       "FeatureSet",
@@ -253,18 +248,27 @@ describe("the Runner pages are Runbooks pages", () => {
       "SettingsRoutes.tsx",
     );
 
-    for (const page of ["Runners", "RunnerView", "RunnerCredentials"]) {
+    for (const page of ["Runners", "RunnerView"]) {
       expect(runbookRoutes).toContain(`"../Pages/Runbook/Runners/${page}"`);
       expect(settingsRoutes).not.toContain(`/${page}"`);
     }
     for (const key of [
       "PageMap.RUNBOOKS_RUNNERS",
       "PageMap.RUNBOOKS_RUNNER_VIEW",
-      "PageMap.RUNBOOKS_RUNNER_CREDENTIALS",
     ]) {
       expect(runbookRoutes).toContain(`RunbookRoutePath[${key}]`);
       expect(runbookRoutes).toContain(`RouteMap[${key}] as Route`);
     }
+
+    /*
+     * AI Access (the runbook credentials OneUptime AI's commands used) is
+     * gone: its page is routed nowhere, and its address opens the Runners.
+     */
+    expect(runbookRoutes).not.toContain("RunnerCredentials");
+    expect(runbookRoutes).not.toContain("RUNBOOKS_RUNNER_CREDENTIALS");
+    expect(runbookRoutes).toContain(
+      "path={MOVED_RUNNER_CREDENTIALS_PATH} element={<MovedPageRedirect pageMap={PageMap.RUNBOOKS_RUNNERS} />}",
+    );
   });
 
   test("Settings keeps the old URLs only as redirects to those pages", () => {
@@ -283,29 +287,31 @@ describe("the Runner pages are Runbooks pages", () => {
     expect(settingsRoutes).toContain(
       "<MovedRunnerPageRedirect pageMap={PageMap.RUNBOOKS_RUNNER_VIEW} />",
     );
-    expect(settingsRoutes).toContain(
-      "<MovedRunnerPageRedirect pageMap={PageMap.RUNBOOKS_RUNNER_CREDENTIALS} />",
-    );
+    // Runner Credentials, later AI Access, is gone: its address opens the Runners too.
+    expect(
+      settingsRoutes.match(
+        /<MovedRunnerPageRedirect pageMap=\{PageMap\.RUNBOOKS_RUNNERS\} \/>/g,
+      ),
+    ).toHaveLength(2);
+    expect(settingsRoutes).not.toContain("RUNBOOKS_RUNNER_CREDENTIALS");
     expect(settingsRoutes.match(/<MovedRunnerPageRedirect/g)).toHaveLength(3);
   });
 
-  test("the credentials table is named for where it is: AI Access", () => {
-    const page: string = read(
-      "App",
-      "FeatureSet",
-      "Dashboard",
-      "src",
-      "Pages",
-      "Runbook",
-      "Runners",
-      "RunnerCredentials.tsx",
-    );
-
-    /*
-     * What OneUptime AI's commands reach through a Runner. Runbook steps
-     * sign in with runbook variables now.
-     */
-    expect(page).toContain('name="Runbooks > AI Access"');
+  test("the AI Access page is gone, with its PageMap entry", () => {
+    expect(
+      fs.existsSync(
+        path.join(
+          DASHBOARD_SRC,
+          "Pages",
+          "Runbook",
+          "Runners",
+          "RunnerCredentials.tsx",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      read("App", "FeatureSet", "Dashboard", "src", "Utils", "PageMap.ts"),
+    ).not.toContain("RUNBOOKS_RUNNER_CREDENTIALS");
   });
 });
 
@@ -555,7 +561,13 @@ describe("the messages people act on name Runbooks", () => {
     }
   });
 
-  test("the Kubernetes AI page's credential hints name Runbooks", () => {
+  /*
+   * A cluster's AI agent page offered a Runner and a Kubernetes credential
+   * for a cluster bound to a Runner outside it, with hints that sent people
+   * to Runbooks → AI Access. Runbook credentials are gone, and the pickers
+   * and their hints with them.
+   */
+  test("the Kubernetes AI page sends nobody to AI Access", () => {
     const settings: string = read(
       "App",
       "FeatureSet",
@@ -567,11 +579,16 @@ describe("the messages people act on name Runbooks", () => {
       "KubernetesAiAccessSettings.ts",
     );
 
-    expect(settings).toContain("Assign one under Runbooks → AI Access.");
-    expect(settings).toContain(
+    for (const gone of [
+      "AI Access.",
+      "AI Access,",
       "choose a Runner created under Runbooks → Runners.",
-    );
-    expect(settings).toContain("Assign it under Runbooks → AI Access,");
+    ]) {
+      expect({ gone, found: settings.includes(gone) }).toEqual({
+        gone,
+        found: false,
+      });
+    }
   });
 });
 
@@ -590,7 +607,7 @@ describe("the side menu labels are translated in every locale", () => {
   });
 
   test.each(LOCALE_FILES)(
-    "%s has the Runbooks menu's Runners section, both its entries and the variables pages",
+    "%s has the Runbooks menu's Runners entry and the variables pages, and no AI Access",
     (file: string) => {
       const locale: Record<string, unknown> = JSON.parse(
         fs.readFileSync(path.join(LOCALES_DIR, file), "utf8"),
@@ -598,7 +615,6 @@ describe("the side menu labels are translated in every locale", () => {
 
       for (const key of [
         "Runners",
-        "AI Access",
         "Runbooks",
         "Global Variables",
         "Variables",
@@ -606,6 +622,9 @@ describe("the side menu labels are translated in every locale", () => {
         expect(typeof locale[key]).toBe("string");
         expect((locale[key] as string).trim().length).toBeGreaterThan(0);
       }
+
+      // The menu's AI Access entry went with the page.
+      expect(locale["AI Access"]).toBeUndefined();
     },
   );
 });

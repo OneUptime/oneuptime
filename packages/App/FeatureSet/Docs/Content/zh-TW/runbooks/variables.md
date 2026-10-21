@@ -97,9 +97,9 @@ Runbook 變數取代了 Runbook 機密，以及 SSH 和 Kubernetes 步驟引用�
 - 步驟引用的每個憑證都變成了具有相同 Runner 的機密全域變數，並以它命名：`<name>-ssh-key`（如果金鑰有複雜密碼，還有 `<name>-ssh-key-passphrase`）、`<name>-ssh-password` 或 `<name>-kubeconfig`；
 - 每個引用憑證的 SSH 步驟都會用這些變數登入其目標機器，並把它的命令作為指令碼執行；每個 Kubernetes 步驟都變成了 kubectl 步驟，執行其操作原本執行的 `kubectl patch`，所需的存取權限不超過該步驟原有的權限。
 
-早於此版本的 Runner 無法執行 kubectl 指令碼。因此，每個以這種方式遷移的 Kubernetes 步驟還保留了其憑證和操作，較舊的 Runner 會像以前一樣用它們執行該步驟。一旦您變更了該步驟的指令碼或 kubeconfig，它就不再保留它們：與每個新的 kubectl 步驟一樣，它隨後需要此版本的 Runner，較舊的 Runner 會讓它失敗並提示更新 Runner。
+早於此版本（14.0.79）的 Runner 無法執行 kubectl 指令碼：它會讓 kubectl 步驟失敗，並提示更新 Runner。每個以這種方式遷移的 Kubernetes 步驟起初還在指令碼旁為這樣的 Runner 保留了其憑證和操作；它們隨 Runbook 憑證一起移除，因此每個 kubectl 步驟都需要 14.0.79 或更新版本的 Runner。
 
-透過 API 用憑證撰寫的步驟仍會使用該憑證執行，其步驟頁面會提供 **轉換為指令碼步驟** 。憑證也會保留，用於 OneUptime AI 自身命令所能到達的地方：請參閱 [AI 存取](/docs/runbooks/credentials)。
+此後 Runbook 憑證已被移除，仍引用憑證的步驟會先以同樣的方式遷移。引用憑證的步驟不再執行，其步驟頁面會提供 **轉換為指令碼步驟** ；透過 API 或 Terraform 儲存時若為步驟指定憑證會被拒絕。請參閱 [Runbook 憑證已移除](/docs/installation/upgrading#runbook-憑證已移除)。
 
 ## 後續步驟
 

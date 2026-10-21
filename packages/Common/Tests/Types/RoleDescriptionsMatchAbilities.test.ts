@@ -728,12 +728,8 @@ const CLAIMS: Partial<Record<Permission, RoleClaims>> = {
       // A step names the variables it uses: the step editor lists them.
       ["read", "RunbookVariable"],
     ],
-    mayNot: creates(
-      "RunbookCredential",
-      "RunbookVariable",
-      "RunbookLabelRule",
-      "RunbookOwnerRule",
-    ),
+    // (Runbook credentials, which it could not create either, were removed.)
+    mayNot: creates("RunbookVariable", "RunbookLabelRule", "RunbookOwnerRule"),
   },
   [Permission.RunbookMember]: {
     may: [...reads("Runbook", "RunbookExecution", "Runner")],
@@ -1122,7 +1118,6 @@ describe("Runbook Member", () => {
       "RunbookLabelRule",
       "RunbookOwnerRule",
       "RunbookVariable",
-      "RunbookCredential",
       "Runner",
       "RunnerOwnerTeam",
       "RunnerOwnerUser",

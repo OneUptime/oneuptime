@@ -16,8 +16,10 @@ import {
   AiRemediationCommandPolicyVerdict,
   AiRemediationPlanExecutionStatus,
   AiRemediationRollbackStatus,
+  REMOVED_SSH_COMMAND_MESSAGE,
   getForwardCommandStepId,
   getRollbackCommandStepId,
+  isRemovedSshCommand,
   isSettledCommandExecutionStatus,
 } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -699,7 +701,7 @@ export default class CommandPlanExecutor {
          * The same for a resource: its AI page as it is NOW, its agent, the
          * agent's write scope, and the resource's CURRENT mode and
          * allowlist (getResourceExecutionRefusal). Null for kubectl and
-         * Bash/SSH, which the cluster re-check above covers.
+         * Bash, which the cluster re-check above covers.
          */
         const clusterRefusal: string | null =
           (await this.getClusterExecutionRefusal({
@@ -1117,9 +1119,10 @@ export default class CommandPlanExecutor {
   }
 
   /*
-   * One enqueue for both lanes. Bash/SSH go through enqueueAiCommand
-   * (script or SSH payload); Kubectl goes through enqueueAiKubectlCommand
-   * (argv + cluster + optional credential), whose policy is re-run there.
+   * One enqueue for every lane. Bash goes through enqueueAiCommand (the
+   * script); Kubectl goes through enqueueAiKubectlCommand (argv + cluster),
+   * whose policy is re-run there. An SSH command of a plan composed before
+   * runbook credentials were removed never runs (REMOVED_SSH_COMMAND_MESSAGE).
    */
   private static async enqueue(data: {
     suggestion: AutoRemediationSuggestion;
@@ -1128,6 +1131,10 @@ export default class CommandPlanExecutor {
     stepId: string;
   }): Promise<RunnerJob> {
     const { suggestion, command } = data;
+
+    if (isRemovedSshCommand(command)) {
+      throw new Error(REMOVED_SSH_COMMAND_MESSAGE);
+    }
 
     /*
      * A resource command goes through the resource chokepoint
@@ -1177,7 +1184,6 @@ export default class CommandPlanExecutor {
         kubernetesClusterId: new ObjectID(command.kubernetesClusterId),
         stepId: data.stepId,
         targetAgentId: new ObjectID(command.runnerId),
-        credentialId: command.credentialId,
         command: data.commandText,
         timeoutInMs: command.timeoutInMs,
         claimTimeoutInMs: AI_COMMAND_CLAIM_TIMEOUT_MS,
@@ -1192,7 +1198,6 @@ export default class CommandPlanExecutor {
       stepType: command.stepType,
       targetAgentId: new ObjectID(command.runnerId),
       command: data.commandText,
-      credentialId: command.credentialId,
       timeoutInMs: command.timeoutInMs,
       claimTimeoutInMs: AI_COMMAND_CLAIM_TIMEOUT_MS,
     });
@@ -1201,17 +1206,17 @@ export default class CommandPlanExecutor {
   /*
    * Why a kubectl command may NOT run on its cluster right now, or null.
    *
-   * The plan froze the cluster, the Runner and the credential the cluster's
-   * AI page bound when the plan was composed. Before anything is enqueued
-   * the page is read again: remediation must still be enabled and ready
-   * (Disabled means "AI never runs a change on this cluster", whatever was
-   * approved earlier), and the bound Runner and credential must still be
-   * the ones on the plan — a re-bound cluster never receives a job meant
-   * for its previous access path. A rollback must ALSO be allowed
+   * The plan froze the cluster and what ran its kubectl (its Kubernetes
+   * AI agent, or its previous in-cluster Runner) when the plan was
+   * composed. Before anything is enqueued the page is read again:
+   * remediation must still be enabled and ready (Disabled means "AI never
+   * runs a change on this cluster", whatever was approved earlier), and
+   * what runs its kubectl must still be the one on the plan — a re-bound
+   * cluster never receives a job meant for its previous access path. A rollback must ALSO be allowed
    * unattended under the cluster's CURRENT mode and allowlist: nothing
    * shows a rollback to a human when it fires.
    *
-   * Fails closed: a status that cannot be read is a refusal. Bash/SSH
+   * Fails closed: a status that cannot be read is a refusal. Bash
    * commands have no cluster and pass through.
    */
   private static async getClusterExecutionRefusal(data: {
@@ -1274,12 +1279,6 @@ export default class CommandPlanExecutor {
           ? "the Kubernetes AI agent"
           : `Runner "${command.runnerNameSnapshot}"`
       }, which this plan was composed for`;
-    }
-
-    if (
-      (status.credentialId || undefined) !== (command.credentialId || undefined)
-    ) {
-      return `cluster "${status.clusterName}" is no longer reached with the credential this plan was composed for`;
     }
 
     /*
@@ -1479,8 +1478,8 @@ export default class CommandPlanExecutor {
   }
 
   /*
-   * Execution-time policy floor per lane: the bash denylist for Bash/SSH,
-   * the Denied tier for Kubectl. Null when the command may run.
+   * Execution-time policy floor per lane: the bash denylist for Bash, the
+   * Denied tier for Kubectl. Null when the command may run.
    */
   private static getDenyReason(data: {
     stepType: RunbookStepType;

@@ -95,7 +95,7 @@ Runbooks finden Sie unter **Produkte**, in der Gruppe **Dashboards & Automatisie
 | **Eigentümer** eines Runbooks | Die Personen und Teams hinzufügen, die dafür verantwortlich sind. |
 | **Einstellungen** eines Runbooks | **Dieses Runbook ausführen** ausschalten, ohne das Runbook zu löschen. |
 | **Runbooks → Ausführungen** | Jeder Lauf jedes Runbooks im Projekt. |
-| **Runbooks → Runbook-Agents** und **Runbooks → Runbook-Agents → KI-Zugriff** | [Runner](/docs/runbooks/agents) installieren und den [Zugriff](/docs/runbooks/credentials) verwalten, den die Befehle von OneUptime AI über sie haben. |
+| **Runbooks → Runbook-Agents** | Die [Runner](/docs/runbooks/agents) installieren, auf denen Ihre Runbook-Schritte laufen. |
 | **Runbooks → Einstellungen** | Unter **Globale Variablen** die Variablen verwalten, die jedes Runbook [verwenden](/docs/runbooks/variables) kann, dazu die **Eigentümerregeln** und **Beschriftungsregeln**, die neuen Runbooks Eigentümer und Beschriftungen geben. |
 | **Vorfälle / Warnungen / Geplante Wartung → Regeln → Runbook-Regeln** | Die Regeln anlegen, die Runbooks automatisch starten. |
 | Ein Vorfall, eine Warnung oder ein Wartungsereignis → **Runbooks** | Die angehängten Läufe sehen und mit **Runbook ausführen** einen starten. |

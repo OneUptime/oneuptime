@@ -18,7 +18,7 @@ import {
   SSHStepConfig,
 } from "Common/Types/Runbook/RunbookStep";
 import {
-  LEGACY_KUBERNETES_STEP_JOB_KEY,
+  REMOVED_RUNBOOK_CREDENTIAL_STEP_MESSAGE,
   getKubectlScriptForLegacyKubernetesStep,
 } from "Common/Types/Runbook/RunbookLegacySteps";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -381,9 +381,12 @@ describe("a kubectl step that takes a script", () => {
 
 /*
  * A kubectl step the data migration moved from a Kubernetes action kept
- * that action and its credential (RunbookLegacySteps). Its job carries them
- * beside the script, as what a Runner older than kubectl scripts is handed
- * (RunnerIngress) - only while the script is the one the action became.
+ * that action and its credential (RunbookLegacySteps), and its job carried
+ * them beside the script, for a Runner older than kubectl scripts. Runbook
+ * credentials were removed, and that fallback with them: the removal's
+ * data migration takes the kept fields off, and a step that still has them
+ * is dispatched with its script and kubeconfig alone. A step written before
+ * kubectl scripts - a credential and no script - is not dispatched at all.
  */
 describe("a kubectl step moved from a Kubernetes action", () => {
   const CREDENTIAL_ID: string = "a9e10000-0000-4000-8000-0000000000c1";
@@ -434,7 +437,7 @@ describe("a kubectl step moved from a Kubernetes action", () => {
   }
 
   test.each(SHAPES)(
-    "%s: its job carries the script and the kubeconfig, and beside them the action and its credential, as such a step was always dispatched",
+    "%s: its job carries the script and the kubeconfig alone, never the action or the credential it kept",
     async (_label: string, legacy: RawConfig) => {
       const result: StepRunResult = await runKubernetesStep(
         kubectlStep(movedConfig(legacy)),
@@ -449,7 +452,6 @@ describe("a kubectl step moved from a Kubernetes action", () => {
       expect(job["payload"]).toEqual({
         kubeconfig: "{{global.variables.PROD_KUBECONFIG}}",
         script: getKubectlScriptForLegacyKubernetesStep(legacy as never),
-        [LEGACY_KUBERNETES_STEP_JOB_KEY]: legacy,
       });
       // Its own timeout, as the step says.
       expect(job["timeoutInMs"]).toBe(45_000);
@@ -457,23 +459,36 @@ describe("a kubectl step moved from a Kubernetes action", () => {
     },
   );
 
-  test("what an older Runner will be handed is the very payload a step written with a credential is dispatched with", async () => {
-    const legacy: RawConfig = SHAPES[2]![1];
+  test.each(SHAPES)(
+    "%s, as it was written before kubectl scripts (a credential, no script), is not dispatched: it says how to fix the step",
+    async (_label: string, legacy: RawConfig) => {
+      const result: StepRunResult = await runKubernetesStep(
+        kubectlStep({ ...legacy, agentId: AGENT_ID } as RawConfig),
+        makeCtx(),
+      );
 
-    await runKubernetesStep(kubectlStep(movedConfig(legacy)), makeCtx());
-    const moved: Record<string, unknown> = (
-      enqueued()["payload"] as Record<string, unknown>
-    )[LEGACY_KUBERNETES_STEP_JOB_KEY] as Record<string, unknown>;
+      expect(result).toEqual({
+        success: false,
+        output: "",
+        errorMessage: REMOVED_RUNBOOK_CREDENTIAL_STEP_MESSAGE,
+      });
+      expect(result.errorMessage).toContain("Turn into a script step");
+      expect(enqueueSpy).not.toHaveBeenCalled();
+    },
+  );
 
-    enqueueSpy.mockClear();
-
-    // The same step as it was written before kubectl scripts.
-    await runKubernetesStep(
-      kubectlStep({ ...legacy, agentId: AGENT_ID } as RawConfig),
+  test("an SSH step written with a credential and no script is not dispatched either", async () => {
+    const result: StepRunResult = await runSshStep(
+      sshStep({
+        credentialId: CREDENTIAL_ID,
+        command: "sudo systemctl restart nginx",
+        agentId: AGENT_ID,
+      }),
       makeCtx(),
     );
 
-    expect(moved).toEqual(enqueued()["payload"]);
+    expect(result.errorMessage).toBe(REMOVED_RUNBOOK_CREDENTIAL_STEP_MESSAGE);
+    expect(enqueueSpy).not.toHaveBeenCalled();
   });
 
   test.each([
@@ -494,7 +509,7 @@ describe("a kubectl step moved from a Kubernetes action", () => {
     ],
     ["it was written as a script", kubectlConfig()],
   ])(
-    "no action is carried when %s: an older Runner is told to update",
+    "no action is carried when %s",
     async (_label: string, config: RawConfig) => {
       await runKubernetesStep(kubectlStep(config), makeCtx());
 
@@ -502,7 +517,8 @@ describe("a kubectl step moved from a Kubernetes action", () => {
         string,
         unknown
       >;
-      expect(payload).not.toHaveProperty(LEGACY_KUBERNETES_STEP_JOB_KEY);
+      // What the job carried them under, for an older Runner.
+      expect(payload).not.toHaveProperty("legacyStep");
       expect(payload).not.toHaveProperty("credentialId");
       expect(payload["script"]).toBe(config["script"]);
     },

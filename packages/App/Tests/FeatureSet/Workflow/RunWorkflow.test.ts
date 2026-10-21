@@ -616,7 +616,7 @@ describe("RunWorkflow hands each step the workflow it runs for", () => {
 
   /*
    * A step is lent no read of a setting that holds credentials, whoever
-   * saved the workflow (RunbookCredentialReaders): the runner reads the
+   * saved the workflow (WorkflowPrincipal): the runner reads the
    * steps it runs, and nobody who saved them, and hands a step nothing to
    * be answered for instead.
    */

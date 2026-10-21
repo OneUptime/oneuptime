@@ -418,7 +418,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     type: TableColumnType.Boolean,
     title: "Let AI Compose Commands",
     description:
-      "Kept for rules saved before rules were simplified: the AI investigates the incident/alert and composes Bash/SSH commands for the rule's Runner and Command Runners, and the rule does nothing else. Suggest mode proposes a command plan for one-click approval; FullAuto mode may execute commands inline, but only ones matching the command allowlist. A OneUptime AI rule now composes commands on its Runner when it picks one, so new rules leave this off.",
+      "Kept for rules saved before rules were simplified: the AI investigates the incident/alert and composes Bash commands for the rule's Runner and Command Runners, and the rule does nothing else. Suggest mode proposes a command plan for one-click approval; FullAuto mode may execute commands inline, but only ones matching the command allowlist. A OneUptime AI rule now composes commands on its Runner when it picks one, so new rules leave this off.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })
@@ -921,9 +921,11 @@ export default class AutoRemediationRule extends RuleBaseModel {
   public externalMcpServers?: Array<ExternalMcpServer> = undefined;
 
   /*
-   * The Runner OneUptime AI runs this rule's commands of its own on (Bash,
-   * SSH), inside the project's network - the per-rule choice that replaced
-   * a Runner's "Runs AI Remediation Commands" switch. Empty means no Runner:
+   * The Runner OneUptime AI runs this rule's commands of its own on - Bash,
+   * on the Runner's own host, inside the project's network - the per-rule
+   * choice that replaced a Runner's "Runs AI Remediation Commands" switch.
+   * (SSH commands to another host, with a runbook credential, went with
+   * runbook credentials.) Empty means no Runner:
    * OneUptime AI fixes through the AI agent on the affected Kubernetes
    * cluster or host, as it always has, and runs no commands of its own
    * anywhere else. The global Runners are never a choice here: they run
@@ -963,7 +965,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     modelType: Runner,
     title: "Runner",
     description:
-      "The Runner OneUptime AI runs this rule's commands on (Bash, SSH), inside your network. Empty means none: OneUptime AI fixes through the AI agent on the affected Kubernetes cluster or host.",
+      "The Runner OneUptime AI runs this rule's Bash commands on, inside your network. Empty means none: OneUptime AI fixes through the AI agent on the affected Kubernetes cluster or host.",
   })
   @ManyToOne(
     () => {

@@ -10,24 +10,15 @@ import Permission, { PermissionHelper } from "../Permission";
 /*
  * Who may LOOSEN a cluster's AI access: turn AI fixes on (any move up from
  * Off, Ask for approval included) or give them more autonomy (Automatic,
- * Bypass approval), author a kubectl allowlist, bind the Runner / Kubernetes
- * credential kubectl runs through, or clear that binding while the cluster
- * has a Kubernetes AI agent (which hands the cluster to the agent), and
- * reset the cluster's Kubernetes AI agent. A cluster's AI mode does the job
- * of a FullAuto AutoRemediationRule without a rule row, so it takes the
- * same set AutoRemediationRule uses for executionMode, commandAllowlist and
- * commandRunners.
+ * Bypass approval), author a kubectl allowlist, bind the cluster's previous
+ * in-cluster Runner again, and reset the cluster's Kubernetes AI agent. A
+ * cluster's AI mode does the job of a FullAuto AutoRemediationRule without
+ * a rule row, so it takes the same set AutoRemediationRule uses for
+ * executionMode, commandAllowlist and commandRunners.
  *
  * Tightening (Off, moving down, clearing the allowlist, or clearing the
- * binding of a cluster with no AI agent) stays open to anyone who may edit
- * the cluster: making AI do less never needs more privilege than the
- * cluster itself.
- *
- * Binding a Kubernetes credential additionally needs the read of runbook
- * credentials - RunbookCredential's own read list, which the dashboard's
- * credential picker applies too (KubernetesClusterService asks
- * RunbookCredentialReaders) - so a credential id copied from somewhere else
- * cannot be bound blind.
+ * Runner binding) stays open to anyone who may edit the cluster: making AI
+ * do less never needs more privilege than the cluster itself.
  */
 export const KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
