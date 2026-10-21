@@ -5,6 +5,7 @@ import {
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
+import { getRecommendedDetectionRules } from "Common/Types/SecurityEvent/DetectionRuleLibrary";
 import fs from "fs/promises";
 import path from "path";
 
@@ -29,6 +30,12 @@ import path from "path";
 const PORT: string = process.env["SECURITY_OPERATIONS_FIXTURE_PORT"] || "4234";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const NOW: Date = new Date("2026-10-14T12:00:00.000Z");
+/*
+ * The Rule Library's recommended rules, which the fixture's API counts and
+ * turns on from the same catalog. The fixture's project has three of them.
+ */
+const RECOMMENDED_RULES: number = getRecommendedDetectionRules().length;
+const RECOMMENDED_RULES_ON: number = 3;
 
 const PRODUCT: string = `/dashboard/${PROJECT_ID}/security-events`;
 const OVERVIEW_PATH: string = `${PRODUCT}/overview`;
@@ -364,7 +371,7 @@ test.describe("the overview", () => {
     );
     await expect(stage(page, "detections")).toContainText("6 rules on");
     await expect(stage(page, "detections")).toContainText(
-      "3 of 19 recommended",
+      `${RECOMMENDED_RULES_ON} of ${RECOMMENDED_RULES} recommended`,
     );
     await expect(stage(page, "cases")).toContainText("6 open cases");
     // What the open cases are, which the figures below no longer repeat.
@@ -484,7 +491,7 @@ test.describe("the overview", () => {
 
     await page.getByTestId("security-turn-on-recommended").click();
     await expect(page.getByTestId("security-turned-on")).toContainText(
-      "Done. 19 detection rules are on, your logs are checked for security events and every new case is enriched.",
+      `Done. ${RECOMMENDED_RULES} detection rules are on, your logs are checked for security events and every new case is enriched.`,
     );
     await expect(gettingStarted(page)).toContainText("3 of 4 done");
     // Nothing left to turn on: the test attack is the next step, and the main button.
@@ -551,7 +558,9 @@ test.describe("the overview", () => {
     await page.getByTestId("security-getting-started-done").click();
     await expect(gettingStarted(page)).toHaveCount(0);
     await expect(stage(page, "sources")).toContainText("1 source");
-    await expect(stage(page, "detections")).toContainText("19 rules on");
+    await expect(stage(page, "detections")).toContainText(
+      `${RECOMMENDED_RULES} rules on`,
+    );
     await expect(stage(page, "cases")).toContainText("1 open case");
     await expect(stage(page, "playbooks")).toContainText("1 playbook on");
 
@@ -1365,18 +1374,22 @@ test.describe("detections", () => {
     });
     await expect(
       page.locator('[data-testid^="rule-library-recommended-"]'),
-    ).toHaveCount(19);
+    ).toHaveCount(RECOMMENDED_RULES);
 
     await page.getByTestId("rule-library-category").selectOption("recommended");
     await expect(
       page.locator('[data-testid^="rule-library-entry-"]'),
-    ).toHaveCount(19);
+    ).toHaveCount(RECOMMENDED_RULES);
 
     await page
-      .getByRole("button", { name: "Add 16 Recommended Rules" })
+      .getByRole("button", {
+        name: `Add ${RECOMMENDED_RULES - RECOMMENDED_RULES_ON} Recommended Rules`,
+      })
       .click();
-    // All nineteen are the project's now: the three it had and sixteen more.
-    await expect(page.getByText("Added", { exact: true })).toHaveCount(19);
+    // Every recommended rule is the project's now: the three it had and the rest.
+    await expect(page.getByText("Added", { exact: true })).toHaveCount(
+      RECOMMENDED_RULES,
+    );
     await expect(
       page.getByRole("button", { name: /Recommended Rules?$/ }),
     ).toHaveCount(0);

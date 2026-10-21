@@ -69,8 +69,10 @@ is listed in `unhandled`; the spec's `afterEach` fails when that list is not emp
 
 - **Connections, top to bottom**: Your logs, Your security tools, Send to your SIEM; the Your
   logs switch turns the logs on in one press and says when the first check runs, and a
-  viewer cannot flip it; Send to Google SecOps opens its form on the SIEM's own settings, its
-  test event waiting for the settings; with SIEMs (`?siem=rows`) each row says what it is
+  viewer cannot flip it; Send to your SIEM (and the card's Add destination) opens its form on
+  the SIEM step - Google SecOps, Splunk, Microsoft Sentinel and Elastic Security - and Next
+  opens that SIEM's own settings alone, its test event waiting for the settings; with SIEMs
+  (`?siem=rows`) each row says what it is
   sent under its name and how sending goes, and the table fits its card at 1280 and 1440,
   its status never under the sticky actions; dark theme and a phone.
 
@@ -136,24 +138,25 @@ checkout might be running, stop it first or run with `CI=1`.
 Screenshots (2x) land in `output/playwright/security-events-empty-states-ui/`, named
 `*-synthetic.png` because everything in them is fabricated:
 
-| Screenshot                      | What it shows                                                                     |
-| ------------------------------- | --------------------------------------------------------------------------------- |
-| `connections-cards-desktop`     | Connections at 1440, full page: Your logs, Your security tools, Send to your SIEM |
-| `connections-cards-dark`        | The same in the dark theme                                                        |
-| `connections-cards-phone`       | The same at 390                                                                   |
-| `connections-siem-form-desktop` | Send to Google SecOps, the form's first step                                      |
-| `connections-siem-rows-desktop` | Send to your SIEM with three SIEMs, at 1440                                       |
-| `connections-desktop`           | Connections at 1440                                                               |
-| `connections-tablet`            | Connections at 768                                                                |
-| `connections-mobile`            | Connections at 390, full page                                                     |
-| `connections-dark`              | Connections in the dark theme                                                     |
-| `connections-viewer`            | Connections for a Security Viewer                                                 |
-| `connections-preselected-modal` | Add connection after clicking the CrowdStrike Falcon tile                         |
-| `connections-tile-hover`        | The tiles with the pointer on CrowdStrike Falcon                                  |
-| `connections-tile-focus`        | The tiles with keyboard focus on CrowdStrike Falcon                               |
-| `events-desktop`                | Security Events at 1440                                                           |
-| `events-dark`                   | Security Events in the dark theme                                                 |
-| `events-mobile`                 | Security Events at 390, full page                                                 |
+| Screenshot                        | What it shows                                                                     |
+| --------------------------------- | --------------------------------------------------------------------------------- |
+| `connections-cards-desktop`       | Connections at 1440, full page: Your logs, Your security tools, Send to your SIEM |
+| `connections-cards-dark`          | The same in the dark theme                                                        |
+| `connections-cards-phone`         | The same at 390                                                                   |
+| `connections-siem-picker-desktop` | Send to your SIEM, the form's first step: the four SIEMs                          |
+| `connections-siem-form-desktop`   | Send to your SIEM, Splunk's Connection step                                       |
+| `connections-siem-rows-desktop`   | Send to your SIEM with three SIEMs, at 1440                                       |
+| `connections-desktop`             | Connections at 1440                                                               |
+| `connections-tablet`              | Connections at 768                                                                |
+| `connections-mobile`              | Connections at 390, full page                                                     |
+| `connections-dark`                | Connections in the dark theme                                                     |
+| `connections-viewer`              | Connections for a Security Viewer                                                 |
+| `connections-preselected-modal`   | Add connection after clicking the CrowdStrike Falcon tile                         |
+| `connections-tile-hover`          | The tiles with the pointer on CrowdStrike Falcon                                  |
+| `connections-tile-focus`          | The tiles with keyboard focus on CrowdStrike Falcon                               |
+| `events-desktop`                  | Security Events at 1440                                                           |
+| `events-dark`                     | Security Events in the dark theme                                                 |
+| `events-mobile`                   | Security Events at 390, full page                                                 |
 
 ## Poke at it by hand
 

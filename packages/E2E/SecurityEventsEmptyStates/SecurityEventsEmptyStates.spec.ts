@@ -1591,35 +1591,80 @@ test.describe("connections: your logs and your SIEM", () => {
     expect((await fixture(page)).creates).toEqual([]);
   });
 
-  test("Send to Google SecOps opens the form on the SIEM's own settings, then what to send", async ({
+  /*
+   * The SIEMs of the destination catalog, in its order, each with the
+   * first setting its Connection step asks for.
+   */
+  const SIEMS: ReadonlyArray<{ title: string; firstSetting: string }> = [
+    { title: "Google SecOps", firstSetting: "Instance resource name" },
+    { title: "Splunk", firstSetting: "HEC URL" },
+    { title: "Microsoft Sentinel", firstSetting: "Directory (tenant) ID" },
+    { title: "Elastic Security", firstSetting: "Elasticsearch URL" },
+  ];
+
+  test("Send to your SIEM picks the SIEM first, then opens that SIEM's own settings", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openConnections(page);
 
+    // The empty state's button and the card's Add destination open the same form.
     await siemCard(page)
-      .getByRole("button", { name: "Send to Google SecOps" })
+      .getByRole("button", { name: "Send to your SIEM", exact: true })
       .click();
     const dialog: Locator = page.getByRole("dialog", {
-      name: "Send to Google SecOps",
+      name: "Send to your SIEM",
     });
     await expect(dialog).toBeVisible();
-    await expect(dialog.locator("[aria-current='step']")).toHaveText(
-      "Connection",
-    );
-    await expect(
-      dialog.getByText("Instance resource name").first(),
-    ).toBeVisible();
-    await expect(
-      dialog.getByTestId("security-event-destination-send-test"),
-    ).toBeDisabled();
-    await screenshot(page, "connections-siem-form-desktop", {
+    await expect(dialog.locator("[aria-current='step']")).toHaveText("SIEM");
+    await expect(dialog.getByRole("radio")).toHaveCount(SIEMS.length);
+    await screenshot(page, "connections-siem-picker-desktop", {
       fullPage: false,
     });
-
     await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    for (const siem of SIEMS) {
+      await siemCard(page)
+        .getByRole("button", { name: "Add destination", exact: true })
+        .click();
+      await expect(dialog).toBeVisible();
+      await expect(dialog.locator("[aria-current='step']")).toHaveText("SIEM");
+
+      await dialog
+        .locator("[role='radio']")
+        .filter({ hasText: siem.title })
+        .click();
+      await dialog.getByRole("button", { name: "Next", exact: true }).click();
+      await expect(dialog.locator("[aria-current='step']")).toHaveText(
+        "Connection",
+      );
+      // That SIEM's settings, and none of another's.
+      await expect(
+        dialog.getByText(siem.firstSetting, { exact: true }).first(),
+      ).toBeVisible();
+      for (const other of SIEMS) {
+        if (other.title !== siem.title) {
+          await expect(
+            dialog.getByText(other.firstSetting, { exact: true }),
+          ).toHaveCount(0);
+        }
+      }
+      // Nothing is filled in, so there is nothing to test yet.
+      await expect(
+        dialog.getByTestId("security-event-destination-send-test"),
+      ).toBeDisabled();
+      if (siem.title === "Splunk") {
+        await screenshot(page, "connections-siem-form-desktop", {
+          fullPage: false,
+        });
+      }
+
+      await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+    }
+
     expect((await fixture(page)).creates).toEqual([]);
   });
 
