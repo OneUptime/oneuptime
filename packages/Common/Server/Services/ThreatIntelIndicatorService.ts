@@ -35,7 +35,9 @@ import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper
  * ILLEGAL_AGGREGATION. Each level below names what it computes
  * (feedNameLatest, confidenceLatest, identityStixId, ...), and only the
  * level that answers the caller takes the plain names the rows are read by.
- * ClickhouseAliasShadowGuard keeps every query in the code to that rule.
+ * ThreatIntelIndicatorService.test.ts holds these statements to that rule,
+ * and ClickhouseAliasShadowGuard holds every query in the code clear of the
+ * failure.
  */
 export interface ActiveIndicator {
   indicatorValue: string;
