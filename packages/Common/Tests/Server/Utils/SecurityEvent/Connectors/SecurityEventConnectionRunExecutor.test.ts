@@ -165,7 +165,9 @@ beforeEach(() => {
   ).mockImplementation(async () => {
     return run;
   });
-  (SecurityEventConnectionRunService.findAllBy as jest.Mock).mockResolvedValue([]);
+  (SecurityEventConnectionRunService.findAllBy as jest.Mock).mockResolvedValue(
+    [],
+  );
   (SecurityEventConnectionRunService.create as jest.Mock).mockImplementation(
     async (data: { data: SecurityEventConnectionRun }) => {
       data.data.id = RUN;
@@ -780,9 +782,9 @@ describe("enqueueDueConnections", () => {
       new SecurityEventConnectionRun();
     staleRun.id = USER;
     staleRun.updatedAt = new Date(Date.now() - 25 * 60_000);
-    (SecurityEventConnectionRunService.findAllBy as jest.Mock).mockResolvedValue([
-      staleRun,
-    ]);
+    (
+      SecurityEventConnectionRunService.findAllBy as jest.Mock
+    ).mockResolvedValue([staleRun]);
     const expireSpy: jest.SpyInstance = jest
       .spyOn(SecurityEventConnectionRunExecutor, "expireStaleRun")
       .mockResolvedValue(true);
@@ -859,9 +861,9 @@ describe("enqueueDueConnections", () => {
     const staleRun: SecurityEventConnectionRun =
       new SecurityEventConnectionRun();
     staleRun.id = USER;
-    (SecurityEventConnectionRunService.findAllBy as jest.Mock).mockResolvedValue([
-      staleRun,
-    ]);
+    (
+      SecurityEventConnectionRunService.findAllBy as jest.Mock
+    ).mockResolvedValue([staleRun]);
     jest
       .spyOn(SecurityEventConnectionRunExecutor, "expireStaleRun")
       .mockRejectedValue(new Error("Redis unavailable"));

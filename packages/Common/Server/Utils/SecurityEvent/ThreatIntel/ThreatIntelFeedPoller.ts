@@ -177,8 +177,8 @@ export default class ThreatIntelFeedPoller {
    */
   @CaptureSpan()
   public static async enqueueProjectsWithDueFeeds(): Promise<number> {
-    const feeds: Array<ThreatIntelFeed> = await ThreatIntelFeedService.findAllBy(
-      {
+    const feeds: Array<ThreatIntelFeed> =
+      await ThreatIntelFeedService.findAllBy({
         query: {
           isEnabled: true,
         },
@@ -194,8 +194,7 @@ export default class ThreatIntelFeedPoller {
         props: {
           isRoot: true,
         },
-      },
-    );
+      });
 
     const now: Date = OneUptimeDate.getCurrentDate();
 
@@ -221,8 +220,8 @@ export default class ThreatIntelFeedPoller {
     projectId: ObjectID,
     lease: SecurityProjectWorkLease = UNLIMITED_SECURITY_PROJECT_WORK_LEASE,
   ): Promise<void> {
-    const feeds: Array<ThreatIntelFeed> = await ThreatIntelFeedService.findAllBy(
-      {
+    const feeds: Array<ThreatIntelFeed> =
+      await ThreatIntelFeedService.findAllBy({
         query: {
           projectId,
           isEnabled: true,
@@ -234,8 +233,7 @@ export default class ThreatIntelFeedPoller {
         props: {
           isRoot: true,
         },
-      },
-    );
+      });
 
     const now: Date = OneUptimeDate.getCurrentDate();
 

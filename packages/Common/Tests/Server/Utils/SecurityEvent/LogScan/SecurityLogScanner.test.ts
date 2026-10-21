@@ -571,12 +571,11 @@ describe("SecurityLogScanner.scanProject", () => {
       .mockRejectedValue(new Error("Log table unreachable"));
 
     // A cursor a minute back, so there is a window to read.
-    const findAll: SpyInstance<typeof SecurityLogSourceService.findAllBy> =
-      jest
-        .spyOn(SecurityLogSourceService, "findAllBy")
-        .mockResolvedValue([
-          source(OneUptimeDate.addRemoveMinutes(NOW, -1).toISOString()),
-        ] as never);
+    const findAll: SpyInstance<typeof SecurityLogSourceService.findAllBy> = jest
+      .spyOn(SecurityLogSourceService, "findAllBy")
+      .mockResolvedValue([
+        source(OneUptimeDate.addRemoveMinutes(NOW, -1).toISOString()),
+      ] as never);
 
     await SecurityLogScanner.scanProject(PROJECT_ID);
 
@@ -617,10 +616,9 @@ describe("SecurityLogScanner.enqueueProjectsWithEnabledSources", () => {
   });
 
   test("queues each project with an enabled source, read page by page, and scans none itself", async () => {
-    const findAll: SpyInstance<typeof SecurityLogSourceService.findAllBy> =
-      jest
-        .spyOn(SecurityLogSourceService, "findAllBy")
-        .mockResolvedValue([source(), source()] as never);
+    const findAll: SpyInstance<typeof SecurityLogSourceService.findAllBy> = jest
+      .spyOn(SecurityLogSourceService, "findAllBy")
+      .mockResolvedValue([source(), source()] as never);
     const enqueue: SpyInstance<typeof SecurityProjectWork.enqueueProjects> =
       jest.spyOn(SecurityProjectWork, "enqueueProjects").mockResolvedValue(1);
     const scan: SpyInstance<typeof SecurityLogScanner.scanSource> = jest.spyOn(

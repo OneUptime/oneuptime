@@ -25,10 +25,10 @@ function groups(count: number): Array<string> {
 
 describe("splitDetectionGroups", () => {
   test("fewer groups than a run opens cases for: every one opens its own, none overflow", () => {
-    const split: DetectionGroupSplit<string> = splitDetectionGroups(
-      groups(3),
-      { openLimit: 5, recordLimit: 10 },
-    );
+    const split: DetectionGroupSplit<string> = splitDetectionGroups(groups(3), {
+      openLimit: 5,
+      recordLimit: 10,
+    });
 
     expect(split.opened).toEqual(["group-0", "group-1", "group-2"]);
     expect(split.recorded).toEqual(split.opened);
@@ -37,10 +37,10 @@ describe("splitDetectionGroups", () => {
   });
 
   test("more than it opens cases for: the first open theirs, every one is recorded, the rest overflow", () => {
-    const split: DetectionGroupSplit<string> = splitDetectionGroups(
-      groups(8),
-      { openLimit: 5, recordLimit: 10 },
-    );
+    const split: DetectionGroupSplit<string> = splitDetectionGroups(groups(8), {
+      openLimit: 5,
+      recordLimit: 10,
+    });
 
     expect(split.opened).toEqual(groups(5));
     expect(split.recorded).toEqual(groups(8));

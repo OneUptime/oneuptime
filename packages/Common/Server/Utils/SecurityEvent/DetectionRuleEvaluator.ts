@@ -477,16 +477,14 @@ export default class DetectionRuleEvaluator {
        * detections are already recorded as alerts and findings.
        */
       if (setupTest || rule.shouldCreateCase !== false) {
-        const signals: Array<SecurityDetectionSignal> = this.buildCaseSignals(
-          {
-            rule,
-            parsedRule,
-            matchedGroups: split.opened,
-            findingEventUids,
-            startTime,
-            endTime,
-          },
-        );
+        const signals: Array<SecurityDetectionSignal> = this.buildCaseSignals({
+          rule,
+          parsedRule,
+          matchedGroups: split.opened,
+          findingEventUids,
+          startTime,
+          endTime,
+        });
 
         if (overflowNotice && !setupTest) {
           signals.push(

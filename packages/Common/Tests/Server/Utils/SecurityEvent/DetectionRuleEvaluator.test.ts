@@ -499,9 +499,10 @@ describe("DetectionRuleEvaluator", () => {
         buildRule({ id: new ObjectID("abababab-abab-4aba-8aba-ababababab03") }),
       ] as never);
 
-      return getJestSpyOn(DetectionRuleEvaluator, "evaluateRule").mockResolvedValue(
-        {} as never,
-      );
+      return getJestSpyOn(
+        DetectionRuleEvaluator,
+        "evaluateRule",
+      ).mockResolvedValue({} as never);
     }
 
     test("a turn that runs out of time leaves the rest for the next one", async () => {
@@ -518,7 +519,10 @@ describe("DetectionRuleEvaluator", () => {
         },
       };
 
-      await DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID, lease);
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(
+        PROJECT_ID,
+        lease,
+      );
 
       // The two left over are still due, and resume from their own lastEvaluatedAt.
       expect(evaluateRuleSpy).toHaveBeenCalledTimes(1);
@@ -538,7 +542,10 @@ describe("DetectionRuleEvaluator", () => {
         },
       };
 
-      await DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID, lease);
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(
+        PROJECT_ID,
+        lease,
+      );
 
       // Another worker may hold the project now: two rules, then it lets go.
       expect(evaluateRuleSpy).toHaveBeenCalledTimes(2);
@@ -562,7 +569,10 @@ describe("DetectionRuleEvaluator", () => {
     function ruleIn(
       projectId: ObjectID,
       idSuffix: string,
-      options: { lastEvaluatedAt?: Date; evaluationIntervalInMinutes?: number } = {},
+      options: {
+        lastEvaluatedAt?: Date;
+        evaluationIntervalInMinutes?: number;
+      } = {},
     ): DetectionRule {
       const rule: DetectionRule = buildRule({
         id: new ObjectID(`eeeeeeee-eeee-4eee-8eee-${idSuffix}`),

@@ -80,8 +80,10 @@ const addJob: jest.Mock = Queue.addJob as unknown as jest.Mock;
 const lock: jest.Mock = Semaphore.lock as unknown as jest.Mock;
 const keepLock: jest.Mock = Semaphore.keepLock as unknown as jest.Mock;
 const release: jest.Mock = Semaphore.release as unknown as jest.Mock;
-const acquirePermit: jest.Mock = Semaphore.acquirePermit as unknown as jest.Mock;
-const releasePermit: jest.Mock = Semaphore.releasePermit as unknown as jest.Mock;
+const acquirePermit: jest.Mock =
+  Semaphore.acquirePermit as unknown as jest.Mock;
+const releasePermit: jest.Mock =
+  Semaphore.releasePermit as unknown as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -310,7 +312,9 @@ describe("SecurityProjectWork.runForProject", () => {
   });
 
   test("a lease that cannot be vouched for is lost", async () => {
-    keepLock.mockRejectedValue(new Error("Redis client is not connected") as never);
+    keepLock.mockRejectedValue(
+      new Error("Redis client is not connected") as never,
+    );
     let kept: boolean | null = null;
 
     await SecurityProjectWork.runForProject(

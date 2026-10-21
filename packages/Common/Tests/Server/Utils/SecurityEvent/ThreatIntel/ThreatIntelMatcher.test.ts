@@ -247,7 +247,9 @@ describe("ThreatIntelMatcher.evaluateFeed", () => {
     );
     expect((call["feedId"] as ObjectID).toString()).toBe(FEED_ID.toString());
     expect(call["startTime"]).toBe(lastEvaluatedAt);
-    expect(call["maxGroups"]).toBe(THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION + 1);
+    expect(call["maxGroups"]).toBe(
+      THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION + 1,
+    );
     expect(THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION).toBe(10000);
     expect(MAX_GROUPS_PER_EVALUATION).toBe(100);
   });
@@ -629,7 +631,10 @@ describe("ThreatIntelMatcher: a check that matches more values than it opens cas
   }
 
   function recordCases(): Spy {
-    return getJestSpyOn(SecurityCaseIngest, "recordDetections").mockResolvedValue({
+    return getJestSpyOn(
+      SecurityCaseIngest,
+      "recordDetections",
+    ).mockResolvedValue({
       casesOpened: 1,
       detectionsAdded: 1,
       detectionsRepeated: 0,

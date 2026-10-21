@@ -75,7 +75,8 @@ jest.mock(
         maxConcurrentProjects: 8,
       },
       default: {
-        enqueueProjectsWithEnabledSources: mockEnqueueProjectsWithEnabledSources,
+        enqueueProjectsWithEnabledSources:
+          mockEnqueueProjectsWithEnabledSources,
         scanProject: mockScanProject,
       },
     };
@@ -105,9 +106,9 @@ jest.mock("Common/Server/Utils/SecurityEvent/SecurityProjectWork", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "Common/Server/Utils/SecurityEvent/SecurityProjectWork",
   );
-  const actualDefault: { projectIdOfJob: unknown } = actual[
-    "default"
-  ] as { projectIdOfJob: unknown };
+  const actualDefault: { projectIdOfJob: unknown } = actual["default"] as {
+    projectIdOfJob: unknown;
+  };
 
   return {
     ...actual,

@@ -60,15 +60,14 @@ export interface SecurityProjectWorkLease {
  * The lease of work done outside a project job (a test, a direct call): it
  * is never lost and never runs out of time.
  */
-export const UNLIMITED_SECURITY_PROJECT_WORK_LEASE: SecurityProjectWorkLease =
-  {
-    keep: async (): Promise<boolean> => {
-      return true;
-    },
-    hasTimeLeft: (): boolean => {
-      return true;
-    },
-  };
+export const UNLIMITED_SECURITY_PROJECT_WORK_LEASE: SecurityProjectWorkLease = {
+  keep: async (): Promise<boolean> => {
+    return true;
+  },
+  hasTimeLeft: (): boolean => {
+    return true;
+  },
+};
 
 export type SecurityProjectWorkOutcome =
   // The turn ran.
@@ -79,8 +78,7 @@ export type SecurityProjectWorkOutcome =
   | "Throttled";
 
 // How long a lease lasts after it was last kept.
-export const SECURITY_PROJECT_WORK_LEASE_TIMEOUT_IN_MS: number =
-  10 * 60 * 1000;
+export const SECURITY_PROJECT_WORK_LEASE_TIMEOUT_IN_MS: number = 10 * 60 * 1000;
 // How long a turn goes on starting new items.
 export const SECURITY_PROJECT_WORK_TIME_BUDGET_IN_MS: number = 4 * 60 * 1000;
 // How long a turn waits for a permit before leaving the project to the next minute.

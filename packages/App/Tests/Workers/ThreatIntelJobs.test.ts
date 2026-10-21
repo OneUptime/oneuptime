@@ -98,9 +98,9 @@ jest.mock("Common/Server/Utils/SecurityEvent/SecurityProjectWork", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "Common/Server/Utils/SecurityEvent/SecurityProjectWork",
   );
-  const actualDefault: { projectIdOfJob: unknown } = actual[
-    "default"
-  ] as { projectIdOfJob: unknown };
+  const actualDefault: { projectIdOfJob: unknown } = actual["default"] as {
+    projectIdOfJob: unknown;
+  };
 
   return {
     ...actual,
@@ -340,7 +340,9 @@ describe("threat-intel jobs — what the registered functions do", () => {
     const jobFunction: (job?: QueueJob) => Promise<void> =
       JobDictionary.getJobFunction(POLL_PROJECT_JOB_NAME);
 
-    await jobFunction({ data: { projectId: PROJECT_ID } } as unknown as QueueJob);
+    await jobFunction({
+      data: { projectId: PROJECT_ID },
+    } as unknown as QueueJob);
 
     expect(mockRunForProject).toHaveBeenCalledTimes(1);
     expect(mockRunForProject.mock.calls[0]?.[0]).toMatchObject({
@@ -358,7 +360,9 @@ describe("threat-intel jobs — what the registered functions do", () => {
     const jobFunction: (job?: QueueJob) => Promise<void> =
       JobDictionary.getJobFunction(MATCH_PROJECT_JOB_NAME);
 
-    await jobFunction({ data: { projectId: PROJECT_ID } } as unknown as QueueJob);
+    await jobFunction({
+      data: { projectId: PROJECT_ID },
+    } as unknown as QueueJob);
 
     expect(mockRunForProject.mock.calls[0]?.[0]).toMatchObject({
       jobName: MATCH_PROJECT_JOB_NAME,

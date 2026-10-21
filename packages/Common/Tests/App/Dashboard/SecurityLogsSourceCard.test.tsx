@@ -254,7 +254,9 @@ describe("Your logs", () => {
     ];
     await renderCard();
 
-    expect(screen.getByTestId("security-logs-source-skipped")).toHaveTextContent(
+    expect(
+      screen.getByTestId("security-logs-source-skipped"),
+    ).toHaveTextContent(
       `The checks fell more than a day behind and skipped the logs that arrived between ${OneUptimeDate.getDateAsLocalFormattedString(
         new Date(from),
       )} and ${OneUptimeDate.getDateAsLocalFormattedString(new Date(to))}.`,

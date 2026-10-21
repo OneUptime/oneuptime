@@ -527,7 +527,7 @@ describe("SecurityEventForwarder.forwardDestination", () => {
         { sender },
       );
 
-    // Pre-fix the window was cut at 5,000 events and the rest never sent.
+    // Pre-fix the window was cut at 10,000 events and the rest never sent.
     expect(sender.sent).toHaveLength(FORWARD_MAX_EVENTS_PER_RUN);
     expect(first.windows).toBe(0);
     expect(first.partialWindowStart).toBe(startAt.toISOString());

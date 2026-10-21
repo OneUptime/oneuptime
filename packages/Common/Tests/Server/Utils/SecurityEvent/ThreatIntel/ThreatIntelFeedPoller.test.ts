@@ -885,7 +885,11 @@ describe("ThreatIntelFeedPoller.pollDueFeedsForProject", () => {
     const findAll: Spy = getJestSpyOn(
       ThreatIntelFeedService,
       "findAllBy",
-    ).mockResolvedValue([overdueByAMinute, neverPolled, overdueByAnHour] as never);
+    ).mockResolvedValue([
+      overdueByAMinute,
+      neverPolled,
+      overdueByAnHour,
+    ] as never);
     const pollSpy: Spy = getJestSpyOn(
       ThreatIntelFeedPoller,
       "pollFeed",

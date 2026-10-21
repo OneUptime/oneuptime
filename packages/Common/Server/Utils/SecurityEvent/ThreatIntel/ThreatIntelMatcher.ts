@@ -116,12 +116,11 @@ export interface ThreatIntelMatchResult {
  * turn for each project with an enabled feed, and a turn checks that
  * project's feeds, the longest unchecked first.
  */
-export const THREAT_INTEL_MATCH_PROJECT_WORK: SecurityProjectWorkDefinition =
-  {
-    jobName: "ThreatIntel:MatchProjectIndicators",
-    key: "threat-intel-match",
-    maxConcurrentProjects: 8,
-  };
+export const THREAT_INTEL_MATCH_PROJECT_WORK: SecurityProjectWorkDefinition = {
+  jobName: "ThreatIntel:MatchProjectIndicators",
+  key: "threat-intel-match",
+  maxConcurrentProjects: 8,
+};
 
 // What a turn reads of each feed: everything evaluateFeed needs.
 const THREAT_INTEL_MATCH_FEED_SELECT: Select<ThreatIntelFeed> = {
@@ -148,8 +147,8 @@ export default class ThreatIntelMatcher {
    */
   @CaptureSpan()
   public static async enqueueProjectsWithEnabledFeeds(): Promise<number> {
-    const feeds: Array<ThreatIntelFeed> = await ThreatIntelFeedService.findAllBy(
-      {
+    const feeds: Array<ThreatIntelFeed> =
+      await ThreatIntelFeedService.findAllBy({
         query: {
           isEnabled: true,
         },
@@ -163,8 +162,7 @@ export default class ThreatIntelMatcher {
         props: {
           isRoot: true,
         },
-      },
-    );
+      });
 
     return SecurityProjectWork.enqueueProjects(
       THREAT_INTEL_MATCH_PROJECT_WORK,
@@ -184,8 +182,8 @@ export default class ThreatIntelMatcher {
     projectId: ObjectID,
     lease: SecurityProjectWorkLease = UNLIMITED_SECURITY_PROJECT_WORK_LEASE,
   ): Promise<void> {
-    const feeds: Array<ThreatIntelFeed> = await ThreatIntelFeedService.findAllBy(
-      {
+    const feeds: Array<ThreatIntelFeed> =
+      await ThreatIntelFeedService.findAllBy({
         query: {
           projectId,
           isEnabled: true,
@@ -197,12 +195,12 @@ export default class ThreatIntelMatcher {
         props: {
           isRoot: true,
         },
-      },
-    );
+      });
 
     feeds.sort((a: ThreatIntelFeed, b: ThreatIntelFeed): number => {
       return (
-        (a.lastEvaluatedAt?.getTime() || 0) - (b.lastEvaluatedAt?.getTime() || 0)
+        (a.lastEvaluatedAt?.getTime() || 0) -
+        (b.lastEvaluatedAt?.getTime() || 0)
       );
     });
 
