@@ -1,0 +1,27 @@
+# The values.yaml of an air-gapped install, as oneuptime.com/enterprise/air-gapped
+# shows it: every image from the customer's own registry (the OneUptime
+# images through image.registry, the bundled PostgreSQL, ClickHouse and Valkey
+# through their own image.repository), the pull secret on every pod, no update
+# check, and no public fallback nameserver for the probes.
+#
+# suites/air-gapped.sh renders the chart with this file and checks each of
+# those. The website holds the same values (packages/Home/Utils/AirGapped.ts,
+# AIR_GAPPED_VALUES_YAML), and packages/Home/Tests/AirGappedFacts.test.ts
+# fails when the two differ - change both together.
+image:
+  registry: registry.example.com
+imagePullSecrets:
+  - name: internal-registry
+postgresql:
+  image:
+    repository: registry.example.com/postgres
+clickhouse:
+  image:
+    repository: registry.example.com/clickhouse/clickhouse-server
+valkey:
+  image:
+    repository: registry.example.com/valkey/valkey
+updateCheck:
+  disabled: true
+dnsConfig:
+  nameservers: []
