@@ -11,6 +11,7 @@ import DetailField from "Common/UI/Components/Detail/Field";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PermissionGate, {
@@ -19,6 +20,12 @@ import PermissionGate, {
 } from "Common/UI/Utils/PermissionGate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  FeedClock,
+  formatFeedFullTime,
+  formatFeedTimeAgo,
+  getFeedClock,
+} from "Common/UI/Components/Feed/FeedTime";
 import AppLink from "../AppLink/AppLink";
 import AgentVersion from "../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../Components/AgentVersion/AgentKind";
@@ -115,6 +122,30 @@ const HostCollectorCard: FunctionComponent<ComponentProps> = (
         ? host.collectorHealthError || null
         : null;
   const errorSummary: string | null = summarizeCollectorError(error);
+  /*
+   * The box says it in the pill's tone: red for a config that did not
+   * start (Config failed), amber for a collector that runs but reports an
+   * error (Collector error).
+   */
+  const errorTone: {
+    name: string;
+    box: string;
+    text: string;
+    summary: string;
+  } =
+    state === HostCollectorState.Unhealthy
+      ? {
+          name: "warning",
+          box: "border-amber-200 bg-amber-50",
+          text: "text-amber-900",
+          summary: "text-amber-800",
+        }
+      : {
+          name: "danger",
+          box: "border-red-200 bg-red-50",
+          text: "text-red-800",
+          summary: "text-red-700",
+        };
 
   const canRetry: boolean = Boolean(host.collectorFailedConfigHash);
 
@@ -208,11 +239,29 @@ const HostCollectorCard: FunctionComponent<ComponentProps> = (
       getElement: (): ReactElement => {
         const versionNumber: number | undefined =
           host.collectorConfigVersion?.versionNumber;
+
+        if (!versionNumber) {
+          return (
+            <span data-testid="host-collector-config-version">
+              {translator.translateText("Not yet")}
+            </span>
+          );
+        }
+
+        /*
+         * After a config failed, the host went back to the last one that
+         * worked: the version it runs is not the one that failed, and says
+         * so - "1" alone under a failed config reads as the version that
+         * failed.
+         */
         return (
           <span data-testid="host-collector-config-version">
-            {versionNumber
-              ? translator.formatNumber(versionNumber)
-              : translator.translateText("Not yet")}
+            {state === HostCollectorState.Failed
+              ? translator.translateTemplate(
+                  "{{number}}, the last that worked here",
+                  { number: translator.formatNumber(versionNumber) },
+                )
+              : translator.formatNumber(versionNumber)}
           </span>
         );
       },
@@ -222,11 +271,29 @@ const HostCollectorCard: FunctionComponent<ComponentProps> = (
       title: "Last report",
       fieldType: FieldType.Element,
       getElement: (): ReactElement => {
+        /*
+         * "2 minutes ago" in the reader's language (moment's fromNow is
+         * English on every page), with the date and time on hover.
+         */
+        const lastContact: Date | null = host.collectorLastContactAt
+          ? OneUptimeDate.fromString(host.collectorLastContactAt)
+          : null;
+
+        if (!lastContact || isNaN(lastContact.getTime())) {
+          return <span data-testid="host-collector-last-report">—</span>;
+        }
+
+        const clock: FeedClock = getFeedClock({
+          language: translator.language,
+        });
+
         return (
-          <span>
-            {host.collectorLastContactAt
-              ? OneUptimeDate.fromNow(host.collectorLastContactAt)
-              : "—"}
+          <span
+            data-testid="host-collector-last-report"
+            title={formatFeedFullTime(lastContact, clock)}
+          >
+            {formatFeedTimeAgo(lastContact, clock) ||
+              OneUptimeDate.fromNow(lastContact)}
           </span>
         );
       },
@@ -241,7 +308,8 @@ const HostCollectorCard: FunctionComponent<ComponentProps> = (
       getElement: (item: Host): ReactElement => {
         /*
          * A sign beside a release older than the one this OneUptime pins
-         * opens how to upgrade it: the Add Host command, run again.
+         * opens how to upgrade it: the install command, run again, which
+         * this page's On the host card gives.
          */
         return (
           <AgentVersion
@@ -264,7 +332,27 @@ const HostCollectorCard: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title="Collector"
-      description="OneUptime installed this host's collector and sends it its config. Change what it collects with Collector Configs."
+      description={
+        /*
+         * Collector Configs is where what a host collects is changed: a
+         * link, one click from the sentence that names it.
+         */
+        <TranslatedSentence
+          template="OneUptime installed this host's collector and sends it its config. Change what it collects with {{collectorConfigs}}."
+          slots={{
+            collectorConfigs: (
+              <AppLink
+                className="font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
+                to={RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.HOST_COLLECTOR_CONFIGS] as Route,
+                )}
+              >
+                {translator.translateTemplate("Collector Configs")}
+              </AppLink>
+            ),
+          }}
+        />
+      }
       buttons={buttons}
     >
       <div className={CARD_MODEL_DETAIL_BODY_CLASS_NAME}>
@@ -282,14 +370,17 @@ const HostCollectorCard: FunctionComponent<ComponentProps> = (
 
         {error && (
           <div
-            className="mt-4 rounded-md border border-red-200 bg-red-50 p-3"
+            className={`mt-4 rounded-md border p-3 ${errorTone.box}`}
             data-testid="host-collector-error"
+            data-tone={errorTone.name}
           >
-            <p className="break-words text-sm font-medium text-red-800">
+            <p className={`break-words text-sm font-medium ${errorTone.text}`}>
               {errorSummary}
             </p>
             <details className="mt-2">
-              <summary className="cursor-pointer text-xs font-medium text-red-700">
+              <summary
+                className={`cursor-pointer text-xs font-medium ${errorTone.summary}`}
+              >
                 {translator.translateText("What the host reported")}
               </summary>
               <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap break-words rounded bg-white p-2 font-mono text-xs text-gray-800">

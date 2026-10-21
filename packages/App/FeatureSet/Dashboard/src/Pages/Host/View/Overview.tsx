@@ -272,6 +272,7 @@ const HostOverview: FunctionComponent<
           hostIpAddresses: true,
           agentVersion: true,
           collectorInstanceUid: true,
+          collectorRegisteredAt: true,
         },
       });
 
@@ -1966,6 +1967,7 @@ const HostOverview: FunctionComponent<
             {
               isManaged: Boolean(host.collectorInstanceUid),
               osType: host.osType,
+              registeredAt: host.collectorRegisteredAt,
             },
           )}
           documentationRoute={RouteUtil.populateRouteParams(

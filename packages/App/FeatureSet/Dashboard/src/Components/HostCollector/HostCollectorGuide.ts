@@ -6,7 +6,7 @@ import {
   codeBlock,
   resolveSetupGuideOption,
 } from "../SetupGuide/SetupGuide";
-import { getHostSetupGuide } from "../../Pages/Host/Utils/DocumentationMarkdown";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   HOST_COLLECTOR_PINNED_VERSION,
   HostCollectorOsType,
@@ -25,17 +25,18 @@ import {
  * supervisor that keeps it on the config OneUptime sends, so there is no
  * config.yaml to write - the host shows up under Hosts and reports.
  *
- * The guide asks what the host runs (Linux, Windows, macOS - and Kubernetes,
- * whose nodes the Kubernetes agent monitors instead), takes the ingestion
- * key from the guide's first step, and shows that system's command. The
- * manual way - installing the collector and writing its config.yaml
- * yourself - stays on the Documentation page, one click away.
+ * The guide asks what the host runs (Linux, Windows or macOS), takes the
+ * ingestion key from the guide's first step, and shows that system's
+ * command. A Kubernetes cluster's nodes are not added here: the Kubernetes
+ * agent monitors them, and the guide says so in one line under the choices
+ * (AddHostGuide). The manual way - installing the collector and writing its
+ * config.yaml yourself - stays on the Documentation page, one click away.
  *
  * Pure, like every guide (SetupGuide.ts): the AddHostGuide component draws
  * it, and tests read it without rendering anything.
  */
 
-export type HostAddOption = "linux" | "windows" | "darwin" | "kubernetes";
+export type HostAddOption = "linux" | "windows" | "darwin";
 
 export const HOST_ADD_OPTIONS: Array<SetupGuideOption<HostAddOption>> = [
   {
@@ -53,16 +54,6 @@ export const HOST_ADD_OPTIONS: Array<SetupGuideOption<HostAddOption>> = [
     key: "darwin",
     label: "macOS",
     description: "Apple silicon and Intel Macs.",
-  },
-  /*
-   * A cluster's nodes are hosts too, and the Kubernetes agent monitors them
-   * all: offered apart from the three systems, under its own heading.
-   */
-  {
-    key: "kubernetes",
-    label: "Kubernetes",
-    description: "Cluster nodes, with the Kubernetes agent.",
-    group: "In a Kubernetes cluster",
   },
 ];
 
@@ -87,6 +78,28 @@ export function getHostAddOptionForOsType(
     return "darwin";
   }
   return "linux";
+}
+
+/*
+ * The systems the guide offers for a host. One whose system OneUptime
+ * already knows - a host's own page, installing again or handing over its
+ * collector - gets only that system's command: asking what it runs would
+ * offer two commands that cannot work there.
+ */
+export function getHostAddOptions(
+  osType?: HostCollectorOsType | null | undefined,
+): Array<SetupGuideOption<HostAddOption>> {
+  if (!osType || osType === HostCollectorOsType.Any) {
+    return HOST_ADD_OPTIONS;
+  }
+
+  const option: HostAddOption = getHostAddOptionForOsType(osType);
+
+  return HOST_ADD_OPTIONS.filter(
+    (item: SetupGuideOption<HostAddOption>): boolean => {
+      return item.key === option;
+    },
+  );
 }
 
 function getOsType(option: HostAddOption): HostCollectorOsType {
@@ -122,24 +135,33 @@ export function getHostAddCommand(options: HostAddGuideOptions): string {
   });
 }
 
+// English translation keys: the guide card shows them in the reader's language.
 function getRunStepDescription(options: HostAddGuideOptions): string {
   if (options.replaceExisting) {
     return options.option === "windows"
-      ? "In PowerShell, run as administrator. It also stops the collector installed by hand (otelcol-contrib), so the host does not report twice."
-      : "As a user who can use sudo. It also stops the collector installed by hand (otelcol-contrib), so the host does not report twice.";
+      ? translationKey(
+          "In PowerShell, run as administrator. It also stops the collector installed by hand (otelcol-contrib), so the host does not report twice.",
+        )
+      : translationKey(
+          "As a user who can use sudo. It also stops the collector installed by hand (otelcol-contrib), so the host does not report twice.",
+        );
   }
   if (options.option === "windows") {
-    return "In PowerShell, run as administrator. It takes about a minute.";
+    return translationKey(
+      "In PowerShell, run as administrator. It takes about a minute.",
+    );
   }
-  return "As a user who can use sudo. It takes about a minute.";
+  return translationKey("As a user who can use sudo. It takes about a minute.");
 }
 
-function getPlaceholderNote(apiKey: string): string {
-  if (apiKey !== SETUP_GUIDE_API_KEY_PLACEHOLDER) {
-    return "";
-  }
-  return `\n\nPick an ingestion key in step 1 to fill in \`${SETUP_GUIDE_API_KEY_PLACEHOLDER}\`.`;
-}
+/*
+ * Under the command while no key is picked, which holds the placeholder
+ * (SETUP_GUIDE_API_KEY_PLACEHOLDER) where the key goes. A translation key,
+ * so the placeholder is written out in it.
+ */
+export const HOST_ADD_PLACEHOLDER_NOTE: string = translationKey(
+  "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.",
+);
 
 function getLabelFlag(option: HostAddOption): string {
   return option === "windows"
@@ -262,29 +284,29 @@ ${logs}`,
 export function getHostAddGuide(
   options: HostAddGuideOptions,
 ): SetupGuideContent {
-  if (options.option === "kubernetes") {
-    return getHostSetupGuide({
-      oneuptimeUrl: options.oneuptimeUrl,
-      apiKey: options.apiKey,
-      method: "kubernetes",
-    });
-  }
-
   const command: string = getHostAddCommand(options);
 
   return {
     keyStep: {
       description:
         "The host sends its data and asks for its config with this key. Pick an existing key or create a new one: the command below updates to use it.",
+      // The command below carries the URL and the key: only the picker.
+      hideValues: true,
     },
+    // One long line per command: read whole, on a phone too.
+    wrapLongLines: true,
     steps: [
       {
         title: "Run this command on the host",
         description: getRunStepDescription(options),
-        markdown: `${codeBlock(
+        markdown: codeBlock(
           getHostCollectorInstallCommandLanguage(getOsType(options.option)),
           command,
-        )}${getPlaceholderNote(options.apiKey)}`,
+        ),
+        note:
+          options.apiKey === SETUP_GUIDE_API_KEY_PLACEHOLDER
+            ? HOST_ADD_PLACEHOLDER_NOTE
+            : undefined,
       },
     ],
     advanced: getAdvancedTopics(options),

@@ -21,7 +21,6 @@ import HostCollectorCard, {
   HOST_COLLECTOR_CARD_SELECT,
 } from "../../../Components/HostCollector/HostCollectorCard";
 import HostCollectorOnHostCard from "../../../Components/HostCollector/HostCollectorOnHostCard";
-import { getHostAddOptionForOsType } from "../../../Components/HostCollector/HostCollectorGuide";
 import {
   HostCollectorState,
   getHostCollectorState,
@@ -145,7 +144,16 @@ const HostCollector: FunctionComponent<
             });
           }}
         />
-        <HostCollectorOnHostCard osType={host.osType} />
+        <HostCollectorOnHostCard
+          osType={host.osType}
+          hostId={modelId}
+          hostName={hostName}
+          onHostConnected={() => {
+            setRefreshToken((token: number): number => {
+              return token + 1;
+            });
+          }}
+        />
       </Fragment>
     );
   }
@@ -158,9 +166,7 @@ const HostCollector: FunctionComponent<
           "Run one command on {{host}}: it installs the collector OneUptime keeps configured, and stops the one installed by hand. No config.yaml to keep on the host.",
           { host: hostName },
         )}
-        initialOption={getHostAddOptionForOsType(
-          getHostCollectorOsType(host.osType),
-        )}
+        osType={getHostCollectorOsType(host.osType)}
         replaceExisting={true}
         hostId={modelId}
         onHostConnected={() => {

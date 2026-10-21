@@ -9,6 +9,7 @@ import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import CodeType from "Common/Types/Code/CodeType";
+import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { Green } from "Common/Types/BrandColors";
 import {
@@ -24,7 +25,6 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -189,7 +189,7 @@ const CollectorConfigView: FunctionComponent<
         }}
         isEditable={true}
         editModalTitle="Edit Collector Config"
-        formFields={getHostCollectorConfigFormFields()}
+        formFields={getHostCollectorConfigFormFields({ isEditing: true })}
         onSaveSuccess={onSaved}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
@@ -213,7 +213,8 @@ const CollectorConfigView: FunctionComponent<
                   color: true,
                 },
               },
-              title: "Hosts",
+              // Who it is for; the Hosts card below lists who runs it.
+              title: "Applies to",
               fieldType: FieldType.Element,
               getElement: (item: HostCollectorConfig): ReactElement => {
                 const target: { template: string; labels: string } =
@@ -234,22 +235,10 @@ const CollectorConfigView: FunctionComponent<
                 );
               },
             },
-            {
-              field: {
-                labels: {
-                  name: true,
-                  color: true,
-                },
-              },
-              title: "Host Labels",
-              fieldType: FieldType.Element,
-              showIf: (item: HostCollectorConfig): boolean => {
-                return (item.labels || []).length > 0;
-              },
-              getElement: (item: HostCollectorConfig): ReactElement => {
-                return <LabelsElement labels={item.labels || []} />;
-              },
-            },
+            /*
+             * The labels are in the Hosts sentence ("Linux hosts with
+             * env:production"): no field of their own repeating them.
+             */
           ],
         }}
       />
@@ -569,12 +558,27 @@ const CollectorConfigView: FunctionComponent<
           title={translator.translateTemplate("Version {{number}}", {
             number: String(shownVersion.versionNumber || 1),
           })}
-          description={translator.translateTemplate(
-            describeHostCollectorConfigVersionChange(shownVersion.changeNote)
-              .template,
-            describeHostCollectorConfigVersionChange(shownVersion.changeNote)
-              .values,
-          )}
+          // What changed, who saved it and when: the row it was opened from.
+          description={[
+            translator.translateTemplate(
+              describeHostCollectorConfigVersionChange(shownVersion.changeNote)
+                .template,
+              describeHostCollectorConfigVersionChange(shownVersion.changeNote)
+                .values,
+            ),
+            shownVersion.createdByUser?.name?.toString() ||
+              shownVersion.createdByUser?.email?.toString() ||
+              "",
+            shownVersion.createdAt
+              ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                  shownVersion.createdAt,
+                )
+              : "",
+          ]
+            .filter((part: string): boolean => {
+              return Boolean(part);
+            })
+            .join(" · ")}
           modalWidth={ModalWidth.Large}
           onClose={() => {
             setShownVersion(null);

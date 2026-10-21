@@ -58,9 +58,13 @@ const STATE_VIEWS: Record<HostCollectorState, HostCollectorStateView> = {
     label: translationKey("Installed by hand"),
     tone: "neutral",
   },
+  /*
+   * Connected, and starting the collector: the word the Hosts list's Status
+   * column says for a host whose first metrics are on their way.
+   */
   [HostCollectorState.Waiting]: {
     state: HostCollectorState.Waiting,
-    label: translationKey("Connecting"),
+    label: translationKey("Starting"),
     tone: "info",
   },
   [HostCollectorState.Applying]: {

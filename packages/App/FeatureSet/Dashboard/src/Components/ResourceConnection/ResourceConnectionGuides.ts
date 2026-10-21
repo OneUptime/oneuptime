@@ -57,8 +57,9 @@ export interface ResourceConnectionGuide {
   troubleshootingSteps: Array<ResourceConnectionGuideStep>;
   /*
    * For a resource OneUptime installed the agent of (a host added with the
-   * one command): there is nothing to set up while its first data is on
-   * the way, so the card says it is starting instead of "Connect this".
+   * one command): there is nothing to set up before its first data, so the
+   * card says what is happening instead of "Connect this" - the resource is
+   * starting (no steps), or its data is late (setupSteps check on it).
    * English translation keys.
    */
   startingCopy?:
@@ -520,13 +521,45 @@ export const getVMwareVCenterConnectionGuide: (
 export interface HostConnectionGuideCollector {
   isManaged: boolean;
   osType?: string | null | undefined;
+  // When the collector last registered (installed, or installed again).
+  registeredAt?: Date | string | null | undefined;
+  // Now, for tests.
+  now?: Date | undefined;
+}
+
+/*
+ * How long a host OneUptime installed the collector on may take to send its
+ * first metrics before its overview stops saying it is starting and shows
+ * how to check on it. The collector reports within a minute.
+ */
+export const HOST_COLLECTOR_FIRST_DATA_GRACE_MS: number = 10 * 60 * 1000;
+
+export function isHostCollectorStillStarting(data: {
+  registeredAt?: Date | string | null | undefined;
+  now?: Date | undefined;
+}): boolean {
+  if (!data.registeredAt) {
+    return true;
+  }
+
+  const registeredAt: number = new Date(data.registeredAt).getTime();
+
+  if (isNaN(registeredAt)) {
+    return true;
+  }
+
+  return (
+    (data.now || new Date()).getTime() - registeredAt <
+    HOST_COLLECTOR_FIRST_DATA_GRACE_MS
+  );
 }
 
 const getManagedHostConnectionGuide: (
-  osType: string | null | undefined,
+  collector: HostConnectionGuideCollector,
 ) => ResourceConnectionGuide = (
-  osType: string | null | undefined,
+  collector: HostConnectionGuideCollector,
 ): ResourceConnectionGuide => {
+  const osType: string | null | undefined = collector.osType;
   const commands: HostCollectorServiceCommands =
     getHostCollectorServiceCommands(
       getHostCollectorOsType(osType) || HostCollectorOsType.Linux,
@@ -545,25 +578,41 @@ const getManagedHostConnectionGuide: (
     code: commands.logs,
   };
 
+  /*
+   * Just installed: the card only says the host is starting - checks on a
+   * host that is fine would read as something being wrong. Once its first
+   * data is late, the card says so and shows them.
+   */
+  const isStarting: boolean = isHostCollectorStillStarting(collector);
+
   return {
     resourceNoun: translationKey("host"),
     agentName: translationKey("OneUptime collector"),
-    startingCopy: {
-      title: translationKey("This host is starting"),
-      description: translationKey(
-        "OneUptime installed the collector on this host and sent it its config. Its first metrics and logs arrive within a minute.",
-      ),
-    },
+    startingCopy: isStarting
+      ? {
+          title: translationKey("This host is starting"),
+          description: translationKey(
+            "OneUptime installed the collector on this host and sent it its config. Its first metrics and logs arrive within a minute.",
+          ),
+        }
+      : {
+          title: translationKey("No data from this host yet"),
+          description: translationKey(
+            "OneUptime installed the collector on this host, but its first metrics and logs have not arrived. Check on it with the steps below.",
+          ),
+        },
     linkText: translationKey("Open the Collector page"),
-    setupSteps: [
-      {
-        title: "Check the collector's config",
-        description:
-          "The Collector page says which config the host runs and whether it started there.",
-      },
-      checkServiceStep,
-      readLogStep,
-    ],
+    setupSteps: isStarting
+      ? []
+      : [
+          {
+            title: "Check the collector's config",
+            description:
+              "The Collector page says which config the host runs and whether it started there.",
+          },
+          checkServiceStep,
+          readLogStep,
+        ],
     troubleshootingSteps: [
       checkServiceStep,
       readLogStep,
@@ -584,7 +633,7 @@ export const getHostConnectionGuide: (
   collector?: HostConnectionGuideCollector | undefined,
 ): ResourceConnectionGuide => {
   if (collector?.isManaged) {
-    return getManagedHostConnectionGuide(collector.osType);
+    return getManagedHostConnectionGuide(collector);
   }
 
   return {

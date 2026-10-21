@@ -58,6 +58,15 @@ interface ResourceSummary {
   processes: number | undefined;
 }
 
+/*
+ * The config a host runs, under its collector's state: as wide as the
+ * state's pill and no wider (w-0 + min-w-full adds nothing to the column's
+ * width), so a long config name ends in "…" with the full name on hover
+ * instead of pushing the Collector column under the row's actions.
+ */
+const HOSTS_COLLECTOR_CONFIG_LABEL_CLASS_NAME: string =
+  "w-0 min-w-full truncate text-xs text-gray-500";
+
 const formatMemory: (bytes: number | undefined) => string = (
   bytes: number | undefined,
 ): string => {
@@ -573,23 +582,35 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Collector",
             type: FieldType.Element,
-            hideOnMobile: true,
+            /*
+             * Shown on phones too: a config that failed on a host is the
+             * one thing in this row that asks for action.
+             */
             getElement: (item: Host): ReactElement => {
               // A collector installed by hand: nothing OneUptime manages.
               if (!isHostCollectorManaged(item)) {
                 return <TableEmptyValue screenReaderText="Installed by hand" />;
               }
+              /*
+               * "OneUptime default" without its system: the OS column
+               * beside it says that, and the host's Collector page names
+               * the default in full.
+               */
+              const configLabel: string = getHostCollectorConfigLabel(
+                {
+                  configName: item.collectorConfig?.name,
+                },
+                translator,
+              );
               return (
-                <div className="min-w-0 space-y-1">
+                <div className="flex min-w-0 flex-col items-start gap-1">
                   <HostCollectorStatePill host={item} />
-                  <div className="truncate text-xs text-gray-500">
-                    {getHostCollectorConfigLabel(
-                      {
-                        configName: item.collectorConfig?.name,
-                        osType: item.osType,
-                      },
-                      translator,
-                    )}
+                  <div
+                    className={HOSTS_COLLECTOR_CONFIG_LABEL_CLASS_NAME}
+                    title={configLabel}
+                    data-testid="host-collector-config-label"
+                  >
+                    {configLabel}
                   </div>
                 </div>
               );

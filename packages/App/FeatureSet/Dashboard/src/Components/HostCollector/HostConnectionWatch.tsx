@@ -18,7 +18,8 @@ import AppLink from "../AppLink/AppLink";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 /*
  * The last step of adding a host: waiting for it. Every few seconds it asks
@@ -38,6 +39,17 @@ export const HOST_CONNECTION_POLL_INTERVAL_MS: number = 5000;
  * registered this long before the guide opened still counts.
  */
 export const HOST_CONNECTION_CLOCK_MARGIN_MS: number = 2 * 60 * 1000;
+
+/*
+ * What the step says while it waits: for any new host, or - on a host's own
+ * page, handing its collector over - for that host's new collector.
+ */
+export const HOST_CONNECTION_WAITING_TEXT: string = translationKey(
+  "Waiting for the host to connect. This step updates by itself.",
+);
+export const HOST_HAND_OVER_WAITING_TEXT: string = translationKey(
+  "Waiting for the new collector to connect. This step updates by itself.",
+);
 
 // The earliest registration this guide counts as the host it added.
 export function getHostConnectionWatchStart(since: Date): Date {
@@ -128,7 +140,9 @@ const HostConnectionWatch: FunctionComponent<ComponentProps> = (
           <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-indigo-500" />
         </span>
         {translator.translateTemplate(
-          "Waiting for the host to connect. This step updates by itself.",
+          props.hostId
+            ? HOST_HAND_OVER_WAITING_TEXT
+            : HOST_CONNECTION_WAITING_TEXT,
         )}
       </div>
     );
@@ -141,7 +155,7 @@ const HostConnectionWatch: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+      className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
       role="status"
       aria-live="polite"
       data-testid="host-connection-connected"
@@ -150,18 +164,34 @@ const HostConnectionWatch: FunctionComponent<ComponentProps> = (
         icon={IconProp.CheckCircle}
         className="h-5 w-5 flex-shrink-0 text-emerald-600"
       />
-      <span className="min-w-0 flex-1">
-        {translator.translateTemplate(
-          "{{host}} is connected. Its metrics and logs arrive within a minute.",
-          { host: host.name || "" },
-        )}
-      </span>
-      <AppLink
-        to={hostRoute}
-        className="font-medium text-emerald-700 underline hover:text-emerald-900"
-      >
-        {translator.translateTemplate("View host")}
-      </AppLink>
+      {/*
+       * The sentence keeps at least 14rem: in a narrow box (a phone) the
+       * link goes under it, lined up with it, instead of squeezing it into a
+       * column a word wide.
+       */}
+      <div className="flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <span className="min-w-0 flex-1 basis-56 break-words">
+          <TranslatedSentence
+            template="{{host}} is connected. Its metrics and logs arrive within a minute."
+            slots={{
+              host: (
+                <span
+                  className="font-semibold"
+                  data-testid="connected-host-name"
+                >
+                  {host.name || ""}
+                </span>
+              ),
+            }}
+          />
+        </span>
+        <AppLink
+          to={hostRoute}
+          className="font-medium text-emerald-700 underline hover:text-emerald-900"
+        >
+          {translator.translateTemplate("View host")}
+        </AppLink>
+      </div>
     </div>
   );
 };

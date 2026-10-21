@@ -146,8 +146,13 @@ const CollectorConfigs: FunctionComponent<
             type: FieldType.Text,
           },
           {
+            /*
+             * "Linux hosts with env:production": which hosts the config is
+             * for. Not "Hosts", which a config's page uses for the hosts
+             * that run it.
+             */
             field: { osType: true },
-            title: "Hosts",
+            title: "Applies to",
             type: FieldType.Element,
             getElement: (item: HostCollectorConfig): ReactElement => {
               const target: { template: string; labels: string } =

@@ -42,11 +42,24 @@ export const HOST_COLLECTOR_CONFIG_OS_CHOICES: Array<RadioButton> = [
   },
 ];
 
-export function getHostCollectorConfigFormFields(): Array<
-  ModelField<HostCollectorConfig>
-> {
+/*
+ * What the System choice says: where a new config's YAML comes from, or -
+ * editing one - that changing the system leaves its YAML as it is.
+ */
+export const HOST_COLLECTOR_CONFIG_SYSTEM_CREATE_DESCRIPTION: string =
+  translationKey(
+    "Its config.yaml starts as OneUptime's default for this system. Edit it on the config's page.",
+  );
+export const HOST_COLLECTOR_CONFIG_SYSTEM_EDIT_DESCRIPTION: string =
+  translationKey("Changing it does not change config.yaml.");
+
+export function getHostCollectorConfigFormFields(options?: {
+  // The Edit Collector Config form of a config's page.
+  isEditing?: boolean | undefined;
+}): Array<ModelField<HostCollectorConfig>> {
   return [
     {
+      // The placeholder says what a name is: what its hosts have in common.
       field: {
         name: true,
       },
@@ -54,7 +67,6 @@ export function getHostCollectorConfigFormFields(): Array<
       fieldType: FormFieldSchemaType.Text,
       required: true,
       placeholder: "Web servers",
-      description: "What the hosts it is for have in common.",
     },
     {
       field: {
@@ -65,8 +77,9 @@ export function getHostCollectorConfigFormFields(): Array<
       radioButtonOptions: HOST_COLLECTOR_CONFIG_OS_CHOICES,
       required: true,
       defaultValue: HostCollectorOsType.Linux,
-      description:
-        "Its config starts as OneUptime's default for this system, and you edit it after.",
+      description: options?.isEditing
+        ? HOST_COLLECTOR_CONFIG_SYSTEM_EDIT_DESCRIPTION
+        : HOST_COLLECTOR_CONFIG_SYSTEM_CREATE_DESCRIPTION,
     },
     {
       field: {

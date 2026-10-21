@@ -436,7 +436,9 @@ function getHostCollectorGuide(
   /*
    * A collector OneUptime installed: the same command installs the release
    * this OneUptime pins, over the old one, and the host keeps its identity
-   * and its config.
+   * and its config. The host's Collector page gives the command, filled in
+   * with a key picked there (On the host > Show the install command); the
+   * dialog opens on that page too, so it links nowhere.
    */
   if (context.isHostCollectorManaged) {
     return {
@@ -445,9 +447,9 @@ function getHostCollectorGuide(
           label: translationKey("Install command"),
           steps: [
             {
-              title: translationKey("Run the Add Host command again"),
+              title: translationKey("Run the install command again"),
               description: translationKey(
-                "On the Hosts page, Add Host gives the command for this host's system, with the key you pick. Run it on the host, with the same labels: it installs the new release and keeps the host as it is in OneUptime.",
+                "Open this host's Collector page and select Show the install command, under On the host. Run the command on the host with the same labels: it installs the new release and keeps the host as it is in OneUptime.",
               ),
             },
           ],
