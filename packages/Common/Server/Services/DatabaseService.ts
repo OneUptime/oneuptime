@@ -2952,7 +2952,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
 
         if (column.isList) {
-          row.setColumnValue(column.column, other.getColumnValue(column.column));
+          row.setColumnValue(
+            column.column,
+            other.getColumnValue(column.column),
+          );
         } else if (column.idColumn) {
           row.setColumnValue(
             column.idColumn,
@@ -5740,14 +5743,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       await this.checkCreateBeforeHooks(createBy);
 
     /*
-     * The archived values the caller picks, read off what they sent before
-     * any hook adds to it, and refused once their permission to create the
-     * record is checked (refuseArchivedValuesOnCreate).
+     * No archived value the caller picked, read off what they sent - before
+     * any hook adds to it, or spends anything for the record (an incident's
+     * number): like a record of another project, once they may create the
+     * record at all. See the helper.
      */
-    const archivedValuePicks: Array<ArchivableValuePick> =
-      ArchivedValueCheck.isCheckedWrite(createBy.props)
+    await this.refuseArchivedValuesOnCreate({
+      picks: ArchivedValueCheck.isCheckedWrite(createBy.props)
         ? ArchivedValueCheck.getPicks(this.model, createBy.data)
-        : [];
+        : [],
+      record: createBy.data,
+      props: createBy.props,
+    });
 
     /*
      * The create's one OnCreate, from here to its end: the object
@@ -5821,13 +5828,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       record: data,
       props: _createdBy.props,
       checkedParentIds: checkedParentIds,
-    });
-
-    // No archived value the caller picked. See the helper.
-    await this.refuseArchivedValuesOnCreate({
-      picks: archivedValuePicks,
-      record: data,
-      props: _createdBy.props,
     });
 
     /*

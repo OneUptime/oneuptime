@@ -1016,9 +1016,10 @@ describe("WorkspaceIncidentActions.getSeverityChoices", () => {
       }),
     ).toEqual([{ id: SEVERITY_ID, name: "Critical" }]);
 
+    // An archived severity is never offered: the server would refuse it.
     expect(read.mock.calls[0]![0]).toEqual(
       expect.objectContaining({
-        query: { projectId: PROJECT_ID },
+        query: { projectId: PROJECT_ID, isArchived: false },
         sort: { order: "ASC" },
         props: props,
       }),

@@ -488,24 +488,28 @@ describe("OnCallPageService.page", () => {
       },
     ]);
 
+    // As the database stores them: none archived.
     severities = useInMemoryTable(AlertSeverityService, [
       {
         _id: SEVERITY_LOW.toString(),
         projectId: PROJECT_ID.toString(),
         name: "Low",
         order: 2,
+        isArchived: false,
       },
       {
         _id: SEVERITY_CRITICAL.toString(),
         projectId: PROJECT_ID.toString(),
         name: "Critical",
         order: 1,
+        isArchived: false,
       },
       {
         _id: SEVERITY_ELSEWHERE.toString(),
         projectId: OTHER_PROJECT_ID.toString(),
         name: "Somebody else's severity",
         order: 0,
+        isArchived: false,
       },
     ]);
 
@@ -1580,6 +1584,23 @@ describe("OnCallPageService.page", () => {
 
       expect(alertAsked().alertSeverityId!.toString()).toBe(
         SEVERITY_CRITICAL.toString(),
+      );
+    });
+
+    test("with no severity named it is never an archived one", async () => {
+      // Critical is archived: nobody may pick it for a new alert.
+      severities.rows = severities.rows.map(
+        (row: Record<string, unknown>): Record<string, unknown> => {
+          return String(row["_id"]) === SEVERITY_CRITICAL.toString()
+            ? { ...row, isArchived: true }
+            : row;
+        },
+      );
+
+      await pageAboutSomethingNew();
+
+      expect(alertAsked().alertSeverityId!.toString()).toBe(
+        SEVERITY_LOW.toString(),
       );
     });
 

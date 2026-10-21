@@ -1391,6 +1391,11 @@ const COUNTED_FETCHERS: Array<FetcherCase> = [
     },
     sort: { name: SortOrder.Ascending },
     cap: 100,
+    /*
+     * Nobody may add an archived label to anything, so the card neither
+     * offers them nor counts them (Common/Utils/ArchivableValues).
+     */
+    extraQuery: { isArchived: false },
   },
   {
     method: "getOnCallDutyPolicyChoices",
@@ -1439,6 +1444,8 @@ const UNCOUNTED_FETCHERS: Array<OrderedFetcherCase> = [
     sort: { order: SortOrder.Ascending },
     cap: 50,
     namesInReadOrder: ["Critical", "Major", "Minor", "Low"],
+    // An archived severity can't be picked for a new incident.
+    extraQuery: { isArchived: false },
   },
   {
     method: "getMonitorStatusChoices",
@@ -1456,6 +1463,8 @@ const UNCOUNTED_FETCHERS: Array<OrderedFetcherCase> = [
     sort: { priority: SortOrder.Ascending },
     cap: 50,
     namesInReadOrder: ["Operational", "Degraded", "Offline"],
+    // An archived status can't be picked for an incident's monitors.
+    extraQuery: { isArchived: false },
   },
 ];
 

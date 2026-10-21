@@ -359,11 +359,11 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
 
             {!canAddMore && (
               <p className="text-xs text-gray-500">
-                {translator.translateText(
-                  role.isArchived
-                    ? ARCHIVED_ROLE_NOTE
-                    : "Only one user can be assigned to this role.",
-                )}
+                {role.isArchived
+                  ? translator.translateText(ARCHIVED_ROLE_NOTE)
+                  : translator.translateText(
+                      "Only one user can be assigned to this role.",
+                    )}
               </p>
             )}
           </div>

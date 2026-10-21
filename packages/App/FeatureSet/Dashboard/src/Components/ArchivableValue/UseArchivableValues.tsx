@@ -465,6 +465,12 @@ const useArchivableValues: <T extends BaseModel>(data: {
                 id={`${definition.tableName}-archived-table`}
                 userPreferencesKey={`${definition.tableName}-archived-table`}
                 name={`${copy.archivedTitle}`}
+                /*
+                 * A section of the fold (CardSections), never a framed table
+                 * inside it: the fold's header already names it, so the
+                 * section's header holds only the table's own controls.
+                 */
+                cardProps={{ title: "", description: "" }}
                 query={{ [ARCHIVED_COLUMN]: true } as never}
                 isDeleteable={true}
                 isEditable={false}

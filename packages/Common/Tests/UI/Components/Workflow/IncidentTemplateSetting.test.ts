@@ -392,11 +392,61 @@ describe("the list a setting picked from the project's records offers", () => {
     const request: JSONObject = getList.mock.calls[0]![0];
 
     expect(request["modelType"]).toBe(AlertSeverity);
-    expect(request["select"]).toEqual({ _id: true, name: true });
+    // With the archive switch, so an archived one can be told apart.
+    expect(request["select"]).toEqual({
+      _id: true,
+      name: true,
+      isArchived: true,
+    });
     expect(request["sort"]).toEqual({ order: SortOrder.Ascending });
     expect(request["limit"]).toBe(LIMIT_PER_PROJECT);
     // Listed as the person editing the workflow: the project comes from their session.
     expect(request["query"]).toEqual({});
+  });
+
+  test("an archived severity comes last, marked Archived, and can't be picked", async () => {
+    const critical: AlertSeverity = new AlertSeverity();
+    critical._id = "5e000000-0000-4000-8000-0000000000c1";
+    critical.name = "Critical";
+    critical.isArchived = false;
+
+    const retired: AlertSeverity = new AlertSeverity();
+    retired._id = "5e000000-0000-4000-8000-0000000000c2";
+    retired.name = "[DONOTUSE] Very critical";
+    retired.isArchived = true;
+
+    const low: AlertSeverity = new AlertSeverity();
+    low._id = "5e000000-0000-4000-8000-0000000000c3";
+    low.name = "Low";
+    low.isArchived = false;
+
+    getList.mockResolvedValue({
+      data: [critical, retired, low],
+      count: 3,
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+    } as never);
+
+    /*
+     * A step that already names it still shows it - a workflow keeps
+     * running as it was built - but nobody picks it for a step again.
+     */
+    expect(
+      await loadRecordChoices({
+        type: ComponentInputType.AlertSeveritySelect,
+        workflowId: new ObjectID(WORKFLOW_ID),
+      }),
+    ).toEqual([
+      { label: "Critical", value: "5e000000-0000-4000-8000-0000000000c1" },
+      { label: "Low", value: "5e000000-0000-4000-8000-0000000000c3" },
+      {
+        label: "[DONOTUSE] Very critical",
+        value: "5e000000-0000-4000-8000-0000000000c2",
+        isArchived: true,
+        isDisabled: true,
+        description: "Archived",
+      },
+    ]);
   });
 
   test("the templates come from the API by name, each offered as its ID; an unnamed one by its ID", async () => {

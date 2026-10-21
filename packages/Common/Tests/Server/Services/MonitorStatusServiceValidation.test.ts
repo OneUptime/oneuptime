@@ -104,10 +104,17 @@ beforeEach(() => {
       >;
       targetQueries.push(query);
 
+      /*
+       * No status here is archived: a read of archived ones (a create's look
+       * for an archived namesake, ArchivableValueGuard) finds none.
+       */
       return Promise.resolve(
         listRows
           .filter((row: StatusRow) => {
-            return !query["_id"] || row._id === query["_id"]?.toString();
+            return (
+              (!query["_id"] || row._id === query["_id"]?.toString()) &&
+              query["isArchived"] !== true
+            );
           })
           .map(status),
       );
