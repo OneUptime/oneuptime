@@ -28,6 +28,16 @@ import {
   getAllVMwareAlertTemplates,
 } from "Common/Types/Monitor/VMwareAlertTemplates";
 import {
+  DETECTION_RULE_LIBRARY,
+  getRecommendedDetectionRules,
+} from "Common/Types/SecurityEvent/DetectionRuleLibrary";
+import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
+import {
+  SECURITY_PLAYBOOK_ACTIONS,
+  SecurityPlaybookActionCategory,
+  SecurityPlaybookActionDefinition,
+} from "Common/Types/SecurityPlaybook/SecurityPlaybookAction";
+import {
   DatabaseAlertTemplateEntry,
   DatabaseAlertTemplateGroup,
   DatabaseEngineGroup,
@@ -737,9 +747,11 @@ describe("security-events.ejs", () => {
 
   test("renders the sections the page is built around", () => {
     for (const heading of [
-      "One endpoint in. Alerts and on-call out.",
+      "Events in. Cases, playbooks and on-call out.",
       "One endpoint. Four dialects. Nothing dropped.",
       "Detections as code, written in Sigma",
+      "Every detection about the same user, host or address, in one case",
+      "Playbooks that respond, with a person in the loop where it matters",
       "A detection is an alert your team already knows how to handle",
       "When the rate is the story, not the event",
       "Straight about the scope",
@@ -760,6 +772,7 @@ describe("security-events.ejs", () => {
       "/product/incident-management",
       "/product/logs-management",
       "/docs/telemetry/security-events",
+      "/docs/telemetry/security-cases",
       "/docs/integrations/google-secops",
     ]) {
       expect(html).toContain(`href="${href}"`);
@@ -814,6 +827,107 @@ describe("security-events.ejs", () => {
     expect(html).toContain("threat.*");
     expect(html).toContain("You bring the TAXII collections");
     expect(html).not.toContain("Threat intelligence enrichment, UEBA");
+  });
+
+  test("no longer lists the rule library or case management as missing", () => {
+    /*
+     * "Not in the box" said there was no bundled rule library and no
+     * case-management workflow, with alerts and incidents as the case
+     * record. The Rule Library, Security Cases and playbooks have shipped
+     * since, so a buyer who checked the page against the product found it
+     * contradicting itself. What is still missing stays listed.
+     */
+    expect(html).not.toContain(
+      "A bundled rule library or a case-management workflow",
+    );
+    expect(html).not.toContain("alerts and incidents are the case record");
+    expect(html).not.toContain("no security case queue");
+    expect(html).toContain("AI summaries of cases");
+  });
+
+  test("quotes the rule library, playbooks and connectors as the code counts them", () => {
+    /*
+     * Each figure comes from the code it describes, so a library rule, a
+     * playbook action or a connector added later fails here until the page
+     * says so.
+     */
+    const numberWords: Array<string> = [
+      "zero",
+      "one",
+      "two",
+      "three",
+      "four",
+      "five",
+      "six",
+      "seven",
+      "eight",
+      "nine",
+      "ten",
+      "eleven",
+      "twelve",
+    ];
+
+    expect(html).toContain(`${DETECTION_RULE_LIBRARY.length} ready-made rules`);
+    expect(html).toContain(
+      `${getRecommendedDetectionRules().length} recommended to start with`,
+    );
+    expect(html).toContain(`Its ${SECURITY_PLAYBOOK_ACTIONS.length} actions`);
+    expect(html).toContain(
+      `${numberWords[Object.values(SecurityEventConnectorProvider).length]} security products`,
+    );
+
+    const containActions: Array<SecurityPlaybookActionDefinition> =
+      SECURITY_PLAYBOOK_ACTIONS.filter(
+        (action: SecurityPlaybookActionDefinition): boolean => {
+          return action.category === SecurityPlaybookActionCategory.Contain;
+        },
+      );
+    const containWord: string = numberWords[containActions.length]!;
+
+    expect(html).toContain(
+      `${containWord.charAt(0).toUpperCase()}${containWord.slice(1)} of them contain the threat`,
+    );
+  });
+
+  test("names the products containment acts through, and says approval comes first", () => {
+    /*
+     * A Contain step acts outside OneUptime, so the step editor turns on
+     * "Needs approval" for it by default (isDisruptive). Anything else is
+     * reached with a webhook or a workflow, which "Not in the box" says.
+     */
+    const containActions: Array<SecurityPlaybookActionDefinition> =
+      SECURITY_PLAYBOOK_ACTIONS.filter(
+        (action: SecurityPlaybookActionDefinition): boolean => {
+          return action.category === SecurityPlaybookActionCategory.Contain;
+        },
+      );
+
+    expect(
+      new Set(
+        containActions.map(
+          (
+            action: SecurityPlaybookActionDefinition,
+          ): SecurityEventConnectorProvider | undefined => {
+            return action.connectionProvider;
+          },
+        ),
+      ),
+    ).toEqual(
+      new Set([
+        SecurityEventConnectorProvider.OktaSystemLog,
+        SecurityEventConnectorProvider.CrowdStrikeFalcon,
+        SecurityEventConnectorProvider.MicrosoftDefenderXdr,
+      ]),
+    );
+
+    for (const action of containActions) {
+      expect([action.type, action.isDisruptive]).toEqual([action.type, true]);
+    }
+
+    expect(html).toContain("with approval on by default");
+    expect(html).toContain(
+      "Containment beyond Okta, CrowdStrike and Microsoft Defender",
+    );
   });
 });
 
