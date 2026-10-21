@@ -2018,7 +2018,7 @@ describe("SessionReplayTable search, sort and paging", () => {
  * a tall sort select with a clear x, a small time chip, a text "Advanced
  * filters" button, a lone refresh icon and a "Search help" link. It is now
  * the header every table has: the "Search…  /" pill, the time range, and
- * the ⋯ holding the sort order, Filter and Refresh - one height - with the
+ * the ⋯ holding the sort order, Refresh and Filter - one height - with the
  * chips in the Filter row under it.
  */
 describe("SessionReplayTable header", () => {
@@ -2111,7 +2111,7 @@ describe("SessionReplayTable header", () => {
     expect(CARD_MORE_MENU_TRIGGER_CLASS_NAME).toContain("md:py-2");
   });
 
-  it("keeps the sort order, Filter and Refresh in the ⋯, the order in use ticked", async () => {
+  it("keeps the sort order, Refresh and Filter in the ⋯, the order in use ticked", async () => {
     mockApi(() => {
       return listResponse([wireRow()]);
     });
@@ -2139,13 +2139,17 @@ describe("SessionReplayTable header", () => {
         return choice.getAttribute("aria-checked");
       }),
     ).toEqual(["false", "false", "true", "false"]);
+    /*
+     * Refresh before Filter, as every model table's ⋯ lists them (Refresh,
+     * Filter, Columns) and the hand-built lists' do.
+     */
     expect(
       within(menu)
         .getAllByRole("menuitem")
         .map((item: HTMLElement): string => {
           return (item.textContent || "").trim();
         }),
-    ).toEqual(["Filter", "Refresh"]);
+    ).toEqual(["Refresh", "Filter"]);
   });
 
   it("a sort is applied once, from page one; the order in use changes nothing", async () => {

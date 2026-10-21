@@ -11,7 +11,7 @@ import path from "path";
  * clear x, a small time chip, a text "Advanced filters" button, a lone
  * refresh icon and a "Search help" link. It is now the header every table
  * has - the "Search…  /" pill, the time range and the ⋯ (the sort order,
- * Filter, Refresh) beside the title, one height - with the chips in the
+ * Refresh, Filter) beside the title, one height - with the chips in the
  * shared Filter row under it; and the list and Replay Users fit a laptop's
  * card, where a column used to go under the sticky Actions column.
  *
@@ -288,7 +288,7 @@ test.describe("the session list's header", () => {
     expect(new Set(heights).size).toBe(1);
   });
 
-  test("the ⋯ holds the sort order, Filter and Refresh; a sort is sent once and ticked", async ({
+  test("the ⋯ holds the sort order, Refresh and Filter; a sort is sent once and ticked", async ({
     page,
   }: {
     page: Page;
@@ -309,7 +309,8 @@ test.describe("the session list's header", () => {
     await expect(
       menu.getByRole("menuitemradio", { name: "Newest", exact: true }),
     ).toHaveAttribute("aria-checked", "true");
-    await expect(menu.getByRole("menuitem")).toHaveText(["Filter", "Refresh"]);
+    // In a model table's order: Refresh, then Filter.
+    await expect(menu.getByRole("menuitem")).toHaveText(["Refresh", "Filter"]);
     await screenshot(page, "session-replay-list-more-menu");
 
     const before: number = (await listRequests(page)).length;

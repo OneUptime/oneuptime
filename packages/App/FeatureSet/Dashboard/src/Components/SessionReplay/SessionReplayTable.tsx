@@ -2268,7 +2268,8 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
 
   /*
    * The ⋯: the order of the rows (a ticked choice, as a feed's sort order
-   * is), the filter form, and Refresh - what every table keeps behind it.
+   * is), then Refresh and the filter form - what every table keeps behind
+   * it, in a model table's order (Refresh, Filter, Columns).
    */
   const moreMenu: ReactElement | null = renderTableHeaderMoreMenu([], {
     dataTestId: "session-replay-more",
@@ -2295,6 +2296,13 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
         )}
       </MoreMenuSection>,
       <MoreMenuItem
+        key="refresh"
+        text="Refresh"
+        icon={IconProp.Refresh}
+        dataTestId="session-refresh"
+        onClick={reload}
+      />,
+      <MoreMenuItem
         key="filter"
         text="Filter"
         icon={IconProp.Filter}
@@ -2302,13 +2310,6 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
         onClick={(): void => {
           setIsFilterModalOpen(true);
         }}
-      />,
-      <MoreMenuItem
-        key="refresh"
-        text="Refresh"
-        icon={IconProp.Refresh}
-        dataTestId="session-refresh"
-        onClick={reload}
       />,
     ],
   });
