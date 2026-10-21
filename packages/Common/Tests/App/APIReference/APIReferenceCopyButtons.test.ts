@@ -402,10 +402,10 @@ describe("an endpoint path's copy icon", () => {
      * rule of its own, more specific than the utility's.
      */
     for (const selector of [
-      "[data-copy-button].copy-failed:not(.copy-btn):hover",
-      ".dark [data-copy-button].copy-failed:not(.copy-btn):hover",
-      "[data-copy-button].copied:not(.copy-btn):hover",
-      ".dark [data-copy-button].copied:not(.copy-btn):hover",
+      "button.copy-failed:not(.copy-btn):hover",
+      ".dark button.copy-failed:not(.copy-btn):hover",
+      "button.copied:not(.copy-btn):hover",
+      ".dark button.copied:not(.copy-btn):hover",
     ]) {
       expect(styles.includes(selector)).toBe(true);
     }
