@@ -98,12 +98,57 @@ function udmUser(name: string): JSONObject | null {
   return user;
 }
 
+// A UDM Process: its command line and its executable's path.
+function udmProcess(data: {
+  commandLine?: string | undefined;
+  path?: string | undefined;
+}): JSONObject | null {
+  const commandLine: string = (data.commandLine || "").trim();
+  const path: string = (data.path || "").trim();
+
+  if (!commandLine && !path) {
+    return null;
+  }
+
+  const process: JSONObject = {};
+
+  if (commandLine) {
+    process["commandLine"] = cut(commandLine, 2048);
+  }
+
+  if (path) {
+    process["file"] = { fullPath: cut(path, 1024) };
+  }
+
+  return process;
+}
+
+/*
+ * The process the event is about. A row stored before OneUptime read the
+ * process fields names only principalProcess, which stands in for it.
+ */
+function eventProcess(record: SecurityEventRecord): JSONObject | null {
+  return (
+    udmProcess({
+      commandLine: record.processCommandLine,
+      path: record.processPath,
+    }) || udmProcess({ commandLine: record.principalProcess })
+  );
+}
+
+function parentProcess(record: SecurityEventRecord): JSONObject | null {
+  return udmProcess({
+    commandLine: record.parentProcessCommandLine,
+    path: record.parentProcessPath,
+  });
+}
+
 // A UDM Noun (principal or target): a machine, its user, process and port.
 function udmNoun(data: {
   hostname?: string | undefined;
   ip?: string | undefined;
   user?: string | undefined;
-  commandLine?: string | undefined;
+  process?: JSONObject | null | undefined;
   port?: number | undefined;
   url?: string | undefined;
   resourceName?: string | undefined;
@@ -112,7 +157,6 @@ function udmNoun(data: {
   const hostname: string = (data.hostname || "").trim();
   const ip: string = validIp(data.ip || "");
   const user: JSONObject | null = udmUser(data.user || "");
-  const commandLine: string = (data.commandLine || "").trim();
 
   if (hostname) {
     noun["hostname"] = cut(hostname, 256);
@@ -126,8 +170,8 @@ function udmNoun(data: {
     noun["user"] = user;
   }
 
-  if (commandLine) {
-    noun["process"] = { commandLine: cut(commandLine, 2048) };
+  if (data.process) {
+    noun["process"] = data.process;
   }
 
   if (data.port && data.port > 0 && data.port <= 65535) {
@@ -179,7 +223,7 @@ export function chooseUdmEventType(record: SecurityEventRecord): UdmEventType {
 
   if (
     record.classUid === OCSF_PROCESS_ACTIVITY_CLASS_UID &&
-    record.principalProcess.trim() &&
+    eventProcess(record) &&
     principalHasMachine
   ) {
     return UdmEventType.ProcessLaunch;
@@ -311,13 +355,22 @@ export function toUdmEvent(
    * A login names the account on the target: OneUptime's sign-in events
    * keep it as the principal user (the one acting), UDM as the target user
    * (the one signed in to). The address it came from stays the principal.
-   * A launched process is the target's process in UDM.
+   * A launched process is the target's process in UDM and the process that
+   * started it the principal's; in any other event the process is the
+   * principal's, with its parent.
    */
+  const process: JSONObject | null = eventProcess(record);
+  const parent: JSONObject | null = parentProcess(record);
+
+  if (!isProcessLaunch && process && parent) {
+    process["parentProcess"] = parent;
+  }
+
   const principal: JSONObject = udmNoun({
     hostname: record.principalHost,
     ip: record.principalIp,
     user: isLogin ? "" : record.principalUser,
-    commandLine: isProcessLaunch ? "" : record.principalProcess,
+    process: isProcessLaunch ? parent : process,
   });
 
   const target: JSONObject = udmNoun({
@@ -326,7 +379,7 @@ export function toUdmEvent(
     user: isLogin
       ? record.targetUser || record.principalUser
       : record.targetUser,
-    commandLine: isProcessLaunch ? record.principalProcess : "",
+    process: isProcessLaunch ? process : null,
     port: record.targetPort,
     url: targetResource && isUrl(targetResource) ? targetResource : "",
     resourceName:

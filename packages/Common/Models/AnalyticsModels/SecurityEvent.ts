@@ -392,6 +392,52 @@ export default class SecurityEvent extends AnalyticsBaseModel {
       description: "Acting process (path or command line)",
     });
 
+    /*
+     * The process the event is about and its parent, as Sigma's Image,
+     * CommandLine, ParentImage and ParentCommandLine read them. In Process
+     * Activity that is the process that was started and the one that
+     * started it - principalProcess, kept for the rules and searches written
+     * against it, holds the acting (parent) process there. In any other
+     * event it is the process that acted.
+     */
+    const processNameColumn: AnalyticsTableColumn = textColumn({
+      key: "processName",
+      title: "Process",
+      description:
+        "File name of the process the event is about (powershell.exe): in Process Activity the process that was started, otherwise the process that acted",
+    });
+
+    const processPathColumn: AnalyticsTableColumn = textColumn({
+      key: "processPath",
+      title: "Process Path",
+      description: "Full path of that process's executable (Sigma Image)",
+    });
+
+    const processCommandLineColumn: AnalyticsTableColumn = textColumn({
+      key: "processCommandLine",
+      title: "Command Line",
+      description: "That process's command line (Sigma CommandLine)",
+    });
+
+    const parentProcessNameColumn: AnalyticsTableColumn = textColumn({
+      key: "parentProcessName",
+      title: "Parent Process",
+      description: "File name of the process that started it (explorer.exe)",
+    });
+
+    const parentProcessPathColumn: AnalyticsTableColumn = textColumn({
+      key: "parentProcessPath",
+      title: "Parent Process Path",
+      description:
+        "Full path of the parent process's executable (Sigma ParentImage)",
+    });
+
+    const parentProcessCommandLineColumn: AnalyticsTableColumn = textColumn({
+      key: "parentProcessCommandLine",
+      title: "Parent Command Line",
+      description: "The parent process's command line (Sigma ParentCommandLine)",
+    });
+
     const targetUserColumn: AnalyticsTableColumn = bloomTextColumn(
       "targetUser",
       "Target User",
@@ -527,6 +573,12 @@ export default class SecurityEvent extends AnalyticsBaseModel {
         principalHostColumn,
         principalIpColumn,
         principalProcessColumn,
+        processNameColumn,
+        processPathColumn,
+        processCommandLineColumn,
+        parentProcessNameColumn,
+        parentProcessPathColumn,
+        parentProcessCommandLineColumn,
         targetUserColumn,
         targetHostColumn,
         targetIpColumn,
@@ -750,6 +802,56 @@ export default class SecurityEvent extends AnalyticsBaseModel {
 
   public set principalProcess(v: string | undefined) {
     this.setColumnValue("principalProcess", v);
+  }
+
+  public get processName(): string | undefined {
+    return this.getColumnValue("processName") as string | undefined;
+  }
+
+  public set processName(v: string | undefined) {
+    this.setColumnValue("processName", v);
+  }
+
+  public get processPath(): string | undefined {
+    return this.getColumnValue("processPath") as string | undefined;
+  }
+
+  public set processPath(v: string | undefined) {
+    this.setColumnValue("processPath", v);
+  }
+
+  public get processCommandLine(): string | undefined {
+    return this.getColumnValue("processCommandLine") as string | undefined;
+  }
+
+  public set processCommandLine(v: string | undefined) {
+    this.setColumnValue("processCommandLine", v);
+  }
+
+  public get parentProcessName(): string | undefined {
+    return this.getColumnValue("parentProcessName") as string | undefined;
+  }
+
+  public set parentProcessName(v: string | undefined) {
+    this.setColumnValue("parentProcessName", v);
+  }
+
+  public get parentProcessPath(): string | undefined {
+    return this.getColumnValue("parentProcessPath") as string | undefined;
+  }
+
+  public set parentProcessPath(v: string | undefined) {
+    this.setColumnValue("parentProcessPath", v);
+  }
+
+  public get parentProcessCommandLine(): string | undefined {
+    return this.getColumnValue("parentProcessCommandLine") as
+      | string
+      | undefined;
+  }
+
+  public set parentProcessCommandLine(v: string | undefined) {
+    this.setColumnValue("parentProcessCommandLine", v);
   }
 
   public get targetUser(): string | undefined {

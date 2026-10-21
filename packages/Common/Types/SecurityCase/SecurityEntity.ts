@@ -41,6 +41,12 @@ export const SECURITY_EVENT_ENTITY_FIELDS: Readonly<
   principalIp: SecurityEntityType.IpAddress,
   targetIp: SecurityEntityType.IpAddress,
   principalProcess: SecurityEntityType.Process,
+  processName: SecurityEntityType.Process,
+  processPath: SecurityEntityType.Process,
+  processCommandLine: SecurityEntityType.Process,
+  parentProcessName: SecurityEntityType.Process,
+  parentProcessPath: SecurityEntityType.Process,
+  parentProcessCommandLine: SecurityEntityType.Process,
   targetResource: SecurityEntityType.Other,
 };
 

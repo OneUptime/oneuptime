@@ -1,4 +1,5 @@
 import { JSONObject, JSONValue } from "../../Types/JSON";
+import NormalizedSecurityEvent from "../../Types/SecurityEvent/NormalizedSecurityEvent";
 import Crypto from "../Crypto";
 
 /*
@@ -245,6 +246,113 @@ export function buildObservables(
   }
 
   return observables;
+}
+
+/*
+ * One process as a source describes it: any of its file name, the full
+ * path of its executable and its command line.
+ */
+export interface ProcessReading {
+  name?: string | undefined;
+  path?: string | undefined;
+  commandLine?: string | undefined;
+}
+
+export type ProcessFields = Pick<
+  NormalizedSecurityEvent,
+  | "processName"
+  | "processPath"
+  | "processCommandLine"
+  | "parentProcessName"
+  | "parentProcessPath"
+  | "parentProcessCommandLine"
+>;
+
+function isPathSeparator(character: string | undefined): boolean {
+  return character === "/" || character === "\\";
+}
+
+/*
+ * The last segment of a path, on either separator: "powershell.exe" of
+ * "C:\Windows\...\powershell.exe", "cat" of "/usr/bin/cat". A loop, not a
+ * regular expression: a path is source text of any length.
+ */
+export function fileNameOfPath(path: string): string {
+  const trimmed: string = (path || "").trim();
+  let end: number = trimmed.length;
+
+  while (end > 0 && isPathSeparator(trimmed[end - 1])) {
+    end--;
+  }
+
+  let start: number = end;
+
+  while (start > 0 && !isPathSeparator(trimmed[start - 1])) {
+    start--;
+  }
+
+  return trimmed.slice(start, end);
+}
+
+/*
+ * A folder and a file name as one path, joined with the folder's own
+ * separator (a backslash for a Windows folder). Sources such as Microsoft
+ * Graph name a file by its folder and its name; a folder that already ends
+ * in the name is the path already.
+ */
+export function joinPath(folder: string, name: string): string {
+  const trimmedFolder: string = (folder || "").trim();
+  const trimmedName: string = (name || "").trim();
+
+  if (!trimmedFolder || !trimmedName) {
+    return "";
+  }
+
+  if (
+    fileNameOfPath(trimmedFolder).toLowerCase() === trimmedName.toLowerCase()
+  ) {
+    return trimmedFolder;
+  }
+
+  const separator: string =
+    trimmedFolder.includes("\\") || trimmedFolder.includes(":") ? "\\" : "/";
+
+  return isPathSeparator(trimmedFolder[trimmedFolder.length - 1])
+    ? `${trimmedFolder}${trimmedName}`
+    : `${trimmedFolder}${separator}${trimmedName}`;
+}
+
+// Whether a source said anything about a process at all.
+export function namesProcess(reading: ProcessReading | undefined): boolean {
+  return Boolean(
+    (reading?.name || "").trim() ||
+      (reading?.path || "").trim() ||
+      (reading?.commandLine || "").trim(),
+  );
+}
+
+/*
+ * The six process fields of an event from the process it is about and that
+ * process's parent. A source that gives a path but no name gets the path's
+ * file name, so the name is there to group and filter by either way.
+ */
+export function buildProcessFields(data: {
+  process?: ProcessReading | undefined;
+  parent?: ProcessReading | undefined;
+}): ProcessFields {
+  const processPath: string = (data.process?.path || "").trim();
+  const parentProcessPath: string = (data.parent?.path || "").trim();
+
+  return {
+    processName:
+      (data.process?.name || "").trim() || fileNameOfPath(processPath),
+    processPath,
+    processCommandLine: (data.process?.commandLine || "").trim(),
+    parentProcessName:
+      (data.parent?.name || "").trim() || fileNameOfPath(parentProcessPath),
+    parentProcessPath,
+    parentProcessCommandLine: (data.parent?.commandLine || "").trim(),
+  };
 }
 
 /*

@@ -146,6 +146,7 @@ import HideImagesOfScheduledAnnouncements from "./HideImagesOfScheduledAnnouncem
 import RemoveProjectAccessOfFormerMembers from "./RemoveProjectAccessOfFormerMembers";
 import AddMissingIdsToMonitorSteps from "./AddMissingIdsToMonitorSteps";
 import MoveRunbookApprovalsBeforeTheirSteps from "./MoveRunbookApprovalsBeforeTheirSteps";
+import AddProcessColumnsToSecurityEvent from "./AddProcessColumnsToSecurityEvent";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -808,6 +809,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * asserts for itself.
    */
   new MoveRunbookSecretsAndCredentialsToVariables(),
+  /*
+   * Security events gained the process an event is about and its parent
+   * (SecurityEvent.processName, processPath, processCommandLine,
+   * parentProcessName, parentProcessPath, parentProcessCommandLine), which
+   * Sigma's Image, CommandLine, ParentImage and ParentCommandLine read.
+   * Metadata-only and idempotent; rows written before it read ''. No
+   * ordering requirement, so it sits before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new AddProcessColumnsToSecurityEvent(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
