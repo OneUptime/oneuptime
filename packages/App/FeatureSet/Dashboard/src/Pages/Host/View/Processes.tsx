@@ -600,7 +600,12 @@ const HostProcesses: FunctionComponent<
       : undefined;
 
   return (
-    <Card title="Processes" description={description} headerLayout="toolbar" buttons={getTableHeaderButtons(cardButtons)}>
+    <Card
+      title="Processes"
+      description={description}
+      headerLayout="toolbar"
+      buttons={getTableHeaderButtons(cardButtons)}
+    >
       <div>
         {(rows.length > 0 || hasActiveSearch) && filterBar}
         <Table<ProcessRow>

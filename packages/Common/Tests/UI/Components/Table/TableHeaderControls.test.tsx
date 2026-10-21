@@ -10,9 +10,7 @@ import React, { ReactElement } from "react";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
 import { ButtonStyleType } from "../../../../UI/Components/Button/Button";
-import Card, {
-  CardButtonSchema,
-} from "../../../../UI/Components/Card/Card";
+import Card, { CardButtonSchema } from "../../../../UI/Components/Card/Card";
 import { CARD_MORE_MENU_TRIGGER_CLASS_NAME } from "../../../../UI/Components/Card/CardMoreMenu";
 import MoreMenuItem from "../../../../UI/Components/MoreMenu/MoreMenuItem";
 import MoreMenuSection from "../../../../UI/Components/MoreMenu/MoreMenuSection";
@@ -242,7 +240,9 @@ describe("renderTableHeaderMoreMenu", () => {
     const trigger: HTMLElement = screen.getByTestId("list-more");
 
     expect(trigger).toHaveAccessibleName("More options");
-    expect(trigger).toHaveClass(...CARD_MORE_MENU_TRIGGER_CLASS_NAME.split(" "));
+    expect(trigger).toHaveClass(
+      ...CARD_MORE_MENU_TRIGGER_CLASS_NAME.split(" "),
+    );
 
     fireEvent.click(trigger);
 
@@ -421,9 +421,10 @@ describe("TableHeaderSearchSlot", () => {
     const slot: HTMLElement = screen.getByTestId("slot");
 
     expect(slot).toHaveClass(...TABLE_HEADER_OPEN_SEARCH_CLASS_NAME.split(" "));
-    expect(
-      screen.getByRole("button", { name: "Open search" }),
-    ).toHaveAttribute("tabindex", "-1");
+    expect(screen.getByRole("button", { name: "Open search" })).toHaveAttribute(
+      "tabindex",
+      "-1",
+    );
     expect(
       screen.getByTestId("control").parentElement as HTMLElement,
     ).toHaveClass("opacity-100");

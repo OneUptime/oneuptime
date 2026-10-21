@@ -328,7 +328,9 @@ describe("SessionReplaySearchBar follows external changes", () => {
     type("/checkout");
     settle();
 
-    view.rerender(<SessionReplaySearchBar {...barProps({ filters: emitted() })} />);
+    view.rerender(
+      <SessionReplaySearchBar {...barProps({ filters: emitted() })} />,
+    );
 
     /* The person typed "/checkout"; the box keeps their spelling. */
     expect(input().value).toBe("/checkout");
@@ -610,7 +612,9 @@ describe("SessionReplaySearchBar is one control of the header", () => {
 
     const box: HTMLElement = input().parentElement as HTMLElement;
 
-    expect(box).toHaveClass(...TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME.split(" "));
+    expect(box).toHaveClass(
+      ...TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME.split(" "),
+    );
     expect(box).toHaveClass("rounded-md", "border", "bg-white");
   });
 
@@ -618,7 +622,9 @@ describe("SessionReplaySearchBar is one control of the header", () => {
     renderBar();
 
     expect(screen.getByTestId("session-search-input")).toBeInTheDocument();
-    expect(screen.queryByRole("combobox", { name: "Sort sessions" })).toBeNull();
+    expect(
+      screen.queryByRole("combobox", { name: "Sort sessions" }),
+    ).toBeNull();
     expect(screen.queryByTestId("session-sort")).toBeNull();
     expect(screen.queryByTestId("session-open-filters")).toBeNull();
     expect(

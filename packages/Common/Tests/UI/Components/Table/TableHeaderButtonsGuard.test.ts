@@ -288,7 +288,7 @@ describe("a table's header buttons", () => {
         "  </Card>",
         ");",
         'const b = <Card title="Y" buttons={getTableHeaderButtons(cardButtons)} />;',
-        "const c = <Card title=\"Z\" buttons={[headerToolbar]} />;",
+        'const c = <Card title="Z" buttons={[headerToolbar]} />;',
       ].join("\n"),
     );
     const found: Array<CardButtons> = cardButtonsIn(page);

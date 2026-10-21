@@ -257,9 +257,7 @@ describe("session replay chips row", () => {
       "errors",
     );
 
-    expect(screen.getByTestId("facet-filter-bar-count")).toHaveTextContent(
-      "3",
-    );
+    expect(screen.getByTestId("facet-filter-bar-count")).toHaveTextContent("3");
 
     fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
 
@@ -270,9 +268,9 @@ describe("session replay chips row", () => {
     expect(countActiveSessionReplayChips(EMPTY_ADVANCED_FILTERS, "all")).toBe(
       0,
     );
-    expect(countActiveSessionReplayChips(EMPTY_ADVANCED_FILTERS, "errors")).toBe(
-      1,
-    );
+    expect(
+      countActiveSessionReplayChips(EMPTY_ADVANCED_FILTERS, "errors"),
+    ).toBe(1);
     /*
      * Slow is the performance capture reason: the Signal chip and the
      * Capture reason chip both read it, and both are set.

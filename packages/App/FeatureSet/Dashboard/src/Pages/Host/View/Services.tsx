@@ -610,7 +610,8 @@ const HostServices: FunctionComponent<
     <Card
       title="Windows Services"
       description={description}
-      headerLayout="toolbar" buttons={getTableHeaderButtons(cardButtons)}
+      headerLayout="toolbar"
+      buttons={getTableHeaderButtons(cardButtons)}
     >
       <div>
         {(rows.length > 0 || hasActiveFilters) && filterBar}

@@ -517,7 +517,8 @@ const KubernetesClusterCosts: FunctionComponent<
       <Card
         title="Spend by Namespace"
         description="Whole-window cost per namespace with cpu / memory / storage split and request-vs-usage efficiency."
-        headerLayout="toolbar" buttons={getTableHeaderButtons([refreshButton])}
+        headerLayout="toolbar"
+        buttons={getTableHeaderButtons([refreshButton])}
       >
         <Table<NamespaceCostRow>
           id="kubernetes-namespace-costs-table"
@@ -554,7 +555,8 @@ const KubernetesClusterCosts: FunctionComponent<
       <Card
         title="Spend by Workload"
         description="Whole-window cost per workload (controller), highest spend first. Idle capacity is excluded."
-        headerLayout="toolbar" buttons={getTableHeaderButtons([refreshButton])}
+        headerLayout="toolbar"
+        buttons={getTableHeaderButtons([refreshButton])}
       >
         <Table<WorkloadCostRow>
           id="kubernetes-workload-costs-table"

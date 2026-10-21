@@ -445,7 +445,8 @@ const CephClusterClusterLog: FunctionComponent<
       <Card
         title="Cluster Log"
         description="ceph.log lines from the last 24 hours, parsed into level / daemon / message."
-        headerLayout="toolbar" buttons={getTableHeaderButtons(cardButtons)}
+        headerLayout="toolbar"
+        buttons={getTableHeaderButtons(cardButtons)}
       >
         <Table<CephLogRow>
           id="ceph-cluster-log-table"

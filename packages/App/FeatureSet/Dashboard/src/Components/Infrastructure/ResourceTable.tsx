@@ -623,7 +623,8 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
     <Card
       title={props.title}
       description={props.description}
-      headerLayout="toolbar" buttons={getTableHeaderButtons(cardButtons)}
+      headerLayout="toolbar"
+      buttons={getTableHeaderButtons(cardButtons)}
     >
       <Table<InfrastructureResource>
         id={`${props.tableIdPrefix || "infrastructure"}-${props.title.toLowerCase().replace(/\s+/g, "-")}-table`}

@@ -460,7 +460,8 @@ const PodmanHostContainers: FunctionComponent<
     <Card
       title="Podman Containers"
       description="Containers running on this Podman host (last 5 minutes)."
-      headerLayout="toolbar" buttons={getTableHeaderButtons(cardButtons)}
+      headerLayout="toolbar"
+      buttons={getTableHeaderButtons(cardButtons)}
     >
       <Table<PodmanContainerRow>
         id="podman-containers-table"

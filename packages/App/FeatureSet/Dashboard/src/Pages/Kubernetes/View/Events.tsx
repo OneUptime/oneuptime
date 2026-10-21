@@ -478,7 +478,8 @@ const KubernetesClusterEvents: FunctionComponent<
     <Card
       title="Kubernetes Events"
       description="Events from the last 24 hours in this cluster."
-      headerLayout="toolbar" buttons={getTableHeaderButtons(cardButtons)}
+      headerLayout="toolbar"
+      buttons={getTableHeaderButtons(cardButtons)}
     >
       <Table<KubernetesEventRow>
         id="kubernetes-events-table"

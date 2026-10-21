@@ -299,7 +299,8 @@ const CephClusterDaemons: FunctionComponent<
     <Card
       title="Daemons"
       description="Monitor, manager, metadata-server, and RADOS-gateway daemons in this cluster with quorum and reporting status."
-      headerLayout="toolbar" buttons={getTableHeaderButtons(cardButtons)}
+      headerLayout="toolbar"
+      buttons={getTableHeaderButtons(cardButtons)}
     >
       <Table<CephDaemonRow>
         id="ceph-daemons-table"

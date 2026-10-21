@@ -133,7 +133,9 @@ const header: (page: Page) => Locator = (page: Page): Locator => {
 };
 
 // The header's three controls: the search, the window, the ⋯.
-const controls: (page: Page) => Array<Locator> = (page: Page): Array<Locator> => {
+const controls: (page: Page) => Array<Locator> = (
+  page: Page,
+): Array<Locator> => {
   return [
     page.getByTestId("session-search-slot"),
     page.getByTestId("telemetry-time-range-picker-button"),
@@ -194,7 +196,9 @@ test.describe("the session list's header", () => {
 
     await expectOneHeight(controls(page), 38);
 
-    const title: Box = await box(header(page).getByTestId("card-details-heading"));
+    const title: Box = await box(
+      header(page).getByTestId("card-details-heading"),
+    );
     const centres: Array<number> = [];
 
     for (const control of controls(page)) {
@@ -225,9 +229,9 @@ test.describe("the session list's header", () => {
     await expect(actions.getByRole("link")).toHaveCount(0);
     await expect(actions.getByRole("combobox")).toHaveCount(0);
     await expect(page.getByText("Search help", { exact: true })).toHaveCount(0);
-    await expect(page.getByText("Advanced filters", { exact: true })).toHaveCount(
-      0,
-    );
+    await expect(
+      page.getByText("Advanced filters", { exact: true }),
+    ).toHaveCount(0);
 
     await expectNoHorizontalOverflow(page);
     await screenshot(page, "session-replay-list-header-1280");
@@ -271,9 +275,7 @@ test.describe("the session list's header", () => {
     await expect(row).toHaveAttribute("role", "group");
     await expect(row.locator("span").first()).toHaveText("Filter");
 
-    const chips: Array<Locator> = await row
-      .getByTestId("filter-chip")
-      .all();
+    const chips: Array<Locator> = await row.getByTestId("filter-chip").all();
 
     expect(chips).toHaveLength(7);
 
@@ -359,7 +361,9 @@ test.describe("the session list's header", () => {
 
     expect(Math.round(folded)).toBe(224);
 
-    await page.getByRole("button", { name: "Open search", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Open search", exact: true })
+      .click();
     await expect(page.getByTestId("session-search-input")).toBeFocused();
     await settleHeader(page);
 
@@ -387,10 +391,9 @@ test.describe("the session list's header", () => {
       .fill("user:jane@example.com");
     await expect
       .poll(async (): Promise<unknown> => {
-        return ((await lastListRequest(page))["filters"] as Record<
-          string,
-          unknown
-        >)["identifiedUserRef"];
+        return (
+          (await lastListRequest(page))["filters"] as Record<string, unknown>
+        )["identifiedUserRef"];
       })
       .toBe("jane@example.com");
 
@@ -454,9 +457,12 @@ test.describe("the session list's header", () => {
       '[data-testid="session-replay-more"]',
     ]) {
       backgrounds.push(
-        await page.locator(selector).first().evaluate((element: Element) => {
-          return getComputedStyle(element).backgroundColor;
-        }),
+        await page
+          .locator(selector)
+          .first()
+          .evaluate((element: Element) => {
+            return getComputedStyle(element).backgroundColor;
+          }),
       );
     }
 
@@ -503,13 +509,13 @@ test.describe("the Session Replay tables fit their cards", () => {
         expect(table.width).toBeLessThanOrEqual(frame.width + 0.5);
 
         /* The last data column ends before the Actions column begins. */
-        const headers: Array<Locator> = await scroll
-          .locator("thead th")
-          .all();
+        const headers: Array<Locator> = await scroll.locator("thead th").all();
         const lastData: Box = await box(headers[headers.length - 2]!);
         const actions: Box = await box(headers[headers.length - 1]!);
 
-        expect(lastData.x + lastData.width).toBeLessThanOrEqual(actions.x + 0.5);
+        expect(lastData.x + lastData.width).toBeLessThanOrEqual(
+          actions.x + 0.5,
+        );
 
         await expectNoHorizontalOverflow(page);
       }

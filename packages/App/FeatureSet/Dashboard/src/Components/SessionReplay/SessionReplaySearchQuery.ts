@@ -160,7 +160,8 @@ export const SESSION_REPLAY_SEARCH_HELP_ROWS: ReadonlyArray<SearchHelpRow> = [
   },
   {
     syntax: "browser:<name>",
-    description: "Also os:, device:, country: and trigger:, as the filter chips",
+    description:
+      "Also os:, device:, country: and trigger:, as the filter chips",
     example: "browser:Chrome",
   },
   {

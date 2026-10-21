@@ -110,7 +110,10 @@ describe("the time range picker's sizes", () => {
   });
 
   test("both sizes turn indigo while open, and say what is picked", () => {
-    for (const size of [TimeRangePickerSize.Compact, TimeRangePickerSize.Header]) {
+    for (const size of [
+      TimeRangePickerSize.Compact,
+      TimeRangePickerSize.Header,
+    ]) {
       const button: HTMLElement = renderPicker(size);
 
       expect(button).toHaveTextContent("Past 1 Day");
@@ -134,8 +137,9 @@ describe("the time range picker's sizes", () => {
     expect(Object.keys(TIME_RANGE_PICKER_BUTTON_CLASS_NAMES).sort()).toEqual(
       [TimeRangePickerSize.Compact, TimeRangePickerSize.Header].sort(),
     );
-    expect(TIME_RANGE_PICKER_BUTTON_CLASS_NAMES[TimeRangePickerSize.Header])
-      .toContain(TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME);
+    expect(
+      TIME_RANGE_PICKER_BUTTON_CLASS_NAMES[TimeRangePickerSize.Header],
+    ).toContain(TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME);
   });
 });
 

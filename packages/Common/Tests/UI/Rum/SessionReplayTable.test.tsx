@@ -2011,11 +2011,15 @@ describe("SessionReplayTable header", () => {
     expect(toolbar).toHaveAttribute("data-toolbar-fill", "true");
 
     /* Left to right: the search, the window, the ⋯. */
-    const slot: HTMLElement = within(toolbar).getByTestId("session-search-slot");
+    const slot: HTMLElement = within(toolbar).getByTestId(
+      "session-search-slot",
+    );
     const time: HTMLElement = within(toolbar).getByTestId(
       "telemetry-time-range-picker-button",
     );
-    const more: HTMLElement = within(toolbar).getByTestId("session-replay-more");
+    const more: HTMLElement = within(toolbar).getByTestId(
+      "session-replay-more",
+    );
 
     expect(
       slot.compareDocumentPosition(time) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -2029,7 +2033,9 @@ describe("SessionReplayTable header", () => {
     expect(
       within(header()).queryByRole("combobox", { name: "Sort sessions" }),
     ).toBeNull();
-    expect(screen.queryByRole("button", { name: "Advanced filters" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Advanced filters" }),
+    ).toBeNull();
     expect(screen.queryByRole("button", { name: "Search help" })).toBeNull();
     expect(screen.queryByText("Filter by")).toBeNull();
   });
@@ -2340,8 +2346,9 @@ describe("SessionReplayTable header", () => {
     await waitForRows(1);
 
     const box: HTMLElement = screen.getByTestId("session-applied-filters");
-    const chips: Array<HTMLElement> =
-      within(box).getAllByTestId("session-filter-chip");
+    const chips: Array<HTMLElement> = within(box).getAllByTestId(
+      "session-filter-chip",
+    );
 
     expect(
       chips.map((chip: HTMLElement): string | null => {

@@ -1854,7 +1854,8 @@ const OnCallReadinessPage: FunctionComponent<
       <Card
         title="On-call readiness"
         description="Every responder any on-call policy in this project can reach - directly, through a team, a schedule or an override - and whether a page would actually arrive."
-        headerLayout="toolbar" buttons={getTableHeaderButtons([refreshButton, filterButton])}
+        headerLayout="toolbar"
+        buttons={getTableHeaderButtons([refreshButton, filterButton])}
       >
         <div>
           {/*

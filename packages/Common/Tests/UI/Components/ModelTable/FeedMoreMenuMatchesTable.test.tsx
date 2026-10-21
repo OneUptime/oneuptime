@@ -306,7 +306,9 @@ describe("one component for every card header's ⋯", () => {
     expect(table).not.toMatch(/<MoreMenu\b/);
     expect(table).not.toMatch(/<CardMoreMenu\b/);
 
-    expect(header).toContain('import CardMoreMenu from "../Card/CardMoreMenu";');
+    expect(header).toContain(
+      'import CardMoreMenu from "../Card/CardMoreMenu";',
+    );
     expect(header).toMatch(/<CardMoreMenu key="model-table-more-menu"/);
     expect(header).not.toMatch(/<MoreMenu\b/);
   });

@@ -404,7 +404,8 @@ const KubernetesCosts: FunctionComponent<
       <Card
         title="Spend by Cluster"
         description="Whole-window cost per cluster, highest spend first. Click a cluster to break its spend down by namespace and workload."
-        headerLayout="toolbar" buttons={getTableHeaderButtons(cardButtons)}
+        headerLayout="toolbar"
+        buttons={getTableHeaderButtons(cardButtons)}
       >
         <Table<ClusterCostRow>
           id="kubernetes-cluster-costs-table"

@@ -601,7 +601,12 @@ const HostSystemdUnits: FunctionComponent<
       : undefined;
 
   return (
-    <Card title="Systemd Units" description={description} headerLayout="toolbar" buttons={getTableHeaderButtons(cardButtons)}>
+    <Card
+      title="Systemd Units"
+      description={description}
+      headerLayout="toolbar"
+      buttons={getTableHeaderButtons(cardButtons)}
+    >
       <div>
         {(rows.length > 0 || hasActiveFilters) && filterBar}
         <Table<SystemdUnitRow>

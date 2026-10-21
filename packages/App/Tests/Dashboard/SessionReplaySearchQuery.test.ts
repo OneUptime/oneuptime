@@ -543,9 +543,9 @@ describe("the search box and the chips", () => {
     const query: string =
       'user:jane@acme.com url:/checkout tag:plan=pro "two words" id:a1b2c3';
 
-    expect(
-      parseSessionReplaySearchBox(query, EMPTY_ADVANCED_FILTERS),
-    ).toEqual(parseSessionReplaySearch(query, EMPTY_ADVANCED_FILTERS));
+    expect(parseSessionReplaySearchBox(query, EMPTY_ADVANCED_FILTERS)).toEqual(
+      parseSessionReplaySearch(query, EMPTY_ADVANCED_FILTERS),
+    );
   });
 
   test("removeSearchBoxChipTokens takes the chip tokens out and keeps the rest as typed", () => {

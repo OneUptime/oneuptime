@@ -460,7 +460,8 @@ const DockerHostContainers: FunctionComponent<
     <Card
       title="Docker Containers"
       description="Containers running on this Docker host (last 5 minutes)."
-      headerLayout="toolbar" buttons={getTableHeaderButtons(cardButtons)}
+      headerLayout="toolbar"
+      buttons={getTableHeaderButtons(cardButtons)}
     >
       <Table<DockerContainerRow>
         id="docker-containers-table"

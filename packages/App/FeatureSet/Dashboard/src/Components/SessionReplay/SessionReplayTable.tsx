@@ -2044,7 +2044,9 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
     setPageNumber(1);
     setSignal("all");
     setAdvancedFilters(
-      (existing: SessionReplayAdvancedFilters): SessionReplayAdvancedFilters => {
+      (
+        existing: SessionReplayAdvancedFilters,
+      ): SessionReplayAdvancedFilters => {
         const next: SessionReplayAdvancedFilters = { ...existing };
 
         for (const field of SEARCH_BOX_CHIP_FIELDS) {
