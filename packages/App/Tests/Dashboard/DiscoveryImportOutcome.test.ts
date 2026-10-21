@@ -6,6 +6,7 @@ import {
   DiscoveryImportAlerting,
   DiscoveryImportSettings,
 } from "Common/Types/NetworkDevice/DiscoveryImport";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import { MonitorTemplateAlertSummary } from "Common/Utils/Monitor/MonitorTemplateAlertSummary";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import {
@@ -14,6 +15,7 @@ import {
   DiscoveryImportPolicyFact,
   DiscoveryImportTemplateChoice,
   RECOMMENDED_TEMPLATE_CHOICE_VALUE,
+  checksDeviceAddress,
   countPingOnlyHosts,
   getDiscoveryImportBlocker,
   getDiscoveryImportOutcome,
@@ -55,6 +57,7 @@ function template(
   return {
     id: TEMPLATE_ID,
     name: "Network device alert pack",
+    monitorType: MonitorType.NetworkDevice,
     summary: summary(),
     ...overrides,
   };
@@ -251,6 +254,89 @@ describe("who hears about a problem", () => {
     expect(outcome.reach).toBe(DiscoveryImportAlertReach.Nobody);
     expect(outcome.scopedPolicyCount).toBe(1);
     expect(outcome.coveringPolicyNames).toEqual([]);
+  });
+});
+
+/*
+ * Issue #5145: a Ping, IP, Port or NTP template's monitor checks each
+ * device's address itself, so a device that answers ping only is covered
+ * as fully as any other - the walk-only caveat is a Network Device
+ * template's alone.
+ */
+describe("a template whose monitors check each device's address", () => {
+  test("tells the two kinds apart", () => {
+    for (const monitorType of [
+      MonitorType.Ping,
+      MonitorType.IP,
+      MonitorType.Port,
+      MonitorType.NTP,
+    ]) {
+      expect(checksDeviceAddress(template({ monitorType: monitorType }))).toBe(
+        true,
+      );
+    }
+
+    expect(
+      checksDeviceAddress(template({ monitorType: MonitorType.NetworkDevice })),
+    ).toBe(false);
+    expect(checksDeviceAddress(null)).toBe(false);
+    expect(checksDeviceAddress(undefined)).toBe(false);
+  });
+
+  test("every ping-only device is covered: the monitor pings it itself", () => {
+    const outcome: DiscoveryImportOutcome = outcomeOf({
+      hosts: hosts(0, 516),
+      settings: WITH_MONITORS,
+      template: template({
+        name: "WB KDS Ping Monitor Template",
+        monitorType: MonitorType.Ping,
+        // Even read as a Network Device template's would be.
+        summary: summary({
+          raisesIncidents: true,
+          raisesIncidentsOnPingOnlyDevices: false,
+        }),
+      }),
+    });
+
+    expect(outcome.reach).toBe(DiscoveryImportAlertReach.Template);
+    expect(outcome.monitorCount).toBe(516);
+    expect(outcome.pingOnlyHostCount).toBe(516);
+    expect(outcome.pingOnlyHostsWithoutAlerts).toBe(0);
+    expect(outcome.template?.name).toBe("WB KDS Ping Monitor Template");
+  });
+
+  test("a Network Device template of walk checks still counts the ping-only devices it cannot alert on", () => {
+    expect(
+      outcomeOf({
+        hosts: hosts(0, 516),
+        settings: WITH_MONITORS,
+        template: template({
+          monitorType: MonitorType.NetworkDevice,
+          summary: summary({
+            raisesIncidents: true,
+            raisesIncidentsOnPingOnlyDevices: false,
+          }),
+        }),
+      }).pingOnlyHostsWithoutAlerts,
+    ).toBe(516);
+  });
+
+  test("an address template that raises nothing reaches nobody, as any other", () => {
+    const outcome: DiscoveryImportOutcome = outcomeOf({
+      settings: WITH_MONITORS,
+      template: template({
+        monitorType: MonitorType.Port,
+        ports: [9100],
+        summary: summary({
+          raisesIncidents: false,
+          raisesIncidentsOnPingOnlyDevices: false,
+        }),
+      }),
+    });
+
+    expect(outcome.monitorCount).toBe(514);
+    expect(outcome.reach).toBe(DiscoveryImportAlertReach.Nobody);
+    expect(outcome.pingOnlyHostsWithoutAlerts).toBe(0);
   });
 });
 

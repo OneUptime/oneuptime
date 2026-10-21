@@ -37,3 +37,12 @@ export const ADDRESS_TEMPLATES_GROUP_TITLE: string = translationKey(
 
 // A template saved with no name (the API allows one).
 export const UNNAMED_TEMPLATE_NAME: string = translationKey("Unnamed template");
+
+/*
+ * Why no template can be picked, when the project has none a device's
+ * monitor can be made from and the reader may not create the recommended
+ * one: who can, and where.
+ */
+export const NO_DEVICE_MONITOR_TEMPLATE_REASON: string = translationKey(
+  "This project has no Network Device, Ping, IP, Port or NTP monitor template, and you may not create one. Ask a project owner or admin to create the recommended one under Network > Settings > Alert Policies, or another under Monitors > Settings > Templates.",
+);
