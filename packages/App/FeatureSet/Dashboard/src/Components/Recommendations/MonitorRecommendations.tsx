@@ -57,7 +57,9 @@ import {
 
 import RecommendationsList from "./RecommendationsList";
 import RecommendationToolbar from "./RecommendationToolbar";
-import RecommendationFilterUtil from "./RecommendationFilterUtil";
+import RecommendationFilterUtil, {
+  RECOMMENDATION_SELECTION_QUERY_PARAM,
+} from "./RecommendationFilterUtil";
 import RecommendationDismissalUtil from "./RecommendationDismissalUtil";
 import MonitorRecommendationCreateSideOver from "./MonitorRecommendationCreateSideOver";
 import MonitorRecommendationCreateProgressPanel from "./MonitorRecommendationCreateProgress";
@@ -183,9 +185,21 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
   const [dismissals, setDismissals] = useState<Array<RecommendationDismissal>>(
     [],
   );
+  /*
+   * `?select=<id>,<id>` ticks those recommendations as the page opens, so a
+   * link can hand over a batch that is one button away from created: an ESXi
+   * host's "Turn on N alerts" opens its vCenter's list with the host alerts
+   * not yet on ticked. Ids that are not on the list, or that are created or
+   * dismissed by then, are never counted (getSelectableViewModels). The
+   * first render only, like `?search=` and `?status=` below.
+   */
   const [selectedRecommendationIds, setSelectedRecommendationIds] = useState<
     Set<string>
-  >(new Set<string>());
+  >((): Set<string> => {
+    return RecommendationFilterUtil.parseSelectionQuery(
+      Navigation.getQueryStringByName(RECOMMENDATION_SELECTION_QUERY_PARAM),
+    );
+  });
 
   /*
    * `?search=` pre-fills the search box and `?status=` the status filter, so

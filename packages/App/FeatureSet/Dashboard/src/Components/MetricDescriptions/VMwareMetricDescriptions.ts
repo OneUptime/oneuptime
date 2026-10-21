@@ -5,9 +5,11 @@
  * Each text describes what the page actually computes, not what the title
  * might suggest. Three things differ from tile to tile and are called out:
  *
- *   - the time window: the Host CPU / Host Memory / VM CPU Ready tiles
- *     average only the buckets that START in the last 5 minutes of the
- *     selected range, falling back to the whole range when none does -
+ *   - the time window: the Host CPU / Host Memory / VM CPU Ready tiles, and
+ *     an ESXi host page's CPU, Memory, Disk latency and Network tiles,
+ *     average (or, for the latency, take the highest of) only the buckets
+ *     that START in the last 5 minutes of the selected range, falling back
+ *     to the whole range when none does -
  *     usual on ranges over 12 hours, whose buckets are 15 minutes or wider,
  *     as well as when data stops. The charts cover the whole range, and
  *     everything read from the inventory (counts, top-5 lists, detail
@@ -53,10 +55,24 @@ export type VMwareMetric =
   | "topHostsByMemory"
   | "topDatastoresByUtilization"
   | "topVmsByCpuReady"
-  // ESXi host detail.
+  // ESXi host page (Pages/VMware/View/HostDetail.tsx, Components/VMware/Host).
   | "hostCpu"
   | "hostCpuCapacity"
   | "hostMemory"
+  | "hostPageDiskLatency"
+  | "hostPageNetwork"
+  | "hostPageVirtualMachines"
+  | "hostPageCpuChart"
+  | "hostPageMemoryChart"
+  | "hostPageDiskLatencyChart"
+  | "hostPageNetworkChart"
+  | "hostPageBusiestVirtualMachines"
+  | "hostPageAdapterThroughput"
+  | "hostPageAdapterPackets"
+  | "hostPageAdapterErrors"
+  | "hostPageAdapterDrops"
+  | "hostPageDeviceThroughput"
+  | "hostPageDeviceLatency"
   // Virtual machine detail.
   | "vmPowerState"
   | "vmCpu"
@@ -181,15 +197,61 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
     "The 5 powered-on VMs that spent the most time waiting for a physical CPU (CPU Ready), from the latest inventory, leaving out VMs with no data in the last 15 minutes. Above 10% a VM is slowed by busy hosts.",
   ),
 
-  // ---- ESXi host detail -------------------------------------------------
+  // ---- ESXi host page: tiles --------------------------------------------
   hostCpu: translationKey(
-    "Share of this host's CPU capacity in use, then the amount in use and the host's total in MHz or GHz. This is the latest report, however old (Metrics Updated shows when it arrived).",
+    "Share of this host's CPU capacity in use, averaged over the last 5 minutes of the selected range (the whole range when it has no recent data). The chart below covers the whole range.",
   ),
   hostCpuCapacity: translationKey(
-    "Total CPU capacity of this host, all cores added together, in MHz or GHz. Shown in place of CPU usage when the host has not reported how busy it is.",
+    "This host's total CPU: all its cores added together, in MHz or GHz, from the latest report.",
   ),
   hostMemory: translationKey(
-    "RAM in use on this host against its total RAM, with the share in use, from the latest report. When the host does not report its total, it is worked out from usage and utilization.",
+    "Share of this host's RAM in use, averaged over the last 5 minutes of the selected range (the whole range when it has no recent data).",
+  ),
+  hostPageDiskLatency: translationKey(
+    "The slowest disk's response time: the highest latency any of this host's storage devices reported in the last 5 minutes of the selected range. The bar fills toward 50 ms, where the Host Disk Latency High alert fires; amber from 20 ms.",
+  ),
+  hostPageNetwork: translationKey(
+    "Data this host's physical network adapters received and sent per second, together, averaged over the last 5 minutes of the selected range.",
+  ),
+  hostPageVirtualMachines: translationKey(
+    "Powered-on VMs on this host, out of all the VMs it runs (templates excluded), from the latest inventory. Power state is inferred from which VMs send CPU data, so a suspended VM counts as off.",
+  ),
+
+  // ---- ESXi host page: charts -------------------------------------------
+  hostPageCpuChart: translationKey(
+    "CPU in use in each interval of the selected range, as a share of this host's CPU capacity.",
+  ),
+  hostPageMemoryChart: translationKey(
+    "RAM in use in each interval of the selected range, as a share of this host's RAM.",
+  ),
+  hostPageDiskLatencyChart: translationKey(
+    "The highest latency of any of this host's storage devices in each interval of the selected range, in milliseconds.",
+  ),
+  hostPageNetworkChart: translationKey(
+    "Data received and sent per second by this host's physical network adapters in each interval of the selected range.",
+  ),
+
+  // ---- ESXi host page: cards and tables ---------------------------------
+  hostPageBusiestVirtualMachines: translationKey(
+    "The powered-on VMs on this host with a CPU reading from the last 15 minutes, busiest first: each VM's CPU as a share of its own vCPUs, from the latest inventory rather than the selected range. A CPU Ready badge marks a VM waiting for a physical CPU (amber from 5%, red from 10%).",
+  ),
+  hostPageAdapterThroughput: translationKey(
+    "Data the adapter received and sent per second, averaged over the selected range.",
+  ),
+  hostPageAdapterPackets: translationKey(
+    "Packets the adapter received and sent per second, together, averaged over the selected range.",
+  ),
+  hostPageAdapterErrors: translationKey(
+    "Packets received or sent with errors per second, averaged over the selected range. Anything above zero points at a cable, transceiver or switch port.",
+  ),
+  hostPageAdapterDrops: translationKey(
+    "Packets dropped per second, averaged over the selected range: usually a saturated uplink or a full receive buffer.",
+  ),
+  hostPageDeviceThroughput: translationKey(
+    "Data read from and written to the device per second, averaged over the selected range.",
+  ),
+  hostPageDeviceLatency: translationKey(
+    "How long a read or a write took on the device, on average over the selected range, in milliseconds. Amber from 20 ms, red from 50 ms.",
   ),
 
   // ---- Virtual machine detail -------------------------------------------
