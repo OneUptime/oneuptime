@@ -613,9 +613,9 @@
         -%>
         <% if (typeof cloudMarketplaces !== 'undefined' && cloudMarketplaces.publicListings.cloud.length > 0) { -%>
         <div class="mx-auto mt-10 max-w-5xl" data-testid="pricing-cloud-marketplaces">
-          <p class="text-center text-sm leading-6 text-gray-600">
-            Prefer to pay on your cloud bill? Buy OneUptime Cloud on
-            <% cloudMarketplaces.publicListings.cloud.forEach(function (link) { %><%= link.separator %><a href="<%= link.url %>" target="_blank" rel="noopener noreferrer" data-ou-cta="<%= cloudMarketplaces.ctaName %>" class="whitespace-nowrap font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600"><%= link.name %><span class="sr-only"> (opens in a new tab)</span></a><% }); %>, at these prices.
+          <p class="text-balance text-center text-sm leading-6 text-gray-600">
+            Prefer to pay on your cloud bill? Buy <span class="whitespace-nowrap">OneUptime Cloud</span> on
+            <% cloudMarketplaces.publicListings.cloud.forEach(function (link) { %><%= link.separator %><a href="<%= link.url %>" target="_blank" rel="noopener noreferrer" data-ou-cta="<%= cloudMarketplaces.ctaName %>" class="whitespace-nowrap font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600"><%= link.name %><span class="sr-only"> (opens in a new tab)</span></a><% }); %>, at the same prices.
             <a href="<%= cloudMarketplaces.sectionPath %>" class="whitespace-nowrap font-medium text-gray-900 hover:text-gray-600">See every marketplace <span aria-hidden="true">&rarr;</span></a>
           </p>
         </div>

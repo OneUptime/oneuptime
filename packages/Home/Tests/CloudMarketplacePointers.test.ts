@@ -139,7 +139,7 @@ describe("the pricing page's line about the cloud marketplaces", () => {
 
   test("names OneUptime Cloud's public listings, and says they cost what the plans cost", () => {
     expect(textOf(line)).toBe(
-      "Prefer to pay on your cloud bill? Buy OneUptime Cloud on AWS Marketplace (opens in a new tab) or Microsoft Marketplace (opens in a new tab), at these prices. See every marketplace →",
+      "Prefer to pay on your cloud bill? Buy OneUptime Cloud on AWS Marketplace (opens in a new tab) or Microsoft Marketplace (opens in a new tab), at the same prices. See every marketplace →",
     );
   });
 
@@ -165,6 +165,19 @@ describe("the pricing page's line about the cloud marketplaces", () => {
       // A name is never split over two lines.
       expect(link.className.split(" ")).toContain("whitespace-nowrap");
     }
+  });
+
+  test("keeps the product's name whole, and wraps in even lines on a phone", () => {
+    const product: Element | undefined = Array.from(
+      line?.querySelectorAll("span") || [],
+    ).find((span: Element) => {
+      return textOf(span) === "OneUptime Cloud";
+    });
+
+    expect(product?.className.split(" ")).toContain("whitespace-nowrap");
+    expect(line?.querySelector("p")?.className.split(" ")).toEqual(
+      expect.arrayContaining(["text-balance", "text-center"]),
+    );
   });
 
   test("names AWS's and Microsoft's OneUptime Cloud listings as they link them", () => {
@@ -211,7 +224,7 @@ describe("the pricing page's line about the cloud marketplaces", () => {
     const page: Document = await renderPricing(EVERY_LISTING);
 
     expect(textOf(page.querySelector(POINTER_ON_PRICING))).toContain(
-      "Buy OneUptime Cloud on AWS Marketplace (opens in a new tab), Microsoft Marketplace (opens in a new tab) or Google Cloud Marketplace (opens in a new tab), at these prices.",
+      "Buy OneUptime Cloud on AWS Marketplace (opens in a new tab), Microsoft Marketplace (opens in a new tab) or Google Cloud Marketplace (opens in a new tab), at the same prices.",
     );
     expect(
       outboundLinksIn(page.querySelector(POINTER_ON_PRICING)),
@@ -232,7 +245,7 @@ describe("the pricing page's line about the cloud marketplaces", () => {
     );
 
     expect(textOf(page.querySelector(POINTER_ON_PRICING))).toBe(
-      "Prefer to pay on your cloud bill? Buy OneUptime Cloud on AWS Marketplace (opens in a new tab), at these prices. See every marketplace →",
+      "Prefer to pay on your cloud bill? Buy OneUptime Cloud on AWS Marketplace (opens in a new tab), at the same prices. See every marketplace →",
     );
   });
 
@@ -315,9 +328,9 @@ describe("the self-hosted page's line about the cloud marketplaces", () => {
     line = page.querySelector(POINTER_ON_SELF_HOSTED);
   });
 
-  test("names OneUptime Enterprise's public listings, its price, and that the subscription is the license", () => {
+  test("names OneUptime Enterprise's public listings, its price, and that the buyer's subscription is their license", () => {
     expect(textOf(line)).toBe(
-      "Or buy it on Microsoft Marketplace (opens in a new tab) for $0.10 per user per hour, on your cloud bill. The subscription is the license. How it works →",
+      "Or buy it on Microsoft Marketplace (opens in a new tab) for $0.10 per user per hour, on your cloud bill. Your subscription is your license. How it works →",
     );
   });
 
@@ -396,7 +409,7 @@ describe("the self-hosted page's line about the cloud marketplaces", () => {
     );
 
     expect(textOf(page.querySelector(POINTER_ON_SELF_HOSTED))).toBe(
-      "Or buy it on AWS Marketplace (opens in a new tab) or Microsoft Marketplace (opens in a new tab) for $0.10 per user per hour, on your cloud bill. The subscription is the license. How it works →",
+      "Or buy it on AWS Marketplace (opens in a new tab) or Microsoft Marketplace (opens in a new tab) for $0.10 per user per hour, on your cloud bill. Your subscription is your license. How it works →",
     );
   });
 

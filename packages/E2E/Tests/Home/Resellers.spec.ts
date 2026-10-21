@@ -154,6 +154,20 @@ test.describe("Home: Resellers", () => {
       expect(box!.x).toBeGreaterThanOrEqual(0);
       expect(box!.x + box!.width).toBeLessThanOrEqual(390);
     }
+
+    // ...and every marketplace's name stays on one line.
+    for (const heading of await section
+      .getByRole("heading", { level: 3 })
+      .all()) {
+      expect(
+        await heading.evaluate((element: Element): number => {
+          return Math.round(
+            element.getBoundingClientRect().height /
+              parseFloat(window.getComputedStyle(element).lineHeight),
+          );
+        }),
+      ).toBe(1);
+    }
   });
 
   test("the footer links to the page", async ({ page }: { page: Page }) => {

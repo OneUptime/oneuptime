@@ -678,7 +678,7 @@ describe("the route table over HTTP", () => {
 
       expect(answer.status).toBe(200);
       expect(answer.body).toContain(
-        "Prefer to pay on your cloud bill? Buy OneUptime Cloud on [AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-ttfnc3eqofayw) or [Microsoft Marketplace](https://marketplace.microsoft.com/en-us/product/oneupitme.oneuptime-cloud), at these prices. Every marketplace: https://oneuptime.com/resellers#cloud-marketplaces",
+        "Prefer to pay on your cloud bill? Buy OneUptime Cloud on [AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-ttfnc3eqofayw) or [Microsoft Marketplace](https://marketplace.microsoft.com/en-us/product/oneupitme.oneuptime-cloud), at the same prices. Every marketplace: https://oneuptime.com/resellers#cloud-marketplaces",
       );
     });
   });

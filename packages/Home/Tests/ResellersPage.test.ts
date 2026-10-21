@@ -989,6 +989,53 @@ describe("the cloud marketplaces section", () => {
     }
   });
 
+  test("leaves as much room under a card's last row as above its name", () => {
+    for (const card of marketplaceCardsIn(section)) {
+      const rows: Array<Element> = listingRowsOf(card);
+
+      if (rows.length === 0) {
+        continue;
+      }
+
+      // The card's own padding is all the room under the last row...
+      expect(card.className.split(" ")).toContain("p-6");
+
+      for (const row of rows) {
+        const classes: Array<string> = row.className.split(" ");
+
+        expect(classes).toEqual(expect.arrayContaining(["py-3", "last:pb-0"]));
+      }
+    }
+  });
+
+  test("keeps a marketplace's name whole on a one-line card: on a phone too narrow for both, Coming soon goes under it", () => {
+    const card: Element = marketplaceCardNamed(
+      section,
+      "Google Cloud Marketplace",
+    );
+    const heading: Element | null = card.querySelector("h3");
+    const line: Element | null = heading?.parentElement || null;
+
+    expect(line?.parentElement).toBe(card);
+    expect(line?.className.split(" ")).toEqual(
+      expect.arrayContaining([
+        "flex",
+        "flex-wrap",
+        "items-center",
+        "justify-between",
+        "gap-x-4",
+        "gap-y-2",
+      ]),
+    );
+    // The name is never squeezed to make room for the label.
+    expect(heading?.className.split(" ")).not.toContain("min-w-0");
+    expect(
+      line
+        ?.querySelector('[data-testid="cloud-marketplace-coming-soon"]')
+        ?.className.split(" "),
+    ).toContain("flex-none");
+  });
+
   test("sits in the band of the ways to buy, below a line, scrolled to clear of the top", () => {
     const classes: Array<string> = section.className.split(" ");
 

@@ -631,7 +631,7 @@ describe("the cloud marketplaces, for machines", () => {
   test("pricing markdown names OneUptime Cloud's public listings under the plans", () => {
     const md: string = generatePricingMarkdown(homeUrl);
     const line: string =
-      "Prefer to pay on your cloud bill? Buy OneUptime Cloud on [AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-ttfnc3eqofayw) or [Microsoft Marketplace](https://marketplace.microsoft.com/en-us/product/oneupitme.oneuptime-cloud), at these prices. Every marketplace: https://oneuptime.com/resellers#cloud-marketplaces";
+      "Prefer to pay on your cloud bill? Buy OneUptime Cloud on [AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-ttfnc3eqofayw) or [Microsoft Marketplace](https://marketplace.microsoft.com/en-us/product/oneupitme.oneuptime-cloud), at the same prices. Every marketplace: https://oneuptime.com/resellers#cloud-marketplaces";
 
     expect(md).toContain(line);
     // After the plans, before the feature matrix.

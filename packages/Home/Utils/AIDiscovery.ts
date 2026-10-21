@@ -337,7 +337,7 @@ export function generatePricingMarkdown(
   if (cloudMarketplaces.publicListings.cloud.length > 0) {
     lines.push("");
     lines.push(
-      `Prefer to pay on your cloud bill? Buy OneUptime Cloud on ${marketplaceLinksSentence(cloudMarketplaces.publicListings.cloud)}, at these prices. Every marketplace: ${baseUrl}${cloudMarketplaces.sectionPath}`,
+      `Prefer to pay on your cloud bill? Buy OneUptime Cloud on ${marketplaceLinksSentence(cloudMarketplaces.publicListings.cloud)}, at the same prices. Every marketplace: ${baseUrl}${cloudMarketplaces.sectionPath}`,
     );
   }
 
