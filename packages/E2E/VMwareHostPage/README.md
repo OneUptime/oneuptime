@@ -31,10 +31,11 @@ The suite reads the page the way a person does:
   host alerts that are not on selected (`?select=`);
 - "View all 7 virtual machines" opening the host's own Virtual Machines tab,
   read by the host's name and datacenter, each VM opening its page;
-- the Metrics tab's charts of every `vcenter.host.*` series, and the Logs tab:
-  how to turn on the agent's syslog listener and point the host at it
-  (`esxcli`, PowerCLI for the host and for its cluster), with the host's own
-  log filter - or, for a vCenter a probe collects, why it has no syslog;
+- the Metrics tab's charts of the host's CPU, memory, network and disk
+  series, and the Logs tab: how to turn on the agent's syslog listener and
+  point the host at it (`esxcli`, PowerCLI for the host and for its cluster),
+  with the host's own log filter - or, for a vCenter a probe collects, why it
+  has no syslog;
 - the states a host can be in (`?state=not-reporting`, `no-data`, `gone`), a
   standalone host whose vCenter reports no per-device counters
   (`?standalone=1&devices=0`), a host without VMs (`?vms=none`), a role that

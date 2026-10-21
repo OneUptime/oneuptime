@@ -617,7 +617,7 @@ test.describe("from the host to what it needs", () => {
     );
   });
 
-  test("the Metrics tab charts every series vCenter keeps for the host", async ({
+  test("the Metrics tab charts the host's CPU, memory, network and disk series", async ({
     page,
   }: {
     page: Page;
