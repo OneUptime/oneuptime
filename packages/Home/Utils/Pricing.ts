@@ -672,9 +672,10 @@ const Pricing: Array<PricingCategory> = [
         },
       },
       {
+        // LlmProvider and AIConversation need the Growth plan to be created.
         name: "Bring Your Own LLM",
         plans: {
-          free: true,
+          free: false,
           growth: true,
           scale: true,
           enterprise: true,
