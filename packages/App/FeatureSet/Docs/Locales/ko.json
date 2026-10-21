@@ -275,6 +275,7 @@
     "Fluent Bit": "Fluent Bit",
     "Fluentd": "Fluentd",
     "Syslog": "Syslog",
+    "Hosts": "호스트",
     "Host OpenTelemetry Collector": "호스트 OpenTelemetry 수집기",
     "Kubernetes Agent": "Kubernetes 에이전트",
     "Docker Agent": "Docker 에이전트",
