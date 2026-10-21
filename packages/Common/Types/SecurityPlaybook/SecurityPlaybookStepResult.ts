@@ -66,12 +66,13 @@ export interface SecurityPlaybookTarget {
   undoneAt?: string | undefined;
 }
 
-// Contained, so its undo can release it.
-export function isContainedTarget(target: SecurityPlaybookTarget): boolean {
-  return (
-    target.state === SecurityPlaybookTargetState.Done ||
-    target.state === SecurityPlaybookTargetState.AlreadyDone
-  );
+/*
+ * Contained by the step itself, so its undo can release it. One that was
+ * already so before the step ran (an account suspended by hand) is not the
+ * step's to give back.
+ */
+export function wasContainedByStep(target: SecurityPlaybookTarget): boolean {
+  return target.state === SecurityPlaybookTargetState.Done;
 }
 
 /*

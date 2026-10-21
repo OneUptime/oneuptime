@@ -25,7 +25,7 @@ import {
   SecurityPlaybookStepResult,
   SecurityPlaybookTarget,
   SecurityPlaybookTargetState,
-  isContainedTarget,
+  wasContainedByStep,
   readStepResults,
 } from "../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
 import {
@@ -90,6 +90,17 @@ const RUN_SELECT: {
   currentStepIndex: true,
   triggeredByUserId: true,
 };
+
+type StoredStepResults = NonNullable<
+  PartialEntity<SecurityPlaybookRun>["stepResults"]
+>;
+
+// A run's step results as read, for a compare-and-set to expect them unchanged.
+function storedStepResults(
+  value: JSONArray | undefined,
+): StoredStepResults | null {
+  return (value || null) as unknown as StoredStepResults | null;
+}
 
 function readBody(req: ExpressRequest): JSONObject {
   return req.body && typeof req.body === "object" && !Array.isArray(req.body)
@@ -392,7 +403,7 @@ export default class SecurityPlaybookRunAPI extends BaseAPI<
         data: update,
         expectedData: {
           status: SecurityPlaybookRunStatus.WaitingForApproval,
-          stepResults: run.stepResults || null,
+          stepResults: storedStepResults(run.stepResults),
         },
       });
 
@@ -582,9 +593,9 @@ export default class SecurityPlaybookRunAPI extends BaseAPI<
       );
     }
 
-    if (!isContainedTarget(target)) {
+    if (!wasContainedByStep(target)) {
       throw new BadDataException(
-        `The step did not act on ${target.value}, so there is nothing to undo.`,
+        `The step did not contain ${target.value}, so there is nothing of its to undo.`,
       );
     }
 
@@ -740,7 +751,7 @@ export default class SecurityPlaybookRunAPI extends BaseAPI<
           },
           expectedData: {
             status,
-            stepResults: current.stepResults || null,
+            stepResults: storedStepResults(current.stepResults),
           },
         });
 

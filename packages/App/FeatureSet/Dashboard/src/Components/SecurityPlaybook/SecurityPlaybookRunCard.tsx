@@ -1,6 +1,9 @@
 import SecurityCaseApi from "../SecurityCase/SecurityCaseApi";
 import { SecurityPlaybookRunStatusPill } from "../SecurityCase/SecurityCasePills";
-import SecurityPlaybookRunSteps from "./SecurityPlaybookRunSteps";
+import { didStartRun, getApprovalTargets } from "./SecurityPlaybookRunStepRows";
+import SecurityPlaybookRunSteps, {
+  describeRunTarget,
+} from "./SecurityPlaybookRunSteps";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -9,6 +12,9 @@ import ObjectID from "Common/Types/ObjectID";
 import SecurityPlaybookRunStatus, {
   isFinishedSecurityPlaybookRunStatus,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
+import { SecurityPlaybookTarget } from "Common/Types/SecurityPlaybook/SecurityPlaybookStepResult";
+import { CategoryCheckboxOption } from "Common/UI/Components/CategoryCheckbox/CategoryCheckboxTypes";
+import Field from "Common/UI/Components/Forms/Types/Field";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -24,6 +30,7 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import User from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
@@ -36,11 +43,18 @@ export interface ComponentProps {
 
 type Decision = "approve" | "reject";
 
+// The form key of the approval's target list.
+export const APPROVAL_TARGETS_FIELD: string = "targets";
+
 /*
  * One playbook run: its steps and what each did, and - while a step waits
  * for approval - the Approve and Reject buttons that decide it. Approving
  * carries the run on from that step; rejecting ends it. Either way the
  * decision, with its comment, is kept on the step and on the case's timeline.
+ *
+ * A step that acts on users or hosts asks the approver about its targets,
+ * all ticked: untick any it should leave alone. Whoever started the run
+ * cannot approve it - somebody else does - but may reject it.
  */
 const SecurityPlaybookRunCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -61,6 +75,45 @@ const SecurityPlaybookRunCard: FunctionComponent<ComponentProps> = (
     new SecurityPlaybookRun(),
     ModelAction.Update,
   );
+
+  const isOwnRun: boolean = didStartRun(
+    run.triggeredByUserId,
+    User.getUserId(),
+  );
+  const approveDisabledReason: string | undefined = !gate.isAllowed
+    ? gate.disabledReason
+    : isOwnRun
+      ? translator.translateText(
+          "You started this run, so someone else must approve its steps.",
+        )
+      : undefined;
+  const { proposed, protectedTargets } = getApprovalTargets(run);
+
+  const targetField: Field<JSONObject> = {
+    field: { [APPROVAL_TARGETS_FIELD]: true },
+    title: "Act On",
+    description: "Every one is ticked. Untick any the step should leave alone.",
+    fieldType: FormFieldSchemaType.CategoryCheckbox,
+    required: true,
+    categoryCheckboxProps: {
+      categories: [],
+      options: proposed.map(
+        (target: SecurityPlaybookTarget): CategoryCheckboxOption => {
+          return {
+            value: target.value,
+            label: (
+              <span>
+                <span className="font-mono">{target.value}</span>
+                <span className="ml-2 font-normal text-gray-500">
+                  {describeRunTarget(target, translator)}
+                </span>
+              </span>
+            ),
+          };
+        },
+      ),
+    },
+  };
 
   const startedAt: Date | undefined = run.startedAt || run.createdAt;
   const who: string | undefined = run.triggeredByUser?.name?.toString();
@@ -118,8 +171,8 @@ const SecurityPlaybookRunCard: FunctionComponent<ComponentProps> = (
               icon={IconProp.Check}
               buttonStyle={ButtonStyleType.SUCCESS}
               buttonSize={ButtonSize.Small}
-              disabled={!gate.isAllowed || isWorking}
-              tooltip={gate.isAllowed ? undefined : gate.disabledReason}
+              disabled={Boolean(approveDisabledReason) || isWorking}
+              tooltip={approveDisabledReason}
               onClick={() => {
                 setError("");
                 setDecision("approve");
@@ -157,6 +210,20 @@ const SecurityPlaybookRunCard: FunctionComponent<ComponentProps> = (
         <SecurityPlaybookRunSteps
           steps={run.steps}
           stepResults={run.stepResults}
+          runId={runId}
+          canUndo={
+            gate.isAllowed &&
+            run.status !== SecurityPlaybookRunStatus.Queued &&
+            run.status !== SecurityPlaybookRunStatus.Running
+          }
+          undoDisabledReason={
+            gate.isAllowed
+              ? translator.translateText(
+                  "Undo once the run has stopped running.",
+                )
+              : gate.disabledReason
+          }
+          onChanged={props.onChanged}
         />
         {run.errorMessage && run.status === SecurityPlaybookRunStatus.Failed ? (
           <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -173,8 +240,19 @@ const SecurityPlaybookRunCard: FunctionComponent<ComponentProps> = (
           title={decision === "approve" ? "Approve Step" : "Reject Step"}
           description={
             decision === "approve"
-              ? "The run carries on from this step. Your name and comment are kept on the step and on the case's timeline."
-              : "The run stops here and nothing after this step runs. Your name and comment are kept on the step and on the case's timeline."
+              ? protectedTargets.length > 0
+                ? translator.translateTemplate(
+                    "The run carries on from this step. It never acts on protected entities: {{values}}. Your decision is kept on the step, on the case's timeline and in the audit log.",
+                    {
+                      values: protectedTargets
+                        .map((target: SecurityPlaybookTarget): string => {
+                          return target.value;
+                        })
+                        .join(", "),
+                    },
+                  )
+                : "The run carries on from this step. Your decision is kept on the step, on the case's timeline and in the audit log."
+              : "The run stops here and nothing after this step runs. Your decision is kept on the step, on the case's timeline and in the audit log."
           }
           submitButtonText={decision === "approve" ? "Approve" : "Reject"}
           submitButtonStyleType={
@@ -187,7 +265,20 @@ const SecurityPlaybookRunCard: FunctionComponent<ComponentProps> = (
           }}
           formProps={{
             name: "security-playbook-approval",
+            initialValues:
+              decision === "approve" && proposed.length > 0
+                ? {
+                    [APPROVAL_TARGETS_FIELD]: proposed.map(
+                      (target: SecurityPlaybookTarget): string => {
+                        return target.value;
+                      },
+                    ),
+                  }
+                : {},
             fields: [
+              ...(decision === "approve" && proposed.length > 0
+                ? [targetField]
+                : []),
               {
                 field: { comment: true },
                 title: "Comment",
@@ -199,6 +290,7 @@ const SecurityPlaybookRunCard: FunctionComponent<ComponentProps> = (
           }}
           onSubmit={async (values: FormValues<JSONObject>) => {
             const isApproved: boolean = decision === "approve";
+            const kept: unknown = values[APPROVAL_TARGETS_FIELD];
             setDecision(null);
             setIsWorking(true);
 
@@ -209,6 +301,14 @@ const SecurityPlaybookRunCard: FunctionComponent<ComponentProps> = (
                 comment:
                   typeof values["comment"] === "string"
                     ? (values["comment"] as string)
+                    : undefined,
+                targets:
+                  isApproved && proposed.length > 0
+                    ? (Array.isArray(kept) ? kept : []).map(
+                        (value: unknown): string => {
+                          return String(value);
+                        },
+                      )
                     : undefined,
               });
             } catch (err) {

@@ -123,6 +123,7 @@ const EXPECTED: Array<[string, Array<[string, string]>]> = [
         PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL,
       ],
       ["Playbook Runs", PageMap.SECURITY_PLAYBOOK_RUNS],
+      ["Protected Entities", PageMap.SECURITY_PROTECTED_ENTITIES],
     ],
   ],
   [

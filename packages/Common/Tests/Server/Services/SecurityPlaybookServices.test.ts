@@ -1253,14 +1253,16 @@ describe("SecurityPlaybookRunAPI.undoTarget, the one-click on a contained target
     });
     await expect(undo()).rejects.toThrow(/still running/);
 
+    // Already suspended before the step ran: not the step's to give back.
     for (const state of [
       SecurityPlaybookTargetState.Protected,
       SecurityPlaybookTargetState.LeftOut,
       SecurityPlaybookTargetState.NotFound,
       SecurityPlaybookTargetState.Failed,
+      SecurityPlaybookTargetState.AlreadyDone,
     ]) {
       finishedRun({ targets: [userTarget("mallory@acme.com", state)] });
-      await expect(undo()).rejects.toThrow(/nothing to undo/);
+      await expect(undo()).rejects.toThrow(/nothing of its to undo/);
     }
 
     finishedRun({

@@ -3,9 +3,11 @@ import {
   STEP_ACTION_KEY,
   formValuesToStep,
   getNewStepFormValues,
+  isApprovalSwitchOffered,
   stepToFormValues,
 } from "./SecurityPlaybookStepForm";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import IconProp from "Common/Types/Icon/IconProp";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
@@ -29,7 +31,10 @@ import {
   ENTITY_ACTIVITY_LOOKBACK_MAX_HOURS,
   ENTITY_ACTIVITY_LOOKBACK_MIN_HOURS,
   SecurityPlaybookStep,
+  TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
+import Icon from "Common/UI/Components/Icon/Icon";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { SECURITY_CASE_TEMPLATE_PLACEHOLDERS } from "Common/Utils/SecurityCase/SecurityCaseMarkdown";
@@ -135,6 +140,34 @@ function isAction(
   );
 }
 
+// The form key of the note a containment step shows in place of the toggle.
+export const CONTAINMENT_APPROVAL_NOTE_KEY: string = "containmentApprovalNote";
+
+/*
+ * Needs Approval, for somebody who may not turn it off on a containment
+ * step: what it is set to, and who can change it.
+ */
+const ContainmentApprovalNote: FunctionComponent<{ isOff: boolean }> = (props: {
+  isOff: boolean;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <div className="flex items-start gap-2 rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-700">
+      <Icon icon={IconProp.Lock} className="mt-0.5 h-4 w-4 text-gray-400" />
+      <span>
+        {props.isOff
+          ? translator.translateText(
+              "Off: a Security Admin let this step run without approval. Only a Security Admin can change what it does.",
+            )
+          : translator.translateText(
+              "On: a step that contains waits for someone to approve it on the case. Only a Security Admin can turn this off.",
+            )}
+      </span>
+    </div>
+  );
+};
+
 function priorityOptions(): Array<DropdownOption> {
   return DropdownUtil.getDropdownOptionsFromEnum(SecurityCasePriority);
 }
@@ -154,10 +187,15 @@ function connectionOptions(
 
 /*
  * The settings of every action, each shown only for its own: one dialog for
- * all eighteen, so adding a step is pick, fill, done.
+ * all of them, so adding a step is pick, fill, done. Needs Approval on a
+ * containment step is a Security Admin's to turn off: anyone else sees what
+ * it is set to, and the server holds them to it.
  */
 export function getStepSettingsFields(
   connections: Array<PlaybookConnectionOption>,
+  options: { mayTurnOffContainmentApproval: boolean } = {
+    mayTurnOffContainmentApproval: false,
+  },
 ): Array<Field<JSONObject>> {
   const connectionField: (
     provider: SecurityEventConnectorProvider,
@@ -464,6 +502,7 @@ export function getStepSettingsFields(
       [
         SecurityPlaybookActionType.SuspendOktaUser,
         SecurityPlaybookActionType.EndOktaSessions,
+        SecurityPlaybookActionType.UnsuspendOktaUser,
       ],
       translationKey(
         "The Okta connection to act through. Its API token needs permission to manage users. Add or test connections under Sources > Connections.",
@@ -471,14 +510,20 @@ export function getStepSettingsFields(
     ),
     connectionField(
       SecurityEventConnectorProvider.CrowdStrikeFalcon,
-      [SecurityPlaybookActionType.ContainCrowdStrikeHost],
+      [
+        SecurityPlaybookActionType.ContainCrowdStrikeHost,
+        SecurityPlaybookActionType.LiftCrowdStrikeContainment,
+      ],
       translationKey(
         "The CrowdStrike Falcon connection to act through. Its API client needs the Hosts write scope. Add or test connections under Sources > Connections.",
       ),
     ),
     connectionField(
       SecurityEventConnectorProvider.MicrosoftDefenderXdr,
-      [SecurityPlaybookActionType.IsolateDefenderDevice],
+      [
+        SecurityPlaybookActionType.IsolateDefenderDevice,
+        SecurityPlaybookActionType.ReleaseDefenderDevice,
+      ],
       translationKey(
         "The Microsoft Defender XDR connection to act through. Its app needs the Machine.Isolate permission. Add or test connections under Sources > Connections.",
       ),
@@ -545,11 +590,39 @@ export function getStepSettingsFields(
       field: { requiresApproval: true },
       title: "Needs Approval",
       description:
-        "The run stops before this step until someone approves it on the case. On by default for steps that act outside OneUptime.",
+        "The run stops before this step until someone other than the person who started it approves it on the case. A step that contains always does, unless a Security Admin turns this off.",
       fieldType: FormFieldSchemaType.Toggle,
       stepId: "settings",
       required: false,
       showHorizontalRuleAbove: true,
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        return isApprovalSwitchOffered(
+          values[STEP_ACTION_KEY],
+          options.mayTurnOffContainmentApproval,
+        );
+      },
+    },
+    {
+      field: { [CONTAINMENT_APPROVAL_NOTE_KEY]: true },
+      title: "Needs Approval",
+      fieldType: FormFieldSchemaType.CustomComponent,
+      stepId: "settings",
+      required: false,
+      hideOptionalLabel: true,
+      showHorizontalRuleAbove: true,
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        return !isApprovalSwitchOffered(
+          values[STEP_ACTION_KEY],
+          options.mayTurnOffContainmentApproval,
+        );
+      },
+      getCustomElement: (values: FormValues<JSONObject>): ReactElement => {
+        return (
+          <ContainmentApprovalNote
+            isOff={values["requiresApproval"] === false}
+          />
+        );
+      },
     },
     {
       field: { onlyIfThreatIntelMatched: true },
@@ -652,7 +725,11 @@ const SecurityPlaybookStepDialog: FunctionComponent<ComponentProps> = (
           : [{ title: "Settings", id: "settings" }],
         fields: [
           ...(isNew ? [actionField] : []),
-          ...getStepSettingsFields(props.connections),
+          ...getStepSettingsFields(props.connections, {
+            mayTurnOffContainmentApproval: PermissionGate.holdsAnyOf(
+              TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS,
+            ),
+          }),
         ],
       }}
       onSubmit={async (values: FormValues<JSONObject>) => {

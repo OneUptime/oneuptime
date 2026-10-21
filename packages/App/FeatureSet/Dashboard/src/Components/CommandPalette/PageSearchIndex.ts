@@ -1755,6 +1755,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Play,
             keywords: ["run history", "soar runs"],
           },
+          {
+            page: PageMap.SECURITY_PROTECTED_ENTITIES,
+            title: "Protected Entities",
+            icon: IconProp.Lock,
+            keywords: [
+              "protected users",
+              "protected hosts",
+              "containment exclusions",
+              "break-glass accounts",
+            ],
+          },
         ],
       },
       {
