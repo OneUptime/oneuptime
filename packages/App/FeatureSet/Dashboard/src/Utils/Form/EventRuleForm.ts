@@ -1,20 +1,45 @@
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
+import OneUptimeDate from "Common/Types/Date";
+import OnCallRuleWhenToPage from "Common/Types/OnCallDutyPolicy/OnCallRuleWhenToPage";
+import RestrictionTimes from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
+import WorkingHours, {
+  WORKING_HOURS_DAILY_WINDOW_EMPTY_MESSAGE,
+  WORKING_HOURS_NOT_SET_MESSAGE,
+  WORKING_HOURS_NO_WEEKLY_WINDOWS_MESSAGE,
+  WORKING_HOURS_TIMEZONE_NOT_SET_MESSAGE,
+  WORKING_HOURS_WEEKLY_WINDOW_EMPTY_MESSAGE,
+} from "Common/Types/OnCallDutyPolicy/WorkingHours";
 import ReminderStopState from "Common/Types/Reminder/ReminderStopState";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import type Field from "Common/UI/Components/Forms/Types/Field";
-import type { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import type {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import type { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import type FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import type SelectFormFields from "Common/UI/Types/SelectEntityField";
+import TimezoneUtil from "Common/UI/Utils/Timezone";
 import {
   ComposedValue,
   Translator,
   composedValue,
+  getGlobalTranslator,
   translateTemplate,
+  translateText,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import React, { ReactElement } from "react";
+import WorkingHoursPicker from "../../Components/OnCallRule/WorkingHoursPicker";
+import WorkingHoursSummary from "../../Components/OnCallRule/WorkingHoursSummary";
+import {
+  OnCallRuleRecord,
+  WorkingHoursOfRule,
+  describeWorkingHours,
+} from "../../Components/OnCallRule/WorkingHoursText";
 import { formatGroupingDuration } from "../GroupingRule/GroupingRuleSetup";
 import {
   DEFAULT_MAINTENANCE_REMINDER_TIMING,
@@ -59,7 +84,7 @@ import {
  *     Database failover") and following it until somebody types a name
  *     of their own - its Enabled switch on the Edit form only (a new rule
  *     starts on), and More fields, folded: the Description, and what most
- *     rules leave alone.
+ *     rules leave alone - for an on-call rule, when it pages.
  *
  * A privacy rule does one thing - it makes what it matches private - so its
  * second step holds only its name, filled in, and says what the rule does.
@@ -268,14 +293,262 @@ export const ON_CALL_RULE_NAME_DESCRIPTION: string = translationKey(
   "Named after the policies it pages until you type a name of your own.",
 );
 
+// ---- When an on-call rule pages ------------------------------------------
+
+/*
+ * WHEN SHOULD THIS RULE PAGE? (OnCallRuleWhenToPage): right away, as rules
+ * always have, or only during working hours - a record that matches outside
+ * them waits, and paging starts when they begin (OnCallDutyPolicyRunWait).
+ * Most rules page right away, so the question waits under More fields, with
+ * the description, and a rule that pages right away is not named there.
+ *
+ * Picking "Only during working hours" fills in what most people mean by it -
+ * Monday to Friday, 09:00 to 17:00 - in the reader's own time zone, and
+ * shows both, to change: the days and two times (WorkingHoursPicker), then
+ * the zone. Under the choice, one sentence says what will happen
+ * (WorkingHoursSummary). Changing the zone keeps the hours on the clock:
+ * 09:00 to 17:00 stays 09:00 to 17:00 in the zone picked.
+ */
+export const WHEN_TO_PAGE_TITLE: string = translationKey(
+  "When should this rule page?",
+);
+
+export const WHEN_TO_PAGE_TITLES: Record<OnCallRuleWhenToPage, string> = {
+  [OnCallRuleWhenToPage.RightAway]: translationKey("Right away"),
+  [OnCallRuleWhenToPage.WorkingHours]: translationKey(
+    "Only during working hours",
+  ),
+};
+
+export const WHEN_TO_PAGE_DESCRIPTIONS: Record<OnCallRuleWhenToPage, string> = {
+  [OnCallRuleWhenToPage.RightAway]: translationKey(
+    "Page as soon as this rule matches.",
+  ),
+  [OnCallRuleWhenToPage.WorkingHours]: translationKey(
+    "Outside working hours, wait and page when they begin.",
+  ),
+};
+
+export const WORKING_HOURS_TIMEZONE_DESCRIPTION: string = translationKey(
+  "The time zone the working hours are in.",
+);
+
+export const WORKING_HOURS_DESCRIPTION: string = translationKey(
+  "When this rule may page. Once paging starts, the policy escalates as usual.",
+);
+
+// Hours a schedule layer's editor shows: its note, and its Add button.
+export {
+  ADD_WORKING_HOURS_TITLE,
+  WORKING_HOURS_TIMEZONE_NOTE,
+} from "../../Components/OnCallRule/WorkingHoursPicker";
+
+/*
+ * Why the hours cannot be saved (WorkingHours.getProblem), in the reader's
+ * words - the words of the picker most rules are set in: its days, and the
+ * two times.
+ */
+const WORKING_HOURS_PROBLEMS: Record<string, string> = {
+  [WORKING_HOURS_NOT_SET_MESSAGE]: translationKey(
+    "Set the working hours to page in.",
+  ),
+  [WORKING_HOURS_TIMEZONE_NOT_SET_MESSAGE]: translationKey(
+    "Choose the time zone the working hours are in.",
+  ),
+  [WORKING_HOURS_DAILY_WINDOW_EMPTY_MESSAGE]: translationKey(
+    "Working hours must end at a different time than they start.",
+  ),
+  [WORKING_HOURS_NO_WEEKLY_WINDOWS_MESSAGE]: translationKey(
+    "Pick at least one day.",
+  ),
+  [WORKING_HOURS_WEEKLY_WINDOW_EMPTY_MESSAGE]: translationKey(
+    "Working hours must end at a different time than they start.",
+  ),
+};
+
+// Whether the form's rule pages only during working hours.
+export const isWorkingHoursRule: (values: unknown) => boolean = (
+  values: unknown,
+): boolean => {
+  return asRecord(values)["whenToPage"] === OnCallRuleWhenToPage.WorkingHours;
+};
+
+// The zone the form's working hours are in, when it is one OneUptime knows.
+const getWorkingHoursTimezone: (values: unknown) => string | undefined = (
+  values: unknown,
+): string | undefined => {
+  const timezone: unknown = asRecord(values)["workingHoursTimezone"];
+
+  return typeof timezone === "string" && WorkingHours.isKnownTimezone(timezone)
+    ? timezone
+    : undefined;
+};
+
+/*
+ * Why the form's working hours cannot hold a page, in the reader's words -
+ * or null when they can, or the rule pages right away.
+ */
+export const getWorkingHoursProblem: (values: unknown) => string | null = (
+  values: unknown,
+): string | null => {
+  if (!isWorkingHoursRule(values)) {
+    return null;
+  }
+
+  const problem: string | null = WorkingHours.getProblem({
+    hours: asRecord(values)["workingHours"] as RestrictionTimes | undefined,
+    timezone: getWorkingHoursTimezone(values),
+  });
+
+  if (!problem) {
+    return null;
+  }
+
+  const text: string = WORKING_HOURS_PROBLEMS[problem] || problem;
+
+  return translateText(text) || text;
+};
+
+/*
+ * Picking "Only during working hours" on a rule that has no hours yet fills
+ * them in - Monday to Friday, 09:00 to 17:00 - in the reader's own zone.
+ * Hours the rule already holds are kept, and so is its zone.
+ */
+export const fillInWorkingHours: <TEntity>(
+  value: unknown,
+  currentValues: FormValues<TEntity>,
+  setNewFormValues: (values: FormValues<TEntity>) => void,
+) => void = <TEntity>(
+  value: unknown,
+  currentValues: FormValues<TEntity>,
+  setNewFormValues: (values: FormValues<TEntity>) => void,
+): void => {
+  if (value !== OnCallRuleWhenToPage.WorkingHours) {
+    return;
+  }
+
+  const timezone: string =
+    getWorkingHoursTimezone(currentValues) ||
+    OneUptimeDate.getCurrentTimezone().toString();
+  const hours: unknown = asRecord(currentValues)["workingHours"];
+  const hasHours: boolean =
+    WorkingHours.getProblem({
+      hours: hours as RestrictionTimes | undefined,
+      timezone: timezone,
+    }) === null;
+
+  if (hasHours && getWorkingHoursTimezone(currentValues) === timezone) {
+    return;
+  }
+
+  setNewFormValues({
+    ...currentValues,
+    workingHoursTimezone: timezone,
+    ...(hasHours
+      ? {}
+      : { workingHours: WorkingHours.getDefaultHours({ timezone }) }),
+  } as FormValues<TEntity>);
+};
+
+/*
+ * A new zone keeps the hours on the clock: the stored times are moments, and
+ * read on the new zone's clock they would say other hours.
+ */
+export const keepWorkingHoursOnTheClock: <TEntity>(
+  value: unknown,
+  currentValues: FormValues<TEntity>,
+  setNewFormValues: (values: FormValues<TEntity>) => void,
+) => void = <TEntity>(
+  value: unknown,
+  currentValues: FormValues<TEntity>,
+  setNewFormValues: (values: FormValues<TEntity>) => void,
+): void => {
+  const fromTimezone: string | undefined =
+    getWorkingHoursTimezone(currentValues);
+  const toTimezone: string | undefined =
+    typeof value === "string" && WorkingHours.isKnownTimezone(value)
+      ? value
+      : undefined;
+
+  if (!fromTimezone || !toTimezone || fromTimezone === toTimezone) {
+    return;
+  }
+
+  const moved: RestrictionTimes | null = WorkingHours.moveToTimezone({
+    hours: asRecord(currentValues)["workingHours"] as
+      | RestrictionTimes
+      | undefined,
+    fromTimezone: fromTimezone,
+    toTimezone: toTimezone,
+  });
+
+  if (!moved) {
+    return;
+  }
+
+  setNewFormValues({
+    ...currentValues,
+    workingHours: moved,
+  } as FormValues<TEntity>);
+};
+
+// The zones to pick from, worked out once: some six hundred of them.
+let timezoneOptions: Array<DropdownOption> | null = null;
+
+const getTimezoneOptions: () => Array<DropdownOption> =
+  (): Array<DropdownOption> => {
+    if (!timezoneOptions) {
+      timezoneOptions = TimezoneUtil.getTimezoneDropdownOptions();
+    }
+
+    return timezoneOptions;
+  };
+
+/*
+ * A working-hours rule's hours in a few words, for the folded More fields
+ * line: "Working Hours: Mon–Fri 09:00–17:00" - the zone is said once the
+ * section is open, where the sentence under the choice names it. Hours that
+ * are not set yet read as the choice itself.
+ */
+export const getWorkingHoursFoldedValue: (values: unknown) => string | null = (
+  values: unknown,
+): string | null => {
+  if (!isWorkingHoursRule(values)) {
+    return null;
+  }
+
+  const translator: Translator = getGlobalTranslator();
+
+  return (
+    describeWorkingHours(asRecord(values) as WorkingHoursOfRule, {
+      translator: translator,
+      use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
+      withTimezone: false,
+    }) ||
+    translator.translateText(
+      WHEN_TO_PAGE_TITLES[OnCallRuleWhenToPage.WorkingHours],
+    )!
+  );
+};
+
+const isNeverListedWhileFolded: () => boolean = (): boolean => {
+  return false;
+};
+
 /**
  * Everything on an on-call rule's On-Call Policies step: the policies it
  * pages (required), its name (filled in from them), its Enabled switch on
- * the Edit form only, and its description folded under More fields.
+ * the Edit form only, and folded under More fields its description and when
+ * it pages - right away, or only during working hours, and then which days,
+ * from when until when, and in which zone. The record is what the rule
+ * pages for: the sentence under the choice names it ("Alerts that match
+ * this rule ...").
  */
-export const getOnCallRuleActionFields: <TEntity>() => Array<Field<TEntity>> = <
-  TEntity,
->(): Array<Field<TEntity>> => {
+export const getOnCallRuleActionFields: <TEntity>(
+  record: OnCallRuleRecord,
+) => Array<Field<TEntity>> = <TEntity>(
+  record: OnCallRuleRecord,
+): Array<Field<TEntity>> => {
   const moreFields: FormFieldCollapsibleSection<TEntity> =
     getAdvancedFormSection<TEntity>();
 
@@ -327,6 +600,88 @@ export const getOnCallRuleActionFields: <TEntity>() => Array<Field<TEntity>> = <
       fieldType: FormFieldSchemaType.LongText,
       required: false,
       collapsibleSection: moreFields,
+    },
+    {
+      field: { whenToPage: true } as unknown as SelectFormFields<TEntity>,
+      title: WHEN_TO_PAGE_TITLE,
+      stepId: "on-call",
+      fieldType: FormFieldSchemaType.RadioButton,
+      // The column starts on Right away: there is always an answer.
+      required: true,
+      // Each answer says what it means: the column's sentence would repeat it.
+      hideColumnDescription: true,
+      dataTestId: "on-call-rule-when-to-page",
+      radioButtonOptions: [
+        {
+          title: WHEN_TO_PAGE_TITLES[OnCallRuleWhenToPage.RightAway],
+          description:
+            WHEN_TO_PAGE_DESCRIPTIONS[OnCallRuleWhenToPage.RightAway],
+          value: OnCallRuleWhenToPage.RightAway,
+        },
+        {
+          title: WHEN_TO_PAGE_TITLES[OnCallRuleWhenToPage.WorkingHours],
+          description:
+            WHEN_TO_PAGE_DESCRIPTIONS[OnCallRuleWhenToPage.WorkingHours],
+          value: OnCallRuleWhenToPage.WorkingHours,
+        },
+      ],
+      collapsibleSection: moreFields,
+      onChange: fillInWorkingHours,
+      // The folded line names the hours instead (getWorkingHoursFoldedValue).
+      isListedWhileFolded: isNeverListedWhileFolded,
+      // Under the choice, what will happen, in one sentence.
+      getFooterElement: (values: FormValues<TEntity>): ReactElement => {
+        return React.createElement(WorkingHoursSummary, {
+          rule: asRecord(values) as WorkingHoursOfRule,
+          record: record,
+        });
+      },
+    },
+    {
+      field: { workingHours: true } as unknown as SelectFormFields<TEntity>,
+      title: "Working Hours",
+      description: WORKING_HOURS_DESCRIPTION,
+      stepId: "on-call",
+      fieldType: FormFieldSchemaType.CustomComponent,
+      required: isWorkingHoursRule,
+      showIf: isWorkingHoursRule,
+      collapsibleSection: moreFields,
+      /*
+       * Named on the folded line only when the rule waits for them: "Working
+       * Hours: Mon–Fri 09:00–17:00 (Europe/London)". A rule that pages right
+       * away adds nothing to the line.
+       */
+      isListedWhileFolded: isWorkingHoursRule,
+      getFoldedValue: getWorkingHoursFoldedValue,
+      customValidation: getWorkingHoursProblem,
+      getCustomElement: (
+        values: FormValues<TEntity>,
+        props: CustomElementProps,
+      ): ReactElement => {
+        return React.createElement(WorkingHoursPicker, {
+          error: props.error,
+          onChange: props.onChange,
+          value: asRecord(values)["workingHours"] as
+            | RestrictionTimes
+            | undefined,
+          timezone: getWorkingHoursTimezone(values),
+        });
+      },
+    },
+    {
+      field: {
+        workingHoursTimezone: true,
+      } as unknown as SelectFormFields<TEntity>,
+      title: "Timezone",
+      description: WORKING_HOURS_TIMEZONE_DESCRIPTION,
+      stepId: "on-call",
+      fieldType: FormFieldSchemaType.Dropdown,
+      dropdownOptions: getTimezoneOptions(),
+      required: isWorkingHoursRule,
+      showIf: isWorkingHoursRule,
+      collapsibleSection: moreFields,
+      isListedWhileFolded: isNeverListedWhileFolded,
+      onChange: keepWorkingHoursOnTheClock,
     },
   ];
 };

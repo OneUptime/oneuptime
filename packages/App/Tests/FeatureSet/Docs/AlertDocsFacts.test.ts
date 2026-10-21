@@ -2352,6 +2352,39 @@ describe("alert rules and settings", () => {
     );
   });
 
+  /*
+   * Making a rule wait for working hours: the page names the question, the
+   * answer and the picker's fields as the form draws them, and says the
+   * hours begin as Monday to Friday, 09:00 to 17:00, as the picker does.
+   */
+  it("makes a rule wait for working hours with the form's own words", () => {
+    const steps: string = section(page, "## On-call rules");
+    const form: string = readDashboardSource("Utils/Form/EventRuleForm.ts");
+    const picker: string = readDashboardSource(
+      "Components/OnCallRule/WorkingHoursPicker.tsx",
+    );
+
+    expect(steps).toContain(
+      "answer **When should this rule page?** under **More fields** with **Only during working hours**",
+    );
+    expect(form).toContain('"When should this rule page?"');
+    expect(form).toContain('"Only during working hours"');
+
+    expect(steps).toContain(
+      "The **Working Hours** start as Monday to Friday, 09:00 to 17:00, in your own time zone",
+    );
+    expect(steps).toContain(
+      "another **Start Time** or **End Time**, or another **Timezone**",
+    );
+    expect(picker).toContain('translationKey("Start Time")');
+    expect(picker).toContain('translationKey("End Time")');
+    expect(form).toContain('title: "Timezone",');
+    expect(form).toContain('title: "Working Hours",');
+    expect(
+      readCommonSource("Types/OnCallDutyPolicy/WorkingHours.ts"),
+    ).toContain("export const DEFAULT_WORKDAY_START_HOUR: number = 9;");
+  });
+
   it("walks the on-call rule's two steps with the form's own names, and starts a rule enabled", () => {
     const source: string = readDashboardSource(
       `${settingsDir}/AlertOnCallRules.tsx`,
@@ -2364,7 +2397,7 @@ describe("alert rules and settings", () => {
       "formSteps={getOnCallRuleFormSteps<AlertOnCallRule>()}",
     );
     expect(source).toContain(
-      "...getOnCallRuleActionFields<AlertOnCallRule>(),",
+      "...getOnCallRuleActionFields<AlertOnCallRule>(OnCallRuleRecord.Alert),",
     );
     expect(form).toContain('{ title: "Match", id: "match-criteria" },');
     expect(form).toContain('{ title: "On-Call Policies", id: "on-call" },');

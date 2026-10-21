@@ -539,6 +539,19 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
               </svg>
             </a>
+
+            <%#
+              The Enterprise Edition by the hour on a cloud marketplace, its
+              subscription its license: only the listings that are public
+              (Utils/CloudMarketplaces.ts), and no line while there is none.
+            -%>
+            <% if (selfHosted.cloudMarketplaces.publicListings.enterprise.length > 0) { -%>
+            <p class="mt-4 max-w-lg text-sm leading-6 text-gray-600" data-testid="self-hosted-cloud-marketplaces">
+              Or buy it on
+              <% selfHosted.cloudMarketplaces.publicListings.enterprise.forEach(function (link) { %><%= link.separator %><a href="<%= link.url %>" target="_blank" rel="noopener noreferrer" data-ou-cta="<%= selfHosted.cloudMarketplaces.ctaName %>" class="whitespace-nowrap font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600"><%= link.name %><span class="sr-only"> (opens in a new tab)</span></a><% }); %> for <%= selfHosted.cloudMarketplaces.enterprisePricePerUserHour %> per user per hour, on your cloud bill. Your subscription is your license.
+              <a href="<%= selfHosted.cloudMarketplaces.enterpriseGuidePath %>" class="whitespace-nowrap font-medium text-gray-900 hover:text-gray-600">How it works <span aria-hidden="true">&rarr;</span></a>
+            </p>
+            <% } -%>
           </div>
 
           <ul class="space-y-4">

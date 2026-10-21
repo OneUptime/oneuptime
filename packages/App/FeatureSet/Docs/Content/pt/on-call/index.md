@@ -22,7 +22,7 @@ flowchart TB
     ack -->|"Não"| level
 ```
 
-1. Um novo incidente, alerta ou episódio executa na hora suas políticas de plantão: as escolhidas nele e as que suas regras de plantão adicionam. Cada política é executada por conta própria.
+1. Um novo incidente, alerta ou episódio executa na hora suas políticas de plantão: as escolhidas nele e as que suas regras de plantão adicionam. Cada política é executada por conta própria. Uma regra de plantão definida como **Somente em horário comercial** faz as políticas que adiciona aguardarem até esse horário começar.
 2. A primeira regra de escalonamento de uma política aciona imediatamente: quem está de plantão agora nos seus agendamentos, cada membro das suas equipes e as pessoas que ela nomeia.
 3. Se uma delas estiver ausente, uma substituição de usuário envia o acionamento dela para a pessoa que a cobre, ou a pula.
 4. Cada pessoa é contatada pelas suas regras de plantão pessoais: qual método é tentado e depois de quanto tempo. Um acionamento sem regra ainda chega a ela pelos métodos que ela verificou.
@@ -97,7 +97,7 @@ Quando você está de plantão em uma política, o sino no canto superior direit
 ## Solução de problemas
 
 :::details Ninguém foi acionado por um novo incidente
-Abra a página **Execuções de plantão** do incidente. Se estiver vazia, o incidente não tinha nenhuma política de plantão: nenhuma foi escolhida nele e nenhuma regra de plantão correspondeu. Uma execução com **Execution Completed - No One Notified** passou por todas as regras de escalonamento sem encontrar ninguém: em geral um agendamento sem ninguém de plantão. Veja [Registros de execução](/docs/on-call/policies#registros-de-execução).
+Abra a página **Execuções de plantão** do incidente. Se estiver vazia, o incidente não tinha nenhuma política de plantão: nenhuma foi escolhida nele e nenhuma regra de plantão correspondeu. Uma execução com **Execution Completed - No One Notified** passou por todas as regras de escalonamento sem encontrar ninguém: em geral um agendamento sem ninguém de plantão. Veja [Registros de execução](/docs/on-call/policies#registros-de-execução). Uma execução **Aguardando** aguarda o horário comercial, por uma regra de plantão definida como **Somente em horário comercial**, e não aciona ninguém até ele começar.
 :::
 
 :::details Alguém foi acionado pelo canal errado, ou não foi acionado
