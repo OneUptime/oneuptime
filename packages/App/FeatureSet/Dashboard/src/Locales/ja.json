@@ -32737,5 +32737,21 @@
   "Handed Back Count": "Handed Back Count",
   "Every {{interval}}": "{{interval}}ごと",
   "Last reported {{time}}": "最終報告 {{time}}",
-  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter が 15 分以上報告していないため、次に報告されるまでインベントリから外れています。以前のメトリクスは残っています。表示するには、より長い期間を選んでください。"
+  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter が 15 分以上報告していないため、次に報告されるまでインベントリから外れています。以前のメトリクスは残っています。表示するには、より長い期間を選んでください。",
+  "AI clones the repository on this Runner, builds and tests its change there the way the repository's AGENTS.md says, and opens the pull request.": "AI はこの Runner 上でリポジトリをクローンし、リポジトリの AGENTS.md に書かれたとおりに変更をビルド・テストして、プルリクエストを作成します。",
+  "AI then builds and tests its changes the way the repository's AGENTS.md says. You can set commands again through the API or Terraform.": "AI はリポジトリの AGENTS.md に書かれたとおりに変更をビルド・テストするようになります。コマンドは API や Terraform で再び設定できます。",
+  "AI works on a Runner OneUptime runs for every project, which does not build or test its change: your repository's own CI does. Pick one of your Runners to have AI build and test it first.": "AI は OneUptime がすべてのプロジェクトのために動かす Runner 上で作業し、この Runner は変更をビルドもテストもしません。それはリポジトリ自身の CI が行います。先に AI にビルド・テストさせるには、自社の Runner を選択してください。",
+  "Build and Test Commands": "ビルド・テストのコマンド",
+  "GitHub does not give OneUptime access to these repositories any more, so AI cannot work in them.": "GitHub が OneUptime にこれらのリポジトリへのアクセスを与えなくなったため、AI はここで作業できません。",
+  "No connected repositories": "接続済みのリポジトリはありません",
+  "Open a repository to ask AI to work in it, read its tasks or change its settings.": "リポジトリを開くと、AI に作業を頼んだり、タスクを読んだり、設定を変更したりできます。",
+  "Remove Commands": "コマンドを削除",
+  "Remove these commands?": "これらのコマンドを削除しますか？",
+  "Run by OneUptime for every project. It does not build or test AI's change before the pull request opens.": "OneUptime がすべてのプロジェクトのために動かします。プルリクエストを作成する前に AI の変更をビルド・テストしません。",
+  "Set before AI read how to build and test from the repository itself. A Runner of your own still runs them after AI changes the code. Remove them to have AI follow the repository's AGENTS.md alone.": "AI がリポジトリ自体からビルドとテストの方法を読むようになる前に設定されたものです。自社の Runner は、AI がコードを変更した後も引き続きこれらを実行します。削除すると、AI はリポジトリの AGENTS.md だけに従います。",
+  "Their tasks stay readable. Connect GitHub with access to them to use them again, or open one to delete it.": "タスクは引き続き読めます。再び使うには、これらへのアクセスを持つ GitHub を接続してください。削除するには、リポジトリを開いてください。",
+  "Where AI's pull requests open, and how many may be open at once.": "AI のプルリクエストの作成先と、同時にオープンにできる数です。",
+  "Where AI's pull requests open, how many may be open at once, and the label that hands an issue to the GitHub App.": "AI のプルリクエストの作成先、同時にオープンにできる数、issue を GitHub アプリに引き渡すラベルです。",
+  "{{count}} repositories that are not connected match it, below.": "未接続のリポジトリ {{count}} 件が一致します（下記）。",
+  "{{count}} repositories that are not connected match it, below._one": "未接続のリポジトリ {{count}} 件が一致します（下記）。"
 }

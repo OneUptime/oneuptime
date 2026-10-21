@@ -32737,5 +32737,21 @@
   "Handed Back Count": "Handed Back Count",
   "Every {{interval}}": "Cada {{interval}}",
   "Last reported {{time}}": "Último informe {{time}}",
-  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter no ha informado de él durante más de 15 minutos, así que salió del inventario hasta que una recopilación vuelva a informar de él. Sus métricas anteriores se conservan: elige un intervalo de tiempo más largo para verlas."
+  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter no ha informado de él durante más de 15 minutos, así que salió del inventario hasta que una recopilación vuelva a informar de él. Sus métricas anteriores se conservan: elige un intervalo de tiempo más largo para verlas.",
+  "AI clones the repository on this Runner, builds and tests its change there the way the repository's AGENTS.md says, and opens the pull request.": "La IA clona el repositorio en este Runner, compila y prueba allí su cambio como indica el AGENTS.md del repositorio, y abre el pull request.",
+  "AI then builds and tests its changes the way the repository's AGENTS.md says. You can set commands again through the API or Terraform.": "La IA compilará y probará sus cambios como indica el AGENTS.md del repositorio. Puedes volver a definir comandos con la API o Terraform.",
+  "AI works on a Runner OneUptime runs for every project, which does not build or test its change: your repository's own CI does. Pick one of your Runners to have AI build and test it first.": "La IA trabaja en un Runner que OneUptime ejecuta para todos los proyectos, que no compila ni prueba su cambio: de eso se encarga la CI de tu repositorio. Elige uno de tus Runners para que la IA lo compile y lo pruebe antes.",
+  "Build and Test Commands": "Comandos de compilación y prueba",
+  "GitHub does not give OneUptime access to these repositories any more, so AI cannot work in them.": "GitHub ya no da a OneUptime acceso a estos repositorios, así que la IA no puede trabajar en ellos.",
+  "No connected repositories": "No hay repositorios conectados",
+  "Open a repository to ask AI to work in it, read its tasks or change its settings.": "Abre un repositorio para pedir a la IA que trabaje en él, leer sus tareas o cambiar su configuración.",
+  "Remove Commands": "Eliminar comandos",
+  "Remove these commands?": "¿Eliminar estos comandos?",
+  "Run by OneUptime for every project. It does not build or test AI's change before the pull request opens.": "Lo ejecuta OneUptime para todos los proyectos. No compila ni prueba el cambio de la IA antes de que se abra el pull request.",
+  "Set before AI read how to build and test from the repository itself. A Runner of your own still runs them after AI changes the code. Remove them to have AI follow the repository's AGENTS.md alone.": "Definidos antes de que la IA leyera en el propio repositorio cómo compilarlo y probarlo. Un Runner propio sigue ejecutándolos después de que la IA cambie el código. Elimínalos para que la IA siga solo el AGENTS.md del repositorio.",
+  "Their tasks stay readable. Connect GitHub with access to them to use them again, or open one to delete it.": "Sus tareas siguen pudiéndose leer. Conecta GitHub con acceso a ellos para volver a usarlos, o abre uno para eliminarlo.",
+  "Where AI's pull requests open, and how many may be open at once.": "Dónde se abren los pull requests de la IA y cuántos pueden estar abiertos a la vez.",
+  "Where AI's pull requests open, how many may be open at once, and the label that hands an issue to the GitHub App.": "Dónde se abren los pull requests de la IA, cuántos pueden estar abiertos a la vez y la etiqueta que entrega un issue a la app de GitHub.",
+  "{{count}} repositories that are not connected match it, below.": "{{count}} repositorios no conectados coinciden, más abajo.",
+  "{{count}} repositories that are not connected match it, below._one": "{{count}} repositorio no conectado coincide, más abajo."
 }

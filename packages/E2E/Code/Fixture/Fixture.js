@@ -21,7 +21,10 @@
  * Steered by the query string:
  *   - repos=none        no repository yet: Code's first page teaches what it
  *                       is for and offers Connect GitHub; many: 8, so the
- *                       search box shows
+ *                       search box shows; stale: the project the maintainer
+ *                       showed - 15 repositories of one organization, one of
+ *                       them (oneuptime, last by name) connected and the other
+ *                       14 imported by an installation the project has left
  *   - connected=none    GitHub reaches none of the repositories (the
  *                       project's GitHub connection is gone)
  *   - tasks=none        no task yet in any repository
@@ -49,6 +52,12 @@
  *                       seen queued first and then moves one stage a poll)
  *   - refuse=create|reply  the server refuses that send (its sentence)
  *   - fail=repositories|repository|list|task|branches  that read fails
+ *   - commands=1        checkout-api has the build and test commands an
+ *                       operator set before Code stopped asking for them
+ *                       (npm ci, npm run build, npm test); by default none
+ *   - ghcommands=off|unset  checkout-api's GitHub commands are off, or never
+ *                       set (a repository from before the column's default);
+ *                       by default on
  *   - runner=prod|gone  the Runner checkout-api picks in its settings:
  *                       prod-eu-west-1, or one the page is not shown (a
  *                       Runner the reader does not have access to); by
@@ -255,25 +264,64 @@ const EXTRA_REPOSITORY_NAMES = [
   "mobile-backend",
 ];
 
+/*
+ * The project in the maintainer's screenshot: fourteen repositories an
+ * installation the project has since left imported, and the one it uses -
+ * last by name - connected.
+ */
+const STALE_REPOSITORIES = [
+  ["ads", "Ads for OneUptime"],
+  ["back-to-metal", ""],
+  ["blog", "Engineering Uptime Blog"],
+  ["certificates", ""],
+  ["deployment", "Development and disaster recovery principles of OneUptime.com"],
+  ["gtm-ops", "GTM Ops for OneUptime"],
+  ["handbook", "Core Values of the company"],
+  ["helm-chart", "Helm Chart for OneUptime"],
+  ["infrastructure", ""],
+  ["landing-pages", ""],
+  ["marketing-site", ""],
+  ["mobile", ""],
+  ["oneuptime", "The complete open-source observability platform."],
+  ["status-page-templates", ""],
+  ["terraform-provider", ""],
+].map(([name, description], index) => {
+  return {
+    id:
+      name === "oneuptime"
+        ? REPOSITORY_IDS.checkout
+        : `20000000-0000-4000-8000-0000000002${String(index).padStart(2, "0")}`,
+    name: name,
+    ...(description ? { description: description } : {}),
+    organizationName: "OneUptime",
+    repositoryName: name,
+    mainBranchName: name === "oneuptime" ? "master" : "main",
+    repositoryUrl: `https://github.com/OneUptime/${name}`,
+    isConnected: name === "oneuptime",
+  };
+});
+
 const repositories =
   reposParam === "none"
     ? []
-    : reposParam === "many"
-      ? [
-          ...BASE_REPOSITORIES,
-          ...EXTRA_REPOSITORY_NAMES.map((name, index) => {
-            return {
-              id: `20000000-0000-4000-8000-0000000001${index}0`,
-              name: name,
-              organizationName: "acme",
-              repositoryName: name,
-              mainBranchName: "main",
-              repositoryUrl: `https://github.com/acme/${name}`,
-              isConnected: true,
-            };
-          }),
-        ]
-      : BASE_REPOSITORIES;
+    : reposParam === "stale"
+      ? STALE_REPOSITORIES
+      : reposParam === "many"
+        ? [
+            ...BASE_REPOSITORIES,
+            ...EXTRA_REPOSITORY_NAMES.map((name, index) => {
+              return {
+                id: `20000000-0000-4000-8000-0000000001${index}0`,
+                name: name,
+                organizationName: "acme",
+                repositoryName: name,
+                mainBranchName: "main",
+                repositoryUrl: `https://github.com/acme/${name}`,
+                isConnected: true,
+              };
+            }),
+          ]
+        : BASE_REPOSITORIES;
 
 // GitHub's connection to the project is gone: no repository is reached.
 // Names long enough that the request box and the rows must cut them short.
@@ -323,6 +371,14 @@ function branchesOf(repository) {
   return BRANCHES_BY_REPOSITORY[repository.id] || [repository.mainBranchName];
 }
 
+/*
+ * What each repository's settings hold. A repository the GitHub App
+ * imports has GitHub commands on and no build or test command: the agent
+ * reads how from the repository's AGENTS.md. commands=1 gives checkout-api
+ * the commands an operator set before Code stopped asking for them;
+ * ghcommands=off turns its GitHub commands off, ghcommands=unset leaves the
+ * column empty, as a repository from before it had a default.
+ */
 const settingsByRepository = {};
 for (const repository of repositories) {
   settingsByRepository[repository.id] = {
@@ -330,12 +386,28 @@ for (const repository of repositories) {
     maxOpenFixPullRequests: null,
     isGitHubCommandsEnabled: true,
     gitHubTriggerLabel: null,
-    setupCommand: "npm ci",
-    buildCommand: "npm run build",
-    testCommand: "npm test",
+    setupCommand: null,
+    buildCommand: null,
+    testCommand: null,
     // The Runner AI works in it on: none picked, a global Runner.
     runnerId: null,
   };
+}
+
+const checkoutSettings = settingsByRepository[REPOSITORY_IDS.checkout];
+
+if (checkoutSettings && params.get("commands") === "1") {
+  checkoutSettings.setupCommand = "npm ci";
+  checkoutSettings.buildCommand = "npm run build";
+  checkoutSettings.testCommand = "npm test";
+}
+
+if (checkoutSettings && params.get("ghcommands") === "off") {
+  checkoutSettings.isGitHubCommandsEnabled = false;
+}
+
+if (checkoutSettings && params.get("ghcommands") === "unset") {
+  checkoutSettings.isGitHubCommandsEnabled = null;
 }
 
 if (

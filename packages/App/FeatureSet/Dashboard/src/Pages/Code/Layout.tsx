@@ -25,11 +25,13 @@ export const getCodeLayoutTitle: (path: string) => {
     return {};
   }
 
+  /*
+   * The list's own card says what it is for, under its title: the page
+   * does not say it again over it.
+   */
   if (path === RouteUtil.getRouteString(PageMap.CODE_REPOSITORIES)) {
     return {
       title: "Repositories",
-      description:
-        "The GitHub repositories connected to this project. Open one for its tasks and settings, or connect more.",
     };
   }
 
