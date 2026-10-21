@@ -33,6 +33,7 @@ import { buildStorageArrayTopology } from "../Builders/StorageArrayTopology";
 import { ResourceTopologyTruncation } from "../ResourceTopologyModel";
 import {
   OpenIssuesResult,
+  areOpenIssuesUnreadable,
   loadOpenIssues,
 } from "../ResourceTopologyIssuesLoader";
 import { masterTopologyRouteFor } from "../ResourceTopologyLinks";
@@ -166,6 +167,7 @@ export async function loadDockerSwarmTopology(
       },
     ],
     issuesArePartial: Boolean(loaded.issues?.isPartial),
+    issuesAreUnreadable: areOpenIssuesUnreadable(loaded.issues),
     masterTopologyRoute:
       loaded.projectId && name
         ? masterTopologyRouteFor(
@@ -227,6 +229,7 @@ export async function loadProxmoxTopology(
       },
     ],
     issuesArePartial: Boolean(loaded.issues?.isPartial),
+    issuesAreUnreadable: areOpenIssuesUnreadable(loaded.issues),
     masterTopologyRoute:
       loaded.projectId && name
         ? masterTopologyRouteFor(
@@ -288,6 +291,7 @@ export async function loadCephTopology(
       },
     ],
     issuesArePartial: Boolean(loaded.issues?.isPartial),
+    issuesAreUnreadable: areOpenIssuesUnreadable(loaded.issues),
     masterTopologyRoute:
       loaded.projectId && name
         ? masterTopologyRouteFor(
@@ -346,6 +350,7 @@ export async function loadStorageArrayTopology(
       },
     ],
     issuesArePartial: Boolean(loaded.issues?.isPartial),
+    issuesAreUnreadable: areOpenIssuesUnreadable(loaded.issues),
     masterTopologyRoute:
       loaded.projectId && name
         ? masterTopologyRouteFor(

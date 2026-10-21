@@ -32834,7 +32834,6 @@
   "Show as": "نمایش به‌صورت",
   "Show {{count}} more {{kind}}": "نمایش {{count}} {{kind}} دیگر",
   "Showing {{name}}, what is inside it and what it is related to.": "در حال نمایش {{name}}، آنچه درون آن است و آنچه با آن مرتبط است.",
-  "Showing {{shown}} of {{total}} parts. Search to find one that is not drawn.": "{{shown}} از {{total}} بخش نمایش داده می‌شود. برای یافتن بخشی که نمایش داده نشده، جستجو کنید.",
   "Stopped but configured to start on boot": "متوقف شده، اما برای شروع هنگام بوت پیکربندی شده است",
   "Swarm cannot reach this node.": "Swarm نمی‌تواند به این گره دسترسی پیدا کند.",
   "Talks to": "در ارتباط با",
@@ -32883,5 +32882,7 @@
   "{{ready}} of {{desired}} ready": "{{ready}} از {{desired}} آماده",
   "{{ready}} of {{desired}} replicas are ready.": "{{ready}} از {{desired}} رونوشت آماده‌اند.",
   "{{running}} of {{desired}} replicas are running.": "{{running}} از {{desired}} رونوشت در حال اجرا هستند.",
-  "{{running}} of {{desired}} running": "{{running}} از {{desired}} در حال اجرا"
+  "{{running}} of {{desired}} running": "{{running}} از {{desired}} در حال اجرا",
+  "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "{{shown}} از {{total}} بخش نمایش داده می‌شود؛ این بیشترین تعدادی است که این نقشه در یک بار می‌خواند.",
+  "Some open incidents or alerts could not be read, so the map may not show them all.": "برخی از حوادث یا هشدارهای باز خوانده نشدند، بنابراین ممکن است نقشه همه آن‌ها را نشان ندهد."
 }

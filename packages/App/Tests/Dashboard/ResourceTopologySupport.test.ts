@@ -26,6 +26,7 @@ import {
   healthOfStatusWord,
 } from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyStatusWords";
 import { ResourceTopologyIssue } from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyModel";
+import { areOpenIssuesUnreadable } from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyIssuesLoader";
 import * as Links from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyLinks";
 
 /*
@@ -205,6 +206,28 @@ describe("numbers on the cards", () => {
     expect(isRecent("2026-10-21T11:59:59Z", NOW, 5000)).toBe(true);
     expect(isRecent(null, NOW, 5000)).toBe(false);
     expect(toTopologyDate("not a date")).toBeNull();
+  });
+});
+
+describe("open incidents and alerts that could not be read", () => {
+  test("make the map say it may not show them all", () => {
+    const read: {
+      records: Array<never>;
+      incidentCount: number | null;
+      alertCount: number | null;
+      isPartial: boolean;
+    } = { records: [], incidentCount: 2, alertCount: 0, isPartial: false };
+
+    // Both read: nothing to say, even when none are open.
+    expect(areOpenIssuesUnreadable(read)).toBe(false);
+    // A role that may not read incidents, or alerts, or a failed read.
+    expect(areOpenIssuesUnreadable({ ...read, incidentCount: null })).toBe(
+      true,
+    );
+    expect(areOpenIssuesUnreadable({ ...read, alertCount: null })).toBe(true);
+    // No project to read them in: nothing was asked, nothing to say.
+    expect(areOpenIssuesUnreadable(null)).toBe(false);
+    expect(areOpenIssuesUnreadable(undefined)).toBe(false);
   });
 });
 

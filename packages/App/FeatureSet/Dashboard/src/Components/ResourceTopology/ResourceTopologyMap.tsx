@@ -96,6 +96,8 @@ export interface ComponentProps {
   searchPlaceholder: string;
   /* More open incidents and alerts were open than were read. */
   issuesArePartial?: boolean | undefined;
+  /* Open incidents or alerts could not be read at all. */
+  issuesAreUnreadable?: boolean | undefined;
 }
 
 type DisplayMode = "map" | "list";
@@ -128,6 +130,18 @@ function readInitialDisplay(): DisplayMode {
   }
 
   return "map";
+}
+
+function sumTruncations(
+  truncations: Array<ResourceTopologyTruncation>,
+  field: "shown" | "total",
+): number {
+  return truncations.reduce(
+    (sum: number, truncation: ResourceTopologyTruncation): number => {
+      return sum + truncation[field];
+    },
+    0,
+  );
 }
 
 export function getResourceTopologyPartCount(
@@ -690,40 +704,48 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
         </div>
       </div>
 
+      {/*
+       * One sentence for every read that hit its cap (a cluster's pods and
+       * its other parts are read apart). What was not read cannot be
+       * searched for, so the sentence says only how much is drawn.
+       */}
       {graph.truncations.length > 0
         ? renderNotice(
             "resource-topology-truncated",
-            <>
-              {graph.truncations.map(
-                (truncation: ResourceTopologyTruncation): ReactElement => {
-                  return (
-                    <span key={truncation.kind}>
-                      {translator.translateTemplate(
-                        "Showing {{shown}} of {{total}} parts. Search to find one that is not drawn.",
-                        {
-                          shown: translator.formatNumber(truncation.shown),
-                          total: translator.formatNumber(truncation.total),
-                        },
-                      )}
-                    </span>
-                  );
-                },
-              )}
-            </>,
-            "warning",
-          )
-        : null}
-
-      {props.issuesArePartial
-        ? renderNotice(
-            "resource-topology-issues-partial",
-            tx(
-              "Only the newest open incidents and alerts are pinned to the map.",
-              translator,
+            translator.translateTemplate(
+              "Showing {{shown}} of {{total}} parts, the most this map reads at once.",
+              {
+                shown: translator.formatNumber(
+                  sumTruncations(graph.truncations, "shown"),
+                ),
+                total: translator.formatNumber(
+                  sumTruncations(graph.truncations, "total"),
+                ),
+              },
             ),
             "warning",
           )
         : null}
+
+      {props.issuesAreUnreadable
+        ? renderNotice(
+            "resource-topology-issues-unreadable",
+            tx(
+              "Some open incidents or alerts could not be read, so the map may not show them all.",
+              translator,
+            ),
+            "warning",
+          )
+        : props.issuesArePartial
+          ? renderNotice(
+              "resource-topology-issues-partial",
+              tx(
+                "Only the newest open incidents and alerts are pinned to the map.",
+                translator,
+              ),
+              "warning",
+            )
+          : null}
 
       {focusNode
         ? renderNotice(

@@ -32834,7 +32834,6 @@
   "Show as": "Tonen als",
   "Show {{count}} more {{kind}}": "Nog {{count}} tonen: {{kind}}",
   "Showing {{name}}, what is inside it and what it is related to.": "{{name}} wordt getoond, met wat erin zit en waarmee het samenhangt.",
-  "Showing {{shown}} of {{total}} parts. Search to find one that is not drawn.": "{{shown}} van {{total}} onderdelen worden getoond. Zoek om een onderdeel te vinden dat niet getoond wordt.",
   "Stopped but configured to start on boot": "Gestopt, maar ingesteld om bij het opstarten te starten",
   "Swarm cannot reach this node.": "Swarm kan deze node niet bereiken.",
   "Talks to": "Praat met",
@@ -32883,5 +32882,7 @@
   "{{ready}} of {{desired}} ready": "{{ready}} van {{desired}} gereed",
   "{{ready}} of {{desired}} replicas are ready.": "{{ready}} van {{desired}} replica's zijn gereed.",
   "{{running}} of {{desired}} replicas are running.": "{{running}} van {{desired}} replica's zijn actief.",
-  "{{running}} of {{desired}} running": "{{running}} van {{desired}} actief"
+  "{{running}} of {{desired}} running": "{{running}} van {{desired}} actief",
+  "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "{{shown}} van {{total}} onderdelen worden getoond, het maximum dat deze kaart in één keer leest.",
+  "Some open incidents or alerts could not be read, so the map may not show them all.": "Sommige open incidenten of waarschuwingen konden niet worden gelezen, dus de kaart toont ze mogelijk niet allemaal."
 }

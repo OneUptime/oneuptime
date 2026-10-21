@@ -19,6 +19,7 @@ import {
 import { ResourceTopologyTruncation } from "../ResourceTopologyModel";
 import {
   OpenIssuesResult,
+  areOpenIssuesUnreadable,
   loadOpenIssues,
 } from "../ResourceTopologyIssuesLoader";
 import { masterTopologyRouteFor } from "../ResourceTopologyLinks";
@@ -184,6 +185,7 @@ export async function loadKubernetesTopology(
       },
     ],
     issuesArePartial: Boolean(issues?.isPartial),
+    issuesAreUnreadable: areOpenIssuesUnreadable(issues),
     masterTopologyRoute:
       projectId && identifier
         ? masterTopologyRouteFor(

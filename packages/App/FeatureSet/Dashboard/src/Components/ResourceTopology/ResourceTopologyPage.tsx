@@ -32,6 +32,8 @@ import { tx } from "./ResourceTopologyNodes";
 export interface ResourceTopologyData {
   arrangements: Array<ResourceTopologyArrangement>;
   issuesArePartial: boolean;
+  /* Open incidents or alerts could not be read: the map may miss some. */
+  issuesAreUnreadable?: boolean | undefined;
   /* The resource on the master Topology, when it is drawn there. */
   masterTopologyRoute: Route | null;
 }
@@ -223,6 +225,7 @@ const ResourceTopologyPage: FunctionComponent<ComponentProps> = (
         arrangements={data.arrangements}
         searchPlaceholder={props.searchPlaceholder}
         issuesArePartial={data.issuesArePartial}
+        issuesAreUnreadable={data.issuesAreUnreadable}
       />
     );
   };

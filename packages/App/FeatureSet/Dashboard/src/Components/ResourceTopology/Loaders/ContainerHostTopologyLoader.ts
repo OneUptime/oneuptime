@@ -17,6 +17,7 @@ import {
 import { ResourceTopologyTruncation } from "../ResourceTopologyModel";
 import {
   OpenIssuesResult,
+  areOpenIssuesUnreadable,
   loadOpenIssues,
 } from "../ResourceTopologyIssuesLoader";
 import { masterTopologyRouteFor } from "../ResourceTopologyLinks";
@@ -109,6 +110,7 @@ export async function loadDockerHostTopology(
       },
     ],
     issuesArePartial: Boolean(issues?.isPartial),
+    issuesAreUnreadable: areOpenIssuesUnreadable(issues),
     masterTopologyRoute: projectId
       ? masterTopologyRouteFor(
           keyForInventoryEntity(
@@ -174,6 +176,7 @@ export async function loadPodmanHostTopology(
       },
     ],
     issuesArePartial: Boolean(issues?.isPartial),
+    issuesAreUnreadable: areOpenIssuesUnreadable(issues),
     masterTopologyRoute: projectId
       ? masterTopologyRouteFor(
           keyForInventoryEntity(

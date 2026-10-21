@@ -35,6 +35,7 @@ import {
 } from "../ResourceTopologyModel";
 import {
   OpenIssuesResult,
+  areOpenIssuesUnreadable,
   loadOpenIssues,
 } from "../ResourceTopologyIssuesLoader";
 import { masterTopologyRouteFor } from "../ResourceTopologyLinks";
@@ -215,6 +216,7 @@ export async function loadHostTopology(
       },
     ],
     issuesArePartial: Boolean(issues?.isPartial),
+    issuesAreUnreadable: areOpenIssuesUnreadable(issues),
     masterTopologyRoute: hostEntityKey
       ? masterTopologyRouteFor(hostEntityKey)
       : null,

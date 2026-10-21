@@ -112,12 +112,15 @@ function renderMap(
   arrangements: Array<ResourceTopologyArrangement> = [
     { id: "vcenter", label: "Hosts and clusters", graph: vcenterGraph() },
   ],
+  issues: { partial?: boolean; unreadable?: boolean } = {},
 ): void {
   render(
     <MemoryRouter>
       <ResourceTopologyMap
         arrangements={arrangements}
         searchPlaceholder="Find a host, virtual machine or datastore…"
+        issuesArePartial={issues.partial}
+        issuesAreUnreadable={issues.unreadable}
       />
     </MemoryRouter>,
   );
@@ -256,6 +259,69 @@ describe("a picked part's panel", () => {
 
     fireEvent.click(screen.getByTestId("resource-topology-focus-clear"));
     expect(screen.queryByTestId("resource-topology-focus")).toBeNull();
+  });
+});
+
+describe("what the map could not read", () => {
+  test("parts past the read cap are one sentence, however many reads hit it", () => {
+    // A cluster's pods and its other parts are read apart; both hit the cap.
+    const graph: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "cluster",
+      nodes: [
+        {
+          id: "cluster",
+          parentId: null,
+          kind: "k8s.cluster",
+          name: "prod-eu",
+          health: "healthy",
+        },
+        {
+          id: "node-1",
+          parentId: "cluster",
+          kind: "k8s.node",
+          name: "node-1",
+          health: "healthy",
+        },
+      ],
+      truncations: [
+        { kind: "k8s.pod", shown: 10000, total: 12000 },
+        { kind: "k8s.cluster", shown: 10000, total: 10500 },
+      ],
+    });
+
+    renderMap([{ id: "workloads", label: "Workloads", graph: graph }]);
+
+    const notice: HTMLElement = screen.getByTestId(
+      "resource-topology-truncated",
+    );
+
+    // Said once, with no advice to search for what was never read.
+    expect(notice).toHaveTextContent(
+      "Showing 20,000 of 22,500 parts, the most this map reads at once.",
+    );
+    expect(notice).not.toHaveTextContent("Search");
+  });
+
+  test("incidents and alerts that could not be read are said, not hidden", () => {
+    renderMap(undefined, { unreadable: true, partial: true });
+
+    expect(
+      screen.getByTestId("resource-topology-issues-unreadable"),
+    ).toHaveTextContent(
+      "Some open incidents or alerts could not be read, so the map may not show them all.",
+    );
+    // One notice about them at a time: the larger gap wins.
+    expect(screen.queryByTestId("resource-topology-issues-partial")).toBeNull();
+  });
+
+  test("with every incident and alert read, nothing is said", () => {
+    renderMap();
+
+    expect(
+      screen.queryByTestId("resource-topology-issues-unreadable"),
+    ).toBeNull();
+    expect(screen.queryByTestId("resource-topology-issues-partial")).toBeNull();
+    expect(screen.queryByTestId("resource-topology-truncated")).toBeNull();
   });
 });
 

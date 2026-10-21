@@ -737,6 +737,17 @@ test.describe("when there is nothing, or the read fails", () => {
     await expect(byTestId(page, "resource-topology-issue-summary")).toHaveCount(
       0,
     );
+    // The map says so, instead of looking as if nothing were open.
+    await expect(
+      byTestId(page, "resource-topology-issues-unreadable"),
+    ).toContainText(
+      "Some open incidents or alerts could not be read, so the map may not show them all.",
+    );
+    // A reader who may read them gets no such notice.
+    await openTopology(page, "vmware");
+    await expect(
+      byTestId(page, "resource-topology-issues-unreadable"),
+    ).toHaveCount(0);
   });
 
   test("the keyboard reaches a part and opens its panel", async ({

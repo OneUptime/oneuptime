@@ -32834,7 +32834,6 @@
   "Show as": "इस रूप में दिखाएं",
   "Show {{count}} more {{kind}}": "{{count}} और {{kind}} दिखाएं",
   "Showing {{name}}, what is inside it and what it is related to.": "{{name}}, उसके अंदर की चीज़ें और उससे जुड़ी चीज़ें दिखाई जा रही हैं।",
-  "Showing {{shown}} of {{total}} parts. Search to find one that is not drawn.": "{{total}} में से {{shown}} हिस्से दिखाए जा रहे हैं। जो हिस्सा नहीं दिख रहा, उसे खोजकर ढूंढें।",
   "Stopped but configured to start on boot": "बंद है, लेकिन बूट पर शुरू होने के लिए कॉन्फ़िगर है",
   "Swarm cannot reach this node.": "Swarm इस नोड तक नहीं पहुंच सकता।",
   "Talks to": "इनसे बात करता है",
@@ -32883,5 +32882,7 @@
   "{{ready}} of {{desired}} ready": "{{desired}} में से {{ready}} तैयार",
   "{{ready}} of {{desired}} replicas are ready.": "{{desired}} में से {{ready}} प्रतिकृतियां तैयार हैं।",
   "{{running}} of {{desired}} replicas are running.": "{{desired}} में से {{running}} प्रतिकृतियां चल रही हैं।",
-  "{{running}} of {{desired}} running": "{{desired}} में से {{running}} चल रहे हैं"
+  "{{running}} of {{desired}} running": "{{desired}} में से {{running}} चल रहे हैं",
+  "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "{{total}} में से {{shown}} हिस्से दिखाए जा रहे हैं, यह मानचित्र एक बार में अधिकतम इतने ही पढ़ता है।",
+  "Some open incidents or alerts could not be read, so the map may not show them all.": "कुछ खुली घटनाएं या अलर्ट पढ़े नहीं जा सके, इसलिए हो सकता है कि मानचित्र उन सभी को न दिखाए।"
 }

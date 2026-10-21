@@ -32834,7 +32834,6 @@
   "Show as": "Show as",
   "Show {{count}} more {{kind}}": "Show {{count}} more {{kind}}",
   "Showing {{name}}, what is inside it and what it is related to.": "Showing {{name}}, what is inside it and what it is related to.",
-  "Showing {{shown}} of {{total}} parts. Search to find one that is not drawn.": "Showing {{shown}} of {{total}} parts. Search to find one that is not drawn.",
   "Stopped but configured to start on boot": "Stopped but configured to start on boot",
   "Swarm cannot reach this node.": "Swarm cannot reach this node.",
   "Talks to": "Talks to",
@@ -32883,5 +32882,7 @@
   "{{ready}} of {{desired}} ready": "{{ready}} of {{desired}} ready",
   "{{ready}} of {{desired}} replicas are ready.": "{{ready}} of {{desired}} replicas are ready.",
   "{{running}} of {{desired}} replicas are running.": "{{running}} of {{desired}} replicas are running.",
-  "{{running}} of {{desired}} running": "{{running}} of {{desired}} running"
+  "{{running}} of {{desired}} running": "{{running}} of {{desired}} running",
+  "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "Showing {{shown}} of {{total}} parts, the most this map reads at once.",
+  "Some open incidents or alerts could not be read, so the map may not show them all.": "Some open incidents or alerts could not be read, so the map may not show them all."
 }

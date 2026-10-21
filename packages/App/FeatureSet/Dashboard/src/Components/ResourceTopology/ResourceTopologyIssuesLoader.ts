@@ -273,6 +273,19 @@ async function readOpenAlerts(data: {
   return { records: records, total: result.count ?? records.length };
 }
 
+/*
+ * Whether open incidents or alerts could not be read (a role without
+ * access, or a failed read): the map then says it may not show them all,
+ * instead of looking as if nothing were open.
+ */
+export function areOpenIssuesUnreadable(
+  result: OpenIssuesResult | null | undefined,
+): boolean {
+  return Boolean(
+    result && (result.incidentCount === null || result.alertCount === null),
+  );
+}
+
 export async function loadOpenIssues(data: {
   projectId: ObjectID;
   /* The relation that links a record to the resource: "vmwareVCenters". */

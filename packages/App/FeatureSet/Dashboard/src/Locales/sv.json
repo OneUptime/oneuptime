@@ -32834,7 +32834,6 @@
   "Show as": "Visa som",
   "Show {{count}} more {{kind}}": "Visa {{count}} till: {{kind}}",
   "Showing {{name}}, what is inside it and what it is related to.": "Visar {{name}}, vad den innehåller och vad den hänger ihop med.",
-  "Showing {{shown}} of {{total}} parts. Search to find one that is not drawn.": "Visar {{shown}} av {{total}} delar. Sök för att hitta en som inte visas.",
   "Stopped but configured to start on boot": "Stoppad men inställd på att starta vid uppstart",
   "Swarm cannot reach this node.": "Swarm kan inte nå den här noden.",
   "Talks to": "Pratar med",
@@ -32883,5 +32882,7 @@
   "{{ready}} of {{desired}} ready": "{{ready}} av {{desired}} redo",
   "{{ready}} of {{desired}} replicas are ready.": "{{ready}} av {{desired}} repliker är redo.",
   "{{running}} of {{desired}} replicas are running.": "{{running}} av {{desired}} repliker körs.",
-  "{{running}} of {{desired}} running": "{{running}} av {{desired}} körs"
+  "{{running}} of {{desired}} running": "{{running}} av {{desired}} körs",
+  "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "Visar {{shown}} av {{total}} delar, det mesta kartan läser åt gången.",
+  "Some open incidents or alerts could not be read, so the map may not show them all.": "Vissa öppna incidenter eller larm kunde inte läsas, så kartan visar kanske inte alla."
 }

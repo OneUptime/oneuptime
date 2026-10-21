@@ -32834,7 +32834,6 @@
   "Show as": "表示形式",
   "Show {{count}} more {{kind}}": "{{kind}} をさらに {{count}} 件表示",
   "Showing {{name}}, what is inside it and what it is related to.": "{{name}} と、その中身および関連するものを表示しています。",
-  "Showing {{shown}} of {{total}} parts. Search to find one that is not drawn.": "{{total}} 件中 {{shown}} 件を表示しています。表示されていないものは検索で探せます。",
   "Stopped but configured to start on boot": "停止中ですが、起動時に開始するよう設定されています",
   "Swarm cannot reach this node.": "Swarm がこのノードに到達できません。",
   "Talks to": "通信先",
@@ -32883,5 +32882,7 @@
   "{{ready}} of {{desired}} ready": "{{desired}} 中 {{ready}} 準備完了",
   "{{ready}} of {{desired}} replicas are ready.": "{{desired}} 個中 {{ready}} 個のレプリカが準備完了です。",
   "{{running}} of {{desired}} replicas are running.": "{{desired}} 個中 {{running}} 個のレプリカが実行中です。",
-  "{{running}} of {{desired}} running": "{{desired}} 中 {{running}} 実行中"
+  "{{running}} of {{desired}} running": "{{desired}} 中 {{running}} 実行中",
+  "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "{{total}} 件中 {{shown}} 件を表示しています。このマップが一度に読み込める上限です。",
+  "Some open incidents or alerts could not be read, so the map may not show them all.": "未解決のインシデントまたはアラートの一部を読み込めなかったため、マップにすべてが表示されていない可能性があります。"
 }

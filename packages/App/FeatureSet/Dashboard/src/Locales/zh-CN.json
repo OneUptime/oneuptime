@@ -32834,7 +32834,6 @@
   "Show as": "显示方式",
   "Show {{count}} more {{kind}}": "再显示 {{count}} 个{{kind}}",
   "Showing {{name}}, what is inside it and what it is related to.": "正在显示 {{name}}、其内部内容及与其关联的内容。",
-  "Showing {{shown}} of {{total}} parts. Search to find one that is not drawn.": "正在显示 {{total}} 个部分中的 {{shown}} 个。可通过搜索查找未显示的部分。",
   "Stopped but configured to start on boot": "已停止，但配置为开机启动",
   "Swarm cannot reach this node.": "Swarm 无法连接到此节点。",
   "Talks to": "通信对象",
@@ -32883,5 +32882,7 @@
   "{{ready}} of {{desired}} ready": "{{ready}}/{{desired}} 就绪",
   "{{ready}} of {{desired}} replicas are ready.": "{{desired}} 个副本中有 {{ready}} 个就绪。",
   "{{running}} of {{desired}} replicas are running.": "{{desired}} 个副本中有 {{running}} 个正在运行。",
-  "{{running}} of {{desired}} running": "{{running}}/{{desired}} 运行中"
+  "{{running}} of {{desired}} running": "{{running}}/{{desired}} 运行中",
+  "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "正在显示 {{total}} 个部分中的 {{shown}} 个，这是此地图一次能读取的上限。",
+  "Some open incidents or alerts could not be read, so the map may not show them all.": "部分未关闭的事件或警报无法读取，因此地图可能未全部显示。"
 }

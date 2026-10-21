@@ -32834,7 +32834,6 @@
   "Show as": "Показать как",
   "Show {{count}} more {{kind}}": "Показать ещё {{count}}: {{kind}}",
   "Showing {{name}}, what is inside it and what it is related to.": "Показаны {{name}}, его содержимое и то, с чем оно связано.",
-  "Showing {{shown}} of {{total}} parts. Search to find one that is not drawn.": "Показано частей: {{shown}} из {{total}}. Воспользуйтесь поиском, чтобы найти непоказанную.",
   "Stopped but configured to start on boot": "Остановлен, но настроен на запуск при загрузке",
   "Swarm cannot reach this node.": "Swarm не может связаться с этим узлом.",
   "Talks to": "Обращается к",
@@ -32883,5 +32882,7 @@
   "{{ready}} of {{desired}} ready": "Готово {{ready}} из {{desired}}",
   "{{ready}} of {{desired}} replicas are ready.": "Готово реплик: {{ready}} из {{desired}}.",
   "{{running}} of {{desired}} replicas are running.": "Запущено реплик: {{running}} из {{desired}}.",
-  "{{running}} of {{desired}} running": "Запущено {{running}} из {{desired}}"
+  "{{running}} of {{desired}} running": "Запущено {{running}} из {{desired}}",
+  "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "Показано частей: {{shown}} из {{total}} — это максимум, который карта читает за раз.",
+  "Some open incidents or alerts could not be read, so the map may not show them all.": "Не удалось прочитать некоторые открытые инциденты или оповещения, поэтому на карте могут быть показаны не все."
 }

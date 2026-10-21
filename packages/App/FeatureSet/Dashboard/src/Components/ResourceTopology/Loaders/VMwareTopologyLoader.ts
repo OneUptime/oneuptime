@@ -10,6 +10,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { buildVMwareTopology } from "../Builders/VMwareTopology";
 import {
   OpenIssuesResult,
+  areOpenIssuesUnreadable,
   loadOpenIssues,
 } from "../ResourceTopologyIssuesLoader";
 import { masterTopologyRouteFor } from "../ResourceTopologyLinks";
@@ -107,6 +108,7 @@ export async function loadVMwareTopology(
       },
     ],
     issuesArePartial: Boolean(issues?.isPartial),
+    issuesAreUnreadable: areOpenIssuesUnreadable(issues),
     masterTopologyRoute:
       projectId && name
         ? masterTopologyRouteFor(
