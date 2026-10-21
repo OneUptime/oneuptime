@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 32062,
-    "untranslated": 9592
+    "keys": 32321,
+    "untranslated": 9554
   },
   "sameAsEnglish": [
     " incidents",
@@ -97,6 +97,7 @@
     "Burkina Faso",
     "Burundi",
     "CPU Ready",
+    "CPU Ready {{percent}}",
     "CPU.*high",
     "CSS",
     "Canada",

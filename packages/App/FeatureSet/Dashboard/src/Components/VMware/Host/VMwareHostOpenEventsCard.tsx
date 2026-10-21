@@ -5,7 +5,6 @@ import React, {
   useState,
 } from "react";
 import Route from "Common/Types/API/Route";
-import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
@@ -17,6 +16,7 @@ import { Red500 } from "Common/Types/BrandColors";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { formatRelativeTime } from "../../Home/HomeRelativeTime";
 import {
   VMwareHostOpenEvent,
   VMwareHostOpenEventKind,
@@ -172,7 +172,11 @@ const VMwareHostOpenEventsCard: FunctionComponent<ComponentProps> = (
                         event.number,
                         event.stateName,
                         event.createdAt
-                          ? OneUptimeDate.fromNow(event.createdAt)
+                          ? formatRelativeTime({
+                              date: event.createdAt,
+                              now: new Date(),
+                              language: translator.language,
+                            })
                           : "",
                       ]
                         .filter((part: string): boolean => {

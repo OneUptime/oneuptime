@@ -8,6 +8,7 @@ import Link from "Common/UI/Components/Link/Link";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { formatRelativeTime } from "../../Home/HomeRelativeTime";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/VMwareMetricDescriptions";
 import {
   VMwareHostIdentity,
@@ -153,7 +154,11 @@ const VMwareHostDetailsCard: FunctionComponent<ComponentProps> = (
       label: "Metrics updated",
       value: (
         <span title={OneUptimeDate.getDateAsLocalFormattedString(updatedAt)}>
-          {OneUptimeDate.fromNow(updatedAt)}
+          {formatRelativeTime({
+            date: updatedAt,
+            now: new Date(),
+            language: translator.language,
+          })}
         </span>
       ),
     });

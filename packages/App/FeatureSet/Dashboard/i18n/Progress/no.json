@@ -1,15 +1,17 @@
 {
   "baseline": {
-    "keys": 32062,
-    "untranslated": 16604
+    "keys": 32321,
+    "untranslated": 16542
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "AI / LLM",
+    "Adapter",
     "Agenda",
     "Agent",
     "Alarm",
     "App",
+    "CPU Ready {{percent}}",
     "CloudWatch Metric Streams",
     "Diagram",
     "Embedding",
@@ -42,6 +44,7 @@
     "port {{port}}",
     "samples",
     "syslog",
+    "{{capacity}} CPU",
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",

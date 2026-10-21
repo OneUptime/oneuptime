@@ -1,12 +1,12 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import Route from "Common/Types/API/Route";
-import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
+import { formatRelativeTime } from "../../Home/HomeRelativeTime";
 import {
   VMwareHostReportState,
   VMwareHostReportStateLook,
@@ -229,7 +229,14 @@ const VMwareHostHero: FunctionComponent<ComponentProps> = (
                 data-testid="vmware-host-last-seen"
               >
                 {translator.translateTemplate("Last seen {{time}}", {
-                  time: OneUptimeDate.fromNow(props.lastReportAt),
+                  // In the language the sentence is shown in.
+                  time: composedValue((sentence: Translator): string => {
+                    return formatRelativeTime({
+                      date: props.lastReportAt as Date,
+                      now: new Date(),
+                      language: sentence.language,
+                    });
+                  }),
                 })}
               </div>
             ) : (

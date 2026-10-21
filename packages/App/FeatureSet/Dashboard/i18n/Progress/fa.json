@@ -1,9 +1,10 @@
 {
   "baseline": {
-    "keys": 32062,
-    "untranslated": 16523
+    "keys": 32321,
+    "untranslated": 16461
   },
   "sameAsEnglish": [
+    "CPU Ready {{percent}}",
     "CloudWatch Metric Streams",
     "ICMP (ping)",
     "Runner",

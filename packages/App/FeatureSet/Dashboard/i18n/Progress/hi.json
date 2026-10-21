@@ -1,11 +1,12 @@
 {
   "baseline": {
-    "keys": 32062,
-    "untranslated": 16554
+    "keys": 32321,
+    "untranslated": 16492
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "AI / LLM",
+    "CPU Ready {{percent}}",
     "CloudWatch Metric Streams",
     "Goroutines",
     "ICMP (ping)",

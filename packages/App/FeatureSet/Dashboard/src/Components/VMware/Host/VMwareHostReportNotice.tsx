@@ -1,11 +1,11 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import Route from "Common/Types/API/Route";
-import OneUptimeDate from "Common/Types/Date";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Link from "Common/UI/Components/Link/Link";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import { VMwareHostReportState } from "../../../Pages/VMware/Utils/VMwareHostData";
+import { formatRelativeTime } from "../../Home/HomeRelativeTime";
 
 /*
  * Under an ESXi host's hero while vCenter is not reporting the host: what
@@ -50,7 +50,16 @@ const VMwareHostReportNotice: FunctionComponent<ComponentProps> = (
           props.lastReportAt
             ? translator.translateTemplate(
                 "vCenter last reported this host {{time}}",
-                { time: OneUptimeDate.fromNow(props.lastReportAt) },
+                {
+                  // In the language the sentence is shown in.
+                  time: composedValue((sentence: Translator): string => {
+                    return formatRelativeTime({
+                      date: props.lastReportAt as Date,
+                      now: new Date(),
+                      language: sentence.language,
+                    });
+                  }),
+                },
               )
             : tx("vCenter stopped reporting this host")
         }
