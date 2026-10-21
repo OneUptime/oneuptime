@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import ts from "typescript";
 import {
   BrandAssetsPath,
   BrandAssetsRouteSegment,
@@ -10,6 +11,16 @@ import {
   VendorAssetsPath,
   VendorAssetsRoute,
 } from "../../../Server/Utils/VendorAssets";
+import { EMAIL_LOGO_PATH } from "../../../Server/Utils/Mail/EmailLogo";
+import {
+  MarkupReference,
+  addressHost,
+  describeReference,
+  emailTemplateProblems,
+  pageLoadProblems,
+  readMarkupReferences,
+  withoutTemplateComments,
+} from "../../Helpers/MarkupReferences";
 
 /*
  * Every server-rendered page must be able to render with no route off the box.
@@ -21,6 +32,16 @@ import {
  * copy-pasted CDN tag puts it back, and nothing else in the build would
  * notice - so this scans the directories rather than the handful of files the
  * fix happened to touch.
+ *
+ * Every email, too (issue #5124). The header of every email loaded its logo
+ * from res.cloudinary.com: a broken image on a network without the internet,
+ * and, everywhere else, a request to a third party each time an email was
+ * opened. This guard read only .ejs views, and only for a list of CDN hosts,
+ * so it saw neither the .hbs partial nor the host. Emails are now read in
+ * every template format, against the one rule an email can keep everywhere:
+ * it loads nothing it does not carry itself or is not handed by the
+ * installation - whatever the host - and the self-hosted views load nothing
+ * from any host but the ones named below.
  */
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
@@ -40,6 +61,11 @@ interface ViewRoot {
    * a failure.
    */
   allowedHosts: Array<string>;
+  /*
+   * Served by every self-hosted install: then a view may load nothing from
+   * any host but allowedHosts, not only none of the CDNs listed below.
+   */
+  selfHosted: boolean;
 }
 
 /*
@@ -222,6 +248,7 @@ const VIEW_ROOTS: Array<ViewRoot> = [
     label: "Common server views",
     directories: [path.join(REPOSITORY_ROOT, "Common", "Server", "Views")],
     allowedHosts: [ANALYTICS_HOST],
+    selfHosted: true,
   },
   {
     /*
@@ -232,6 +259,7 @@ const VIEW_ROOTS: Array<ViewRoot> = [
     label: "App feature set views",
     directories: featureSetViewDirectories(),
     allowedHosts: [ANALYTICS_HOST],
+    selfHosted: true,
   },
   {
     /*
@@ -244,6 +272,7 @@ const VIEW_ROOTS: Array<ViewRoot> = [
     label: "Home views",
     directories: [path.join(REPOSITORY_ROOT, "Home", "Views")],
     allowedHosts: [ANALYTICS_HOST, "fonts.googleapis.com", "fonts.gstatic.com"],
+    selfHosted: false,
   },
 ];
 
@@ -281,6 +310,29 @@ describe("server-rendered views load no third-party assets", () => {
 
         expect(offenders).toEqual([]);
       });
+
+      if (root.selfHosted) {
+        /*
+         * Not only the CDNs above: no host at all. The list above could not
+         * see a host nobody had thought to put on it - res.cloudinary.com,
+         * in issue #5124 - and a view an install serves to its own people
+         * has nothing to load from anyone else.
+         */
+        test("loads nothing from any host but the ones named for it", () => {
+          const problems: Array<string> = views.flatMap(
+            (view: ViewFile): Array<string> => {
+              return pageLoadProblems(
+                fs.readFileSync(view.absolutePath, "utf8"),
+                root.allowedHosts,
+              ).map((problem: string): string => {
+                return `${view.name}: ${problem}`;
+              });
+            },
+          );
+
+          expect(problems).toEqual([]);
+        });
+      }
     });
   }
 
@@ -686,5 +738,323 @@ describe("lazily-loaded highlight.js grammars", () => {
     );
 
     expect(unused).toEqual([]);
+  });
+});
+
+/*
+ * EMAILS LOAD NOTHING FROM ANYWHERE (issue #5124).
+ *
+ * A mail client reads an email wherever its reader is - on a network
+ * without the internet, behind a mail gateway that flags remote images - and
+ * every image it fetches tells whoever serves it who opened the email, and
+ * when. So an email's own markup loads nothing at all: an image is either
+ * carried inside the email (cid:, data: - OneUptime's logo, a screenshot)
+ * or an address the installation hands the template, built on its own host
+ * (a logo its operator uploaded). And it names no host but OneUptime's own
+ * site, in the one link of an installation that is not renamed.
+ */
+
+const EMAIL_TEMPLATES_ROOT: string = path.join(
+  REPOSITORY_ROOT,
+  "App",
+  "FeatureSet",
+  "Notification",
+  "Templates",
+);
+
+/*
+ * Every format an email template could be written in. A file of any other
+ * kind under the templates fails "is a format this guard reads", so a new
+ * format is read here before it can ship an image.
+ */
+const EMAIL_TEMPLATE_FORMATS: ReadonlyArray<string> = [
+  ".hbs",
+  ".handlebars",
+  ".ejs",
+  ".html",
+  ".htm",
+  ".mjml",
+];
+
+/*
+ * The one host an email's own markup may name, and only in a link the
+ * reader may follow: the footer's "Powered by OneUptime", which only an
+ * installation that is not renamed shows. A renamed one links to the
+ * website its operator set (brandWebsiteUrl), or nowhere.
+ */
+const EMAIL_LINK_HOSTS: ReadonlyArray<string> = ["oneuptime.com"];
+
+/*
+ * Every image an email template loads, and where its address comes from.
+ * Each is carried inside the email or built by the installation on its own
+ * host. A template that loads anything else fails "the images the
+ * templates load": add it here only with a source that is one of those.
+ */
+const EMAIL_IMAGE_SOURCES: Record<string, string> = {
+  "{{{@root.oneUptimeLogoUrl}}}":
+    "OneUptime's logo, carried inside the email (Server/Utils/Mail/EmailLogo.ts)",
+  "{{@root.brandLogoUrl}}":
+    "the installation's own logo, on its own host (App FeatureSet/Notification/Utils/EmailBranding.ts, toAbsoluteUrl)",
+  "{{logoUrl}}":
+    "a status page's logo, on the installation's own host (Server/Utils/StatusPage/StatusPageEmailLogo.ts)",
+};
+
+interface SourceFile {
+  // Repo-relative, so a failure message names something greppable.
+  name: string;
+  absolutePath: string;
+  source: string;
+}
+
+// Every file under `directory`, at any depth.
+function collectFiles(directory: string): Array<string> {
+  if (!fs.existsSync(directory)) {
+    return [];
+  }
+
+  return fs
+    .readdirSync(directory, { withFileTypes: true })
+    .flatMap((entry: fs.Dirent): Array<string> => {
+      const absolutePath: string = path.join(directory, entry.name);
+
+      return entry.isDirectory() ? collectFiles(absolutePath) : [absolutePath];
+    });
+}
+
+function readSourceFile(absolutePath: string): SourceFile {
+  return {
+    name: path.relative(REPOSITORY_ROOT, absolutePath),
+    absolutePath: absolutePath,
+    source: fs.readFileSync(absolutePath, "utf8"),
+  };
+}
+
+function emailTemplateFiles(): Array<SourceFile> {
+  return collectFiles(EMAIL_TEMPLATES_ROOT)
+    .filter((file: string): boolean => {
+      return EMAIL_TEMPLATE_FORMATS.includes(path.extname(file).toLowerCase());
+    })
+    .map(readSourceFile);
+}
+
+describe("emails load nothing from anywhere", () => {
+  const templates: Array<SourceFile> = emailTemplateFiles();
+
+  test("finds every template, and every partial", () => {
+    expect(templates.length).toBeGreaterThan(100);
+    expect(
+      templates.some((template: SourceFile): boolean => {
+        return (
+          template.name ===
+          path.join("App", "FeatureSet", "Notification", "Templates", "Partials", "Logo.hbs")
+        );
+      }),
+    ).toBe(true);
+  });
+
+  test("every file under the templates is a format this guard reads", () => {
+    const unread: Array<string> = collectFiles(EMAIL_TEMPLATES_ROOT)
+      .filter((file: string): boolean => {
+        return !EMAIL_TEMPLATE_FORMATS.includes(
+          path.extname(file).toLowerCase(),
+        );
+      })
+      .map((file: string): string => {
+        return path.relative(REPOSITORY_ROOT, file);
+      });
+
+    expect(unread).toEqual([]);
+  });
+
+  test.each(
+    templates.map((template: SourceFile) => {
+      return [template.name, template.source];
+    }),
+  )(
+    "%s loads only what the email carries or is handed, and links nowhere else",
+    (_name: string, source: string) => {
+      expect(emailTemplateProblems(source, EMAIL_LINK_HOSTS)).toEqual([]);
+    },
+  );
+
+  test("the images the templates load are the ones the installation builds or carries", () => {
+    const loaded: Set<string> = new Set<string>();
+
+    for (const template of templates) {
+      for (const reference of readMarkupReferences(
+        withoutTemplateComments(template.source),
+      )) {
+        if (reference.loads) {
+          loaded.add(reference.value.trim());
+        }
+      }
+    }
+
+    expect([...loaded].sort()).toEqual(Object.keys(EMAIL_IMAGE_SOURCES).sort());
+  });
+
+  test("the header that loaded its logo from res.cloudinary.com carries it now", () => {
+    const logo: SourceFile = readSourceFile(
+      path.join(EMAIL_TEMPLATES_ROOT, "Partials", "Logo.hbs"),
+    );
+
+    expect(logo.source).toContain('src="{{{@root.oneUptimeLogoUrl}}}"');
+    // No address of its own anywhere in it, a link's included.
+    expect(
+      readMarkupReferences(withoutTemplateComments(logo.source))
+        .filter((reference: MarkupReference): boolean => {
+          return addressHost(reference.value) !== null;
+        })
+        .map(describeReference),
+    ).toEqual([]);
+    // And the logo it carries ships with OneUptime.
+    expect(fs.existsSync(EMAIL_LOGO_PATH)).toBe(true);
+  });
+});
+
+/*
+ * The code that writes an email's markup itself - the detail card's rows,
+ * the episode member list, the Markdown renderer, the notes that say an
+ * image or a text was left out, the status page starter templates - holds
+ * no address to load either. Its strings are read through the TypeScript
+ * compiler, so a comment is never read as one, and a template literal's
+ * values read as values ({{value}}): only an address the code writes itself
+ * can fail.
+ */
+
+const EMAIL_CODE_DIRECTORIES: ReadonlyArray<string> = [
+  path.join(REPOSITORY_ROOT, "App", "FeatureSet", "Notification"),
+  path.join(REPOSITORY_ROOT, "Common", "Server", "Utils", "Mail"),
+  path.join(REPOSITORY_ROOT, "Common", "Server", "Utils", "EmailRollup"),
+  path.join(REPOSITORY_ROOT, "Common", "Server", "Utils", "StatusPage"),
+];
+
+const EMAIL_CODE_FILES: ReadonlyArray<string> = [
+  path.join(REPOSITORY_ROOT, "Common", "Server", "Types", "Markdown.ts"),
+  path.join(
+    REPOSITORY_ROOT,
+    "App",
+    "FeatureSet",
+    "Dashboard",
+    "src",
+    "Utils",
+    "SubscriberNotificationTemplateDefaults.ts",
+  ),
+];
+
+const TEMPLATE_VALUE: string = "{{value}}";
+
+/*
+ * Every string a TypeScript source writes: string literals, and template
+ * literals with each ${...} read as a value.
+ */
+function stringsWritten(source: string, fileName: string): Array<string> {
+  const file: ts.SourceFile = ts.createSourceFile(
+    fileName,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  const strings: Array<string> = [];
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
+      strings.push(node.text);
+      return;
+    }
+
+    if (ts.isTemplateExpression(node)) {
+      strings.push(
+        node.head.text +
+          node.templateSpans
+            .map((span: ts.TemplateSpan): string => {
+              return TEMPLATE_VALUE + span.literal.text;
+            })
+            .join(""),
+      );
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(file);
+
+  return strings;
+}
+
+// What the strings of `source` load from a host.
+function codeLoadProblems(source: string, fileName: string): Array<string> {
+  return stringsWritten(source, fileName).flatMap(
+    (text: string): Array<string> => {
+      return readMarkupReferences(text)
+        .filter((reference: MarkupReference): boolean => {
+          return reference.loads && addressHost(reference.value) !== null;
+        })
+        .map(describeReference);
+    },
+  );
+}
+
+describe("code that writes an email's markup loads nothing from anywhere", () => {
+  const files: Array<string> = [
+    ...EMAIL_CODE_DIRECTORIES.flatMap(collectFiles).filter(
+      (file: string): boolean => {
+        return file.endsWith(".ts") && !file.endsWith(".d.ts");
+      },
+    ),
+    ...EMAIL_CODE_FILES,
+  ];
+
+  test("finds the code", () => {
+    const names: Array<string> = files.map((file: string): string => {
+      return path.basename(file);
+    });
+
+    for (const expected of [
+      "EmailLogo.ts",
+      "EmailInlineImages.ts",
+      "EmailSize.ts",
+      "EmailDetailCard.ts",
+      "EmailBranding.ts",
+      "MailService.ts",
+      "Markdown.ts",
+      "SubscriberNotificationTemplateDefaults.ts",
+    ]) {
+      expect([expected, names.includes(expected)]).toEqual([expected, true]);
+    }
+
+    for (const file of files) {
+      expect([file, fs.existsSync(file)]).toEqual([file, true]);
+    }
+  });
+
+  test("no string it writes loads an address from a host", () => {
+    const problems: Array<string> = files.flatMap(
+      (file: string): Array<string> => {
+        return codeLoadProblems(fs.readFileSync(file, "utf8"), file).map(
+          (problem: string): string => {
+            return `${path.relative(REPOSITORY_ROOT, file)}: ${problem}`;
+          },
+        );
+      },
+    );
+
+    expect(problems).toEqual([]);
+  });
+
+  test("reads what code writes, and not what it says in a comment", () => {
+    const source: string = [
+      "// <img src=\"https://comment.example/a.png\">",
+      "/* <img src=\"https://comment.example/b.png\"> */",
+      "const logo: string = '<img src=\"https://cdn.example/logo.png\">';",
+      "const own: string = `<img src=\"${logoUrl}\" alt=\"Logo\">`;",
+      "const pixel: string = `<td style=\"background: url(https://cdn.example/${name}.png)\">`;",
+      "const api: string = \"https://graph.microsoft.com/v1.0/me/sendMail\";",
+    ].join("\n");
+
+    expect(codeLoadProblems(source, "Example.ts")).toEqual([
+      'img src "https://cdn.example/logo.png"',
+      'td url() "https://cdn.example/{{value}}.png"',
+    ]);
   });
 });
