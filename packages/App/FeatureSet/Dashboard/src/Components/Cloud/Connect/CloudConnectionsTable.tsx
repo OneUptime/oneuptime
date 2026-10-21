@@ -120,9 +120,9 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
   // The reads watched that have not ended yet, by connection id.
   const [reading, setReading] = useState<Record<string, ReadInProgress>>({});
   // Connections whose first read was watched: once is enough, ended or not.
-  const firstReadsWatched: MutableRefObject<Set<string>> = useRef<
-    Set<string>
-  >(new Set<string>());
+  const firstReadsWatched: MutableRefObject<Set<string>> = useRef<Set<string>>(
+    new Set<string>(),
+  );
 
   const refresh: () => void = (): void => {
     setRefreshCounter((value: number): number => {
@@ -437,7 +437,9 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                * Not again while the row says it is reading - locked where it
                * is, so the next button does not slide under the finger.
                */
-              getDisabledReason: (item: CloudConnection): string | undefined => {
+              getDisabledReason: (
+                item: CloudConnection,
+              ): string | undefined => {
                 return isReading(item) ? READING_NOW : undefined;
               },
               disabled: !props.updateGate.isAllowed,

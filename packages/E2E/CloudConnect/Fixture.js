@@ -158,99 +158,99 @@ const connections =
     : dataState === "new"
       ? NEW_CONNECTIONS
       : [
-        connection("20000000-0000-4000-8000-000000000001", {
-          name: "AWS 123456789012",
-          provider: "aws",
-          config: {
-            authMethod: "aws-role",
-            roleArn:
-              "arn:aws:iam::123456789012:role/OneUptimeReadOnly-5f3a9c1e",
-            readIntervalInMinutes: "10",
-          },
-          lastPulledAt: new Date("2026-10-21T09:50:00.000Z"),
-          lastSuccessfulPullAt: new Date("2026-10-21T09:50:00.000Z"),
-          lastPullResult: {
-            status: "success",
-            accounts: ["123456789012"],
-            resourceCount: 46,
-            resourceTypes: [
-              { type: "AWS::EC2::Instance", count: 24 },
-              { type: "AWS::RDS::DBInstance", count: 9 },
-              { type: "AWS::Lambda::Function", count: 7 },
-              { type: "AWS::ElasticLoadBalancingV2::LoadBalancer", count: 4 },
-              { type: "AWS::S3::Bucket", count: 2 },
-            ],
-            regions: [
-              { region: "us-east-1", count: 31 },
-              { region: "eu-west-1", count: 15 },
-            ],
-            newResources: 0,
-            archivedResources: 0,
-            pointsWritten: 1840,
-            requestCount: 64,
-            warnings: [],
-            durationMs: 5400,
-            finishedAt: "2026-10-21T09:50:05.000Z",
-          },
-        }),
-        connection("20000000-0000-4000-8000-000000000002", {
-          name: "Contoso production",
-          provider: "azure",
-          config: {
-            authMethod: "azure-client-secret",
-            tenantId: "b3c1b5fc-828c-45fa-a1e1-10d74f6d6e9c",
-            clientId: "00001111-aaaa-2222-bbbb-3333cccc4444",
-            cloud: "public",
-            readIntervalInMinutes: "5",
-          },
-          lastPulledAt: new Date("2026-10-21T09:55:00.000Z"),
-          lastError:
-            "Azure Resource Manager request failed with HTTP 403: The client '00001111-aaaa-2222-bbbb-3333cccc4444' does not have authorization to perform action 'Microsoft.Insights/metrics/read'.",
-          lastPullResult: {
-            status: "failed",
-            failureKind: "permission",
-            accounts: [],
-            resourceCount: 0,
-            resourceTypes: [],
-            regions: [],
-            newResources: 0,
-            archivedResources: 0,
-            pointsWritten: 0,
-            requestCount: 2,
-            warnings: [],
-            durationMs: 400,
-            finishedAt: "2026-10-21T09:55:01.000Z",
-          },
-        }),
-        connection("20000000-0000-4000-8000-000000000003", {
-          name: "Google Cloud acme-prod",
-          provider: "gcp",
-          isEnabled: false,
-          config: {
-            authMethod: "gcp-service-account-key",
-            clientEmail:
-              "oneuptime-read-only@acme-prod.iam.gserviceaccount.com",
-            keyProjectId: "acme-prod",
-            readIntervalInMinutes: "60",
-          },
-          lastPulledAt: new Date("2026-10-19T12:00:00.000Z"),
-          lastSuccessfulPullAt: new Date("2026-10-19T12:00:00.000Z"),
-          lastPullResult: {
-            status: "success",
-            accounts: ["acme-prod"],
-            resourceCount: 3,
-            resourceTypes: [{ type: "gce_instance", count: 3 }],
-            regions: [{ region: "europe-west1", count: 3 }],
-            newResources: 0,
-            archivedResources: 0,
-            pointsWritten: 90,
-            requestCount: 13,
-            warnings: [],
-            durationMs: 900,
-            finishedAt: "2026-10-19T12:00:01.000Z",
-          },
-        }),
-      ];
+          connection("20000000-0000-4000-8000-000000000001", {
+            name: "AWS 123456789012",
+            provider: "aws",
+            config: {
+              authMethod: "aws-role",
+              roleArn:
+                "arn:aws:iam::123456789012:role/OneUptimeReadOnly-5f3a9c1e",
+              readIntervalInMinutes: "10",
+            },
+            lastPulledAt: new Date("2026-10-21T09:50:00.000Z"),
+            lastSuccessfulPullAt: new Date("2026-10-21T09:50:00.000Z"),
+            lastPullResult: {
+              status: "success",
+              accounts: ["123456789012"],
+              resourceCount: 46,
+              resourceTypes: [
+                { type: "AWS::EC2::Instance", count: 24 },
+                { type: "AWS::RDS::DBInstance", count: 9 },
+                { type: "AWS::Lambda::Function", count: 7 },
+                { type: "AWS::ElasticLoadBalancingV2::LoadBalancer", count: 4 },
+                { type: "AWS::S3::Bucket", count: 2 },
+              ],
+              regions: [
+                { region: "us-east-1", count: 31 },
+                { region: "eu-west-1", count: 15 },
+              ],
+              newResources: 0,
+              archivedResources: 0,
+              pointsWritten: 1840,
+              requestCount: 64,
+              warnings: [],
+              durationMs: 5400,
+              finishedAt: "2026-10-21T09:50:05.000Z",
+            },
+          }),
+          connection("20000000-0000-4000-8000-000000000002", {
+            name: "Contoso production",
+            provider: "azure",
+            config: {
+              authMethod: "azure-client-secret",
+              tenantId: "b3c1b5fc-828c-45fa-a1e1-10d74f6d6e9c",
+              clientId: "00001111-aaaa-2222-bbbb-3333cccc4444",
+              cloud: "public",
+              readIntervalInMinutes: "5",
+            },
+            lastPulledAt: new Date("2026-10-21T09:55:00.000Z"),
+            lastError:
+              "Azure Resource Manager request failed with HTTP 403: The client '00001111-aaaa-2222-bbbb-3333cccc4444' does not have authorization to perform action 'Microsoft.Insights/metrics/read'.",
+            lastPullResult: {
+              status: "failed",
+              failureKind: "permission",
+              accounts: [],
+              resourceCount: 0,
+              resourceTypes: [],
+              regions: [],
+              newResources: 0,
+              archivedResources: 0,
+              pointsWritten: 0,
+              requestCount: 2,
+              warnings: [],
+              durationMs: 400,
+              finishedAt: "2026-10-21T09:55:01.000Z",
+            },
+          }),
+          connection("20000000-0000-4000-8000-000000000003", {
+            name: "Google Cloud acme-prod",
+            provider: "gcp",
+            isEnabled: false,
+            config: {
+              authMethod: "gcp-service-account-key",
+              clientEmail:
+                "oneuptime-read-only@acme-prod.iam.gserviceaccount.com",
+              keyProjectId: "acme-prod",
+              readIntervalInMinutes: "60",
+            },
+            lastPulledAt: new Date("2026-10-19T12:00:00.000Z"),
+            lastSuccessfulPullAt: new Date("2026-10-19T12:00:00.000Z"),
+            lastPullResult: {
+              status: "success",
+              accounts: ["acme-prod"],
+              resourceCount: 3,
+              resourceTypes: [{ type: "gce_instance", count: 3 }],
+              regions: [{ region: "europe-west1", count: 3 }],
+              newResources: 0,
+              archivedResources: 0,
+              pointsWritten: 90,
+              requestCount: 13,
+              warnings: [],
+              durationMs: 900,
+              finishedAt: "2026-10-19T12:00:01.000Z",
+            },
+          }),
+        ];
 
 const state = {
   // Every connection a form created, as the model it sent.
@@ -403,7 +403,9 @@ window.__cloudConnectFixture = {
         status: "success",
         accounts: ["7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b"],
         resourceCount: 37,
-        resourceTypes: [{ type: "Microsoft.Compute/virtualMachines", count: 18 }],
+        resourceTypes: [
+          { type: "Microsoft.Compute/virtualMachines", count: 18 },
+        ],
         regions: [
           { region: "westeurope", count: 29 },
           { region: "northeurope", count: 8 },

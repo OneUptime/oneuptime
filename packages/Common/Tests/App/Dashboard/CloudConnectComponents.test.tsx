@@ -505,7 +505,6 @@ describe("the test", () => {
       await screen.findByTestId("cloud-connection-test-error"),
     ).toHaveTextContent("Network Error");
   });
-
 });
 
 describe("a saved connection's test, from the list", () => {
@@ -578,7 +577,9 @@ describe("a saved connection's test, from the list", () => {
     const onClose: MockFunction = getJestMockFunction();
 
     await act(async () => {
-      render(<CloudConnectionTestDialog connection={saved()} onClose={onClose} />);
+      render(
+        <CloudConnectionTestDialog connection={saved()} onClose={onClose} />,
+      );
     });
 
     const footer: HTMLElement = screen.getByTestId("modal-footer");

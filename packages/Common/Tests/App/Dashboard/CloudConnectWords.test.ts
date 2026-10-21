@@ -319,12 +319,12 @@ describe("counts in the reader's language", () => {
   });
 
   test("when it was last read, and never, in the reader's language", () => {
-    expect(ENGLISH.translateTemplate(LAST_READ_AT, { time: "Oct 21, 09:50" })).toBe(
-      "Last read Oct 21, 09:50",
-    );
-    expect(GERMAN.translateTemplate(LAST_READ_AT, { time: "Oct 21, 09:50" })).toBe(
-      "Zuletzt gelesen Oct 21, 09:50",
-    );
+    expect(
+      ENGLISH.translateTemplate(LAST_READ_AT, { time: "Oct 21, 09:50" }),
+    ).toBe("Last read Oct 21, 09:50");
+    expect(
+      GERMAN.translateTemplate(LAST_READ_AT, { time: "Oct 21, 09:50" }),
+    ).toBe("Zuletzt gelesen Oct 21, 09:50");
     expect(ENGLISH.translateText(NOT_READ_YET)).toBe("Not read yet");
   });
 });
@@ -345,9 +345,10 @@ describe("where a read found resources, as a row of the list names it", () => {
   });
 
   test("one or two regions are all named; a resource with no region names none", () => {
-    expect(
-      getCloudRegionNames([{ region: "westeurope", count: 12 }]),
-    ).toEqual({ names: ["westeurope"], more: 0 });
+    expect(getCloudRegionNames([{ region: "westeurope", count: 12 }])).toEqual({
+      names: ["westeurope"],
+      more: 0,
+    });
     expect(
       getCloudRegionNames([
         { region: "", count: 3 },
@@ -462,7 +463,11 @@ describe("what a connection reads, in its cloud's word", () => {
     ],
     [CloudProvider.Azure, ["sub-1", "sub-2"], "Subscriptions: sub-1, sub-2"],
     [CloudProvider.GCP, ["acme-prod"], "Project: acme-prod"],
-    [CloudProvider.GCP, ["acme-prod", "acme-dev"], "Projects: acme-prod, acme-dev"],
+    [
+      CloudProvider.GCP,
+      ["acme-prod", "acme-dev"],
+      "Projects: acme-prod, acme-dev",
+    ],
   ] as Array<[CloudProvider, Array<string>, string]>)(
     "%s reading %j says %s",
     (provider: CloudProvider, accounts: Array<string>, said: string) => {
@@ -480,7 +485,10 @@ describe("what a connection reads, in its cloud's word", () => {
       getCloudAccountsWords({ provider: CloudProvider.AWS, accounts: [] }),
     ).toBeUndefined();
     expect(
-      getCloudAccountsWords({ provider: CloudProvider.GCP, accounts: ["", " "] }),
+      getCloudAccountsWords({
+        provider: CloudProvider.GCP,
+        accounts: ["", " "],
+      }),
     ).toBeUndefined();
   });
 

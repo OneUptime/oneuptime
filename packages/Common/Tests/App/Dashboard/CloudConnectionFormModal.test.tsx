@@ -438,7 +438,9 @@ describe("why the step cannot go on, said once", () => {
       "Paste everything the command printed.",
     ]);
     expect(
-      within(modal()).getByRole("button", { name: "Enter the values yourself" }),
+      within(modal()).getByRole("button", {
+        name: "Enter the values yourself",
+      }),
     ).toHaveAttribute("aria-expanded", "false");
     expect(modal()).not.toHaveTextContent("is required");
   });
@@ -464,12 +466,7 @@ describe("why the step cannot go on, said once", () => {
     await stepTitles();
     await next();
     await paste(
-      [
-        "{",
-        `  "appId": "${APP}",`,
-        `  "tenant": "${TENANT}"`,
-        "}",
-      ].join("\n"),
+      ["{", `  "appId": "${APP}",`, `  "tenant": "${TENANT}"`, "}"].join("\n"),
     );
     await next();
 
@@ -479,7 +476,9 @@ describe("why the step cannot go on, said once", () => {
     // What it did find is still said.
     expect(
       within(modal()).getByTestId("cloud-connection-paste-found"),
-    ).toHaveTextContent("Found: Directory (tenant) ID, Application (client) ID");
+    ).toHaveTextContent(
+      "Found: Directory (tenant) ID, Application (client) ID",
+    );
   });
 });
 

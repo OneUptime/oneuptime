@@ -500,10 +500,9 @@ test.describe("the connected accounts", () => {
       .getByTestId("cloud-connection-resource-count")
       .first();
     await expect(count).toHaveText("46 resources");
-    await expect(page.getByRole("link", { name: "46 resources" })).toHaveAttribute(
-      "href",
-      `/dashboard/${PROJECT_ID}/cloud/resources`,
-    );
+    await expect(
+      page.getByRole("link", { name: "46 resources" }),
+    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/cloud/resources`);
     await expect(
       page.getByTestId("cloud-connection-regions").first(),
     ).toHaveText("us-east-1, eu-west-1");
@@ -723,13 +722,13 @@ test.describe("a connection's own actions", () => {
     );
     await expect(answer).toContainText("46 resources");
     await expect(answer).toContainText("EC2 Instance");
-    await expect(answer.getByTestId("cloud-resource-groups-accounts")).toHaveText(
-      "Account: 123456789012",
-    );
-    const footer: Locator = dialog(page).getByTestId("modal-footer");
     await expect(
-      footer.getByTestId("cloud-connection-test-button"),
-    ).toHaveText("Test again");
+      answer.getByTestId("cloud-resource-groups-accounts"),
+    ).toHaveText("Account: 123456789012");
+    const footer: Locator = dialog(page).getByTestId("modal-footer");
+    await expect(footer.getByTestId("cloud-connection-test-button")).toHaveText(
+      "Test again",
+    );
     await expect(footer.getByRole("button", { name: "Close" })).toBeVisible();
     await expectNoSidewaysScroll(page);
     await shoot(page, "connect-row-test");

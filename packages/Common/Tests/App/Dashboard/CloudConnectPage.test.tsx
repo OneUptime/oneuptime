@@ -351,9 +351,9 @@ describe("a change made in the list", () => {
       ).not.toBeInTheDocument();
     });
     expect(getListSpy.mock.calls.length).toBeGreaterThan(readsBefore);
-    expect(
-      screen.getByTestId("cloud-connection-tile-azure"),
-    ).toHaveTextContent("Connect");
+    expect(screen.getByTestId("cloud-connection-tile-azure")).toHaveTextContent(
+      "Connect",
+    );
     expect(
       screen.getByTestId("cloud-connection-tile-connected-aws"),
     ).toHaveTextContent("Connected");

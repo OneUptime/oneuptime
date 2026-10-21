@@ -175,9 +175,13 @@ export const CloudConnectionTestAnswer: FunctionComponent<
       data-testid={`cloud-connection-test-${result.status}`}
       className={`rounded-lg p-4 ring-1 ring-inset ${tone.box}`}
     >
-      <div className={`flex items-start gap-2 text-sm font-medium ${tone.text}`}>
+      <div
+        className={`flex items-start gap-2 text-sm font-medium ${tone.text}`}
+      >
         <Icon icon={tone.icon} className="mt-0.5 h-4 w-4 flex-shrink-0" />
-        <div className="min-w-0">{translator.translateText(words.headline)}</div>
+        <div className="min-w-0">
+          {translator.translateText(words.headline)}
+        </div>
       </div>
 
       {found ? (
@@ -279,7 +283,11 @@ const CloudConnectionTestPanel: FunctionComponent<ComponentProps> = (
    * before it opens its first one, and its steps are told apart only then.
    */
   useEffect(() => {
-    if (props.autoStart && !props.disabledReason && test.state.kind === "idle") {
+    if (
+      props.autoStart &&
+      !props.disabledReason &&
+      test.state.kind === "idle"
+    ) {
       void test.run();
     }
   }, [props.autoStart, props.disabledReason]);
