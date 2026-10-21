@@ -99,7 +99,7 @@ Monitorer, hendelser, varsler, statussider, SLO-er og mange andre ressurser har 
 | Innsamlerkonfigurasjoner | `Collector Config` |
 | vCenter-servere | `vCenter` |
 | Pakkeopptak og nedlastingene av dem | `Packet Capture` |
-| Sikkerhetssaker og playbooks | `Security Case`, `Security Playbook` |
+| Sikkerhetssaker, playbooks og kjøringene deres, og beskyttede enheter | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 
 Det registreres også når en administrator legger til eller fjerner en varslingsmetode eller en personlig vaktregel på en annens konto, uten selve adressen eller nummeret.
 

@@ -105,6 +105,8 @@ describe("the facet catalog", () => {
       "ruleName",
       "principalUser",
       "principalHost",
+      "processName",
+      "parentProcessName",
     ]);
   });
 
@@ -137,6 +139,22 @@ describe("the facet catalog", () => {
 
   test("message is not a facet — the search bar owns free text", () => {
     expect(SECURITY_EVENT_FACET_KEYS).not.toContain("message");
+  });
+
+  /*
+   * A process is faceted by its file name, which repeats across hosts and
+   * events. Its path and command line are nearly as unique as the event, so
+   * the search bar owns them (commandline:, image:).
+   */
+  test("processes are faceted by name, never by path or command line", () => {
+    for (const column of [
+      "processPath",
+      "processCommandLine",
+      "parentProcessPath",
+      "parentProcessCommandLine",
+    ]) {
+      expect(SECURITY_EVENT_FACET_KEYS).not.toContain(column);
+    }
   });
 
   test("priorities are unique and ascending in declared order", () => {

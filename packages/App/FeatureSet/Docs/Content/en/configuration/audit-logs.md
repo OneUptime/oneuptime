@@ -99,7 +99,7 @@ Monitors, incidents, alerts, status pages, SLOs and many other resources also ha
 | Collector Configs | `Collector Config` |
 | vCenters | `vCenter` |
 | Packet captures, and their downloads | `Packet Capture` |
-| Security cases and playbooks | `Security Case`, `Security Playbook` |
+| Security cases, playbooks and their runs, and protected entities | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 
 An administrator adding or removing a notification method or a personal on-call rule on someone else's account is recorded too, without the address or number itself.
 

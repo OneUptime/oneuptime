@@ -135,6 +135,12 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `className` | `event_type`, `category`, `type`, `action` |
 | `ruleName` | `rule`, `rule_name`, `signature`, `detection` |
 | `productName` | `product`, `product_name`, `source`, `log_source` |
+| `processName` | `process_name`, `process.name`, `proc.name`, `comm` |
+| `processPath` | `process_path`, `Image`, `NewProcessName`, `exe`, `process.executable` |
+| `processCommandLine` | `command_line`, `CommandLine`, `cmdline`, `process.command_line`, `proc.cmdline`, `process` |
+| `parentProcessName` | `parent_process_name`, `process.parent.name`, `proc.pname` |
+| `parentProcessPath` | `parent_process_path`, `ParentImage`, `ParentProcessName`, `process.parent.executable` |
+| `parentProcessCommandLine` | `parent_command_line`, `ParentCommandLine`, `process.parent.command_line`, `proc.pcmdline` |
 
 심각도를 나타내는 단어는 OCSF 수준이 됩니다. `info` 는 Informational, `warning` 은 Low, `error` 는 Medium, `alert` 는 Critical, `emergency` 는 Fatal로 읽힙니다.
 
@@ -194,6 +200,7 @@ auditd, syslog, Falco처럼 이미 수집하고 있는 보안 로그를 보내�
 | 심각도 | `severityName`(Unknown, Informational, Low, Medium, High, Critical, Fatal, Other 중 하나)과 `severityId` |
 | 누가 했는지 | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | 무엇에 영향을 주었는지 | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
+| 프로세스 | `processName`, `processPath`, `processCommandLine`: 프로세스 실행에서는 시작된 프로세스, 그 밖에는 동작한 프로세스. `parentProcessName`, `parentProcessPath`, `parentProcessCommandLine`: 그 프로세스를 시작한 프로세스 |
 | 소스 | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | 내용 | `message`, `mitreTactics`, `mitreTechniques`, `observables`: 이벤트에서 뽑아낸 모든 사용자, 호스트, IP 주소, 도메인, 해시 |
 | 속성 | 소스의 페이로드 전체를 점으로 구분한 키로 평탄화한 것 |
@@ -218,11 +225,11 @@ auditd, syslog, Falco처럼 이미 수집하고 있는 보안 로그를 보내�
 | `@<attribute>:*` | 속성이 있음 | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | 속성이 텍스트를 포함함 | `@finding_info.title:~ransom` |
 
-필드는 짧은 이름(`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `observable`, `tactic`, `technique`)이거나, `severityName` 이나 `principalHost` 같은 필드 자체의 이름입니다. 그 밖의 이름은 소스 속성으로 읽힙니다. `observable:<value>` 는 활동의 어느 쪽에 있었든 그 값을 언급하는 모든 이벤트를 찾습니다.
+필드는 짧은 이름(`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`)이거나, `severityName` 이나 `principalHost` 같은 필드 자체의 이름입니다. 그 밖의 이름은 소스 속성으로 읽힙니다. `observable:<value>` 는 활동의 어느 쪽에 있었든 그 값을 언급하는 모든 이벤트를 찾습니다.
 
 ### 패싯
 
-사이드바는 창 안의 이벤트를 **소스**, **심각도**, **이벤트 클래스**, **Category**, **활동**, **상태**, **공급업체**, **제품**, **Detection Rule**, **원본 사용자**, **원본 호스트** 별로 셉니다. 값을 클릭하면 그 이벤트만 남기고, 옆의 빼기 표시를 클릭하면 제외합니다. 다시 클릭하면 취소됩니다. 차트와 모든 개수는 목록에 있는 이벤트를 정확히 나타냅니다.
+사이드바는 창 안의 이벤트를 **소스**, **심각도**, **이벤트 클래스**, **Category**, **활동**, **상태**, **공급업체**, **제품**, **Detection Rule**, **원본 사용자**, **원본 호스트**, **프로세스**, **부모 프로세스** 별로 셉니다. 값을 클릭하면 그 이벤트만 남기고, 옆의 빼기 표시를 클릭하면 제외합니다. 다시 클릭하면 취소됩니다. 차트와 모든 개수는 목록에 있는 이벤트를 정확히 나타냅니다.
 
 ### 상관 분석
 
@@ -278,6 +285,7 @@ OneUptime은 Sigma의 불리언 핵심을 실행합니다.
 - 조건은 `and`, `or`, `not` 과 괄호, 또는 `1 of selection_*`, `all of selection_*`, `any of them`, `all of them` 으로 셀렉션을 결합합니다.
 - 필드 수식어: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists`, `windash`. 텍스트는 `cased` 를 붙이지 않는 한 대소문자를 구분하지 않고 비교합니다.
 - 필드는 타입이 지정된 필드(`principalUser`), 그 필드의 흔한 Sigma 표기(`CommandLine`, `src_ip`, `Hostname`), 또는 이벤트에 적힌 그대로의 모든 속성 키(`threat.matched`)입니다.
+- `Image`와 `CommandLine`은 이벤트의 대상인 프로세스, 즉 프로세스 실행에서는 시작된 프로세스(`processPath`, `processCommandLine`)를 읽고, `ParentImage`와 `ParentCommandLine`은 그 프로세스를 시작한 프로세스(`parentProcessPath`, `parentProcessCommandLine`)를 읽습니다. `principalProcess`는 동작한 프로세스로, 실행에서는 부모 프로세스입니다.
 - `level` 은 심각도를 정합니다. `informational`, `low`, `medium`, `high`, `critical` 중 하나이며, 없으면 `medium` 입니다. `tags` 의 ATT&CK ID(`attack.t1110`, `attack.ta0006`)는 탐지 결과의 MITRE 필드를 채웁니다.
 
 `| count() by principalIp > 5` 같은 집계는 저장할 때 거부됩니다. 대신 **Group By Field** 와 **Match Count Threshold** 를 사용하세요. `logsource` 는 참고용일 뿐 아무것도 좁히지 않습니다. 그 필터는 `className: Authentication` 처럼 셀렉션에 넣으세요. `timeframe` 은 무시됩니다. 윈도우는 규칙의 간격이 정하기 때문입니다.

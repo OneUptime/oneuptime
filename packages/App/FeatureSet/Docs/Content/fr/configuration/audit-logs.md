@@ -99,7 +99,7 @@ Les moniteurs, les incidents, les alertes, les pages de statut, les SLO et bien 
 | Configurations du collecteur | `Collector Config` |
 | vCenter | `vCenter` |
 | Captures de paquets, et leurs téléchargements | `Packet Capture` |
-| Dossiers de sécurité et playbooks | `Security Case`, `Security Playbook` |
+| Dossiers de sécurité, playbooks et leurs exécutions, et entités protégées | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 
 Un administrateur qui ajoute ou retire une méthode de notification ou une règle d'astreinte personnelle sur le compte de quelqu'un d'autre est aussi enregistré, sans l'adresse ni le numéro lui-même.
 

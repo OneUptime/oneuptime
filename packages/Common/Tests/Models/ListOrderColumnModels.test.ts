@@ -101,6 +101,16 @@ const EXPECTED: Record<string, ListOrderSettings> = {
     scopeColumns: ["projectId"],
     sortOrder: SortOrder.Descending,
   },
+  /*
+   * A project's Collector Configs: a host runs the first config in the list
+   * that applies to it (HostCollectorConfigResolution), so their order is
+   * which config a host gets.
+   */
+  HostCollectorConfig: {
+    column: "order",
+    scopeColumns: ["projectId"],
+    sortOrder: SortOrder.Ascending,
+  },
   LogPipeline: {
     column: "sortOrder",
     scopeColumns: ["projectId"],

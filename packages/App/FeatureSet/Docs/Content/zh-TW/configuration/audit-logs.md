@@ -99,7 +99,7 @@ flowchart TB
 | 收集器設定 | `Collector Config` |
 | vCenter 伺服器 | `vCenter` |
 | 封包擷取及其下載 | `Packet Capture` |
-| 安全案件與劇本 | `Security Case`、`Security Playbook` |
+| 安全案件、劇本及其執行，以及受保護的實體 | `Security Case`、`Security Playbook`、`Security Playbook Run`、`Protected Entity` |
 
 當管理員在他人的帳戶上新增或移除通知方式或個人待命規則時，也會記錄，但不包含地址或號碼本身。
 

@@ -1,14 +1,21 @@
 import { describe, expect, test } from "@jest/globals";
 import { JSONObject } from "../../../Types/JSON";
 import {
+  ProcessFields,
   buildObservables,
+  buildProcessFields,
   contentHashEventUid,
+  fileNameOfPath,
   flattenPayload,
+  joinPath,
+  mergeProcessReadings,
+  namesProcess,
   parseEventTime,
   readNumber,
   readString,
   readStringArray,
 } from "../../../Utils/SecurityEvent/NormalizerHelpers";
+import { fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * Every normalizer leans on these helpers for the parts that silently
@@ -269,6 +276,160 @@ describe("NormalizerHelpers", () => {
       expect(contentHashEventUid({ a: "1" })).not.toBe(
         contentHashEventUid({ a: "2" }),
       );
+    });
+  });
+});
+
+/*
+ * The process an event is about and its parent arrive as whatever a source
+ * names: a file name, a full path, a folder and a file name, a command line,
+ * or several readings of one process. These helpers turn that into the six
+ * fields Sigma's Image, CommandLine, ParentImage and ParentCommandLine read.
+ */
+describe("process fields", () => {
+  describe("fileNameOfPath", () => {
+    test.each([
+      ["C:\\Windows\\System32\\cmd.exe", "cmd.exe"],
+      ["/usr/bin/cat", "cat"],
+      ["\\Device\\HarddiskVolume3\\Windows\\explorer.exe", "explorer.exe"],
+      ["C:/tools/x.exe", "x.exe"],
+      ["/usr/bin/", "bin"],
+      ["  /usr/sbin/sshd  ", "sshd"],
+      ["powershell.exe", "powershell.exe"],
+      ["", ""],
+    ])("%j -> %j", (path: string, name: string) => {
+      expect(fileNameOfPath(path)).toBe(name);
+    });
+
+    test("reads a path of any length in time in line with it", () => {
+      const path: string = `${"\\".repeat(500000)}x${"/".repeat(500000)}`;
+
+      const run: { result: string; inMs: number } = fastestRun({
+        run: (): string => {
+          return fileNameOfPath(path);
+        },
+        limitInMs: 2000,
+      });
+
+      expect(run.result).toBe("x");
+      expect(run.inMs).toBeLessThan(2000);
+    });
+  });
+
+  describe("joinPath", () => {
+    test("joins a Windows folder with a backslash, a Unix one with a slash", () => {
+      expect(joinPath("C:\\Windows\\System32", "cmd.exe")).toBe(
+        "C:\\Windows\\System32\\cmd.exe",
+      );
+      expect(joinPath("/usr/bin", "cat")).toBe("/usr/bin/cat");
+      expect(joinPath("C:", "boot.ini")).toBe("C:\\boot.ini");
+    });
+
+    test("adds no second separator, and takes a folder that is already the path", () => {
+      expect(joinPath("/usr/bin/", "cat")).toBe("/usr/bin/cat");
+      expect(joinPath("C:\\Temp\\", "a.exe")).toBe("C:\\Temp\\a.exe");
+      expect(joinPath("C:\\Temp\\A.EXE", "a.exe")).toBe("C:\\Temp\\A.EXE");
+    });
+
+    test("is no path without both a folder and a name", () => {
+      expect(joinPath("", "cmd.exe")).toBe("");
+      expect(joinPath("C:\\Windows", "")).toBe("");
+    });
+  });
+
+  describe("namesProcess", () => {
+    test("any of a name, a path or a command line names a process; a pid alone does not", () => {
+      expect(namesProcess({ name: "cmd.exe" })).toBe(true);
+      expect(namesProcess({ path: "/usr/bin/cat" })).toBe(true);
+      expect(namesProcess({ commandLine: "cat /etc/hosts" })).toBe(true);
+      expect(namesProcess({ name: "  ", path: "", commandLine: "" })).toBe(
+        false,
+      );
+      expect(namesProcess(undefined)).toBe(false);
+    });
+  });
+
+  describe("mergeProcessReadings", () => {
+    test("one process read twice: the first reading's fields first, the gaps from the second", () => {
+      expect(
+        mergeProcessReadings(
+          { name: "explorer.exe" },
+          {
+            name: "Explorer.EXE",
+            path: "C:\\Windows\\explorer.exe",
+            commandLine: "C:\\Windows\\Explorer.EXE",
+          },
+        ),
+      ).toEqual({
+        name: "explorer.exe",
+        path: "C:\\Windows\\explorer.exe",
+        commandLine: "C:\\Windows\\Explorer.EXE",
+      });
+    });
+
+    test("a reading that names no process takes the other whole", () => {
+      expect(
+        mergeProcessReadings({}, { name: "bash", commandLine: "-bash" }),
+      ).toEqual({ name: "bash", path: undefined, commandLine: "-bash" });
+      expect(
+        mergeProcessReadings({ path: "/usr/bin/sudo" }, undefined),
+      ).toEqual({
+        name: undefined,
+        path: "/usr/bin/sudo",
+        commandLine: undefined,
+      });
+    });
+
+    test("two readings that name different processes are never mixed", () => {
+      expect(
+        mergeProcessReadings(
+          { name: "cmd.exe" },
+          { path: "C:\\Windows\\explorer.exe", commandLine: "explorer.exe" },
+        ),
+      ).toEqual({ name: "cmd.exe" });
+    });
+  });
+
+  describe("buildProcessFields", () => {
+    test("the process and its parent, trimmed", () => {
+      expect(
+        buildProcessFields({
+          process: {
+            name: " powershell.exe ",
+            path: "C:\\Windows\\powershell.exe",
+            commandLine: " powershell.exe -enc JAB ",
+          },
+          parent: { name: "winword.exe", commandLine: "winword.exe /n" },
+        }),
+      ).toEqual({
+        processName: "powershell.exe",
+        processPath: "C:\\Windows\\powershell.exe",
+        processCommandLine: "powershell.exe -enc JAB",
+        parentProcessName: "winword.exe",
+        parentProcessPath: "",
+        parentProcessCommandLine: "winword.exe /n",
+      } satisfies ProcessFields);
+    });
+
+    test("a process named only by its path is named by the path's file name", () => {
+      const fields: ProcessFields = buildProcessFields({
+        process: { path: "/usr/bin/curl" },
+        parent: { path: "C:\\Windows\\System32\\cmd.exe" },
+      });
+
+      expect(fields.processName).toBe("curl");
+      expect(fields.parentProcessName).toBe("cmd.exe");
+    });
+
+    test("nothing said is six empty fields", () => {
+      expect(buildProcessFields({})).toEqual({
+        processName: "",
+        processPath: "",
+        processCommandLine: "",
+        parentProcessName: "",
+        parentProcessPath: "",
+        parentProcessCommandLine: "",
+      });
     });
   });
 });
