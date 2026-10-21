@@ -266,7 +266,11 @@ jobs:
           # 25.5. Code (about 5 minutes: a laptop and a phone) joined it at
           # 14.2 to 16.4 minutes, the most room of the six. Public Addresses
           # (about a minute, Chromium only: a status page's Overview and a
-          # dashboard's Sharing page) joined it on 2026-10-19.
+          # dashboard's Sharing page) joined it on 2026-10-19. On 2026-10-21
+          # the group ran past the job's 30 minutes (Security Operations had
+          # grown with the Security pages to about 3.5 minutes, and the job
+          # was cancelled in Code, with Public Addresses never run), so those
+          # three moved to group 8: about 10 minutes of the group's 29.5.
           - group: 5
             browsers: chromium
             suites: >-
@@ -279,13 +283,10 @@ jobs:
               test-pagination-ui
               test-topology-ui
               test-home-overview-ui
-              test-security-operations-ui
               test-status-timeline-ui
               test-episode-bulk-add-ui
               test-runbook-triggers-ui
               test-network-first-run-ui
-              test-code-ui
-              test-public-addresses-ui
           # Added when group 5 took 25.5 of the job's 30 minutes and groups 1,
           # 3 and 4 23.5 to 24.3 on one run: group 5's last five suites, with
           # Discovery from group 3, Status Page Theme from group 1 and Calendar
@@ -352,13 +353,19 @@ jobs:
           # tiles, a cloud connected from its tile with a test, the list's
           # status and actions, at a laptop's and a phone's width, in the dark
           # theme and in Japanese, Chromium only) joined them on 2026-10-21,
-          # the lightest group by far.
+          # the lightest group by far. Security Operations, Code and Public
+          # Addresses (about 10 minutes together, all Chromium) moved here
+          # from group 5 the same day too, when it ran past the job's 30
+          # minutes: about 17 minutes for the six.
           - group: 8
             browsers: chromium
             suites: >-
               test-dashboard-time-range-ui
               test-dashboard-widget-sort-ui
               test-cloud-connect-ui
+              test-security-operations-ui
+              test-code-ui
+              test-public-addresses-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
