@@ -151,9 +151,10 @@ describe("Sigma's process fields", () => {
   });
 
   test("no Sigma spelling of a process field reads principalProcess", () => {
+    const processSpelling: RegExp = /command|cmd|image|executable|process/;
     const processSpellings: Array<string> = Object.keys(FIELD_ALIASES).filter(
       (alias: string): boolean => {
-        return /command|cmd|image|executable|process/.test(alias);
+        return processSpelling.test(alias);
       },
     );
 

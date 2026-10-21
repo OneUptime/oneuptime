@@ -387,8 +387,8 @@ describe("GoogleSecOpsAlertNormalizer", () => {
  */
 describe("GoogleSecOpsAlertNormalizer: the process the detection is about", () => {
   test("the first matched event's process and parent", () => {
-    const event: NormalizedSecurityEvent = GoogleSecOpsAlertNormalizer.normalize(
-      {
+    const event: NormalizedSecurityEvent =
+      GoogleSecOpsAlertNormalizer.normalize({
         type: "RULE_DETECTION",
         detection: [{ ruleName: "encoded_powershell", ruleId: "ru_1" }],
         collectionElements: [
@@ -418,8 +418,7 @@ describe("GoogleSecOpsAlertNormalizer: the process the detection is about", () =
             ],
           },
         ],
-      },
-    );
+      });
 
     expect(event.className).toBe("Detection Finding");
     expect(event.processName).toBe("powershell.exe");
@@ -429,9 +428,11 @@ describe("GoogleSecOpsAlertNormalizer: the process the detection is about", () =
   });
 
   test("a detection with no matched events names no process", () => {
-    const event: NormalizedSecurityEvent = GoogleSecOpsAlertNormalizer.normalize(
-      { type: "RULE_DETECTION", detection: [{ ruleName: "r" }] },
-    );
+    const event: NormalizedSecurityEvent =
+      GoogleSecOpsAlertNormalizer.normalize({
+        type: "RULE_DETECTION",
+        detection: [{ ruleName: "r" }],
+      });
 
     expect(event.processName).toBe("");
     expect(event.parentProcessCommandLine).toBe("");

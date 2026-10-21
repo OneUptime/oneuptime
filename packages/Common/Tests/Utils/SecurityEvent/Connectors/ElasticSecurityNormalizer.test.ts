@@ -513,9 +513,8 @@ describe("ElasticSecurityNormalizer", () => {
  */
 describe("ElasticSecurityNormalizer: the process the alert is about", () => {
   test("process.* and process.parent.*", () => {
-    const event: NormalizedSecurityEvent = ElasticSecurityNormalizer.normalize(
-      alertHit(),
-    );
+    const event: NormalizedSecurityEvent =
+      ElasticSecurityNormalizer.normalize(alertHit());
 
     expect(event.processName).toBe("pkexec");
     expect(event.processPath).toBe("/usr/bin/pkexec");

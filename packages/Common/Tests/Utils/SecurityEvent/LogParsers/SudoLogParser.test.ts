@@ -156,13 +156,18 @@ describe("the process a sudo command is", () => {
   test.each([
     ["wrong passwords", SUDO_LINES.wrongPassword],
     ["a person sudo refused", SUDO_LINES.notInSudoers],
-  ])("%s ran nothing, so the event names no process", (_name: string, line: string) => {
-    const event: NormalizedSecurityEvent = SudoLogParser.parse(logLine(line))[0]!;
+  ])(
+    "%s ran nothing, so the event names no process",
+    (_name: string, line: string) => {
+      const event: NormalizedSecurityEvent = SudoLogParser.parse(
+        logLine(line),
+      )[0]!;
 
-    expect(event.processCommandLine).toBe("");
-    expect(event.processPath).toBe("");
-    expect(event.parentProcessName).toBe("");
-    // The command it asked for stays the principal process, as it was.
-    expect(event.principalProcess.length).toBeGreaterThan(0);
-  });
+      expect(event.processCommandLine).toBe("");
+      expect(event.processPath).toBe("");
+      expect(event.parentProcessName).toBe("");
+      // The command it asked for stays the principal process, as it was.
+      expect(event.principalProcess.length).toBeGreaterThan(0);
+    },
+  );
 });

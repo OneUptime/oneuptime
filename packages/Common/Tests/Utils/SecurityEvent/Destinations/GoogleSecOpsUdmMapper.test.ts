@@ -431,8 +431,6 @@ describe("the process an event is about, forwarded", () => {
       }),
     );
 
-    expect(String(read(udm, "target.process.file.fullPath")).length).toBe(
-      1024,
-    );
+    expect(String(read(udm, "target.process.file.fullPath")).length).toBe(1024);
   });
 });

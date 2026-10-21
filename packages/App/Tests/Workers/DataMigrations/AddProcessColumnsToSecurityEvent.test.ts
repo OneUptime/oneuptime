@@ -590,7 +590,10 @@ describe("the statements the six columns are added with", () => {
         `ALTER TABLE {p0:Identifier}.{p1:Identifier} ON CLUSTER 'oneuptime' ADD COLUMN IF NOT EXISTS ${key} String CODEC(ZSTD(1))`,
       );
       // The database, then the LOCAL storage table - not the Distributed wrapper.
-      expect(rendered.identifiers).toEqual(["oneuptime", "SecurityEventItemV1Local"]);
+      expect(rendered.identifiers).toEqual([
+        "oneuptime",
+        "SecurityEventItemV1Local",
+      ]);
     },
   );
 

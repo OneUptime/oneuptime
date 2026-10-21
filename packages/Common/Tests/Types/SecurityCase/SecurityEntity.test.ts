@@ -71,9 +71,14 @@ describe("securityEntityTypeForField", () => {
     "parentProcessName",
     "parentProcessPath",
     "parentProcessCommandLine",
-  ])("%s, a column of the process an event is about, holds a process", (field: string) => {
-    expect(securityEntityTypeForField(field)).toBe(SecurityEntityType.Process);
-  });
+  ])(
+    "%s, a column of the process an event is about, holds a process",
+    (field: string) => {
+      expect(securityEntityTypeForField(field)).toBe(
+        SecurityEntityType.Process,
+      );
+    },
+  );
 
   test("a column that holds anything, and an unknown field, leave it to the value", () => {
     expect(securityEntityTypeForField("targetResource")).toBeUndefined();

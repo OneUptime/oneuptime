@@ -371,9 +371,13 @@ describe("process fields", () => {
       expect(
         mergeProcessReadings({}, { name: "bash", commandLine: "-bash" }),
       ).toEqual({ name: "bash", path: undefined, commandLine: "-bash" });
-      expect(mergeProcessReadings({ path: "/usr/bin/sudo" }, undefined)).toEqual(
-        { name: undefined, path: "/usr/bin/sudo", commandLine: undefined },
-      );
+      expect(
+        mergeProcessReadings({ path: "/usr/bin/sudo" }, undefined),
+      ).toEqual({
+        name: undefined,
+        path: "/usr/bin/sudo",
+        commandLine: undefined,
+      });
     });
 
     test("two readings that name different processes are never mixed", () => {

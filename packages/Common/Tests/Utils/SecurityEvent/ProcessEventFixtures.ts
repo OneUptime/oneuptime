@@ -79,7 +79,11 @@ export function ocsfProcessLaunch(
         pid: PARENT_PID,
         name: launch.parent.name,
         cmd_line: launch.parent.commandLine,
-        file: { name: launch.parent.name, path: launch.parent.path, type_id: 1 },
+        file: {
+          name: launch.parent.name,
+          path: launch.parent.path,
+          type_id: 1,
+        },
       },
     },
     process: {
@@ -209,7 +213,8 @@ export const ATTACK_LAUNCHES: Readonly<Record<string, ProcessLaunch>> = {
     {
       name: "vssadmin.exe",
       path: "C:\\Windows\\System32\\vssadmin.exe",
-      commandLine: '"C:\\Windows\\system32\\vssadmin.exe" delete shadows /all /quiet',
+      commandLine:
+        '"C:\\Windows\\system32\\vssadmin.exe" delete shadows /all /quiet',
     },
     {
       name: "locker.exe",
@@ -340,7 +345,8 @@ export const ORDINARY_LAUNCHES: Readonly<Record<string, ProcessLaunch>> = {
     {
       name: "svchost.exe",
       path: "C:\\Windows\\System32\\svchost.exe",
-      commandLine: "C:\\Windows\\system32\\svchost.exe -k netsvcs -p -s Schedule",
+      commandLine:
+        "C:\\Windows\\system32\\svchost.exe -k netsvcs -p -s Schedule",
     },
     SERVICES,
   ),
@@ -398,7 +404,8 @@ export const ORDINARY_LAUNCHES: Readonly<Record<string, ProcessLaunch>> = {
     {
       name: "conhost.exe",
       path: "C:\\Windows\\System32\\conhost.exe",
-      commandLine: "\\??\\C:\\Windows\\system32\\conhost.exe 0xffffffff -ForceV1",
+      commandLine:
+        "\\??\\C:\\Windows\\system32\\conhost.exe 0xffffffff -ForceV1",
     },
     {
       name: "powershell.exe",
@@ -418,7 +425,8 @@ export const ORDINARY_LAUNCHES: Readonly<Record<string, ProcessLaunch>> = {
     {
       name: "curl",
       path: "/usr/bin/curl",
-      commandLine: "curl -fsSL https://example.com/install.sh -o /tmp/install.sh",
+      commandLine:
+        "curl -fsSL https://example.com/install.sh -o /tmp/install.sh",
     },
     LOGIN_SHELL,
   ),

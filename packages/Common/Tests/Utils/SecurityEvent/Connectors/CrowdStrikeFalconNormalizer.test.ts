@@ -486,16 +486,17 @@ describe("CrowdStrikeFalconNormalizer", () => {
  */
 describe("CrowdStrikeFalconNormalizer: the process the alert is about", () => {
   test("the alert's file, path and command line, and parent_details as its parent", () => {
-    const event: NormalizedSecurityEvent = CrowdStrikeFalconNormalizer.normalize(
-      buildAlert({
-        parent_details: {
-          filename: "explorer.exe",
-          filepath: "\\Device\\HarddiskVolume3\\Windows\\explorer.exe",
-          cmdline: "C:\\WINDOWS\\Explorer.EXE",
-          local_process_id: "4364",
-        },
-      }),
-    );
+    const event: NormalizedSecurityEvent =
+      CrowdStrikeFalconNormalizer.normalize(
+        buildAlert({
+          parent_details: {
+            filename: "explorer.exe",
+            filepath: "\\Device\\HarddiskVolume3\\Windows\\explorer.exe",
+            cmdline: "C:\\WINDOWS\\Explorer.EXE",
+            local_process_id: "4364",
+          },
+        }),
+      );
 
     expect(event.processName).toBe(
       "openvpn-abc-pfSense-UDP4-1194-pfsense-install-2.6.5-I001-amd64.exe",
@@ -525,9 +526,10 @@ describe("CrowdStrikeFalconNormalizer: the process the alert is about", () => {
   });
 
   test("a file name alone still names the process, by name", () => {
-    const event: NormalizedSecurityEvent = CrowdStrikeFalconNormalizer.normalize(
-      buildAlert({ filepath: "", cmdline: "" }),
-    );
+    const event: NormalizedSecurityEvent =
+      CrowdStrikeFalconNormalizer.normalize(
+        buildAlert({ filepath: "", cmdline: "" }),
+      );
 
     expect(event.processName).toBe(
       "openvpn-abc-pfSense-UDP4-1194-pfsense-install-2.6.5-I001-amd64.exe",

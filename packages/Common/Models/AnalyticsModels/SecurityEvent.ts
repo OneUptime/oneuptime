@@ -435,7 +435,8 @@ export default class SecurityEvent extends AnalyticsBaseModel {
     const parentProcessCommandLineColumn: AnalyticsTableColumn = textColumn({
       key: "parentProcessCommandLine",
       title: "Parent Command Line",
-      description: "The parent process's command line (Sigma ParentCommandLine)",
+      description:
+        "The parent process's command line (Sigma ParentCommandLine)",
     });
 
     const targetUserColumn: AnalyticsTableColumn = bloomTextColumn(

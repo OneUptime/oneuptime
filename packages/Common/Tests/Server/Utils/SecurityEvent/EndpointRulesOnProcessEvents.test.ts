@@ -79,7 +79,9 @@ function firingRules(event: NormalizedSecurityEvent): Array<string> {
  * The event as the old field mapping read it: CommandLine and Image on
  * principalProcess. Only here to show what the rules used to miss.
  */
-function readTheOldWay(event: NormalizedSecurityEvent): NormalizedSecurityEvent {
+function readTheOldWay(
+  event: NormalizedSecurityEvent,
+): NormalizedSecurityEvent {
   return {
     ...event,
     processCommandLine: event.principalProcess,
@@ -107,7 +109,9 @@ describe("the library's process rules", () => {
 
   test.each(
     PROCESS_RULES.map(
-      (entry: DetectionRuleLibraryEntry): [string, DetectionRuleLibraryEntry] => {
+      (
+        entry: DetectionRuleLibraryEntry,
+      ): [string, DetectionRuleLibraryEntry] => {
         return [entry.title, entry];
       },
     ),
@@ -180,7 +184,8 @@ describe("what the old field mapping read", () => {
   );
 
   test("principalProcess keeps what it held, for the rules and searches written against it", () => {
-    const launch: ProcessLaunch = ATTACK_LAUNCHES["Encoded PowerShell command"]!;
+    const launch: ProcessLaunch =
+      ATTACK_LAUNCHES["Encoded PowerShell command"]!;
 
     expect(ingest(ocsfProcessLaunch(launch, "kept")).principalProcess).toBe(
       "WINWORD.EXE",
