@@ -33,7 +33,7 @@ export interface ResourceTopologyData {
   arrangements: Array<ResourceTopologyArrangement>;
   issuesArePartial: boolean;
   /* Open incidents or alerts could not be read: the map may miss some. */
-  issuesAreUnreadable?: boolean | undefined;
+  issuesAreUnreadable: boolean;
   /* The resource on the master Topology, when it is drawn there. */
   masterTopologyRoute: Route | null;
 }
