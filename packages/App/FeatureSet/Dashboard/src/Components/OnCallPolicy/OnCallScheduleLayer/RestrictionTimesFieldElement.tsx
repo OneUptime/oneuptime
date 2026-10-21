@@ -35,6 +35,20 @@ export interface ComponentProps {
    * as wall-clock in this zone; when omitted, the viewer's zone is used.
    */
   timezone?: string | undefined;
+  /*
+   * For hours that must hold a window - an on-call rule's working hours
+   * (WorkingHours) - rather than a layer's limits: "No Restrictions" is not
+   * offered, only times of the day or of the week.
+   */
+  hidesNoRestrictions?: boolean | undefined;
+  /*
+   * What the line under the times says of the zone they are in, with a
+   * {{timezone}} placeholder: the schedule's, unless the caller says whose
+   * (translationKey'd where it is written).
+   */
+  timezoneNoteTemplate?: string | undefined;
+  // The button that adds a weekly window, when "Add Restriction Time" is not its name.
+  addWindowTitle?: string | undefined;
 }
 
 /*
@@ -322,7 +336,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
           <div className="ml-8 mt-3 [&>button]:ml-0 [&>button]:md:ml-0">
             {/** show add button */}
             <Button
-              title="Add Restriction Time"
+              title={props.addWindowTitle || "Add Restriction Time"}
               buttonStyle={ButtonStyleType.NORMAL}
               icon={IconProp.Add}
               onClick={() => {
@@ -570,11 +584,16 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
          * that names "No Restrictions" in the reader's words.
          */
         options={[
-          {
-            title:
-              translator.translateText("No Restrictions") || "No Restrictions",
-            value: RestrictionType.None,
-          },
+          ...(props.hidesNoRestrictions
+            ? []
+            : [
+                {
+                  title:
+                    translator.translateText("No Restrictions") ||
+                    "No Restrictions",
+                  value: RestrictionType.None,
+                },
+              ]),
           {
             title:
               translator.translateText("Specific Times of the Day") ||
@@ -597,7 +616,8 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
           <p className="mt-2 text-xs text-gray-400">
             {props.timezone
               ? translator.translateTemplate(
-                  "These times are in the schedule's timezone: {{timezone}}.",
+                  props.timezoneNoteTemplate ||
+                    "These times are in the schedule's timezone: {{timezone}}.",
                   { timezone: props.timezone },
                 )
               : translator.translateTemplate(

@@ -34,8 +34,13 @@ import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyArchive";
+import {
+  ON_CALL_POLICY_RUN_STARTED_EARLY_REASON_MAX_LENGTH,
+  getOnCallPolicyRunWaitingMessage,
+} from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
 import { IsNull, UpdateResult } from "typeorm";
-import FeedMarkdown from "../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, { MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
+import logger, { LogAttributes } from "../Utils/Logger";
 import OnCallPolicyRunMessage from "../Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
 import OnCallFeedText, {
   OnCallDirectPagePager,
@@ -145,6 +150,44 @@ export class Service extends ProjectReferencesService<Model> {
       )
     ) {
       throw new BadDataException(ON_CALL_POLICY_REQUIRED_MESSAGE);
+    }
+
+    /*
+     * A run that starts paging later is created waiting, and only that one
+     * (OnCallDutyPolicyRunWait): one asked to wait with no moment to wait
+     * for, or with a moment already past, is scheduled to page now.
+     */
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const pagingStartsAt: Date | undefined = createBy.data.pagingStartsAt
+      ? OneUptimeDate.fromString(createBy.data.pagingStartsAt)
+      : undefined;
+    const waitsToPage: boolean = Boolean(
+      pagingStartsAt &&
+        !isNaN(pagingStartsAt.getTime()) &&
+        OneUptimeDate.isAfter(pagingStartsAt, now),
+    );
+
+    if (waitsToPage) {
+      if (createBy.data.status !== OnCallDutyPolicyStatus.Waiting) {
+        createBy.data.status = OnCallDutyPolicyStatus.Waiting;
+        createBy.data.statusMessage = "";
+      }
+
+      if (!createBy.data.statusMessage) {
+        createBy.data.statusMessage = getOnCallPolicyRunWaitingMessage({
+          pagingStartsAt: pagingStartsAt!,
+          now: now,
+          isWaitingForWorkingHours: false,
+        });
+      }
+    } else {
+      (createBy.data as unknown as Record<string, unknown>)["pagingStartsAt"] =
+        undefined;
+
+      if (createBy.data.status === OnCallDutyPolicyStatus.Waiting) {
+        createBy.data.status = OnCallDutyPolicyStatus.Scheduled;
+        createBy.data.statusMessage = "";
+      }
     }
 
     if (!createBy.data.status) {
@@ -522,8 +565,9 @@ export class Service extends ProjectReferencesService<Model> {
     /*
      * The run's one message in Slack and Microsoft Teams (OnCallPolicyRunMessage).
      * It is posted once the run has something to say - its first escalation
-     * rule, or how it ended - and edited after that; this and every later
-     * change to the run only ask for it to be brought up to date.
+     * rule, that it waits to page, or how it ended - and edited after that;
+     * this and every later change to the run only ask for it to be brought
+     * up to date.
      */
     OnCallPolicyRunMessage.refresh(createdItem.id);
 
@@ -544,26 +588,20 @@ export class Service extends ProjectReferencesService<Model> {
       return createdItem;
     }
 
-    if (
-      createdItem.triggeredByIncidentId ||
-      createdItem.triggeredByAlertId ||
-      createdItem.triggeredByAlertEpisodeId ||
-      createdItem.triggeredByIncidentEpisodeId
-    ) {
-      const onCallPolicy: OnCallDutyPolicy | null =
-        await OnCallDutyPolicyService.findOneById({
-          id: createdItem.onCallDutyPolicyId!,
-          select: {
-            _id: true,
-            projectId: true,
-            name: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+    /*
+     * A run that waits to page (OnCallDutyPolicyRunWait) pages nobody yet:
+     * its record's feed says so, and why and until when, and the worker
+     * starts it at its first escalation rule once its moment comes
+     * (startWaitingRun).
+     */
+    const isWaiting: boolean =
+      createdItem.status === OnCallDutyPolicyStatus.Waiting;
 
-      if (onCallPolicy && onCallPolicy.id) {
+    if (this.isTriggeredByRecord(createdItem)) {
+      const policyLink: MarkdownText | null =
+        await this.getPolicyLink(createdItem);
+
+      if (policyLink) {
         /*
          * One sentence (OnCallFeedText). Started by hand - Execute On-Call
          * Policy in a feed's Actions - it is credited to that person, and
@@ -572,88 +610,216 @@ export class Service extends ProjectReferencesService<Model> {
         const startedByUserId: ObjectID | undefined =
           createdItem.createdByUserId || createdItem.triggeredByUserId;
 
-        const feedInfoInMarkdown: string = OnCallFeedText.getRunStartedMarkdown(
-          {
-            policyLink: FeedMarkdown.link(
-              onCallPolicy.name || "",
-              (
-                await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
-                  onCallPolicy.projectId!,
-                  onCallPolicy.id!,
-                )
-              ).toString(),
-            ),
-            isStartedBySomeone: Boolean(startedByUserId),
-            startedByWorkflowName: createdItem.triggeredByWorkflowName,
-          },
-        );
+        const feedInfoInMarkdown: string = isWaiting
+          ? OnCallFeedText.getRunWaitingMarkdown({
+              policyLink: policyLink,
+              isStartedBySomeone: Boolean(startedByUserId),
+              startedByWorkflowName: createdItem.triggeredByWorkflowName,
+              waitingMessage: createdItem.statusMessage,
+            })
+          : OnCallFeedText.getRunStartedMarkdown({
+              policyLink: policyLink,
+              isStartedBySomeone: Boolean(startedByUserId),
+              startedByWorkflowName: createdItem.triggeredByWorkflowName,
+            });
 
-        // The feed only: Slack and Teams get the run's one message instead.
-        if (
-          onCallPolicy &&
-          onCallPolicy.id &&
-          createdItem.triggeredByIncidentId
-        ) {
-          await IncidentFeedService.createIncidentFeedItem({
-            incidentId: createdItem.triggeredByIncidentId,
-            projectId: createdItem.projectId!,
-            incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
-            displayColor: Yellow500,
-            feedInfoInMarkdown: feedInfoInMarkdown,
-            userId: startedByUserId,
-          });
-        }
-
-        if (onCallPolicy && onCallPolicy.id && createdItem.triggeredByAlertId) {
-          await AlertFeedService.createAlertFeedItem({
-            alertId: createdItem.triggeredByAlertId,
-            projectId: createdItem.projectId!,
-            alertFeedEventType: AlertFeedEventType.OnCallPolicy,
-            displayColor: Yellow500,
-            feedInfoInMarkdown: feedInfoInMarkdown,
-            userId: startedByUserId,
-          });
-        }
-
-        if (
-          onCallPolicy &&
-          onCallPolicy.id &&
-          createdItem.triggeredByAlertEpisodeId
-        ) {
-          await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
-            alertEpisodeId: createdItem.triggeredByAlertEpisodeId,
-            projectId: createdItem.projectId!,
-            alertEpisodeFeedEventType: AlertEpisodeFeedEventType.OnCallPolicy,
-            displayColor: Yellow500,
-            feedInfoInMarkdown: feedInfoInMarkdown,
-            userId: startedByUserId,
-          });
-        }
-
-        if (
-          onCallPolicy &&
-          onCallPolicy.id &&
-          createdItem.triggeredByIncidentEpisodeId
-        ) {
-          await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
-            incidentEpisodeId: createdItem.triggeredByIncidentEpisodeId,
-            projectId: createdItem.projectId!,
-            incidentEpisodeFeedEventType:
-              IncidentEpisodeFeedEventType.OnCallPolicy,
-            displayColor: Yellow500,
-            feedInfoInMarkdown: feedInfoInMarkdown,
-            userId: startedByUserId,
-          });
-        }
+        await this.addToRecordFeed({
+          run: createdItem,
+          feedInfoInMarkdown: feedInfoInMarkdown,
+          displayColor: isWaiting
+            ? this.getDisplayColorByStatus(OnCallDutyPolicyStatus.Waiting)
+            : Yellow500,
+          userId: startedByUserId,
+        });
       }
     }
 
+    if (isWaiting) {
+      return createdItem;
+    }
+
+    await this.startFirstEscalationRule(createdItem);
+
+    return createdItem;
+  }
+
+  /*
+   * STARTS A RUN THAT WAITED (OnCallDutyPolicyRunWait): its moment has come,
+   * and its record still needs somebody, so it pages its first escalation
+   * rule now - as a run that never waited does when it is created. The
+   * worker asks for this once a minute, for each waiting run whose moment
+   * has come (OnCallDutyPolicyExecutionLog:ExecutePendingExecutions).
+   *
+   * Starting is CLAIMED first: one atomic conditional UPDATE from Waiting to
+   * Started, so two overlapping ticks or two worker replicas start the run
+   * once and page its first rule once, and one that a tick has just ended
+   * (endWaitingRun) is not started. Whoever loses the claim does nothing.
+   * The claim moves pagingStartsAt to the moment paging started, so a start
+   * that hangs is timed out five minutes after it - not at once because the
+   * run was created hours before (TimeoutStuckExecutions).
+   *
+   * A run can also start before its moment: its record changed and now
+   * matches an on-call rule that pages right away (WaitingRunsOnRecordChange).
+   * `startedEarlyReason` then says why, in the same claim - kept on the run
+   * (pagingStartedEarlyReason) for its Slack and Microsoft Teams message, and
+   * said in its record's feed.
+   *
+   * `run` is the run as the worker read it: its id, its project, its policy
+   * and the record it pages about. Returns whether this call started it.
+   */
+  @CaptureSpan()
+  public async startWaitingRun(data: {
+    run: Model;
+    now: Date;
+    startedEarlyReason?: string | undefined;
+  }): Promise<boolean> {
+    const run: Model = data.run;
+    const startedEarlyReason: string | undefined =
+      data.startedEarlyReason?.trim() || undefined;
+
+    const claimed: boolean = await this.claimWaitingRun({
+      executionLogId: run.id!,
+      status: OnCallDutyPolicyStatus.Started,
+      statusMessage: "Execution started...",
+      pagingStartsAt: data.now,
+      pagingStartedEarlyReason: startedEarlyReason,
+    });
+
+    if (!claimed) {
+      return false;
+    }
+
+    OnCallPolicyRunMessage.refresh(run.id);
+
+    /*
+     * Its record's feed said it was waiting; it says it started paging now.
+     * Nothing about the feed may stop the page: a run left Started would be
+     * timed out without paging anybody.
+     */
+    try {
+      const policyLink: MarkdownText | null = this.isTriggeredByRecord(run)
+        ? await this.getPolicyLink(run)
+        : null;
+
+      if (policyLink) {
+        await this.addToRecordFeed({
+          run: run,
+          feedInfoInMarkdown: OnCallFeedText.getRunStartedMarkdown({
+            policyLink: policyLink,
+            isStartedBySomeone: false,
+            startedEarlyReason: startedEarlyReason,
+          }),
+          displayColor: Yellow500,
+        });
+      }
+    } catch (err) {
+      logger.error(
+        `Could not say in the feed that on-call execution log ${run.id!.toString()} started paging; paging it anyway.`,
+        { projectId: run.projectId?.toString() } as LogAttributes,
+      );
+      logger.error(err as Error);
+    }
+
+    await this.startFirstEscalationRule(run, { isStarted: true });
+
+    return true;
+  }
+
+  /*
+   * ENDS A RUN THAT WAITED, BEFORE IT PAGED ANYBODY (OnCallDutyPolicyRunWait):
+   * its record was acknowledged or resolved while it waited, or its policy
+   * was archived. Ended with one atomic conditional UPDATE from Waiting, so
+   * a run another tick has just started is left to page - the next tick ends
+   * it, as it ends any run whose record is handled - rather than marked over
+   * while its first rule pages. Its record's feed says how it ended, and its
+   * Slack and Microsoft Teams message is brought up to date, as for any run
+   * that ends. Returns whether this call ended it.
+   */
+  @CaptureSpan()
+  public async endWaitingRun(data: {
+    executionLogId: ObjectID;
+    status: OnCallDutyPolicyStatus;
+    statusMessage: string;
+  }): Promise<boolean> {
+    const claimed: boolean = await this.claimWaitingRun({
+      executionLogId: data.executionLogId,
+      status: data.status,
+      statusMessage: data.statusMessage,
+    });
+
+    if (!claimed) {
+      return false;
+    }
+
+    OnCallPolicyRunMessage.refresh(data.executionLogId);
+
+    if (OnCallFeedText.isRunStatusFeedNews(data.status)) {
+      await this.addRunStatusToFeed(data.executionLogId);
+    }
+
+    return true;
+  }
+
+  /*
+   * Moves a run on from Waiting - to Started, or to how it ended - if it is
+   * still waiting: one atomic conditional UPDATE (as claimEscalationAdvance),
+   * which says whether it was. TypeORM's repository.update emits the one
+   * statement and returns the rows it changed; it runs no hooks, so whoever
+   * claims says what follows itself.
+   */
+  private async claimWaitingRun(data: {
+    executionLogId: ObjectID;
+    status: OnCallDutyPolicyStatus;
+    statusMessage: string;
+    pagingStartsAt?: Date | undefined;
+    pagingStartedEarlyReason?: string | undefined;
+  }): Promise<boolean> {
+    const values: Record<string, unknown> = {
+      status: data.status,
+      statusMessage: data.statusMessage,
+    };
+
+    if (data.pagingStartsAt) {
+      values["pagingStartsAt"] = data.pagingStartsAt;
+    }
+
+    if (data.pagingStartedEarlyReason) {
+      values["pagingStartedEarlyReason"] = data.pagingStartedEarlyReason.slice(
+        0,
+        ON_CALL_POLICY_RUN_STARTED_EARLY_REASON_MAX_LENGTH,
+      );
+    }
+
+    const result: UpdateResult = await this.getRepository().update(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      {
+        _id: data.executionLogId.toString(),
+        status: OnCallDutyPolicyStatus.Waiting,
+      } as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      values as any,
+    );
+
+    return (result.affected || 0) > 0;
+  }
+
+  /*
+   * Pages a run's first escalation rule: the run is started, the rule
+   * pages, and the run is executing - or, with no escalation rules in its
+   * policy, it ends with an error that says so. A run does this as it is
+   * created, and a run that waited once its moment came (startWaitingRun),
+   * which is started already.
+   */
+  private async startFirstEscalationRule(
+    run: Model,
+    options?: { isStarted?: boolean | undefined } | undefined,
+  ): Promise<void> {
     // get execution rules in this policy adn execute the first rule.
     const executionRule: OnCallDutyPolicyEscalationRule | null =
       await OnCallDutyPolicyEscalationRuleService.findOneBy({
         query: {
-          projectId: createdItem.projectId!,
-          onCallDutyPolicyId: createdItem.onCallDutyPolicyId!,
+          projectId: run.projectId!,
+          onCallDutyPolicyId: run.onCallDutyPolicyId!,
           order: 1,
         },
         props: {
@@ -664,70 +830,9 @@ export class Service extends ProjectReferencesService<Model> {
         },
       });
 
-    if (executionRule) {
+    if (!executionRule) {
       await this.updateOneById({
-        id: createdItem.id!,
-        data: {
-          status: OnCallDutyPolicyStatus.Started,
-          statusMessage: "Execution started...",
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      let userNotificationEventType: UserNotificationEventType | null = null;
-
-      if (createdItem.triggeredByIncidentId) {
-        userNotificationEventType = UserNotificationEventType.IncidentCreated;
-      }
-
-      if (createdItem.triggeredByAlertId) {
-        userNotificationEventType = UserNotificationEventType.AlertCreated;
-      }
-
-      if (createdItem.triggeredByAlertEpisodeId) {
-        userNotificationEventType =
-          UserNotificationEventType.AlertEpisodeCreated;
-      }
-
-      if (createdItem.triggeredByIncidentEpisodeId) {
-        userNotificationEventType =
-          UserNotificationEventType.IncidentEpisodeCreated;
-      }
-
-      if (!userNotificationEventType) {
-        throw new BadDataException("Invalid userNotificationEventType");
-      }
-
-      await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
-        executionRule.id!,
-        {
-          projectId: createdItem.projectId!,
-          triggeredByIncidentId: createdItem.triggeredByIncidentId,
-          triggeredByAlertId: createdItem.triggeredByAlertId,
-          triggeredByAlertEpisodeId: createdItem.triggeredByAlertEpisodeId,
-          triggeredByIncidentEpisodeId:
-            createdItem.triggeredByIncidentEpisodeId,
-          userNotificationEventType: userNotificationEventType,
-          onCallPolicyExecutionLogId: createdItem.id!,
-          onCallPolicyId: createdItem.onCallDutyPolicyId!,
-        },
-      );
-
-      await this.updateOneById({
-        id: createdItem.id!,
-        data: {
-          status: OnCallDutyPolicyStatus.Executing,
-          statusMessage: "First escalation rule executed...",
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    } else {
-      await this.updateOneById({
-        id: createdItem.id!,
+        id: run.id!,
         data: {
           status: OnCallDutyPolicyStatus.Error,
           statusMessage:
@@ -737,13 +842,179 @@ export class Service extends ProjectReferencesService<Model> {
           isRoot: true,
         },
       });
+
+      return;
     }
 
-    return createdItem;
+    if (!options?.isStarted) {
+      await this.updateOneById({
+        id: run.id!,
+        data: {
+          status: OnCallDutyPolicyStatus.Started,
+          statusMessage: "Execution started...",
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    let userNotificationEventType: UserNotificationEventType | null = null;
+
+    if (run.triggeredByIncidentId) {
+      userNotificationEventType = UserNotificationEventType.IncidentCreated;
+    }
+
+    if (run.triggeredByAlertId) {
+      userNotificationEventType = UserNotificationEventType.AlertCreated;
+    }
+
+    if (run.triggeredByAlertEpisodeId) {
+      userNotificationEventType = UserNotificationEventType.AlertEpisodeCreated;
+    }
+
+    if (run.triggeredByIncidentEpisodeId) {
+      userNotificationEventType =
+        UserNotificationEventType.IncidentEpisodeCreated;
+    }
+
+    if (!userNotificationEventType) {
+      throw new BadDataException("Invalid userNotificationEventType");
+    }
+
+    await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
+      executionRule.id!,
+      {
+        projectId: run.projectId!,
+        triggeredByIncidentId: run.triggeredByIncidentId,
+        triggeredByAlertId: run.triggeredByAlertId,
+        triggeredByAlertEpisodeId: run.triggeredByAlertEpisodeId,
+        triggeredByIncidentEpisodeId: run.triggeredByIncidentEpisodeId,
+        userNotificationEventType: userNotificationEventType,
+        onCallPolicyExecutionLogId: run.id!,
+        onCallPolicyId: run.onCallDutyPolicyId!,
+      },
+    );
+
+    await this.updateOneById({
+      id: run.id!,
+      data: {
+        status: OnCallDutyPolicyStatus.Executing,
+        statusMessage: "First escalation rule executed...",
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  // Whether the run pages about an incident, an alert or an episode.
+  private isTriggeredByRecord(run: Model): boolean {
+    return Boolean(
+      run.triggeredByIncidentId ||
+        run.triggeredByAlertId ||
+        run.triggeredByAlertEpisodeId ||
+        run.triggeredByIncidentEpisodeId,
+    );
+  }
+
+  // The run's policy as a link to it in the Dashboard: [PolicyX](...).
+  private async getPolicyLink(run: Model): Promise<MarkdownText | null> {
+    if (!run.onCallDutyPolicyId) {
+      return null;
+    }
+
+    const onCallPolicy: OnCallDutyPolicy | null =
+      await OnCallDutyPolicyService.findOneById({
+        id: run.onCallDutyPolicyId,
+        select: {
+          _id: true,
+          projectId: true,
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!onCallPolicy || !onCallPolicy.id) {
+      return null;
+    }
+
+    return FeedMarkdown.link(
+      onCallPolicy.name || "",
+      (
+        await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+          onCallPolicy.projectId!,
+          onCallPolicy.id!,
+        )
+      ).toString(),
+    );
+  }
+
+  /*
+   * An entry of the feed of the record the run pages about - the
+   * incident's, the alert's or the episode's. The feed only: Slack and
+   * Teams get the run's one message instead.
+   */
+  private async addToRecordFeed(data: {
+    run: Model;
+    feedInfoInMarkdown: string;
+    displayColor: Color;
+    userId?: ObjectID | undefined;
+  }): Promise<void> {
+    const run: Model = data.run;
+
+    if (run.triggeredByIncidentId) {
+      await IncidentFeedService.createIncidentFeedItem({
+        incidentId: run.triggeredByIncidentId,
+        projectId: run.projectId!,
+        incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
+        displayColor: data.displayColor,
+        feedInfoInMarkdown: data.feedInfoInMarkdown,
+        userId: data.userId,
+      });
+    }
+
+    if (run.triggeredByAlertId) {
+      await AlertFeedService.createAlertFeedItem({
+        alertId: run.triggeredByAlertId,
+        projectId: run.projectId!,
+        alertFeedEventType: AlertFeedEventType.OnCallPolicy,
+        displayColor: data.displayColor,
+        feedInfoInMarkdown: data.feedInfoInMarkdown,
+        userId: data.userId,
+      });
+    }
+
+    if (run.triggeredByAlertEpisodeId) {
+      await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
+        alertEpisodeId: run.triggeredByAlertEpisodeId,
+        projectId: run.projectId!,
+        alertEpisodeFeedEventType: AlertEpisodeFeedEventType.OnCallPolicy,
+        displayColor: data.displayColor,
+        feedInfoInMarkdown: data.feedInfoInMarkdown,
+        userId: data.userId,
+      });
+    }
+
+    if (run.triggeredByIncidentEpisodeId) {
+      await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
+        incidentEpisodeId: run.triggeredByIncidentEpisodeId,
+        projectId: run.projectId!,
+        incidentEpisodeFeedEventType: IncidentEpisodeFeedEventType.OnCallPolicy,
+        displayColor: data.displayColor,
+        feedInfoInMarkdown: data.feedInfoInMarkdown,
+        userId: data.userId,
+      });
+    }
   }
 
   public getDisplayColorByStatus(status: OnCallDutyPolicyStatus): Color {
     switch (status) {
+      // Paging nobody yet, on purpose: it waits for its moment.
+      case OnCallDutyPolicyStatus.Waiting:
+        return Blue500;
       case OnCallDutyPolicyStatus.Scheduled:
         return Blue500;
       case OnCallDutyPolicyStatus.Started:
@@ -797,146 +1068,80 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     for (const id of updatedItemIds) {
-      const onCalldutyPolicyExecutionLog: Model | null = await this.findOneById(
-        {
-          id: id,
-          select: {
-            _id: true,
-            projectId: true,
-            onCallDutyPolicyId: true,
-            status: true,
-            statusMessage: true,
-            triggeredByIncidentId: true,
-            triggeredByAlertId: true,
-            triggeredByAlertEpisodeId: true,
-            triggeredByIncidentEpisodeId: true,
-            triggeredByWorkflowName: true,
-            triggeredByUserId: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        },
-      );
-
-      if (
-        onCalldutyPolicyExecutionLog &&
-        (onCalldutyPolicyExecutionLog.triggeredByIncidentId ||
-          onCalldutyPolicyExecutionLog.triggeredByAlertId ||
-          onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId ||
-          onCalldutyPolicyExecutionLog.triggeredByIncidentEpisodeId)
-      ) {
-        /*
-         * A direct page has no policy to name: its ending names who started
-         * the page instead. A policy's run is read with its policy.
-         */
-        const isDirectPage: boolean = isOnCallDirectPage(
-          onCalldutyPolicyExecutionLog,
-        );
-
-        const onCallPolicy: OnCallDutyPolicy | null = isDirectPage
-          ? null
-          : await OnCallDutyPolicyService.findOneById({
-              id: onCalldutyPolicyExecutionLog.onCallDutyPolicyId!,
-              select: {
-                _id: true,
-                projectId: true,
-                name: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-        if (isDirectPage || (onCallPolicy && onCallPolicy.id)) {
-          // One sentence, and why when that adds something (OnCallFeedText).
-          const feedInfoInMarkdown: string =
-            onCallPolicy && onCallPolicy.id
-              ? OnCallFeedText.getRunStatusMarkdown({
-                  status: onCalldutyPolicyExecutionLog.status!,
-                  policyLink: FeedMarkdown.link(
-                    onCallPolicy.name || "",
-                    (
-                      await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
-                        onCallPolicy.projectId!,
-                        onCallPolicy.id!,
-                      )
-                    ).toString(),
-                  ),
-                  statusMessage: onCalldutyPolicyExecutionLog.statusMessage,
-                })
-              : OnCallFeedText.getDirectPageStatusMarkdown({
-                  status: onCalldutyPolicyExecutionLog.status!,
-                  pager: await this.getDirectPagePager(
-                    onCalldutyPolicyExecutionLog,
-                  ),
-                  statusMessage: onCalldutyPolicyExecutionLog.statusMessage,
-                });
-
-          // The feed only: Slack and Teams get the run's one message instead.
-          if (onCalldutyPolicyExecutionLog.triggeredByIncidentId) {
-            await IncidentFeedService.createIncidentFeedItem({
-              incidentId: onCalldutyPolicyExecutionLog.triggeredByIncidentId,
-              projectId: onCalldutyPolicyExecutionLog.projectId!,
-              incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
-              displayColor: onCalldutyPolicyExecutionLog.status
-                ? this.getDisplayColorByStatus(
-                    onCalldutyPolicyExecutionLog.status,
-                  )
-                : Blue500,
-              feedInfoInMarkdown: feedInfoInMarkdown,
-            });
-          }
-
-          if (onCalldutyPolicyExecutionLog.triggeredByAlertId) {
-            await AlertFeedService.createAlertFeedItem({
-              alertId: onCalldutyPolicyExecutionLog.triggeredByAlertId,
-              projectId: onCalldutyPolicyExecutionLog.projectId!,
-              alertFeedEventType: AlertFeedEventType.OnCallPolicy,
-              displayColor: onCalldutyPolicyExecutionLog.status
-                ? this.getDisplayColorByStatus(
-                    onCalldutyPolicyExecutionLog.status,
-                  )
-                : Blue500,
-              feedInfoInMarkdown: feedInfoInMarkdown,
-            });
-          }
-
-          if (onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId) {
-            await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
-              alertEpisodeId:
-                onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId,
-              projectId: onCalldutyPolicyExecutionLog.projectId!,
-              alertEpisodeFeedEventType: AlertEpisodeFeedEventType.OnCallPolicy,
-              displayColor: onCalldutyPolicyExecutionLog.status
-                ? this.getDisplayColorByStatus(
-                    onCalldutyPolicyExecutionLog.status,
-                  )
-                : Blue500,
-              feedInfoInMarkdown: feedInfoInMarkdown,
-            });
-          }
-
-          if (onCalldutyPolicyExecutionLog.triggeredByIncidentEpisodeId) {
-            await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
-              incidentEpisodeId:
-                onCalldutyPolicyExecutionLog.triggeredByIncidentEpisodeId,
-              projectId: onCalldutyPolicyExecutionLog.projectId!,
-              incidentEpisodeFeedEventType:
-                IncidentEpisodeFeedEventType.OnCallPolicy,
-              displayColor: onCalldutyPolicyExecutionLog.status
-                ? this.getDisplayColorByStatus(
-                    onCalldutyPolicyExecutionLog.status,
-                  )
-                : Blue500,
-              feedInfoInMarkdown: feedInfoInMarkdown,
-            });
-          }
-        }
-      }
+      await this.addRunStatusToFeed(id);
     }
 
     return onUpdate;
+  }
+
+  /*
+   * A run's status as an entry of the feed of the record it pages about:
+   * how it ended, and why when that adds something (OnCallFeedText).
+   */
+  private async addRunStatusToFeed(executionLogId: ObjectID): Promise<void> {
+    const onCalldutyPolicyExecutionLog: Model | null = await this.findOneById({
+      id: executionLogId,
+      select: {
+        _id: true,
+        projectId: true,
+        onCallDutyPolicyId: true,
+        status: true,
+        statusMessage: true,
+        triggeredByIncidentId: true,
+        triggeredByAlertId: true,
+        triggeredByAlertEpisodeId: true,
+        triggeredByIncidentEpisodeId: true,
+        triggeredByWorkflowName: true,
+        triggeredByUserId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (
+      !onCalldutyPolicyExecutionLog ||
+      !this.isTriggeredByRecord(onCalldutyPolicyExecutionLog)
+    ) {
+      return;
+    }
+
+    /*
+     * A direct page has no policy to name: its ending names who started the
+     * page instead. A policy's run is read with its policy.
+     */
+    const isDirectPage: boolean = isOnCallDirectPage(
+      onCalldutyPolicyExecutionLog,
+    );
+
+    const policyLink: MarkdownText | null = isDirectPage
+      ? null
+      : await this.getPolicyLink(onCalldutyPolicyExecutionLog);
+
+    if (!isDirectPage && !policyLink) {
+      return;
+    }
+
+    // One sentence, and why when that adds something (OnCallFeedText).
+    const feedInfoInMarkdown: string = policyLink
+      ? OnCallFeedText.getRunStatusMarkdown({
+          status: onCalldutyPolicyExecutionLog.status!,
+          policyLink: policyLink,
+          statusMessage: onCalldutyPolicyExecutionLog.statusMessage,
+        })
+      : OnCallFeedText.getDirectPageStatusMarkdown({
+          status: onCalldutyPolicyExecutionLog.status!,
+          pager: await this.getDirectPagePager(onCalldutyPolicyExecutionLog),
+          statusMessage: onCalldutyPolicyExecutionLog.statusMessage,
+        });
+
+    await this.addToRecordFeed({
+      run: onCalldutyPolicyExecutionLog,
+      feedInfoInMarkdown: feedInfoInMarkdown,
+      displayColor: onCalldutyPolicyExecutionLog.status
+        ? this.getDisplayColorByStatus(onCalldutyPolicyExecutionLog.status)
+        : Blue500,
+    });
   }
 }
 export default new Service();

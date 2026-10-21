@@ -51,7 +51,7 @@ Det er en sikker start, og som regel for meget. Skær det ned til det, hver alvo
 | Alvorlig | Push med det samme, en sms efter 10 minutter |
 | Mindre eller lav | En e-mail med det samme |
 
-OneUptime har ingen stille timer: hold lave alvorligheder på e-mail, eller på en push-regel sat til **Normal**, så de aldrig vækker dig.
+Dine egne regler har ingen stille timer: hold lave alvorligheder på e-mail, eller på en push-regel sat til **Normal**, så de aldrig vækker dig. For at lade tilkaldelsen for en lav alvorlighed vente på arbejdstiden for alle, sætter du den vagtregel, der tilkalder, til **Kun i arbejdstiden**: se [Vagtregler](/docs/alerts/settings#vagtregler).
 
 ## Tilføj en regel
 

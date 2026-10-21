@@ -2,6 +2,7 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import OnCallDutyPolicyExecutionLogService from "./OnCallDutyPolicyExecutionLogService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import OneUptimeDate from "../../Types/Date";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
@@ -830,6 +831,22 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
       : null;
   }
 
+  /*
+   * Runs an on-call policy for an incident, an alert or an episode: its
+   * execution log is created, and the log service pages its first
+   * escalation rule from there.
+   *
+   * With pagingStartsAt later than now, the run is held instead
+   * (OnCallDutyPolicyRunWait): it is created Waiting, pages nobody, and the
+   * worker starts it at its first escalation rule when that moment comes -
+   * or ends it there, unpaged, if its record was acknowledged or resolved
+   * or the policy archived in the meantime. An on-call rule that pages only
+   * during working hours holds the runs it starts outside them
+   * (OnCallRulePagingHold); waitingStatusMessage is what the run says until
+   * then ("Waiting for working hours: paging starts at 09:00
+   * (Europe/London)."). Left out, or not later than now, the run pages
+   * straight away, as it always has.
+   */
   @CaptureSpan()
   public async executePolicy(
     policyId: ObjectID,
@@ -839,6 +856,8 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
       triggeredByAlertEpisodeId?: ObjectID | undefined;
       triggeredByIncidentEpisodeId?: ObjectID | undefined;
       userNotificationEventType: UserNotificationEventType;
+      pagingStartsAt?: Date | undefined;
+      waitingStatusMessage?: string | undefined;
     },
   ): Promise<void> {
     // execute this policy
@@ -915,6 +934,19 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
     log.userNotificationEventType = options.userNotificationEventType;
     log.statusMessage = "Scheduled.";
     log.status = OnCallDutyPolicyStatus.Scheduled;
+
+    // Held until later: created waiting, as the log service checks again.
+    if (
+      options.pagingStartsAt &&
+      OneUptimeDate.isAfter(
+        options.pagingStartsAt,
+        OneUptimeDate.getCurrentDate(),
+      )
+    ) {
+      log.status = OnCallDutyPolicyStatus.Waiting;
+      log.pagingStartsAt = options.pagingStartsAt;
+      log.statusMessage = options.waitingStatusMessage || "";
+    }
 
     if (options.triggeredByIncidentId) {
       log.triggeredByIncidentId = options.triggeredByIncidentId;

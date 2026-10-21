@@ -629,6 +629,8 @@ The create form has two steps:
 2. **On-Call Policies** — the policies this rule pages, and the rule's **Name**, filled in from them ("Page Platform on-call") until you type a name of your own; its **Description** waits under **More fields**. The rule starts enabled; its edit form adds the **Enabled** switch, and the list renders a green **Enabled** or red **Disabled** pill per rule.
 :::
 
+A rule pages as soon as an incident matches it. To make it wait for working hours instead, answer **When should this rule page?** under **More fields** with **Only during working hours**. The **Working Hours** start as Monday to Friday, 09:00 to 17:00, in your own time zone: pick other days, another **Start Time** or **End Time**, or another **Timezone**, and a sentence under the choice says what will happen. In the list, the rule shows its hours under its name. An incident that matches outside those hours gets a run that waits, as **Waiting**, and pages nobody; when the hours begin, the policy pages its first escalation rule and escalates as usual. If the incident is acknowledged or resolved first, nobody is paged. If the incident changes while it waits and now matches a rule that pages right away, for example when its severity is raised, the run starts paging at once, and the incident's feed says why.
+
 ### How matching resolves
 
 The rules the page ships with itself are worth internalizing:
@@ -637,7 +639,7 @@ The rules the page ships with itself are worth internalizing:
 - A list criterion — **Monitors**, **Incident Severities**, **Incident Labels**, **Monitor Labels** — uses **Has any of**, **Has all of** or **Has none of** the values you pick.
 - A text criterion — the incident's title and description, its monitors' names and descriptions — uses **Contains**, **Does not contain**, **Equals**, **Does not equal**, **Starts with** or **Ends with**, ignoring case, or **Matches pattern** / **Does not match pattern** for a case-insensitive regular expression or a `*` wildcard. A new text condition starts on **Contains**.
 - **All matching rules fire.** There is no priority and no short-circuit.
-- The set of policies that actually executes is the union of every matching rule's policies plus any policies attached to the incident manually or by a template, deduplicated so each policy runs at most once.
+- The set of policies that actually executes is the union of every matching rule's policies plus any policies attached to the incident manually or by a template, deduplicated so each policy runs at most once. When two matching rules page the same policy, it pages as soon as either one lets it: right away wins over working hours.
 
 > [!NOTE]
 > Severity is a match criterion here and nowhere else. There is no on-call field on an incident severity — selecting "Critical Incident" does not, by itself, page anyone. If you want severity to drive paging, write an on-call rule that matches on it.

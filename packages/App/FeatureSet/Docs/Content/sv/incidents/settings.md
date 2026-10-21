@@ -627,6 +627,8 @@ Skapandeformuläret har två steg:
 2. **Jourpolicyer** — policyerna som den här regeln larmar, och regelns **Namn**, ifyllt utifrån dem ("Larma Platform on-call") tills du skriver ett eget; dess **Beskrivning** väntar under **Fler fält**. Regeln börjar aktiverad; dess redigeringsformulär lägger till reglaget **Aktiverad**, och listan visar ett grönt märke **Aktiverad** eller ett rött märke **Inaktiverad** per regel.
 :::
 
+En regel larmar så snart en incident matchar den. För att låta den vänta på arbetstid i stället svarar du **Endast under arbetstid** på **När ska den här regeln larma?** under **Fler fält**. **Arbetstid** börjar som måndag till fredag, 09:00 till 17:00, i din egen tidszon: välj andra dagar, en annan **Starttid** eller **Sluttid** eller en annan **Tidszon**, så säger en mening under valet vad som händer. I listan visar regeln sin arbetstid under namnet. En incident som matchar utanför de tiderna får en körning som väntar, som **Väntar**, och inte larmar någon; när arbetstiden börjar larmar policyn sin första eskaleringsregel och eskalerar som vanligt. Bekräftas eller löses incidenten först larmas ingen. Ändras incidenten medan den väntar så att den nu matchar en regel som larmar direkt, till exempel för att dess allvarlighetsgrad höjs, börjar körningen larma genast, och incidentens flöde säger varför.
+
 ### Så avgörs matchning
 
 Reglerna som sidan själv har med är värda att göra till dina egna:
@@ -635,7 +637,7 @@ Reglerna som sidan själv har med är värda att göra till dina egna:
 - Ett listkriterium — **Monitorer**, **Incident Allvarligheter**, **Incidentetiketter**, **Övervakningsetiketter** — använder **Har någon av**, **Har alla** eller **Har ingen av** värdena som du väljer.
 - Ett textkriterium — incidentens titel och beskrivning, dess monitorers namn och beskrivningar — använder **Innehåller**, **Innehåller inte**, **Lika med**, **Inte lika med**, **Börjar med** eller **Slutar med**, utan hänsyn till versaler och gemener, eller **Matchar mönster** / **Matchar inte mönster** för ett reguljärt uttryck utan skillnad på versaler och gemener eller ett jokertecken `*`. Ett nytt textvillkor börjar på **Innehåller**.
 - **Alla matchande regler utlöses.** Det finns ingen prioritet och ingen kortslutning.
-- Uppsättningen policyer som faktiskt körs är unionen av varje matchande regels policyer plus alla policyer som har kopplats till incidenten för hand eller av en mall, utan dubbletter, så att varje policy körs högst en gång.
+- Uppsättningen policyer som faktiskt körs är unionen av varje matchande regels policyer plus alla policyer som har kopplats till incidenten för hand eller av en mall, utan dubbletter, så att varje policy körs högst en gång. När två matchande regler larmar samma policy larmar den så snart någon av dem tillåter det: direkt vinner över arbetstid.
 
 > [!NOTE]
 > Allvarlighetsgraden är ett matchningskriterium här och ingen annanstans. Det finns inget jourfält på en allvarlighetsgrad för incidenter — att välja "Critical Incident" larmar inte i sig någon. Vill du att allvarlighetsgraden ska styra larmningen skriver du en jourregel som matchar på den.

@@ -145,6 +145,7 @@ import { AddExternalMcpServers1805000000000 } from "./1805000000000-AddExternalM
 import { AddInvestigationRuleWait1805030000000 } from "./1805030000000-AddInvestigationRuleWait";
 import { AddInvestigationRuleWaitIndexes1805040000000 } from "./1805040000000-AddInvestigationRuleWaitIndexes";
 import { AddScheduledMaintenanceExternalCalendars1805120000000 } from "./1805120000000-AddScheduledMaintenanceExternalCalendars";
+import { AddOnCallRuleWorkingHours1805170000000 } from "./1805170000000-AddOnCallRuleWorkingHours";
 import { AddCloudConnection1805400000000 } from "./1805400000000-AddCloudConnection";
 import { AddCloudResourceCloudConnectionIndexAndKey1805450000000 } from "./1805450000000-AddCloudResourceCloudConnectionIndexAndKey";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
@@ -1494,6 +1495,7 @@ export default [
   AddInvestigationRuleWait1805030000000,
   AddInvestigationRuleWaitIndexes1805040000000,
   AddScheduledMaintenanceExternalCalendars1805120000000,
+  AddOnCallRuleWorkingHours1805170000000,
   AddCloudConnection1805400000000,
   AddCloudResourceCloudConnectionIndexAndKey1805450000000,
 ];

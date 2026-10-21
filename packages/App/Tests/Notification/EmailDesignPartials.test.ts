@@ -2,6 +2,7 @@ import Handlebars from "handlebars";
 import fs from "fs";
 import Path from "path";
 import { describe, expect, test } from "@jest/globals";
+import EmailLogo from "Common/Server/Utils/Mail/EmailLogo";
 
 const PARTIALS_DIR: string = Path.resolve(
   __dirname,
@@ -192,7 +193,11 @@ describe("brand identity with incomplete optional settings", () => {
   ])(
     "OneUptime branding resolves its destination from %j",
     (variables: Record<string, unknown>, destination: string | undefined) => {
-      const html: string = render("Logo", variables);
+      // OneUptime's logo, as MailService.render hands it to every email.
+      const html: string = render("Logo", {
+        ...variables,
+        oneUptimeLogoUrl: EmailLogo.getDataUrl(),
+      });
 
       expect(html).toContain('alt="OneUptime"');
       expect(html).toContain(">OneUptime</td>");

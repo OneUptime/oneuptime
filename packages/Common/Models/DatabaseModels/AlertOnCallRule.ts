@@ -4,7 +4,7 @@ import Monitor from "./Monitor";
 import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Project from "./Project";
 import User from "./User";
-import RuleBaseModel from "./DatabaseBaseModel/RuleBaseModel";
+import OnCallRuleBaseModel from "./DatabaseBaseModel/OnCallRuleBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
@@ -77,7 +77,7 @@ import {
   tableDescription:
     "Configure rules for automatically executing on-call duty policies when matching alerts are created",
 })
-export default class AlertOnCallRule extends RuleBaseModel {
+export default class AlertOnCallRule extends OnCallRuleBaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

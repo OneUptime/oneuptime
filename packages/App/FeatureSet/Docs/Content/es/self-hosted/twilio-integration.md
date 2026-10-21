@@ -56,7 +56,7 @@ Para una configuración predeterminada de toda la instalación, un administrador
 
 ### Números distintos para llamadas y SMS
 
-Un número de Twilio puede hacer llamadas y enviar SMS, o solo una de las dos cosas, y en algunos países ningún número hace ambas. En Singapur, por ejemplo, los números nacionales (+65 3 o +65 6) son solo de voz, y los SMS necesitan un número móvil (+65 8). Una configuración, la de un proyecto o la de la instalación, puede indicar números para SMS en **Más campos**:
+Un número de Twilio puede hacer llamadas y enviar SMS, o solo una de las dos cosas, y en algunos países ningún número hace ambas: los números nacionales pueden ser solo de voz, mientras que los SMS necesitan un número móvil. Una configuración, la de un proyecto o la de la instalación, puede indicar números para SMS en **Más campos**:
 
 | Campo | Qué sale de él |
 | --- | --- |
@@ -64,12 +64,12 @@ Un número de Twilio puede hacer llamadas y enviar SMS, o solo una de las dos co
 | **Números de teléfono secundarios de Twilio** | Las llamadas, y los SMS mientras no haya números para SMS, a destinatarios del país de cada número |
 | **Números de teléfono SMS de Twilio** | Cada SMS, una vez indicados: desde el número del país del destinatario o, si no lo hay, desde el primero |
 
-Para Singapur, introduce el número nacional como **Número de teléfono principal de Twilio** y el número móvil en **Números de teléfono SMS de Twilio**. En cuanto una configuración indica números para SMS, ningún SMS sale de sus otros números, así que indica todos los números que deban enviar SMS.
+Si tu número solo puede hacer llamadas, mantenlo como **Número de teléfono principal de Twilio** e introduce un número que pueda enviar SMS, como un número móvil, en **Números de teléfono SMS de Twilio**. En cuanto una configuración indica números para SMS, ningún SMS sale de sus otros números, así que indica todos los números que deban enviar SMS.
 
 Una configuración sin números para SMS envía los SMS desde los mismos números que las llamadas, como antes. **Enviar SMS de prueba** y **Enviar llamada de prueba** salen del número del que saldría un SMS o una llamada real al mismo destinatario. Si Twilio rechaza un SMS con el error 21606, el número no puede enviar SMS: añade uno que sí pueda en **Números de teléfono SMS de Twilio**.
 
 > [!NOTE]
-> En Singapur, un SMS desde un número que no está registrado en SGNIC, o desde un número de fuera de Singapur, llega con el remitente `Likely-SCAM`. Registra el número móvil en SGNIC y en Twilio antes de confiar en él; consulta [las directrices de SMS de Twilio para Singapur](https://www.twilio.com/en-us/guidelines/sg/sms).
+> Qué números pueden enviar SMS, y si un remitente debe registrarse antes, cambia de un país a otro: donde el registro es obligatorio, un SMS desde un número no registrado puede bloquearse o marcarse como spam. Antes de confiar en un número, consulta [las directrices de SMS de Twilio](https://www.twilio.com/en-us/guidelines/sms) de cada país al que envíes.
 
 ## 3. Configura el acceso a la red
 

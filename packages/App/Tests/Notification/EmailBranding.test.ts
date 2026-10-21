@@ -5,10 +5,11 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * (Utils/EmailBranding.ts): the variables MailService.render adds to every
  * email, and the subject's own words.
  *
- * Without branding, an email gets brandProductName "OneUptime" and nothing
- * else, so every template and partial renders exactly as it did before (see
- * EmailBrandingTemplates.test.ts). The host is pinned here, so the logo's
- * absolute address is predictable.
+ * Without branding, an email gets brandProductName "OneUptime" and
+ * OneUptime's own logo as the image itself (oneUptimeLogoUrl, a data: URL
+ * that goes out inside the email - EmailLogo, issue #5124), and nothing
+ * else (see EmailBrandingTemplates.test.ts). The host is pinned here, so a
+ * logo of the installation's own has a predictable absolute address.
  */
 
 jest.mock("Common/Server/EnvironmentConfig", () => {
@@ -23,6 +24,7 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
 });
 
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
+import EmailLogo from "Common/Server/Utils/Mail/EmailLogo";
 import { ProductBranding } from "Common/Types/Branding/ProductBranding";
 import Dictionary from "Common/Types/Dictionary";
 import {
@@ -37,16 +39,28 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+// OneUptime's logo, as the email carries it.
+const ONEUPTIME_LOGO: string = EmailLogo.getDataUrl() as string;
+
 describe("getEmailBrandingVariables", () => {
+  test("OneUptime's logo is the image itself, never an address", () => {
+    expect(ONEUPTIME_LOGO.startsWith("data:image/png;base64,")).toBe(true);
+
+    const parsed: globalThis.URL = new globalThis.URL(ONEUPTIME_LOGO);
+
+    expect([parsed.protocol, parsed.host]).toEqual(["data:", ""]);
+  });
+
   test.each([
     ["no branding", null],
     ["an empty branding", {}],
     ["the name OneUptime", { productName: "OneUptime" }],
   ])(
-    "%s: OneUptime, and nothing else that changes an email",
+    "%s: OneUptime, with its logo inside the email, and nothing else",
     (_label: string, branding: ProductBranding | null) => {
       expect(getEmailBrandingVariables(branding)).toEqual({
         brandProductName: "OneUptime",
+        oneUptimeLogoUrl: ONEUPTIME_LOGO,
       });
     },
   );
@@ -74,7 +88,10 @@ describe("getEmailBrandingVariables", () => {
   test("a website without a name of its own changes nothing: Powered by OneUptime links to oneuptime.com", () => {
     expect(
       getEmailBrandingVariables({ websiteUrl: "https://acme.example" }),
-    ).toEqual({ brandProductName: "OneUptime" });
+    ).toEqual({
+      brandProductName: "OneUptime",
+      oneUptimeLogoUrl: ONEUPTIME_LOGO,
+    });
   });
 
   test("a logo a mail client can draw goes in as an absolute address on this host", () => {
@@ -92,13 +109,16 @@ describe("getEmailBrandingVariables", () => {
     });
   });
 
-  test("a logo without a name of its own still goes in", () => {
+  test("a logo without a name of its own still goes in, in place of OneUptime's", () => {
     expect(
       getEmailBrandingVariables({
         logoUrl: "/api/branding/logo?v=1",
         isLogoEmailSafe: true,
-      })["brandLogoUrl"],
-    ).toBe("https://status.acme.example/api/branding/logo?v=1");
+      }),
+    ).toEqual({
+      brandProductName: "OneUptime",
+      brandLogoUrl: "https://status.acme.example/api/branding/logo?v=1",
+    });
   });
 
   test("an SVG or WebP logo (not email safe) stays out: the email shows the name", () => {
@@ -110,17 +130,61 @@ describe("getEmailBrandingVariables", () => {
     ).toEqual({ brandProductName: "Acme", isBrandRenamed: "true" });
   });
 
-  test("names exactly the variables MailService reserves", () => {
-    const variables: Dictionary<string> = getEmailBrandingVariables({
-      productName: "Acme",
-      websiteUrl: "https://acme.example",
-      logoUrl: "/api/branding/logo?v=1",
-      isLogoEmailSafe: true,
+  test("an SVG or WebP logo without a name of its own: OneUptime's, inside the email", () => {
+    expect(
+      getEmailBrandingVariables({
+        logoUrl: "/api/branding/logo?v=1",
+        isLogoEmailSafe: false,
+      }),
+    ).toEqual({
+      brandProductName: "OneUptime",
+      oneUptimeLogoUrl: ONEUPTIME_LOGO,
     });
+  });
 
-    expect(Object.keys(variables).sort()).toEqual(
-      [...BRAND_VARIABLE_NAMES].sort(),
-    );
+  test("a renamed installation never carries OneUptime's logo", () => {
+    for (const branding of [
+      { productName: "Acme" },
+      { productName: "Acme", websiteUrl: "https://acme.example" },
+      { productName: "Acme", logoUrl: "/api/branding/logo?v=1" },
+      {
+        productName: "Acme",
+        logoUrl: "/api/branding/logo?v=1",
+        isLogoEmailSafe: true,
+      },
+    ] as Array<ProductBranding>) {
+      expect(Object.keys(getEmailBrandingVariables(branding))).not.toContain(
+        "oneUptimeLogoUrl",
+      );
+    }
+  });
+
+  test("a logo whose file cannot be read leaves the name alone, never a broken image", () => {
+    jest.spyOn(EmailLogo, "getDataUrl").mockReturnValue(null);
+
+    expect(getEmailBrandingVariables(null)).toEqual({
+      brandProductName: "OneUptime",
+    });
+  });
+
+  test("names exactly the variables MailService reserves", () => {
+    const named: Set<string> = new Set<string>();
+
+    for (const branding of [
+      null,
+      {
+        productName: "Acme",
+        websiteUrl: "https://acme.example",
+        logoUrl: "/api/branding/logo?v=1",
+        isLogoEmailSafe: true,
+      },
+    ] as Array<ProductBranding | null>) {
+      for (const name of Object.keys(getEmailBrandingVariables(branding))) {
+        named.add(name);
+      }
+    }
+
+    expect([...named].sort()).toEqual([...BRAND_VARIABLE_NAMES].sort());
   });
 });
 
@@ -144,9 +208,10 @@ describe("getCurrentEmailBrandingVariables", () => {
     });
   });
 
-  test("is OneUptime on an installation without the enterprise module", () => {
+  test("is OneUptime, with its logo inside the email, on an installation without the enterprise module", () => {
     expect(getCurrentEmailBrandingVariables()).toEqual({
       brandProductName: "OneUptime",
+      oneUptimeLogoUrl: ONEUPTIME_LOGO,
     });
   });
 });
@@ -215,6 +280,28 @@ describe("without a host", () => {
           isLogoEmailSafe: true,
         }),
       ).toEqual({ brandProductName: "Acme", isBrandRenamed: "true" });
+    },
+  );
+
+  test.each(["", "   "])(
+    "OneUptime's logo needs no host: it is inside the email (HOST %j)",
+    (host: string) => {
+      environment.Host = host;
+
+      expect(getEmailBrandingVariables(null)).toEqual({
+        brandProductName: "OneUptime",
+        oneUptimeLogoUrl: ONEUPTIME_LOGO,
+      });
+      // A logo of its own it cannot address, and OneUptime's name: OneUptime's logo.
+      expect(
+        getEmailBrandingVariables({
+          logoUrl: "/api/branding/logo?v=1",
+          isLogoEmailSafe: true,
+        }),
+      ).toEqual({
+        brandProductName: "OneUptime",
+        oneUptimeLogoUrl: ONEUPTIME_LOGO,
+      });
     },
   );
 });

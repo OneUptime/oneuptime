@@ -103,6 +103,12 @@ function from(
 const SMS: TwilioMessageKind = TwilioMessageKind.SMS;
 const CALL: TwilioMessageKind = TwilioMessageKind.Call;
 
+// A North American number in 555-0100 to 555-0199, kept for fiction.
+const NANP_FICTION_NUMBER: RegExp = /^\+1\d{3}55501\d{2}$/;
+
+// A UK mobile number in 07700 900000 to 900999, kept for drama.
+const UK_DRAMA_NUMBER: RegExp = /^\+447700900\d{3}$/;
+
 const RECIPIENTS: Array<string> = [
   SG_RECIPIENT,
   SG_NATIONAL,
@@ -484,5 +490,61 @@ describe("refusing a list a config is about to store", () => {
     expect(() => {
       TwilioPhoneNumbers.assertListIsValid({ title: TITLE, text: 6581234567 });
     }).toThrow(BadDataException);
+  });
+});
+
+/*
+ * THE EXAMPLE A READER IS SHOWN: in the empty Twilio SMS Phone Numbers field
+ * of a project's Twilio config and of the Admin Dashboard's Call and SMS
+ * settings, and in the error that refuses a list. OneUptime is used
+ * worldwide, so the example is no one country's - it once was a Singapore
+ * mobile number - but two numbers in two countries, each from a range kept
+ * for fiction, so a copied example texts nobody.
+ */
+describe("the example list a reader is shown", () => {
+  const entries: Array<string> = TwilioPhoneNumbers.getListEntries(
+    PHONE_NUMBER_LIST_EXAMPLE,
+  );
+
+  test("is two phone numbers, separated as the forms ask, that the rule accepts", () => {
+    expect(PHONE_NUMBER_LIST_EXAMPLE).toBe("+14155550123, +447700900123");
+    expect(entries).toEqual(["+14155550123", "+447700900123"]);
+    expect(TwilioPhoneNumbers.getListError(PHONE_NUMBER_LIST_EXAMPLE)).toBe(
+      null,
+    );
+    expect(() => {
+      TwilioPhoneNumbers.assertListIsValid({
+        title: "Twilio SMS Phone Numbers",
+        text: PHONE_NUMBER_LIST_EXAMPLE,
+      });
+    }).not.toThrow();
+  });
+
+  test("takes its numbers only from ranges kept for fiction: North America's 555-0100 to 555-0199 and the UK's 07700 900xxx", () => {
+    expect(entries[0]).toMatch(NANP_FICTION_NUMBER);
+    expect(entries[1]).toMatch(UK_DRAMA_NUMBER);
+  });
+
+  test("is no one country's: an SMS goes out from the number in its recipient's country, or else the first", () => {
+    const listed: TwilioConfig = config({ sms: entries });
+
+    // Each number serves its own country...
+    expect(from(listed, SMS, US_RECIPIENT)).toBe(entries[0]);
+    expect(from(listed, SMS, UK_RECIPIENT)).toBe(entries[1]);
+    // ...and the first every other one, as the field's help says.
+    expect(from(listed, SMS, FR_RECIPIENT)).toBe(entries[0]);
+    expect(from(listed, SMS, SG_RECIPIENT)).toBe(entries[0]);
+  });
+
+  test("holds no Singapore number, the country it was once taken from", () => {
+    for (const entry of entries) {
+      expect(entry.startsWith("+65")).toBe(false);
+    }
+  });
+
+  test("is the example the error that refuses a list gives", () => {
+    expect(TwilioPhoneNumbers.getListEntryError("call me")).toBe(
+      '"call me" is not a phone number. Write each number with its country code and separate them with commas, like +14155550123, +447700900123.',
+    );
   });
 });

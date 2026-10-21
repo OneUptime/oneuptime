@@ -118,6 +118,26 @@ Hver besked er en, som udbyderen tager imod, så et tilkald går altid ud. Så m
 
 En længere besked, med en lang titel eller en lang beskrivelse, som en skabelon har sat ind, bliver afkortet og slutter med en bemærkning om, at den fulde tekst står i OneUptime: "… (truncated — see OneUptime for the full text)". Ordlyden i en WhatsApp-besked er en fast skabelon, så dér afkortes de længste værdier i stedet, hver med "…" til sidst. Links i en besked afkortes aldrig.
 
+### Hvad et tilkalds sms siger
+
+En sms sendes, og betales, i dele på 160 tegn. Et tilkald pr. sms skrives, så det passer i én del, hvor det overhovedet kan, og siger kun det, du har brug for på en låst telefon: hvem der sender det, hvad der er sket, og det ene link til at kvittere for tilkaldet eller sende det videre. På en telefon ser det sådan ud:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+```
+
+Det nævner alvorligheden og hvad der er sket (en hændelse, en advarsel eller en episode af en af dem), dens nummer, projektet og titlen, i den rækkefølge. Når det ikke alt sammen kan være i én del:
+
+1. Først udelades projektet.
+2. Derefter afkortes titlen, og den slutter med `...`.
+
+Alvorligheden, nummeret og linket afkortes aldrig. En titel beholder mindst 20 tegn: kan selv det ikke være der, for eksempel med en meget lang adresse eller et meget langt produktnavn, tager sms'en en ekstra del og siger det hele.
+
+Ét tegn uden for sms'ers enkle alfabet får hele beskeden til at gå ud i dele på 70 tegn. Derfor skrives typografiske anførselstegn og tankestreger som `"`, `'` og `-`, `…` som `...`, og bogstaver som `ç` og `ł` mister deres accenter; emojis udelades. En titel i en anden skrift, for eksempel japansk eller russisk, sendes, som den er skrevet, og fylder to dele eller flere.
+
+De andre sms'er, OneUptime sender dig, for eksempel om en ændring i en hændelse, du ejer, eller om starten på din vagt, begynder også med `OneUptime:` og slutter med `Turn off in User Settings > Notification Settings.`, en sætning, der udelades, når det er det, der får sms'en til at passe i én del.
+
 ### Når et tilkald ikke sendes
 
 Et tilkald, der ikke sendes, siger hvorfor i personens **Vagtlogs** (Brugerindstillinger): rækken viser **Fejl**, og statusbeskeden giver årsagen. Det bliver ikke længere stående på **Sender**. Beskeden siger én af disse ting:
@@ -208,7 +228,7 @@ Hver gang et tilkald sendes videre, bliver det registreret. Kørslens **Tidslinj
 Hver regels kort har **Edit rule** og en **⋯**-menu med de andre handlinger:
 
 - **Edit rule** åbner den samme dialog på én side, udfyldt med reglen, som den er: dens modtagere, dens ventetid og dens navn og beskrivelse under **Flere felter**. Tilføj eller fjern modtagere, og klik på **Gem ændringer**. Rydder du navnet, får reglen sit niveaus navn igen.
-- **Move up** og **Move down** i en regels **⋯**-menu ændrer dens niveau. En regel, der er opkaldt efter sit niveau, beholder et navn, der passer til dens plads: når **Level 3** rykker op forbi **Level 2**, bytter de to navne. Et navn, du selv har valgt, fx **Ledere**, forbliver det samme, uanset hvor reglen flytter hen.
+- **Flyt op** og **Flyt ned** i en regels **⋯**-menu ændrer dens niveau. En regel, der er opkaldt efter sit niveau, beholder et navn, der passer til dens plads: når **Level 3** rykker op forbi **Level 2**, bytter de to navne. Et navn, du selv har valgt, fx **Ledere**, forbliver det samme, uanset hvor reglen flytter hen.
 - **Delete rule** spørger først og siger, hvem niveauet tilkalder. Sletter du et niveau, rykker niveauerne under det op, og regler, der er opkaldt efter deres niveau, omdøbes, så de passer.
 
 ## Opret regler med API'et eller Terraform

@@ -7,6 +7,10 @@ import {
   ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
 } from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
 import { ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import {
+  ON_CALL_POLICY_RUN_ENDED_WHILE_WAITING_MESSAGE_START,
+  isOnCallPolicyRunEndedWhileWaiting,
+} from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
 import FeedMarkdown, {
   MarkdownText,
   mdText,
@@ -287,6 +291,9 @@ const getRunStatusSentences: (
     : [];
 
   switch (input.status) {
+    // It pages nobody yet; its message says why and until when.
+    case OnCallDutyPolicyStatus.Waiting:
+      return [mdText`${policy} is not paging yet.`, ...messageSentences];
     case OnCallDutyPolicyStatus.Scheduled:
       return [mdText`${policy} is scheduled to start paging.`];
     case OnCallDutyPolicyStatus.Started:
@@ -297,6 +304,20 @@ const getRunStatusSentences: (
       if (message === ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE) {
         return [
           mdText`${policy} went through every escalation rule and stopped paging.`,
+        ];
+      }
+
+      /*
+       * It waited to page, and its record was handled first: it never
+       * paged, so it did not "stop" (OnCallDutyPolicyRunWait).
+       */
+      if (isOnCallPolicyRunEndedWhileWaiting(message)) {
+        const why: string = message
+          .slice(ON_CALL_POLICY_RUN_ENDED_WHILE_WAITING_MESSAGE_START.length)
+          .trim();
+
+        return [
+          mdText`${policy} did not page anyone because the ${asSentence(why)}`,
         ];
       }
 
@@ -542,12 +563,16 @@ export default class OnCallFeedText {
    * A run starting. With the person who started it by hand, the sentence
    * follows their name in the feed ("Nitin started on-call policy PolicyX").
    * Started by a workflow's step, it names the workflow ("Workflow Page SRE
-   * started on-call policy PolicyX").
+   * started on-call policy PolicyX"). A run that waited for working hours
+   * and started before they began says why (WaitingRunsOnRecordChange):
+   * "On-call policy PolicyX started paging early. The alert now matches
+   * on-call rule "P1 alerts", which pages right away."
    */
   public static getRunStartedMarkdown(data: {
     policyLink: MarkdownText;
     isStartedBySomeone: boolean;
     startedByWorkflowName?: string | undefined;
+    startedEarlyReason?: string | undefined;
   }): string {
     if (data.isStartedBySomeone) {
       return mdText`started on-call policy **${data.policyLink}**.`.toString();
@@ -559,7 +584,56 @@ export default class OnCallFeedText {
       return mdText`Workflow **${workflowName}** started on-call policy **${data.policyLink}**.`.toString();
     }
 
+    const startedEarlyReason: string = (data.startedEarlyReason || "").trim();
+
+    if (startedEarlyReason) {
+      return FeedMarkdown.join(
+        [
+          mdText`${getPolicy(data.policyLink)} started paging early.`,
+          asSentence(startedEarlyReason),
+        ],
+        " ",
+      ).toString();
+    }
+
     return mdText`${getPolicy(data.policyLink)} started paging.`.toString();
+  }
+
+  /*
+   * A run that waits to page (OnCallDutyPolicyRunWait), as it is created:
+   * "On-call policy PolicyX is not paging yet. Waiting for working hours:
+   * paging starts at 09:00 (Europe/London)." The second sentence is the
+   * run's status message, the words its Execution Logs row shows too.
+   * Started by a person or a workflow, it reads as a start does, then says
+   * it waits.
+   */
+  public static getRunWaitingMarkdown(data: {
+    policyLink: MarkdownText;
+    isStartedBySomeone: boolean;
+    startedByWorkflowName?: string | undefined;
+    waitingMessage?: string | undefined;
+  }): string {
+    const message: string = (data.waitingMessage || "").trim();
+    const sentences: Array<MarkdownText> = [];
+    const workflowName: string = (data.startedByWorkflowName || "").trim();
+
+    if (data.isStartedBySomeone) {
+      sentences.push(
+        mdText`started on-call policy **${data.policyLink}**. It is not paging yet.`,
+      );
+    } else if (workflowName) {
+      sentences.push(
+        mdText`Workflow **${workflowName}** started on-call policy **${data.policyLink}**. It is not paging yet.`,
+      );
+    } else {
+      sentences.push(mdText`${getPolicy(data.policyLink)} is not paging yet.`);
+    }
+
+    if (message) {
+      sentences.push(asSentence(message));
+    }
+
+    return FeedMarkdown.join(sentences, " ").toString();
   }
 
   /*
@@ -609,7 +683,10 @@ export default class OnCallFeedText {
    * sends is an entry of its own (getStepMarkdown), so the statuses it
    * passes through on the way - scheduled, started, executing - only said
    * "started paging" twice and "is paging" once more, on every run. How the
-   * run ended is news: it stopped, paged nobody, or failed.
+   * run ended is news: it stopped, paged nobody, or failed. A run that waits
+   * to page says so as it is created (getRunWaitingMarkdown), and that it
+   * started paging once it does (OnCallDutyPolicyExecutionLogService
+   * .startWaitingRun).
    */
   public static isRunStatusFeedNews(
     status: OnCallDutyPolicyStatus | undefined,
@@ -619,6 +696,7 @@ export default class OnCallFeedText {
     }
 
     return (
+      status !== OnCallDutyPolicyStatus.Waiting &&
       status !== OnCallDutyPolicyStatus.Scheduled &&
       status !== OnCallDutyPolicyStatus.Started &&
       status !== OnCallDutyPolicyStatus.Executing
