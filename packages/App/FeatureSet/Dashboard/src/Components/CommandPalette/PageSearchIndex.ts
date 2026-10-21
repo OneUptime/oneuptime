@@ -2140,6 +2140,21 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       {
         title: "Cloud",
         pages: [
+          {
+            page: PageMap.CLOUD_CONNECT,
+            title: "Connect",
+            icon: IconProp.Link,
+            keywords: [
+              "connect aws",
+              "connect azure",
+              "connect google cloud",
+              "gcp",
+              "cloud account",
+              "cloudwatch",
+              "azure monitor",
+              "cloud monitoring",
+            ],
+          },
           allListPage(PageMap.CLOUD_RESOURCES, "All Environments"),
           {
             ...allListPage(PageMap.CLOUD_MONITORED_RESOURCES, "All Resources"),
