@@ -66,10 +66,18 @@ describe("registry wiring", () => {
     );
 
     expect(scan).toContain("schedule: EVERY_MINUTE");
-    expect(scan).toContain("await SecurityLogScanner.scanAllEnabled();");
+    expect(scan).toContain(
+      "await SecurityLogScanner.enqueueProjectsWithEnabledSources();",
+    );
+    expect(scan).toContain(
+      "return SecurityLogScanner.scanProject(projectId, lease);",
+    );
     expect(forward).toContain("schedule: EVERY_MINUTE");
     expect(forward).toContain(
-      "await SecurityEventForwarder.forwardAllEnabled();",
+      "await SecurityEventForwarder.enqueueProjectsWithEnabledDestinations();",
+    );
+    expect(forward).toContain(
+      "return SecurityEventForwarder.forwardProject(projectId, lease);",
     );
   });
 

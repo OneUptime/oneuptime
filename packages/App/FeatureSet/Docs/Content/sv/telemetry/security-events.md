@@ -45,6 +45,7 @@ flowchart TB
 | **Playbooks** | Playbooks | Steg som körs på ärenden, av sig själva eller manuellt |
 | **Väntar på godkännande** | Playbooks | Playbook-stegen som väntar på att någon godkänner eller avvisar dem |
 | **Playbook-körningar** | Playbooks | Vad varje playbook gjorde, steg för steg |
+| **Protected Entities** | Playbooks | De användare och värdar som ingen playbook begränsar |
 | **Connections** | Connections | Dina loggar, säkerhetsprodukterna som OneUptime hämtar från och de SIEM som det skickar till |
 | **Installationsguide** | Connections | Kodsnuttar för att skicka händelser, ifyllda med din ingestion-nyckel |
 
@@ -307,7 +308,7 @@ OneUptime kontrollerar varje minut om det finns aktiverade regler vars intervall
 - Fönstren ligger efter varandra och glider inte. Med ett intervall på 10 minuter kan misslyckanden kl. 09:58 och 10:01 hamna i olika körningar och räknas var för sig, så lämna marginal när du väljer en tröskel.
 - Efter ett uppehåll, till exempel ett worker-avbrott eller en regel som slagits på igen, täcker nästa körning hela uppehållet, upp till de senaste 24 timmarna.
 - En händelse som kommer mer än två minuter för sent, efter att en körning redan har täckt dess tid, lagras och är sökbar, men den regeln läser den aldrig.
-- Högst 100 grupper löser ut per körning: de med högst räkning.
+- Varje grupp som når tröskeln blir ett Detection Finding, upp till 10 000 per körning. Larm, incidenter och ärenden öppnas för de 100 med högst räkning; resten delar ett ärende om regeln, och regelns **Senaste fel** säger hur många grupper som träffade.
 
 ### Allvarlighetsgrad
 

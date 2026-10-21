@@ -780,6 +780,7 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
    */
   [PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL]: "playbook-runs",
   [PageMap.SECURITY_PLAYBOOK_RUNS]: "playbook-runs/all",
+  [PageMap.SECURITY_PROTECTED_ENTITIES]: "protected-entities",
 };
 
 // Metrics product routes
@@ -6747,6 +6748,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SECURITY_PLAYBOOK_RUNS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_PLAYBOOK_RUNS]
+    }`,
+  ),
+
+  [PageMap.SECURITY_PROTECTED_ENTITIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_PROTECTED_ENTITIES]
     }`,
   ),
 

@@ -1,5 +1,6 @@
 import { SECURITY_LOG_FORMAT_TEXTS } from "./SecurityConnectionsCopy";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
+import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import SecurityLogFormat, {
@@ -57,6 +58,39 @@ export function readFoundByFormat(
   }
 
   return found;
+}
+
+export interface SecurityLogScanProgress {
+  // The last check stopped part way through a busy stretch; the next goes on from there.
+  isCatchingUp: boolean;
+  // The checks fell too far behind and skipped the logs that arrived in this range.
+  skipped: { from: Date; to: Date } | null;
+}
+
+function readResultDate(value: JSONValue | undefined): Date | null {
+  if (typeof value !== "string" || !value) {
+    return null;
+  }
+
+  const date: Date = new Date(value);
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+// Where the last check left the scan (SecurityLogScanResult).
+export function readScanProgress(
+  result: JSONObject | undefined,
+): SecurityLogScanProgress {
+  const skippedFrom: Date | null = readResultDate(result?.["skippedFrom"]);
+  const skippedTo: Date | null = readResultDate(result?.["skippedTo"]);
+
+  return {
+    isCatchingUp: Boolean(readResultDate(result?.["partialWindowStart"])),
+    skipped:
+      result?.["skippedBacklog"] === true && skippedFrom && skippedTo
+        ? { from: skippedFrom, to: skippedTo }
+        : null,
+  };
 }
 
 /*
@@ -193,6 +227,10 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
     source?.lastScanResult,
   );
 
+  const progress: SecurityLogScanProgress = readScanProgress(
+    source?.lastScanResult,
+  );
+
   const statusLines: Array<string> = [];
 
   if (isOn) {
@@ -211,6 +249,14 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
           })
         : translator.translateText("No security event found yet.") || "",
     );
+
+    if (progress.isCatchingUp) {
+      statusLines.push(
+        translator.translateText(
+          "Catching up on a busy stretch of logs: the next check goes on where this one stopped.",
+        ) || "",
+      );
+    }
   }
 
   return (
@@ -278,6 +324,27 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
             {translator.translateTemplate("The last check failed: {{error}}", {
               error: source.lastError,
             })}
+          </p>
+        ) : (
+          <></>
+        )}
+
+        {isOn && progress.skipped ? (
+          <p
+            className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800"
+            data-testid="security-logs-source-skipped"
+          >
+            {translator.translateTemplate(
+              "The checks fell more than a day behind and skipped the logs that arrived between {{from}} and {{to}}.",
+              {
+                from: OneUptimeDate.getDateAsLocalFormattedString(
+                  progress.skipped.from,
+                ),
+                to: OneUptimeDate.getDateAsLocalFormattedString(
+                  progress.skipped.to,
+                ),
+              },
+            )}
           </p>
         ) : (
           <></>

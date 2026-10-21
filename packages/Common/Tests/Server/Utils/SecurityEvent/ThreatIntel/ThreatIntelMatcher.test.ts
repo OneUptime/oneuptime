@@ -10,8 +10,12 @@ jest.mock("isolated-vm", () => {
 
 import ThreatIntelMatcher, {
   MAX_GROUPS_PER_EVALUATION,
+  THREAT_INTEL_MATCH_PROJECT_WORK,
   ThreatIntelMatchResult,
 } from "../../../../../Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelMatcher";
+import SecurityProjectWork, {
+  SecurityProjectWorkLease,
+} from "../../../../../Server/Utils/SecurityEvent/SecurityProjectWork";
 import ThreatIntelFeed from "../../../../../Models/DatabaseModels/ThreatIntelFeed";
 import Alert from "../../../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../../../Models/DatabaseModels/AlertSeverity";
@@ -40,15 +44,20 @@ import {
   THREAT_INDICATOR_ID_ATTRIBUTE,
   THREAT_INDICATOR_TYPE_ATTRIBUTE,
   THREAT_INDICATOR_VALUE_ATTRIBUTE,
+  THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION,
   THREAT_INTEL_PRODUCT_NAME,
   THREAT_MATCH_COUNT_ATTRIBUTE,
 } from "../../../../../Types/SecurityEvent/ThreatIntelConstants";
+import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
+import OcsfSeverity from "../../../../../Types/SecurityEvent/OcsfSeverity";
 import ObjectID from "../../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../../Types/Date";
 import ServiceType from "../../../../../Types/Telemetry/ServiceType";
 import { JSONObject } from "../../../../../Types/JSON";
 import { getJestSpyOn } from "../../../../Spy";
-import SecurityCaseIngest from "../../../../../Server/Utils/SecurityCase/SecurityCaseIngest";
+import SecurityCaseIngest, {
+  SecurityDetectionSignal,
+} from "../../../../../Server/Utils/SecurityCase/SecurityCaseIngest";
 import {
   afterEach,
   beforeEach,
@@ -224,7 +233,7 @@ describe("ThreatIntelMatcher.evaluateFeed", () => {
     expect(data["lastMatchAt"]).toBeUndefined();
   });
 
-  test("the match query is scoped to this feed, window-capped, and group-capped", async () => {
+  test("the match query is scoped to this feed, window-capped, and asks for one value more than a check records", async () => {
     const lastEvaluatedAt: Date = OneUptimeDate.addRemoveMinutes(
       OneUptimeDate.getCurrentDate(),
       -10,
@@ -238,7 +247,11 @@ describe("ThreatIntelMatcher.evaluateFeed", () => {
     );
     expect((call["feedId"] as ObjectID).toString()).toBe(FEED_ID.toString());
     expect(call["startTime"]).toBe(lastEvaluatedAt);
-    expect(call["maxGroups"]).toBe(MAX_GROUPS_PER_EVALUATION);
+    expect(call["maxGroups"]).toBe(
+      THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION + 1,
+    );
+    expect(THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION).toBe(10000);
+    expect(MAX_GROUPS_PER_EVALUATION).toBe(100);
   });
 
   test("a stale lastEvaluatedAt is capped at 24 hours of lookback", async () => {
@@ -403,7 +416,7 @@ describe("ThreatIntelMatcher.evaluateFeed", () => {
   });
 });
 
-describe("ThreatIntelMatcher.evaluateAllDueFeeds", () => {
+describe("ThreatIntelMatcher.evaluateFeedsForProject", () => {
   test("one failing feed records lastMatchError and the loop continues", async () => {
     const failing: ThreatIntelFeed = buildFeed();
     const healthy: ThreatIntelFeed = buildFeed();
@@ -420,7 +433,7 @@ describe("ThreatIntelMatcher.evaluateAllDueFeeds", () => {
       .mockRejectedValueOnce(new Error("match query exploded") as never)
       .mockResolvedValueOnce({} as never);
 
-    await ThreatIntelMatcher.evaluateAllDueFeeds();
+    await ThreatIntelMatcher.evaluateFeedsForProject(PROJECT_ID);
 
     expect(evaluateSpy).toHaveBeenCalledTimes(2);
 
@@ -444,7 +457,332 @@ describe("ThreatIntelMatcher.evaluateAllDueFeeds", () => {
     feedUpdateSpy.mockRejectedValue(new Error("db down") as never);
 
     await expect(
-      ThreatIntelMatcher.evaluateAllDueFeeds(),
+      ThreatIntelMatcher.evaluateFeedsForProject(PROJECT_ID),
     ).resolves.toBeUndefined();
+  });
+
+  function feedChecked(idSuffix: string, minutesAgo?: number): ThreatIntelFeed {
+    const feed: ThreatIntelFeed = buildFeed(
+      minutesAgo === undefined
+        ? {}
+        : {
+            lastEvaluatedAt: OneUptimeDate.addRemoveMinutes(
+              OneUptimeDate.getCurrentDate(),
+              -minutesAgo,
+            ),
+          },
+    );
+    feed._id = `66666666-6666-4666-8666-${idSuffix}`;
+    return feed;
+  }
+
+  function evaluatedFeedIds(evaluateSpy: Spy): Array<string> {
+    return evaluateSpy.mock.calls.map((call: Array<unknown>): string => {
+      return (call[0] as ThreatIntelFeed).id!.toString();
+    });
+  }
+
+  test("reads the project's enabled feeds page by page, and checks the longest unchecked first", async () => {
+    const recent: ThreatIntelFeed = feedChecked("666666666661", 1);
+    const never: ThreatIntelFeed = feedChecked("666666666662");
+    const older: ThreatIntelFeed = feedChecked("666666666663", 30);
+
+    const findAll: Spy = getJestSpyOn(
+      ThreatIntelFeedService,
+      "findAllBy",
+    ).mockResolvedValue([recent, never, older] as never);
+    const evaluateSpy: Spy = getJestSpyOn(
+      ThreatIntelMatcher,
+      "evaluateFeed",
+    ).mockResolvedValue({} as never);
+
+    await ThreatIntelMatcher.evaluateFeedsForProject(PROJECT_ID);
+
+    expect(evaluatedFeedIds(evaluateSpy)).toEqual([
+      never.id!.toString(),
+      older.id!.toString(),
+      recent.id!.toString(),
+    ]);
+
+    const args: { query: JSONObject; sort: JSONObject; limit?: unknown } =
+      findAll.mock.calls[0]![0] as {
+        query: JSONObject;
+        sort: JSONObject;
+        limit?: unknown;
+      };
+    expect(args.query).toEqual({ projectId: PROJECT_ID, isEnabled: true });
+    expect(args.sort).toEqual({ _id: SortOrder.Ascending });
+    // findAllBy pages through in LIMIT_MAX batches; a limit would cap it again.
+    expect(args.limit).toBeUndefined();
+  });
+
+  test("a turn that runs out of time, or loses its lease, leaves the rest for the next one", async () => {
+    getJestSpyOn(ThreatIntelFeedService, "findAllBy").mockResolvedValue([
+      feedChecked("666666666664", 3),
+      feedChecked("666666666665", 2),
+      feedChecked("666666666666", 1),
+    ] as never);
+    const evaluateSpy: Spy = getJestSpyOn(
+      ThreatIntelMatcher,
+      "evaluateFeed",
+    ).mockResolvedValue({} as never);
+
+    let checks: number = 0;
+    const outOfTime: SecurityProjectWorkLease = {
+      hasTimeLeft: (): boolean => {
+        checks++;
+        return checks <= 2;
+      },
+      keep: async (): Promise<boolean> => {
+        return true;
+      },
+    };
+
+    await ThreatIntelMatcher.evaluateFeedsForProject(PROJECT_ID, outOfTime);
+    expect(evaluateSpy).toHaveBeenCalledTimes(2);
+
+    evaluateSpy.mockClear();
+
+    const lost: SecurityProjectWorkLease = {
+      hasTimeLeft: (): boolean => {
+        return true;
+      },
+      keep: async (): Promise<boolean> => {
+        return false;
+      },
+    };
+
+    await ThreatIntelMatcher.evaluateFeedsForProject(PROJECT_ID, lost);
+    // Another worker may hold the project now: the feed in hand, then it lets go.
+    expect(evaluateSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("ThreatIntelMatcher.enqueueProjectsWithEnabledFeeds", () => {
+  test("queues each project with an enabled feed, read page by page, and checks none itself", async () => {
+    const otherProject: ObjectID = new ObjectID(
+      "77777777-7777-4777-8777-777777777777",
+    );
+    const inOtherProject: ThreatIntelFeed = buildFeed();
+    inOtherProject.projectId = otherProject;
+
+    const findAll: Spy = getJestSpyOn(
+      ThreatIntelFeedService,
+      "findAllBy",
+    ).mockResolvedValue([buildFeed(), buildFeed(), inOtherProject] as never);
+    const enqueue: Spy = getJestSpyOn(
+      SecurityProjectWork,
+      "enqueueProjects",
+    ).mockResolvedValue(2 as never);
+    const evaluateSpy: Spy = getJestSpyOn(ThreatIntelMatcher, "evaluateFeed");
+
+    await expect(
+      ThreatIntelMatcher.enqueueProjectsWithEnabledFeeds(),
+    ).resolves.toBe(2);
+
+    expect(enqueue.mock.calls[0]![0]).toBe(THREAT_INTEL_MATCH_PROJECT_WORK);
+    const queued: Array<string> = (
+      enqueue.mock.calls[0]![1] as Array<ObjectID>
+    ).map((projectId: ObjectID): string => {
+      return projectId.toString();
+    });
+    expect(Array.from(new Set(queued)).sort()).toEqual(
+      [PROJECT_ID.toString(), otherProject.toString()].sort(),
+    );
+    expect(evaluateSpy).not.toHaveBeenCalled();
+
+    expect(findAll).toHaveBeenCalledWith({
+      query: { isEnabled: true },
+      select: { _id: true, projectId: true },
+      sort: { _id: SortOrder.Ascending },
+      props: { isRoot: true },
+    });
+  });
+});
+
+/*
+ * A feed whose indicators match everyday values used to stop at
+ * MAX_GROUPS_PER_EVALUATION and drop the rest without a word. Now every
+ * matched value up to THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION is a
+ * finding, the ones seen in the most events open alerts and cases of their
+ * own, and the rest share one case about the feed - whose Last Match Error
+ * says how many matched.
+ */
+describe("ThreatIntelMatcher: a check that matches more values than it opens cases for", () => {
+  const OVERFLOW_FINGERPRINT: string = `threat-intel:${FEED_ID.toString()}:overflow`;
+
+  // Seen in the most events first, as the match query orders them.
+  function manyMatches(count: number): Array<IndicatorMatchGroup> {
+    const matches: Array<IndicatorMatchGroup> = [];
+
+    for (let index: number = 0; index < count; index++) {
+      matches.push(
+        buildMatchGroup({
+          indicatorValue: `host-${index}.example`,
+          stixId: `indicator--${index}`,
+          matchCount: count - index + 1,
+          // The strongest indicator is among the rest: the case takes its severity.
+          confidence: index === count - 1 ? 95 : 40,
+        }),
+      );
+    }
+
+    return matches;
+  }
+
+  function recordCases(): Spy {
+    return getJestSpyOn(
+      SecurityCaseIngest,
+      "recordDetections",
+    ).mockResolvedValue({
+      casesOpened: 1,
+      detectionsAdded: 1,
+      detectionsRepeated: 0,
+    } as never);
+  }
+
+  function storedLastMatchError(): unknown {
+    return (
+      (feedUpdateSpy.mock.calls[0]![0] as JSONObject)["data"] as JSONObject
+    )["lastMatchError"];
+  }
+
+  test("every value is a finding; the top ones open alerts and cases, the rest share one case", async () => {
+    const matches: Array<IndicatorMatchGroup> = manyMatches(
+      MAX_GROUPS_PER_EVALUATION + 50,
+    );
+    matchesSpy.mockResolvedValue(matches as never);
+    const record: Spy = recordCases();
+
+    const result: ThreatIntelMatchResult =
+      await ThreatIntelMatcher.evaluateFeed(buildFeed());
+
+    expect(result.matchedIndicators).toBe(150);
+    expect(result.overflowIndicators).toBe(50);
+    expect(result.findingsWritten).toBe(150);
+    expect(result.alertsCreated).toBe(MAX_GROUPS_PER_EVALUATION);
+
+    const signals: Array<SecurityDetectionSignal> = record.mock
+      .calls[0]![0] as Array<SecurityDetectionSignal>;
+
+    // One per value with a case of its own, and one about the feed.
+    expect(signals).toHaveLength(MAX_GROUPS_PER_EVALUATION + 1);
+
+    const overflow: SecurityDetectionSignal = signals[signals.length - 1]!;
+    let overflowEvents: number = 0;
+
+    for (const match of matches.slice(MAX_GROUPS_PER_EVALUATION)) {
+      overflowEvents += match.matchCount;
+    }
+
+    expect(overflow.fingerprint).toBe(OVERFLOW_FINGERPRINT);
+    // It is about the feed, not an entity: nothing for a playbook to contain.
+    expect(overflow.entities).toEqual([]);
+    expect(overflow.eventCount).toBe(overflowEvents);
+    expect(overflow.threatIntelFeedId?.toString()).toBe(FEED_ID.toString());
+    expect(overflow.title).toBe(
+      "Test Feed — more matches than one check opens cases for",
+    );
+    expect(overflow.description).toContain("`host-100.example`");
+    expect(overflow.description).not.toContain("`host-99.example`");
+
+    expect(storedLastMatchError()).toBe(
+      "This check matched 150 indicator values. Alerts, incidents and cases opened for the 100 with the most matches; every one of them is a Detection Finding. Check the feed for indicators that match everyday values, or raise its Minimum Confidence.",
+    );
+  });
+
+  test("the case about the rest takes the severity of the strongest indicator among them", async () => {
+    matchesSpy.mockResolvedValue(
+      manyMatches(MAX_GROUPS_PER_EVALUATION + 2) as never,
+    );
+    const record: Spy = recordCases();
+
+    await ThreatIntelMatcher.evaluateFeed(
+      buildFeed({ shouldCreateAlert: false }),
+    );
+
+    const signals: Array<SecurityDetectionSignal> = record.mock
+      .calls[0]![0] as Array<SecurityDetectionSignal>;
+    const overflow: SecurityDetectionSignal = signals[signals.length - 1]!;
+    // A value with a case of its own, at confidence 40.
+    const ordinary: SecurityDetectionSignal = signals[0]!;
+
+    expect(overflow.fingerprint).toBe(OVERFLOW_FINGERPRINT);
+    expect(ordinary.severity).toBe(OcsfSeverity.Medium);
+    expect(overflow.severity).toBe(OcsfSeverity.Critical);
+  });
+
+  test("past what a check reads, findings stop at the cap and Last Match Error says there were more", async () => {
+    matchesSpy.mockResolvedValue(
+      manyMatches(THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION + 1) as never,
+    );
+    recordCases();
+
+    const result: ThreatIntelMatchResult =
+      await ThreatIntelMatcher.evaluateFeed(
+        buildFeed({ shouldCreateAlert: false }),
+      );
+
+    expect(result.matchedIndicators).toBe(
+      THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION,
+    );
+    expect(result.findingsWritten).toBe(
+      THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION,
+    );
+    // Written a thousand rows at a time, not in one insert of ten thousand.
+    expect(insertRowsSpy).toHaveBeenCalledTimes(10);
+
+    for (const call of insertRowsSpy.mock.calls) {
+      expect((call[0] as Array<JSONObject>).length).toBe(1000);
+    }
+
+    expect(storedLastMatchError()).toBe(
+      "This check matched more than 10,000 indicator values. Alerts, incidents and cases opened for the 100 with the most matches; the 10,000 with the most matches are Detection Findings, and the rest were not recorded. Check the feed for indicators that match everyday values, or raise its Minimum Confidence.",
+    );
+  });
+
+  test("a feed that writes no findings says the rest were not recorded", async () => {
+    matchesSpy.mockResolvedValue(
+      manyMatches(MAX_GROUPS_PER_EVALUATION + 1) as never,
+    );
+    recordCases();
+
+    await ThreatIntelMatcher.evaluateFeed(
+      buildFeed({
+        shouldCreateAlert: false,
+        shouldWriteDetectionFinding: false,
+      }),
+    );
+
+    expect(insertRowsSpy).not.toHaveBeenCalled();
+    expect(storedLastMatchError()).toBe(
+      "This check matched 101 indicator values. Alerts, incidents and cases opened for the 100 with the most matches; the rest were not recorded, because Write Detection Finding on Match is off for this feed. Check the feed for indicators that match everyday values, or raise its Minimum Confidence.",
+    );
+  });
+
+  test("exactly as many values as a check opens cases for is no overflow", async () => {
+    matchesSpy.mockResolvedValue(
+      manyMatches(MAX_GROUPS_PER_EVALUATION) as never,
+    );
+    const record: Spy = recordCases();
+
+    const result: ThreatIntelMatchResult =
+      await ThreatIntelMatcher.evaluateFeed(
+        buildFeed({ shouldCreateAlert: false }),
+      );
+
+    expect(result.overflowIndicators).toBe(0);
+
+    const signals: Array<SecurityDetectionSignal> = record.mock
+      .calls[0]![0] as Array<SecurityDetectionSignal>;
+
+    expect(signals).toHaveLength(MAX_GROUPS_PER_EVALUATION);
+    expect(
+      signals.some((signal: SecurityDetectionSignal): boolean => {
+        return signal.fingerprint === OVERFLOW_FINGERPRINT;
+      }),
+    ).toBe(false);
+    // Explicitly null, so an overflow on an earlier check is cleared.
+    expect(storedLastMatchError()).toBeNull();
   });
 });

@@ -1,10 +1,10 @@
 import SecurityEventConnection from "../../../../Models/DatabaseModels/SecurityEventConnection";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import SecurityEventConnectionRun from "../../../../Models/DatabaseModels/SecurityEventConnectionRun";
 import Project from "../../../../Models/DatabaseModels/Project";
 import Reseller from "../../../../Models/DatabaseModels/Reseller";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import LessThan from "../../../../Types/BaseDatabase/LessThan";
-import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -447,15 +447,15 @@ export default class SecurityEventConnectionRunExecutor {
   }
 
   public static async enqueueDueConnections(): Promise<void> {
+    // Every run in the instance, page by page: none is left behind a cap.
     const staleRuns: Array<SecurityEventConnectionRun> =
-      await SecurityEventConnectionRunService.findBy({
+      await SecurityEventConnectionRunService.findAllBy({
         query: {
           status: new Includes(ACTIVE_STATUSES),
           updatedAt: new LessThan(new Date(Date.now() - STALE_RUN_MS)),
         },
         select: { _id: true, createdAt: true, updatedAt: true },
-        limit: LIMIT_MAX,
-        skip: 0,
+        sort: { _id: SortOrder.Ascending },
         props: { isRoot: true },
       });
 
@@ -470,7 +470,7 @@ export default class SecurityEventConnectionRunExecutor {
     }
 
     const connections: Array<SecurityEventConnection> =
-      await SecurityEventConnectionService.findBy({
+      await SecurityEventConnectionService.findAllBy({
         query: { isEnabled: true },
         select: {
           _id: true,
@@ -478,8 +478,7 @@ export default class SecurityEventConnectionRunExecutor {
           pollIntervalInMinutes: true,
           lastPolledAt: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
+        sort: { _id: SortOrder.Ascending },
         props: { isRoot: true },
       });
 
