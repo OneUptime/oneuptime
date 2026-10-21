@@ -20,7 +20,7 @@ Code ist der Ort, an dem Sie OneUptime AI bitten, in Ihren Repositorys zu arbeit
 :::steps
 ### Code öffnen
 
-Öffnen Sie **Produkte → Code**. Code öffnet sich mit **Was soll die KI tun?**: dem Feld, in dem Sie fragen, mit allen Aufgaben darunter, die neueste zuerst. Gibt es noch kein Repository, bietet Code stattdessen **GitHub verbinden** an (siehe [Bevor Sie beginnen](#bevor-sie-beginnen)). **Repositorys** im Seitenmenü listet die verbundenen Repositorys auf, und die Seite jedes Repositorys hat dasselbe Feld für dieses Repository.
+Öffnen Sie **Produkte → Code**. Code öffnet sich mit **Was soll die KI tun?**: dem Feld, in dem Sie fragen, mit allen Aufgaben darunter, die neueste zuerst. Gibt es noch kein Repository, bietet Code stattdessen **GitHub verbinden** an (siehe [Bevor Sie beginnen](#bevor-sie-beginnen)). **Repositorys** im Seitenmenü listet die Repositorys auf, in denen die KI arbeiten kann, und fasst die, die die GitHub App nicht mehr erreicht, unter **Nicht verbunden** zusammen. Die Seite jedes Repositorys hat dasselbe Feld für dieses Repository.
 
 ### Repository und Branch auswählen
 
@@ -89,7 +89,7 @@ flowchart TB
 3. Der Runner holt den Kontext der Aufgabe. Bei einer Anfrage sind das ihre Worte, der hinzugefügte Kontext und die bisherige Unterhaltung; bei einer Ausnahme ihr Typ, ihre Meldung und ihr Stack-Trace.
 4. Er klont das Repository in einen eigenen Arbeitsbereich und legt einen Branch an. Eine Korrektur einer Ausnahme heißt `oneuptime-fix-exception-`, gefolgt von den ersten Zeichen der ID des Laufs. Eine Anfrage geht von dem Branch aus, der beim Fragen ausgewählt wurde, und ihr Pull Request öffnet sich in ihn. Eine Antwort arbeitet stattdessen im Branch des offenen Pull Requests der Aufgabe.
 5. Ein Code-Agent, angetrieben vom LLM-Anbieter Ihres Projekts, liest den Code und schreibt die Änderung. Der OneUptime-Server führt die LLM-Aufrufe aus, sodass der Runner den API-Schlüssel Ihres Anbieters nie besitzt, und jeder Aufruf wird gemessen und in den KI-Protokollen aufgeführt. Eine Korrektur einer Ausnahme, eines langsamen Traces oder eines Vorfalls liest während der Arbeit auch Daten aus der Produktion: die Ausnahmen, Traces, Logs und Metriken der Dienste des Repositorys (siehe [Produktionstelemetrie in einer Korrektur](#produktionstelemetrie-in-einer-korrektur)).
-6. Hat das Repository Prüfbefehle, baut und testet ein eigener Runner die Änderung, bevor er etwas committet, und gibt einen Fehler zur Reparatur an den Code-Agenten zurück (siehe [Prüfung vor dem Pull Request](#prüfung-vor-dem-pull-request)).
+6. Auf einem eigenen Runner baut und testet der Code-Agent seine Änderung so, wie es die `AGENTS.md` des Repositorys beschreibt, bevor etwas committet wird, und repariert, was fehlschlägt (siehe [Prüfung vor dem Pull Request](#prüfung-vor-dem-pull-request)).
 7. Der Runner committet, pusht den Branch, öffnet den Pull Request (bei einer Anfrage nur, wenn sie Code geändert hat) und löscht den Arbeitsbereich.
 
 Die Seite, auf der die Aufgabe gestartet wurde, zeigt ihren Live-Status. Jede Aufgabe steht in ihrem Repository unter **Produkte → Code**: Ihre Seite ist ihre Unterhaltung, und das **Protokoll** jedes Durchgangs hat eine Zeile für jede Datei, die der Runner gelesen oder geschrieben hat, und jeden Befehl, den er ausgeführt hat.
@@ -148,15 +148,18 @@ Wenn kein Dienst zum Repository gehört, läuft die Aufgabe wie bisher ohne Prod
 
 ## Prüfung vor dem Pull Request
 
-Ein Repository kann auf seiner Seite **Einstellungen** in Code bis zu drei Prüfbefehle haben:
+Ein Repository beschreibt in einer `AGENTS.md` in seinem Stammverzeichnis, der Datei, die Coding-Agenten lesen, wie es gebaut und getestet wird. Bevor der Code-Agent etwas ändert, liest er die `AGENTS.md` des Repositorys (oder seine `CLAUDE.md`, wenn es keine `AGENTS.md` hat) aus dem Branch, von dem die Aufgabe ausgeht, und arbeitet so, wie sie es beschreibt. Ohne beide erfährt er es aus der `CONTRIBUTING.md` des Repositorys, der README, den Paketskripten, dem `Makefile` oder den CI-Workflows. In OneUptime ist nichts einzurichten.
 
-| Befehl | Beispiel | Wann er läuft |
-| --- | --- | --- |
-| **Einrichtungsbefehl** | `npm ci` | Zuerst, um Abhängigkeiten zu installieren. |
-| **Build-Befehl** | `npm run build` | Nach der Einrichtung. |
-| **Testbefehl** | `npm test` | Zuletzt. |
+| Wo die KI arbeitet | Was sie mit Build und Tests des Repositorys macht |
+| --- | --- |
+| Einer Ihrer Runner | Baut und testet ihre Änderung, bevor der Pull Request geöffnet wird, behebt, was fehlschlägt, prüft erneut und nennt in ihrer Zusammenfassung die Prüfungen, die sie ausgeführt hat. Jeder Befehl, den sie ausführt, bekommt bis zu 2 Minuten, ohne die eigenen Zugangsdaten des Runners in seiner Umgebung. |
+| **Globaler Runner** | Führt keinen Befehl aus: Die KI schreibt die Änderung und öffnet den Pull Request, und das eigene CI Ihres Repositorys prüft sie. |
 
-Ist einer davon gesetzt, prüft jeder Korrekturlauf seine Änderung, bevor der Pull Request geöffnet wird:
+Nichts aus einem Pull Request, der aus einem Fork kommt, wird je als Anleitung des Repositorys gelesen: Eine Überarbeitung lehnt einen solchen Pull Request ab, und ein Review liest den Basis-Branch.
+
+### Auf einem Repository gesetzte Befehle
+
+Code fragt nicht mehr nach Einrichtungs-, Build- und Testbefehlen, aber ein Repository, das sie hat, früher oder über die API oder Terraform gesetzt, behält sie. Sie stehen schreibgeschützt auf der Karte **Build- und Testbefehle** unter **Weitere Einstellungen** auf der Seite **Einstellungen** des Repositorys, und **Befehle entfernen** entfernt alle drei. Solange einer davon gesetzt ist, prüft jeder Korrekturlauf auf einem eigenen Runner seine Änderung auch damit, bevor der Pull Request geöffnet wird:
 
 1. Wenn der Code-Agent fertig ist, laufen die Befehle der Reihe nach im Stammverzeichnis des Repositorys, auf dem Runner, im geklonten Arbeitsbereich. Jeder bekommt bis zu 15 Minuten und läuft mit `CI=true`, sodass nichts auf eine Eingabe wartet; der erste Fehler beendet den Durchlauf.
 2. Bei einem Fehler geht das Ende der Ausgabe des fehlgeschlagenen Befehls als Reparaturaufgabe an denselben Code-Agenten zurück, mit der Anweisung, seine eigene Änderung zu korrigieren, statt Tests abzuschwächen oder zu überspringen, und die Befehle laufen erneut. Er unternimmt höchstens **2** Reparaturversuche. Sie teilen sich das LLM-Budget des Laufs, und ihre Änderungen landen im selben Commit wie die Korrektur.
@@ -205,12 +208,12 @@ Sie ordnen Repositories keinen Diensten zu. Wenn eine Aufgabe startet, findet On
 
 ### Den Runner des Repositorys auswählen
 
-Jedes Repository wählt den Runner aus, auf dem die KI darin arbeitet: Klicken Sie auf seiner Seite **Einstellungen** in Code auf **Einstellungen bearbeiten** und wählen Sie im Schritt **Runner** einen aus. Ein Repository, das keinen auswählt, arbeitet auf **Globaler Runner**, den OneUptime für jedes Projekt betreibt.
+Jedes Repository wählt den Runner aus, auf dem die KI darin arbeitet: Klicken Sie auf seiner Seite **Einstellungen** in Code auf der Karte **Runner** auf **Bearbeiten** und wählen Sie einen aus. Ein Repository, das die GitHub App importiert, startet auf dem [Standard-Runner](/docs/runbooks/agents#der-standard-runner-des-projekts) des Projekts, wenn es einen hat. Ein Repository, das keinen auswählt, arbeitet auf **Globaler Runner**, den OneUptime für jedes Projekt betreibt.
 
 | Runner | Was er mit einer Aufgabe macht |
 | --- | --- |
-| **Globaler Runner** | Schreibt die Änderung und öffnet den Pull Request, ohne Ihre Einrichtungs-, Build- und Testbefehle: Das eigene CI Ihres Repositorys prüft die Änderung. |
-| Einer Ihrer Runner | Führt außerdem Ihre Einrichtungs-, Build- und Testbefehle aus, auf einem Host, den Sie kontrollieren. |
+| **Globaler Runner** | Schreibt die Änderung und öffnet den Pull Request, ohne sie zu bauen oder zu testen: Das eigene CI Ihres Repositorys prüft die Änderung. |
+| Einer Ihrer Runner | Baut und testet die Änderung außerdem so, wie es die `AGENTS.md` des Repositorys beschreibt, auf einem Host, den Sie kontrollieren. |
 
 Nur der Runner, den ein Repository auswählt, erhält dessen Aufgaben und ein Token dafür. In einem Projekt, das **Globale Runner nutzen** unter **Runbooks → Runbook-Agents** ausschaltet, braucht jedes Repository einen der eigenen Runner des Projekts. Die Seite eines Runners listet die Repositorys auf, die ihn auswählen.
 
@@ -233,7 +236,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Ihn für das Repository auswählen
 
-Klicken Sie auf der Seite **Einstellungen** des Repositorys in Code auf **Einstellungen bearbeiten** und wählen Sie im Schritt **Runner** den Runner aus. Der Runner übernimmt die Änderung mit seinem nächsten Heartbeat, innerhalb etwa einer Minute; es muss nichts neu gestartet werden.
+Klicken Sie auf der Seite **Einstellungen** des Repositorys in Code auf der Karte **Runner** auf **Bearbeiten** und wählen Sie den Runner aus. Der Runner übernimmt die Änderung mit seinem nächsten Heartbeat, innerhalb etwa einer Minute; es muss nichts neu gestartet werden.
 
 ### Prüfen, dass er sich verbindet
 

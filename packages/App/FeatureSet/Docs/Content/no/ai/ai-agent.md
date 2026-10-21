@@ -20,7 +20,7 @@ Kode er der du ber OneUptime AI om å jobbe i repositoriene dine, slik du ville 
 :::steps
 ### Åpne Kode
 
-Åpne **Produkter → Kode**. Kode åpner på **Hva skal AI gjøre?**: feltet der du spør, med alle oppgavene under, de nyeste først. Finnes det ikke noe repositorium ennå, tilbyr Kode i stedet **Koble til GitHub** (se [Før du begynner](#før-du-begynner)). **Repositorier** i sidemenyen viser de tilkoblede repositoriene, og siden til hvert repositorium har det samme feltet for det repositoriet.
+Åpne **Produkter → Kode**. Kode åpner på **Hva skal AI gjøre?**: feltet der du spør, med alle oppgavene under, de nyeste først. Finnes det ikke noe repositorium ennå, tilbyr Kode i stedet **Koble til GitHub** (se [Før du begynner](#før-du-begynner)). **Repositorier** i sidemenyen viser repositoriene AI kan jobbe i, og samler dem GitHub App ikke lenger når, under **Ikke tilkoblet**. Siden til hvert repositorium har det samme feltet for det repositoriet.
 
 ### Velg repositoriet og branchen
 
@@ -89,7 +89,7 @@ flowchart TB
 3. Runneren henter oppgavens kontekst. For en forespørsel er det ordene, konteksten som ble lagt til, og samtalen så langt; for et unntak typen, meldingen og stack tracen.
 4. Den kloner repositoriet til et eget arbeidsområde og lager en branch. En retting av et unntak heter `oneuptime-fix-exception-` etterfulgt av de første tegnene i kjøringens id. En forespørsel starter fra branchen som ble valgt da den ble stilt, og pull requesten åpnes mot den. Et svar jobber i stedet på branchen til oppgavens åpne pull request.
 5. En kodeagent, drevet av prosjektets LLM-leverandør, leser koden og skriver endringen. OneUptime-serveren gjør LLM-kallene, slik at Runneren aldri har leverandørens API-nøkkel, og hvert kall måles og vises i AI-loggene. En retting av et unntak, et tregt spor eller en hendelse leser også fra produksjonen mens den jobber: unntakene, sporene, loggene og målingene til repositoriets tjenester (se [Produksjonstelemetri i en retting](#produksjonstelemetri-i-en-retting)).
-6. Har repositoriet kontrollkommandoer, bygger og tester din egen Runner endringen før den committer noe, og gir en feil tilbake til kodeagenten for å reparere den (se [Kontroll før pull requesten](#kontroll-før-pull-requesten)).
+6. På din egen Runner bygger og tester kodeagenten endringen sin slik repositoriets `AGENTS.md` sier, før noe committes, og reparerer det som feiler (se [Kontroll før pull requesten](#kontroll-før-pull-requesten)).
 7. Runneren committer, pusher branchen, åpner pull requesten (for en forespørsel bare når den endret kode) og sletter arbeidsområdet.
 
 Siden oppgaven ble startet fra, viser statusen live. Hver oppgave står i repositoriet sitt under **Produkter → Kode**: siden er samtalen, og **Logg** for hver tur har en linje for hver fil Runneren leste eller skrev og hver kommando den kjørte.
@@ -148,15 +148,18 @@ Når ingen tjeneste kan knyttes til repositoriet, kjører oppgaven uten produksj
 
 ## Kontroll før pull requesten
 
-Et repositorium kan ha opptil tre kontrollkommandoer på siden **Innstillinger** i Kode:
+Et repositorium sier hvordan det bygges og testes, i en `AGENTS.md` i roten, filen kodeagenter leser. Før kodeagenten endrer noe, leser den repositoriets `AGENTS.md` (eller dets `CLAUDE.md`, når det ikke har noen `AGENTS.md`) fra branchen oppgaven starter fra, og jobber slik den sier. Uten noen av dem finner den ut av det fra repositoriets `CONTRIBUTING.md`, README, pakkeskript, `Makefile` eller CI-arbeidsflyter. Det er ingenting å sette opp i OneUptime.
 
-| Kommando | Eksempel | Når den kjører |
-| --- | --- | --- |
-| **Setup Command** | `npm ci` | Først, for å installere avhengigheter. |
-| **Build Command** | `npm run build` | Etter oppsettet. |
-| **Test Command** | `npm test` | Til slutt. |
+| Hvor AI jobber | Hva den gjør med repositoriets bygg og tester |
+| --- | --- |
+| En av dine Runnere | Bygger og tester endringen sin før pull requesten åpnes, retter det som feiler og sjekker igjen, og sier i sammendraget hvilke sjekker den kjørte. Hver kommando den kjører, får opptil 2 minutter, uten Runnerens egne påloggingsopplysninger i miljøet. |
+| **Global Runner** | Kjører ingen kommando: den skriver endringen og åpner pull requesten, og repositoriets egen CI sjekker den. |
 
-Når en av dem er satt, kontrollerer hver rettingskjøring endringen sin før pull requesten åpnes:
+Ingenting fra en pull request som kommer fra en fork, leses noen gang som repositoriets instruksjoner: en revisjon avviser en slik pull request, og en gjennomgang leser basisbranchen.
+
+### Kommandoer satt på et repositorium
+
+Kode ber ikke lenger om oppsett-, bygge- og testkommandoer, men et repositorium som har dem, satt tidligere eller gjennom API-et eller Terraform, beholder dem. De vises skrivebeskyttet på kortet **Bygg- og testkommandoer**, under **Flere innstillinger** på repositoriets side **Innstillinger**, og **Fjern kommandoer** fjerner alle tre. Så lenge en av dem er satt, kontrollerer hver rettingskjøring på din egen Runner også endringen sin med dem før pull requesten åpnes:
 
 1. Når kodeagenten er ferdig, kjører kommandoene i rekkefølge i roten av repositoriet, på Runneren, i det klonede arbeidsområdet. Hver får opptil 15 minutter og kjører med `CI=true`, slik at ingenting venter på inndata; den første feilen stopper gjennomkjøringen.
 2. Ved en feil går slutten av utdataene fra den feilende kommandoen tilbake til den samme kodeagenten som en reparasjonsoppgave, med beskjed om å rette sin egen endring i stedet for å svekke eller hoppe over tester, og kommandoene kjører på nytt. Den gjør høyst **2** reparasjonsforsøk. De deler kjøringens LLM-budsjett, og endringene havner i samme commit som rettingen.
@@ -205,12 +208,12 @@ Du knytter ikke repositorier til tjenester. Når en oppgave starter, finner OneU
 
 ### Velg repositoriets Runner
 
-Hvert repositorium velger Runneren AI jobber i det på: klikk **Rediger innstillinger** på siden **Innstillinger** i Kode, og velg en i steget **Runner**. Et repositorium som ikke velger noen, jobber på **Global Runner**, som OneUptime kjører for alle prosjekter.
+Hvert repositorium velger Runneren AI jobber i det på: klikk **Rediger** på kortet **Runner** på siden **Innstillinger** i Kode, og velg en. Et repositorium som GitHub App importerer, starter på prosjektets [standard-Runner](/docs/runbooks/agents#prosjektets-standard-runner) når prosjektet har en. Et repositorium som ikke velger noen, jobber på **Global Runner**, som OneUptime kjører for alle prosjekter.
 
 | Runner | Hva den gjør med en oppgave |
 | --- | --- |
-| **Global Runner** | Skriver endringen og åpner pull requesten, uten oppsett-, bygg- og testkommandoene dine: repositoriets egen CI sjekker endringen. |
-| En av dine Runnere | Kjører også oppsett-, bygg- og testkommandoene dine, på en vert du kontrollerer. |
+| **Global Runner** | Skriver endringen og åpner pull requesten uten å bygge eller teste den: repositoriets egen CI sjekker endringen. |
+| En av dine Runnere | Bygger og tester også endringen slik repositoriets `AGENTS.md` sier, på en vert du kontrollerer. |
 
 Bare Runneren et repositorium velger, får oppgavene og et token for det. I et prosjekt som slår av **Bruk globale Runnere** under **Runbooks → Runbook-agenter**, trenger hvert repositorium en av prosjektets egne Runnere. Siden til en Runner viser repositoriene som velger den.
 
@@ -233,7 +236,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Velg den for repositoriet
 
-Klikk **Rediger innstillinger** på repositoriets side **Innstillinger** i Kode, og velg Runneren i steget **Runner**. Runneren fanger opp endringen ved neste heartbeat, innen omtrent ett minutt; det er ingenting å starte på nytt.
+Klikk **Rediger** på kortet **Runner** på repositoriets side **Innstillinger** i Kode, og velg Runneren. Runneren fanger opp endringen ved neste heartbeat, innen omtrent ett minutt; det er ingenting å starte på nytt.
 
 ### Kontroller at den kobler til
 

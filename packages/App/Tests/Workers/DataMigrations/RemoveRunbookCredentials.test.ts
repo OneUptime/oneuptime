@@ -112,7 +112,7 @@ describe("RemoveRunbookCredentials", () => {
 
     test("the schema migration that drops the cluster's credential column is registered: data migrations run after it", () => {
       expect(fs.readFileSync(SCHEMA_MIGRATIONS_INDEX, "utf8")).toContain(
-        "RemoveRunbookCredentials1805750000000,",
+        "RemoveRunbookCredentials1805780000000,",
       );
     });
 

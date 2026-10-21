@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { RemoveRunbookCredentials1805750000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805750000000-RemoveRunbookCredentials";
+import { RemoveRunbookCredentials1805780000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805780000000-RemoveRunbookCredentials";
 import ApiKeyPermission from "../../../../Models/DatabaseModels/ApiKeyPermission";
 import CustomRolePermission from "../../../../Models/DatabaseModels/CustomRolePermission";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -28,7 +28,7 @@ import Permission from "../../../../Types/Permission";
  * check finds nothing left to generate once this one has run.)
  */
 
-const MIGRATION_TIMESTAMP: string = "1805750000000";
+const MIGRATION_TIMESTAMP: string = "1805780000000";
 const MIGRATION_BASE_NAME: string = "RemoveRunbookCredentials";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 
@@ -62,7 +62,7 @@ async function statementsOf(
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new RemoveRunbookCredentials1805750000000();
+    new RemoveRunbookCredentials1805780000000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -73,7 +73,7 @@ async function statementsOf(
   return statements;
 }
 
-describe("RemoveRunbookCredentials1805750000000", () => {
+describe("RemoveRunbookCredentials1805780000000", () => {
   test("drops the cluster's credential column with its foreign key, then the four permissions from every table that grants them", async () => {
     expect(await statementsOf("up")).toEqual([
       {
@@ -198,7 +198,7 @@ describe("RemoveRunbookCredentials1805750000000", () => {
     });
 
     expect(registered).toContain(MIGRATION_CLASS_NAME);
-    expect(new RemoveRunbookCredentials1805750000000().name).toBe(
+    expect(new RemoveRunbookCredentials1805780000000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
     expect(
@@ -209,15 +209,17 @@ describe("RemoveRunbookCredentials1805750000000", () => {
         ),
       ),
     ).toBe(true);
-    // Renumbered past master's migrations: the old name is no file.
-    expect(
-      fs.existsSync(
-        path.join(
-          MIGRATION_DIRECTORY,
-          `1805650000000-${MIGRATION_BASE_NAME}.ts`,
+    // Renumbered past master's migrations, twice: the old names are no file.
+    for (const renumberedFrom of ["1805650000000", "1805750000000"]) {
+      expect(
+        fs.existsSync(
+          path.join(
+            MIGRATION_DIRECTORY,
+            `${renumberedFrom}-${MIGRATION_BASE_NAME}.ts`,
+          ),
         ),
-      ),
-    ).toBe(false);
+      ).toBe(false);
+    }
 
     const timestamps: Array<number> = registered.map((name: string): number => {
       const match: RegExpMatchArray | null = name.match(TIMESTAMP_OF_NAME);

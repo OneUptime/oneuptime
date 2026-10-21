@@ -118,11 +118,11 @@ Den ignorerer også alle kommentarer skrevet af en bot, sine egne inklusive, og 
 
 ## Hvad det koster, og hvordan du begrænser det
 
-Hver kommando, der starter arbejde, er en fuld agentkørsel: en klon, op til 40 LLM-kald og 100.000 output-tokens samt dit repositories build- og testkommandoer, når du har sat dem. En gennemgangs forespørgsler til produktionen, højst 12, tæller med i de samme 40 kald.
+Hver kommando, der starter arbejde, er en fuld agentkørsel: en klon, op til 40 LLM-kald og 100.000 output-tokens samt, på din egen Runner, de build- og testtjek, som dit repositories `AGENTS.md` beskriver. En gennemgangs forespørgsler til produktionen, højst 12, tæller med i de samme 40 kald.
 
 GitHub-kommandoer er AI-arbejde uden for hændelser og advarsler, så ingen daglig grænse for rettelsesopgaver gælder for dem; projektets egne daglige AI-grænser gør, når projektet sætter dem. Den eneste anden grænse er den, der allerede gælder for opgaverne i [Kode](/docs/ai/ai-agent):
 
-- **Loftet over åbne pull requests** (**Max Open Fix Pull Requests** på repositoriets side **Indstillinger**). **AI-rettelses-pull requests** står på **Ingen grænse**, indtil du vælger **En grænse**, eller **Ingen**, som blokerer AI-rettelses-pull-requests i det repositorie. Gennemgange og revisioner er undtaget: ingen af dem føjer en pull request til din gennemgangskø.
+- **Loftet over åbne pull requests** (**Max Open Fix Pull Requests** under **Yderligere indstillinger** på repositoriets side **Indstillinger**). **AI-rettelses-pull requests** står på **Ingen grænse**, indtil du vælger **En grænse**, eller **Ingen**, som blokerer AI-rettelses-pull-requests i det repositorie. Gennemgange og revisioner er undtaget: ingen af dem føjer en pull request til din gennemgangskø.
 
 Kun én kørsel af en slags er aktiv pr. issue eller pull request ad gangen. Spørger du to gange, får du at vide, at den allerede arbejder; beder du om en gennemgang, mens en revision kører, starter begge, da det er forskellige anmodninger.
 
@@ -130,9 +130,9 @@ Hvis en kørsel ikke kan starte, siger appen hvorfor i tråden: den fejler aldri
 
 ## Slå den fra
 
-Hvert repositorie har en kontakt: **Respond to GitHub Commands** på repositoriets side **Indstillinger**. Når den er slået fra, ignorerer appen omtaler, tildelinger og udløseretiketten i det repositorie og fortæller alle, der spørger, hvor kontakten er.
+Hvert repositorie har en kontakt: **Respond to GitHub Commands** på repositoriets side **Indstillinger**. Den er slået til for alle repositorier og gemmes, i det øjeblik du slår den om. Når den er slået fra, ignorerer appen omtaler, tildelinger og udløseretiketten i det repositorie og fortæller alle, der spørger, hvor kontakten er.
 
-Den samme side har **GitHub Trigger Label**, hvis du vil have en anden etiket end `oneuptime`.
+Den samme side har **GitHub Trigger Label** under **Yderligere indstillinger**, hvis du vil have en anden etiket end `oneuptime`.
 
 ## Hvad der skal abonneres på
 

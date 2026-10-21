@@ -54,7 +54,7 @@ const REMOVED_PERMISSIONS: ReadonlyArray<string> = [
 
 // The one product file that names them: the migration that deletes their rows.
 const REMOVED_PERMISSIONS_MIGRATION: string =
-  "packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/1805750000000-RemoveRunbookCredentials.ts";
+  "packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/1805780000000-RemoveRunbookCredentials.ts";
 
 // The one product file that names the page's address: where it forwards.
 const MOVED_PAGE_PATHS: string =

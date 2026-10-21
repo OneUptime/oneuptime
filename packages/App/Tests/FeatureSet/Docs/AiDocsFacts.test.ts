@@ -810,26 +810,93 @@ describe("Code", () => {
     );
   });
 
-  it("gives the verification commands the repository Settings page's titles and placeholders", () => {
-    const settings: string = flat(
-      dashboardSource("Pages/Code/Repository/Settings.tsx"),
+  it("says the code agent reads the repository's AGENTS.md, else its CLAUDE.md, and where it looks without either, as the Runner's prompt does", () => {
+    const instructions: string = flat(
+      readRepoFile("Runner/Utils/RepositoryInstructions.ts"),
     );
-    const commands: Array<Array<string>> = tableWithHeader(
+    const section: string = flat(
       englishSection(CODE_PAGE, "## Verification before the pull request"),
-      "Command",
     );
 
-    for (const [title, placeholder] of [
-      ["Setup Command", "npm ci"],
-      ["Build Command", "npm run build"],
-      ["Test Command", "npm test"],
-    ] as Array<[string, string]>) {
-      expect(settings).toContain(`title: "${title}",`);
-      expect(settings).toContain(`placeholder: "${placeholder}",`);
-      expect(rowStartingWith(commands, bold(title))[1]).toBe(
-        `\`${placeholder}\``,
-      );
+    expect(instructions).toContain(
+      'export const REPOSITORY_INSTRUCTION_FILES: ReadonlyArray<string> = [ "AGENTS.md", "CLAUDE.md", ];',
+    );
+    expect(section).toContain(
+      "Before the code agent changes anything, it reads the repository's `AGENTS.md` (or its `CLAUDE.md`, when it has no `AGENTS.md`) from the branch the task starts from, and works the way it says.",
+    );
+
+    // Where the prompt sends the agent when the repository has neither.
+    for (const place of [
+      "CONTRIBUTING.md",
+      "the README",
+      "the package scripts (package.json)",
+      "a Makefile",
+      "the CI workflows under .github/workflows",
+    ]) {
+      expect(instructions).toContain(place);
     }
+
+    expect(section).toContain(
+      "With neither, it learns how from the repository's `CONTRIBUTING.md`, README, package scripts, `Makefile` or CI workflows. There is nothing to set up in OneUptime.",
+    );
+  });
+
+  it("has a Runner of the project's own build and test the change, 2 minutes a command and without its credentials, and Global Runner run no command", () => {
+    const agent: string = readRepoFile("Runner/CodeAgents/InHouseCodeAgent.ts");
+    const checks: Array<Array<string>> = tableWithHeader(
+      englishSection(CODE_PAGE, "## Verification before the pull request"),
+      "Where AI works",
+    );
+    const minutes: number =
+      numberConstant(agent, "RUN_COMMAND_TIMEOUT_MS") / 60000;
+
+    // Told to check its change only where it can run commands at all.
+    expect(flat(agent)).toContain(
+      "canRunCommands: RUNS_PROJECT_AUTHORED_COMMANDS,",
+    );
+
+    // A command the model composed runs without the Runner's own key.
+    expect(flat(agent)).toContain(
+      'for (const name of [ "ONEUPTIME_RUNNER_KEY", "ONEUPTIME_RUNNER_ID", "GIT_ASKPASS", "ONEUPTIME_GIT_ACCESS_TOKEN", ]) { delete environment[name]; }',
+    );
+
+    expect(rowStartingWith(checks, "One of your Runners")[1]).toContain(
+      `Each command it runs gets up to ${minutes} minutes, without the Runner's own credentials in its environment.`,
+    );
+    expect(rowStartingWith(checks, bold("Global Runner"))[1]).toBe(
+      "Runs no command: it writes the change and opens the pull request, and your repository's own CI checks it.",
+    );
+  });
+
+  it("names the commands an operator set as the repository's settings draw them: read-only under More settings, with Remove Commands", () => {
+    const copy: string = flat(
+      dashboardSource("Components/Code/CodeRepositorySettingsCopy.ts"),
+    );
+    const card: string = flat(
+      dashboardSource("Components/Code/CodeRepositoryCommandsCard.tsx"),
+    );
+    const section: string = flat(
+      englishSection(CODE_PAGE, "### Commands set on a repository"),
+    );
+
+    expect(copy).toContain(
+      'commandsCardTitle: translationKey("Build and Test Commands"),',
+    );
+    expect(copy).toContain(
+      'removeCommandsButton: translationKey("Remove Commands"),',
+    );
+
+    // The card shows them; nothing on the page asks for them any more.
+    for (const title of ["Setup Command", "Build Command", "Test Command"]) {
+      expect(card).toContain(`title: "${title}" }`);
+    }
+
+    expect(dashboardSource("Pages/Code/Repository/Settings.tsx")).not.toMatch(
+      /setupCommand: true,\s*\},\s*title:/,
+    );
+    expect(section).toContain(
+      `They show read-only on the ${bold("Build and Test Commands")} card, under ${bold("More settings")} on the repository's ${bold("Settings")} page, and ${bold("Remove Commands")} removes all three.`,
+    );
   });
 
   it("fails a run that stops reporting after 12 minutes, and a task no Runner takes after 30", () => {
@@ -926,11 +993,18 @@ describe("Code", () => {
     // A Runner has no switch for code fixes: a repository picks its Runner.
     expect(runner).not.toContain("canRunCodeFixTasks");
     expect(repository).toContain("public runnerId?: ObjectID = undefined;");
-    expect(settings).toContain('editButtonText="Edit Settings"');
-    expect(settings).toContain('{ title: "Runner", id: "runner" },');
+    // The Runner card, with its own Edit: no dialog of steps any more.
+    expect(settings).toContain(
+      'name="Repository > Runner" cardProps={{ title: CODE_REPOSITORY_SETTINGS_COPY.runnerCardTitle,',
+    );
+    expect(settings).toContain('editButtonText="Edit"');
+    expect(settings).not.toContain('editButtonText="Edit Settings"');
+    expect(
+      flat(dashboardSource("Components/Code/CodeRepositorySettingsCopy.ts")),
+    ).toContain('runnerCardTitle: translationKey("Runner"),');
     expect(field).toContain('fieldTitle: translationKey("Runner"),');
     expect(page).toContain(
-      `On the repository's ${bold("Settings")} page in Code, click ${bold("Edit Settings")} and pick the Runner on the ${bold("Runner")} step.`,
+      `On the repository's ${bold("Settings")} page in Code, click ${bold("Edit")} on the ${bold("Runner")} card and pick the Runner.`,
     );
 
     expect(values).toContain("runner:\n  enabled: true");
@@ -940,7 +1014,7 @@ describe("Code", () => {
     );
   });
 
-  it("says a repository that picks no Runner works on Global Runner, which skips its commands, as the picker offers it", () => {
+  it("says a repository that picks no Runner works on Global Runner, which does not build or test, as the picker offers it", () => {
     const picker: string = flat(
       dashboardSource("Components/Runner/RunnerPickerModel.ts"),
     );
@@ -952,7 +1026,7 @@ describe("Code", () => {
       'GLOBAL_RUNNER_CHOICE_LABEL: string = translationKey("Global Runner");',
     );
     expect(picker).toContain(
-      '"Run by OneUptime for every project. It skips your setup, build and test commands."',
+      `"Run by OneUptime for every project. It does not build or test AI's change before the pull request opens."`,
     );
     expect(section).toContain(
       `A repository that picks none works on ${bold("Global Runner")}, which OneUptime runs for every project.`,
@@ -974,7 +1048,20 @@ describe("Code", () => {
         ),
         bold("Global Runner"),
       )[1],
-    ).toContain("without your setup, build and test commands");
+    ).toContain("without building or testing it");
+  });
+
+  it("says a repository the GitHub App imports starts on the project's default Runner", () => {
+    const service: string = flat(
+      readRepoFile("Common/Server/Services/CodeRepositoryService.ts"),
+    );
+
+    expect(service).toContain(
+      "await GlobalRunnerChoice.findProjectDefaultRunnerId(",
+    );
+    expect(flat(englishPage(CODE_PAGE))).toContain(
+      "A repository the GitHub App imports starts on the project's [default Runner](/docs/runbooks/agents#the-projects-default-runner), when it has one.",
+    );
   });
 
   it("finds the repository the way the resolver does: the stack trace, then the name, then the only one", () => {
@@ -1159,18 +1246,47 @@ describe("GitHub App", () => {
     const settings: string = flat(
       dashboardSource("Pages/Code/Repository/Settings.tsx"),
     );
+    const copy: string = flat(
+      dashboardSource("Components/Code/CodeRepositorySettingsCopy.ts"),
+    );
     const page: string = flat(englishPage(GITHUB_APP));
+
+    expect(copy).toContain(
+      'gitHubCommandsSwitchTitle: translationKey("Respond to GitHub Commands"),',
+    );
+    expect(copy).toContain(
+      'triggerLabelCardTitle: translationKey("GitHub Trigger Label"),',
+    );
+    expect(settings).toContain('title: "Max Open Fix Pull Requests",');
 
     for (const title of [
       "Respond to GitHub Commands",
       "GitHub Trigger Label",
       "Max Open Fix Pull Requests",
     ]) {
-      expect(settings).toContain(`title: "${title}",`);
       expect(page).toContain(bold(title));
     }
 
-    expect(settings).toContain('placeholder: "oneuptime",');
+    // The switch is on until someone turns it off, and saves on its own.
+    expect(
+      flat(readRepoFile("Common/Models/DatabaseModels/CodeRepository.ts")),
+    ).toContain(
+      'type: TableColumnType.Boolean, isDefaultValueColumn: true, defaultValue: true, title: "Respond to GitHub Commands",',
+    );
+    expect(settings).toContain('column="isGitHubCommandsEnabled"');
+    expect(page).toContain(
+      `Each repository has a switch: ${bold("Respond to GitHub Commands")}, on the repository's ${bold("Settings")} page. It is on for every repository and saves the moment you flip it.`,
+    );
+
+    // What most never change is folded under More settings.
+    expect(page).toContain(
+      `The same page holds the ${bold("GitHub Trigger Label")}, under ${bold("More settings")}, if you want a label other than \`oneuptime\`.`,
+    );
+
+    expect(copy).toContain(
+      'DEFAULT_GITHUB_TRIGGER_LABEL: string = "oneuptime";',
+    );
+    expect(settings).toContain("placeholder: DEFAULT_GITHUB_TRIGGER_LABEL,");
     expect(page).toContain(
       "the repository's trigger label, `oneuptime` unless you changed it",
     );

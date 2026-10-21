@@ -78,6 +78,7 @@ import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRu
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
+import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -90,6 +91,7 @@ import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
+import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import {
   DETECTION_RULE_LIBRARY,
   getRecommendedDetectionRules,
@@ -1159,6 +1161,13 @@ insert(IncidentSeverity, { name: "SEV2", color: "#f97316", order: 2 });
 insert(Label, { name: "credential-access", color: "#6366f1" });
 insert(Workflow, { name: "Open a ticket in the IT queue" });
 
+/*
+ * The project's chat workspaces: Acme Commerce has connected Slack, so the
+ * side menu's Workspace section lists Slack and not Microsoft Teams
+ * (WorkspaceSideMenuSection.ts) - its rules post security cases there.
+ */
+insert(WorkspaceProjectAuthToken, { workspaceType: WorkspaceType.Slack });
+
 // Tables the pages may read even when they are empty.
 for (const modelType of [
   SecurityCase,
@@ -1171,6 +1180,7 @@ for (const modelType of [
   SecurityLogSource,
   DetectionRule,
   Team,
+  WorkspaceProjectAuthToken,
 ]) {
   table(modelType);
 }

@@ -118,11 +118,11 @@ It also ignores every comment written by a bot, its own included, and mentions i
 
 ## What it costs, and how to bound it
 
-Every command that starts work is a full agent run: a clone, up to 40 LLM calls and 100,000 output tokens, and your repository's build and test commands when you have set them. A review's production queries, at most 12, count against the same 40 calls.
+Every command that starts work is a full agent run: a clone, up to 40 LLM calls and 100,000 output tokens, and, on a Runner of your own, the build and test checks your repository's `AGENTS.md` describes. A review's production queries, at most 12, count against the same 40 calls.
 
 GitHub commands are AI work outside incidents and alerts, so no daily fix-task limit applies to them; the project's own daily AI limits do, when the project sets them. The one other limit is the one that already governs the tasks in [Code](/docs/ai/ai-agent):
 
-- **The cap on open pull requests** (**Max Open Fix Pull Requests**, on the repository's **Settings** page). **AI Fix Pull Requests** is **No limit** until you choose **A limit**, or **None**, which blocks AI fix pull requests on that repository. Reviews and revisions are exempt: neither adds a pull request to your review queue.
+- **The cap on open pull requests** (**Max Open Fix Pull Requests**, under **More settings** on the repository's **Settings** page). **AI Fix Pull Requests** is **No limit** until you choose **A limit**, or **None**, which blocks AI fix pull requests on that repository. Reviews and revisions are exempt: neither adds a pull request to your review queue.
 
 Only one run of a kind is live per issue or pull request at a time. Asking twice tells you it is already working; asking for a review while a revision runs starts both, since they are different requests.
 
@@ -130,9 +130,9 @@ If a run cannot start, the app says why in the thread: it never fails silently.
 
 ## Turning it off
 
-Each repository has a switch: **Respond to GitHub Commands**, on the repository's **Settings** page. With it off, the app ignores mentions, assignments and the trigger label in that repository, and tells anyone who asks where the switch is.
+Each repository has a switch: **Respond to GitHub Commands**, on the repository's **Settings** page. It is on for every repository and saves the moment you flip it. With it off, the app ignores mentions, assignments and the trigger label in that repository, and tells anyone who asks where the switch is.
 
-The same page holds the **GitHub Trigger Label**, if you want a label other than `oneuptime`.
+The same page holds the **GitHub Trigger Label**, under **More settings**, if you want a label other than `oneuptime`.
 
 ## What to subscribe to
 

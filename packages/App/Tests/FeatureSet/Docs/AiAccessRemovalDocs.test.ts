@@ -31,7 +31,7 @@ import {
   upgradingHeadings,
   upgradingPage,
 } from "./UpgradingDocsNotes";
-import { RemoveRunbookCredentials1805750000000 } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1805750000000-RemoveRunbookCredentials";
+import { RemoveRunbookCredentials1805780000000 } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1805780000000-RemoveRunbookCredentials";
 import { REMOVED_SSH_COMMAND_MESSAGE } from "Common/Types/AutoRemediation/AiRemediationCommandPlan";
 import Permission from "Common/Types/Permission";
 import { RUNNER_FEATURE_KUBECTL_SCRIPT } from "Common/Types/Runbook/RunnerFeatures";
@@ -603,9 +603,9 @@ describe("the upgrade guide's note on the removal", () => {
       },
     };
 
-    await new RemoveRunbookCredentials1805750000000().up(
+    await new RemoveRunbookCredentials1805780000000().up(
       queryRunner as unknown as Parameters<
-        RemoveRunbookCredentials1805750000000["up"]
+        RemoveRunbookCredentials1805780000000["up"]
       >[0],
     );
 
@@ -667,7 +667,7 @@ describe("the upgrade guide's note on the removal", () => {
     // The schema migration drops the cluster's column.
     expect(
       source(
-        "Common/Server/Infrastructure/Postgres/SchemaMigrations/1805750000000-RemoveRunbookCredentials.ts",
+        "Common/Server/Infrastructure/Postgres/SchemaMigrations/1805780000000-RemoveRunbookCredentials.ts",
       ),
     ).toContain(
       'ALTER TABLE "KubernetesCluster" DROP COLUMN "aiAccessCredentialId"',
