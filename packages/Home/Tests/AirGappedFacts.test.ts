@@ -63,8 +63,6 @@ const BUILD_IMAGES: string = "Scripts/GHA/build_docker_images.sh";
 
 // A quoted https:// address in source, and the suites the helm-test job runs.
 const QUOTED_HTTPS_ADDRESS: RegExp = /"(https:\/\/[^"\s]+)"/g;
-// One line's list: [^)\n] keeps every attempt on its own line, so linear.
-const ALL_SUITES_LINE: RegExp = /^ALL_SUITES=\(([^)\n]*)\)$/m;
 
 const fileCache: Map<string, string> = new Map<string, string>();
 
@@ -165,12 +163,17 @@ describe("the values the page shows are the values the chart is tested with", ()
     expectFileToSay(AIR_GAPPED_SUITE, `REGISTRY="${AIR_GAPPED_REGISTRY}"`);
     expectFileToSay(AIR_GAPPED_SUITE, 'PULL_SECRET="internal-registry"');
 
-    const allSuites: RegExpMatchArray | null = repoFile(
-      "HelmChart/Tests/run.sh",
-    ).match(ALL_SUITES_LINE);
+    // The suites the helm-test job runs: run.sh's ALL_SUITES=(...) line.
+    const allSuites: string | undefined = repoFile("HelmChart/Tests/run.sh")
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith("ALL_SUITES=(") && line.endsWith(")");
+      });
 
-    expect(allSuites).not.toBeNull();
-    expect(allSuites![1]!.split(" ")).toContain("air-gapped");
+    expect(allSuites).toBeDefined();
+    expect(allSuites!.slice("ALL_SUITES=(".length, -1).split(" ")).toContain(
+      "air-gapped",
+    );
     expectFileToSay("HelmChart/README.md", "| `air-gapped`");
   });
 
