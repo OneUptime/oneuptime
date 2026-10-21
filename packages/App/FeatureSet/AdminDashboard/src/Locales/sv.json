@@ -886,6 +886,7 @@
   "The port your provider gives you, usually 587. Port 465 is always encrypted.": "Porten som din leverantör anger, vanligtvis 587. Port 465 är alltid krypterad.",
   "Port 465 is always encrypted, but the certificate is not checked.": "Port 465 är alltid krypterad, men certifikatet kontrolleras inte.",
   "More fields": "Fler fält",
+  "(Optional)": "(Valfritt)",
   "More settings": "Fler inställningar",
   "{{count}} more": "{{count}} till",
   "{{count}} more_one": "{{count}} till",

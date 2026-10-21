@@ -886,6 +886,7 @@
   "The port your provider gives you, usually 587. Port 465 is always encrypted.": "제공업체가 알려 준 포트로, 보통 587입니다. 포트 465는 항상 암호화됩니다.",
   "Port 465 is always encrypted, but the certificate is not checked.": "포트 465는 항상 암호화되지만 인증서는 확인하지 않습니다.",
   "More fields": "추가 필드",
+  "(Optional)": "(선택 사항)",
   "More settings": "추가 설정",
   "{{count}} more": "외 {{count}}개",
   "{{count}} more_one": "외 {{count}}개",

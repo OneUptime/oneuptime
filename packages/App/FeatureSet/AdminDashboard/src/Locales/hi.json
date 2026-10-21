@@ -886,6 +886,7 @@
   "The port your provider gives you, usually 587. Port 465 is always encrypted.": "आपके प्रदाता द्वारा दिया गया पोर्ट, आमतौर पर 587। पोर्ट 465 हमेशा एन्क्रिप्टेड होता है।",
   "Port 465 is always encrypted, but the certificate is not checked.": "पोर्ट 465 हमेशा एन्क्रिप्टेड होता है, लेकिन प्रमाणपत्र की जाँच नहीं होती।",
   "More fields": "और फ़ील्ड",
+  "(Optional)": "(वैकल्पिक)",
   "More settings": "और सेटिंग्स",
   "{{count}} more": "{{count}} और",
   "{{count}} more_one": "{{count}} और",

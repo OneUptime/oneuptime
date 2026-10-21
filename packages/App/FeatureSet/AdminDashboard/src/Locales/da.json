@@ -886,6 +886,7 @@
   "The port your provider gives you, usually 587. Port 465 is always encrypted.": "Den port, din udbyder giver dig, normalt 587. Port 465 er altid krypteret.",
   "Port 465 is always encrypted, but the certificate is not checked.": "Port 465 er altid krypteret, men certifikatet kontrolleres ikke.",
   "More fields": "Flere felter",
+  "(Optional)": "(Valgfrit)",
   "More settings": "Yderligere indstillinger",
   "{{count}} more": "{{count}} mere",
   "{{count}} more_one": "{{count}} mere",

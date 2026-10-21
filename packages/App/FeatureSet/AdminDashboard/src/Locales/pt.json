@@ -886,6 +886,7 @@
   "The port your provider gives you, usually 587. Port 465 is always encrypted.": "A porta informada pelo seu provedor, geralmente 587. A porta 465 é sempre criptografada.",
   "Port 465 is always encrypted, but the certificate is not checked.": "A porta 465 é sempre criptografada, mas o certificado não é verificado.",
   "More fields": "Mais campos",
+  "(Optional)": "(Opcional)",
   "More settings": "Mais configurações",
   "{{count}} more": "mais {{count}}",
   "{{count}} more_one": "mais {{count}}",

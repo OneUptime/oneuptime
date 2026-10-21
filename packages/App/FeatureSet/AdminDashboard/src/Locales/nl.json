@@ -886,6 +886,7 @@
   "The port your provider gives you, usually 587. Port 465 is always encrypted.": "De poort die uw provider u geeft, meestal 587. Poort 465 is altijd versleuteld.",
   "Port 465 is always encrypted, but the certificate is not checked.": "Poort 465 is altijd versleuteld, maar het certificaat wordt niet gecontroleerd.",
   "More fields": "Meer velden",
+  "(Optional)": "(Optioneel)",
   "More settings": "Meer instellingen",
   "{{count}} more": "nog {{count}}",
   "{{count}} more_one": "nog {{count}}",

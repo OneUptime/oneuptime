@@ -886,6 +886,7 @@
   "The port your provider gives you, usually 587. Port 465 is always encrypted.": "Порт, который указывает ваш провайдер, обычно 587. Порт 465 всегда зашифрован.",
   "Port 465 is always encrypted, but the certificate is not checked.": "Порт 465 всегда зашифрован, но сертификат не проверяется.",
   "More fields": "Дополнительные поля",
+  "(Optional)": "(Необязательно)",
   "More settings": "Дополнительные настройки",
   "{{count}} more": "ещё {{count}}",
   "{{count}} more_one": "ещё {{count}}",

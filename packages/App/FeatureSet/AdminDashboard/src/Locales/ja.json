@@ -886,6 +886,7 @@
   "The port your provider gives you, usually 587. Port 465 is always encrypted.": "プロバイダーから指定されたポート。通常は 587 です。ポート 465 は常に暗号化されます。",
   "Port 465 is always encrypted, but the certificate is not checked.": "ポート 465 は常に暗号化されますが、証明書は確認されません。",
   "More fields": "その他の項目",
+  "(Optional)": "（任意）",
   "More settings": "その他の設定",
   "{{count}} more": "他 {{count}} 件",
   "{{count}} more_one": "他 {{count}} 件",

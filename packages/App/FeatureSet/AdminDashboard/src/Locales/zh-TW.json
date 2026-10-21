@@ -886,6 +886,7 @@
   "The port your provider gives you, usually 587. Port 465 is always encrypted.": "供應商提供的連接埠，通常為 587。連接埠 465 一律加密。",
   "Port 465 is always encrypted, but the certificate is not checked.": "連接埠 465 一律加密，但不會檢查憑證。",
   "More fields": "更多欄位",
+  "(Optional)": "（選填）",
   "More settings": "更多設定",
   "{{count}} more": "另外 {{count}} 項",
   "{{count}} more_one": "另外 {{count}} 項",

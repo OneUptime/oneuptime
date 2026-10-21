@@ -257,6 +257,7 @@ function readLocale(locale: string): Locale {
 
 const ENGLISH: Locale = readLocale("en");
 const GERMAN: Locale = readLocale("de");
+const JAPANESE: Locale = readLocale("ja");
 
 // A page's nested entry ("pages.settings.callSms.editButton"), or a flat one.
 function text(locale: Locale, key: string): string {
@@ -612,6 +613,52 @@ describe("Settings > Call & SMS", () => {
         within(dialog).getByLabelText(SMS_NUMBERS, { exact: false }),
       ).toHaveAttribute("placeholder", PHONE_NUMBER_LIST_EXAMPLE);
       expect(PHONE_NUMBER_LIST_EXAMPLE).toBe("+14155550123, +447700900123");
+    });
+
+    /*
+     * In the reader's language, the "(Optional)" after each title too: the
+     * Admin Dashboard's locales had no entry for it, so these titles read
+     * "Twilio SMS 電話番号 (Optional)" - the one English word in the form.
+     * It is worded as the Dashboard's Japanese locale words it.
+     */
+    test("say they are optional, and when the SMS numbers are needed, in the reader's language", async () => {
+      await renderWithLocale(<CallSmsSettings />, "ja");
+
+      const dialog: HTMLElement = await openEditDialog(
+        text(JAPANESE, "pages.settings.callSms.editButton"),
+      );
+
+      await waitFor(
+        () => {
+          expect(
+            label(dialog, text(JAPANESE, "Twilio Account SID")),
+          ).toBeVisible();
+        },
+        { timeout: WAIT_FOR_TIMEOUT },
+      );
+      await settle();
+
+      fireEvent.click(advancedHeader(dialog, text(JAPANESE, "More fields")));
+
+      expect(text(JAPANESE, "(Optional)")).toBe("（任意）");
+
+      for (const title of [SMS_NUMBERS, SECONDARY]) {
+        const drawn: HTMLElement = label(dialog, text(JAPANESE, title));
+
+        expect(drawn).toBeVisible();
+        expect(drawn).toHaveTextContent(text(JAPANESE, "(Optional)"));
+        expect(drawn).not.toHaveTextContent("(Optional)");
+      }
+
+      // The help in Japanese: when the numbers are needed, no country named.
+      expect(within(dialog).getByText(text(JAPANESE, SMS_HELP))).toBeVisible();
+      expect(text(JAPANESE, SMS_HELP)).not.toContain("シンガポール");
+      // The example list is numbers, the same in every language.
+      expect(
+        within(dialog).getByLabelText(text(JAPANESE, SMS_NUMBERS), {
+          exact: false,
+        }),
+      ).toHaveAttribute("placeholder", PHONE_NUMBER_LIST_EXAMPLE);
     });
 
     test("a Singapore setup is saved: SMS from the mobile number, calls from the national one", async () => {

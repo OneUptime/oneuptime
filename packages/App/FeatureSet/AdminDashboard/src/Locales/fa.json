@@ -886,6 +886,7 @@
   "The port your provider gives you, usually 587. Port 465 is always encrypted.": "پورتی که ارائه‌دهنده‌تان اعلام می‌کند، معمولاً ۵۸۷. پورت ۴۶۵ همیشه رمزگذاری‌شده است.",
   "Port 465 is always encrypted, but the certificate is not checked.": "پورت ۴۶۵ همیشه رمزگذاری‌شده است، اما گواهی بررسی نمی‌شود.",
   "More fields": "فیلدهای بیشتر",
+  "(Optional)": "(اختیاری)",
   "More settings": "تنظیمات بیشتر",
   "{{count}} more": "{{count}} مورد دیگر",
   "{{count}} more_one": "{{count}} مورد دیگر",
