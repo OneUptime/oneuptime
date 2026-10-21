@@ -301,12 +301,34 @@ test.describe("a vCenter's Topology page", () => {
   }) => {
     await openTopology(page, "vmware");
     await byTestId(page, "resource-topology-search").fill("esx101.ams");
+    /*
+     * The host is the one match: its virtual machines, whose lines name it,
+     * are drawn inside it but not counted or marked one by one.
+     */
+    await expect(
+      byTestId(page, "resource-topology-search-result"),
+    ).toContainText("1 part matches your search.");
     // A matched host is opened, so what is inside it shows: its heading picks it.
     await byTestId(
       page,
       "resource-topology-select-vmware.host:host/Amsterdam/esx101.ams.acme.example",
     ).click();
     await expect(byTestId(page, "resource-topology-panel")).toBeVisible();
+
+    // The panel's buttons keep their distance from its header.
+    const header: { y: number; height: number } = await boxOf(
+      byTestId(page, "side-over-description"),
+    );
+    const firstAction: { y: number } = await boxOf(
+      byTestId(page, "resource-topology-panel-open"),
+    );
+    expect(firstAction.y - (header.y + header.height)).toBeGreaterThanOrEqual(
+      40,
+    );
+    // What is inside the host, counted under its kind.
+    await expect(
+      byTestId(page, "resource-topology-panel-inside").getByRole("term"),
+    ).toHaveText(["Virtual Machines"]);
 
     await byTestId(page, "resource-topology-panel-focus").click();
     await expect(byTestId(page, "resource-topology-focus")).toContainText(
@@ -427,6 +449,24 @@ test.describe("a Kubernetes cluster's Topology page", () => {
     await expect(
       byTestId(page, "resource-topology-card-k8s.namespace:payments"),
     ).toBeVisible();
+    /*
+     * Search, Needs attention, Group by and Map | List share one line at
+     * 1280: Map | List no longer drops alone under the others.
+     */
+    const filter: { y: number; height: number } = await boxOf(
+      byTestId(page, "resource-topology-filter"),
+    );
+    const display: { y: number; height: number } = await boxOf(
+      byTestId(page, "resource-topology-display-map"),
+    );
+    const search: { y: number; height: number } = await boxOf(
+      byTestId(page, "resource-topology-search"),
+    );
+
+    expect(Math.abs(display.y - filter.y)).toBeLessThan(filter.height);
+    expect(
+      Math.abs(search.y + search.height / 2 - (filter.y + filter.height / 2)),
+    ).toBeLessThan(filter.height);
     // The nodes sit beside the namespaces, small: here they hold nothing.
     await expect(
       startingWith(page, "resource-topology-chip-k8s.node:").first(),
@@ -468,6 +508,21 @@ test.describe("a Kubernetes cluster's Topology page", () => {
       "resource-topology-chip-k8s.pod:payments/",
     ).first();
     await expect(pod).toBeVisible();
+    /*
+     * The pods of one workload share their start: their names are cut in
+     * the middle, so each still reads differently on its chip.
+     */
+    const shownNames: Array<string> = await startingWith(
+      page,
+      "resource-topology-chip-k8s.pod:payments/payments-api",
+    ).evaluateAll((chips: Array<Element>): Array<string> => {
+      return chips.map((chip: Element): string => {
+        return chip.querySelector("span[title]")?.textContent || "";
+      });
+    });
+
+    expect(shownNames.length).toBeGreaterThanOrEqual(2);
+    expect(new Set<string>(shownNames).size).toBe(shownNames.length);
     await pod.click();
     await expect(byTestId(page, "resource-topology-panel")).toBeVisible();
     await expect(
@@ -657,6 +712,17 @@ test.describe("when there is nothing, or the read fails", () => {
     await expect(page.getByRole("alert")).toContainText(
       "The inventory could not be read",
     );
+    // The way forward sits centred under the message, as on every list.
+    const alert: { x: number; width: number } = await boxOf(
+      byTestId(page, "resource-topology-error"),
+    );
+    const retry: { x: number; width: number } = await boxOf(
+      byTestId(page, "resource-topology-retry"),
+    );
+
+    expect(
+      Math.abs(retry.x + retry.width / 2 - (alert.x + alert.width / 2)),
+    ).toBeLessThan(2);
     await page.getByRole("button", { name: "Try again" }).click();
     await expect(byTestId(page, "resource-topology")).toBeVisible();
   });

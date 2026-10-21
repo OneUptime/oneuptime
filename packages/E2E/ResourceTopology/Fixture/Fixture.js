@@ -558,7 +558,7 @@ ModelAPI.getList = async (options) => {
 
   if (INVENTORY_TABLES.has(modelName) && failuresLeft > 0) {
     failuresLeft--;
-    throw new Error("The inventory could not be read. Try again.");
+    throw new Error("The inventory could not be read.");
   }
 
   const data = rows(options.modelType, options.query);

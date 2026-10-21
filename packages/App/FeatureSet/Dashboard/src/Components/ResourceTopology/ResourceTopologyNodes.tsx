@@ -728,7 +728,13 @@ const PartSummary: FunctionComponent<{
         flex: 1,
       }}
     >
-      <IconTile kind={kind} size={props.iconSize} />
+      {/*
+       * A section only groups parts ("Called by", "Not on a node"): a
+       * heading, without the folder a namespace or a Compose project shows.
+       */}
+      {props.node.isSection ? null : (
+        <IconTile kind={kind} size={props.iconSize} />
+      )}
       <span style={{ minWidth: 0, flex: 1 }}>
         <span
           style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}
