@@ -663,9 +663,10 @@ export const Claims: Array<Claim> = [
     statement:
       "OneUptime runs with no outbound connectivity: mirror the images to your registry, disable the update check, and keep DNS internal.",
     qualifier:
-      "Features that call an external service by design — hosted AI models, third-party notification transports — need an internal equivalent or must stay off. The Enterprise Edition checks its license with oneuptime.com unless it is activated with an offline license token.",
-    evidence: "The Helm chart configuration reference.",
-    sourceUrl: "/enterprise/self-hosted",
+      "Features that call an external service by design — SMS, calls and push, Slack and Microsoft Teams, hosted AI models — need an internal equivalent or must stay off. Untick release emails when signing up, or the sign-up asks oneuptime.com to send them. The Enterprise Edition checks its license with oneuptime.com unless it is activated with an offline license token.",
+    evidence:
+      "The Helm chart configuration reference, and the chart's air-gapped test, which renders an install with every image from your registry, no update check and no public DNS.",
+    sourceUrl: "/enterprise/air-gapped",
   },
   {
     id: "deployment-enterprise-edition",

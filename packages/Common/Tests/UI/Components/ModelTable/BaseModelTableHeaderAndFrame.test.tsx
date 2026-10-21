@@ -92,6 +92,7 @@ import {
   ComponentProps as CardProps,
 } from "../../../../UI/Components/Card/Card";
 import FieldType from "../../../../UI/Components/Types/FieldType";
+import { TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME } from "../../../../UI/Components/Table/TableHeaderControls";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import ListResult from "../../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../../Types/JSON";
@@ -381,5 +382,38 @@ describe("a table's header controls on a phone", () => {
     // Out of the keyboard's way too, as of a screen reader's.
     expect(buttons).toHaveClass("invisible");
     expect(buttons).toHaveAttribute("aria-hidden", "true");
+  });
+
+  /*
+   * Tab goes from the opened search to its x. It showed the browser's own
+   * black ring there; it shows the focus as the header's buttons do.
+   */
+  test("the opened search's x shows the keyboard focus as the header's buttons do", async () => {
+    await renderWithSearch();
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Open search" }));
+    });
+
+    const slot: HTMLElement = screen.getByTestId("model-table-search-slot");
+
+    act(() => {
+      fireEvent.change(within(slot).getByRole("textbox"), {
+        target: { value: "checkout" },
+      });
+    });
+
+    const clear: HTMLElement = within(slot).getByRole("button", {
+      name: "Clear search",
+    });
+
+    expect(clear).toHaveClass(
+      ...TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME.split(" "),
+    );
+    expect(clear).toHaveClass(
+      "focus:outline-none",
+      "focus-visible:ring-2",
+      "focus-visible:ring-indigo-500",
+    );
   });
 });

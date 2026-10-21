@@ -974,11 +974,15 @@ export const openSessionReplayList: OpenSessionReplayListFunction =
       )
       .toString();
 
+    /*
+     * Ready once the list's header has drawn: its search, time range and
+     * ⋯, as every table's header has them.
+     */
     await gotoProjectPage({
       page: data.page,
       projectId: data.projectId,
       url: listUrl,
-      ready: data.page.getByTestId("session-search-input"),
+      ready: data.page.getByTestId("session-replay-header-toolbar"),
     });
   };
 
@@ -1056,12 +1060,14 @@ type SearchSessionReplayListFunction = (data: {
 
 /*
  * Types into the search box and presses Enter, which flushes the 300ms
- * debounce so the list re-queries at once.
+ * debounce so the list re-queries at once. The search is the header's
+ * "Search…  /" pill until it is used: the box opens as it takes the focus.
  */
 export const searchSessionReplayList: SearchSessionReplayListFunction =
   async (data: { page: Page; query: string }): Promise<void> => {
     const input: Locator = data.page.getByTestId("session-search-input");
 
+    await input.focus();
     await input.fill(data.query);
     await input.press("Enter");
   };
@@ -1071,14 +1077,19 @@ type SelectSessionReplaySortFunction = (data: {
   label: "Newest" | "Longest" | "Most errors" | "Most frustration";
 }) => Promise<void>;
 
-/* The sort control is a react-select; its input carries the aria-label. */
+/*
+ * The sort order is a ticked choice in the ⋯ at the end of the list's
+ * header, as every table keeps it.
+ */
 export const selectSessionReplaySort: SelectSessionReplaySortFunction =
   async (data: {
     page: Page;
     label: "Newest" | "Longest" | "Most errors" | "Most frustration";
   }): Promise<void> => {
-    await data.page.getByRole("combobox", { name: "Sort sessions" }).click();
-    await data.page.getByRole("option", { name: data.label }).click();
+    await data.page.getByTestId("session-replay-more").click();
+    await data.page
+      .getByRole("menuitemradio", { name: data.label, exact: true })
+      .click();
   };
 
 type ReadListedSessionIdsFunction = (page: Page) => Promise<Array<string>>;

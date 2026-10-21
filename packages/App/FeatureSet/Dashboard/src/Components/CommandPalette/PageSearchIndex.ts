@@ -2023,6 +2023,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         title: "Hosts",
         pages: [
           allListPage(PageMap.HOSTS, "All Hosts"),
+          {
+            page: PageMap.HOST_COLLECTOR_CONFIGS,
+            title: "Collector Configs",
+            icon: IconProp.Code,
+            keywords: [
+              "config.yaml",
+              "opentelemetry collector config",
+              "fleet config",
+              "opamp",
+            ],
+          },
           documentation(PageMap.HOST_DOCUMENTATION),
         ],
       },
@@ -2151,6 +2162,21 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       {
         title: "Cloud",
         pages: [
+          {
+            page: PageMap.CLOUD_CONNECT,
+            title: "Connect",
+            icon: IconProp.Link,
+            keywords: [
+              "connect aws",
+              "connect azure",
+              "connect google cloud",
+              "gcp",
+              "cloud account",
+              "cloudwatch",
+              "azure monitor",
+              "cloud monitoring",
+            ],
+          },
           allListPage(PageMap.CLOUD_RESOURCES, "All Environments"),
           {
             ...allListPage(PageMap.CLOUD_MONITORED_RESOURCES, "All Resources"),

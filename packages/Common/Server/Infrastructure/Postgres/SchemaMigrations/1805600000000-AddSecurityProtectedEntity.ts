@@ -10,10 +10,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * empty until somebody lists something, so its indexes and keys are built
  * with it.
  */
-export class AddSecurityProtectedEntity1805230000000
+export class AddSecurityProtectedEntity1805600000000
   implements MigrationInterface
 {
-  public name: string = "AddSecurityProtectedEntity1805230000000";
+  public name: string = "AddSecurityProtectedEntity1805600000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

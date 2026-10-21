@@ -44,7 +44,7 @@ Bruk vertsmonitoren når verten allerede sender OpenTelemetry-data, eller når d
 
 ## Før du begynner
 
-- **Kjør en OpenTelemetry Collector på verten** med mottakeren `hostmetrics`. [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector) dekker Linux, macOS og Windows, og **Produkter → Infrastruktur → Verter → Dokumentasjon** gir en ferdig konfigurasjon.
+- **Kjør en OpenTelemetry Collector på verten** med mottakeren `hostmetrics`. Den raskeste veien er [Verter](/docs/telemetry/hosts): Én kommando installerer innsamleren, og OneUptime konfigurerer den. [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector) dekker Linux, macOS og Windows, og **Produkter → Infrastruktur → Verter → Dokumentasjon** gir en ferdig konfigurasjon.
 - **Slå på utnyttelsesmetrikkene.** `system.cpu.utilization`, `system.memory.utilization` og `system.filesystem.utilization` er valgfrie i mottakeren, og malene for CPU, minne og filsystem trenger dem. Konfigurasjonen fra dashbordet slår dem på.
 - **Kontroller at verten er registrert.** Den vises under **Produkter → Infrastruktur → Verter → Alle verter**, oppkalt etter sitt `host.name`, så snart de første dataene kommer.
 

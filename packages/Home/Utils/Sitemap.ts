@@ -4,6 +4,7 @@ import BlogPostUtil, { BlogPostHeader } from "./BlogPost";
 import OneUptimeDate from "Common/Types/Date";
 import URL from "Common/Types/API/URL";
 import { getProductCompareSlugs } from "./ProductCompare";
+import { AIR_GAPPED_SHORT_PATHS } from "./AirGapped";
 import Express, {
   ExpressApplication,
   ExpressResponse,
@@ -82,6 +83,7 @@ const PAGE_CONFIG: Record<string, SitemapPageConfig> = {
   "/pricing": { priority: 0.9, changefreq: "weekly" },
   "/enterprise/demo": { priority: 0.9, changefreq: "weekly" },
   "/enterprise/self-hosted": { priority: 0.9, changefreq: "weekly" },
+  "/enterprise/air-gapped": { priority: 0.8, changefreq: "weekly" },
   "/enterprise/overview": { priority: 0.8, changefreq: "weekly" },
   "/trust": { priority: 0.8, changefreq: "weekly" },
   "/resellers": { priority: 0.6, changefreq: "monthly" },
@@ -108,6 +110,8 @@ export const REDIRECT_PATHS: Set<string> = new Set<string>([
   "/self-hosted",
   "/self-hosting",
   "/on-premise",
+  // The air-gapped page's short addresses: "/air-gapped", "/airgapped".
+  ...AIR_GAPPED_SHORT_PATHS,
   "/security",
   "/security-center",
   "/trust-center",

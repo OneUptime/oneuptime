@@ -50,6 +50,12 @@ export interface SetupGuideStep {
   markdown?: string | undefined;
   // When set, the step shows these as tabs, after `markdown`.
   variants?: Array<SetupGuideStepVariant> | undefined;
+  /*
+   * One line of inline markdown under the step's code, such as what to do
+   * before the command works: an English translation key, shown in the
+   * reader's language.
+   */
+  note?: string | undefined;
 }
 
 // A folded topic under Advanced or Troubleshooting.
@@ -76,10 +82,23 @@ export interface SetupGuideKeyStep {
   endpointLabel?: string | undefined;
   endpointValue?: string | undefined;
   endpointHint?: string | undefined;
+  /*
+   * Only the key picker: the guide's one command already carries the URL
+   * and the key (Add Host), so showing them again beside the picker only
+   * pushes the command down.
+   */
+  hideValues?: boolean | undefined;
 }
 
 export interface SetupGuideContent {
   keyStep?: SetupGuideKeyStep | undefined;
+  /*
+   * Every code block of the guide wraps a line too long for its box instead
+   * of scrolling it sideways: a one-line install command is read whole -
+   * its address and its key - before it is run, on a phone too. Copy still
+   * copies it exactly as written.
+   */
+  wrapLongLines?: boolean | undefined;
   // A short paragraph of markdown above the steps.
   intro?: string | undefined;
   // "Before you start" — one line of inline markdown each.
@@ -259,6 +278,9 @@ export function getSetupGuideMarkdown(content: SetupGuideContent): string {
     }
     for (const variant of step.variants || []) {
       lines.push("", `### ${variant.label}`, "", variant.markdown.trim());
+    }
+    if (step.note) {
+      lines.push("", step.note.trim());
     }
     parts.push(lines.join("\n"));
   });

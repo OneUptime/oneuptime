@@ -58,6 +58,11 @@ image:
   overrides: {}
   
   restartPolicy: Always
+# Pull secrets for every pod the chart defines: the OneUptime services, the
+# bundled PostgreSQL, ClickHouse and Valkey, the cleanup CronJobs and the
+# `helm test` hook - and the PostgreSQL cluster and ClickHouse installation
+# the database operators run. Set it when your images come from a registry
+# that asks for credentials, as an air-gapped install's do.
 # imagePullSecrets:
 #   - name: MyCustomSecretNameWithDockerCredentials
 
@@ -2729,6 +2734,22 @@ microsoftTeamsMeetingsApp:
   #   name: "microsoft-teams-meetings-app-secret"
   #   clientIdKey: clientId
   #   clientSecretKey: clientSecret
+
+# Cloud > Connect: this OneUptime's own AWS identity, which signs in to the
+# read-only IAM roles customers create for it - an IAM user's access key,
+# allowed to call sts:AssumeRole and nothing else. With it, an AWS account is
+# connected with a role (nothing secret is stored); without it, with a
+# read-only access key. Azure and Google Cloud need nothing here.
+# See https://oneuptime.com/docs/telemetry/cloud-accounts#amazon-web-services
+cloudConnect:
+  aws:
+    accessKeyId:
+    secretAccessKey:
+    # If you're using an existing secret for the configuration, please use this and update accordingly instead of the parameters above.
+    # existingSecret:
+    #   name: "cloud-connect-aws-secret"
+    #   accessKeyIdKey: accessKeyId
+    #   secretAccessKeyKey: secretAccessKey
 
 # GitHub Example Configuration
 #

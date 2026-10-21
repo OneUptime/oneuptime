@@ -518,6 +518,8 @@ export const HostRoutePath: Dictionary<string> = {
   [PageMap.HOST_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.HOST_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.HOST_ARCHIVED]: `archived`,
+  [PageMap.HOST_COLLECTOR_CONFIGS]: `collector-configs`,
+  [PageMap.HOST_COLLECTOR_CONFIG_VIEW]: `collector-configs/${RouteParams.ModelID}`,
 };
 
 export const ServerlessRoutePath: Dictionary<string> = {
@@ -553,6 +555,7 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.CLOUD_ARCHIVED]: `archived`,
   [PageMap.CLOUD_MONITORED_RESOURCES]: `resources`,
+  [PageMap.CLOUD_CONNECT]: `connect`,
 };
 
 export const DatabaseRoutePath: Dictionary<string> = {
@@ -5264,6 +5267,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.HOST_COLLECTOR_CONFIGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_COLLECTOR_CONFIGS]
+    }`,
+  ),
+
+  [PageMap.HOST_COLLECTOR_CONFIG_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_COLLECTOR_CONFIG_VIEW]
+    }`,
+  ),
+
   // Serverless Functions
   [PageMap.SERVERLESS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/serverless/*`,
@@ -5362,6 +5377,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_MONITORED_RESOURCES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_MONITORED_RESOURCES]
+    }`,
+  ),
+
+  [PageMap.CLOUD_CONNECT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_CONNECT]
     }`,
   ),
 

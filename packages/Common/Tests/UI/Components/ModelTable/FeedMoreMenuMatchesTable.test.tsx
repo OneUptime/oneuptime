@@ -291,14 +291,26 @@ describe("one component for every card header's ⋯", () => {
     return fs.readFileSync(path.join(COMPONENTS, relativePath), "utf8");
   };
 
+  /*
+   * Every table's header - a model table's and a table a page builds itself -
+   * draws its ⋯ through Table/TableHeaderControls, which draws it with
+   * CardMoreMenu.
+   */
   test("the table's card header draws its ⋯ with CardMoreMenu, and no MoreMenu of its own", () => {
-    const source: string = read("ModelTable/BaseModelTable.tsx");
+    const table: string = read("ModelTable/BaseModelTable.tsx");
+    const header: string = read("Table/TableHeaderControls.tsx");
 
-    expect(source).toContain(
+    expect(table).toContain("renderTableHeaderMoreMenu,");
+    expect(table).toContain('} from "../Table/TableHeaderControls";');
+    expect(table).toMatch(/renderTableHeaderMoreMenu\(rest\)/);
+    expect(table).not.toMatch(/<MoreMenu\b/);
+    expect(table).not.toMatch(/<CardMoreMenu\b/);
+
+    expect(header).toContain(
       'import CardMoreMenu from "../Card/CardMoreMenu";',
     );
-    expect(source).toMatch(/<CardMoreMenu key="model-table-more-menu">/);
-    expect(source).not.toMatch(/<MoreMenu\b/);
+    expect(header).toMatch(/<CardMoreMenu key="model-table-more-menu"/);
+    expect(header).not.toMatch(/<MoreMenu\b/);
   });
 
   test("a feed's ⋯ is CardMoreMenu too", () => {

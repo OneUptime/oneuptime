@@ -98,9 +98,10 @@ export const SESSION_SIGNAL_OPTIONS: ReadonlyArray<string> = [
 ];
 
 /*
- * The session list's sort menu (SessionReplayListFilters.ts). The menu is a
- * Dropdown, which looks every option up in the Dashboard's locale, so a page
- * names them as its language's Dashboard draws them.
+ * The session list's sort order (SessionReplayListFilters.ts), the Sort
+ * section of the ⋯ that ends the list's header. Each option is a menu item,
+ * which looks its text up in the Dashboard's locale, so a page names them as
+ * its language's Dashboard draws them.
  */
 export const SESSION_SORT_OPTIONS: ReadonlyArray<string> = [
   "Newest",

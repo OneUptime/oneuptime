@@ -16,6 +16,11 @@ metadata:
 spec:
   instances: {{ $cnpg.instances | default 1 }}
   imageName: {{ $cnpg.imageName | default "ghcr.io/cloudnative-pg/postgresql:17" | quote }}
+  {{- if .Values.imagePullSecrets }}
+  # The chart-wide pull secrets, for a PostgreSQL image in a private registry.
+  imagePullSecrets:
+    {{- toYaml .Values.imagePullSecrets | nindent 4 }}
+  {{- end }}
 
   # The OneUptime app connects as the "postgres" superuser (parity with the
   # built-in StatefulSet). CloudNativePG disables superuser access by default;

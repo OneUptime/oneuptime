@@ -91,6 +91,7 @@ flowchart TB
 | Ключи API | `API Key` |
 | Клиенты MCP, которые подключают люди | `MCP Client Authorization` |
 | Элементы инвентаря | `Inventory Item` |
+| Конфигурации коллектора | `Collector Config` |
 | Серверы vCenter | `vCenter` |
 | Захваты пакетов и их скачивания | `Packet Capture` |
 | Кейсы безопасности и плейбуки | `Security Case`, `Security Playbook` |

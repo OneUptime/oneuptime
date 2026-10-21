@@ -5,12 +5,17 @@ import IconProp from "Common/Types/Icon/IconProp";
 import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import Host from "Common/Models/DatabaseModels/Host";
 import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 const HostSideMenu: FunctionComponent = (): ReactElement => {
+  const collectorConfigViewRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.HOST_COLLECTOR_CONFIG_VIEW] as Route,
+  );
+
   const sections: SideMenuSectionProps[] = [
     {
       title: "Hosts",
@@ -21,6 +26,19 @@ const HostSideMenu: FunctionComponent = (): ReactElement => {
             to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOSTS] as Route),
           },
           icon: IconProp.List,
+        },
+        {
+          link: {
+            title: "Collector Configs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HOST_COLLECTOR_CONFIGS] as Route,
+            ),
+          },
+          // A config's own page keeps it marked: the config is one of these.
+          activeRoute: Navigation.isOnThisPage(collectorConfigViewRoute)
+            ? collectorConfigViewRoute
+            : undefined,
+          icon: IconProp.Code,
         },
         {
           link: {
