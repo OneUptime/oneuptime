@@ -88,6 +88,7 @@ import { hasFilterValues } from "../Table/TableEmptyStateBuilders";
 import {
   TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME,
   TABLE_HEADER_FOLDED_BUTTONS_CLASS_NAME,
+  TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME,
   TABLE_HEADER_OPEN_SEARCH_CLASS_NAME,
   TABLE_HEADER_SEARCH_CLASS_NAME,
   TABLE_HEADER_SEARCH_KEY_HINT_CLASS_NAME,
@@ -4790,7 +4791,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 }}
                 title={tx("Clear search (Esc Esc)")}
                 aria-label={tx("Clear search")}
-                className="flex-none rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                className={TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME}
               >
                 <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
               </button>

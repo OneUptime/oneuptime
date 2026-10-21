@@ -9,10 +9,13 @@ import React, {
 } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
-import TelemetrySearchHelp from "Common/UI/Components/TelemetryViewer/components/TelemetrySearchHelp";
+import TelemetrySearchHelp, {
+  TELEMETRY_SEARCH_HELP_PLACEMENT_CLASS_NAMES,
+} from "Common/UI/Components/TelemetryViewer/components/TelemetrySearchHelp";
 import { SearchHelpRow } from "Common/UI/Components/TelemetryViewer/types";
 import {
   TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME,
+  TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME,
   TABLE_HEADER_SEARCH_KEY_HINT_CLASS_NAME,
 } from "Common/UI/Components/Table/TableHeaderControls";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -367,7 +370,7 @@ const SessionReplaySearchBar: FunctionComponent<SessionReplaySearchBarProps> = (
             aria-label={tx("Clear search")}
             tabIndex={isOpen ? 0 : -1}
             data-testid="session-search-clear"
-            className="flex-none rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            className={TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME}
           >
             <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
           </button>
@@ -401,7 +404,7 @@ const SessionReplaySearchBar: FunctionComponent<SessionReplaySearchBarProps> = (
           id={SESSION_REPLAY_SEARCH_HINT_ID}
           data-testid="session-search-hint"
           aria-live="polite"
-          className="absolute right-0 top-full z-50 mt-1 w-[36rem] max-w-[calc(100vw-2rem)] space-y-1 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-lg"
+          className={`${TELEMETRY_SEARCH_HELP_PLACEMENT_CLASS_NAMES.right} space-y-1 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-lg`}
         >
           {hints.map((hint: SearchHint, index: number): ReactElement => {
             return (
@@ -417,7 +420,7 @@ const SessionReplaySearchBar: FunctionComponent<SessionReplaySearchBarProps> = (
                     hint.isWarning ? "text-amber-500" : "text-gray-400"
                   }`}
                 />
-                <span>{hint.text}</span>
+                <span className="text-pretty">{hint.text}</span>
               </div>
             );
           })}

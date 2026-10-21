@@ -91,6 +91,14 @@ export const TABLE_HEADER_SEARCH_KEY_HINT_CLASS_NAME: string =
   "max-sm:hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium leading-3 text-gray-500 sm:inline-flex";
 
 /*
+ * The x that empties a table's opened search. Tab reaches it from the box,
+ * so it shows where the focus is the way the header's other buttons do -
+ * the browser's own black ring was drawn round it instead.
+ */
+export const TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME: string =
+  "flex-none rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
+/*
  * The labels of the ⋯'s items that are icon-only buttons in the header
  * (Refresh, Filter, ...), in English: MoreMenuItem looks each one up in the
  * reader's language.

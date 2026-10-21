@@ -414,6 +414,56 @@ test.describe("the session list's header", () => {
     ).toBe(224);
   });
 
+  /*
+   * On a phone the box fills its line, and the help hung 36rem wide from its
+   * right edge: it ran past the screen's left edge, cut off there, and its
+   * three columns squeezed what each token does to a word or two a line.
+   */
+  test("on a phone the syntax help is the search's width, each token over what it does", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openList(page);
+    await settleHeader(page);
+
+    await page
+      .getByRole("button", { name: "Open search", exact: true })
+      .click();
+    await expect(page.getByTestId("session-search-input")).toBeFocused();
+
+    const help: Locator = page.getByTestId("session-search-help");
+
+    await expect(help).toBeVisible();
+
+    const panel: Box = await box(help);
+    const search: Box = await box(page.getByTestId("session-search-slot"));
+
+    expect(panel.x).toBeGreaterThanOrEqual(0);
+    expect(panel.x + panel.width).toBeLessThanOrEqual(390);
+    expect(Math.abs(panel.x - search.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(panel.width - search.width)).toBeLessThanOrEqual(1);
+
+    /* Each row: the token and its example on a line, what it does under. */
+    for (const row of await help.getByRole("row").all()) {
+      const cells: Array<Locator> = await row.getByRole("cell").all();
+      const token: Box = await box(cells[0]!);
+      const words: Box = await box(cells[1]!);
+      const example: Box = await box(cells[2]!);
+
+      expect(Math.abs(example.y - token.y)).toBeLessThanOrEqual(2);
+      expect(words.y).toBeGreaterThanOrEqual(token.y + token.height - 1);
+      expect(words.x).toBeLessThanOrEqual(token.x + 1);
+      expect(example.x + example.width).toBeLessThanOrEqual(
+        panel.x + panel.width,
+      );
+    }
+
+    await expectNoHorizontalOverflow(page);
+    await screenshot(page, "session-replay-list-search-help-390");
+  });
+
   test("a chip token typed into the box moves into its chip on Enter", async ({
     page,
   }: {
@@ -519,6 +569,62 @@ test.describe("the Session Replay tables fit their cards", () => {
 
         await expectNoHorizontalOverflow(page);
       }
+    });
+  }
+
+  /*
+   * A row read in up to six lines at 1280 - a row of route pills wrapped
+   * over three, "expires in 28d · On / error", "Always- / on". Each fact is
+   * a line of its own now, kept to one line: three short lines a row.
+   */
+  for (const width of [1280, 1600]) {
+    test(`the session list's rows read one fact per line at ${width}px`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: width, height: 900 });
+      await openList(page);
+
+      const rows: Array<Locator> = await page
+        .locator('[data-testid="session-row"]:visible')
+        .all();
+
+      expect(rows.length).toBeGreaterThan(0);
+
+      for (const row of rows) {
+        /* No row is taller than three lines and a badge or two. */
+        expect((await box(row)).height).toBeLessThanOrEqual(104);
+
+        for (const testId of [
+          "session-row-routes",
+          "session-row-activity",
+          "session-row-trigger",
+          "session-row-playability-detail",
+          "session-row-when",
+        ]) {
+          for (const line of await row.getByTestId(testId).all()) {
+            expect(Math.round((await box(line)).height)).toBeLessThanOrEqual(
+              16,
+            );
+          }
+        }
+
+        /* The short id is shown whole, beside the start, or not at all. */
+        const when: Box = await box(row.getByTestId("session-row-when"));
+        const id: Box = await box(row.getByTestId("session-row-id"));
+        const isBeside: boolean = Math.abs(id.y - when.y) <= 1;
+
+        if (isBeside) {
+          expect(id.x + id.width).toBeLessThanOrEqual(
+            when.x + when.width + 0.5,
+          );
+        } else {
+          expect(id.y).toBeGreaterThanOrEqual(when.y + when.height - 0.5);
+        }
+      }
+
+      await screenshot(page, `session-replay-list-rows-${width}`);
     });
   }
 

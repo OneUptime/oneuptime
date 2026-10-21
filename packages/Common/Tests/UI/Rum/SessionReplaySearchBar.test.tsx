@@ -21,7 +21,11 @@ import {
   SessionReplayAdvancedFilters,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayListFilters";
 import { SESSION_REPLAY_SEARCH_HELP_ROWS } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplaySearchQuery";
-import { TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME } from "../../../UI/Components/Table/TableHeaderControls";
+import {
+  TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME,
+  TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME,
+} from "../../../UI/Components/Table/TableHeaderControls";
+import { TELEMETRY_SEARCH_HELP_PLACEMENT_CLASS_NAMES } from "../../../UI/Components/TelemetryViewer/components/TelemetrySearchHelp";
 
 /*
  * The session list's search: the bar the header's "Search…  /" pill opens
@@ -495,6 +499,22 @@ describe("SessionReplaySearchBar syntax help", () => {
     expect(help).not.toHaveClass("left-0");
   });
 
+  /*
+   * On a phone the box fills its line, and the help hung 36rem wide from
+   * its right edge ran past the screen's left edge, its rows cut off there.
+   */
+  it("is exactly as wide as the box on a phone", () => {
+    renderBar();
+
+    fireEvent.focus(input());
+
+    expect(screen.getByTestId(SESSION_REPLAY_SEARCH_HELP_TEST_ID)).toHaveClass(
+      "max-md:left-0",
+      "max-md:w-auto",
+      "max-md:max-w-none",
+    );
+  });
+
   it("an example click puts it in the box and applies it", () => {
     renderBar();
 
@@ -603,6 +623,64 @@ describe("SessionReplaySearchBar clearing and folding", () => {
     view.rerender(<SessionReplaySearchBar {...barProps({ isOpen: true })} />);
 
     expect(input()).toHaveAttribute("tabindex", "0");
+  });
+});
+
+describe("SessionReplaySearchBar hints panel", () => {
+  it("hangs where the syntax help does, as wide as the box on a phone", () => {
+    renderBar();
+
+    input().focus();
+    fireEvent.focus(input());
+    type("min:abc");
+
+    const hint: HTMLElement = screen.getByTestId("session-search-hint");
+
+    expect(hint).toHaveClass(
+      ...TELEMETRY_SEARCH_HELP_PLACEMENT_CLASS_NAMES.right.split(" "),
+    );
+    expect(hint).toHaveClass("max-md:left-0", "max-md:w-auto");
+  });
+
+  it("never leaves one word of a hint on a line of its own", () => {
+    renderBar();
+
+    input().focus();
+    fireEvent.focus(input());
+    type("min:abc");
+
+    const hint: HTMLElement = screen.getByTestId("session-search-hint");
+    const words: HTMLElement = within(hint).getByText(
+      (_content: string, element: Element | null): boolean => {
+        return (
+          element?.tagName === "SPAN" &&
+          (element.textContent || "").startsWith("min:")
+        );
+      },
+    );
+
+    expect(words).toHaveClass("text-pretty");
+  });
+});
+
+describe("SessionReplaySearchBar clear button", () => {
+  it("shows where the keyboard focus is, as the header's buttons do", () => {
+    renderBar({
+      filters: { ...EMPTY_ADVANCED_FILTERS, search: "checkout" },
+    });
+
+    const clear: HTMLElement = screen.getByRole("button", {
+      name: "Clear search",
+    });
+
+    expect(clear).toHaveClass(
+      ...TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME.split(" "),
+    );
+    expect(clear).toHaveClass(
+      "focus:outline-none",
+      "focus-visible:ring-2",
+      "focus-visible:ring-indigo-500",
+    );
   });
 });
 
