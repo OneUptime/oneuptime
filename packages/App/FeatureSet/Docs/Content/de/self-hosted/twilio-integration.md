@@ -56,7 +56,7 @@ Für einen installationsweiten Standard kann ein Administrator stattdessen **Adm
 
 ### Getrennte Nummern für Anrufe und SMS
 
-Eine Twilio-Nummer kann Anrufe tätigen und SMS senden, oder nur eines von beiden, und in manchen Ländern kann keine Nummer beides. In Singapur zum Beispiel sind nationale Nummern (+65 3 oder +65 6) reine Sprachnummern, und SMS brauchen eine Mobilnummer (+65 8). Eine Konfiguration, die eines Projekts oder die der Installation, kann unter **Weitere Felder** Nummern für SMS aufführen:
+Eine Twilio-Nummer kann Anrufe tätigen und SMS senden, oder nur eines von beiden, und in manchen Ländern kann keine Nummer beides: Nationale Nummern können reine Sprachnummern sein, während SMS eine Mobilnummer brauchen. Eine Konfiguration, die eines Projekts oder die der Installation, kann unter **Weitere Felder** Nummern für SMS aufführen:
 
 | Feld | Was davon ausgeht |
 | --- | --- |
@@ -64,12 +64,12 @@ Eine Twilio-Nummer kann Anrufe tätigen und SMS senden, oder nur eines von beide
 | **Twilio-Sekundärrufnummern** | Anrufe, und SMS, solange keine SMS-Nummern aufgeführt sind, an Empfänger im Land der jeweiligen Nummer |
 | **Twilio-SMS-Rufnummern** | Jede SMS, sobald sie aufgeführt sind: von der Nummer im Land des Empfängers, sonst von der ersten |
 
-Für Singapur geben Sie die nationale Nummer als **Twilio-Primärrufnummer** ein und die Mobilnummer unter **Twilio-SMS-Rufnummern**. Sobald eine Konfiguration SMS-Nummern aufführt, geht keine SMS mehr von ihren anderen Nummern aus; führen Sie also jede Nummer auf, die SMS senden soll.
+Wenn Ihre Nummer nur Anrufe tätigen kann, behalten Sie sie als **Twilio-Primärrufnummer** und geben Sie unter **Twilio-SMS-Rufnummern** eine Nummer ein, die SMS senden kann, etwa eine Mobilnummer. Sobald eine Konfiguration SMS-Nummern aufführt, geht keine SMS mehr von ihren anderen Nummern aus; führen Sie also jede Nummer auf, die SMS senden soll.
 
 Eine Konfiguration ohne SMS-Nummern sendet SMS wie bisher von denselben Nummern wie Anrufe. **Test-SMS senden** und **Testanruf senden** gehen von der Nummer aus, von der eine echte SMS oder ein echter Anruf an denselben Empfänger ausginge. Lehnt Twilio eine SMS mit dem Fehler 21606 ab, kann die Nummer keine SMS senden: Fügen Sie unter **Twilio-SMS-Rufnummern** eine hinzu, die es kann.
 
 > [!NOTE]
-> In Singapur kommt eine SMS von einer Nummer, die nicht bei SGNIC registriert ist, oder von einer Nummer außerhalb Singapurs, vom Absender `Likely-SCAM` an. Registrieren Sie die Mobilnummer bei SGNIC und bei Twilio, bevor Sie sich darauf verlassen; siehe [Twilios SMS-Richtlinien für Singapur](https://www.twilio.com/en-us/guidelines/sg/sms).
+> Welche Nummern SMS senden können und ob ein Absender zuerst registriert werden muss, ist von Land zu Land verschieden: Wo eine Registrierung vorgeschrieben ist, kann eine SMS von einer nicht registrierten Nummer blockiert oder als Spam markiert werden. Bevor Sie sich auf eine Nummer verlassen, prüfen Sie [Twilios SMS-Richtlinien](https://www.twilio.com/en-us/guidelines/sms) für jedes Land, in das Sie senden.
 
 ## 3. Netzwerkzugriff konfigurieren
 
