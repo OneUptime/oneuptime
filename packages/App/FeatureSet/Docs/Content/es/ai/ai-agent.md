@@ -20,7 +20,7 @@ Código es donde le pides a OneUptime AI que trabaje en tus repositorios, como s
 :::steps
 ### Abre Código
 
-Abre **Productos → Código**. Se abre en **¿Qué debe hacer la IA?**: el cuadro donde pides, con todas las tareas debajo, las más recientes primero. Si todavía no hay ningún repositorio, ofrece en su lugar **Conectar GitHub** (consulta [Antes de empezar](#antes-de-empezar)). **Repositorios**, en su menú lateral, muestra los repositorios conectados, y la página de cada repositorio tiene el mismo cuadro para ese repositorio.
+Abre **Productos → Código**. Se abre en **¿Qué debe hacer la IA?**: el cuadro donde pides, con todas las tareas debajo, las más recientes primero. Si todavía no hay ningún repositorio, ofrece en su lugar **Conectar GitHub** (consulta [Antes de empezar](#antes-de-empezar)). **Repositorios**, en su menú lateral, muestra los repositorios en los que la IA puede trabajar, y agrupa bajo **No conectado** los que la GitHub App ya no alcanza. La página de cada repositorio tiene el mismo cuadro para ese repositorio.
 
 ### Elige el repositorio y la rama
 
@@ -89,7 +89,7 @@ flowchart TB
 3. El Runner obtiene el contexto de la tarea. Para una petición, son sus palabras, el contexto añadido y la conversación hasta ahora; para una excepción, su tipo, su mensaje y su stack trace.
 4. Clona el repositorio en un espacio de trabajo propio y crea una rama. Una corrección de una excepción se llama `oneuptime-fix-exception-` seguido de los primeros caracteres del id de la ejecución. Una petición parte de la rama elegida cuando se hizo, y su pull request se abre hacia ella. Una respuesta trabaja, en cambio, en la rama del pull request abierto de la tarea.
 5. Un agente de código, impulsado por el proveedor de LLM de tu proyecto, lee el código y escribe el cambio. El servidor de OneUptime hace las llamadas al LLM, así que el Runner nunca tiene la clave de API de tu proveedor, y cada llamada se mide y aparece en los registros de IA. Una corrección de una excepción, de una traza lenta o de un incidente también lee datos de producción mientras trabaja: las excepciones, las trazas, los logs y las métricas de los servicios del repositorio (consulta [Telemetría de producción en una corrección](#telemetría-de-producción-en-una-corrección)).
-6. Si el repositorio tiene comandos de verificación, un Runner propio compila y prueba el cambio antes de hacer ningún commit, y devuelve un fallo al agente de código para que lo repare (consulta [Verificación antes del pull request](#verificación-antes-del-pull-request)).
+6. En un Runner propio, el agente de código compila y prueba su cambio como indica el `AGENTS.md` del repositorio antes de hacer ningún commit, y repara lo que falla (consulta [Verificación antes del pull request](#verificación-antes-del-pull-request)).
 7. El Runner hace el commit, sube la rama, abre el pull request (para una petición, solo si cambió código) y borra el espacio de trabajo.
 
 La página desde la que se inició la tarea muestra su estado en directo. Cada tarea aparece en su repositorio, en **Productos → Código**: su página es su conversación, y el **Registro** de cada turno tiene una línea por cada archivo que el Runner leyó o escribió y por cada comando que ejecutó.
@@ -148,15 +148,18 @@ Cuando ningún servicio corresponde al repositorio, la tarea se ejecuta sin tele
 
 ## Verificación antes del pull request
 
-Un repositorio puede tener hasta tres comandos de verificación en su página **Ajustes** en Código:
+Un repositorio dice cómo se compila y se prueba en un `AGENTS.md` en su raíz, el archivo que leen los agentes de código. Antes de cambiar nada, el agente de código lee el `AGENTS.md` del repositorio (o su `CLAUDE.md`, cuando no tiene `AGENTS.md`) de la rama de la que parte la tarea, y trabaja como indica. Sin ninguno de los dos, lo averigua a partir del `CONTRIBUTING.md` del repositorio, el README, los scripts del paquete, el `Makefile` o los flujos de CI. No hay nada que configurar en OneUptime.
 
-| Comando | Ejemplo | Cuándo se ejecuta |
-| --- | --- | --- |
-| **Comando de configuración** | `npm ci` | Primero, para instalar las dependencias. |
-| **Comando de compilación** | `npm run build` | Después de la configuración. |
-| **Comando de prueba** | `npm test` | Al final. |
+| Dónde trabaja la IA | Qué hace con la compilación y las pruebas del repositorio |
+| --- | --- |
+| Uno de tus Runners | Compila y prueba su cambio antes de que se abra el pull request, corrige lo que falla y vuelve a comprobar, y dice en su resumen qué comprobaciones ejecutó. Cada comando que ejecuta tiene hasta 2 minutos, sin las credenciales propias del Runner en su entorno. |
+| **Runner global** | No ejecuta ningún comando: escribe el cambio y abre el pull request, y la CI propia de tu repositorio lo comprueba. |
 
-Cuando alguno está definido, cada ejecución de corrección comprueba su cambio antes de que se abra el pull request:
+Nada de un pull request que viene de un fork se lee nunca como instrucciones del repositorio: una revisión rechaza ese pull request, y una reseña lee la rama base.
+
+### Comandos definidos en un repositorio
+
+Código ya no pide comandos de configuración, compilación y prueba, pero un repositorio que los tiene, definidos antes o mediante la API o Terraform, los conserva. Se muestran de solo lectura en la tarjeta **Comandos de compilación y prueba**, en **Más ajustes** de la página **Ajustes** del repositorio, y **Eliminar comandos** elimina los tres. Mientras alguno esté definido, cada ejecución de corrección en un Runner propio también comprueba su cambio con ellos antes de que se abra el pull request:
 
 1. Cuando el agente de código termina, los comandos se ejecutan en orden en la raíz del repositorio, en el Runner, en el espacio de trabajo clonado. Cada uno tiene hasta 15 minutos y se ejecuta con `CI=true`, para que nada espere una respuesta; el primer fallo detiene la pasada.
 2. Ante un fallo, el final de la salida del comando fallido vuelve al mismo agente de código como tarea de reparación, con instrucciones de corregir su propio cambio en lugar de debilitar u omitir pruebas, y los comandos se ejecutan de nuevo. Hace como máximo **2** intentos de reparación. Comparten el presupuesto de LLM de la ejecución, y sus cambios van en el mismo commit que la corrección.
@@ -205,12 +208,12 @@ No asignas repositorios a servicios. Cuando una tarea empieza, OneUptime encuent
 
 ### Elige el Runner del repositorio
 
-Cada repositorio elige el Runner en el que la IA trabaja en él: en su página **Ajustes** en Código, haz clic en **Editar configuración** y elige uno en el paso **Runner**. Un repositorio que no elige ninguno trabaja en **Runner global**, que OneUptime ejecuta para todos los proyectos.
+Cada repositorio elige el Runner en el que la IA trabaja en él: en su página **Ajustes** en Código, haz clic en **Editar** en la tarjeta **Runner** y elige uno. Un repositorio que importa la GitHub App empieza en el [Runner predeterminado](/docs/runbooks/agents#el-runner-predeterminado-del-proyecto) del proyecto, cuando lo tiene. Un repositorio que no elige ninguno trabaja en **Runner global**, que OneUptime ejecuta para todos los proyectos.
 
 | Runner | Qué hace con una tarea |
 | --- | --- |
-| **Runner global** | Escribe el cambio y abre el pull request, sin tus comandos de configuración, compilación y prueba: la CI propia de tu repositorio comprueba el cambio. |
-| Uno de tus Runners | También ejecuta tus comandos de configuración, compilación y prueba, en un host que tú controlas. |
+| **Runner global** | Escribe el cambio y abre el pull request sin compilarlo ni probarlo: la CI propia de tu repositorio comprueba el cambio. |
+| Uno de tus Runners | También compila y prueba el cambio como indica el `AGENTS.md` del repositorio, en un host que tú controlas. |
 
 Solo el Runner que elige un repositorio recibe sus tareas y un token para él. En un proyecto que desactiva **Usar Runners globales** en **Runbooks → Agentes de runbook**, cada repositorio necesita uno de los Runners propios del proyecto. La página de un Runner lista los repositorios que lo eligen.
 
@@ -233,7 +236,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Elígelo para el repositorio
 
-En la página **Ajustes** del repositorio en Código, haz clic en **Editar configuración** y elige el Runner en el paso **Runner**. El Runner recoge el cambio con su siguiente heartbeat, en aproximadamente un minuto; no hay nada que reiniciar.
+En la página **Ajustes** del repositorio en Código, haz clic en **Editar** en la tarjeta **Runner** y elige el Runner. El Runner recoge el cambio con su siguiente heartbeat, en aproximadamente un minuto; no hay nada que reiniciar.
 
 ### Comprueba que se conecta
 

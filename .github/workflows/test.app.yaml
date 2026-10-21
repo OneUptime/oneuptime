@@ -239,7 +239,12 @@ jobs:
           # card header puts its description - about a minute of it) moved
           # here from group 6 on 2026-10-21, when group 6 took 21.9 minutes
           # and this group 17.3, the lightest that holds several suites once
-          # group 8 took three of group 5's: about 21.5 for the twelve.
+          # group 8 took three of group 5's: about 21.5 for the twelve. On
+          # the next run the same day the group ran past the job's 30 minutes
+          # (28.5 of suites; the job was cancelled two specs from the end of
+          # Model Tables), so Model Tables and Runbook Variables moved to
+          # group 5, Security Events Empty States to group 8 and Global
+          # Runners to group 6: about 9.5 minutes, 20.5 left for the eight.
           - group: 3
             browsers: chromium firefox
             suites: >-
@@ -247,14 +252,10 @@ jobs:
               test-value-picker-ui
               test-event-notes-ui
               test-trace-detail-ui
-              test-security-events-empty-states-ui
               test-status-page-search-ui
               test-label-rule-transfer-ui
               test-list-delete-ui
-              test-global-runners-ui
-              test-runbook-variables-ui
               test-rules-menu-section-ui
-              test-model-tables-ui
           # The Workflow Builder suite on its own: it sat in group 2 near the
           # job's 30 minutes, and its On Create or Update spec would take that
           # group past them. Its two projects, a laptop and a phone, are both
@@ -278,6 +279,9 @@ jobs:
           # grown with the Security pages to about 3.5 minutes, and the job
           # was cancelled in Code, with Public Addresses never run), so those
           # three moved to group 8: about 10 minutes of the group's 29.5.
+          # Model Tables and Runbook Variables (about 4 minutes and 1, both
+          # Chromium only) moved here from group 3 later that day, when this
+          # group took 14.7 minutes, the lightest: about 19.5.
           - group: 5
             browsers: chromium
             suites: >-
@@ -294,6 +298,8 @@ jobs:
               test-episode-bulk-add-ui
               test-runbook-triggers-ui
               test-network-first-run-ui
+              test-model-tables-ui
+              test-runbook-variables-ui
           # Added when group 5 took 25.5 of the job's 30 minutes and groups 1,
           # 3 and 4 23.5 to 24.3 on one run: group 5's last five suites, with
           # Discovery from group 3, Status Page Theme from group 1 and Calendar
@@ -305,7 +311,9 @@ jobs:
           # more locally, 2 minutes 10 with its bundle, after Custom Roles
           # (about 3 minutes) had left for group 7 the same day. Model Tables
           # left for group 3 on 2026-10-21, when this group took 21.9 minutes
-          # and its card header specs would have taken it past 22.
+          # and its card header specs would have taken it past 22. Global
+          # Runners (about 2 minutes, Chromium only) moved here from group 3
+          # later that day, when this group took 18.6: about 20.5.
           - group: 6
             browsers: chromium
             suites: >-
@@ -317,6 +325,7 @@ jobs:
               test-detail-cards-ui
               test-infrastructure-first-run-ui
               test-postmortem-rules-ui
+              test-global-runners-ui
           # The Profiler (about 2 minutes with its bundle: a laptop and a
           # phone) and LLM Connect (about 2 minutes with its bundle: AI /
           # LLM's Connect and Usage at desktop and phone width), both
@@ -379,7 +388,9 @@ jobs:
           # too. Security Operations, Code and Public Addresses (about 10
           # minutes together, all Chromium) moved here from group 5 the same
           # day, when it ran past the job's 30 minutes: about 20.5 minutes for
-          # the eight.
+          # the eight. Security Events Empty States (about 3 minutes, Chromium
+          # only) moved here from group 3 later that day, when this group took
+          # 15 to 17 minutes: about 20 for the nine.
           - group: 8
             browsers: chromium
             suites: >-
@@ -391,6 +402,7 @@ jobs:
               test-security-operations-ui
               test-code-ui
               test-public-addresses-ui
+              test-security-events-empty-states-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass

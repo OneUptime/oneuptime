@@ -118,11 +118,11 @@ Elle ignore aussi tous les commentaires écrits par un bot, y compris les siens,
 
 ## Ce que cela coûte, et comment le limiter
 
-Chaque commande qui lance du travail est une exécution complète de l'agent : un clone, jusqu'à 40 appels au LLM et 100 000 tokens de sortie, plus les commandes de build et de test de votre dépôt quand vous les avez définies. Les requêtes de production d'une relecture, 12 au plus, sont décomptées de ces mêmes 40 appels.
+Chaque commande qui lance du travail est une exécution complète de l'agent : un clone, jusqu'à 40 appels au LLM et 100 000 tokens de sortie, plus, sur votre propre Runner, les vérifications de build et de test que décrit le `AGENTS.md` de votre dépôt. Les requêtes de production d'une relecture, 12 au plus, sont décomptées de ces mêmes 40 appels.
 
 Les commandes GitHub sont du travail d'IA en dehors des incidents et des alertes, donc aucune limite quotidienne de tâches de correction ne s'y applique ; les limites quotidiennes d'IA propres au projet s'appliquent, quand le projet en fixe. La seule autre limite est celle qui régit déjà les tâches de [Code](/docs/ai/ai-agent) :
 
-- **Le plafond de pull requests ouvertes** (**Nombre max de demandes de tirage de correctifs ouvertes**, sur la page **Paramètres** du dépôt). **Demandes de tirage de correctifs IA** est sur **Aucune limite** tant que vous ne choisissez pas **Une limite**, ou **Aucun**, qui bloque les pull requests de correctif IA sur ce dépôt. Les relectures et les révisions en sont exemptées : aucune n'ajoute de pull request à votre file de relecture.
+- **Le plafond de pull requests ouvertes** (**Nombre max de demandes de tirage de correctifs ouvertes**, sous **Plus de paramètres** sur la page **Paramètres** du dépôt). **Demandes de tirage de correctifs IA** est sur **Aucune limite** tant que vous ne choisissez pas **Une limite**, ou **Aucun**, qui bloque les pull requests de correctif IA sur ce dépôt. Les relectures et les révisions en sont exemptées : aucune n'ajoute de pull request à votre file de relecture.
 
 Une seule exécution d'un même type est active à la fois par issue ou pull request. Demander deux fois vous indique qu'elle travaille déjà ; demander une relecture pendant qu'une révision tourne lance les deux, puisque ce sont des demandes différentes.
 
@@ -130,9 +130,9 @@ Si une exécution ne peut pas démarrer, l'app dit pourquoi dans le fil : elle n
 
 ## La désactiver
 
-Chaque dépôt a un interrupteur : **Respond to GitHub Commands**, sur la page **Paramètres** du dépôt. Désactivée, l'app ignore les mentions, les assignations et l'étiquette de déclenchement dans ce dépôt, et indique à quiconque le demande où se trouve l'interrupteur.
+Chaque dépôt a un interrupteur : **Respond to GitHub Commands**, sur la page **Paramètres** du dépôt. Il est activé pour chaque dépôt et s'enregistre dès que vous le basculez. Désactivée, l'app ignore les mentions, les assignations et l'étiquette de déclenchement dans ce dépôt, et indique à quiconque le demande où se trouve l'interrupteur.
 
-La même page contient l'**Étiquette de déclenchement GitHub**, si vous voulez une autre étiquette que `oneuptime`.
+La même page contient l'**Étiquette de déclenchement GitHub**, sous **Plus de paramètres**, si vous voulez une autre étiquette que `oneuptime`.
 
 ## À quoi s'abonner
 

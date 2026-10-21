@@ -20,7 +20,7 @@ Code is waar je OneUptime AI vraagt om in je repository's te werken, zoals je ee
 :::steps
 ### Open Code
 
-Open **Producten → Code**. Code opent op **Wat moet AI doen?**: het vak waarin je vraagt, met alle taken eronder, de nieuwste eerst. Is er nog geen repository, dan biedt Code in plaats daarvan **GitHub verbinden** aan (zie [Voordat je begint](#voordat-je-begint)). **Repository's**, in het zijmenu, toont de gekoppelde repository's, en de pagina van elke repository heeft hetzelfde vak voor die repository.
+Open **Producten → Code**. Code opent op **Wat moet AI doen?**: het vak waarin je vraagt, met alle taken eronder, de nieuwste eerst. Is er nog geen repository, dan biedt Code in plaats daarvan **GitHub verbinden** aan (zie [Voordat je begint](#voordat-je-begint)). **Repository's**, in het zijmenu, toont de repository's waarin AI kan werken, en bundelt onder **Niet verbonden** de repository's die de GitHub App niet meer bereikt. De pagina van elke repository heeft hetzelfde vak voor die repository.
 
 ### Kies de repository en de branch
 
@@ -89,7 +89,7 @@ flowchart TB
 3. De Runner haalt de context van de taak op. Bij een verzoek zijn dat de woorden, de toegevoegde context en het gesprek tot dan toe; bij een uitzondering het type, het bericht en de stack trace.
 4. Hij kloont de repository naar een eigen werkruimte en maakt een branch. Een herstel van een uitzondering heet `oneuptime-fix-exception-` gevolgd door de eerste tekens van de id van de run. Een vraag gaat uit van de branch die gekozen was toen die gesteld werd, en de pull request opent daarnaartoe. Een antwoord werkt in plaats daarvan op de branch van de open pull request van de taak.
 5. Een code-agent, aangedreven door de LLM-provider van je project, leest de code en schrijft de wijziging. De OneUptime-server doet de LLM-aanroepen, zodat de Runner nooit de API-sleutel van je provider heeft, en elke aanroep wordt gemeten en staat in de AI-logs. Een herstel van een uitzondering, een trage trace of een incident leest tijdens het werk ook uit productie: de uitzonderingen, traces, logs en metrieken van de services van de repository (zie [Productietelemetrie in een herstel](#productietelemetrie-in-een-herstel)).
-6. Heeft de repository controleopdrachten, dan bouwt en test een eigen Runner de wijziging voordat hij iets commit, en geeft hij een fout terug aan de code-agent om te herstellen (zie [Controle vóór de pull request](#controle-vóór-de-pull-request)).
+6. Op een eigen Runner bouwt en test de code-agent zijn wijziging zoals de `AGENTS.md` van de repository zegt, voordat er iets wordt gecommit, en herstelt hij wat faalt (zie [Controle vóór de pull request](#controle-vóór-de-pull-request)).
 7. De Runner commit, pusht de branch, opent de pull request (bij een verzoek alleen als er code is gewijzigd) en verwijdert de werkruimte.
 
 De pagina waarop de taak is gestart, toont live de status. Elke taak staat in zijn repository onder **Producten → Code**: zijn pagina is zijn gesprek, en het **Logboek** van elke beurt heeft een regel voor elk bestand dat de Runner las of schreef en elke opdracht die hij uitvoerde.
@@ -148,15 +148,18 @@ Als er geen service bij de repository hoort, draait de taak zonder productietele
 
 ## Controle vóór de pull request
 
-Een repository kan tot drie controleopdrachten hebben op zijn pagina **Instellingen** in Code:
+Een repository zegt in een `AGENTS.md` in de hoofdmap, het bestand dat codeeragents lezen, hoe hij wordt gebouwd en getest. Voordat de code-agent iets wijzigt, leest hij de `AGENTS.md` van de repository (of zijn `CLAUDE.md`, als hij geen `AGENTS.md` heeft) uit de branch waar de taak van uitgaat, en werkt hij zoals die zegt. Zonder een van beide haalt hij het uit de `CONTRIBUTING.md` van de repository, de README, de pakketscripts, de `Makefile` of de CI-workflows. Er is niets in te stellen in OneUptime.
 
-| Opdracht | Voorbeeld | Wanneer die draait |
-| --- | --- | --- |
-| **Setup Command** | `npm ci` | Eerst, om afhankelijkheden te installeren. |
-| **Build Command** | `npm run build` | Na de setup. |
-| **Test Command** | `npm test` | Als laatste. |
+| Waar AI werkt | Wat het met de build en tests van de repository doet |
+| --- | --- |
+| Een van je Runners | Bouwt en test zijn wijziging voordat de pull request opent, herstelt wat faalt en controleert opnieuw, en zegt in zijn samenvatting welke controles hij heeft gedraaid. Elke opdracht die hij draait, krijgt tot 2 minuten, zonder de eigen inloggegevens van de Runner in zijn omgeving. |
+| **Globale Runner** | Draait geen opdracht: hij schrijft de wijziging en opent de pull request, en de eigen CI van je repository controleert die. |
 
-Is er een ingesteld, dan controleert elke herstelrun zijn wijziging voordat de pull request opent:
+Niets uit een pull request die uit een fork komt, wordt ooit gelezen als de instructies van de repository: een herziening weigert zo'n pull request, en een review leest de basisbranch.
+
+### Opdrachten die op een repository zijn ingesteld
+
+Code vraagt niet meer om setup-, build- en testopdrachten, maar een repository die ze heeft, eerder ingesteld of via de API of Terraform, houdt ze. Ze staan alleen-lezen op de kaart **Build- en testopdrachten**, onder **Meer instellingen** op de pagina **Instellingen** van de repository, en **Opdrachten verwijderen** verwijdert alle drie. Zolang er een is ingesteld, controleert elke herstelrun op een eigen Runner zijn wijziging er ook mee voordat de pull request opent:
 
 1. Als de code-agent klaar is, draaien de opdrachten op volgorde in de root van de repository, op de Runner, in de gekloonde werkruimte. Elke opdracht krijgt tot 15 minuten en draait met `CI=true`, zodat niets op invoer wacht; de eerste fout stopt de ronde.
 2. Bij een fout gaat het einde van de uitvoer van de mislukte opdracht terug naar dezelfde code-agent als hersteltaak, met de instructie zijn eigen wijziging te verbeteren in plaats van tests af te zwakken of over te slaan, en de opdrachten draaien opnieuw. Hij doet hoogstens **2** herstelpogingen. Die delen het LLM-budget van de run, en hun wijzigingen komen in dezelfde commit als het herstel.
@@ -205,12 +208,12 @@ Je koppelt repositories niet aan services. Als een taak start, vindt OneUptime d
 
 ### De Runner van de repository kiezen
 
-Elke repository kiest de Runner waarop AI erin werkt: klik op zijn pagina **Instellingen** in Code op **Instellingen bewerken** en kies er een bij de stap **Runner**. Een repository die er geen kiest, werkt op **Globale Runner**, die OneUptime voor elk project draait.
+Elke repository kiest de Runner waarop AI erin werkt: klik op zijn pagina **Instellingen** in Code op **Bewerken** op de kaart **Runner** en kies er een. Een repository die de GitHub App importeert, begint op de [standaard-Runner](/docs/runbooks/agents#de-standaard-runner-van-het-project) van het project, als het er een heeft. Een repository die er geen kiest, werkt op **Globale Runner**, die OneUptime voor elk project draait.
 
 | Runner | Wat hij met een taak doet |
 | --- | --- |
-| **Globale Runner** | Schrijft de wijziging en opent de pull request, zonder je setup-, build- en testopdrachten: de eigen CI van je repository controleert de wijziging. |
-| Een van je Runners | Voert ook je setup-, build- en testopdrachten uit, op een host die jij beheert. |
+| **Globale Runner** | Schrijft de wijziging en opent de pull request zonder die te bouwen of te testen: de eigen CI van je repository controleert de wijziging. |
+| Een van je Runners | Bouwt en test de wijziging ook zoals de `AGENTS.md` van de repository zegt, op een host die jij beheert. |
 
 Alleen de Runner die een repository kiest, krijgt zijn taken en een token ervoor. In een project dat **Globale Runners gebruiken** uitzet onder **Runbooks → Runbook-agenten**, heeft elke repository een van de eigen Runners van het project nodig. De pagina van een Runner toont de repositories die hem kiezen.
 
@@ -233,7 +236,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Kies hem voor de repository
 
-Klik op de pagina **Instellingen** van de repository in Code op **Instellingen bewerken** en kies de Runner bij de stap **Runner**. De Runner neemt de wijziging over bij zijn volgende heartbeat, binnen ongeveer een minuut; er hoeft niets opnieuw te starten.
+Klik op de pagina **Instellingen** van de repository in Code op **Bewerken** op de kaart **Runner** en kies de Runner. De Runner neemt de wijziging over bij zijn volgende heartbeat, binnen ongeveer een minuut; er hoeft niets opnieuw te starten.
 
 ### Controleer of hij verbinding maakt
 

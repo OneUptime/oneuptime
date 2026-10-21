@@ -20,7 +20,7 @@ Code est l'endroit où vous demandez à OneUptime AI de travailler dans vos dép
 :::steps
 ### Ouvrir Code
 
-Ouvrez **Produits → Code**. Code s'ouvre sur **Que doit faire l'IA ?** : la zone où vous demandez, avec toutes les tâches en dessous, les plus récentes d'abord. S'il n'y a encore aucun dépôt, Code propose plutôt **Connecter GitHub** (voir [Avant de commencer](#avant-de-commencer)). **Dépôts**, dans son menu latéral, liste les dépôts connectés, et la page de chaque dépôt a la même zone pour ce dépôt.
+Ouvrez **Produits → Code**. Code s'ouvre sur **Que doit faire l'IA ?** : la zone où vous demandez, avec toutes les tâches en dessous, les plus récentes d'abord. S'il n'y a encore aucun dépôt, Code propose plutôt **Connecter GitHub** (voir [Avant de commencer](#avant-de-commencer)). **Dépôts**, dans son menu latéral, liste les dépôts où l'IA peut travailler, et regroupe sous **Non connecté** ceux que la GitHub App n'atteint plus. La page de chaque dépôt a la même zone pour ce dépôt.
 
 ### Choisir le dépôt et la branche
 
@@ -89,7 +89,7 @@ flowchart TB
 3. Le Runner récupère le contexte de la tâche. Pour une demande, ce sont ses mots, le contexte ajouté et la conversation jusque-là ; pour une exception, son type, son message et sa stack trace.
 4. Il clone le dépôt dans un espace de travail qui lui est propre et crée une branche. Une correction d'exception s'appelle `oneuptime-fix-exception-` suivi des premiers caractères de l'identifiant de l'exécution. Une demande part de la branche choisie quand elle a été faite, et sa pull request s'ouvre vers celle-ci. Une réponse travaille plutôt sur la branche de la pull request ouverte de la tâche.
 5. Un agent de code, propulsé par le fournisseur LLM de votre projet, lit le code et écrit la modification. Le serveur OneUptime effectue les appels au LLM, si bien que le Runner ne détient jamais la clé d'API de votre fournisseur, et chaque appel est mesuré et listé dans les journaux IA. Une correction d'exception, de trace lente ou d'incident consulte aussi les données de production pendant qu'elle travaille : les exceptions, les traces, les logs et les métriques des services du dépôt (voir [Télémétrie de production dans une correction](#télémétrie-de-production-dans-une-correction)).
-6. Si le dépôt a des commandes de vérification, votre propre Runner compile et teste la modification avant de committer quoi que ce soit, et renvoie un échec à l'agent de code pour qu'il le répare (voir [Vérification avant la pull request](#vérification-avant-la-pull-request)).
+6. Sur votre propre Runner, l'agent de code compile et teste sa modification comme le dit le `AGENTS.md` du dépôt avant que quoi que ce soit ne soit commité, et répare ce qui échoue (voir [Vérification avant la pull request](#vérification-avant-la-pull-request)).
 7. Le Runner committe, pousse la branche, ouvre la pull request (pour une demande, seulement si elle a modifié du code) et supprime l'espace de travail.
 
 La page d'où la tâche a été lancée affiche son état en direct. Chaque tâche est listée dans son dépôt sous **Produits → Code** : sa page est sa conversation, et le **Journal** de chaque tour a une ligne pour chaque fichier que le Runner a lu ou écrit et pour chaque commande qu'il a exécutée.
@@ -148,15 +148,18 @@ Quand aucun service ne correspond au dépôt, la tâche s'exécute sans télém�
 
 ## Vérification avant la pull request
 
-Un dépôt peut porter jusqu'à trois commandes de vérification sur sa page **Paramètres** dans Code :
+Un dépôt dit comment il se compile et se teste dans un `AGENTS.md` à sa racine, le fichier que lisent les agents de code. Avant de modifier quoi que ce soit, l'agent de code lit le `AGENTS.md` du dépôt (ou son `CLAUDE.md`, quand il n'a pas de `AGENTS.md`) sur la branche d'où part la tâche, et travaille comme il le dit. Sans l'un ni l'autre, il l'apprend du `CONTRIBUTING.md` du dépôt, du README, des scripts du paquet, du `Makefile` ou des workflows de CI. Il n'y a rien à configurer dans OneUptime.
 
-| Commande | Exemple | Quand elle s'exécute |
-| --- | --- | --- |
-| **Setup Command** | `npm ci` | En premier, pour installer les dépendances. |
-| **Commande de build** | `npm run build` | Après la configuration. |
-| **Test Command** | `npm test` | En dernier. |
+| Où l'IA travaille | Ce qu'elle fait du build et des tests du dépôt |
+| --- | --- |
+| L'un de vos Runners | Compile et teste sa modification avant l'ouverture de la pull request, corrige ce qui échoue et vérifie à nouveau, et indique dans son résumé les vérifications qu'elle a lancées. Chaque commande qu'elle lance dispose de 2 minutes au plus, sans les identifiants propres du Runner dans son environnement. |
+| **Agent Runbook global** | Ne lance aucune commande : l'IA écrit la modification et ouvre la pull request, et la CI de votre dépôt la vérifie. |
 
-Quand l'une d'elles est définie, chaque exécution de correction vérifie sa modification avant que la pull request ne s'ouvre :
+Rien de ce qui vient d'une pull request issue d'un fork n'est jamais lu comme les instructions du dépôt : une révision refuse une telle pull request, et une relecture lit la branche de base.
+
+### Commandes définies sur un dépôt
+
+Code ne demande plus de commandes d'installation, de build et de test, mais un dépôt qui en a, définies auparavant ou via l'API ou Terraform, les garde. Elles s'affichent en lecture seule sur la carte **Commandes de build et de test**, sous **Plus de paramètres** sur la page **Paramètres** du dépôt, et **Supprimer les commandes** supprime les trois. Tant que l'une d'elles est définie, chaque exécution de correction sur votre propre Runner vérifie aussi sa modification avec elles avant que la pull request ne s'ouvre :
 
 1. Quand l'agent de code a terminé, les commandes s'exécutent dans l'ordre à la racine du dépôt, sur le Runner, dans l'espace de travail cloné. Chacune dispose de 15 minutes au plus et s'exécute avec `CI=true`, pour que rien n'attende une saisie ; le premier échec arrête la passe.
 2. En cas d'échec, la fin de la sortie de la commande en échec retourne au même agent de code comme tâche de réparation, avec la consigne de corriger sa propre modification plutôt que d'affaiblir ou de sauter des tests, et les commandes s'exécutent à nouveau. Il fait au plus **2** tentatives de réparation. Elles partagent le budget LLM de l'exécution, et leurs modifications vont dans le même commit que la correction.
@@ -205,12 +208,12 @@ Vous n'associez pas de dépôts à des services. Quand une tâche démarre, OneU
 
 ### Choisir le Runner du dépôt
 
-Chaque dépôt choisit le Runner sur lequel l'IA y travaille : sur sa page **Paramètres** dans Code, cliquez sur **Modifier les paramètres** et choisissez-en un à l'étape **Agent Runbook**. Un dépôt qui n'en choisit aucun travaille sur **Agent Runbook global**, que OneUptime fait tourner pour chaque projet.
+Chaque dépôt choisit le Runner sur lequel l'IA y travaille : sur sa page **Paramètres** dans Code, cliquez sur **Modifier** sur la carte **Agent Runbook** et choisissez-en un. Un dépôt que la GitHub App importe démarre sur le [Runner par défaut](/docs/runbooks/agents#lagent-runbook-par-défaut-du-projet) du projet, quand il en a un. Un dépôt qui n'en choisit aucun travaille sur **Agent Runbook global**, que OneUptime fait tourner pour chaque projet.
 
 | Runner | Ce qu'il fait d'une tâche |
 | --- | --- |
-| **Agent Runbook global** | Écrit la modification et ouvre la pull request, sans vos commandes d'installation, de build et de test : la CI de votre dépôt vérifie la modification. |
-| L'un de vos Runners | Exécute aussi vos commandes d'installation, de build et de test, sur un hôte que vous contrôlez. |
+| **Agent Runbook global** | Écrit la modification et ouvre la pull request sans la compiler ni la tester : la CI de votre dépôt vérifie la modification. |
+| L'un de vos Runners | Compile et teste aussi la modification comme le dit le `AGENTS.md` du dépôt, sur un hôte que vous contrôlez. |
 
 Seul le Runner qu'un dépôt choisit reçoit ses tâches et un jeton pour lui. Dans un projet qui désactive **Utiliser les agents Runbook globaux** sous **Runbooks → Agents de runbook**, chaque dépôt a besoin de l'un des Runners du projet. La page d'un Runner liste les dépôts qui le choisissent.
 
@@ -233,7 +236,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Le choisir pour le dépôt
 
-Sur la page **Paramètres** du dépôt dans Code, cliquez sur **Modifier les paramètres** et choisissez le Runner à l'étape **Agent Runbook**. Le Runner prend en compte le changement à son prochain heartbeat, en une minute environ ; il n'y a rien à redémarrer.
+Sur la page **Paramètres** du dépôt dans Code, cliquez sur **Modifier** sur la carte **Agent Runbook** et choisissez le Runner. Le Runner prend en compte le changement à son prochain heartbeat, en une minute environ ; il n'y a rien à redémarrer.
 
 ### Vérifier qu'il se connecte
 
