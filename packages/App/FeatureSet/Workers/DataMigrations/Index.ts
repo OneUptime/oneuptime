@@ -123,6 +123,7 @@ import RemoveNotificationSettingsOfNonMembers from "./RemoveNotificationSettings
 import MoveHuntressConnectionsToWorkflows from "./MoveHuntressConnectionsToWorkflows";
 import RecordContainerPercentMetricUnits from "./RecordContainerPercentMetricUnits";
 import MoveRunbookSecretsAndCredentialsToVariables from "./MoveRunbookSecretsAndCredentialsToVariables";
+import RemoveRunbookCredentials from "./RemoveRunbookCredentials";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import BackfillFirstPagedAt from "./BackfillFirstPagedAt";
 import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
@@ -802,12 +803,23 @@ const DataMigrations: Array<DataMigrationBase> = [
    * variable of the same name, every credential a step names the secret
    * variables its key, password or kubeconfig went into, and every SSH and
    * Kubernetes step is rewritten to a script that uses them, doing what it
-   * did. The legacy secrets table and the credentials stay. After
-   * AddRunbookVariable1804265000000; idempotent; no other ordering
-   * requirement, so it sits before the last slot AddAuditLogMcpClientColumns
-   * asserts for itself.
+   * did. The legacy secrets table stays. After AddRunbookVariable1804265000000
+   * and before RemoveRunbookCredentials, which deletes the credentials this
+   * reads; idempotent.
    */
   new MoveRunbookSecretsAndCredentialsToVariables(),
+  /*
+   * Runbook credentials (Runbooks > Runners > AI Access) are removed: the
+   * runbook steps that still name one move to variables as above (secrets
+   * left alone - they all moved already), the moved Kubernetes steps drop
+   * the credential and action they kept for an older Runner, the Kubernetes
+   * clusters bound to a Runner outside them are cleared, and every
+   * credential is deleted. After MoveRunbookSecretsAndCredentialsToVariables
+   * (it reads the credentials this deletes) and the schema migration
+   * RemoveRunbookCredentials; idempotent; it sits before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new RemoveRunbookCredentials(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

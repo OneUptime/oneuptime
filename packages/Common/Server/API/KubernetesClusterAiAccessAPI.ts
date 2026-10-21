@@ -64,7 +64,6 @@ import RunnerJobService from "../Services/RunnerJobService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger from "../Utils/Logger";
 import CallerPermission from "../Utils/Permission/CallerPermission";
-import RunbookCredentialReaders from "../Utils/AutoRemediation/RunbookCredentialReaders";
 import InvestigationReportSummary from "../Utils/AI/SRE/InvestigationReportSummary";
 import AiActivityInsightsReader, {
   AiActivityInsightsScope,
@@ -83,14 +82,13 @@ const router: ExpressRouter = Express.getRouter();
 /*
  * The custom calls behind a cluster's AI pages (AI → Insights, AI → Logs
  * and AI → Agent). Everything else there is ordinary CRUD on
- * KubernetesCluster (the two switches, the allowlist, an advanced Runner
- * and credential).
+ * KubernetesCluster (the two switches, the allowlist, the previous
+ * in-cluster Runner's binding).
  *
  *   POST /kubernetes-cluster/ai-access/status       { clusterId }
  *     The readiness checklist: can OneUptime AI reach this cluster, through
  *     which access target, what may it do, and what is missing. Requires
- *     read access to the cluster; the credential's name (and descriptions
- *     that name it) additionally need permission to read credentials.
+ *     read access to the cluster.
  *
  *   POST /kubernetes-cluster/ai-access/test         { clusterId }
  *     Runs `kubectl version` and `kubectl auth can-i --list` through the
@@ -502,7 +500,6 @@ async function runAccessTestCommand(data: {
   projectId: ObjectID;
   clusterId: ObjectID;
   runnerId: ObjectID;
-  credentialId?: string | undefined;
   command: string;
   stepId: string;
 }): Promise<KubectlJobOutcome> {
@@ -511,7 +508,6 @@ async function runAccessTestCommand(data: {
     origin: RunnerJobOrigin.AiInvestigation,
     kubernetesClusterId: data.clusterId,
     targetRunnerId: data.runnerId,
-    credentialId: data.credentialId,
     command: data.command,
     stepId: data.stepId,
     timeoutInMs: DEFAULT_KUBECTL_TIMEOUT_MS,
@@ -519,13 +515,6 @@ async function runAccessTestCommand(data: {
     isAccessTest: true,
   });
 }
-
-/*
- * Stands in for a gap description that names the Kubernetes credential,
- * for a caller who may read the cluster but not credentials.
- */
-export const RESTRICTED_CREDENTIAL_GAP_DESCRIPTION: string =
-  "The Kubernetes credential this cluster's Runner needs is missing or cannot be used. Someone who can view Runner credentials can see which one on this page.";
 
 /*
  * Resetting the agent locks out whatever holds its key, and the real pod
@@ -582,59 +571,6 @@ async function assertCanChangeClusterToResetAgent(data: {
   });
 }
 
-/*
- * The status as this caller may see it. Reading the cluster shows its
- * readiness; the credential's name — and gap descriptions that name it —
- * additionally need permission to read credentials, the rule the AI page's
- * credential picker and the investigation panel apply. The credential id is
- * left out with it. Everything the route itself does uses the full status.
- */
-export function toViewerStatus(data: {
-  status: KubernetesClusterAiAccessStatus;
-  canReadCredentials: boolean;
-}): KubernetesClusterAiAccessStatus {
-  if (data.canReadCredentials) {
-    return data.status;
-  }
-
-  const viewerStatus: KubernetesClusterAiAccessStatus = {
-    ...data.status,
-    gaps: data.status.gaps.map(
-      (gap: KubernetesAiAccessGap): KubernetesAiAccessGap => {
-        return gap.code === "credential_missing"
-          ? { ...gap, description: RESTRICTED_CREDENTIAL_GAP_DESCRIPTION }
-          : gap;
-      },
-    ),
-  };
-
-  delete viewerStatus.credentialId;
-  delete viewerStatus.credentialName;
-
-  return viewerStatus;
-}
-
-function canReadCredentials(
-  props: DatabaseCommonInteractionProps,
-  projectId: ObjectID,
-): boolean {
-  /*
-   * The permissions that read runbook credentials
-   * (RunbookCredentialReaders.getReadPermissions). A block row for any of
-   * them is a denial even when a grant is present, labelled or not: a
-   * credential's name says nothing about its labels.
-   */
-  if (props.isRoot || props.isMasterAdmin) {
-    return true;
-  }
-
-  return CallerPermission.holdsAnyOf(
-    props,
-    RunbookCredentialReaders.getReadPermissions(),
-    { projectId: projectId, labelledBlocksRefuse: true },
-  );
-}
-
 router.post(
   "/kubernetes-cluster/ai-access/status",
   UserMiddleware.getUserMiddleware,
@@ -666,10 +602,7 @@ router.post(
       Response.sendJsonObjectResponse(
         req,
         res,
-        toViewerStatus({
-          status,
-          canReadCredentials: canReadCredentials(props, tenantId),
-        }) as unknown as JSONObject,
+        status as unknown as JSONObject,
       );
       return;
     } catch (err) {
@@ -691,7 +624,6 @@ async function startAccessTest(data: {
   clusterId: ObjectID;
   userId: ObjectID;
   runnerId: ObjectID;
-  credentialId?: string | undefined;
   command: string;
 }): Promise<{ outcome?: KubectlJobOutcome | undefined; error?: unknown }> {
   const userLock: SemaphoreMutex = await lockUserForAccessTestStart(
@@ -709,7 +641,6 @@ async function startAccessTest(data: {
         projectId: data.projectId,
         clusterId: data.clusterId,
         runnerId: data.runnerId,
-        credentialId: data.credentialId,
         command: data.command,
         stepId: getAiAccessTestStepId({
           commandNumber: 1,
@@ -754,11 +685,6 @@ router.post(
 
       await assertCanEditCluster({ props, projectId: tenantId, cluster });
 
-      const viewerCanReadCredentials: boolean = canReadCredentials(
-        props,
-        tenantId,
-      );
-
       // One test at a time per cluster: an atomic reservation, held to the end.
       const reservation: string = await reserveClusterForAccessTest(
         cluster.id!,
@@ -801,10 +727,7 @@ router.post(
               ? `${transportGap.title}. ${transportGap.nextStep}`
               : "Nothing can reach this cluster yet: install the Kubernetes AI agent.",
             results: [],
-            status: toViewerStatus({
-              status,
-              canReadCredentials: viewerCanReadCredentials,
-            }) as unknown as JSONObject,
+            status: status as unknown as JSONObject,
           });
           return;
         }
@@ -821,7 +744,6 @@ router.post(
           clusterId: cluster.id!,
           userId: props.userId!,
           runnerId,
-          credentialId: status.credentialId,
           command: AI_ACCESS_TEST_COMMANDS[0]!,
         });
 
@@ -843,7 +765,6 @@ router.post(
                 projectId: tenantId,
                 clusterId: cluster.id!,
                 runnerId,
-                credentialId: status.credentialId,
                 command,
                 stepId: getAiAccessTestStepId({
                   commandNumber: index + 1,
@@ -898,10 +819,7 @@ router.post(
               }.`
             : "kubectl could not run successfully — see the command output below.",
           results,
-          status: toViewerStatus({
-            status: refreshed || status,
-            canReadCredentials: viewerCanReadCredentials,
-          }) as unknown as JSONObject,
+          status: (refreshed || status) as unknown as JSONObject,
         });
         return;
       } finally {
@@ -1410,10 +1328,7 @@ router.post(
           "The Kubernetes AI agent was reset. It reconnects on its own within a few minutes.",
         ...(status
           ? {
-              status: toViewerStatus({
-                status,
-                canReadCredentials: canReadCredentials(props, tenantId),
-              }) as unknown as JSONObject,
+              status: status as unknown as JSONObject,
             }
           : {}),
       });

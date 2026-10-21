@@ -3,7 +3,7 @@ import DatabaseService from "./DatabaseService";
 import KubernetesClusterAiAccessService from "./KubernetesClusterAiAccessService";
 import KubernetesClusterFeedService from "./KubernetesClusterFeedService";
 import KubernetesClusterService from "./KubernetesClusterService";
-import RunnerService, { Service as RunnerServiceClass } from "./RunnerService";
+import RunnerService from "./RunnerService";
 import UserService from "./UserService";
 import Model from "../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
@@ -228,13 +228,6 @@ const CLUSTER_SELECT: Select<KubernetesCluster> = {
   aiRemediationMode: true,
   aiAccessConfiguredAt: true,
   aiAccessRunnerId: true,
-};
-
-// What deciding "is this binding a Runner an operator chose?" reads.
-const BOUND_RUNNER_SELECT: Select<Runner> = {
-  _id: true,
-  name: true,
-  hostInfo: true,
 };
 
 /*
@@ -628,8 +621,8 @@ export class Service extends DatabaseService<Model> {
      *
      * What AI may do: the agent's own settings when they decide here, else
      * — an agent too old to report them, a cluster an operator configured
-     * or bound to a Runner — the first-connection defaults, which leave a
-     * configured cluster alone.
+     * — the first-connection defaults, which leave a configured cluster
+     * alone.
      */
     const settingsApplied: KubernetesAiAgentSettingsApplied | null =
       await this.applyReportedAiSettingsSafely({
@@ -840,49 +833,22 @@ export class Service extends DatabaseService<Model> {
    */
 
   /*
-   * Is the cluster bound to a Runner an operator chose — one that is not a
-   * kubernetes-agent row? AI then reaches the cluster through that Runner,
-   * not the agent, so the agent's configuration does not decide what AI may
-   * do there. A binding whose Runner is gone is none (the foreign key nulls
-   * it).
-   */
-  @CaptureSpan()
-  public async isBoundToAdvancedRunner(
-    cluster: Pick<KubernetesCluster, "aiAccessRunnerId" | "projectId">,
-  ): Promise<boolean> {
-    if (!cluster.aiAccessRunnerId) {
-      return false;
-    }
-
-    const runner: Runner | null = await RunnerService.findOneBy({
-      query: {
-        _id: cluster.aiAccessRunnerId.toString(),
-        ...(cluster.projectId ? { projectId: cluster.projectId } : {}),
-      },
-      select: BOUND_RUNNER_SELECT,
-      props: { isRoot: true },
-    });
-
-    return (
-      Boolean(runner) && !RunnerServiceClass.isKubernetesAgentRunnerRow(runner)
-    );
-  }
-
-  /*
    * Where a cluster's investigation and fixes are set: by its agent's
    * configuration, by its agent's defaults (only while nobody chose them on
-   * the AI agent page), or in OneUptime. See getAgentAiSettingsSource.
+   * the AI agent page), or in OneUptime. See getAgentAiSettingsSource. The
+   * agent is always what runs AI's kubectl when it reports settings: a
+   * Runner an operator bound with a Kubernetes runbook credential ran it
+   * instead until runbook credentials were removed.
    */
   public getAiSettingsSource(data: {
     // The agent's reported settings; undefined: no agent, or one too old.
     reported: AgentAiSettings | undefined;
     cluster: Pick<KubernetesCluster, "aiAccessConfiguredAt">;
-    isBoundToAdvancedRunner: boolean;
   }): AgentAiSettingsSource {
     return getAgentAiSettingsSource({
       reported: data.reported,
       isChosenInOneUptime: Boolean(data.cluster.aiAccessConfiguredAt),
-      isAgentTheExecutor: !data.isBoundToAdvancedRunner,
+      isAgentTheExecutor: true,
     });
   }
 
@@ -939,8 +905,6 @@ export class Service extends DatabaseService<Model> {
   public async applyReportedAiSettings(data: {
     cluster: KubernetesCluster;
     reported: AgentAiSettings | undefined;
-    // Read here when the caller has not.
-    isBoundToAdvancedRunner?: boolean | undefined;
   }): Promise<KubernetesAiAgentSettingsApplied | null> {
     const { cluster, reported } = data;
 
@@ -948,14 +912,9 @@ export class Service extends DatabaseService<Model> {
       return null;
     }
 
-    const isBoundToAdvancedRunner: boolean =
-      data.isBoundToAdvancedRunner ??
-      (await this.isBoundToAdvancedRunner(cluster));
-
     const source: AgentAiSettingsSource = this.getAiSettingsSource({
       reported,
       cluster,
-      isBoundToAdvancedRunner,
     });
 
     if (!isAgentAiSettingsSourceAgent(source)) {
@@ -1094,9 +1053,7 @@ export class Service extends DatabaseService<Model> {
    * Where each of these clusters' settings are set, for the update hook
    * that refuses an operator's change while the agent decides. The agent
    * rows are read here unless the caller already read them (one query per
-   * project), and a bound Runner only for a cluster whose agent reports
-   * settings at all — every other cluster reads "oneuptime" whatever it is
-   * bound to. Keyed by cluster id.
+   * project). Keyed by cluster id.
    */
   @CaptureSpan()
   public async getAiSettingsSourcesForClusters(data: {
@@ -1137,60 +1094,6 @@ export class Service extends DatabaseService<Model> {
         kubernetesClusterIds: clusterIds,
       }));
 
-    const runnerIds: Array<string> = Array.from(
-      new Set(
-        data.clusters
-          .filter(
-            (
-              cluster: Pick<
-                KubernetesCluster,
-                "id" | "_id" | "aiAccessRunnerId"
-              >,
-            ): boolean => {
-              const agent: Model | undefined = agents.get(
-                cluster.id?.toString() || cluster._id?.toString() || "",
-              );
-
-              return Boolean(
-                cluster.aiAccessRunnerId &&
-                  agent &&
-                  parseKubernetesAgentPosture(agent.posture)?.aiSettings,
-              );
-            },
-          )
-          .map(
-            (cluster: Pick<KubernetesCluster, "aiAccessRunnerId">): string => {
-              return cluster.aiAccessRunnerId?.toString() || "";
-            },
-          )
-          .filter(Boolean),
-      ),
-    );
-
-    const runners: Array<Runner> =
-      runnerIds.length > 0
-        ? await RunnerService.findBy({
-            query: {
-              _id: QueryHelper.any(runnerIds),
-              projectId: data.projectId,
-            },
-            select: BOUND_RUNNER_SELECT,
-            limit: LIMIT_MAX,
-            skip: 0,
-            props: { isRoot: true },
-          })
-        : [];
-
-    const advancedRunnerIds: Set<string> = new Set<string>(
-      runners
-        .filter((runner: Runner): boolean => {
-          return !RunnerServiceClass.isKubernetesAgentRunnerRow(runner);
-        })
-        .map((runner: Runner): string => {
-          return runner.id?.toString() || runner._id?.toString() || "";
-        }),
-    );
-
     for (const cluster of data.clusters) {
       const clusterId: string =
         cluster.id?.toString() || cluster._id?.toString() || "";
@@ -1208,10 +1111,6 @@ export class Service extends DatabaseService<Model> {
             ? parseKubernetesAgentPosture(agent.posture)?.aiSettings
             : undefined,
           cluster,
-          isBoundToAdvancedRunner: Boolean(
-            cluster.aiAccessRunnerId &&
-              advancedRunnerIds.has(cluster.aiAccessRunnerId.toString()),
-          ),
         }),
       );
     }

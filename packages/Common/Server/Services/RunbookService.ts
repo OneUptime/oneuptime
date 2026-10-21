@@ -1,36 +1,16 @@
 import ProjectReferencesService from "./ProjectReferencesService";
 import RunbookLabelRuleEngineService from "./RunbookLabelRuleEngineService";
 import RunbookOwnerRuleEngineService from "./RunbookOwnerRuleEngineService";
-import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Model from "../../Models/DatabaseModels/Runbook";
-import RunbookCredential from "../../Models/DatabaseModels/RunbookCredential";
-import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { JSONArray } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import {
-  isMovedKubernetesStepConfig,
-  mayKeepLegacyKubernetesFields,
-  withoutLegacyKubernetesFields,
-} from "../../Types/Runbook/RunbookLegacySteps";
 import RunbookStepType from "../../Types/Runbook/RunbookStepType";
 import { parseSingleRunbookVariableReference } from "../../Types/Runbook/RunbookVariableReference";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { JsonReferenceColumn } from "../Utils/Database/ProjectReferenceCheck";
-import {
-  getReferenceRefusalMessage,
-  normalizeReferenceId,
-  UnreadableReferenceException,
-} from "../Utils/Database/ProjectScopedReferenceRefusal";
-import ProjectScopedReferenceValidator, {
-  ProjectScopedReference,
-} from "../Utils/Database/ProjectScopedReferenceValidator";
-import DatabaseService from "./DatabaseService";
+import { normalizeReferenceId } from "../Utils/Database/ProjectScopedReferenceRefusal";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
-import RunbookCredentialReaders from "../Utils/AutoRemediation/RunbookCredentialReaders";
-import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import BadDataException from "../../Types/Exception/BadDataException";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import RunbookScheduler from "../Utils/Runbook/RunbookScheduler";
@@ -48,7 +28,7 @@ import {
 } from "../../Types/Runbook/RunbookSchedule";
 import crypto from "crypto";
 
-// The steps that run with a credential: SSH and Kubernetes.
+// The steps that ran with a runbook credential: SSH and Kubernetes.
 const CREDENTIAL_STEP_TYPES: Array<string> = [
   RunbookStepType.SSH,
   RunbookStepType.Kubernetes,
@@ -69,6 +49,14 @@ export const STEP_SECRET_IN_STEP_MESSAGE: string =
   "keeps a key, a password or a kubeconfig in the step itself, where everyone who may read this runbook could read it. Keep it in a secret runbook variable and pick that variable in the step.";
 
 /*
+ * What a save that names a runbook credential the runbook does not hold
+ * already is told. Runbook credentials are gone: an SSH or kubectl step
+ * signs in with a secret runbook variable.
+ */
+export const STEP_NAMES_REMOVED_CREDENTIAL_MESSAGE: string =
+  "names a runbook credential, and runbook credentials were removed. An SSH or kubectl step signs in with a secret runbook variable: give the step a script and pick the variable (for SSH, the host, user and the variable holding its key or password; for kubectl, the variable holding its kubeconfig). On the runbook's Steps page, Turn into a script step does this for a step written with a credential.";
+
+/*
  * The columns whose change moves when the schedule next runs: the schedule
  * itself, its switch, and the runbook's own. A change to any of them clears
  * the next run and any run waiting for the one before it (onUpdatePermitted)
@@ -87,61 +75,28 @@ export const RUNBOOK_SCHEDULE_NEEDS_CRON_MESSAGE: string =
   "Set when the runbook runs (Schedule Cron) before turning its schedule on.";
 
 /*
- * THE CREDENTIALS A RUNBOOK RUNS WITH ARE ONES ITS AUTHOR MAY READ.
+ * A STEP NAMES NO RUNBOOK CREDENTIAL.
  *
- * A runbook's SSH and Kubernetes steps name the credential they run with
- * (RunbookCredential: an SSH key, a service account token) in its steps, a
- * JSON column no metadata describes:
- *
- *   - a create or an update names one only when its caller may read
- *     credentials, as every record that names a setting holding credentials
- *     is held to its caller's read of that setting's table
- *     (RelationListPermission.isHeldToTableRead): a caller who may not is
- *     answered as if the credential were not there. An update asks only
- *     about the credentials some runbook it writes does not name already,
- *     so an edit that keeps a credential keeps it. Asked before the project
- *     check below, as the records any write names are asked about before
- *     its hooks run: a caller who may not read credentials gets the same
- *     answer for every credential, the project's or not;
- *   - each must be one of the project's credentials, checked with every
- *     other reference the runbook names, in the same answer
- *     (getJsonReferenceColumns).
- *
- * The Runner still checks, every time the step runs, that the credential is
- * the project's and assigned to it.
- *
- * A MOVED KUBERNETES STEP KEEPS ITS ACTION ONLY WHILE IT IS THE MOVED STEP.
- *
- * The data migration that moved Kubernetes steps to kubectl scripts kept
- * each step's credential and action beside its script and kubeconfig, for a
- * Runner older than kubectl scripts, which is handed the step that way
- * (RunbookLegacySteps). Every save - the Steps page, the API, Terraform -
- * keeps them only on a step that is still the one the runbook holds: the
- * same credential and action, kubeconfig and script, its script the one
- * its action became (getStepsWithoutChangedLegacyKubernetesFields). A step
- * whose script or kubeconfig changed loses them - before the credentials the
- * steps name are asked about, so the credential it no longer names is not -
- * and an older Runner fails it, saying to update, rather than run the old
- * action for a step that now says something else.
+ * A runbook's SSH and Kubernetes steps named the runbook credential they ran
+ * with (an SSH key, a service account token) until runbook variables, and
+ * runbook credentials are gone now: the data migrations moved every stored
+ * step that named one to the secret variables its key, password or
+ * kubeconfig went into (RunbookVariablesMove). So a create that names one is
+ * refused, saying what a step signs in with instead, and so is an update
+ * that names one some runbook it writes does not name already - an edit
+ * that keeps a step the runbook holds as it is (one written through the API
+ * and never moved) still saves; that step fails when it runs, saying to
+ * turn it into a script step.
  */
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
 
-  protected override getJsonReferenceColumns(): Array<JsonReferenceColumn> {
-    return [
-      {
-        column: "steps",
-        getReferences: Service.getStepCredentialReferences,
-      },
-    ];
-  }
-
   /*
-   * The credentials `steps` name - the credentialId of each SSH and
-   * Kubernetes step - each once, as written. A step that names none yet (a
-   * new step's empty picker) names nothing.
+   * The runbook credentials `steps` name - the credentialId of each SSH and
+   * Kubernetes step - each once, as written. A step that names none names
+   * nothing.
    */
   public static getStepCredentialIds(steps: unknown): Array<string> {
     const ids: Array<string> = [];
@@ -232,172 +187,44 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Whether `steps` hold a Kubernetes step moved from an action, which
-   * keeps its legacy fields beside its script (RunbookLegacySteps). Only a
-   * write of such steps reads the runbooks it writes for them.
+   * Why `steps` may not be saved because a step names a runbook credential
+   * that is not one of `heldIds` - the ones every runbook the write writes
+   * names already (none, for a create) - or null.
    */
-  public static hasMovedKubernetesSteps(steps: unknown): boolean {
-    return (Array.isArray(steps) ? steps : []).some(
-      (step: unknown): boolean => {
-        return (
-          Boolean(step) &&
-          typeof step === "object" &&
-          (step as Record<string, unknown>)["type"] ===
-            RunbookStepType.Kubernetes &&
-          isMovedKubernetesStepConfig(
-            (step as Record<string, unknown>)["config"],
-          )
-        );
-      },
-    );
-  }
-
-  /*
-   * `steps` as they are saved: each Kubernetes step moved from an action
-   * keeps the credential and action it kept for an older Runner only when
-   * every runbook the write writes holds it, under its id, as it is now -
-   * the same legacy fields, kubeconfig and script, its script the one its
-   * action became (mayKeepLegacyKubernetesFields). Any other loses them: one
-   * whose script or kubeconfig was changed, and one no runbook holds yet - a
-   * new runbook's (`heldStepsOfEachRunbook` empty) or a new step. Null when
-   * no step loses them.
-   */
-  public static getStepsWithoutChangedLegacyKubernetesFields(data: {
+  public static getRemovedCredentialRefusal(data: {
     steps: unknown;
-    heldStepsOfEachRunbook: Array<unknown>;
-  }): Array<unknown> | null {
-    if (!Array.isArray(data.steps)) {
-      return null;
-    }
-
-    let isChanged: boolean = false;
-
-    const steps: Array<unknown> = data.steps.map((step: unknown): unknown => {
+    heldIds: Array<Set<string>>;
+  }): string | null {
+    for (const step of Array.isArray(data.steps) ? data.steps : []) {
       if (!step || typeof step !== "object") {
-        return step;
+        continue;
       }
 
-      const values: Record<string, unknown> = step as Record<string, unknown>;
+      const ids: Array<string> = Service.getStepCredentialIds([step]);
+
+      const id: string | undefined = ids[0];
 
       if (
-        values["type"] !== RunbookStepType.Kubernetes ||
-        !isMovedKubernetesStepConfig(values["config"])
+        id === undefined ||
+        (data.heldIds.length > 0 &&
+          data.heldIds.every((held: Set<string>): boolean => {
+            return held.has(normalizeReferenceId(id));
+          }))
       ) {
-        return step;
+        continue;
       }
 
-      const isHeldAsItIs: boolean =
-        data.heldStepsOfEachRunbook.length > 0 &&
-        data.heldStepsOfEachRunbook.every((heldSteps: unknown): boolean => {
-          const held: Record<string, unknown> | undefined =
-            Service.findStepById(heldSteps, values["id"]);
+      const title: unknown = (step as Record<string, unknown>)["title"];
+      const type: unknown = (step as Record<string, unknown>)["type"];
+      const name: string =
+        typeof title === "string" && title.trim()
+          ? `"${title.trim().slice(0, 80)}"`
+          : `of type ${String(type)}`;
 
-          return (
-            held !== undefined &&
-            held["type"] === RunbookStepType.Kubernetes &&
-            mayKeepLegacyKubernetesFields({
-              config: values["config"],
-              heldConfig: held["config"],
-            })
-          );
-        });
-
-      if (isHeldAsItIs) {
-        return step;
-      }
-
-      isChanged = true;
-
-      return {
-        ...values,
-        config: withoutLegacyKubernetesFields(
-          values["config"] as Record<string, unknown>,
-        ),
-      };
-    });
-
-    return isChanged ? steps : null;
-  }
-
-  // The step of `steps` (a runbook's, as stored) with the id `id`.
-  private static findStepById(
-    steps: unknown,
-    id: unknown,
-  ): Record<string, unknown> | undefined {
-    if (typeof id !== "string" || !id || !Array.isArray(steps)) {
-      return undefined;
+      return `The step ${name} ${STEP_NAMES_REMOVED_CREDENTIAL_MESSAGE}`;
     }
 
-    return steps.find((step: unknown): boolean => {
-      return (
-        Boolean(step) &&
-        typeof step === "object" &&
-        (step as Record<string, unknown>)["id"] === id
-      );
-    }) as Record<string, unknown> | undefined;
-  }
-
-  // The credentials `steps` name, as references the project check looks up.
-  public static getStepCredentialReferences(
-    steps: unknown,
-  ): Array<ProjectScopedReference> {
-    return Service.getStepCredentialIds(steps).map(
-      (id: string): ProjectScopedReference => {
-        return {
-          modelName: "Credential",
-          id: id,
-          service: ProjectScopedReferenceValidator.getLookupService(
-            RunbookCredential,
-          ) as unknown as DatabaseService<DatabaseBaseModel>,
-        };
-      },
-    );
-  }
-
-  /*
-   * Whether `props` may name credentials in a runbook's steps: whether it
-   * may read them (RunbookCredentialReaders - the one rule for letting a
-   * command use a credential). OneUptime and master admins may; a
-   * workflow's step may not.
-   */
-  public static mayNameCredentials(
-    props: DatabaseCommonInteractionProps,
-  ): boolean {
-    return RunbookCredentialReaders.mayRead(props);
-  }
-
-  /*
-   * Refuses `ids` - the credentials a write by a caller who may not read
-   * credentials names, that its runbooks do not name already - in the words
-   * every reference check answers with; a workflow's step is told plainly
-   * that a person has to name them. Nothing to refuse when there are none.
-   */
-  public static refuseCredentialsNamed(
-    ids: Array<string>,
-    props?: DatabaseCommonInteractionProps | undefined,
-  ): void {
-    if (ids.length === 0) {
-      return;
-    }
-
-    const workflowNote: string = props
-      ? RunbookCredentialReaders.getWorkflowNote(props)
-      : "";
-
-    if (workflowNote) {
-      throw new NotAuthorizedException(
-        `Naming a runbook credential in a runbook's steps takes permission to read runbook credentials: ${RunbookCredentialReaders.getTitles()}.${workflowNote}`,
-      );
-    }
-
-    throw new UnreadableReferenceException(
-      getReferenceRefusalMessage({
-        subject: "runbook",
-        described: ids.map((id: string): string => {
-          return `Credential "${id}"`;
-        }),
-      }),
-    );
+    return null;
   }
 
   // Before the project check (the base hooks run this first). See the top of this file.
@@ -412,25 +239,15 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException(secretRefusal);
     }
 
-    /*
-     * A new runbook holds no step yet, so none of its steps keeps the
-     * action a moved Kubernetes step keeps for an older Runner.
-     */
-    const createdSteps: Array<unknown> | null =
-      Service.getStepsWithoutChangedLegacyKubernetesFields({
+    // A new runbook holds no step yet, so it may name no runbook credential.
+    const credentialRefusal: string | null =
+      Service.getRemovedCredentialRefusal({
         steps: createBy.data.steps,
-        heldStepsOfEachRunbook: [],
+        heldIds: [],
       });
 
-    if (createdSteps) {
-      createBy.data.steps = createdSteps as JSONArray;
-    }
-
-    if (!Service.mayNameCredentials(createBy.props)) {
-      Service.refuseCredentialsNamed(
-        Service.getStepCredentialIds(createBy.data.steps),
-        createBy.props,
-      );
+    if (credentialRefusal) {
+      throw new BadDataException(credentialRefusal);
     }
 
     /*
@@ -473,18 +290,7 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException(secretRefusal);
     }
 
-    await this.dropChangedLegacyKubernetesFields(updateBy);
-
-    const named: Array<string> = Service.getStepCredentialIds(
-      (updateBy.data as unknown as Record<string, unknown>)["steps"],
-    );
-
-    if (named.length > 0 && !Service.mayNameCredentials(updateBy.props)) {
-      Service.refuseCredentialsNamed(
-        await this.findCredentialsNotHeld({ updateBy: updateBy, ids: named }),
-        updateBy.props,
-      );
-    }
+    await this.assertNamesNoRemovedCredential(updateBy);
 
     await this.checkTriggerUpdate(updateBy);
   }
@@ -791,24 +597,22 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * An update's steps without the legacy fields of a moved Kubernetes step
-   * it changed (getStepsWithoutChangedLegacyKubernetesFields), judged
-   * against the runbooks it writes - those its caller may write, the update
-   * held to them (findRowsAndHoldUpdateToThem). Reads nothing for steps
-   * that hold no moved Kubernetes step, or for an update that writes none.
+   * Refuses an update whose steps name a runbook credential some runbook it
+   * writes does not name already (getRemovedCredentialRefusal). The
+   * runbooks are the ones the update writes - those its caller may write -
+   * and the update is held to them (findRowsAndHoldUpdateToThem), so a
+   * runbook the update cannot write says nothing and one this did not read
+   * is not written. Reads nothing for steps that name no credential, or an
+   * update that writes no steps.
    */
-  private async dropChangedLegacyKubernetesFields(
+  private async assertNamesNoRemovedCredential(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
-    const data: Record<string, unknown> = updateBy.data as unknown as Record<
-      string,
-      unknown
-    >;
+    const steps: unknown = (updateBy.data as unknown as Record<string, unknown>)[
+      "steps"
+    ];
 
-    if (
-      data["steps"] === undefined ||
-      !Service.hasMovedKubernetesSteps(data["steps"])
-    ) {
+    if (Service.getStepCredentialIds(steps).length === 0) {
       return;
     }
 
@@ -820,52 +624,18 @@ export class Service extends ProjectReferencesService<Model> {
       },
     );
 
-    const steps: Array<unknown> | null =
-      Service.getStepsWithoutChangedLegacyKubernetesFields({
-        steps: data["steps"],
-        heldStepsOfEachRunbook: runbooks.map((runbook: Model): unknown => {
-          return runbook.steps;
-        }),
-      });
-
-    if (steps) {
-      data["steps"] = steps;
-    }
-  }
-
-  /*
-   * Of `ids`, the ones some runbook an update writes does not name already
-   * in its steps. The runbooks are the ones the update writes - those its
-   * caller may write - and the update is held to them
-   * (findRowsAndHoldUpdateToThem), so a runbook the update cannot write says
-   * nothing, one this did not read is not written, and an update that
-   * writes no runbook names no credential.
-   */
-  private async findCredentialsNotHeld(data: {
-    updateBy: UpdateBy<Model>;
-    ids: Array<string>;
-  }): Promise<Array<string>> {
-    const runbooks: Array<Model> = await this.findRowsAndHoldUpdateToThem(
-      data.updateBy,
-      {
-        _id: true,
-        steps: true,
-      },
-    );
-
-    const held: Array<Set<string>> = runbooks.map(
-      (runbook: Model): Set<string> => {
+    const refusal: string | null = Service.getRemovedCredentialRefusal({
+      steps,
+      heldIds: runbooks.map((runbook: Model): Set<string> => {
         return new Set<string>(
           Service.getStepCredentialIds(runbook.steps).map(normalizeReferenceId),
         );
-      },
-    );
-
-    return data.ids.filter((id: string): boolean => {
-      return held.some((ids: Set<string>): boolean => {
-        return !ids.has(normalizeReferenceId(id));
-      });
+      }),
     });
+
+    if (refusal) {
+      throw new BadDataException(refusal);
+    }
   }
 
   @CaptureSpan()

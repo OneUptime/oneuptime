@@ -1,20 +1,16 @@
-import RunbookCredentialService from "../../Services/RunbookCredentialService";
 import RunbookVariableService from "../../Services/RunbookVariableService";
 import RunnerService from "../../Services/RunnerService";
-import QueryHelper from "../../Types/Database/QueryHelper";
 import Encryption from "../Encryption";
 import logger from "../Logger";
 import { buildServiceAccountKubeconfig } from "./ServiceAccountKubeconfig";
-import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import RunbookVariable from "../../../Models/DatabaseModels/RunbookVariable";
 import Runner from "../../../Models/DatabaseModels/Runner";
-import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
 import {
   getKubectlScriptForLegacyKubernetesStep,
-  getLegacyKubernetesFields,
+  isMovedKubernetesStepConfig,
+  withoutLegacyKubernetesFields,
 } from "../../../Types/Runbook/RunbookLegacySteps";
 import {
   KubernetesStepConfig,
@@ -54,34 +50,39 @@ import {
  *     script; each Kubernetes step runs the kubectl command that makes the
  *     change its action made - the same PATCH, so a service account allowed
  *     only "patch" still may (RunbookLegacySteps) - with the kubeconfig;
- *   - a Runner is updated on its owner's schedule, and one older than
- *     kubectl scripts cannot run one. An SSH step's script is also sent as
- *     the command such a Runner runs, so a moved SSH step needs nothing
- *     more; a moved Kubernetes step keeps its credential and its action, as
- *     they were, beside the script and the kubeconfig, and such a Runner is
- *     handed the step that way and runs it as it always did - until its
- *     script or kubeconfig is changed (RunbookLegacySteps).
+ *   - a Runner is updated on its owner's schedule. An SSH step's script is
+ *     also sent as the command a Runner older than scripts runs, so a moved
+ *     SSH step needs nothing more; a moved Kubernetes step needs a Runner
+ *     that runs kubectl scripts, and an older one fails it, saying to
+ *     update the Runner.
+ *
+ * The first release of this move kept each moved Kubernetes step's
+ * credential and action beside its script, for a Runner older than kubectl
+ * scripts. Runbook credentials are gone now, and that with them: a moved
+ * step that still keeps them has them taken off (withoutLegacyKubernetesFields).
  *
  * A step whose credential is gone, or holds nothing to sign in with, is
- * left as it was: it fails as it would have. The credentials themselves stay
- * where they are, for what OneUptime AI's own commands reach through a
- * Runner (RunbookCredential) and for the moved Kubernetes steps an older
- * Runner runs. The secrets table ("RunbookSecret" and "RunbookSecretRunner")
- * stays too; nothing writes to it any more.
+ * left as it was: it fails as it would have. The secrets table
+ * ("RunbookSecret" and "RunbookSecretRunner") stays; nothing writes to it any
+ * more. The credentials table ("RunbookCredential" and
+ * "RunbookCredentialRunner") stays too, emptied by the data migration that
+ * removed runbook credentials (RunbookCredentialsRemoval) once it moved
+ * what the steps still named.
  *
- * Read through statements written against the legacy table, as the
- * migrations made it, since its model is gone; written through the
+ * Read through statements written against the legacy tables, as the
+ * migrations made them, since their models are gone; written through the
  * variable service (which encrypts the values) and, for the steps, one
  * statement per runbook - the runbook's own checks would refuse a runbook
- * that still names a credential that was deleted. Safe to run twice: a
- * variable whose name is there already is taken as moved, and a step moved
- * already takes a script, so it is not moved again and its credential is
- * not read. Never throws for one project: its failure is logged, and the
- * others go on.
+ * that still names a credential. Safe to run twice: a variable whose name
+ * is there already is taken as moved, and a step moved already takes a
+ * script, so it is not moved again and its credential is not read. Never
+ * throws for one project: its failure is logged, and the others go on.
  *
- * Run once by the Workers' data migration
- * MoveRunbookSecretsAndCredentialsToVariables, and tested against a migrated
- * Postgres (Tests/Server/Utils/Runbook/RunbookVariablesMovePostgres.test.ts).
+ * Run by the Workers' data migrations MoveRunbookSecretsAndCredentialsToVariables
+ * (secrets and credentials) and RemoveRunbookCredentials (credentials only,
+ * moveSecrets false: a secret variable deleted since the first move is never
+ * made again), and tested against a migrated Postgres
+ * (Tests/Server/Utils/Runbook/RunbookVariablesMovePostgres.test.ts).
  */
 
 export type LegacyQuery = (
@@ -113,6 +114,50 @@ export const LEGACY_SECRETS_SQL: string = `SELECT "_id", "projectId", "name", "d
 
 export const LEGACY_SECRET_RUNNERS_SQL: string = `SELECT "runbookSecretId", "runnerId" FROM "RunbookSecretRunner"`;
 
+export const LEGACY_CREDENTIAL_TABLE_SQL: string = `SELECT to_regclass('"RunbookCredential"') IS NOT NULL AS "hasCredentialTable", to_regclass('"RunbookCredentialRunner"') IS NOT NULL AS "hasCredentialRunnerTable"`;
+
+// The credentials of one project ($1) a move needs ($2, an array of ids).
+export const LEGACY_CREDENTIALS_SQL: string = `SELECT "_id", "name", "credentialType", "sshHostname", "sshPort", "sshUsername", "sshPrivateKey", "sshPassphrase", "sshPassword", "kubernetesApiServerUrl", "kubernetesServiceAccountToken", "kubernetesCaCertificate", "createdByUserId" FROM "RunbookCredential" WHERE "projectId" = $1 AND "_id" = ANY($2::uuid[]) AND "deletedAt" IS NULL`;
+
+// The Runners those credentials ($1, an array of ids) were assigned to.
+export const LEGACY_CREDENTIAL_RUNNERS_SQL: string = `SELECT "runbookCredentialId", "runnerId" FROM "RunbookCredentialRunner" WHERE "runbookCredentialId" = ANY($1::uuid[])`;
+
+// A RunbookCredential row as the Postgres driver returns it.
+export interface LegacyRunbookCredentialRow {
+  _id: string;
+  name: string | null;
+  credentialType: string | null;
+  sshHostname: string | null;
+  sshPort: number | null;
+  sshUsername: string | null;
+  sshPrivateKey: string | null;
+  sshPassphrase: string | null;
+  sshPassword: string | null;
+  kubernetesApiServerUrl: string | null;
+  kubernetesServiceAccountToken: string | null;
+  kubernetesCaCertificate: string | null;
+  createdByUserId: string | null;
+}
+
+// Which legacy credential tables a database has.
+export interface LegacyCredentialTables {
+  hasCredentialTable: boolean;
+  hasCredentialRunnerTable: boolean;
+}
+
+// The two kinds of credential, as the legacy table spells them.
+export const LEGACY_SSH_CREDENTIAL_TYPE: string = "SSH";
+export const LEGACY_KUBERNETES_CREDENTIAL_TYPE: string = "Kubernetes";
+
+/*
+ * What a password field wrote into an encrypted column before issue #3807
+ * was fixed: the ciphertext inside '{"_type":"HashedString","value":"..."}'.
+ * The model's service read through it (DatabaseService); a credential is
+ * read here without the model, so the envelope is unwrapped here too.
+ */
+const HASHED_STRING_ENVELOPE_PREFIX: string =
+  '{"_type":"HashedString","value":"';
+
 /*
  * The runbooks whose steps may name a credential or a runbook secret. Read
  * as text and filtered there first, so a project's other runbooks are never
@@ -132,6 +177,17 @@ export interface RunbookVariablesMoveSummary {
   stepsMoved: number;
   runbooksRewritten: number;
   projectsFailed: number;
+}
+
+// What one run of the move does.
+export interface RunbookVariablesMoveOptions {
+  /*
+   * Move runbook secrets too (the first move did). Off for the move the
+   * removal of runbook credentials runs: every secret moved the first time,
+   * and a variable deleted since must not be made again from the legacy
+   * table.
+   */
+  moveSecrets: boolean;
 }
 
 export const MOVED_FROM_CREDENTIAL_DESCRIPTION: string =
@@ -233,7 +289,8 @@ function reference(name: string): string {
 
 // The variables one credential became, by what each holds.
 export interface MovedCredential {
-  credentialType: RunbookCredentialType;
+  // LEGACY_SSH_CREDENTIAL_TYPE or LEGACY_KUBERNETES_CREDENTIAL_TYPE.
+  credentialType: string;
   // SSH
   host?: string | undefined;
   username?: string | undefined;
@@ -247,10 +304,10 @@ export interface MovedCredential {
 /*
  * A step, moved: an SSH step that named a credential signs in with its
  * variables and runs its command as its script; a Kubernetes step runs the
- * kubectl command its action made, with the kubeconfig, and keeps its
- * credential and action for an older Runner; a Bash or JavaScript step
- * names variables where it named runbook secrets. Null when nothing about
- * the step changes.
+ * kubectl command its action made, with the kubeconfig; a Kubernetes step
+ * moved already that kept its credential and action for an older Runner
+ * has them taken off; a Bash or JavaScript step names variables where it
+ * named runbook secrets. Null when nothing about the step changes.
  */
 export function moveStep(data: {
   step: JSONObject;
@@ -293,7 +350,7 @@ export function moveStep(data: {
 
     if (
       !moved ||
-      moved.credentialType !== RunbookCredentialType.SSH ||
+      moved.credentialType !== LEGACY_SSH_CREDENTIAL_TYPE ||
       !moved.signInVariable ||
       !moved.host ||
       !moved.username
@@ -322,6 +379,21 @@ export function moveStep(data: {
     return { ...data.step, config: next };
   }
 
+  /*
+   * Moved already by the first release of this move, which kept the step's
+   * credential and action for an older Runner: they are taken off, as
+   * runbook credentials are gone.
+   */
+  if (
+    type === RunbookStepType.Kubernetes &&
+    isMovedKubernetesStepConfig(values)
+  ) {
+    return {
+      ...data.step,
+      config: withoutLegacyKubernetesFields(values),
+    };
+  }
+
   if (
     type === RunbookStepType.Kubernetes &&
     isLegacyKubernetesStepConfig(values)
@@ -334,7 +406,7 @@ export function moveStep(data: {
 
     if (
       !moved ||
-      moved.credentialType !== RunbookCredentialType.Kubernetes ||
+      moved.credentialType !== LEGACY_KUBERNETES_CREDENTIAL_TYPE ||
       !moved.kubeconfigVariable
     ) {
       return null;
@@ -350,14 +422,6 @@ export function moveStep(data: {
       ...(legacy.claimTimeoutInMs !== undefined
         ? { claimTimeoutInMs: legacy.claimTimeoutInMs }
         : {}),
-      /*
-       * What a Runner older than kubectl scripts runs: the step as it was
-       * written - its credential and its action, exactly as they were - as
-       * a moved SSH step's script is also the command such a Runner runs.
-       * Kept while the script and the kubeconfig are these
-       * (RunbookLegacySteps).
-       */
-      ...getLegacyKubernetesFields(values),
     };
 
     return { ...data.step, config: next };
@@ -369,8 +433,8 @@ export function moveStep(data: {
 /*
  * The credentials `steps` name, each once, in lower case: those of the
  * steps a move rewrites, which name a credential and take no script. A
- * step moved already keeps its credential beside its script, for an older
- * Runner, and is not moved again.
+ * step moved already (one that kept its credential beside its script) is
+ * not moved again, and its credential is not read.
  */
 export function getCredentialIdsInSteps(
   steps: Array<JSONObject>,
@@ -405,6 +469,7 @@ export function getCredentialIdsInSteps(
 export default class RunbookVariablesMove {
   public static async moveAll(
     query: LegacyQuery = RunbookVariablesMove.defaultQuery(),
+    options: RunbookVariablesMoveOptions = { moveSecrets: true },
   ): Promise<RunbookVariablesMoveSummary> {
     const summary: RunbookVariablesMoveSummary = {
       secretsMoved: 0,
@@ -416,9 +481,9 @@ export default class RunbookVariablesMove {
       projectsFailed: 0,
     };
 
-    const tables: Record<string, unknown> | undefined = readRows<
-      Record<string, unknown>
-    >(await query(LEGACY_SECRET_TABLE_SQL))[0];
+    const tables: Record<string, unknown> | undefined = options.moveSecrets
+      ? readRows<Record<string, unknown>>(await query(LEGACY_SECRET_TABLE_SQL))[0]
+      : undefined;
 
     const secrets: Array<LegacyRunbookSecretRow> = tables?.["hasSecretTable"]
       ? readRows<LegacyRunbookSecretRow>(await query(LEGACY_SECRETS_SQL))
@@ -449,6 +514,16 @@ export default class RunbookVariablesMove {
       }
     }
 
+    const credentialTables: Record<string, unknown> | undefined = readRows<
+      Record<string, unknown>
+    >(await query(LEGACY_CREDENTIAL_TABLE_SQL))[0];
+
+    const legacyCredentialTables: LegacyCredentialTables = {
+      hasCredentialTable: credentialTables?.["hasCredentialTable"] === true,
+      hasCredentialRunnerTable:
+        credentialTables?.["hasCredentialRunnerTable"] === true,
+    };
+
     const runbooks: Array<RunbookStepsRow> = readRows<RunbookStepsRow>(
       await query(RUNBOOKS_TO_MOVE_SQL),
     );
@@ -477,6 +552,7 @@ export default class RunbookVariablesMove {
           runbooks: runbooks.filter((runbook: RunbookStepsRow) => {
             return String(runbook.projectId) === projectId;
           }),
+          legacyCredentialTables,
           query,
           summary,
         });
@@ -497,6 +573,8 @@ export default class RunbookVariablesMove {
     secrets: Array<LegacyRunbookSecretRow>;
     secretRunners: Map<string, Array<string>>;
     runbooks: Array<RunbookStepsRow>;
+    // Which legacy credential tables there are; none read for none.
+    legacyCredentialTables?: LegacyCredentialTables | undefined;
     query: LegacyQuery;
     summary: RunbookVariablesMoveSummary;
   }): Promise<void> {
@@ -579,6 +657,11 @@ export default class RunbookVariablesMove {
         projectId,
         credentialIds: [...credentialIds],
         names,
+        tables: data.legacyCredentialTables || {
+          hasCredentialTable: true,
+          hasCredentialRunnerTable: true,
+        },
+        query: data.query,
         summary: data.summary,
       });
 
@@ -624,12 +707,16 @@ export default class RunbookVariablesMove {
   /*
    * The variables each credential the steps name becomes, by credential id
    * (lower case). A credential of another project, one that is gone, or one
-   * with nothing to sign in with, becomes none.
+   * with nothing to sign in with, becomes none - and so does every one when
+   * the legacy table is gone. Read from the legacy table, as the migrations
+   * made it (its model is gone), each secret decrypted here.
    */
   public static async moveCredentials(data: {
     projectId: ObjectID;
     credentialIds: Array<string>;
     names: VariableNames;
+    tables: LegacyCredentialTables;
+    query: LegacyQuery;
     summary: RunbookVariablesMoveSummary;
   }): Promise<Map<string, MovedCredential>> {
     const moved: Map<string, MovedCredential> = new Map<
@@ -637,45 +724,33 @@ export default class RunbookVariablesMove {
       MovedCredential
     >();
 
-    if (data.credentialIds.length === 0) {
+    if (data.credentialIds.length === 0 || !data.tables.hasCredentialTable) {
       return moved;
     }
 
-    const credentials: Array<RunbookCredential> =
-      await RunbookCredentialService.findBy({
-        query: {
-          projectId: data.projectId,
-          _id: QueryHelper.any(data.credentialIds),
-        },
-        select: {
-          _id: true,
-          name: true,
-          credentialType: true,
-          sshHostname: true,
-          sshPort: true,
-          sshUsername: true,
-          sshPrivateKey: true,
-          sshPassphrase: true,
-          sshPassword: true,
-          kubernetesApiServerUrl: true,
-          kubernetesServiceAccountToken: true,
-          kubernetesCaCertificate: true,
-          createdByUserId: true,
-          runners: {
-            _id: true,
+    const credentials: Array<LegacyRunbookCredentialRow> =
+      readRows<LegacyRunbookCredentialRow>(
+        await data.query(LEGACY_CREDENTIALS_SQL, [
+          data.projectId.toString(),
+          data.credentialIds,
+        ]),
+      );
+
+    const credentialRunners: Map<string, Array<string>> =
+      await RunbookVariablesMove.readCredentialRunners({
+        credentialIds: credentials.map(
+          (credential: LegacyRunbookCredentialRow): string => {
+            return String(credential._id);
           },
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
+        ),
+        tables: data.tables,
+        query: data.query,
       });
 
     for (const credential of credentials) {
-      const id: string = credential.id?.toString().toLowerCase() || "";
+      const id: string = String(credential._id || "").toLowerCase();
 
-      if (!id) {
+      if (!ObjectID.isValidUUID(id)) {
         continue;
       }
 
@@ -683,14 +758,6 @@ export default class RunbookVariablesMove {
         credential.name || "",
         `credential-${id.slice(0, 8)}`,
       ).slice(0, RUNBOOK_VARIABLE_NAME_MAX_LENGTH - 30);
-
-      const runnerIds: Array<string> = (credential.runners || [])
-        .map((runner: Runner): string => {
-          return runner?._id?.toString() || "";
-        })
-        .filter((runnerId: string): boolean => {
-          return ObjectID.isValidUUID(runnerId);
-        });
 
       const description: string = MOVED_FROM_CREDENTIAL_DESCRIPTION.replace(
         "{{name}}",
@@ -706,14 +773,20 @@ export default class RunbookVariablesMove {
       } = {
         projectId: data.projectId,
         description,
-        runnerIds,
+        runnerIds: credentialRunners.get(id) || [],
         isAvailableToGlobalRunners: false,
-        createdByUserId: credential.createdByUserId?.toString(),
+        createdByUserId: credential.createdByUserId
+          ? String(credential.createdByUserId)
+          : undefined,
       };
 
-      if (credential.credentialType === RunbookCredentialType.SSH) {
-        const key: string = credential.sshPrivateKey || "";
-        const password: string = credential.sshPassword || "";
+      if (credential.credentialType === LEGACY_SSH_CREDENTIAL_TYPE) {
+        const key: string = await RunbookVariablesMove.readSecret(
+          credential.sshPrivateKey,
+        );
+        const password: string = await RunbookVariablesMove.readSecret(
+          credential.sshPassword,
+        );
 
         if (!key && !password) {
           continue;
@@ -727,19 +800,23 @@ export default class RunbookVariablesMove {
             ...common,
           });
 
+        const passphrase: string = key
+          ? await RunbookVariablesMove.readSecret(credential.sshPassphrase)
+          : "";
+
         let passphraseVariable: string | undefined = undefined;
 
-        if (key && credential.sshPassphrase) {
+        if (passphrase) {
           passphraseVariable = await RunbookVariablesMove.ensureVariable({
             names: data.names,
             name: `${base}-ssh-key-passphrase`,
-            secretValue: credential.sshPassphrase,
+            secretValue: passphrase,
             ...common,
           });
         }
 
         moved.set(id, {
-          credentialType: RunbookCredentialType.SSH,
+          credentialType: LEGACY_SSH_CREDENTIAL_TYPE,
           host: credential.sshHostname || "",
           username: credential.sshUsername || "",
           port: credential.sshPort || 22,
@@ -750,11 +827,12 @@ export default class RunbookVariablesMove {
         continue;
       }
 
-      if (credential.credentialType === RunbookCredentialType.Kubernetes) {
-        if (
-          !credential.kubernetesApiServerUrl ||
-          !credential.kubernetesServiceAccountToken
-        ) {
+      if (credential.credentialType === LEGACY_KUBERNETES_CREDENTIAL_TYPE) {
+        const token: string = await RunbookVariablesMove.readSecret(
+          credential.kubernetesServiceAccountToken,
+        );
+
+        if (!credential.kubernetesApiServerUrl || !token) {
           continue;
         }
 
@@ -764,7 +842,7 @@ export default class RunbookVariablesMove {
             name: `${base}-kubeconfig`,
             secretValue: buildServiceAccountKubeconfig({
               apiServerUrl: credential.kubernetesApiServerUrl,
-              token: credential.kubernetesServiceAccountToken,
+              token,
               caCertificate: credential.kubernetesCaCertificate || undefined,
               name: base,
             }),
@@ -772,7 +850,7 @@ export default class RunbookVariablesMove {
           });
 
         moved.set(id, {
-          credentialType: RunbookCredentialType.Kubernetes,
+          credentialType: LEGACY_KUBERNETES_CREDENTIAL_TYPE,
           kubeconfigVariable,
         });
         data.summary.credentialsMoved++;
@@ -780,6 +858,47 @@ export default class RunbookVariablesMove {
     }
 
     return moved;
+  }
+
+  /*
+   * The Runners each of these credentials was assigned to, by credential id
+   * (lower case). None when the join table is gone.
+   */
+  private static async readCredentialRunners(data: {
+    credentialIds: Array<string>;
+    tables: LegacyCredentialTables;
+    query: LegacyQuery;
+  }): Promise<Map<string, Array<string>>> {
+    const runners: Map<string, Array<string>> = new Map<
+      string,
+      Array<string>
+    >();
+
+    if (data.credentialIds.length === 0 || !data.tables.hasCredentialRunnerTable) {
+      return runners;
+    }
+
+    for (const row of readRows<Record<string, unknown>>(
+      await data.query(LEGACY_CREDENTIAL_RUNNERS_SQL, [data.credentialIds]),
+    )) {
+      const credentialId: string = String(
+        row["runbookCredentialId"] || "",
+      ).toLowerCase();
+      const runnerId: string = String(row["runnerId"] || "");
+
+      if (
+        !ObjectID.isValidUUID(credentialId) ||
+        !ObjectID.isValidUUID(runnerId)
+      ) {
+        continue;
+      }
+
+      const list: Array<string> = runners.get(credentialId) || [];
+      list.push(runnerId);
+      runners.set(credentialId, list);
+    }
+
+    return runners;
   }
 
   /*
@@ -879,15 +998,48 @@ export default class RunbookVariablesMove {
     });
   }
 
-  // A legacy secret's value, as stored (ciphertext) or as written before.
-  public static async readSecret(value: string | null): Promise<string> {
+  /*
+   * A legacy secret's value, as stored (ciphertext) or as written before -
+   * and, for a credential's password field, inside the HashedString
+   * envelope issue #3807 left (HASHED_STRING_ENVELOPE_PREFIX).
+   */
+  public static async readSecret(
+    value: string | null | undefined,
+  ): Promise<string> {
     if (!value) {
       return "";
     }
 
-    return Encryption.looksEncrypted(value)
-      ? await Encryption.decrypt(value)
-      : value;
+    const stored: string = RunbookVariablesMove.unwrapHashedStringEnvelope(
+      value,
+    );
+
+    return Encryption.looksEncrypted(stored)
+      ? await Encryption.decrypt(stored)
+      : stored;
+  }
+
+  // The string inside a HashedString envelope, or `value` as it is.
+  public static unwrapHashedStringEnvelope(value: string): string {
+    if (!value.startsWith(HASHED_STRING_ENVELOPE_PREFIX)) {
+      return value;
+    }
+
+    try {
+      const parsed: unknown = JSON.parse(value);
+
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        typeof (parsed as Record<string, unknown>)["value"] === "string"
+      ) {
+        return (parsed as Record<string, unknown>)["value"] as string;
+      }
+    } catch {
+      // Not JSON after all: kept as it is.
+    }
+
+    return value;
   }
 
   private static defaultQuery(): LegacyQuery {

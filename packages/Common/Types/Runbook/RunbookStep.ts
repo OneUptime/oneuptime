@@ -102,11 +102,13 @@ export interface AIStepConfig {
  * The host, the user and the script may name variables too, plain or
  * secret: "{{global.variables.DB_HOST}}".
  *
- * A step written before runbook variables names a credential instead
- * (credentialId) and its command (command). Such a step still runs as it
- * did; the data migration that brought variables in rewrote every stored
- * one (Common/Server/Utils/Runbook/RunbookVariablesMove), so only a step
- * written through the API since has that shape (isLegacySSHStepConfig).
+ * A step written before runbook variables names a runbook credential
+ * instead (credentialId) and its command (command). Runbook credentials are
+ * gone: the data migrations moved every stored step that named one to
+ * variables (Common/Server/Utils/Runbook/RunbookVariablesMove), a save that
+ * names a credential its runbook does not hold already is refused, and a
+ * step left with that shape (isLegacySSHStepConfig) fails when it runs,
+ * saying to turn it into a script step.
  */
 export interface SSHStepConfig {
   // The machine to sign in to: a host name or an address.
@@ -126,9 +128,9 @@ export interface SSHStepConfig {
   // The bash script to run on the machine.
   script?: string;
   /*
-   * LEGACY. The RunbookCredential (type SSH) holding the host, user and key,
-   * resolved for the Runner when it takes the step. Never set by the
-   * dashboard since runbook variables.
+   * LEGACY. The runbook credential (type SSH) that held the host, user and
+   * key. Runbook credentials are gone, so a step that names one no longer
+   * runs.
    */
   credentialId?: string;
   // LEGACY. The command a credential step runs on the host, verbatim.
@@ -141,10 +143,10 @@ export interface SSHStepConfig {
 
 /*
  * LEGACY. The two workload actions a Kubernetes step offered before it took
- * a kubectl script. A step written through the API with one still runs it
- * (the Runner's KubernetesExecutor), and so does a Runner older than kubectl
- * scripts for a step the data migration moved to one (RunbookLegacySteps);
- * the dashboard writes scripts only.
+ * a kubectl script, with a runbook credential. Runbook credentials are gone,
+ * so a step with one no longer runs: the data migrations moved every stored
+ * one to the kubectl script that does the same (RunbookLegacySteps), and the
+ * dashboard writes scripts only.
  */
 export enum KubernetesAction {
   // Rolling restart: stamps the pod template so the controller recreates pods.
@@ -172,14 +174,13 @@ export enum KubernetesWorkloadKind {
  * service account when the Runner runs inside the cluster.
  *
  * A step written before runbook variables restarted or scaled one workload
- * with a credential (credentialId, action, workloadKind, namespace,
- * workloadName, replicas). Such a step still runs as it did; the data
- * migration that brought variables in rewrote every stored one into the
- * kubectl script that does the same, so only a step written through the
- * API since has that shape (isLegacyKubernetesStepConfig). A step it moved
- * keeps those fields beside its script and kubeconfig, for a Runner older
- * than kubectl scripts, until its script or kubeconfig is changed
- * (RunbookLegacySteps, isMovedKubernetesStepConfig).
+ * with a runbook credential (credentialId, action, workloadKind, namespace,
+ * workloadName, replicas). Runbook credentials are gone: the data
+ * migrations rewrote every stored one into the kubectl script that does the
+ * same, with its kubeconfig in a secret variable, and took those fields off
+ * the steps they moved. A step left with that shape
+ * (isLegacyKubernetesStepConfig) fails when it runs, saying to turn it into
+ * a script step.
  */
 export interface KubernetesStepConfig {
   // The secret variable holding the cluster's kubeconfig, as one reference.
@@ -187,8 +188,9 @@ export interface KubernetesStepConfig {
   // The bash script of kubectl commands to run.
   script?: string;
   /*
-   * LEGACY. The RunbookCredential (type Kubernetes) holding the API server
-   * URL, the service-account token and the CA certificate.
+   * LEGACY. The runbook credential (type Kubernetes) that held the API
+   * server URL, the service-account token and the CA certificate. Runbook
+   * credentials are gone, so a step that names one no longer runs.
    */
   credentialId?: string;
   // LEGACY, with the fields below: the one workload action the step took.

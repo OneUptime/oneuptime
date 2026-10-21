@@ -38,26 +38,64 @@ export { AiRemediationCommandPolicyVerdict, MAX_COMMAND_LENGTH_CHARS };
  * AutoRemediationSuggestion.commandPlan (jsonb). Everything in here is
  * DATA authored by an AI run and frozen at settle time — approval executes
  * exactly what was recorded, never a re-derived command. Secret material
- * never appears here: commands reference credentials by id and the Runner
- * resolves them at claim time.
+ * never appears here, and no command carries a credential. (An SSH command
+ * named a runbook credential by id until runbook credentials were removed:
+ * a stored plan with one still reads, as history, but never runs -
+ * STORED_AI_COMMAND_STEP_TYPES.)
  */
 
 /*
- * The only step types an AI remediation run may compose. The structured
- * Kubernetes step (restart/scale) stays runbook-only; AI reaches a cluster
- * through the Kubectl step instead, whose argv is tiered by KubectlPolicy
- * and which targets a Runner the cluster's AI page bound. Every other
- * infrastructure resource (Docker, Podman, Swarm, Proxmox, VMware, Ceph, a
- * database server, a host) is reached through ResourceCommand, whose argv
- * is tiered by the resource command policy and which targets the
- * resource's own AI agent — never a Runner.
+ * The only step types an AI remediation run may compose, and the only ones
+ * that run. Bash runs on the Runner's own host. The structured Kubernetes
+ * step (restart/scale) stays runbook-only; AI reaches a cluster through the
+ * Kubectl step instead, whose argv is tiered by KubectlPolicy and which
+ * targets the cluster's Kubernetes AI agent (or the in-cluster Runner an
+ * older chart installed). Every other infrastructure resource (Docker,
+ * Podman, Swarm, Proxmox, VMware, Ceph, a database server, a host) is
+ * reached through ResourceCommand, whose argv is tiered by the resource
+ * command policy and which targets the resource's own AI agent — never a
+ * Runner.
+ *
+ * SSH is not one any more: it reached another host with a runbook
+ * credential assigned to the Runner, and runbook credentials were removed
+ * now that hosts and clusters have AI agents of their own. A runbook's SSH
+ * step (signing in with a secret runbook variable) is unaffected, and
+ * OneUptime AI may pick the runbook.
  */
 export const AI_COMMAND_STEP_TYPES: Array<RunbookStepType> = [
   RunbookStepType.Bash,
-  RunbookStepType.SSH,
   RunbookStepType.Kubectl,
   RunbookStepType.ResourceCommand,
 ];
+
+/*
+ * The step types a STORED plan may hold: what AI composes now, and SSH,
+ * which plans composed before runbook credentials were removed hold. A plan
+ * with an SSH command still reads - a suggestion's card shows what was
+ * proposed or ran - but approving it is refused and its SSH command never
+ * runs (isRemovedSshCommand).
+ */
+export const STORED_AI_COMMAND_STEP_TYPES: Array<RunbookStepType> = [
+  ...AI_COMMAND_STEP_TYPES,
+  RunbookStepType.SSH,
+];
+
+/*
+ * Whether a stored command is an SSH command OneUptime AI composed before
+ * runbook credentials were removed: one that no longer runs.
+ */
+export function isRemovedSshCommand(command: {
+  stepType: RunbookStepType;
+}): boolean {
+  return command.stepType === RunbookStepType.SSH;
+}
+
+/*
+ * What approving a plan that holds such a command is answered, and what
+ * such a command's record says when a run reaches it.
+ */
+export const REMOVED_SSH_COMMAND_MESSAGE: string =
+  "OneUptime AI no longer runs SSH commands: they reached a host with a runbook credential, and runbook credentials were removed. Dismiss this suggestion. A host with the Host AI agent is fixed through it, and a runbook with an SSH step can be picked for a fix.";
 
 export enum AiRemediationCommandExecutionStatus {
   Pending = "Pending",
@@ -101,20 +139,22 @@ export interface AiRemediationCommandExecutionState {
 export interface AiRemediationCommand {
   // 1-based position; plans execute strictly in sequence order.
   sequence: number;
-  // One of AI_COMMAND_STEP_TYPES. SSH requires credentialId.
+  /*
+   * One of STORED_AI_COMMAND_STEP_TYPES: what AI composes now
+   * (AI_COMMAND_STEP_TYPES), or SSH in a plan composed before runbook
+   * credentials were removed (isRemovedSshCommand), which never runs.
+   */
   stepType: RunbookStepType;
   /*
-   * The access target the command runs through. For Bash/SSH (and a
-   * Kubectl step through a Runner) a Runner row; for a Kubectl step through
-   * the Kubernetes AI agent the KubernetesAiAgent row id and
-   * KUBERNETES_AI_AGENT_DISPLAY_NAME; for a ResourceCommand step the
+   * The access target the command runs through. For Bash (and a Kubectl
+   * step through the previous in-cluster Runner) a Runner row; for a
+   * Kubectl step through the Kubernetes AI agent the KubernetesAiAgent row
+   * id and KUBERNETES_AI_AGENT_DISPLAY_NAME; for a ResourceCommand step the
    * ResourceAiAgent row id and the type's agentDisplayName ("Docker AI
    * agent").
    */
   runnerId: string;
   runnerNameSnapshot: string;
-  credentialId?: string | undefined;
-  credentialNameSnapshot?: string | undefined;
   /*
    * Kubectl only: the cluster the command runs against and the tier
    * KubectlPolicy assigned when the plan was composed. The tier is
@@ -433,7 +473,7 @@ export class AiRemediationCommandPlanUtil {
       const obj: JSONObject = item as JSONObject;
 
       const stepType: string = String(obj["stepType"] || "");
-      if (!AI_COMMAND_STEP_TYPES.includes(stepType as RunbookStepType)) {
+      if (!STORED_AI_COMMAND_STEP_TYPES.includes(stepType as RunbookStepType)) {
         return null;
       }
 
@@ -446,13 +486,6 @@ export class AiRemediationCommandPlanUtil {
       }
 
       if (command.length > MAX_COMMAND_LENGTH_CHARS) {
-        return null;
-      }
-
-      if (
-        stepType === RunbookStepType.SSH &&
-        (typeof obj["credentialId"] !== "string" || !obj["credentialId"].trim())
-      ) {
         return null;
       }
 
@@ -525,14 +558,6 @@ export class AiRemediationCommandPlanUtil {
               ? AI_RESOURCE_TYPE_INFO[resourceFields.resourceType]
                   .agentDisplayName
               : "Runner",
-        credentialId:
-          typeof obj["credentialId"] === "string"
-            ? obj["credentialId"]
-            : undefined,
-        credentialNameSnapshot:
-          typeof obj["credentialNameSnapshot"] === "string"
-            ? obj["credentialNameSnapshot"]
-            : undefined,
         kubernetesClusterId:
           typeof obj["kubernetesClusterId"] === "string"
             ? obj["kubernetesClusterId"]

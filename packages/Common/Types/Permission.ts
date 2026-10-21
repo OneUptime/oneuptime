@@ -1030,11 +1030,6 @@ enum Permission {
   DeleteRunbookSecret = "DeleteRunbookSecret",
   ReadRunbookSecret = "ReadRunbookSecret",
 
-  CreateRunbookCredential = "CreateRunbookCredential",
-  EditRunbookCredential = "EditRunbookCredential",
-  DeleteRunbookCredential = "DeleteRunbookCredential",
-  ReadRunbookCredential = "ReadRunbookCredential",
-
   CreateStatusPageGroup = "CreateStatusPageGroup",
   DeleteStatusPageGroup = "DeleteStatusPageGroup",
   EditStatusPageGroup = "EditStatusPageGroup",
@@ -5347,45 +5342,6 @@ export class PermissionHelper {
         title: "Read Runbook Variable",
         description:
           "This permission can read runbook variables. A secret's value is never returned by the API.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.Runbook,
-      },
-
-      {
-        permission: Permission.CreateRunbookCredential,
-        title: "Create Runbook Credential",
-        description:
-          "This permission can create runbook credentials (SSH keys, Kubernetes service account tokens).",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.Runbook,
-      },
-      {
-        permission: Permission.DeleteRunbookCredential,
-        title: "Delete Runbook Credential",
-        description: "This permission can delete runbook credentials.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.Runbook,
-      },
-      {
-        permission: Permission.EditRunbookCredential,
-        title: "Edit Runbook Credential",
-        description: "This permission can edit runbook credentials.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.Runbook,
-      },
-      {
-        permission: Permission.ReadRunbookCredential,
-        title: "Read Runbook Credential",
-        description:
-          "This permission can read runbook credentials. Secret values are never returned by the API.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

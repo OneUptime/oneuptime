@@ -165,8 +165,7 @@ export default class ClusterAccessContext {
 
   /*
    * How kubectl reaches a ready cluster, as a parenthetical: the Kubernetes
-   * AI agent, the chart's previous in-cluster Runner, or a Runner with a
-   * credential.
+   * AI agent, or the chart's previous in-cluster Runner.
    */
   private static describeAccessPath(
     status: KubernetesClusterAiAccessStatus,
@@ -179,9 +178,7 @@ export default class ClusterAccessContext {
       return " (in-cluster Runner)";
     }
 
-    return status.credentialName
-      ? ` (Runner "${status.runner?.name}" with credential "${status.credentialName}")`
-      : "";
+    return "";
   }
 
   /*
