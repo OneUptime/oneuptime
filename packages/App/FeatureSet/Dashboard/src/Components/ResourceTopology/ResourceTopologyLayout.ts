@@ -46,6 +46,8 @@ export const RESOURCE_TOPOLOGY_SIZES: {
   minContainerWidth: number;
   maxContentWidth: number;
   relatedGap: number;
+  relatedWidth: number;
+  relatedHeight: number;
 } = {
   cardWidth: 248,
   cardHeight: 100,
@@ -59,6 +61,8 @@ export const RESOURCE_TOPOLOGY_SIZES: {
   minContainerWidth: 276,
   maxContentWidth: 3200,
   relatedGap: 120,
+  relatedWidth: 232,
+  relatedHeight: 52,
 };
 
 const SIZES: typeof RESOURCE_TOPOLOGY_SIZES = RESOURCE_TOPOLOGY_SIZES;
@@ -68,7 +72,15 @@ export type ResourceTopologyPlacedKind =
   | "card"
   | "chip"
   | "more"
-  | "related";
+  | "related"
+  | "relatedCaption";
+
+/* The heading over a focused part's related parts of one kind. */
+export interface ResourceTopologyRelatedCaption {
+  /* English: "Runs here". */
+  label: string;
+  count: number;
+}
 
 /* A group's heading inside its box, relative to the box. */
 export interface ResourceTopologyCaption {
@@ -92,6 +104,7 @@ export interface ResourceTopologyPlaced {
   chip?: ResourceTopologyChipItem | undefined;
   more?: ResourceTopologyMoreItem | undefined;
   related?: ResourceTopologyRelatedItem | undefined;
+  relatedCaption?: ResourceTopologyRelatedCaption | undefined;
   /* A box's group headings. */
   captions?: Array<ResourceTopologyCaption> | undefined;
 }
@@ -767,7 +780,12 @@ export function layoutResourceTopology(
   let width: number = leftSpace + topSize.width + rightSpace;
   let height: number = drawingHeight;
 
-  // What a focused part is related to: a column beside the drawing.
+  /*
+   * What a focused part is related to: a column beside the drawing, one
+   * heading per kind of relation ("Runs here · 12") over small cards, so a
+   * node running a dozen pods is drawn at a readable zoom and the lines to
+   * them need no words of their own.
+   */
   if (visible.related.length > 0) {
     const focus: ResourceTopologyPlaced | undefined = placed.find(
       (item: ResourceTopologyPlaced): boolean => {
@@ -775,24 +793,52 @@ export function layoutResourceTopology(
       },
     );
     const columnX: number = width + SIZES.relatedGap;
+    const groups: Map<string, Array<ResourceTopologyRelatedItem>> = new Map<
+      string,
+      Array<ResourceTopologyRelatedItem>
+    >();
     let rowY: number = focus ? focus.y : 0;
 
     for (const related of visible.related) {
-      placed.push({
-        id: related.nodeId,
-        kind: "related",
-        x: columnX,
-        y: rowY,
-        width: CARD_SIZE.width,
-        height: CARD_SIZE.height,
-        depth: 0,
-        related: related,
-      });
-      rowY += CARD_SIZE.height + SIZES.itemGap;
+      const group: Array<ResourceTopologyRelatedItem> =
+        groups.get(related.label) || [];
+
+      group.push(related);
+      groups.set(related.label, group);
     }
 
-    width = columnX + CARD_SIZE.width;
-    height = Math.max(height, rowY - SIZES.itemGap);
+    for (const [label, members] of groups) {
+      placed.push({
+        id: `related-caption:${label}`,
+        kind: "relatedCaption",
+        x: columnX,
+        y: rowY,
+        width: SIZES.relatedWidth,
+        height: SIZES.captionHeight,
+        depth: 0,
+        relatedCaption: { label: label, count: members.length },
+      });
+      rowY += SIZES.captionHeight;
+
+      for (const related of members) {
+        placed.push({
+          id: related.nodeId,
+          kind: "related",
+          x: columnX,
+          y: rowY,
+          width: SIZES.relatedWidth,
+          height: SIZES.relatedHeight,
+          depth: 0,
+          related: related,
+        });
+        rowY += SIZES.relatedHeight + SIZES.itemGap;
+      }
+
+      rowY += SIZES.groupGap - SIZES.itemGap;
+    }
+
+    width = columnX + SIZES.relatedWidth;
+    height = Math.max(height, rowY - SIZES.groupGap);
   }
 
   const byId: Map<string, ResourceTopologyPlaced> = new Map<

@@ -32884,5 +32884,7 @@
   "{{running}} of {{desired}} replicas are running.": "{{running}} réplicas sur {{desired}} sont en cours d'exécution.",
   "{{running}} of {{desired}} running": "{{running}} sur {{desired}} en cours d'exécution",
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "{{shown}} éléments affichés sur {{total}}, le maximum que cette carte lit en une fois.",
-  "Some open incidents or alerts could not be read, so the map may not show them all.": "Certains incidents ou alertes ouverts n'ont pas pu être lus, la carte ne les affiche donc peut-être pas tous."
+  "Some open incidents or alerts could not be read, so the map may not show them all.": "Certains incidents ou alertes ouverts n'ont pas pu être lus, la carte ne les affiche donc peut-être pas tous.",
+  "See {{count}} more related parts": "Voir {{count}} autres éléments liés",
+  "See {{count}} more related parts_one": "Voir {{count}} autre élément lié"
 }

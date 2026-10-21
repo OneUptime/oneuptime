@@ -32884,5 +32884,7 @@
   "{{running}} of {{desired}} replicas are running.": "Запущено реплик: {{running}} из {{desired}}.",
   "{{running}} of {{desired}} running": "Запущено {{running}} из {{desired}}",
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "Показано частей: {{shown}} из {{total}} — это максимум, который карта читает за раз.",
-  "Some open incidents or alerts could not be read, so the map may not show them all.": "Не удалось прочитать некоторые открытые инциденты или оповещения, поэтому на карте могут быть показаны не все."
+  "Some open incidents or alerts could not be read, so the map may not show them all.": "Не удалось прочитать некоторые открытые инциденты или оповещения, поэтому на карте могут быть показаны не все.",
+  "See {{count}} more related parts": "Показать ещё связанные части: {{count}}",
+  "See {{count}} more related parts_one": "Показать ещё {{count}} связанную часть"
 }

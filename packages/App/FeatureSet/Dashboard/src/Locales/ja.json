@@ -32884,5 +32884,7 @@
   "{{running}} of {{desired}} replicas are running.": "{{desired}} 個中 {{running}} 個のレプリカが実行中です。",
   "{{running}} of {{desired}} running": "{{desired}} 中 {{running}} 実行中",
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "{{total}} 件中 {{shown}} 件を表示しています。このマップが一度に読み込める上限です。",
-  "Some open incidents or alerts could not be read, so the map may not show them all.": "未解決のインシデントまたはアラートの一部を読み込めなかったため、マップにすべてが表示されていない可能性があります。"
+  "Some open incidents or alerts could not be read, so the map may not show them all.": "未解決のインシデントまたはアラートの一部を読み込めなかったため、マップにすべてが表示されていない可能性があります。",
+  "See {{count}} more related parts": "ほかの関連する {{count}} 件を見る",
+  "See {{count}} more related parts_one": "ほかの関連する {{count}} 件を見る"
 }

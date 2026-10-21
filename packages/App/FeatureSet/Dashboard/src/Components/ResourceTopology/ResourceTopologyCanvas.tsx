@@ -159,6 +159,7 @@ const NODE_TYPE_BY_KIND: Record<ResourceTopologyPlaced["kind"], string> = {
   chip: "resourceTopologyChip",
   more: "resourceTopologyMore",
   related: "resourceTopologyRelated",
+  relatedCaption: "resourceTopologyRelatedCaption",
 };
 
 /*
@@ -392,11 +393,19 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
       to: string,
       label: string,
       relation?: ResourceTopologyRelation | undefined,
+      showLabel?: boolean | undefined,
+      forcedSides?:
+        | { source: ResourceTopologySide; target: ResourceTopologySide }
+        | undefined,
     ) => void = (
       from: string,
       to: string,
       label: string,
       relation?: ResourceTopologyRelation | undefined,
+      showLabel: boolean = true,
+      forcedSides?:
+        | { source: ResourceTopologySide; target: ResourceTopologySide }
+        | undefined,
     ): void => {
       const id: string = `relation:${from}->${to}`;
 
@@ -420,7 +429,7 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
               ? RESOURCE_TOPOLOGY_RELATION_COLOR
               : "var(--ou-border-strong, #94a3b8)";
       const text: string =
-        props.alwaysShowRelations && !emphasised
+        (props.alwaysShowRelations && !emphasised) || !showLabel
           ? relation?.detail || ""
           : [tx(label, translator), relation?.detail || ""]
               .filter((part: string): boolean => {
@@ -431,10 +440,12 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
       const sides: {
         source: ResourceTopologySide;
         target: ResourceTopologySide;
-      } = getRelationSides(
-        props.layout.byId.get(from)!,
-        props.layout.byId.get(to)!,
-      );
+      } =
+        forcedSides ||
+        getRelationSides(
+          props.layout.byId.get(from)!,
+          props.layout.byId.get(to)!,
+        );
 
       result.push({
         id: id,
@@ -487,13 +498,28 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
       );
     };
 
+    /*
+     * The column's heading says what these lines are: no words on each.
+     * They fan out of the focused part's right side into each related
+     * part's left, the column being to its right, so no line runs down
+     * the column across the parts in it.
+     */
     if (props.visible.focusId) {
       for (const related of props.visible.related) {
-        const [from, to] =
-          related.direction === "out"
-            ? [props.visible.focusId, related.nodeId]
-            : [related.nodeId, props.visible.focusId];
-        add(from, to, related.label, relationBetween(from, to));
+        const outward: boolean = related.direction === "out";
+        const [from, to] = outward
+          ? [props.visible.focusId, related.nodeId]
+          : [related.nodeId, props.visible.focusId];
+        add(
+          from,
+          to,
+          related.label,
+          relationBetween(from, to),
+          false,
+          outward
+            ? { source: "right", target: "left" }
+            : { source: "left", target: "right" },
+        );
       }
     }
 

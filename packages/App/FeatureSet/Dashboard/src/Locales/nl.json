@@ -32884,5 +32884,7 @@
   "{{running}} of {{desired}} replicas are running.": "{{running}} van {{desired}} replica's zijn actief.",
   "{{running}} of {{desired}} running": "{{running}} van {{desired}} actief",
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "{{shown}} van {{total}} onderdelen worden getoond, het maximum dat deze kaart in één keer leest.",
-  "Some open incidents or alerts could not be read, so the map may not show them all.": "Sommige open incidenten of waarschuwingen konden niet worden gelezen, dus de kaart toont ze mogelijk niet allemaal."
+  "Some open incidents or alerts could not be read, so the map may not show them all.": "Sommige open incidenten of waarschuwingen konden niet worden gelezen, dus de kaart toont ze mogelijk niet allemaal.",
+  "See {{count}} more related parts": "Bekijk nog {{count}} gerelateerde onderdelen",
+  "See {{count}} more related parts_one": "Bekijk nog {{count}} gerelateerd onderdeel"
 }

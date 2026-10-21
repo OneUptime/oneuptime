@@ -32884,5 +32884,7 @@
   "{{running}} of {{desired}} replicas are running.": "{{desired}} में से {{running}} प्रतिकृतियां चल रही हैं।",
   "{{running}} of {{desired}} running": "{{desired}} में से {{running}} चल रहे हैं",
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "{{total}} में से {{shown}} हिस्से दिखाए जा रहे हैं, यह मानचित्र एक बार में अधिकतम इतने ही पढ़ता है।",
-  "Some open incidents or alerts could not be read, so the map may not show them all.": "कुछ खुली घटनाएं या अलर्ट पढ़े नहीं जा सके, इसलिए हो सकता है कि मानचित्र उन सभी को न दिखाए।"
+  "Some open incidents or alerts could not be read, so the map may not show them all.": "कुछ खुली घटनाएं या अलर्ट पढ़े नहीं जा सके, इसलिए हो सकता है कि मानचित्र उन सभी को न दिखाए।",
+  "See {{count}} more related parts": "{{count}} और संबंधित हिस्से देखें",
+  "See {{count}} more related parts_one": "{{count}} और संबंधित हिस्सा देखें"
 }

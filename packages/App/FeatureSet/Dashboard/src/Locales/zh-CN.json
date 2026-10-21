@@ -32884,5 +32884,7 @@
   "{{running}} of {{desired}} replicas are running.": "{{desired}} 个副本中有 {{running}} 个正在运行。",
   "{{running}} of {{desired}} running": "{{running}}/{{desired}} 运行中",
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "正在显示 {{total}} 个部分中的 {{shown}} 个，这是此地图一次能读取的上限。",
-  "Some open incidents or alerts could not be read, so the map may not show them all.": "部分未关闭的事件或警报无法读取，因此地图可能未全部显示。"
+  "Some open incidents or alerts could not be read, so the map may not show them all.": "部分未关闭的事件或警报无法读取，因此地图可能未全部显示。",
+  "See {{count}} more related parts": "查看另外 {{count}} 个相关部分",
+  "See {{count}} more related parts_one": "查看另外 {{count}} 个相关部分"
 }

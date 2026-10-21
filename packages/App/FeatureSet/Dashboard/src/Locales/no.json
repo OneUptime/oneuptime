@@ -32884,5 +32884,7 @@
   "{{running}} of {{desired}} replicas are running.": "{{running}} av {{desired}} replikaer kjører.",
   "{{running}} of {{desired}} running": "{{running}} av {{desired}} kjører",
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "Viser {{shown}} av {{total}} deler, det meste dette kartet leser om gangen.",
-  "Some open incidents or alerts could not be read, so the map may not show them all.": "Noen åpne hendelser eller varsler kunne ikke leses, så kartet viser kanskje ikke alle."
+  "Some open incidents or alerts could not be read, so the map may not show them all.": "Noen åpne hendelser eller varsler kunne ikke leses, så kartet viser kanskje ikke alle.",
+  "See {{count}} more related parts": "Se {{count}} relaterte deler til",
+  "See {{count}} more related parts_one": "Se {{count}} relatert del til"
 }

@@ -32884,5 +32884,7 @@
   "{{running}} of {{desired}} replicas are running.": "{{running}} از {{desired}} رونوشت در حال اجرا هستند.",
   "{{running}} of {{desired}} running": "{{running}} از {{desired}} در حال اجرا",
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "{{shown}} از {{total}} بخش نمایش داده می‌شود؛ این بیشترین تعدادی است که این نقشه در یک بار می‌خواند.",
-  "Some open incidents or alerts could not be read, so the map may not show them all.": "برخی از حوادث یا هشدارهای باز خوانده نشدند، بنابراین ممکن است نقشه همه آن‌ها را نشان ندهد."
+  "Some open incidents or alerts could not be read, so the map may not show them all.": "برخی از حوادث یا هشدارهای باز خوانده نشدند، بنابراین ممکن است نقشه همه آن‌ها را نشان ندهد.",
+  "See {{count}} more related parts": "دیدن {{count}} بخش مرتبط دیگر",
+  "See {{count}} more related parts_one": "دیدن {{count}} بخش مرتبط دیگر"
 }

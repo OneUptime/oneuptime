@@ -360,7 +360,7 @@ describe("a host's callers and calls go in lanes beside it", () => {
 });
 
 describe("a focused part's related parts", () => {
-  test("go in a column right of the drawing, from the focused part down", () => {
+  test("go in a column right of the drawing, under a heading, from the focused part down", () => {
     const graph: ResourceTopologyGraph = buildResourceTopologyGraph({
       rootId: "cluster",
       nodes: [
@@ -404,12 +404,111 @@ describe("a focused part's related parts", () => {
       },
     );
     const top: ResourceTopologyPlaced = layout.byId.get("cluster")!;
+    const caption: ResourceTopologyPlaced = layout.byId.get(
+      "related-caption:Runs on",
+    )!;
 
+    // "Runs on · 2" level with the focused part, its parts under it.
+    expect(caption.kind).toBe("relatedCaption");
+    expect(caption.relatedCaption).toEqual({ label: "Runs on", count: 2 });
+    expect(caption.x).toBe(top.width + RESOURCE_TOPOLOGY_SIZES.relatedGap);
+    expect(caption.y).toBe(layout.byId.get("deploy")!.y);
     expect(related).toHaveLength(2);
-    expect(related[0]!.x).toBe(top.width + RESOURCE_TOPOLOGY_SIZES.relatedGap);
-    expect(related[0]!.y).toBe(layout.byId.get("deploy")!.y);
+    expect(related[0]!.x).toBe(caption.x);
+    expect(related[0]!.y).toBe(
+      caption.y + RESOURCE_TOPOLOGY_SIZES.captionHeight,
+    );
     expect(related[1]!.y).toBeGreaterThan(related[0]!.y);
     expect(layout.width).toBe(related[0]!.x + related[0]!.width);
+  });
+
+  test("ten related parts stay a short column: small cards, one heading per relation", () => {
+    // A node that ten pods run on, and a namespace it serves.
+    const pods: Array<string> = Array.from(
+      { length: 10 },
+      (_value: unknown, index: number): string => {
+        return `pod-${index}`;
+      },
+    );
+    const graph: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "cluster",
+      nodes: [
+        part("cluster", null, { kind: "k8s.cluster" }),
+        part("node-a", "cluster", { kind: "k8s.node" }),
+        part("ns", "cluster", { kind: "k8s.namespace" }),
+        ...pods.map((pod: string) => {
+          return part(pod, "ns", { kind: "k8s.pod", ...FACTS });
+        }),
+      ],
+      relations: [
+        ...pods.map((pod: string) => {
+          return {
+            from: pod,
+            to: "node-a",
+            label: "Runs on",
+            inverseLabel: "Runs here",
+          };
+        }),
+        {
+          from: "node-a",
+          to: "ns",
+          label: "Serves",
+          inverseLabel: "Served by",
+        },
+      ],
+    });
+    const layout: ResourceTopologyLayout = layoutResourceTopology(
+      computeResourceTopologyView(
+        graph,
+        createResourceTopologyViewState({ focusId: "node-a" }),
+      ),
+      { aspect: 1.8 },
+    );
+    const related: Array<ResourceTopologyPlaced> = layout.placed.filter(
+      (placed: ResourceTopologyPlaced): boolean => {
+        return placed.kind === "related";
+      },
+    );
+    const captions: Array<ResourceTopologyPlaced> = layout.placed.filter(
+      (placed: ResourceTopologyPlaced): boolean => {
+        return placed.kind === "relatedCaption";
+      },
+    );
+
+    expect(related).toHaveLength(11);
+    // Each relation says itself once, over its parts, in the order they come.
+    expect(
+      captions.map((caption: ResourceTopologyPlaced) => {
+        return caption.relatedCaption;
+      }),
+    ).toEqual([
+      { label: "Runs here", count: 10 },
+      { label: "Serves", count: 1 },
+    ]);
+    // Small cards, each as wide and as tall as the column draws them.
+    for (const item of related) {
+      expect(item.height).toBe(RESOURCE_TOPOLOGY_SIZES.relatedHeight);
+      expect(item.width).toBe(RESOURCE_TOPOLOGY_SIZES.relatedWidth);
+    }
+
+    expect(RESOURCE_TOPOLOGY_SIZES.relatedHeight).toBeLessThan(
+      RESOURCE_TOPOLOGY_SIZES.cardHeight,
+    );
+    const columnTop: number = captions[0]!.y;
+    const columnBottom: number =
+      related[related.length - 1]!.y + related[related.length - 1]!.height;
+
+    // Under two thirds of the column eleven full cards made.
+    expect(columnBottom - columnTop).toBeLessThan(
+      ((11 * RESOURCE_TOPOLOGY_SIZES.cardHeight +
+        10 * RESOURCE_TOPOLOGY_SIZES.itemGap) *
+        2) /
+        3,
+    );
+    // The second heading sits under the first group, not on it.
+    expect(captions[1]!.y).toBeGreaterThanOrEqual(
+      related[9]!.y + related[9]!.height,
+    );
   });
 });
 

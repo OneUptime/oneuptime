@@ -47,7 +47,11 @@ import ResourceTopologyCanvas, {
 } from "./ResourceTopologyCanvas";
 import ResourceTopologyOutline from "./ResourceTopologyOutline";
 import ResourceTopologyDetailPanel from "./ResourceTopologyDetailPanel";
-import { ResourceTopologyNodeCallbacks, tx } from "./ResourceTopologyNodes";
+import {
+  ResourceTopologyNodeCallbacks,
+  topologyNodeName,
+  tx,
+} from "./ResourceTopologyNodes";
 import {
   RESOURCE_TOPOLOGY_HEALTH_COLORS,
   RESOURCE_TOPOLOGY_HEALTH_LABELS,
@@ -754,9 +758,32 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
               <span>
                 {translator.translateTemplate(
                   "Showing {{name}}, what is inside it and what it is related to.",
-                  { name: focusNode.name },
+                  { name: topologyNodeName(translator, focusNode) },
                 )}
               </span>
+              {/*
+               * Beside it the map draws RELATED_LIMIT related parts at
+               * most; the rest are listed in the part's panel, one click
+               * away, rather than dropped without a word.
+               */}
+              {visible.relatedHidden > 0 ? (
+                <button
+                  type="button"
+                  data-testid="resource-topology-related-hidden"
+                  className="font-semibold text-indigo-700 hover:text-indigo-900"
+                  onClick={() => {
+                    select(focusNode.id);
+                  }}
+                >
+                  {translator.translatePlural(
+                    {
+                      one: "See {{count}} more related part",
+                      other: "See {{count}} more related parts",
+                    },
+                    visible.relatedHidden,
+                  )}
+                </button>
+              ) : null}
               <button
                 type="button"
                 data-testid="resource-topology-focus-clear"

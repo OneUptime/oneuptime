@@ -24,6 +24,7 @@ import {
   RESOURCE_TOPOLOGY_SIZES,
   ResourceTopologyCaption,
   ResourceTopologyPlaced,
+  ResourceTopologyRelatedCaption,
   ResourceTopologySide,
 } from "./ResourceTopologyLayout";
 import {
@@ -1287,7 +1288,11 @@ export const ResourceTopologyContainerNode: FunctionComponent<
   );
 };
 
-/* A part the focused one is related to, beside the drawing. */
+/*
+ * A part the focused one is related to, beside the drawing: as small as a
+ * chip, its kind under its name (the column mixes kinds), under a heading
+ * that says how it is related.
+ */
 export const ResourceTopologyRelatedNode: FunctionComponent<
   NodeProps<ResourceTopologyNodeData>
 > = (props: NodeProps<ResourceTopologyNodeData>): ReactElement => {
@@ -1295,6 +1300,7 @@ export const ResourceTopologyRelatedNode: FunctionComponent<
   const data: ResourceTopologyNodeData = props.data;
   const node: ResourceTopologyNode = data.node!;
   const placed: ResourceTopologyPlaced = data.placed;
+  const status: string = renderTopologyText(translator, node.status);
 
   return (
     <div
@@ -1321,10 +1327,12 @@ export const ResourceTopologyRelatedNode: FunctionComponent<
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          padding: "8px 12px 8px 10px",
-          borderRadius: 12,
+          justifyContent: "center",
+          gap: 2,
+          padding: "0 10px",
+          borderRadius: 10,
           border: "1px solid var(--ou-border-default, #e5e7eb)",
-          borderLeft: `4px solid ${RESOURCE_TOPOLOGY_HEALTH_COLORS[node.effectiveHealth]}`,
+          borderLeft: `3px solid ${RESOURCE_TOPOLOGY_HEALTH_COLORS[node.effectiveHealth]}`,
           background: "var(--ou-surface-primary, #ffffff)",
           boxShadow: shadowFor(node),
           outline: outlineFor(data, false),
@@ -1332,20 +1340,82 @@ export const ResourceTopologyRelatedNode: FunctionComponent<
         }}
       >
         <span
+          style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}
+        >
+          <HealthDot node={node} />
+          <TopologyName
+            name={topologyNodeName(translator, node)}
+            refitKey={node.issues.length}
+            style={{
+              ...LINE,
+              flex: 1,
+              fontSize: 12,
+              fontWeight: 600,
+              lineHeight: "16px",
+              color: "var(--ou-text-primary, #111827)",
+            }}
+          />
+          <IssueBadges node={node} compact={true} />
+        </span>
+        <span
           style={{
             ...LINE,
-            marginBottom: 4,
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: "0.05em",
-            textTransform: "uppercase",
-            color: "var(--ou-link, #4f46e5)",
+            paddingLeft: 14,
+            fontSize: 11,
+            lineHeight: "14px",
+            color: "var(--ou-text-muted, #6b7280)",
           }}
         >
-          {tx(placed.related?.label || "", translator)}
+          {[status, topologyKindLabel(translator, node)]
+            .filter((part: string): boolean => {
+              return part.length > 0;
+            })
+            .join(" · ")}
         </span>
-        <PartSummary node={node} iconSize={28} factsLine={true} />
       </button>
+    </div>
+  );
+};
+
+/* "Runs here · 12": the heading over a focused part's related parts. */
+export const ResourceTopologyRelatedCaptionNode: FunctionComponent<
+  NodeProps<ResourceTopologyNodeData>
+> = (props: NodeProps<ResourceTopologyNodeData>): ReactElement => {
+  const translator: Translator = useTranslator();
+  const caption: ResourceTopologyRelatedCaption =
+    props.data.placed.relatedCaption!;
+
+  return (
+    <div
+      data-testid={`resource-topology-related-caption-${caption.label}`}
+      style={{
+        width: props.data.placed.width,
+        height: props.data.placed.height,
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        fontSize: 11,
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        color: "var(--ou-text-muted, #6b7280)",
+      }}
+    >
+      <span
+        style={{
+          minWidth: 0,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          fontWeight: 600,
+          textTransform: "uppercase",
+          letterSpacing: "0.04em",
+          color: "var(--ou-link, #4f46e5)",
+        }}
+      >
+        {tx(caption.label, translator)}
+      </span>
+      <span style={{ flexShrink: 0 }}>
+        {translator.formatNumber(caption.count)}
+      </span>
     </div>
   );
 };
@@ -1359,4 +1429,5 @@ export const RESOURCE_TOPOLOGY_NODE_TYPES: Record<
   resourceTopologyChip: ResourceTopologyChipNode,
   resourceTopologyMore: ResourceTopologyMoreNode,
   resourceTopologyRelated: ResourceTopologyRelatedNode,
+  resourceTopologyRelatedCaption: ResourceTopologyRelatedCaptionNode,
 };

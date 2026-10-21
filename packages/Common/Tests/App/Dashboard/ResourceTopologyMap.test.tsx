@@ -464,6 +464,93 @@ describe("the panel reads at a glance", () => {
   });
 });
 
+describe("a focused part with many related parts", () => {
+  test("the map says how many more are related, and its panel lists them", () => {
+    // A node that fifteen pods run on: the map draws twelve beside it.
+    const pods: Array<string> = Array.from(
+      { length: 15 },
+      (_value: unknown, index: number): string => {
+        return `pod-${String(index).padStart(2, "0")}`;
+      },
+    );
+    const graph: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "cluster",
+      nodes: [
+        {
+          id: "cluster",
+          parentId: null,
+          kind: "k8s.cluster",
+          name: "prod-eu",
+          health: "healthy",
+        },
+        {
+          id: "node-1",
+          parentId: "cluster",
+          kind: "k8s.node",
+          name: "node-1",
+          health: "healthy",
+        },
+        {
+          id: "ns",
+          parentId: "cluster",
+          kind: "k8s.namespace",
+          name: "payments",
+          health: "healthy",
+        },
+        ...pods.map((pod: string) => {
+          return {
+            id: pod,
+            parentId: "ns",
+            kind: "k8s.pod",
+            name: pod,
+            health: "healthy" as const,
+          };
+        }),
+      ],
+      relations: pods.map((pod: string) => {
+        return {
+          from: pod,
+          to: "node-1",
+          label: "Runs on",
+          inverseLabel: "Runs here",
+        };
+      }),
+    });
+
+    window.history.replaceState({}, "", "/topology?view=list&focus=node-1");
+    renderMap([{ id: "workloads", label: "Workloads", graph: graph }]);
+
+    const more: HTMLElement = screen.getByTestId(
+      "resource-topology-related-hidden",
+    );
+
+    expect(more).toHaveTextContent("See 3 more related parts");
+
+    // One click opens the node's panel, which lists every pod it runs.
+    fireEvent.click(more);
+    expect(screen.getByTestId("side-over-title")).toHaveTextContent("node-1");
+    expect(
+      within(screen.getByTestId("resource-topology-panel-related"))
+        .getAllByRole("button")
+        .map((button: HTMLElement): string => {
+          return button.getAttribute("title") || "";
+        }),
+    ).toEqual(pods);
+  });
+
+  test("with every related part drawn, there is nothing more to see", () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/topology?view=list&focus=vmware.datacenter:datacenter/Amsterdam",
+    );
+    renderMap();
+
+    expect(screen.getByTestId("resource-topology-focus")).toBeVisible();
+    expect(screen.queryByTestId("resource-topology-related-hidden")).toBeNull();
+  });
+});
+
 describe("Group by", () => {
   test("switches between a resource's readings and keeps the choice in the address", () => {
     const graph: ResourceTopologyGraph = vcenterGraph();

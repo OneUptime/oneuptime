@@ -72,6 +72,9 @@ const GERMAN: Record<string, string> = JSON.parse(
 // "translate(12px, 34px) scale(0.8)": the scale React Flow draws at.
 const VIEWPORT_SCALE: RegExp = /scale\(([0-9.]+)\)/;
 
+// "See 23 more related parts": what a focus says of the parts not drawn.
+const SEE_MORE_RELATED: RegExp = /^See \d+ more related parts$/;
+
 // Runs of white space, read as one space.
 const WHITE_SPACE_RUNS: RegExp = /\s+/g;
 
@@ -528,6 +531,50 @@ test.describe("a Kubernetes cluster's Topology page", () => {
     await expect(
       startingWith(page, "rf__edge-relation:k8s.pod:payments/").first(),
     ).toBeAttached();
+  });
+});
+
+test.describe("a node that runs many pods", () => {
+  test("focused, its pods are listed beside it at a readable zoom, and the rest are one click away", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // A large cluster: some thirty pods run on each node.
+    await openTopology(
+      page,
+      "kubernetes",
+      `estate=large&focus=${encodeURIComponent(
+        "k8s.node:ip-10-0-1-21.eu-west-1.compute.internal",
+      )}`,
+    );
+
+    // One heading says how they are related, over a dozen small cards.
+    await expect(
+      byTestId(page, "resource-topology-related-caption-Runs here"),
+    ).toContainText("12");
+    await expect(
+      page.locator('[data-testid^="resource-topology-related-k8s.pod:"]'),
+    ).toHaveCount(12);
+    expect(await mapScale(page)).toBeGreaterThanOrEqual(0.6);
+    // The heading says what the lines are: they carry no words of their own.
+    await expect(page.locator(".react-flow__edge")).toHaveCount(12);
+    await expect(page.locator(".react-flow__edge-text")).toHaveCount(0);
+    await screenshot(page, "kubernetes-node-focus");
+
+    // The pods not drawn are counted, and listed in the node's panel.
+    const more: Locator = byTestId(page, "resource-topology-related-hidden");
+
+    await expect(more).toHaveText(SEE_MORE_RELATED);
+    await more.click();
+    await expect(panel(page)).toContainText(
+      "ip-10-0-1-21.eu-west-1.compute.internal",
+    );
+    expect(
+      await byTestId(page, "resource-topology-panel-related")
+        .getByRole("button")
+        .count(),
+    ).toBeGreaterThan(12);
   });
 });
 
