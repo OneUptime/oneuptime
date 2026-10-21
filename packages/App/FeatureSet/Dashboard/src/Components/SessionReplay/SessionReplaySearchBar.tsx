@@ -11,7 +11,10 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import TelemetrySearchHelp from "Common/UI/Components/TelemetryViewer/components/TelemetrySearchHelp";
 import { SearchHelpRow } from "Common/UI/Components/TelemetryViewer/types";
-import { TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME } from "Common/UI/Components/Table/TableHeaderControls";
+import {
+  TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME,
+  TABLE_HEADER_SEARCH_KEY_HINT_CLASS_NAME,
+} from "Common/UI/Components/Table/TableHeaderControls";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { SessionReplayAdvancedFilters } from "./SessionReplayListFilters";
@@ -370,7 +373,7 @@ const SessionReplaySearchBar: FunctionComponent<SessionReplaySearchBarProps> = (
           </button>
         ) : (
           <kbd
-            className="max-sm:hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex"
+            className={TABLE_HEADER_SEARCH_KEY_HINT_CLASS_NAME}
             title={tx("Press / to focus search")}
           >
             /

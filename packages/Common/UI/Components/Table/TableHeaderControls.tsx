@@ -82,6 +82,15 @@ export const TABLE_HEADER_BUTTONS_CLASS_NAME: string =
 export const TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME: string = "py-2.5 md:py-2";
 
 /*
+ * The "/" key hint in a table's search, folded and opened. Its own line is
+ * 12px: with its padding and border it stays inside the search's 20px line.
+ * On the line it inherited (15px for its 10px text) it stood 21px tall and
+ * made every table's search 39px beside its 38px buttons.
+ */
+export const TABLE_HEADER_SEARCH_KEY_HINT_CLASS_NAME: string =
+  "max-sm:hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium leading-3 text-gray-500 sm:inline-flex";
+
+/*
  * The labels of the ⋯'s items that are icon-only buttons in the header
  * (Refresh, Filter, ...), in English: MoreMenuItem looks each one up in the
  * reader's language.
@@ -403,9 +412,7 @@ export const TableHeaderSearchSlot: FunctionComponent<
         <span className="flex-1 truncate text-left text-gray-400">
           {tx("Search…")}
         </span>
-        <kbd className="max-sm:hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex">
-          /
-        </kbd>
+        <kbd className={TABLE_HEADER_SEARCH_KEY_HINT_CLASS_NAME}>/</kbd>
       </button>
 
       {/* The opened search control */}

@@ -86,9 +86,11 @@ import {
 import TableEmptyState from "../Table/TableEmptyState";
 import { hasFilterValues } from "../Table/TableEmptyStateBuilders";
 import {
+  TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME,
   TABLE_HEADER_FOLDED_BUTTONS_CLASS_NAME,
   TABLE_HEADER_OPEN_SEARCH_CLASS_NAME,
   TABLE_HEADER_SEARCH_CLASS_NAME,
+  TABLE_HEADER_SEARCH_KEY_HINT_CLASS_NAME,
   TABLE_HEADER_TOOLBAR_CLASS_NAME,
   TableHeaderButtonSplit,
   TableHeaderSearchSlot,
@@ -4580,8 +4582,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       <div className="relative flex w-full items-center">
         {/* Expanded input + dropdown — sized to the full title slot */}
         <div className="relative flex w-full flex-col gap-1">
+          {/*
+           * As tall as the header's buttons: 42px on a phone, 38px from md
+           * up (TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME). The pill folded
+           * over it takes its height.
+           */}
           <div
-            className={`flex w-full items-center gap-2 rounded-md border bg-white px-3 py-2 transition-all duration-200 ${borderClass}`}
+            className={`flex w-full items-center gap-2 rounded-md border bg-white px-3 ${TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME} transition-all duration-200 ${borderClass}`}
             onClick={() => {
               searchInputRef.current?.focus();
             }}
@@ -4789,7 +4796,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               </button>
             ) : (
               <kbd
-                className="max-sm:hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex"
+                className={TABLE_HEADER_SEARCH_KEY_HINT_CLASS_NAME}
                 title={tx("Press / to focus search")}
               >
                 /
