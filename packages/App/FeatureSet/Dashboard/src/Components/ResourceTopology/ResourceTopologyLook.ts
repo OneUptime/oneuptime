@@ -43,3 +43,6 @@ export const RESOURCE_TOPOLOGY_LEGEND: ReadonlyArray<ResourceTopologyHealth> = [
 export const RESOURCE_TOPOLOGY_SELECTED_COLOR: string = "#6366f1";
 export const RESOURCE_TOPOLOGY_MATCH_COLOR: string = "#818cf8";
 export const RESOURCE_TOPOLOGY_RELATION_COLOR: string = "#6366f1";
+
+/* Amber that reads as text on white and on the dark surfaces alike. */
+export const RESOURCE_TOPOLOGY_ATTENTION_TEXT_COLOR: string = "#d97706";

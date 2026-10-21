@@ -34,18 +34,20 @@ import {
   toggleTopologyGroup,
 } from "./ResourceTopologyView";
 import {
+  ResourceTopologyLanes,
   ResourceTopologyLayout,
   layoutResourceTopology,
 } from "./ResourceTopologyLayout";
+import {
+  ResourceTopologyFit,
+  fitResourceTopology,
+} from "./ResourceTopologyFit";
 import ResourceTopologyCanvas, {
   ResourceTopologyFitRequest,
 } from "./ResourceTopologyCanvas";
 import ResourceTopologyOutline from "./ResourceTopologyOutline";
 import ResourceTopologyDetailPanel from "./ResourceTopologyDetailPanel";
-import {
-  ResourceTopologyNodeCallbacks,
-  tx,
-} from "./ResourceTopologyNodes";
+import { ResourceTopologyNodeCallbacks, tx } from "./ResourceTopologyNodes";
 import {
   RESOURCE_TOPOLOGY_HEALTH_COLORS,
   RESOURCE_TOPOLOGY_HEALTH_LABELS,
@@ -77,6 +79,15 @@ export interface ResourceTopologyArrangement {
   /* English: "Workloads". */
   label: string;
   graph: ResourceTopologyGraph;
+  /*
+   * Draw every relation all the time: for a map that is about them, like a
+   * host's calls. Otherwise only the picked part's relations are drawn.
+   */
+  alwaysShowRelations?: boolean | undefined;
+  /* What those always-drawn lines are, for the legend (English). */
+  relationLegend?: string | undefined;
+  /* Parts of the top drawn beside it: what calls it, what it calls. */
+  lanes?: ResourceTopologyLanes | undefined;
 }
 
 export interface ComponentProps {
@@ -97,6 +108,12 @@ const QUERY_ARRANGEMENT: string = "by";
 const QUERY_SEARCH: string = "search";
 
 const PHONE_WIDTH_PX: number = 640;
+const PHONE_CANVAS_HEIGHT: number = 520;
+const MIN_CANVAS_HEIGHT: number = 480;
+const MAX_CANVAS_HEIGHT: number = 760;
+const DEFAULT_ASPECT: number = 1.8;
+// The canvas width the first view is fitted to is rounded down to this.
+const FIT_WIDTH_STEP: number = 40;
 const SEARCH_URL_DELAY_MS: number = 300;
 
 function readInitialDisplay(): DisplayMode {
@@ -221,15 +238,102 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
     [translator.language],
   );
 
+  /*
+   * The canvas's shape, so the whole drawing is laid out to fill it: the
+   * frame's width is measured (and followed as the window changes), its
+   * height is set from the window's.
+   */
+  const frameRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  const [frameWidth, setFrameWidth] = useState<number>(0);
+
+  useEffect(() => {
+    const frame: HTMLDivElement | null = frameRef.current;
+
+    if (!frame) {
+      return undefined;
+    }
+
+    const update: () => void = (): void => {
+      setFrameWidth(frame.clientWidth);
+    };
+
+    update();
+
+    if (typeof ResizeObserver === "undefined") {
+      return undefined;
+    }
+
+    const observer: ResizeObserver = new ResizeObserver(update);
+    observer.observe(frame);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  const isPhone: boolean =
+    typeof window !== "undefined" && window.innerWidth < PHONE_WIDTH_PX;
+  const canvasHeight: number = isPhone
+    ? PHONE_CANVAS_HEIGHT
+    : Math.round(
+        Math.min(
+          MAX_CANVAS_HEIGHT,
+          Math.max(
+            MIN_CANVAS_HEIGHT,
+            (typeof window !== "undefined" ? window.innerHeight : 900) - 260,
+          ),
+        ),
+      );
+  // Rounded, so a scrollbar coming and going does not lay everything out again.
+  const aspect: number =
+    frameWidth > 0
+      ? Math.max(0.5, Math.round((frameWidth / canvasHeight) * 4) / 4)
+      : DEFAULT_ASPECT;
+
+  /*
+   * How deep the first view opens: as deep as this canvas shows readably.
+   * Worked out from a rounded width, so a scrollbar never changes it.
+   */
+  const fitWidth: number =
+    frameWidth > 0
+      ? Math.floor(frameWidth / FIT_WIDTH_STEP) * FIT_WIDTH_STEP
+      : Math.round(DEFAULT_ASPECT * canvasHeight);
+  const fit: ResourceTopologyFit = useMemo(() => {
+    return fitResourceTopology(
+      graph,
+      viewState.focusId,
+      { width: fitWidth, height: canvasHeight },
+      { lanes: arrangement.lanes, aspect: aspect },
+    );
+  }, [
+    graph,
+    viewState.focusId,
+    fitWidth,
+    canvasHeight,
+    aspect,
+    arrangement.lanes,
+  ]);
+
   const visible: ResourceTopologyVisible = useMemo(() => {
     return computeResourceTopologyView(graph, viewState, {
       kindLabel: kindLabel,
+      budget: fit.budget,
+      maxAutomaticDepth: fit.depth,
     });
-  }, [graph, viewState, kindLabel]);
+  }, [graph, viewState, kindLabel, fit]);
 
   const layout: ResourceTopologyLayout = useMemo(() => {
-    return layoutResourceTopology(visible);
-  }, [visible]);
+    return layoutResourceTopology(visible, {
+      aspect: aspect,
+      lanes: arrangement.lanes,
+    });
+  }, [visible, aspect, arrangement.lanes]);
+
+  // A new canvas shape lays the drawing out again: frame it again.
+  useEffect(() => {
+    requestFit(null, false);
+  }, [aspect]);
 
   const select: (nodeId: string | null) => void = useCallback(
     (nodeId: string | null): void => {
@@ -246,8 +350,8 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
     [graph],
   );
 
-  const callbacks: ResourceTopologyNodeCallbacks = useMemo(
-    (): ResourceTopologyNodeCallbacks => {
+  const callbacks: ResourceTopologyNodeCallbacks =
+    useMemo((): ResourceTopologyNodeCallbacks => {
       return {
         onSelect: (nodeId: string): void => {
           select(nodeId);
@@ -269,9 +373,7 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
           });
         },
       };
-    },
-    [graph, select, requestFit],
-  );
+    }, [graph, select, requestFit]);
 
   const setFilter: (filter: ResourceTopologyFilter) => void = (
     filter: ResourceTopologyFilter,
@@ -331,7 +433,9 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
     mode: DisplayMode,
   ): void => {
     setDisplay(mode);
-    Navigation.setQueryString({ [QUERY_VIEW]: mode === "list" ? "list" : null });
+    Navigation.setQueryString({
+      [QUERY_VIEW]: mode === "list" ? "list" : null,
+    });
 
     if (mode === "map") {
       requestFit(null, false);
@@ -350,7 +454,10 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
     {
       value: "attention",
       label: tx("Needs attention", translator),
-      description: tx("Parts that are critical, need attention, or have an open incident or alert", translator),
+      description: tx(
+        "Parts that are critical, need attention, or have an open incident or alert",
+        translator,
+      ),
       color: RESOURCE_TOPOLOGY_HEALTH_COLORS.warning,
       count: graph.attentionCount,
       testId: "resource-topology-filter-attention",
@@ -374,10 +481,6 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
     ? graph.nodes.get(visible.focusId) || null
     : null;
   const searching: boolean = viewState.search.trim().length > 0;
-  const canvasHeight: number =
-    typeof window !== "undefined" && window.innerWidth < PHONE_WIDTH_PX
-      ? 520
-      : Math.round(Math.min(800, Math.max(460, layout.height * 0.45 + 220)));
 
   const renderNotice: (
     testId: string,
@@ -602,7 +705,10 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
       {props.issuesArePartial
         ? renderNotice(
             "resource-topology-issues-partial",
-            tx("Only the newest open incidents and alerts are pinned to the map.", translator),
+            tx(
+              "Only the newest open incidents and alerts are pinned to the map.",
+              translator,
+            ),
             "warning",
           )
         : null}
@@ -666,7 +772,10 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
           )
         : null}
 
-      <div className="overflow-hidden rounded-xl border border-gray-200">
+      <div
+        ref={frameRef}
+        className="overflow-hidden rounded-xl border border-gray-200"
+      >
         {display === "map" ? (
           <ResourceTopologyCanvas
             graph={graph}
@@ -676,6 +785,7 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
             callbacks={callbacks}
             fitRequest={fitRequest}
             height={canvasHeight}
+            alwaysShowRelations={arrangement.alwaysShowRelations}
           />
         ) : (
           <ResourceTopologyOutline
@@ -705,7 +815,16 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
               );
             },
           )}
-          {display === "map" ? (
+          {display === "map" && arrangement.relationLegend ? (
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                aria-hidden={true}
+                className="inline-block w-5 border-t-2 border-gray-400"
+              />
+              {tx(arrangement.relationLegend, translator)}
+            </span>
+          ) : null}
+          {display === "map" && !arrangement.alwaysShowRelations ? (
             <span className="inline-flex items-center gap-1.5">
               <span
                 aria-hidden={true}

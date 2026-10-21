@@ -96,7 +96,11 @@ function sampleGraph(
         name: "db-01",
         health: "critical",
       }),
-      part("vm-3", "esx-1", { kind: "vmware.vm", name: "old-01", health: "off" }),
+      part("vm-3", "esx-1", {
+        kind: "vmware.vm",
+        name: "old-01",
+        health: "off",
+      }),
       part("vm-4", "esx-2", { kind: "vmware.vm", name: "cache-01" }),
       part("ds-1", "dc-1", { kind: "vmware.datastore", name: "datastore-1" }),
       part("ds-2", "dc-1", { kind: "vmware.datastore", name: "datastore-2" }),
@@ -237,9 +241,11 @@ describe("the order siblings come in", () => {
   test("numbers inside names sort as numbers, and case does not split them", () => {
     expect(compareTopologyNames("esx-2", "esx-10")).toBeLessThan(0);
     expect(compareTopologyNames("Web", "web")).not.toBe(0);
-    expect(
-      ["vm-10", "VM-9", "vm-1"].sort(compareTopologyNames),
-    ).toEqual(["vm-1", "VM-9", "vm-10"]);
+    expect(["vm-10", "VM-9", "vm-1"].sort(compareTopologyNames)).toEqual([
+      "vm-1",
+      "VM-9",
+      "vm-10",
+    ]);
   });
 
   test("the order never depends on the order the rows arrived in", () => {
@@ -345,6 +351,41 @@ describe("rows that arrive out of step", () => {
     expect(graph.relations).toHaveLength(1);
     expect(graph.relationsByNode.get("a")).toHaveLength(1);
     expect(graph.relationsByNode.get("b")).toHaveLength(1);
+  });
+
+  test("a relation the nesting already shows is dropped, either way round", () => {
+    const graph: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "root",
+      nodes: [
+        part("root", null),
+        part("node", "root"),
+        part("pod", "node"),
+        part("container", "pod"),
+        part("other", "root"),
+      ],
+      relations: [
+        // A pod inside its node: "Runs on" is where it is drawn.
+        {
+          from: "pod",
+          to: "node",
+          label: "Runs on",
+          inverseLabel: "Runs here",
+        },
+        { from: "node", to: "container", label: "Holds", inverseLabel: "In" },
+        {
+          from: "container",
+          to: "other",
+          label: "Uses",
+          inverseLabel: "Used by",
+        },
+      ],
+    });
+
+    expect(
+      graph.relations.map((relation: { from: string; to: string }): string => {
+        return `${relation.from}>${relation.to}`;
+      }),
+    ).toEqual(["container>other"]);
   });
 
   test("a deep tree builds without recursion limits", () => {

@@ -11,22 +11,25 @@ import {
 } from "./ResourceTopologyModel";
 import {
   ResourceTopologyKindInfo,
+  SECTION_KIND,
   getResourceTopologyKind,
 } from "./ResourceTopologyKinds";
 import {
   RESOURCE_TOPOLOGY_SIZES,
   ResourceTopologyCaption,
   ResourceTopologyPlaced,
+  ResourceTopologySide,
 } from "./ResourceTopologyLayout";
 import {
   RESOURCE_TOPOLOGY_HEALTH_COLORS,
+  RESOURCE_TOPOLOGY_ATTENTION_TEXT_COLOR,
   RESOURCE_TOPOLOGY_MATCH_COLOR,
   RESOURCE_TOPOLOGY_SELECTED_COLOR,
 } from "./ResourceTopologyLook";
 import { ResourceTopologyMoreItem } from "./ResourceTopologyView";
 
 /*
- * The map's pieces. An open part is a box: its heading, then one band per
+ * The map's pieces. An open part is a box: its heading, then one group per
  * kind of part inside it. A closed part is a card that says what it holds,
  * and a part that holds nothing is a chip. Each reads the same way: an icon
  * tinted by what it is, a bar and a dot coloured by how it is doing, its
@@ -57,6 +60,53 @@ const HIDDEN_HANDLE: React.CSSProperties = {
   height: 6,
   border: "none",
   background: "transparent",
+};
+
+const SIDES: Array<{ side: ResourceTopologySide; position: Position }> = [
+  { side: "top", position: Position.Top },
+  { side: "right", position: Position.Right },
+  { side: "bottom", position: Position.Bottom },
+  { side: "left", position: Position.Left },
+];
+
+/*
+ * Where lines attach: every side can start or end one, and the canvas picks
+ * the sides that face each other (getRelationSides). A box's lines attach
+ * beside its heading, not halfway down what it holds.
+ */
+const SideHandles: FunctionComponent<{ sideY?: number | undefined }> = (props: {
+  sideY?: number | undefined;
+}): ReactElement => {
+  return (
+    <>
+      {SIDES.map(
+        (entry: { side: ResourceTopologySide; position: Position }) => {
+          const style: React.CSSProperties =
+            props.sideY !== undefined &&
+            (entry.side === "left" || entry.side === "right")
+              ? { ...HIDDEN_HANDLE, top: props.sideY }
+              : HIDDEN_HANDLE;
+
+          return (
+            <React.Fragment key={entry.side}>
+              <Handle
+                id={`${entry.side}-target`}
+                type="target"
+                position={entry.position}
+                style={style}
+              />
+              <Handle
+                id={`${entry.side}-source`}
+                type="source"
+                position={entry.position}
+                style={style}
+              />
+            </React.Fragment>
+          );
+        },
+      )}
+    </>
+  );
 };
 
 /*
@@ -143,6 +193,93 @@ export function describeTopologyAttention(
   );
 }
 
+/* "2 are critical · 1 needs attention": what a card's coloured counts say. */
+export function describeTopologyAttentionSplit(
+  translator: Translator,
+  critical: number,
+  warning: number,
+): string {
+  const parts: Array<string> = [];
+
+  if (critical > 0) {
+    parts.push(
+      translator.translatePlural(
+        { one: "{{count}} is critical", other: "{{count}} are critical" },
+        critical,
+      ),
+    );
+  }
+
+  if (warning > 0) {
+    parts.push(describeTopologyAttention(translator, warning));
+  }
+
+  return parts.join(" · ");
+}
+
+/*
+ * What needs attention inside a closed card, as the legend's coloured dots
+ * with a count each: red for critical, amber for the rest. Short enough to
+ * leave the card's line room for what it holds; the words are its title.
+ */
+export const AttentionCounts: FunctionComponent<{
+  critical: number;
+  warning: number;
+}> = (props: { critical: number; warning: number }): ReactElement => {
+  const translator: Translator = useTranslator();
+  const label: string = describeTopologyAttentionSplit(
+    translator,
+    props.critical,
+    props.warning,
+  );
+  const count: (value: number, color: string) => ReactElement = (
+    value: number,
+    color: string,
+  ): ReactElement => {
+    return (
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 4,
+          color: color,
+        }}
+      >
+        <span
+          style={{
+            width: 7,
+            height: 7,
+            borderRadius: "50%",
+            background: color,
+          }}
+        />
+        {translator.formatNumber(value)}
+      </span>
+    );
+  };
+
+  return (
+    <span
+      data-testid="resource-topology-attention-counts"
+      title={label}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 8,
+        flexShrink: 0,
+        fontWeight: 700,
+      }}
+    >
+      {props.critical > 0
+        ? count(props.critical, RESOURCE_TOPOLOGY_HEALTH_COLORS.critical)
+        : null}
+      {props.warning > 0
+        ? count(props.warning, RESOURCE_TOPOLOGY_ATTENTION_TEXT_COLOR)
+        : null}
+    </span>
+  );
+};
+
 export function describeTopologyIssues(
   translator: Translator,
   incidents: number,
@@ -200,9 +337,7 @@ export const IssueBadges: FunctionComponent<{
   compact?: boolean | undefined;
 }): ReactElement | null => {
   const translator: Translator = useTranslator();
-  const counts: { incidents: number; alerts: number } = countIssues(
-    props.node,
-  );
+  const counts: { incidents: number; alerts: number } = countIssues(props.node);
 
   if (counts.incidents === 0 && counts.alerts === 0) {
     return null;
@@ -259,7 +394,11 @@ export const IssueBadges: FunctionComponent<{
           )
         : null}
       {counts.alerts > 0
-        ? pill(counts.alerts, "#d97706", IconProp.Bell)
+        ? pill(
+            counts.alerts,
+            RESOURCE_TOPOLOGY_ATTENTION_TEXT_COLOR,
+            IconProp.Bell,
+          )
         : null}
     </span>
   );
@@ -363,9 +502,9 @@ const BUTTON_RESET: React.CSSProperties = {
   cursor: "pointer",
 };
 
-const FactRow: FunctionComponent<{ facts: Array<ResourceTopologyFact> }> = (props: {
+const FactRow: FunctionComponent<{
   facts: Array<ResourceTopologyFact>;
-}): ReactElement | null => {
+}> = (props: { facts: Array<ResourceTopologyFact> }): ReactElement | null => {
   const translator: Translator = useTranslator();
 
   if (props.facts.length === 0) {
@@ -382,8 +521,9 @@ const FactRow: FunctionComponent<{ facts: Array<ResourceTopologyFact> }> = (prop
         flexShrink: 0,
       }}
     >
-      {props.facts.slice(0, 2).map(
-        (fact: ResourceTopologyFact): ReactElement => {
+      {props.facts
+        .slice(0, 2)
+        .map((fact: ResourceTopologyFact): ReactElement => {
           return (
             <span key={fact.label} style={{ fontSize: 11 }}>
               <span
@@ -401,7 +541,7 @@ const FactRow: FunctionComponent<{ facts: Array<ResourceTopologyFact> }> = (prop
                     fact.tone === "critical"
                       ? RESOURCE_TOPOLOGY_HEALTH_COLORS.critical
                       : fact.tone === "warning"
-                        ? "#d97706"
+                        ? RESOURCE_TOPOLOGY_ATTENTION_TEXT_COLOR
                         : "var(--ou-text-primary, #111827)",
                 }}
               >
@@ -409,20 +549,25 @@ const FactRow: FunctionComponent<{ facts: Array<ResourceTopologyFact> }> = (prop
               </span>
             </span>
           );
-        },
-      )}
+        })}
     </span>
   );
 };
 
+/*
+ * What a card, a box heading and a related card all say about a part: its
+ * icon, its name with its open incidents and alerts right after it, how it
+ * is doing and what it is, and — on a card — its numbers on a line of their
+ * own. A box heading is wide, so its numbers sit at its right instead.
+ */
 const PartSummary: FunctionComponent<{
   node: ResourceTopologyNode;
   iconSize: number;
-  showFacts: boolean;
+  factsLine: boolean;
 }> = (props: {
   node: ResourceTopologyNode;
   iconSize: number;
-  showFacts: boolean;
+  factsLine: boolean;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const kind: ResourceTopologyKindInfo = getResourceTopologyKind(
@@ -430,9 +575,18 @@ const PartSummary: FunctionComponent<{
   );
   const status: string = renderTopologyText(translator, props.node.status);
   const kindLabel: string = topologyKindLabel(translator, props.node);
+  const facts: Array<ResourceTopologyFact> = props.node.facts || [];
 
   return (
-    <span style={{ display: "flex", gap: 10, minWidth: 0, flex: 1 }}>
+    <span
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        minWidth: 0,
+        flex: 1,
+      }}
+    >
       <IconTile kind={kind} size={props.iconSize} />
       <span style={{ minWidth: 0, flex: 1 }}>
         <span
@@ -441,7 +595,7 @@ const PartSummary: FunctionComponent<{
           <span
             style={{
               ...LINE,
-              flex: 1,
+              flex: "0 1 auto",
               fontSize: 13,
               fontWeight: 600,
               lineHeight: "18px",
@@ -452,33 +606,39 @@ const PartSummary: FunctionComponent<{
           </span>
           <IssueBadges node={props.node} />
         </span>
-        <span
-          style={{
-            ...LINE,
-            fontSize: 11,
-            lineHeight: "16px",
-            color: "var(--ou-text-muted, #6b7280)",
-          }}
-        >
-          {kindLabel}
-        </span>
-        <span
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            marginTop: 2,
-            minWidth: 0,
-            fontSize: 11,
-            lineHeight: "16px",
-            color: "var(--ou-text-secondary, #4b5563)",
-          }}
-        >
-          <HealthDot node={props.node} />
-          <span style={{ ...LINE, flex: 1 }}>{status}</span>
-          {props.showFacts ? <FactRow facts={props.node.facts || []} /> : null}
-        </span>
+        {props.node.isSection ? null : (
+          <span
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              minWidth: 0,
+              fontSize: 11,
+              lineHeight: "16px",
+              color: "var(--ou-text-secondary, #4b5563)",
+            }}
+          >
+            <HealthDot node={props.node} />
+            <span style={{ ...LINE, flex: "0 1 auto" }}>
+              {[status, kindLabel]
+                .filter((part: string): boolean => {
+                  return part.length > 0;
+                })
+                .join(" · ")}
+            </span>
+          </span>
+        )}
+        {props.factsLine && facts.length > 0 ? (
+          <span style={{ display: "block", marginTop: 2 }}>
+            <FactRow facts={facts} />
+          </span>
+        ) : null}
       </span>
+      {!props.factsLine && facts.length > 0 ? (
+        <span style={{ flexShrink: 0, marginLeft: 8 }}>
+          <FactRow facts={facts} />
+        </span>
+      ) : null}
     </span>
   );
 };
@@ -549,8 +709,7 @@ export const ResourceTopologyCardNode: FunctionComponent<
         overflow: "hidden",
       }}
     >
-      <Handle type="target" position={Position.Left} style={HIDDEN_HANDLE} />
-      <Handle type="source" position={Position.Right} style={HIDDEN_HANDLE} />
+      <SideHandles />
       <button
         type="button"
         className="nodrag"
@@ -567,7 +726,7 @@ export const ResourceTopologyCardNode: FunctionComponent<
           padding: "10px 12px 6px 10px",
         }}
       >
-        <PartSummary node={node} iconSize={30} showFacts={true} />
+        <PartSummary node={node} iconSize={30} factsLine={true} />
       </button>
       {canOpen ? (
         <button
@@ -575,9 +734,22 @@ export const ResourceTopologyCardNode: FunctionComponent<
           className="nodrag"
           data-testid={`resource-topology-open-${node.id}`}
           aria-expanded={false}
-          aria-label={translator.translateTemplate("Open {{name}}", {
-            name: topologyNodeName(translator, node),
-          })}
+          aria-label={[
+            translator.translateTemplate("Open {{name}}", {
+              name: topologyNodeName(translator, node),
+            }),
+            attention > 0
+              ? describeTopologyAttentionSplit(
+                  translator,
+                  node.criticalBelow,
+                  attention - node.criticalBelow,
+                )
+              : "",
+          ]
+            .filter((part: string): boolean => {
+              return part.length > 0;
+            })
+            .join(", ")}
           onClick={() => {
             data.callbacks.onToggleOpen(node.id, true);
           }}
@@ -598,18 +770,10 @@ export const ResourceTopologyCardNode: FunctionComponent<
           <Icon icon={IconProp.ChevronRight} className="h-3 w-3" />
           <span style={{ ...LINE, flex: 1 }}>{contents}</span>
           {attention > 0 ? (
-            <span
-              style={{
-                flexShrink: 0,
-                fontWeight: 600,
-                color:
-                  node.criticalBelow > 0
-                    ? RESOURCE_TOPOLOGY_HEALTH_COLORS.critical
-                    : "#d97706",
-              }}
-            >
-              {describeTopologyAttention(translator, attention)}
-            </span>
+            <AttentionCounts
+              critical={node.criticalBelow}
+              warning={attention - node.criticalBelow}
+            />
           ) : null}
         </button>
       ) : null}
@@ -630,10 +794,13 @@ export const ResourceTopologyChipNode: FunctionComponent<
 
   return (
     <div
-      style={{ position: "relative", width: placed.width, height: placed.height }}
+      style={{
+        position: "relative",
+        width: placed.width,
+        height: placed.height,
+      }}
     >
-      <Handle type="target" position={Position.Left} style={HIDDEN_HANDLE} />
-      <Handle type="source" position={Position.Right} style={HIDDEN_HANDLE} />
+      <SideHandles />
       <button
         type="button"
         className="nodrag"
@@ -663,44 +830,38 @@ export const ResourceTopologyChipNode: FunctionComponent<
           outlineOffset: 2,
         }}
       >
-      <span
-        style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}
-      >
-        <HealthDot node={node} />
+        <span
+          style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}
+        >
+          <HealthDot node={node} />
+          <span
+            style={{
+              ...LINE,
+              flex: 1,
+              fontSize: 12,
+              fontWeight: 600,
+              lineHeight: "16px",
+              color: "var(--ou-text-primary, #111827)",
+            }}
+          >
+            {topologyNodeName(translator, node)}
+          </span>
+          <IssueBadges node={node} compact={true} />
+        </span>
         <span
           style={{
             ...LINE,
-            flex: 1,
-            fontSize: 12,
-            fontWeight: 600,
-            lineHeight: "16px",
-            color: "var(--ou-text-primary, #111827)",
+            paddingLeft: 14,
+            fontSize: 11,
+            lineHeight: "14px",
+            color: "var(--ou-text-muted, #6b7280)",
           }}
         >
-          {topologyNodeName(translator, node)}
+          {status ||
+            (firstFact
+              ? `${tx(firstFact.label, translator)} ${firstFact.value}`
+              : "")}
         </span>
-        <IssueBadges node={node} compact={true} />
-      </span>
-      <span
-        style={{
-          ...LINE,
-          paddingLeft: 14,
-          fontSize: 11,
-          lineHeight: "14px",
-          color: "var(--ou-text-muted, #6b7280)",
-        }}
-      >
-        {[
-          status,
-          firstFact
-            ? `${tx(firstFact.label, translator)} ${firstFact.value}`
-            : "",
-        ]
-          .filter((part: string): boolean => {
-            return part.length > 0;
-          })
-          .join(" · ")}
-      </span>
       </button>
     </div>
   );
@@ -756,13 +917,17 @@ export const ResourceTopologyMoreNode: FunctionComponent<
         })}
       </span>
       {more.hiddenAttention > 0 ? (
-        <span style={{ fontSize: 11, fontWeight: 600, color: "#d97706" }}>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: RESOURCE_TOPOLOGY_ATTENTION_TEXT_COLOR,
+          }}
+        >
           {describeTopologyAttention(translator, more.hiddenAttention)}
         </span>
       ) : more.asChip ? null : (
-        <span
-          style={{ fontSize: 11, color: "var(--ou-text-muted, #6b7280)" }}
-        >
+        <span style={{ fontSize: 11, color: "var(--ou-text-muted, #6b7280)" }}>
           {tx(kind.plural, translator)}
         </span>
       )}
@@ -776,12 +941,17 @@ const CaptionBand: FunctionComponent<{
 }> = (props: {
   caption: ResourceTopologyCaption;
   onToggleGroup: (groupKey: string) => void;
-}): ReactElement => {
+}): ReactElement | null => {
   const translator: Translator = useTranslator();
   const group: ResourceTopologyCaption["group"] = props.caption.group;
   const kind: ResourceTopologyKindInfo = getResourceTopologyKind(group.kind);
   const canFold: boolean = group.isShownInFull;
   const canShowAll: boolean = Boolean(group.more?.canShowAll);
+
+  // Sections are titled by their own box.
+  if (group.kind === SECTION_KIND) {
+    return null;
+  }
 
   return (
     <div
@@ -798,10 +968,12 @@ const CaptionBand: FunctionComponent<{
         fontSize: 11,
         color: "var(--ou-text-muted, #6b7280)",
         whiteSpace: "nowrap",
+        overflow: "hidden",
       }}
     >
       <span
         style={{
+          flexShrink: 0,
           fontWeight: 600,
           textTransform: "uppercase",
           letterSpacing: "0.04em",
@@ -810,9 +982,19 @@ const CaptionBand: FunctionComponent<{
       >
         {tx(kind.plural, translator)}
       </span>
-      <span>{translator.formatNumber(group.total)}</span>
+      <span style={{ flexShrink: 0 }}>
+        {translator.formatNumber(group.total)}
+      </span>
       {group.attention > 0 ? (
-        <span style={{ fontWeight: 600, color: "#d97706" }}>
+        <span
+          style={{
+            minWidth: 0,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            fontWeight: 600,
+            color: RESOURCE_TOPOLOGY_ATTENTION_TEXT_COLOR,
+          }}
+        >
           {describeTopologyAttention(translator, group.attention)}
         </span>
       ) : null}
@@ -827,6 +1009,7 @@ const CaptionBand: FunctionComponent<{
           style={{
             ...BUTTON_RESET,
             marginLeft: "auto",
+            flexShrink: 0,
             fontSize: 11,
             fontWeight: 600,
             color: "var(--ou-link, #4f46e5)",
@@ -876,16 +1059,7 @@ export const ResourceTopologyContainerNode: FunctionComponent<
         outlineOffset: 3,
       }}
     >
-      <Handle
-        type="target"
-        position={Position.Left}
-        style={{ ...HIDDEN_HANDLE, top: 32 }}
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        style={{ ...HIDDEN_HANDLE, top: 32 }}
-      />
+      <SideHandles sideY={RESOURCE_TOPOLOGY_SIZES.headerHeight / 2} />
       <div
         style={{
           display: "flex",
@@ -916,7 +1090,7 @@ export const ResourceTopologyContainerNode: FunctionComponent<
             alignItems: "center",
           }}
         >
-          <PartSummary node={node} iconSize={36} showFacts={true} />
+          <PartSummary node={node} iconSize={36} factsLine={true} />
         </button>
         {!isRoot ? (
           <button
@@ -973,10 +1147,13 @@ export const ResourceTopologyRelatedNode: FunctionComponent<
 
   return (
     <div
-      style={{ position: "relative", width: placed.width, height: placed.height }}
+      style={{
+        position: "relative",
+        width: placed.width,
+        height: placed.height,
+      }}
     >
-      <Handle type="target" position={Position.Left} style={HIDDEN_HANDLE} />
-      <Handle type="source" position={Position.Right} style={HIDDEN_HANDLE} />
+      <SideHandles />
       <button
         type="button"
         className="nodrag"
@@ -1003,20 +1180,20 @@ export const ResourceTopologyRelatedNode: FunctionComponent<
           outlineOffset: 2,
         }}
       >
-      <span
-        style={{
-          ...LINE,
-          marginBottom: 4,
-          fontSize: 10,
-          fontWeight: 700,
-          letterSpacing: "0.05em",
-          textTransform: "uppercase",
-          color: "var(--ou-link, #4f46e5)",
-        }}
-      >
-        {tx(placed.related?.label || "", translator)}
-      </span>
-      <PartSummary node={node} iconSize={28} showFacts={false} />
+        <span
+          style={{
+            ...LINE,
+            marginBottom: 4,
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: "0.05em",
+            textTransform: "uppercase",
+            color: "var(--ou-link, #4f46e5)",
+          }}
+        >
+          {tx(placed.related?.label || "", translator)}
+        </span>
+        <PartSummary node={node} iconSize={28} factsLine={true} />
       </button>
     </div>
   );

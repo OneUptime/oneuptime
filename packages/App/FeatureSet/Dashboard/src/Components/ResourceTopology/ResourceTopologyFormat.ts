@@ -60,11 +60,7 @@ export function toTopologyDate(value: unknown): Date | null {
 }
 
 /* Whether `value` is no older than `maxAgeMs` at `now`. */
-export function isRecent(
-  value: unknown,
-  now: Date,
-  maxAgeMs: number,
-): boolean {
+export function isRecent(value: unknown, now: Date, maxAgeMs: number): boolean {
   const date: Date | null = toTopologyDate(value);
 
   if (!date) {

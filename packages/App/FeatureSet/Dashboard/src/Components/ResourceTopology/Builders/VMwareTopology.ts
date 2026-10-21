@@ -371,17 +371,6 @@ function assessDatastore(row: VMwareResource): Assessment {
         ? "warning"
         : "healthy";
 
-  facts.push({
-    label: translationKey("Used"),
-    value: formatTopologyPercent(percent),
-    tone:
-      health === "critical"
-        ? "critical"
-        : health === "warning"
-          ? "warning"
-          : undefined,
-  });
-
   if (capacity !== null) {
     facts.push({
       label: translationKey("Capacity"),
@@ -860,7 +849,10 @@ export function buildVMwareTopology(
           key.substring(key.lastIndexOf("/") + 1),
         ];
 
-        if (sameName(clusterName, cluster) && (!dc || sameName(clusterDc, dc))) {
+        if (
+          sameName(clusterName, cluster) &&
+          (!dc || sameName(clusterDc, dc))
+        ) {
           return id;
         }
       }
@@ -883,10 +875,7 @@ export function buildVMwareTopology(
 
   const truncations: Array<ResourceTopologyTruncation> = [];
 
-  if (
-    input.totalRows !== undefined &&
-    input.totalRows > input.rows.length
-  ) {
+  if (input.totalRows !== undefined && input.totalRows > input.rows.length) {
     truncations.push({
       kind: "vmware.vcenter",
       shown: input.rows.length,

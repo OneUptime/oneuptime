@@ -3,9 +3,7 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
-import SideOver, {
-  SideOverSize,
-} from "Common/UI/Components/SideOver/SideOver";
+import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
 import OneUptimeDate from "Common/Types/Date";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -54,9 +52,7 @@ export interface ComponentProps {
   onFocus: (nodeId: string | null) => void;
 }
 
-export function routeForTopologyLink(
-  link: ResourceTopologyLinkTarget,
-): Route {
+export function routeForTopologyLink(link: ResourceTopologyLinkTarget): Route {
   return RouteUtil.populateRouteParams(RouteMap[link.page] as Route, {
     modelId: link.modelId,
     ...(link.subModelId ? { subModelId: link.subModelId } : {}),
@@ -229,7 +225,10 @@ const ResourceTopologyDetailPanel: FunctionComponent<ComponentProps> = (
               }}
             />
             <span className="font-medium">
-              {tx(RESOURCE_TOPOLOGY_HEALTH_LABELS[node.effectiveHealth], translator)}
+              {tx(
+                RESOURCE_TOPOLOGY_HEALTH_LABELS[node.effectiveHealth],
+                translator,
+              )}
             </span>
             {status ? <span className="text-gray-500">· {status}</span> : null}
           </div>
@@ -274,9 +273,7 @@ const ResourceTopologyDetailPanel: FunctionComponent<ComponentProps> = (
           <div data-testid="resource-topology-panel-issues">
             {incidents.length > 0 ? (
               <>
-                <SectionTitle>
-                  {tx("Open incidents", translator)}
-                </SectionTitle>
+                <SectionTitle>{tx("Open incidents", translator)}</SectionTitle>
                 <ul className="mt-1 divide-y divide-gray-100">
                   {incidents.map(renderIssue)}
                 </ul>
@@ -284,9 +281,7 @@ const ResourceTopologyDetailPanel: FunctionComponent<ComponentProps> = (
             ) : null}
             {alerts.length > 0 ? (
               <div className={incidents.length > 0 ? "mt-4" : ""}>
-                <SectionTitle>
-                  {tx("Open alerts", translator)}
-                </SectionTitle>
+                <SectionTitle>{tx("Open alerts", translator)}</SectionTitle>
                 <ul className="mt-1 divide-y divide-gray-100">
                   {alerts.map(renderIssue)}
                 </ul>
@@ -307,7 +302,10 @@ const ResourceTopologyDetailPanel: FunctionComponent<ComponentProps> = (
                 return (
                   <li key={entry[0]} className="flex justify-between gap-4">
                     <span>
-                      {tx(entry[1] === 1 ? kind.label : kind.plural, translator)}
+                      {tx(
+                        entry[1] === 1 ? kind.label : kind.plural,
+                        translator,
+                      )}
                     </span>
                     <span className="font-medium text-gray-900">
                       {translator.formatNumber(entry[1])}
@@ -328,45 +326,49 @@ const ResourceTopologyDetailPanel: FunctionComponent<ComponentProps> = (
           <div>
             <SectionTitle>{tx("Related", translator)}</SectionTitle>
             <ul className="mt-2 space-y-1">
-              {neighbours.slice(0, 50).map(
-                (neighbour: ResourceTopologyNeighbour): ReactElement | null => {
-                  const other: ResourceTopologyNode | undefined =
-                    props.graph.nodes.get(neighbour.nodeId);
+              {neighbours
+                .slice(0, 50)
+                .map(
+                  (
+                    neighbour: ResourceTopologyNeighbour,
+                  ): ReactElement | null => {
+                    const other: ResourceTopologyNode | undefined =
+                      props.graph.nodes.get(neighbour.nodeId);
 
-                  if (!other) {
-                    return null;
-                  }
+                    if (!other) {
+                      return null;
+                    }
 
-                  return (
-                    <li key={`${neighbour.label}-${neighbour.nodeId}`}>
-                      <button
-                        type="button"
-                        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-gray-50"
-                        onClick={() => {
-                          props.onSelect(other.id);
-                        }}
-                      >
-                        <span
-                          aria-hidden={true}
-                          className="h-2 w-2 flex-shrink-0 rounded-full"
-                          style={{
-                            backgroundColor:
-                              RESOURCE_TOPOLOGY_HEALTH_COLORS[
-                                other.effectiveHealth
-                              ],
+                    return (
+                      <li key={`${neighbour.label}-${neighbour.nodeId}`}>
+                        <button
+                          type="button"
+                          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-gray-50"
+                          onClick={() => {
+                            props.onSelect(other.id);
                           }}
-                        />
-                        <span className="text-xs text-gray-500">
-                          {tx(neighbour.label, translator)}
-                        </span>
-                        <span className="min-w-0 flex-1 truncate font-medium text-gray-900">
-                          {topologyNodeName(translator, other)}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                },
-              )}
+                        >
+                          <span
+                            aria-hidden={true}
+                            className="h-2 w-2 flex-shrink-0 rounded-full"
+                            style={{
+                              backgroundColor:
+                                RESOURCE_TOPOLOGY_HEALTH_COLORS[
+                                  other.effectiveHealth
+                                ],
+                            }}
+                          />
+                          <span className="text-xs text-gray-500">
+                            {tx(neighbour.label, translator)}
+                          </span>
+                          <span className="min-w-0 flex-1 truncate font-medium text-gray-900">
+                            {topologyNodeName(translator, other)}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  },
+                )}
             </ul>
             {neighbours.length > 50 ? (
               <p className="mt-1 text-xs text-gray-500">
@@ -386,7 +388,10 @@ const ResourceTopologyDetailPanel: FunctionComponent<ComponentProps> = (
               className="mt-2 flex flex-wrap items-center gap-1 text-sm"
             >
               {ancestors.map(
-                (ancestor: ResourceTopologyNode, index: number): ReactElement => {
+                (
+                  ancestor: ResourceTopologyNode,
+                  index: number,
+                ): ReactElement => {
                   return (
                     <React.Fragment key={ancestor.id}>
                       {index > 0 ? (

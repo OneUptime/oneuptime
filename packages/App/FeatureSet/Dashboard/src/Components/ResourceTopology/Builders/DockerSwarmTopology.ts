@@ -28,13 +28,16 @@ import {
  * A Docker Swarm cluster's topology, two ways, like a Kubernetes cluster's:
  *
  *   - Services: stack > service > its current tasks, with each stack's
- *     networks. "What runs, and has every service its replicas?"
+ *     networks and the cluster's nodes beside them. "What runs, and has
+ *     every service its replicas?"
  *   - Nodes: node > the tasks it runs, and the tasks not on any node.
  *     "Where does it run, and is every machine up?"
  *
  * Only a service's current tasks are drawn (the ones Swarm wants running):
  * `docker service ps` also lists the ones each slot replaced, and those are
- * history, not topology. A task is linked to its node and its service.
+ * history, not topology. A task is linked to its node and its service, and
+ * the one it sits inside needs no line: by service, a picked task draws a
+ * line to the node it runs on.
  */
 
 export const SWARM_ROOT_ID: string = "cluster";
@@ -64,9 +67,9 @@ function text(
 }
 
 function attribute(row: DockerSwarmResource, key: string): string {
-  const value: unknown = (row.attributes as Record<string, unknown> | undefined)?.[
-    key
-  ];
+  const value: unknown = (
+    row.attributes as Record<string, unknown> | undefined
+  )?.[key];
 
   return value === null || value === undefined ? "" : String(value);
 }
@@ -101,12 +104,12 @@ function assessNode(row: DockerSwarmResource): Assessment {
     {
       label: translationKey("Role"),
       value:
-        attribute(row, "isLeader") === "true"
-          ? "leader"
-          : row.role || "worker",
+        attribute(row, "isLeader") === "true" ? "leader" : row.role || "worker",
     },
   ];
-  const fromState: ResourceTopologyHealth | null = healthOfStatusWord(row.state);
+  const fromState: ResourceTopologyHealth | null = healthOfStatusWord(
+    row.state,
+  );
 
   if (fromState === "critical" || row.isReady === false) {
     return {
@@ -203,10 +206,13 @@ function assessService(row: DockerSwarmResource): Assessment {
         desired: String(desired),
       }),
       reasons: [
-        text(translationKey("{{running}} of {{desired}} replicas are running."), {
-          running: String(have),
-          desired: String(desired),
-        }),
+        text(
+          translationKey("{{running}} of {{desired}} replicas are running."),
+          {
+            running: String(have),
+            desired: String(desired),
+          },
+        ),
       ],
       facts: facts,
     };
@@ -278,7 +284,11 @@ export function buildDockerSwarmTopology(
     row: DockerSwarmResource,
   ): ResourceTopologyNodeInput["link"] => {
     return row.externalId
-      ? { page: page, modelId: clusterId, subModelId: routeParam(row.externalId) }
+      ? {
+          page: page,
+          modelId: clusterId,
+          subModelId: routeParam(row.externalId),
+        }
       : null;
   };
 
@@ -478,12 +488,10 @@ export function buildDockerSwarmTopology(
   let unscheduled: number = 0;
 
   for (const part of parts.values()) {
-    if (part.kind !== "swarm.node") {
-      servicesNodes.push({
-        ...part,
-        parentId: servicesParent.get(part.id) || SWARM_ROOT_ID,
-      });
-    }
+    servicesNodes.push({
+      ...part,
+      parentId: servicesParent.get(part.id) || SWARM_ROOT_ID,
+    });
 
     if (part.kind === "swarm.node") {
       nodesNodes.push({ ...part, parentId: SWARM_ROOT_ID });

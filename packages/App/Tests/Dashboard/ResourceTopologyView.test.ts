@@ -20,6 +20,7 @@ import {
   closeTopologyPart,
   computeResourceTopologyView,
   createResourceTopologyViewState,
+  drawnAsChips,
   flattenResourceTopologyView,
   getAutomaticDepth,
   getPartsOpenedWith,
@@ -74,9 +75,7 @@ function vcenterEstate(shape: EstateShape): ResourceTopologyGraph {
     nodes.push(part(dcId, "vcenter", { kind: "vmware.datacenter" }));
 
     for (let ds: number = 0; ds < shape.datastoresPerDatacenter; ds++) {
-      nodes.push(
-        part(`${dcId}-ds-${ds}`, dcId, { kind: "vmware.datastore" }),
-      );
+      nodes.push(part(`${dcId}-ds-${ds}`, dcId, { kind: "vmware.datastore" }));
     }
 
     for (let cl: number = 0; cl < shape.clustersPerDatacenter; cl++) {
@@ -173,16 +172,17 @@ describe("how deep a resource opens by itself", () => {
     const visible: ResourceTopologyVisible = view(graph);
 
     expect(findCard(visible.top, "dc-0-cl-0-h-1")!.isOpen).toBe(true);
-    expect(visible.chipCount).toBe(6);
+    // Six virtual machines, and two datastores that have no numbers to show.
+    expect(visible.chipCount).toBe(8);
     expect(visible.visibleNodeIds.size).toBe(graph.nodes.size);
   });
 
   test("a large resource stops opening before the drawing gets unreadable", () => {
     const graph: ResourceTopologyGraph = vcenterEstate({
-      datacenters: 2,
-      clustersPerDatacenter: 6,
+      datacenters: 1,
+      clustersPerDatacenter: 10,
       hostsPerCluster: 12,
-      vmsPerHost: 20,
+      vmsPerHost: 30,
       datastoresPerDatacenter: 30,
     });
     const visible: ResourceTopologyVisible = view(graph);
@@ -297,21 +297,57 @@ describe("groups fold, but never a problem", () => {
     expect(toggleTopologyGroup(full, key).shownInFull.has(key)).toBe(false);
   });
 
-  test("a few parts that hold nothing stay cards, many become chips", () => {
+  test("a few parts with numbers stay cards; many, or ones without, are chips", () => {
+    const capacity: Partial<ResourceTopologyNodeInput> = {
+      kind: "vmware.datastore",
+      facts: [{ label: "Capacity", value: "2 TB" }],
+    };
     const few: ResourceTopologyGraph = buildResourceTopologyGraph({
       rootId: "root",
       nodes: [
         part("root", null),
-        part("a", "root", { kind: "vmware.datastore" }),
-        part("b", "root", { kind: "vmware.datastore" }),
+        part("a", "root", capacity),
+        part("b", "root", capacity),
+      ],
+    });
+    const many: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "root",
+      nodes: [
+        part("root", null),
+        part("a", "root", capacity),
+        part("b", "root", capacity),
+        part("c", "root", capacity),
+      ],
+    });
+    const bare: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "root",
+      nodes: [
+        part("root", null),
+        part("a", "root", { kind: "vmware.resourcepool" }),
       ],
     });
 
     expect(CHIP_MINIMUM).toBe(3);
     expect(groupOf(view(few).top, "vmware.datastore").asChips).toBe(false);
+    expect(groupOf(view(few).top, "vmware.datastore").items[0]!.type).toBe(
+      "card",
+    );
+    expect(groupOf(view(many).top, "vmware.datastore").asChips).toBe(true);
+    // A card would only repeat a chip's name and status, larger.
+    expect(groupOf(view(bare).top, "vmware.resourcepool").asChips).toBe(true);
+  });
+
+  test("a part that holds something is never a chip", () => {
+    const graph: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "root",
+      nodes: [part("root", null)],
+    });
+
     expect(
-      groupOf(view(few).top, "vmware.datastore").items[0]!.type,
-    ).toBe("card");
+      drawnAsChips([graph.nodes.get("root")!], (): boolean => {
+        return false;
+      }),
+    ).toBe(false);
   });
 
   test("kinds keep the catalog's order: clusters before datastores", () => {
@@ -365,11 +401,19 @@ describe("groups fold, but never a problem", () => {
 
 describe("opening and closing", () => {
   const graph: ResourceTopologyGraph = vcenterEstate({
-    datacenters: 2,
+    datacenters: 1,
     clustersPerDatacenter: 6,
     hostsPerCluster: 12,
     vmsPerHost: 20,
     datastoresPerDatacenter: 30,
+  });
+
+  test("the first view opens the datacenter and leaves its clusters closed", () => {
+    const visible: ResourceTopologyVisible = view(graph);
+
+    expect(visible.automaticDepth).toBe(2);
+    expect(findCard(visible.top, "dc-0")!.isOpen).toBe(true);
+    expect(findCard(visible.top, "dc-0-cl-0")!.isOpen).toBe(false);
   });
 
   test("opening a part opens what fits inside it, by the same rule", () => {
@@ -385,7 +429,65 @@ describe("opening and closing", () => {
 
     expect(cluster.isOpen).toBe(true);
     expect(groupOf(cluster, "vmware.host").items).toHaveLength(CARD_PREVIEW);
+    // Its hosts' virtual machines would not fit OPEN_BUDGET: they stay closed.
+    expect(findCard(cluster, "dc-0-cl-0-h-0")!.isOpen).toBe(false);
+    expect(opened.opened).toEqual(new Set<string>(["dc-0-cl-0"]));
     expect(getPartsOpenedWith(graph, "dc-0-cl-0")).toContain("dc-0-cl-0");
+  });
+
+  test("a host opened by itself shows its virtual machines", () => {
+    const opened: ResourceTopologyViewState = openTopologyPart(
+      graph,
+      openTopologyPart(graph, createResourceTopologyViewState(), "dc-0-cl-0"),
+      "dc-0-cl-0-h-0",
+    );
+    const host: ResourceTopologyCardItem = findCard(
+      computeResourceTopologyView(graph, opened).top,
+      "dc-0-cl-0-h-0",
+    )!;
+
+    expect(host.isOpen).toBe(true);
+    expect(groupOf(host, "vmware.vm").items).toHaveLength(CHIP_PREVIEW);
+  });
+
+  test("a part someone opened stays open whatever the canvas allows", () => {
+    const opened: ResourceTopologyViewState = openTopologyPart(
+      graph,
+      createResourceTopologyViewState(),
+      "dc-0",
+    );
+    const visible: ResourceTopologyVisible = computeResourceTopologyView(
+      graph,
+      opened,
+      { maxAutomaticDepth: 1 },
+    );
+    const automatic: ResourceTopologyVisible = computeResourceTopologyView(
+      graph,
+      createResourceTopologyViewState(),
+      { maxAutomaticDepth: 1 },
+    );
+
+    expect(visible.automaticDepth).toBe(1);
+    expect(findCard(visible.top, "dc-0")!.isOpen).toBe(true);
+    expect(findCard(automatic.top, "dc-0")!.isOpen).toBe(false);
+  });
+
+  test("a smaller canvas opens fewer levels, never none", () => {
+    expect(
+      computeResourceTopologyView(graph, createResourceTopologyViewState(), {
+        maxAutomaticDepth: 0,
+      }).top.isOpen,
+    ).toBe(true);
+    expect(
+      computeResourceTopologyView(graph, createResourceTopologyViewState(), {
+        maxAutomaticDepth: 5,
+      }).automaticDepth,
+    ).toBe(2);
+    expect(
+      computeResourceTopologyView(graph, createResourceTopologyViewState(), {
+        budget: 4,
+      }).automaticDepth,
+    ).toBe(1);
   });
 
   test("closing a part keeps it closed whatever the automatic depth says", () => {
@@ -410,7 +512,9 @@ describe("opening and closing", () => {
     );
 
     expect(state.closed.has("dc-0")).toBe(false);
-    expect(findCard(computeResourceTopologyView(graph, state).top, "dc-0")!.isOpen).toBe(true);
+    expect(
+      findCard(computeResourceTopologyView(graph, state).top, "dc-0")!.isOpen,
+    ).toBe(true);
   });
 });
 
@@ -569,10 +673,8 @@ describe("search", () => {
     expect(closedMatch.isOpen).toBe(false);
 
     const opened: ResourceTopologyCardItem = findCard(
-      computeResourceTopologyView(
-        named,
-        openTopologyPart(named, state, "esx"),
-      ).top,
+      computeResourceTopologyView(named, openTopologyPart(named, state, "esx"))
+        .top,
       "esx",
     )!;
 

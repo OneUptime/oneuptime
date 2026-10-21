@@ -146,7 +146,7 @@ const ResourceTopologyOutline: FunctionComponent<ComponentProps> = (
               <IssueBadges node={node} compact={true} />
             </span>
             <span className="block truncate text-xs text-gray-500">
-              {[topologyKindLabel(translator, node), status, contents]
+              {[status, topologyKindLabel(translator, node), contents]
                 .filter((part: string): boolean => {
                   return part.length > 0;
                 })

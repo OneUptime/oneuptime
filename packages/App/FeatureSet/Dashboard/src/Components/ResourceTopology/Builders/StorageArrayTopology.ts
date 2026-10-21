@@ -178,9 +178,12 @@ export function buildStorageArrayTopology(
       reasons:
         openAlerts > 0
           ? [
-              text(translationKey("Alerts open on the array itself: {{count}}"), {
-                count: String(openAlerts),
-              }),
+              text(
+                translationKey("Alerts open on the array itself: {{count}}"),
+                {
+                  count: String(openAlerts),
+                },
+              ),
             ]
           : [],
       link: { page: PageMap.STORAGE_ARRAY_VIEW, modelId: arrayId },
@@ -279,9 +282,10 @@ export function buildStorageArrayTopology(
       name: name,
       health: fromStatus || (hardwareKind ? "unknown" : "healthy"),
       status: row.status ? { text: formatStatusWord(row.status) } : undefined,
-      reasons: row.statusDetail && fromStatus && fromStatus !== "healthy"
-        ? [{ text: row.statusDetail }]
-        : [],
+      reasons:
+        row.statusDetail && fromStatus && fromStatus !== "healthy"
+          ? [{ text: row.statusDetail }]
+          : [],
       facts: capacityFacts(row),
       context: row.groupName || row.componentType || undefined,
       keywords: [row.model || "", row.componentType || ""].filter(
@@ -316,7 +320,10 @@ export function buildStorageArrayTopology(
   ): string | null => {
     const candidates: Array<[string, Array<string>]> = [
       ["host", ["Host"]],
-      ["component_name", ["Controller", "Drive", "NetworkInterface", "Hardware"]],
+      [
+        "component_name",
+        ["Controller", "Drive", "NetworkInterface", "Hardware"],
+      ],
       ["local_pod", ["Pod"]],
       ["name", ["Volume", "Pod", "Directory", "FileSystem", "Bucket"]],
     ];
@@ -329,7 +336,9 @@ export function buildStorageArrayTopology(
       }
 
       for (const kind of kinds) {
-        const id: string | undefined = ids.get(`${kind}:${value}`.toLowerCase());
+        const id: string | undefined = ids.get(
+          `${kind}:${value}`.toLowerCase(),
+        );
 
         if (id) {
           return id;

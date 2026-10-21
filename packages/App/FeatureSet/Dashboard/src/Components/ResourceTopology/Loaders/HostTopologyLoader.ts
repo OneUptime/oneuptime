@@ -7,6 +7,7 @@ import EntityType from "Common/Types/Telemetry/EntityType";
 import { keyForHost } from "Common/Utils/Telemetry/EntityKey";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   ServiceOperationalStatus,
   ServiceStatusItem,
@@ -16,8 +17,16 @@ import {
   fetchInfrastructureData,
   fetchServiceMapData,
 } from "../../Topology/TopologyApi";
-import { InfrastructureData, ServiceMapData } from "../../Topology/TopologyData";
-import { HostTopologyInput, buildHostTopology } from "../Builders/HostTopology";
+import {
+  InfrastructureData,
+  ServiceMapData,
+} from "../../Topology/TopologyData";
+import {
+  HOST_CALLERS_SECTION_ID,
+  HOST_CALLS_SECTION_ID,
+  HostTopologyInput,
+  buildHostTopology,
+} from "../Builders/HostTopology";
 import { entityKind } from "../ResourceTopologyKinds";
 import {
   ResourceTopologyGraph,
@@ -191,7 +200,19 @@ export async function loadHostTopology(
 
   return {
     arrangements: [
-      { id: "host", label: "Host", graph: buildHostTopology(input) },
+      {
+        id: "host",
+        label: "Host",
+        graph: buildHostTopology(input),
+        alwaysShowRelations: true,
+        relationLegend: translationKey(
+          "Calls per minute, red or amber when they fail",
+        ),
+        lanes: {
+          left: [HOST_CALLERS_SECTION_ID],
+          right: [HOST_CALLS_SECTION_ID],
+        },
+      },
     ],
     issuesArePartial: Boolean(issues?.isPartial),
     masterTopologyRoute: hostEntityKey

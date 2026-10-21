@@ -150,11 +150,15 @@ const ProxmoxRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.PROXMOX_CLUSTER_VIEW_TOPOLOGY)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.PROXMOX_CLUSTER_VIEW_TOPOLOGY,
+          )}
           element={
             <ProxmoxClusterTopology
               {...props}
-              pageRoute={RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_TOPOLOGY] as Route}
+              pageRoute={
+                RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_TOPOLOGY] as Route
+              }
             />
           }
         />

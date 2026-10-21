@@ -3,6 +3,7 @@ import EntityType from "Common/Types/Telemetry/EntityType";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import PageMap from "../../../Utils/PageMap";
 import { isEntityActive } from "../../Topology/TopologyActivity";
+import { SERVICE_STATUS_LABELS } from "../../Topology/ServiceMapViewModel";
 import {
   InfrastructureData,
   ServiceMapData,
@@ -106,7 +107,8 @@ function healthOfTraffic(traffic: TrafficHealth): ResourceTopologyHealth {
     case "healthy":
       return "healthy";
     default:
-      return "healthy";
+      // No calls in the window: nothing to judge by, as on the service map.
+      return "unknown";
   }
 }
 
@@ -126,7 +128,9 @@ function addTraffic(
   map.set(key, current);
 }
 
-function trafficFacts(traffic: Traffic | undefined): Array<ResourceTopologyFact> {
+function trafficFacts(
+  traffic: Traffic | undefined,
+): Array<ResourceTopologyFact> {
   if (!traffic || traffic.calls <= 0) {
     return [];
   }
@@ -158,7 +162,11 @@ export function buildHostTopology(
     parentId: null,
     kind: entityKind(EntityType.Host),
     name: input.host.name || "Host",
-    health: reporting ? "healthy" : input.host.lastSeenAt ? "warning" : "unknown",
+    health: reporting
+      ? "healthy"
+      : input.host.lastSeenAt
+        ? "warning"
+        : "unknown",
     status: reporting
       ? text(translationKey("Reporting"))
       : input.host.lastSeenAt
@@ -212,11 +220,15 @@ export function buildHostTopology(
       continue;
     }
 
-    const from: TopologyEntity | undefined = entityByKey.get(edge.fromEntityKey);
+    const from: TopologyEntity | undefined = entityByKey.get(
+      edge.fromEntityKey,
+    );
 
     if (from?.entityType === EntityType.Service) {
-      if (edge.relationshipType === EntityRelationshipType.RunsOn ||
-        edge.relationshipType === EntityRelationshipType.HostedOn) {
+      if (
+        edge.relationshipType === EntityRelationshipType.RunsOn ||
+        edge.relationshipType === EntityRelationshipType.HostedOn
+      ) {
         placementsOf.set(edge.toEntityKey, [
           ...(placementsOf.get(edge.toEntityKey) || []),
           edge.fromEntityKey,
@@ -299,6 +311,7 @@ export function buildHostTopology(
 
   // Calls each service on the host makes and receives.
   const received: Map<string, Traffic> = new Map<string, Traffic>();
+  const sent: Map<string, Traffic> = new Map<string, Traffic>();
   const outsideCalls: Map<string, Traffic> = new Map<string, Traffic>();
   const callers: Set<string> = new Set<string>();
   const callees: Set<string> = new Set<string>();
@@ -324,6 +337,7 @@ export function buildHostTopology(
     }
 
     addTraffic(received, to, edge);
+    addTraffic(sent, from, edge);
 
     if (fromHere && !toHere) {
       callees.add(to);
@@ -383,15 +397,27 @@ export function buildHostTopology(
       parentId: parentId,
       kind: entityKind(type),
       name: entity?.displayName || serviceKey,
-      health: healthOfTraffic(health),
+      health:
+        health === "unknown" && (sent.get(serviceKey)?.calls || 0) > 0
+          ? "healthy"
+          : healthOfTraffic(health),
+      /*
+       * The service map's own words, as the service map draws them (they
+       * are kept in English there, and its docs say so), so a service reads
+       * the same on both maps. A service whose calls are healthy says
+       * nothing more: its numbers say it, and "Healthy" beside an open
+       * incident would contradict the incident.
+       */
       status:
         health === "critical"
-          ? text(translationKey("High error rate"))
+          ? text(SERVICE_STATUS_LABELS.critical)
           : health === "degraded"
-            ? text(translationKey("Some errors"))
+            ? text(SERVICE_STATUS_LABELS.degraded)
             : traffic && traffic.calls > 0
-              ? text(translationKey("Healthy"))
-              : text(translationKey("No calls observed")),
+              ? undefined
+              : (sent.get(serviceKey)?.calls || 0) > 0
+                ? text(SERVICE_STATUS_LABELS.entry)
+                : text(SERVICE_STATUS_LABELS.isolated),
       reasons:
         health === "critical" || health === "degraded"
           ? [
@@ -497,11 +523,22 @@ export function buildHostTopology(
       (serviceHome.has(edge.fromEntityKey!) ||
         serviceHome.has(edge.toEntityKey!))
     ) {
+      const callHealth: TrafficHealth = healthForErrorRate(
+        edge.callCount || 0,
+        edge.errorCount || 0,
+        SERVICE_MAP_TOLERATED_ERROR_RATE,
+      );
+
       relations.push({
         from: from,
         to: to,
         label: translationKey("Calls"),
         inverseLabel: translationKey("Called by"),
+        health: healthOfTraffic(callHealth),
+        detail:
+          edge.callCount && edge.callCount > 0
+            ? formatCallRate(edge.callCount, HOST_METRICS_WINDOW_SECONDS)
+            : undefined,
       });
     }
   }

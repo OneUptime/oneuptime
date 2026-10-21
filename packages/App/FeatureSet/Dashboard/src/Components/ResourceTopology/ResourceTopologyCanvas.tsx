@@ -8,11 +8,15 @@ import React, {
 import ReactFlow, {
   Background,
   BackgroundVariant,
+  BaseEdge,
   Controls,
   Edge,
+  EdgeProps,
+  EdgeTypes,
   MarkerType,
   Node,
   ReactFlowInstance,
+  useNodesInitialized,
   useReactFlow,
   useStoreApi,
 } from "reactflow";
@@ -31,21 +35,28 @@ import {
 } from "../Topology/FlowViewportGuard";
 import {
   ResourceTopologyGraph,
-  ResourceTopologyNeighbour,
+  ResourceTopologyRelation,
   getTopologyNeighbours,
 } from "./ResourceTopologyModel";
 import {
   ResourceTopologyLayout,
   ResourceTopologyPlaced,
+  ResourceTopologySide,
+  getRelationCurve,
+  getRelationSides,
 } from "./ResourceTopologyLayout";
 import { ResourceTopologyVisible } from "./ResourceTopologyView";
+import { RESOURCE_TOPOLOGY_FIT_PADDING } from "./ResourceTopologyFit";
 import {
   RESOURCE_TOPOLOGY_NODE_TYPES,
   ResourceTopologyNodeCallbacks,
   ResourceTopologyNodeData,
   tx,
 } from "./ResourceTopologyNodes";
-import { RESOURCE_TOPOLOGY_RELATION_COLOR } from "./ResourceTopologyLook";
+import {
+  RESOURCE_TOPOLOGY_HEALTH_COLORS,
+  RESOURCE_TOPOLOGY_RELATION_COLOR,
+} from "./ResourceTopologyLook";
 
 /*
  * The map itself: every box, card and chip the layout placed, and lines for
@@ -79,10 +90,65 @@ export interface ComponentProps {
   callbacks: ResourceTopologyNodeCallbacks;
   fitRequest: ResourceTopologyFitRequest;
   height: number;
+  /* Draw every relation, not only the selected part's (a host's calls). */
+  alwaysShowRelations?: boolean | undefined;
 }
 
-export const RESOURCE_TOPOLOGY_FIT_PADDING: number = 0.08;
 export const RESOURCE_TOPOLOGY_PAN_MARGIN: number = 240;
+
+/*
+ * A relation's line: React Flow's curve, with its label nearer the part it
+ * points at than halfway (see getRelationCurve).
+ */
+const RelationEdge: FunctionComponent<EdgeProps> = (
+  props: EdgeProps,
+): ReactElement => {
+  const curve: { path: string; labelX: number; labelY: number } =
+    getRelationCurve(
+      {
+        x: props.sourceX,
+        y: props.sourceY,
+        side: props.sourcePosition as ResourceTopologySide,
+      },
+      {
+        x: props.targetX,
+        y: props.targetY,
+        side: props.targetPosition as ResourceTopologySide,
+      },
+    );
+
+  return (
+    <BaseEdge
+      id={props.id}
+      path={curve.path}
+      labelX={curve.labelX}
+      labelY={curve.labelY}
+      interactionWidth={0}
+      {...(props.label !== undefined ? { label: props.label } : {})}
+      {...(props.labelStyle ? { labelStyle: props.labelStyle } : {})}
+      {...(props.labelShowBg !== undefined
+        ? { labelShowBg: props.labelShowBg }
+        : {})}
+      {...(props.labelBgStyle ? { labelBgStyle: props.labelBgStyle } : {})}
+      {...(props.labelBgPadding
+        ? { labelBgPadding: props.labelBgPadding }
+        : {})}
+      {...(props.labelBgBorderRadius !== undefined
+        ? { labelBgBorderRadius: props.labelBgBorderRadius }
+        : {})}
+      {...(props.style ? { style: props.style } : {})}
+      {...(props.markerEnd ? { markerEnd: props.markerEnd } : {})}
+    />
+  );
+};
+
+const RESOURCE_TOPOLOGY_EDGE_TYPES: EdgeTypes = {
+  resourceTopologyRelation: RelationEdge,
+};
+
+function ignoreNodeClick(): void {
+  // The buttons inside each node handle its clicks.
+}
 
 const NODE_TYPE_BY_KIND: Record<ResourceTopologyPlaced["kind"], string> = {
   container: "resourceTopologyContainer",
@@ -93,28 +159,55 @@ const NODE_TYPE_BY_KIND: Record<ResourceTopologyPlaced["kind"], string> = {
 };
 
 /*
- * Frames what the map asks for, once React Flow holds it. React Flow takes
- * a new nodes array in an effect of its own, so the first frame may still
- * hold the previous drawing: the fit is tried each frame until it lands.
+ * Frames what the map asks for, once React Flow has measured every node of
+ * the drawing (useNodesInitialized): a fit before that frames nothing, and
+ * React Flow takes a new nodes array in an effect of its own. A request is
+ * kept until it lands, so a fit asked for while the next drawing is still
+ * being measured happens as soon as it is.
  */
 const ViewportController: FunctionComponent<{
   fitRequest: ResourceTopologyFitRequest;
-}> = (props: { fitRequest: ResourceTopologyFitRequest }): ReactElement => {
+  /* The ids of the drawing the map handed React Flow, joined by "|". */
+  drawingKey: string;
+  drawingSize: number;
+}> = (props: {
+  fitRequest: ResourceTopologyFitRequest;
+  drawingKey: string;
+  drawingSize: number;
+}): ReactElement => {
   const instance: ReactFlowInstance = useReactFlow();
   const store: ReturnType<typeof useStoreApi> = useStoreApi();
+  const nodesInitialized: boolean = useNodesInitialized();
+  const pending: React.MutableRefObject<ResourceTopologyFitRequest | null> =
+    useRef<ResourceTopologyFitRequest | null>(props.fitRequest);
 
   useEffect(() => {
+    pending.current = props.fitRequest;
+  }, [props.fitRequest.token]);
+
+  useEffect(() => {
+    const request: ResourceTopologyFitRequest | null = pending.current;
+
+    if (!request || !nodesInitialized) {
+      return undefined;
+    }
+
     let frame: number = 0;
-    let attempts: number = 30;
-    const request: ResourceTopologyFitRequest = props.fitRequest;
+    let attempts: number = 60;
     const attempt: () => void = (): void => {
-      const known: boolean =
-        !request.nodeIds ||
-        request.nodeIds.every((id: string): boolean => {
-          return store.getState().nodeInternals.has(id);
+      /*
+       * React Flow still holds the previous drawing until its own effect
+       * takes the new nodes: fitting that would frame what is gone.
+       */
+      const internals: ReturnType<typeof store.getState>["nodeInternals"] =
+        store.getState().nodeInternals;
+      const holdsDrawing: boolean =
+        internals.size === props.drawingSize &&
+        props.drawingKey.split("|").every((id: string): boolean => {
+          return internals.has(id);
         });
       const fitted: boolean =
-        known &&
+        holdsDrawing &&
         instance.fitView({
           padding: RESOURCE_TOPOLOGY_FIT_PADDING,
           maxZoom: 1,
@@ -128,7 +221,14 @@ const ViewportController: FunctionComponent<{
             : {}),
         });
 
-      if (!fitted && attempts > 0) {
+      if (fitted) {
+        if (pending.current === request) {
+          pending.current = null;
+        }
+        return;
+      }
+
+      if (attempts > 0) {
         attempts--;
         frame = requestAnimationFrame(attempt);
       }
@@ -139,7 +239,7 @@ const ViewportController: FunctionComponent<{
     return () => {
       cancelAnimationFrame(frame);
     };
-  }, [props.fitRequest.token]);
+  }, [props.fitRequest.token, nodesInitialized, props.drawingKey]);
 
   /*
    * Keyboard focus is followed: a card reached with Tab is panned into
@@ -218,8 +318,8 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
    * a new function per render would hand React Flow a new nodes array on
    * every keystroke in the search box.
    */
-  const callbacks: ResourceTopologyNodeCallbacks = useMemo(
-    (): ResourceTopologyNodeCallbacks => {
+  const callbacks: ResourceTopologyNodeCallbacks =
+    useMemo((): ResourceTopologyNodeCallbacks => {
       return {
         onSelect: (nodeId: string): void => {
           callbacksRef.current.onSelect(nodeId);
@@ -231,9 +331,7 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
           callbacksRef.current.onToggleGroup(groupKey);
         },
       };
-    },
-    [],
-  );
+    }, []);
 
   const nodes: Array<Node<ResourceTopologyNodeData>> = useMemo((): Array<
     Node<ResourceTopologyNodeData>
@@ -275,65 +373,132 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
    * part beside it, and from the selected part to every related part that
    * is on the map.
    */
+  /*
+   * Lines for what crosses the tree: from a focused part to each related
+   * part beside it, from the selected part to every related part on the
+   * map, and — on a map that is about them (a host's calls) — every
+   * relation all the time, coloured by how it is doing.
+   */
   const edges: Array<Edge> = useMemo((): Array<Edge> => {
     const result: Array<Edge> = [];
     const seen: Set<string> = new Set<string>();
-    const add: (from: string, to: string, label: string) => void = (
+    const selected: Set<string> = new Set<string>();
+
+    if (props.selectedId) {
+      selected.add(props.selectedId);
+    }
+
+    if (props.visible.focusId) {
+      selected.add(props.visible.focusId);
+    }
+
+    const add: (
       from: string,
       to: string,
       label: string,
+      relation?: ResourceTopologyRelation | undefined,
+    ) => void = (
+      from: string,
+      to: string,
+      label: string,
+      relation?: ResourceTopologyRelation | undefined,
     ): void => {
       const id: string = `relation:${from}->${to}`;
 
-      if (seen.has(id) || !props.layout.byId.has(from)) {
-        return;
-      }
-
-      if (!props.layout.byId.has(to)) {
+      if (
+        seen.has(id) ||
+        !props.layout.byId.has(from) ||
+        !props.layout.byId.has(to)
+      ) {
         return;
       }
 
       seen.add(id);
+
+      const emphasised: boolean = selected.has(from) || selected.has(to);
+      const color: string =
+        relation?.health === "critical"
+          ? RESOURCE_TOPOLOGY_HEALTH_COLORS.critical
+          : relation?.health === "warning"
+            ? RESOURCE_TOPOLOGY_HEALTH_COLORS.warning
+            : emphasised || !props.alwaysShowRelations
+              ? RESOURCE_TOPOLOGY_RELATION_COLOR
+              : "var(--ou-border-strong, #94a3b8)";
+      const text: string =
+        props.alwaysShowRelations && !emphasised
+          ? relation?.detail || ""
+          : [tx(label, translator), relation?.detail || ""]
+              .filter((part: string): boolean => {
+                return part.length > 0;
+              })
+              .join(" · ");
+
+      const sides: {
+        source: ResourceTopologySide;
+        target: ResourceTopologySide;
+      } = getRelationSides(
+        props.layout.byId.get(from)!,
+        props.layout.byId.get(to)!,
+      );
+
       result.push({
         id: id,
         source: from,
         target: to,
-        type: "default",
-        label: tx(label, translator),
-        labelShowBg: true,
-        labelStyle: {
-          fontSize: 11,
-          fontWeight: 600,
-          fill: "var(--ou-text-secondary, #4b5563)",
-        },
-        labelBgStyle: {
-          fill: "var(--ou-surface-primary, #ffffff)",
-          fillOpacity: 1,
-          stroke: "var(--ou-border-default, #e5e7eb)",
-          strokeWidth: 1,
-        },
-        labelBgPadding: [6, 3],
-        labelBgBorderRadius: 6,
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          color: RESOURCE_TOPOLOGY_RELATION_COLOR,
-        },
+        sourceHandle: `${sides.source}-source`,
+        targetHandle: `${sides.target}-target`,
+        type: "resourceTopologyRelation",
+        ...(text
+          ? {
+              label: text,
+              labelShowBg: true,
+              labelStyle: {
+                fontSize: 11,
+                fontWeight: 600,
+                fill: "var(--ou-text-secondary, #4b5563)",
+              },
+              labelBgStyle: {
+                fill: "var(--ou-surface-primary, #ffffff)",
+                fillOpacity: 1,
+                stroke: "var(--ou-border-default, #e5e7eb)",
+                strokeWidth: 1,
+              },
+              labelBgPadding: [6, 3] as [number, number],
+              labelBgBorderRadius: 6,
+            }
+          : {}),
+        markerEnd: { type: MarkerType.ArrowClosed, color: color },
         style: {
-          stroke: RESOURCE_TOPOLOGY_RELATION_COLOR,
-          strokeWidth: 1.75,
-          strokeDasharray: "6 4",
+          stroke: color,
+          strokeWidth: emphasised ? 2.25 : 1.5,
+          strokeDasharray:
+            props.alwaysShowRelations && !emphasised ? undefined : "6 4",
         },
         zIndex: 2000,
       });
     };
 
+    const relationBetween: (
+      from: string,
+      to: string,
+    ) => ResourceTopologyRelation | undefined = (
+      from: string,
+      to: string,
+    ): ResourceTopologyRelation | undefined => {
+      return (props.graph.relationsByNode.get(from) || []).find(
+        (relation: ResourceTopologyRelation): boolean => {
+          return relation.from === from && relation.to === to;
+        },
+      );
+    };
+
     if (props.visible.focusId) {
       for (const related of props.visible.related) {
-        if (related.direction === "out") {
-          add(props.visible.focusId, related.nodeId, related.label);
-        } else {
-          add(related.nodeId, props.visible.focusId, related.label);
-        }
+        const [from, to] =
+          related.direction === "out"
+            ? [props.visible.focusId, related.nodeId]
+            : [related.nodeId, props.visible.focusId];
+        add(from, to, related.label, relationBetween(from, to));
       }
     }
 
@@ -342,13 +507,17 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
         props.graph,
         props.selectedId,
       )) {
-        const relation: ResourceTopologyNeighbour = neighbour;
+        const [from, to] =
+          neighbour.direction === "out"
+            ? [props.selectedId, neighbour.nodeId]
+            : [neighbour.nodeId, props.selectedId];
+        add(from, to, neighbour.label, relationBetween(from, to));
+      }
+    }
 
-        if (relation.direction === "out") {
-          add(props.selectedId, relation.nodeId, relation.label);
-        } else {
-          add(relation.nodeId, props.selectedId, relation.label);
-        }
+    if (props.alwaysShowRelations) {
+      for (const relation of props.graph.relations) {
+        add(relation.from, relation.to, relation.label, relation);
       }
     }
 
@@ -358,8 +527,17 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
     props.graph,
     props.visible,
     props.selectedId,
+    props.alwaysShowRelations,
     translator.language,
   ]);
+
+  const drawingKey: string = useMemo((): string => {
+    return nodes
+      .map((node: Node<ResourceTopologyNodeData>): string => {
+        return node.id;
+      })
+      .join("|");
+  }, [nodes]);
 
   const extent: FlowExtent = useMemo((): FlowExtent => {
     const rects: Array<FlowRect> = props.layout.placed.map(
@@ -386,6 +564,7 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
         nodes={nodes}
         edges={edges}
         nodeTypes={RESOURCE_TOPOLOGY_NODE_TYPES}
+        edgeTypes={RESOURCE_TOPOLOGY_EDGE_TYPES}
         minZoom={0.05}
         maxZoom={1.75}
         translateExtent={extent}
@@ -402,6 +581,12 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
         nodesFocusable={false}
         edgesFocusable={false}
         proOptions={{ hideAttribution: true }}
+        /*
+         * The nodes' own buttons do the work. React Flow only lets pointer
+         * events reach a node that is selectable, draggable or clickable,
+         * so it gets a click handler that leaves the click to them.
+         */
+        onNodeClick={ignoreNodeClick}
       >
         <Controls showInteractive={false} />
         <Background
@@ -410,7 +595,11 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
           size={1}
           color="var(--ou-chart-grid, #cbd5e1)"
         />
-        <ViewportController fitRequest={props.fitRequest} />
+        <ViewportController
+          fitRequest={props.fitRequest}
+          drawingKey={drawingKey}
+          drawingSize={nodes.length}
+        />
       </ReactFlow>
     </div>
   );

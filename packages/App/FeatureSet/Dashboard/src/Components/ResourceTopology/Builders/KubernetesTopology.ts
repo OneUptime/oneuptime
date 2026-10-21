@@ -30,14 +30,16 @@ import {
  * KubernetesResource and KubernetesContainer rows its pages list), two ways:
  *
  *   - Workloads: namespace > deployment, StatefulSet, DaemonSet, CronJob
- *     (with its jobs) or job > pods, with each namespace's volume claims and
- *     the cluster's persistent volumes. "What runs, and is it healthy?"
+ *     (with its jobs) or job > pods, with each namespace's volume claims,
+ *     the cluster's persistent volumes and its nodes beside them. "What
+ *     runs, and is it healthy?"
  *   - Nodes: node > the pods scheduled on it, and the pods not scheduled
  *     anywhere yet. "Where does it run, and is the machine healthy?"
  *
  * A pod is linked to its node ("Runs on") and to the claims it mounts
- * ("Uses"), and a claim to the volume it is bound to ("Bound to"), so a
- * focused pod shows its node and storage beside it in either reading.
+ * ("Uses"), and a claim to the volume it is bound to ("Bound to"): picking
+ * or focusing a pod by workload draws its node and storage beside it. By
+ * node the pod already sits inside its node, so no line says so.
  *
  * Health is what the cluster's own pages show: a node that is not ready is
  * critical, one under memory, disk or PID pressure needs attention; a pod
@@ -99,9 +101,9 @@ function asObject(value: unknown): Json {
 
 function asArray(value: unknown): Array<Json> {
   return Array.isArray(value)
-    ? value.filter((item: unknown): boolean => {
+    ? (value.filter((item: unknown): boolean => {
         return Boolean(item) && typeof item === "object";
-      }) as Array<Json>
+      }) as Array<Json>)
     : [];
 }
 
@@ -175,10 +177,15 @@ export function deploymentNameFromReplicaSet(replicaSet: string): string {
   return replicaSet.replace(REPLICA_SET_HASH, "");
 }
 
-function ownersOf(row: KubernetesResource): Array<{ kind: string; name: string }> {
+function ownersOf(
+  row: KubernetesResource,
+): Array<{ kind: string; name: string }> {
   return asArray(asObject(row.ownerReferences)["items"])
     .map((owner: Json): { kind: string; name: string } => {
-      return { kind: readString(owner, "kind"), name: readString(owner, "name") };
+      return {
+        kind: readString(owner, "kind"),
+        name: readString(owner, "name"),
+      };
     })
     .filter((owner: { kind: string; name: string }): boolean => {
       return Boolean(owner.kind && owner.name);
@@ -302,7 +309,8 @@ function assessPod(
   const failing: KubernetesContainer | undefined = containers.find(
     (container: KubernetesContainer): boolean => {
       return Boolean(
-        container.reason && KUBERNETES_FAILING_WAIT_REASONS.has(container.reason),
+        container.reason &&
+          KUBERNETES_FAILING_WAIT_REASONS.has(container.reason),
       );
     },
   );
@@ -364,7 +372,11 @@ function assessPod(
               reason: waiting.reason,
             }),
           ]
-        : [text(translationKey("The pod is waiting to be scheduled or started."))],
+        : [
+            text(
+              translationKey("The pod is waiting to be scheduled or started."),
+            ),
+          ],
       facts: facts,
     };
   }
@@ -425,7 +437,10 @@ function assessPod(
 }
 
 /* Ready replicas out of the ones asked for: "2/3 ready". */
-function assessReplicas(desired: number | null, ready: number | null): Assessment {
+function assessReplicas(
+  desired: number | null,
+  ready: number | null,
+): Assessment {
   if (desired === null && ready === null) {
     return { health: "unknown", reasons: [], facts: [] };
   }
@@ -436,7 +451,12 @@ function assessReplicas(desired: number | null, ready: number | null): Assessmen
     {
       label: translationKey("Ready"),
       value: `${have}/${want}`,
-      tone: want > 0 && have === 0 ? "critical" : have < want ? "warning" : undefined,
+      tone:
+        want > 0 && have === 0
+          ? "critical"
+          : have < want
+            ? "warning"
+            : undefined,
     },
   ];
 
@@ -554,7 +574,9 @@ function assessWorkload(row: KubernetesResource): Assessment {
 
       return {
         health: "healthy",
-        status: schedule ? { text: schedule } : text(translationKey("Scheduled")),
+        status: schedule
+          ? { text: schedule }
+          : text(translationKey("Scheduled")),
         reasons: [],
         facts: [],
       };
@@ -701,7 +723,10 @@ export function buildKubernetesTopology(
     link: { page: PageMap.KUBERNETES_CLUSTER_VIEW, modelId: clusterId },
   };
 
-  const linkFor: (kind: string, name: string) => ResourceTopologyNodeInput["link"] = (
+  const linkFor: (
+    kind: string,
+    name: string,
+  ) => ResourceTopologyNodeInput["link"] = (
     kind: string,
     name: string,
   ): ResourceTopologyNodeInput["link"] => {
@@ -762,7 +787,13 @@ export function buildKubernetesTopology(
     addPart(row, "k8s.node", assessNode(row, input.now));
   }
 
-  for (const kind of ["Deployment", "StatefulSet", "DaemonSet", "CronJob", "Job"]) {
+  for (const kind of [
+    "Deployment",
+    "StatefulSet",
+    "DaemonSet",
+    "CronJob",
+    "Job",
+  ]) {
     for (const row of rowsOf(kind)) {
       addPart(row, KIND_BY_ROW_KIND[kind]!, assessWorkload(row));
     }
@@ -803,7 +834,13 @@ export function buildKubernetesTopology(
   const workloadParent: Map<string, string> = new Map<string, string>();
 
   // Workloads sit in their namespace; a job a CronJob made sits in that CronJob.
-  for (const kind of ["Deployment", "StatefulSet", "DaemonSet", "CronJob", "Job"]) {
+  for (const kind of [
+    "Deployment",
+    "StatefulSet",
+    "DaemonSet",
+    "CronJob",
+    "Job",
+  ]) {
     for (const row of rowsOf(kind)) {
       const id: string = kubernetesNodeId(
         KIND_BY_ROW_KIND[kind]!,
@@ -819,7 +856,11 @@ export function buildKubernetesTopology(
           return owner.kind === "CronJob";
         });
         const cronJobId: string | null = cronJob
-          ? kubernetesNodeId("k8s.cronjob", row.namespaceKey || "", cronJob.name)
+          ? kubernetesNodeId(
+              "k8s.cronjob",
+              row.namespaceKey || "",
+              cronJob.name,
+            )
           : null;
 
         if (cronJobId && parts.has(cronJobId)) {
@@ -985,7 +1026,8 @@ export function buildKubernetesTopology(
     }
 
     const labels: OpenIssueRecord["seriesLabels"] = record.seriesLabels;
-    const namespace: string = readSeriesLabel(labels, "k8s.namespace.name") || "";
+    const namespace: string =
+      readSeriesLabel(labels, "k8s.namespace.name") || "";
     const candidates: Array<[string, string]> = [
       ["k8s.pod.name", "k8s.pod"],
       ["k8s.deployment.name", "k8s.deployment"],
@@ -1016,7 +1058,10 @@ export function buildKubernetesTopology(
       return kubernetesNodeId("k8s.node", "", node);
     }
 
-    if (namespace && parts.has(kubernetesNodeId("k8s.namespace", "", namespace))) {
+    if (
+      namespace &&
+      parts.has(kubernetesNodeId("k8s.namespace", "", namespace))
+    ) {
       return kubernetesNodeId("k8s.namespace", "", namespace);
     }
 
@@ -1029,14 +1074,10 @@ export function buildKubernetesTopology(
     locate: locate,
   });
 
-  // Workloads: namespaces, their workloads, their pods.
+  // Workloads: namespaces, their workloads, their pods; the nodes beside.
   const workloadNodes: Array<ResourceTopologyNodeInput> = [root];
 
   for (const part of parts.values()) {
-    if (part.kind === "k8s.node") {
-      continue;
-    }
-
     let parentId: string = KUBERNETES_ROOT_ID;
 
     if (part.kind === "k8s.pod") {
@@ -1119,6 +1160,7 @@ export function buildKubernetesTopology(
     nodes: buildResourceTopologyGraph({
       rootId: KUBERNETES_ROOT_ID,
       nodes: nodeNodes,
+      // A pod's "Runs on" is its place here: the graph drops that line.
       relations: relations,
       issues: issuesWithin(nodeNodes),
       truncations: input.truncations,

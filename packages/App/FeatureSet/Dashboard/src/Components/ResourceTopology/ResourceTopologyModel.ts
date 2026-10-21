@@ -95,6 +95,10 @@ export interface ResourceTopologyRelation {
   to: string;
   label: string;
   inverseLabel: string;
+  /* How the relation itself is doing, when it has a state (a call's errors). */
+  health?: ResourceTopologyHealth | undefined;
+  /* A short figure the line can carry: "1.1k/min". Not translated. */
+  detail?: string | undefined;
 }
 
 export type ResourceTopologyIssueType = "incident" | "alert";
@@ -294,8 +298,7 @@ export function buildResourceTopologyGraph(
 
     const issues: Array<ResourceTopologyIssue> =
       input.issues?.get(nodeInput.id) || [];
-    const issueHealth: ResourceTopologyHealth | null =
-      healthFromIssues(issues);
+    const issueHealth: ResourceTopologyHealth | null = healthFromIssues(issues);
     const effectiveHealth: ResourceTopologyHealth = issueHealth
       ? worseHealth(nodeInput.health, issueHealth)
       : nodeInput.health;
@@ -416,7 +419,8 @@ export function buildResourceTopologyGraph(
         );
       }
 
-      node.attentionBelow += child.attentionBelow + (child.needsAttention ? 1 : 0);
+      node.attentionBelow +=
+        child.attentionBelow + (child.needsAttention ? 1 : 0);
       node.criticalBelow +=
         child.criticalBelow + (child.effectiveHealth === "critical" ? 1 : 0);
 
@@ -442,17 +446,41 @@ export function buildResourceTopologyGraph(
       });
   }
 
-  // Relations between parts that are there, once each.
+  /*
+   * Relations between parts that are there, once each — and not between a
+   * part and one that holds it: a task inside its service, a pod inside its
+   * node, the nesting already says so.
+   */
   const relations: Array<ResourceTopologyRelation> = [];
-  const relationsByNode: Map<string, Array<ResourceTopologyRelation>> =
-    new Map<string, Array<ResourceTopologyRelation>>();
+  const relationsByNode: Map<string, Array<ResourceTopologyRelation>> = new Map<
+    string,
+    Array<ResourceTopologyRelation>
+  >();
   const seenRelations: Set<string> = new Set<string>();
+  const holds: (outerId: string, innerId: string) => boolean = (
+    outerId: string,
+    innerId: string,
+  ): boolean => {
+    let cursor: string | null = nodes.get(innerId)?.parentId || null;
+
+    while (cursor) {
+      if (cursor === outerId) {
+        return true;
+      }
+
+      cursor = nodes.get(cursor)?.parentId || null;
+    }
+
+    return false;
+  };
 
   for (const relation of input.relations || []) {
     if (
       relation.from === relation.to ||
       !nodes.has(relation.from) ||
-      !nodes.has(relation.to)
+      !nodes.has(relation.to) ||
+      holds(relation.from, relation.to) ||
+      holds(relation.to, relation.from)
     ) {
       continue;
     }

@@ -165,11 +165,15 @@ const DockerSwarmRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.DOCKER_SWARM_CLUSTER_VIEW_TOPOLOGY)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DOCKER_SWARM_CLUSTER_VIEW_TOPOLOGY,
+          )}
           element={
             <DockerSwarmClusterTopology
               {...props}
-              pageRoute={RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_TOPOLOGY] as Route}
+              pageRoute={
+                RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_TOPOLOGY] as Route
+              }
             />
           }
         />

@@ -172,7 +172,9 @@ const StorageArrayRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.STORAGE_ARRAY_VIEW_TOPOLOGY)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.STORAGE_ARRAY_VIEW_TOPOLOGY,
+          )}
           element={
             <StorageArrayTopology
               {...props}

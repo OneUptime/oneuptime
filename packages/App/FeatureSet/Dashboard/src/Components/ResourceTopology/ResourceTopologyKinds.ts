@@ -123,7 +123,8 @@ const KINDS: Record<string, ResourceTopologyKindInfo> = {
     plural: translationKey("Nodes"),
     icon: IconProp.ServerStack,
     color: "#1d4ed8",
-    order: 10,
+    // After what runs, before the volumes: the machines it runs on.
+    order: 55,
   },
   "k8s.namespace": {
     label: translationKey("Namespace"),
@@ -253,7 +254,8 @@ const KINDS: Record<string, ResourceTopologyKindInfo> = {
     plural: translationKey("Nodes"),
     icon: IconProp.Server,
     color: "#0891b2",
-    order: 10,
+    // After what runs, before the networks: the machines it runs on.
+    order: 45,
   },
   "swarm.stack": {
     label: translationKey("Stack"),

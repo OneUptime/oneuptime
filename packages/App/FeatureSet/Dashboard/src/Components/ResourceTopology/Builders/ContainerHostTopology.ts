@@ -134,10 +134,7 @@ interface Assessment {
   facts: Array<ResourceTopologyFact>;
 }
 
-function assessContainer(
-  row: ContainerHostResourceRow,
-  now: Date,
-): Assessment {
+function assessContainer(row: ContainerHostResourceRow, now: Date): Assessment {
   const fresh: boolean = isRecent(
     row.metricsUpdatedAt,
     now,
@@ -196,7 +193,11 @@ export function buildContainerHostTopology(
 ): ResourceTopologyGraph {
   const hostId: string = input.host.id;
   const reporting: boolean =
-    isRecent(input.host.lastSeenAt, input.now, CONTAINER_HOST_METRIC_STALE_MS) ||
+    isRecent(
+      input.host.lastSeenAt,
+      input.now,
+      CONTAINER_HOST_METRIC_STALE_MS,
+    ) ||
     input.rows.some((row: ContainerHostResourceRow): boolean => {
       return isRecent(
         row.metricsUpdatedAt,
@@ -404,7 +405,9 @@ export function buildContainerHostTopology(
     );
 
     if (containerId) {
-      return containerIds.get(containerId.substring(0, 12).toLowerCase()) || null;
+      return (
+        containerIds.get(containerId.substring(0, 12).toLowerCase()) || null
+      );
     }
 
     return null;

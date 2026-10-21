@@ -175,7 +175,9 @@ const ResourceTopologyPage: FunctionComponent<ComponentProps> = (
     if (state === "error" || !data) {
       return (
         <div role="alert" className="py-6">
-          <ErrorMessage message={error || tx("Could not load the topology.", translator)} />
+          <ErrorMessage
+            message={error || tx("Could not load the topology.", translator)}
+          />
           <button
             type="button"
             className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
@@ -222,11 +224,7 @@ const ResourceTopologyPage: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <Card
-      title="Topology"
-      description={props.description}
-      buttons={buttons}
-    >
+    <Card title="Topology" description={props.description} buttons={buttons}>
       {renderBody()}
     </Card>
   );

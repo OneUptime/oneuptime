@@ -120,9 +120,7 @@ function assessOsd(row: CephResource): Assessment {
     return {
       health: "warning",
       status: text(translationKey("Out")),
-      reasons: [
-        text(translationKey("The OSD is up but holds no data (out).")),
-      ],
+      reasons: [text(translationKey("The OSD is up but holds no data (out)."))],
       facts: facts,
     };
   }
@@ -380,7 +378,10 @@ export function buildCephTopology(
       return poolIds.get(pool.toLowerCase())!;
     }
 
-    const host: string | null = readSeriesLabel(record.seriesLabels, "host.name");
+    const host: string | null = readSeriesLabel(
+      record.seriesLabels,
+      "host.name",
+    );
 
     if (host) {
       for (const [name, id] of hostIds) {

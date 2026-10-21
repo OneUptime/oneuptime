@@ -147,7 +147,9 @@ function assessGuest(row: ProxmoxResource, now: Date): Assessment {
 
   if (row.onboot && row.isUp === false) {
     health = health === "critical" ? health : "warning";
-    reasons.push(text(translationKey("Stopped but configured to start on boot")));
+    reasons.push(
+      text(translationKey("Stopped but configured to start on boot")),
+    );
   }
 
   if (row.isBackedUp === false) {
@@ -201,11 +203,6 @@ function assessStorage(row: ProxmoxResource): Assessment {
         ]
       : [],
     facts: [
-      {
-        label: translationKey("Used"),
-        value: formatTopologyPercent(percent),
-        tone: full ? "warning" : undefined,
-      },
       { label: translationKey("Capacity"), value: formatTopologyBytes(total) },
     ],
   };
@@ -283,7 +280,8 @@ export function buildProxmoxTopology(
     if (row.kind === "Guest") {
       const id: string = `guest:${row.externalId}`;
       const assessment: Assessment = assessGuest(row, input.now);
-      const isContainer: boolean = (row.guestType || "").toLowerCase() === "lxc";
+      const isContainer: boolean =
+        (row.guestType || "").toLowerCase() === "lxc";
 
       if (row.vmid !== null && row.vmid !== undefined) {
         guestsByVmid.set(String(row.vmid), id);
@@ -310,7 +308,10 @@ export function buildProxmoxTopology(
     } else if (row.kind === "Storage") {
       const id: string = `storage:${row.externalId}`;
       const assessment: Assessment = assessStorage(row);
-      storageIds.set(`${row.parentNodeName || ""}/${row.name || ""}`.toLowerCase(), id);
+      storageIds.set(
+        `${row.parentNodeName || ""}/${row.name || ""}`.toLowerCase(),
+        id,
+      );
       nodes.push({
         id: id,
         parentId: parentNode(row),

@@ -71,7 +71,13 @@ export function createResourceTopologyViewState(
 }
 
 /* How much the automatic depth may put on screen, in cards (a chip is half). */
-export const VIEW_BUDGET: number = 48;
+export const VIEW_BUDGET: number = 28;
+/*
+ * What may open along with a part someone opens: less than the whole first
+ * view, so the part fills the screen readably — a namespace opens with its
+ * workloads' pods, a cluster of hosts with its hosts closed.
+ */
+export const OPEN_BUDGET: number = 14;
 /* Cards of one kind shown before the rest fold into "+ N more". */
 export const CARD_PREVIEW: number = 8;
 /* Chips of one kind shown before the rest fold into "+ N more". */
@@ -174,6 +180,11 @@ export interface ResourceTopologyViewOptions {
   /* Words a kind is found by (English and the reader's language). */
   kindLabel?: ((kind: string) => Array<string>) | undefined;
   budget?: number | undefined;
+  /*
+   * Fewer levels than the budget allows, when the canvas cannot show those
+   * readably (see ResourceTopologyFit).
+   */
+  maxAutomaticDepth?: number | undefined;
 }
 
 interface KindGroup {
@@ -207,6 +218,28 @@ function groupByKind(nodes: Array<ResourceTopologyNode>): Array<KindGroup> {
     }
 
     return a.kind < b.kind ? -1 : a.kind > b.kind ? 1 : 0;
+  });
+}
+
+/*
+ * Parts that hold nothing are drawn small, as chips, when there are many of
+ * them — or when they have no numbers a card would show (a network, a
+ * resource pool): a card would only repeat a chip's name and status, larger.
+ */
+export function drawnAsChips(
+  members: Array<ResourceTopologyNode>,
+  holdsNothing: (member: ResourceTopologyNode) => boolean,
+): boolean {
+  if (!members.every(holdsNothing)) {
+    return false;
+  }
+
+  if (members.length >= CHIP_MINIMUM) {
+    return true;
+  }
+
+  return members.every((member: ResourceTopologyNode): boolean => {
+    return (member.facts || []).length === 0;
   });
 }
 
@@ -248,7 +281,12 @@ function previewOf(
 
     weight += 0.5;
 
-    if (holdsNothing && group.members.length >= CHIP_MINIMUM) {
+    if (
+      holdsNothing &&
+      drawnAsChips(group.members, (): boolean => {
+        return true;
+      })
+    ) {
       const chips: number = Math.min(group.members.length, CHIP_PREVIEW);
       const more: number = group.members.length > chips ? 1 : 0;
       weight += (chips + more) / 2;
@@ -359,7 +397,7 @@ export function openTopologyPart(
   const opened: Set<string> = new Set<string>(state.opened);
   const closed: Set<string> = new Set<string>(state.closed);
 
-  for (const id of getPartsOpenedWith(graph, nodeId)) {
+  for (const id of getPartsOpenedWith(graph, nodeId, OPEN_BUDGET)) {
     opened.add(id);
     closed.delete(id);
   }
@@ -574,7 +612,10 @@ export function computeResourceTopologyView(
     focus || graph.nodes.get(graph.rootId)!;
   const automaticDepth: number = narrowing
     ? 0
-    : getAutomaticDepth(graph, automaticTop.id, budget);
+    : Math.min(
+        getAutomaticDepth(graph, automaticTop.id, budget),
+        Math.max(1, options.maxAutomaticDepth ?? Number.POSITIVE_INFINITY),
+      );
 
   const isKept: (id: string) => boolean = (id: string): boolean => {
     if (scope && !scope.has(id)) {
@@ -716,11 +757,12 @@ export function computeResourceTopologyView(
     for (const group of groupByKind(children)) {
       const key: string = groupKey(node.id, group.kind);
       const inFull: boolean = state.shownInFull.has(key);
-      const asChips: boolean =
-        group.members.length >= CHIP_MINIMUM &&
-        group.members.every((member: ResourceTopologyNode): boolean => {
+      const asChips: boolean = drawnAsChips(
+        group.members,
+        (member: ResourceTopologyNode): boolean => {
           return keptChildren(member).length === 0;
-        });
+        },
+      );
       const limit: number = asChips
         ? inFull
           ? CHIP_FULL_LIMIT
