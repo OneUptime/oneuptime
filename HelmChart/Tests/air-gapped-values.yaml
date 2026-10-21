@@ -2,7 +2,9 @@
 # shows it: every image from the customer's own registry (the OneUptime
 # images through image.registry, the bundled PostgreSQL, ClickHouse and Valkey
 # through their own image.repository), the pull secret on every pod, no update
-# check, and no public fallback nameserver for the probes.
+# check, no public fallback nameserver for the probes, and the probe's monitors
+# and the webhooks allowed to reach private addresses - on a network with no
+# route out, every address they reach is one, and both refuse it by default.
 #
 # suites/air-gapped.sh renders the chart with this file and checks each of
 # those. The website holds the same values (packages/Home/Utils/AirGapped.ts,
@@ -25,3 +27,8 @@ updateCheck:
   disabled: true
 dnsConfig:
   nameservers: []
+probes:
+  one:
+    allowPrivateNetworkMonitors: true
+webhooks:
+  allowPrivateNetwork: true

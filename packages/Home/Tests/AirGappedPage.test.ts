@@ -12,6 +12,7 @@ import {
   AirGappedStep,
   CHART_SIGNING_KEY_URL,
   getAirGappedContent,
+  plainText,
 } from "../Utils/AirGapped";
 import { getSelfHostedContent } from "../Utils/SelfHosted";
 import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
@@ -92,6 +93,38 @@ function textOf(element: Element | null | undefined): string {
 
 function all(root: ParentNode, selector: string): Array<Element> {
   return Array.from(root.querySelectorAll(selector));
+}
+
+/*
+ * The spans of a string that the page draws as code: the words between each
+ * pair of backticks (Utils/AirGapped.ts, "Code inside a sentence").
+ */
+function codeSpansOf(text: string): Array<string> {
+  return text.split("`").filter((_part: string, index: number): boolean => {
+    return index % 2 === 1;
+  });
+}
+
+// What an element draws as code, in order.
+function codeIn(element: Element | null | undefined): Array<string> {
+  return element ? all(element, "code").map(textOf) : [];
+}
+
+// Every string of the page's content, wherever it sits in it.
+function stringsOf(value: unknown): Array<string> {
+  if (typeof value === "string") {
+    return [value];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap(stringsOf);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).flatMap(stringsOf);
+  }
+
+  return [];
 }
 
 // Is `routePath` the first argument of an app.get( in Routes.ts?
@@ -278,21 +311,58 @@ describe("the air-gapped page", () => {
     const picture: Element = page.querySelector(
       '[data-testid="air-gapped-network"]',
     )!;
+    const itemText: (item: AirGappedNetworkItem) => string = (
+      item: AirGappedNetworkItem,
+    ): string => {
+      return `${item.label} ${item.detail}`;
+    };
 
     expect(textOf(picture)).toContain("Your network");
     expect(textOf(picture)).toContain("No route to the internet needed");
-    expect(textOf(picture)).toContain("OneUptime");
 
-    const items: Array<string> = all(
-      picture,
-      'ul[aria-label="Inside your network"] li',
-    ).map(textOf);
+    // The probes and datastores the chart runs are drawn inside OneUptime.
+    const oneUptime: Element = picture.querySelector(
+      '[data-testid="air-gapped-network-oneuptime"]',
+    )!;
 
-    expect(items).toEqual(
-      content.network.map((item: AirGappedNetworkItem): string => {
-        return `${item.label} ${item.detail}`;
-      }),
+    expect(textOf(oneUptime.querySelector("p"))).toBe("OneUptime");
+    expect(
+      all(oneUptime, 'ul[aria-label="Runs in your cluster"] li').map(textOf),
+    ).toEqual(content.network.runs.map(itemText));
+
+    // The customer's own services are drawn beside it, under their own label.
+    const yours: Element = picture.querySelector(
+      'ul[aria-labelledby="air-gapped-network-yours"]',
+    )!;
+
+    expect(oneUptime.contains(yours)).toBe(false);
+    expect(textOf(page.getElementById("air-gapped-network-yours"))).toBe(
+      "Uses your own",
     );
+    expect(all(yours, "li").map(textOf)).toEqual(
+      content.network.yours.map(itemText),
+    );
+
+    // Every item has an icon the template draws.
+    for (const path of all(picture, "li svg path")) {
+      expect((path.getAttribute("d") || "").length).toBeGreaterThan(10);
+    }
+  });
+
+  test("keeps the button to the booking in the bar that follows the reader, from a tablet up", () => {
+    const button: Element = page.querySelector(
+      '[data-testid="air-gapped-nav-plan"]',
+    )!;
+
+    expect(button.getAttribute("href")).toBe("#plan-your-install");
+    expect(textOf(button)).toBe("Plan your install");
+    // Outside the list of sections, so a screen reader hears seven links there.
+    expect(button.closest('nav[aria-label="On this page"]')).toBeNull();
+    // Hidden on a phone without the bare `hidden` a foreign stylesheet overrides.
+    expect(button.className.split(" ")).toEqual(
+      expect.arrayContaining(["max-md:hidden", "md:inline-flex"]),
+    );
+    expect(button.className.split(" ")).not.toContain("hidden");
   });
 
   test("names each section in the bar that follows the reader, each link landing on its section", () => {
@@ -435,8 +505,15 @@ describe("the air-gapped page", () => {
       expect(item.id).toBe(`step-${step.key}`);
       expect(textOf(item.querySelector("span"))).toBe(String(index + 1));
       expect(textOf(item.querySelector("h3"))).toBe(step.title);
-      expect(textOf(item.querySelector("p"))).toBe(step.description);
-      expect(all(item, "code").map(textOf)).toEqual(step.settings);
+      expect(textOf(item.querySelector("p"))).toBe(plainText(step.description));
+      // What the description writes as code is drawn as code.
+      expect(codeIn(item.querySelector("p"))).toEqual(
+        codeSpansOf(step.description),
+      );
+      // The settings the step uses, in their own row: none for a step with none.
+      expect(
+        codeIn(item.querySelector('[data-testid="air-gapped-step-settings"]')),
+      ).toEqual(step.settings);
 
       if (step.link) {
         const link: Element | null = item.querySelector(
@@ -448,6 +525,40 @@ describe("the air-gapped page", () => {
     });
   });
 
+  test("names as code what a reader types: the settings each step uses, and none for licensing", () => {
+    expect(
+      content.steps.map((step: AirGappedStep): Array<string> => {
+        return step.settings;
+      }),
+    ).toEqual([
+      ["image.registry", "image.tag", "imagePullSecrets"],
+      ["helm verify"],
+      [
+        "updateCheck.disabled",
+        "dnsConfig.nameservers",
+        "probes.one.allowPrivateNetworkMonitors",
+        "webhooks.allowPrivateNetwork",
+      ],
+      // A license token is something we send, not a setting: no code chip.
+      [],
+    ]);
+    // Every setting the third step names is a key of the values it shows.
+    for (const setting of content.steps[2]!.settings) {
+      const leaf: string = setting.split(".").pop()!;
+
+      expect([setting, AIR_GAPPED_VALUES_YAML.includes(`${leaf}:`)]).toEqual([
+        setting,
+        true,
+      ]);
+    }
+    // The licensing step still says where to read on, with no empty chip row.
+    const licensing: Element = page.getElementById("step-license-offline")!;
+
+    expect(
+      licensing.querySelector('[data-testid="air-gapped-step-settings"] a'),
+    ).not.toBeNull();
+  });
+
   test("gives the chart's signing key fingerprint where the chart is brought in", () => {
     const key: Element = page.querySelector(
       '#step-bring-in-chart [data-testid="air-gapped-signing-key"]',
@@ -456,6 +567,14 @@ describe("the air-gapped page", () => {
     expect(all(key, "p.ag-code span").map(textOf)).toEqual(
       content.signingKey.fingerprintHalves,
     );
+    // After the settings row, as in every other step.
+    const settings: Element = page.querySelector(
+      '#step-bring-in-chart [data-testid="air-gapped-step-settings"]',
+    )!;
+
+    expect(
+      settings.compareDocumentPosition(key) & 4 /* FOLLOWING */,
+    ).toBeTruthy();
 
     const link: Element | null = key.querySelector("a");
 
@@ -473,6 +592,42 @@ describe("the air-gapped page", () => {
     );
     expect(textOf(panel)).toContain("values.yaml");
     expect(textOf(panel.nextElementSibling)).toBe(content.valuesCaption);
+
+    // Each value is set off in colour from the key that names it.
+    expect(all(panel, "pre span").map(textOf)).toEqual(
+      AIR_GAPPED_VALUES_YAML.split("\n")
+        .filter((line: string): boolean => {
+          return line.includes(": ");
+        })
+        .map((line: string): string => {
+          return line.slice(line.indexOf(": ") + 2);
+        }),
+    );
+
+    // A phone scrolls the long lines sideways: by keyboard too, and named.
+    const scroller: Element = panel.querySelector(".ag-scroll")!;
+
+    expect(scroller.getAttribute("tabindex")).toBe("0");
+    expect(scroller.getAttribute("role")).toBe("region");
+    expect(scroller.getAttribute("aria-label")).toBe(
+      "values.yaml for an air-gapped install",
+    );
+  });
+
+  test("says what the values change for an air-gapped cluster, private addresses included", () => {
+    // On a network with no route out, every monitor target and webhook is private.
+    expect(AIR_GAPPED_VALUES_YAML).toContain(
+      "probes:\n  one:\n    allowPrivateNetworkMonitors: true",
+    );
+    expect(AIR_GAPPED_VALUES_YAML).toContain(
+      "webhooks:\n  allowPrivateNetwork: true",
+    );
+    expect(content.steps[2]!.description).toContain(
+      "let probes and webhooks reach private addresses",
+    );
+    expect(content.valuesCaption).toContain(
+      "probes and webhooks may reach private addresses",
+    );
   });
 
   test("says how upgrades work, linking the upgrade guide", () => {
@@ -480,7 +635,12 @@ describe("the air-gapped page", () => {
       '[data-testid="air-gapped-upgrades"]',
     )!;
 
-    expect(textOf(upgrades)).toContain(`Upgrades. ${content.upgradeNote}`);
+    // The note names itself ("Upgrades work the same way"): no label repeats it.
+    expect(textOf(upgrades.querySelector("p"))).toBe(
+      plainText(content.upgradeNote),
+    );
+    expect(textOf(upgrades)).not.toContain("Upgrades. Upgrades");
+    expect(codeIn(upgrades)).toEqual(["helm upgrade"]);
     expect(upgrades.querySelector("a")?.getAttribute("href")).toBe(
       "/docs/installation/upgrading",
     );
@@ -497,27 +657,88 @@ describe("the air-gapped page", () => {
     content.connections.forEach(
       (connection: AirGappedConnection, index: number) => {
         const row: Element = rows[index]!;
-        const heading: string = textOf(row.querySelector("h3"));
 
         expect(row.id).toBe(`connection-${connection.key}`);
-        expect(heading.startsWith(connection.name)).toBe(true);
-        // The badge is on the connections made unless a setting stops them.
-        expect(heading.endsWith("On by default")).toBe(connection.onByDefault);
-        expect(textOf(row)).toContain(connection.destination);
-        expect(textOf(row)).toContain(connection.when);
-        expect(textOf(row)).toContain(connection.inside);
+        expect(textOf(row.querySelector("h4"))).toBe(connection.name);
+        expect(textOf(row)).toContain(plainText(connection.destination));
+        expect(textOf(row)).toContain(plainText(connection.when));
+        expect(textOf(row)).toContain(plainText(connection.inside));
+        // Settings, values and addresses are drawn as code, and nothing else.
+        expect(codeIn(row)).toEqual([
+          ...codeSpansOf(connection.destination),
+          ...codeSpansOf(connection.when),
+          ...codeSpansOf(connection.inside),
+        ]);
       },
     );
+
+    // What to set for the update check and the probes' DNS reads as code.
+    expect(codeIn(page.getElementById("connection-update-check"))).toEqual([
+      "api.github.com",
+      "updateCheck.disabled: true",
+      "updateCheck.url",
+    ]);
+    expect(codeIn(page.getElementById("connection-probe-dns"))).toEqual([
+      "8.8.8.8",
+      "1.1.1.1",
+      "dnsConfig.nameservers",
+      "[]",
+    ]);
   });
 
-  test("says under the table how webhooks reach inside, and where the docs list each integration's addresses", () => {
+  test("tables what reaches out by default apart from what reaches out once set up, each table named", () => {
+    const groups: Array<[string, string, boolean]> = [
+      ["on-by-default", "On by default", true],
+      ["once-set-up", "Only once you set them up", false],
+    ];
+
+    for (const [key, title, onByDefault] of groups) {
+      const group: Element = page.querySelector(
+        `[data-testid="air-gapped-connections-${key}"]`,
+      )!;
+      const heading: Element = group.querySelector("h3")!;
+      const list: Element = group.querySelector("ul")!;
+
+      expect(textOf(heading)).toBe(title);
+      expect(list.getAttribute("aria-labelledby")).toBe(heading.id);
+      expect(
+        all(group, '[data-testid="air-gapped-connection"]').map(
+          (row: Element): string => {
+            return row.id;
+          },
+        ),
+      ).toEqual(
+        content.connections
+          .filter((connection: AirGappedConnection): boolean => {
+            return connection.onByDefault === onByDefault;
+          })
+          .map((connection: AirGappedConnection): string => {
+            return `connection-${connection.key}`;
+          }),
+      );
+    }
+
+    // The first table is the three the section's first sentence names.
+    expect(
+      all(
+        page,
+        '[data-testid="air-gapped-connections-on-by-default"] [data-testid="air-gapped-connection"]',
+      ),
+    ).toHaveLength(3);
+    expect(
+      textOf(page.querySelector("#connections-out h2 + p")).startsWith(
+        "Three things reach out on their own unless you change a setting.",
+      ),
+    ).toBe(true);
+  });
+
+  test("says under the tables where the docs list each integration's addresses and the private-address settings", () => {
     const more: Element = page.querySelector(
       '[data-testid="air-gapped-connections-more"]',
     )!;
 
-    expect(textOf(more.querySelector("code"))).toBe(
-      "webhooks.allowPrivateNetwork",
-    );
+    // The settings themselves are in step 3 and its values.yaml now.
+    expect(more.querySelector("code")).toBeNull();
     expect(
       all(more, "a").map((link: Element): string => {
         return `${textOf(link)} ${link.getAttribute("href")}`;
@@ -529,25 +750,40 @@ describe("the air-gapped page", () => {
   });
 
   test("labels each connection's columns on a phone, and the table's columns from a tablet up", () => {
-    const header: Element = page.querySelector(
-      "#connections-out [aria-hidden='true']",
-    )!;
-
-    expect(all(header, "span").map(textOf)).toEqual([
-      "Connection",
-      "When",
-      "Inside an air gap",
-    ]);
-    // Hidden on a phone without the bare `hidden` a foreign stylesheet overrides.
-    expect(header.className.split(" ")).toEqual(
-      expect.arrayContaining(["max-md:hidden", "md:grid"]),
+    const headers: Array<Element> = all(
+      page,
+      '[data-testid="air-gapped-connections-columns"]',
     );
-    expect(header.className.split(" ")).not.toContain("hidden");
+
+    // One header row per table.
+    expect(headers).toHaveLength(2);
+
+    for (const header of headers) {
+      expect(header.getAttribute("aria-hidden")).toBe("true");
+      expect(all(header, "span").map(textOf)).toEqual([
+        "Connection",
+        "When",
+        "Inside an air gap",
+      ]);
+      // Hidden on a phone without the bare `hidden` a foreign stylesheet overrides.
+      expect(header.className.split(" ")).toEqual(
+        expect.arrayContaining(["max-md:hidden", "md:grid"]),
+      );
+      expect(header.className.split(" ")).not.toContain("hidden");
+    }
 
     for (const row of all(page, '[data-testid="air-gapped-connection"]')) {
       expect(all(row, ".md\\:hidden").map(textOf)).toEqual([
         "When:",
         "Inside an air gap:",
+      ]);
+    }
+
+    // A phone reads "When: ...", so no cell starts by saying "When" again.
+    for (const connection of content.connections) {
+      expect([connection.key, connection.when.startsWith("When")]).toEqual([
+        connection.key,
+        false,
       ]);
     }
   });
@@ -567,7 +803,19 @@ describe("the air-gapped page", () => {
     expect(section.querySelector("pre")?.textContent).toBe(
       AIR_GAPPED_LLM_PROVIDER_ENV,
     );
-    expect(textOf(section)).toContain(content.ai.setup);
+    // Each value set off from its variable, and the block scrolls by keyboard.
+    expect(all(section, "pre span").map(textOf)).toEqual([
+      "Ollama",
+      "http://ollama:11434",
+      "llama3.1",
+    ]);
+    expect(section.querySelector(".ag-scroll")?.getAttribute("tabindex")).toBe(
+      "0",
+    );
+    expect(textOf(section)).toContain(plainText(content.ai.setup));
+    expect(
+      codeIn(section.querySelector('[data-testid="air-gapped-ai-setup"]')),
+    ).toEqual(["GLOBAL_LLM_PROVIDER_*"]);
     expect(textOf(section)).toContain(content.ai.safety);
     expect(
       section
@@ -609,7 +857,7 @@ describe("the air-gapped page", () => {
       }),
     ).toEqual(
       content.faqs.map((faq: AirGappedFaq): [string, string] => {
-        return [faq.question, faq.answer];
+        return [faq.question, plainText(faq.answer)];
       }),
     );
 
@@ -617,6 +865,17 @@ describe("the air-gapped page", () => {
       expect(question.tagName).toBe("DETAILS");
       expect(question.hasAttribute("open")).toBe(false);
     }
+
+    // A setting or a command in an answer is drawn as code.
+    expect(
+      questions.map((question: Element): Array<string> => {
+        return codeIn(question.querySelector("p"));
+      }),
+    ).toEqual(
+      content.faqs.map((faq: AirGappedFaq): Array<string> => {
+        return codeSpansOf(faq.answer);
+      }),
+    );
 
     const faqSchema: { mainEntity: Array<Record<string, unknown>> } = all(
       page,
@@ -634,10 +893,12 @@ describe("the air-gapped page", () => {
         return {
           "@type": "Question",
           name: faq.question,
-          acceptedAnswer: { "@type": "Answer", text: faq.answer },
+          // Plain words for a search result: no backticks.
+          acceptedAnswer: { "@type": "Answer", text: plainText(faq.answer) },
         };
       }),
     );
+    expect(JSON.stringify(faqSchema)).not.toContain("`");
   });
 
   test("books the architecture assessment, the conversation the CRM knows, and offers email", () => {
@@ -706,6 +967,40 @@ describe("the air-gapped page", () => {
         "(opens in a new tab)",
       );
     }
+  });
+
+  test("opens and closes every code span it writes, so no stray backtick turns a sentence into code", () => {
+    const strings: Array<string> = stringsOf(content);
+
+    expect(strings.length).toBeGreaterThan(100);
+
+    for (const text of strings) {
+      const backticks: number = text.split("`").length - 1;
+
+      expect([text, backticks % 2]).toEqual([text, 0]);
+      // And no empty span: two backticks side by side.
+      expect([text, text.includes("``")]).toEqual([text, false]);
+    }
+  });
+
+  test("draws code in the monospace font, even inside it (the site gives every element its sans-serif font)", () => {
+    const style: string = all(page, "head style")
+      .map((element: Element): string => {
+        return element.textContent || "";
+      })
+      .join("\n");
+
+    expect(style).toContain(".ag-code * {\n      font-family: inherit;");
+  });
+
+  test("lands each section the bar jumps to right under the bar", () => {
+    const style: string = all(page, "head style")
+      .map((element: Element): string => {
+        return element.textContent || "";
+      })
+      .join("\n");
+
+    expect(style).toContain("scroll-margin-top: 2.875rem;");
   });
 
   test("loads no image and no script from anywhere but the site and the booking calendar", () => {

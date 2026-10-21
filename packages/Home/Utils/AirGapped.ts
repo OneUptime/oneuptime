@@ -23,6 +23,23 @@ import { HelmDocLinks, HelmDocs } from "./SelfHosted";
 export const AIR_GAPPED_PAGE_PATH: string = "/enterprise/air-gapped";
 
 /*
+ * CODE INSIDE A SENTENCE.
+ *
+ * A setting, a command or an address someone would type is written between
+ * backticks, as in Markdown: "Set `updateCheck.disabled: true`". The page
+ * draws each such span as code (Views/air-gapped.ejs splits the text on its
+ * backticks), the markdown variant keeps the backticks, so they are code
+ * there too, and wherever plain words are wanted - the FAQ's structured data
+ * for search engines, or a test reading the page's text - plainText drops
+ * them. Every string here opens and closes its spans
+ * (Tests/AirGappedPage.test.ts checks), so a stray backtick never turns the
+ * rest of a sentence into code.
+ */
+export const plainText: (text: string) => string = (text: string): string => {
+  return text.split("`").join("");
+};
+
+/*
  * What buyers type: each answers with a permanent redirect to the page
  * (Routes.ts), and Utils/Sitemap.ts keeps them out of the sitemap.
  */
@@ -36,9 +53,12 @@ export const AIR_GAPPED_SHORT_PATHS: ReadonlyArray<string> = [
  * holds the same values (its comment lines aside), and the chart's
  * air-gapped suite (HelmChart/Tests/suites/air-gapped.sh) renders the chart
  * with that file: every image from the registry named here, the pull secret
- * on every pod, the update check off and no public nameserver for a probe.
- * Change one and change the other; Tests/AirGappedFacts.test.ts compares
- * them.
+ * on every pod, the update check off, no public nameserver for a probe, and
+ * the probes' monitors and the webhooks allowed to reach private addresses -
+ * on a network with no route out, every address a monitor checks or a
+ * webhook posts to is one, and both are refused by default
+ * (docs: self-hosted/private-network-access). Change one and change the
+ * other; Tests/AirGappedFacts.test.ts compares them.
  */
 export const AIR_GAPPED_REGISTRY: string = "registry.example.com";
 
@@ -60,6 +80,11 @@ export const AIR_GAPPED_VALUES_YAML: string = [
   "  disabled: true",
   "dnsConfig:",
   "  nameservers: []",
+  "probes:",
+  "  one:",
+  "    allowPrivateNetworkMonitors: true",
+  "webhooks:",
+  "  allowPrivateNetwork: true",
 ].join("\n");
 
 /*
@@ -177,8 +202,9 @@ export interface AirGappedPlanCall {
 
 /*
  * The hero's picture: inside one boundary - the customer's network - what
- * OneUptime runs, and the customer's own services it uses in place of
- * anything on the internet. icon names the template's icon for it.
+ * OneUptime runs in the cluster, drawn inside OneUptime itself, and the
+ * customer's own services it uses in place of anything on the internet,
+ * drawn beside it. icon names the template's icon for each.
  */
 export interface AirGappedNetworkItem {
   label: string;
@@ -186,20 +212,39 @@ export interface AirGappedNetworkItem {
   icon: "probes" | "database" | "registry" | "mail" | "identity" | "model";
 }
 
-export const AirGappedNetwork: Array<AirGappedNetworkItem> = [
-  { label: "Probes", detail: "Check what only you can see", icon: "probes" },
-  { label: "PostgreSQL", detail: "Configuration and state", icon: "database" },
-  { label: "ClickHouse", detail: "Logs, metrics and traces", icon: "database" },
-  { label: "Valkey", detail: "Cache and queues", icon: "database" },
-  { label: "Your registry", detail: "Every image", icon: "registry" },
-  { label: "Your mail server", detail: "Every email", icon: "mail" },
-  {
-    label: "Your identity provider",
-    detail: "SAML or OIDC sign-in",
-    icon: "identity",
-  },
-  { label: "Your AI model", detail: "If you want AI", icon: "model" },
-];
+export interface AirGappedNetworkPicture {
+  // What the chart runs next to OneUptime: its probes and datastores.
+  runs: Array<AirGappedNetworkItem>;
+  // What OneUptime uses of the customer's own, in place of the internet.
+  yours: Array<AirGappedNetworkItem>;
+}
+
+export const AirGappedNetwork: AirGappedNetworkPicture = {
+  runs: [
+    { label: "Probes", detail: "Check what only you can see", icon: "probes" },
+    {
+      label: "PostgreSQL",
+      detail: "Configuration and state",
+      icon: "database",
+    },
+    {
+      label: "ClickHouse",
+      detail: "Logs, metrics and traces",
+      icon: "database",
+    },
+    { label: "Valkey", detail: "Cache and queues", icon: "database" },
+  ],
+  yours: [
+    { label: "Registry", detail: "Every image", icon: "registry" },
+    { label: "Mail server", detail: "Every email", icon: "mail" },
+    {
+      label: "Identity provider",
+      detail: "SAML or OIDC sign-in",
+      icon: "identity",
+    },
+    { label: "AI model", detail: "If you want AI", icon: "model" },
+  ],
+};
 
 // The four lines under the hero's buttons, each a fact the sections below show.
 export const AirGappedProofPoints: Array<string> = [
@@ -263,7 +308,7 @@ export const AirGappedCapabilities: Array<AirGappedCapability> = [
     title: "Alerts that reach people inside",
     description:
       "Email through your own mail server, webhooks to your own tools, and workflows that post to a Mattermost or IRC server on your network.",
-    link: { label: "Your mail server", href: "/docs/emails/smtp" },
+    link: { label: "SMTP", href: "/docs/emails/smtp" },
   },
   {
     key: "sign-in",
@@ -285,7 +330,7 @@ export const AirGappedSteps: Array<AirGappedStep> = [
     key: "mirror-images",
     title: "Mirror the images",
     description:
-      "Copy OneUptime's images, from Docker Hub or the GitHub Container Registry, into your own registry, with the PostgreSQL, ClickHouse and Valkey images the chart runs. Keep their names and tags, and pin image.tag to the release you mirrored. Anything you turn on later, such as PgBouncer or a database operator, needs its images mirrored too.",
+      "Copy OneUptime's images, from Docker Hub or the GitHub Container Registry, into your own registry, with the PostgreSQL, ClickHouse and Valkey images the chart runs. Keep their names and tags, and pin `image.tag` to the release you mirrored. Anything you turn on later, such as PgBouncer or a database operator, needs its images mirrored too.",
     settings: ["image.registry", "image.tag", "imagePullSecrets"],
   },
   {
@@ -299,8 +344,13 @@ export const AirGappedSteps: Array<AirGappedStep> = [
     key: "point-inward",
     title: "Point the install inward",
     description:
-      "In values.yaml, name your registry, turn the update check off and give the probes your own DNS alone. Then run helm install, as on any cluster.",
-    settings: ["updateCheck.disabled", "dnsConfig.nameservers"],
+      "In `values.yaml`, name your registry, turn the update check off, give the probes your own DNS alone, and let probes and webhooks reach private addresses. Then run `helm install`, as on any cluster.",
+    settings: [
+      "updateCheck.disabled",
+      "dnsConfig.nameservers",
+      "probes.one.allowPrivateNetworkMonitors",
+      "webhooks.allowPrivateNetwork",
+    ],
     link: {
       label: "Configuration reference",
       href: HelmDocs.configuration,
@@ -311,7 +361,8 @@ export const AirGappedSteps: Array<AirGappedStep> = [
     title: "License the Enterprise Edition offline",
     description:
       "Running the Enterprise Edition? Send us the instance ID from the edition label, and activate the signed license token we return. The install verifies it against keys built into the release and never contacts us.",
-    settings: ["Offline license token"],
+    // A token, not a setting someone types: nothing to show as code.
+    settings: [],
     link: {
       label: "Offline activation",
       href: "/docs/self-hosted/enterprise#offline-activation-air-gapped-installs",
@@ -320,10 +371,10 @@ export const AirGappedSteps: Array<AirGappedStep> = [
 ];
 
 export const AirGappedUpgradeNote: string =
-  "Upgrades work the same way: mirror the next release's images, bring in its chart, read its upgrade notes and run helm upgrade. The chart runs the database migrations in a Job of its own, inside your cluster.";
+  "Upgrades work the same way: mirror the next release's images, bring in its chart, read its upgrade notes and run `helm upgrade`. The chart runs the database migrations in a Job of its own, inside your cluster.";
 
 export const AirGappedValuesCaption: string =
-  "A test renders the chart with exactly these values: every image comes from your registry, every pod gets the pull secret, the update check is off and no probe is given a public nameserver.";
+  "A test renders the chart with exactly these values: every image comes from your registry, every pod gets the pull secret, the update check is off, no probe is given a public nameserver, and probes and webhooks may reach private addresses.";
 
 /*
  * Everything a self-hosted install reaches out to, by default or once set
@@ -336,17 +387,17 @@ export const AirGappedConnections: Array<AirGappedConnection> = [
   {
     key: "update-check",
     name: "Update check",
-    destination: "api.github.com",
+    destination: "`api.github.com`",
     when: "Once a day, to tell admins that a newer release is out.",
     inside:
-      "Set updateCheck.disabled: true, or point updateCheck.url at a mirror. With no route out, the check fails quietly and shows nothing.",
+      "Set `updateCheck.disabled: true`, or point `updateCheck.url` at a mirror. With no route out, the check fails quietly and shows nothing.",
     onByDefault: true,
   },
   {
     key: "release-emails",
     name: "Release emails at sign-up",
-    destination: "oneuptime.com",
-    when: "When someone signs up with “Notify me about security patches and new releases” ticked (it starts ticked): their name and email, any company and phone they gave, and the install's address and version.",
+    destination: "`oneuptime.com`",
+    when: "Each sign-up with “Notify me about security patches and new releases” ticked (it starts ticked): their name and email, any company and phone they gave, and the install's address and version.",
     inside:
       "Untick it when you sign up. With no route out, the request fails and the sign-up still goes through.",
     onByDefault: true,
@@ -354,15 +405,15 @@ export const AirGappedConnections: Array<AirGappedConnection> = [
   {
     key: "probe-dns",
     name: "Probes' fallback DNS",
-    destination: "8.8.8.8 and 1.1.1.1",
+    destination: "`8.8.8.8` and `1.1.1.1`",
     when: "The Helm chart lists them for probes, after your cluster's own resolver.",
-    inside: "Set dnsConfig.nameservers to [] so probes use your DNS alone.",
+    inside: "Set `dnsConfig.nameservers` to `[]` so probes use your DNS alone.",
     onByDefault: true,
   },
   {
     key: "enterprise-license",
     name: "Enterprise license",
-    destination: "oneuptime.com",
+    destination: "`oneuptime.com`",
     when: "Activating a license key online, and a license sync once a day after that.",
     inside:
       "Activate with an offline license token instead. An install activated offline never contacts OneUptime.",
@@ -427,7 +478,7 @@ export const AirGappedAiOptions: Array<AirGappedAiOption> = [
 ];
 
 export const AirGappedAiSetup: string =
-  "Add your model once, as a global provider: in the Admin Dashboard under Settings > Global LLM Providers, or with the server's GLOBAL_LLM_PROVIDER_* settings. Every project then uses it.";
+  "Add your model once, as a global provider: in the Admin Dashboard under Settings > Global LLM Providers, or with the server's `GLOBAL_LLM_PROVIDER_*` settings. Every project then uses it.";
 
 // The governed claim, word for word (Utils/Claims.ts, encryption-secrets-redaction).
 export const AirGappedAiSafety: string =
@@ -469,7 +520,7 @@ export const AirGappedFaqs: Array<AirGappedFaq> = [
   {
     question: "Does OneUptime phone home?",
     answer:
-      "A Community Edition install makes one call on its own: a daily update check against GitHub's API, which updateCheck.disabled turns off. Signing up with release emails ticked also tells oneuptime.com, so untick that box. An Enterprise Edition install activated with a license key syncs its license with oneuptime.com once a day; one activated with an offline license token never does. Everything else, from SMS to Slack to a hosted AI model, reaches out only once you set it up.",
+      "A Community Edition install makes one call on its own: a daily update check against GitHub's API, which `updateCheck.disabled` turns off. Signing up with release emails ticked also tells oneuptime.com, so untick that box. An Enterprise Edition install activated with a license key syncs its license with oneuptime.com once a day; one activated with an offline license token never does. Everything else, from SMS to Slack to a hosted AI model, reaches out only once you set it up.",
   },
   {
     question: "How do we license the Enterprise Edition with no internet?",
@@ -479,7 +530,7 @@ export const AirGappedFaqs: Array<AirGappedFaq> = [
   {
     question: "How do upgrades work?",
     answer:
-      "The same way as the first install: mirror the next release's images, bring in its signed chart, read its upgrade notes and run helm upgrade. The chart runs the database migrations in a Job of its own inside your cluster. Upgrade one major version at a time.",
+      "The same way as the first install: mirror the next release's images, bring in its signed chart, read its upgrade notes and run `helm upgrade`. The chart runs the database migrations in a Job of its own inside your cluster. Upgrade one major version at a time.",
   },
   {
     question: "Can we page people without SMS, calls or push?",
@@ -499,7 +550,7 @@ export const AirGappedFaqs: Array<AirGappedFaq> = [
   {
     question: "How do we check what we bring across the gap?",
     answer:
-      "Every release attaches a CycloneDX SBOM for each image to its GitHub release, the images carry SPDX SBOM and provenance attestations, and the Helm chart is signed with OneUptime's key, so helm verify checks it before you install.",
+      "Every release attaches a CycloneDX SBOM for each image to its GitHub release, the images carry SPDX SBOM and provenance attestations, and the Helm chart is signed with OneUptime's key, so `helm verify` checks it before you install.",
   },
   {
     question: "Do OneUptime's certifications cover our install?",
@@ -549,7 +600,7 @@ export const AirGappedDocs: AirGappedDocsLinks = {
 export interface AirGappedPageContent {
   pagePath: string;
   proofPoints: Array<string>;
-  network: Array<AirGappedNetworkItem>;
+  network: AirGappedNetworkPicture;
   audiences: Array<AirGappedAudience>;
   capabilities: Array<AirGappedCapability>;
   steps: Array<AirGappedStep>;

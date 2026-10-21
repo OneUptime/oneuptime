@@ -204,16 +204,43 @@ describe("/enterprise/air-gapped.md", () => {
 
     getAirGappedContent().steps.forEach(
       (step: AirGappedStep, index: number) => {
-        const settings: string = step.settings
-          .map((setting: string): string => {
-            return `\`${setting}\``;
-          })
-          .join(", ");
+        // In brackets after the step - and no empty brackets for a step with none.
+        const settings: string =
+          step.settings.length > 0
+            ? ` (${step.settings
+                .map((setting: string): string => {
+                  return `\`${setting}\``;
+                })
+                .join(", ")})`
+            : "";
 
         expect(md).toContain(
-          `${index + 1}. **${step.title}**: ${step.description} (${settings})`,
+          `${index + 1}. **${step.title}**: ${step.description}${settings}`,
         );
       },
+    );
+
+    expect(md).not.toContain("()");
+    // The licensing step names no setting, and still says where to read on.
+    expect(md).toContain(
+      "4. **License the Enterprise Edition offline**: Running the Enterprise Edition?",
+    );
+    expect(md).toContain(
+      "never contacts us. See [Offline activation](https://oneuptime.com/docs/self-hosted/enterprise#offline-activation-air-gapped-installs).",
+    );
+  });
+
+  test("keeps the page's code as markdown code: settings and commands between backticks", () => {
+    const md: string = markdown();
+
+    expect(md).toContain("pin `image.tag` to the release you mirrored");
+    expect(md).toContain("run `helm install`, as on any cluster");
+    expect(md).toContain("| Update check (on by default) | `api.github.com` |");
+    expect(md).toContain(
+      "Set `updateCheck.disabled: true`, or point `updateCheck.url` at a mirror.",
+    );
+    expect(md).toContain(
+      "Set `dnsConfig.nameservers` to `[]` so probes use your DNS alone.",
     );
   });
 

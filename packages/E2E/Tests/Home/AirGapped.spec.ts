@@ -129,13 +129,30 @@ test.describe("Home: Air-gapped installs", () => {
       await expect(values).toContainText("registry: registry.example.com");
       await expect(values).toContainText("disabled: true");
 
-      // Every connection out, each with what to use inside the gap.
+      /*
+       * Every connection out, each with what to use inside the gap: the three
+       * made unless a setting stops them in a table of their own.
+       */
       await expect(page.getByTestId("air-gapped-connection")).toHaveCount(8);
       await expect(
         page
-          .getByTestId("air-gapped-connection")
-          .filter({ hasText: "On by default" }),
+          .getByTestId("air-gapped-connections-on-by-default")
+          .getByTestId("air-gapped-connection"),
       ).toHaveCount(3);
+      await expect(
+        page
+          .getByTestId("air-gapped-connections-once-set-up")
+          .getByTestId("air-gapped-connection"),
+      ).toHaveCount(5);
+
+      // The bar that follows the reader offers the booking from a tablet up.
+      const planButton: Locator = page.getByTestId("air-gapped-nav-plan");
+
+      if (width >= 768) {
+        await expect(planButton).toBeVisible();
+      } else {
+        await expect(planButton).toBeHidden();
+      }
 
       // A question opens when it is clicked.
       const question: Locator = page.getByTestId("air-gapped-faq").first();

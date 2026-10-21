@@ -19,6 +19,7 @@ import {
   CHART_SIGNING_KEY_FINGERPRINT,
   CHART_SIGNING_KEY_URL,
   fingerprintHalves,
+  plainText,
 } from "../Utils/AirGapped";
 import { Claim, getClaim } from "../Utils/Claims";
 import LlmType from "Common/Types/LLM/LlmType";
@@ -196,6 +197,24 @@ describe("the values the page shows are the values the chart is tested with", ()
       AIR_GAPPED_SUITE,
       "no probe is given a nameserver of its own",
     );
+    // "probes and webhooks may reach private addresses"
+    expectFileToSay(
+      AIR_GAPPED_SUITE,
+      "every probe may check private addresses",
+    );
+    expectFileToSay(
+      AIR_GAPPED_SUITE,
+      "the app lets webhooks reach private addresses",
+    );
+    // ...and the stock render the suite contrasts it with refuses both.
+    expectFileToSay(
+      AIR_GAPPED_SUITE,
+      "a stock probe refuses private addresses",
+    );
+    expectFileToSay(
+      AIR_GAPPED_SUITE,
+      "a stock install refuses webhooks to private addresses",
+    );
   });
 
   test("the values the snippet changes are the chart's own keys and defaults", () => {
@@ -211,6 +230,11 @@ describe("the values the page shows are the values the chart is tested with", ()
     expectFileToSay(CHART_VALUES, "    repository: valkey/valkey\n");
     expectFileToSay(CHART_VALUES, "updateCheck:\n  disabled: false\n  url:");
     expectFileToSay(CHART_VALUES, "# imagePullSecrets:");
+    // The chart's probe is probes.one, and both private-address switches start off.
+    expectFileToSay(CHART_VALUES, "probes:\n  one:\n");
+    expectFileToSay(CHART_VALUES, "    allowPrivateNetworkMonitors: false\n");
+    expectFileToSay(CHART_VALUES, "webhooks:\n");
+    expectFileToSay(CHART_VALUES, "  allowPrivateNetwork: false\n");
   });
 
   test("every pod template the chart has takes the chart-wide pull secrets", () => {
@@ -406,6 +430,63 @@ describe("step 3: point the install inward", () => {
     expectFileToSay(
       `${CHART}/templates/probe.yaml`,
       "{{- else if $.Values.dnsConfig }}",
+    );
+  });
+});
+
+describe("step 3: probes and webhooks reach the private addresses an air-gapped network has", () => {
+  const privateAccess: string = docsPagePath(
+    "self-hosted/private-network-access",
+  );
+
+  test("a probe refuses private addresses until allowPrivateNetworkMonitors lets it", () => {
+    // Website and API monitors - "websites and APIs" on the page - are the ones refused.
+    expectFileToSay(
+      privateAccess,
+      "Four monitor types are affected: **API**, **Website**, **External Status Page** and **Custom JavaScript Code**. On a stock probe they can reach public HTTP(S) targets, but refuse private address space.",
+    );
+    expectFileToSay(
+      CHART_CONFIGURATION,
+      "| `probes.<key>.allowPrivateNetworkMonitors`        | Let API, Website, External Status Page and Custom JavaScript Code monitors on this probe reach private network addresses",
+    );
+    expectFileToSay(
+      `${CHART}/templates/probe.yaml`,
+      "- name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS\n              value: {{ default false $val.allowPrivateNetworkMonitors | squote }}",
+    );
+    expect(capability("monitoring")).toContain("websites and APIs");
+  });
+
+  test("webhooks, workflows and Mattermost refuse private addresses until webhooks.allowPrivateNetwork lets them", () => {
+    expectFileToSay(
+      privateAccess,
+      "| Workflows, project webhooks, on-call user webhooks | The **API server**'s environment | Private addresses refused |",
+    );
+    expectFileToSay(
+      CHART_HELPERS,
+      '- name: ALLOW_PRIVATE_NETWORK_WEBHOOKS\n  value: {{ ternary "true" "false" (default false (($.Values.webhooks).allowPrivateNetwork)) | quote }}',
+    );
+    expect(capability("notifications")).toContain("webhooks to your own tools");
+  });
+
+  test("the mail server, identity provider and AI model need no switch: those connections allow private addresses already", () => {
+    expectFileToSay(
+      privateAccess,
+      "| Data sources, LLM providers, SMTP servers, OIDC discovery and other connections | The **API server**'s environment | Private addresses allowed |",
+    );
+  });
+
+  test("the step names both switches, and the values set them", () => {
+    expect(AirGappedSteps[2]!.settings).toEqual([
+      "updateCheck.disabled",
+      "dnsConfig.nameservers",
+      "probes.one.allowPrivateNetworkMonitors",
+      "webhooks.allowPrivateNetwork",
+    ]);
+    expect(AIR_GAPPED_VALUES_YAML).toContain(
+      "probes:\n  one:\n    allowPrivateNetworkMonitors: true",
+    );
+    expect(AIR_GAPPED_VALUES_YAML).toContain(
+      "webhooks:\n  allowPrivateNetwork: true",
     );
   });
 });
@@ -622,7 +703,7 @@ describe("what reaches out, and how it is stopped", () => {
 
     expectFileToSay(ENVIRONMENT_CONFIG, `"${defaultUrl}"`);
     expect(new URL(defaultUrl).host).toBe(
-      connection("update-check").destination,
+      plainText(connection("update-check").destination),
     );
     expectFileToSay(
       UPDATE_CHECK_JOB,
@@ -646,7 +727,7 @@ describe("what reaches out, and how it is stopped", () => {
 
     expect(call).toBeGreaterThan(-1);
     expect(new URL(address).host).toBe(
-      connection("release-emails").destination,
+      plainText(connection("release-emails").destination),
     );
 
     const request: string = signUp.slice(
@@ -697,7 +778,9 @@ describe("what reaches out, and how it is stopped", () => {
       ENVIRONMENT_CONFIG,
       'export const DEFAULT_ENTERPRISE_LICENSE_SERVER_URL: string =\n  "https://oneuptime.com";',
     );
-    expect(connection("enterprise-license").destination).toBe("oneuptime.com");
+    expect(plainText(connection("enterprise-license").destination)).toBe(
+      "oneuptime.com",
+    );
     expectFileToSay(
       docsPagePath("self-hosted/enterprise"),
       "The Community Edition sends none of this, and neither does an install activated offline.",

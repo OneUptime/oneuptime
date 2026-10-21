@@ -6,16 +6,19 @@
 # The page tells a customer whose network never reaches the internet to set
 # the values in ../air-gapped-values.yaml, and says what that does: every
 # image comes from their own registry, every pod gets the pull secret, the
-# update check is off and no probe is given a public nameserver. This suite
-# renders the chart with that file and holds the chart to each of those -
-# for every workload the chart's own templates render, so a workload added
-# later with an image the values do not move, or without the pull secret,
-# fails here before it fails on an air-gapped cluster.
+# update check is off, no probe is given a public nameserver, and probes and
+# webhooks may reach private addresses (on such a network every address a
+# monitor checks or a webhook posts to is one). This suite renders the chart
+# with that file and holds the chart to each of those - for every workload
+# the chart's own templates render, so a workload added later with an image
+# the values do not move, or without the pull secret, fails here before it
+# fails on an air-gapped cluster.
 #
 # It first renders the chart without the file, to show that each check would
 # fail on a stock install: the images come from Docker Hub, the update check
-# is on and the probes list public nameservers. A check that cannot fail is
-# no check.
+# is on, the probes list public nameservers and refuse private addresses, and
+# webhooks to a private address are refused. A check that cannot fail is no
+# check.
 #
 # Everything here is `helm template`: no cluster, no images, no API server.
 
@@ -137,12 +140,16 @@ fi
 stock_probe="$(find "${WORK_DIR}/stock.d" -name 'Deployment@*probe*' | head -n 1)"
 if [ -n "$stock_probe" ]; then
     assert_present "a stock probe lists a public fallback nameserver" "$(nameservers_of "$stock_probe")" "8.8.8.8"
+    assert_eq "a stock probe refuses private addresses" "false" \
+        "$(env_value_of "$stock_probe" PROBE_ALLOW_PRIVATE_NETWORK_MONITORS)"
 else
     fail "a stock install rendered no probe Deployment"
 fi
 
 assert_eq "a stock install leaves the update check on" "false" \
     "$(env_value_of "${WORK_DIR}/stock.d/Deployment@oneuptime-app" DISABLE_UPDATE_CHECK)"
+assert_eq "a stock install refuses webhooks to private addresses" "false" \
+    "$(env_value_of "${WORK_DIR}/stock.d/Deployment@oneuptime-app" ALLOW_PRIVATE_NETWORK_WEBHOOKS)"
 
 # ---------------------------------------------------------------------------
 # 2. The air-gapped install, workload by workload.
@@ -172,6 +179,7 @@ no_image=""
 no_secret=""
 probes=0
 public_dns=""
+private_refused=""
 for file in "${WORK_DIR}"/air-gapped.d/*; do
     name="$(basename "$file")"
     images="$(images_of "$file")"
@@ -197,6 +205,8 @@ for file in "${WORK_DIR}"/air-gapped.d/*; do
             probes=$((probes + 1))
             servers="$(nameservers_of "$file" | tr '\n' ',')"
             [ -n "$servers" ] && public_dns="${public_dns} ${name}=${servers}"
+            allowed="$(env_value_of "$file" PROBE_ALLOW_PRIVATE_NETWORK_MONITORS)"
+            [ "$allowed" = "true" ] || private_refused="${private_refused} ${name}=${allowed:-unset}"
             ;;
     esac
 done
@@ -211,6 +221,7 @@ else
     fail "the air-gapped render has no probe Deployment to check"
 fi
 assert_eq "no probe is given a nameserver of its own (the cluster's DNS alone)" "" "$public_dns"
+assert_eq "every probe may check private addresses" "" "$private_refused"
 
 # Nothing else in the render names a public resolver either.
 assert_absent "nothing in the air-gapped render names 8.8.8.8" "$(cat "${WORK_DIR}/air-gapped.yaml")" "8.8.8.8"
@@ -219,6 +230,11 @@ assert_absent "nothing in the air-gapped render names 1.1.1.1" "$(cat "${WORK_DI
 # The worker job that would ask GitHub for the latest release is told not to.
 assert_eq "the app is told the update check is off" "true" \
     "$(env_value_of "${WORK_DIR}/air-gapped.d/Deployment@oneuptime-app" DISABLE_UPDATE_CHECK)"
+
+# Workflows, project webhooks and on-call user webhooks may post to the
+# customer's own tools, which all sit on private addresses.
+assert_eq "the app lets webhooks reach private addresses" "true" \
+    "$(env_value_of "${WORK_DIR}/air-gapped.d/Deployment@oneuptime-app" ALLOW_PRIVATE_NETWORK_WEBHOOKS)"
 
 # ---------------------------------------------------------------------------
 # 3. Every pod the chart can run takes the pull secret, whatever is switched

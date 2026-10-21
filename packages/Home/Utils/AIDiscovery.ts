@@ -578,16 +578,20 @@ export function generateAirGappedMarkdown(
   );
   lines.push("");
   content.steps.forEach((step: AirGappedStep, index: number) => {
-    const settings: string = step.settings
-      .map((setting: string): string => {
-        return `\`${setting}\``;
-      })
-      .join(", ");
+    // The settings a step names, in brackets - none for a step that has none.
+    const settings: string =
+      step.settings.length > 0
+        ? ` (${step.settings
+            .map((setting: string): string => {
+              return `\`${setting}\``;
+            })
+            .join(", ")})`
+        : "";
     const more: string = step.link
       ? ` See [${step.link.label}](${absoluteLink(baseUrl, step.link.href)}).`
       : "";
     lines.push(
-      `${index + 1}. **${step.title}**: ${step.description} (${settings})${more}`,
+      `${index + 1}. **${step.title}**: ${step.description}${settings}${more}`,
     );
   });
   lines.push("");
@@ -626,7 +630,7 @@ export function generateAirGappedMarkdown(
   }
   lines.push("");
   lines.push(
-    `Webhooks and Mattermost reach a private address once you allow it with \`webhooks.allowPrivateNetwork\`. The addresses each integration needs: [connections out of your network](${absoluteLink(baseUrl, content.docs.connectionsOut)}). What may reach private addresses: [private network access](${absoluteLink(baseUrl, content.docs.privateNetworkAccess)}).`,
+    `The exact addresses each integration needs: [connections out of your network](${absoluteLink(baseUrl, content.docs.connectionsOut)}). Every setting that lets OneUptime reach private addresses: [private network access](${absoluteLink(baseUrl, content.docs.privateNetworkAccess)}).`,
   );
 
   lines.push("");
