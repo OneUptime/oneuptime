@@ -509,9 +509,10 @@ describe("the way in from an empty All Resources", () => {
     getJestSpyOn(PermissionGate, "check").mockReturnValue({
       isAllowed: true,
     } as PermissionGateResult);
-    const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
-      .spyOn(Navigation, "navigate")
-      .mockImplementation((): void => {});
+    const navigate: jest.SpyInstance<any, any> = getJestSpyOn(
+      Navigation,
+      "navigate",
+    ).mockImplementation((): void => {});
 
     render(<CloudConnectCallout />);
 

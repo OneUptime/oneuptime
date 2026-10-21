@@ -31,7 +31,8 @@ function connection(
 ): CloudConnection {
   const value: CloudConnection = new CloudConnection();
   value.id = id;
-  value.provider = provider;
+  // A provider the catalog has no definition for is a case this file reads.
+  value.provider = provider as CloudProvider;
 
   if (config) {
     value.config = config;

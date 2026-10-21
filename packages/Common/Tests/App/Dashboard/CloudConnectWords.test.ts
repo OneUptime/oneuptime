@@ -196,7 +196,7 @@ describe("a read's failure", () => {
       ),
     ).toBeUndefined();
     expect(
-      getCloudReadFailureWords({ lastPullResult: undefined }),
+      getCloudReadFailureWords(new CloudConnection()),
     ).toBeUndefined();
   });
 });
@@ -320,7 +320,7 @@ describe("counts in the reader's language", () => {
 describe("what the last read left a connection holding", () => {
   test("nothing before the first read", () => {
     expect(
-      getCloudLastReadWords({ lastPullResult: undefined }),
+      getCloudLastReadWords(new CloudConnection()),
     ).toBeUndefined();
   });
 

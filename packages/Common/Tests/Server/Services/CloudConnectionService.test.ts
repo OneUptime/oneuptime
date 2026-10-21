@@ -386,7 +386,9 @@ describe("onBeforeCreate", () => {
       });
     const update: jest.SpiedFunction<
       typeof CloudConnectionService.updateOneById
-    > = jest.spyOn(CloudConnectionService, "updateOneById").mockResolvedValue();
+    > = jest
+      .spyOn(CloudConnectionService, "updateOneById")
+      .mockResolvedValue(undefined as never);
 
     const created: CloudConnection = stored({ name: "Prod AWS" });
     await service.onCreateSuccess(
