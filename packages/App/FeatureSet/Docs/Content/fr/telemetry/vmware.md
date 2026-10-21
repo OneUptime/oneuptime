@@ -311,7 +311,7 @@ L'installation sans Docker est déjà un service systemd, avec sa propre unité.
 
 ## Mettre à jour l'agent
 
-L'agent signale comme **Version de l'agent** la version du collecteur qu'épinglent ses fichiers. Lorsque celle-ci est plus ancienne que la version qu'épingle cette version de OneUptime, un signe d'avertissement apparaît à côté, sur la page **Vue d'ensemble** du vCenter et dans la liste **Tous les vCenter**. Sélectionnez-le pour voir ces commandes. Un agent installé avant que ses fichiers ne signalent une version n'en affiche aucune tant qu'il n'a pas été mis à jour de cette façon.
+L'agent signale comme **Version de l'agent** la version du collecteur qu'épinglent ses fichiers. Lorsque celle-ci est plus ancienne que la version qu'épingle cette version de OneUptime, un signe d'avertissement apparaît à côté sur la page **Vue d'ensemble** du vCenter. Sélectionnez-le pour voir ces commandes. Un agent installé avant que ses fichiers ne signalent une version n'en affiche aucune tant qu'il n'a pas été mis à jour de cette façon.
 
 Le collecteur est épinglé dans `docker-compose.yml` (ou, sans Docker, par la version que vous avez téléchargée) et sa configuration est un fichier situé à côté : tirer les images ne suffit donc pas à faire avancer l'agent :
 

@@ -425,6 +425,210 @@ test("Cloud resources: nothing to create, and the first one discovered shows on 
 
 /*
  * ---------------------------------------------------------------------------
+ * All vCenters' columns
+ * ---------------------------------------------------------------------------
+ *
+ * "We dont need to show these column in vmware: Can you please remove them
+ * from the default view": Collected By and Agent Version start hidden, and
+ * Customize Columns (the card's More options, then Columns) turns either
+ * back on - on a laptop's table and on a phone's cards.
+ */
+
+const VCENTER_COLUMNS: Array<string> = [
+  "Name",
+  "Status",
+  "Last Seen",
+  "Labels",
+  "Owners",
+];
+
+const VCENTER_COLUMNS_SWITCHED_ON: Array<string> = [
+  "Name",
+  "Status",
+  "Collected By",
+  "Agent Version",
+  "Last Seen",
+  "Labels",
+  "Owners",
+];
+
+// The table's column headers, less the select-all box and the actions cell.
+async function columnHeaders(page: Page): Promise<Array<string>> {
+  return tableCard(page)
+    .locator("thead th")
+    .evaluateAll((cells: Array<Element>): Array<string> => {
+      return cells
+        .filter((cell: Element): boolean => {
+          return cell.querySelector('input[type="checkbox"]') === null;
+        })
+        .map((cell: Element): string => {
+          return (cell.textContent || "").trim();
+        })
+        .filter((text: string): boolean => {
+          return text.length > 0 && text !== "Actions";
+        });
+    });
+}
+
+// A vCenter's card on a phone, and the names of the fields it shows.
+function phoneCard(page: Page, name: string): Locator {
+  return tableCard(page).locator("dl").filter({ hasText: name });
+}
+
+async function cardFields(card: Locator): Promise<Array<string>> {
+  return card
+    .locator("dt")
+    .evaluateAll((terms: Array<Element>): Array<string> => {
+      return terms.map((term: Element): string => {
+        return (term.textContent || "").trim();
+      });
+    });
+}
+
+// Customize Columns: the card header's More options, then Columns.
+async function openColumnPicker(page: Page): Promise<Locator> {
+  await tableCard(page)
+    .getByTestId("card-header-actions")
+    .getByRole("button", { name: "More options" })
+    .click();
+  await page.getByRole("menuitem", { name: "Columns", exact: true }).click();
+  const picker: Locator = page.getByTestId("column-customization-modal");
+  await expect(picker).toBeVisible();
+  return picker;
+}
+
+async function switchOnBothColumns(page: Page): Promise<void> {
+  const picker: Locator = await openColumnPicker(page);
+  await picker.getByTestId("column-toggle-collectionMethod").check();
+  await picker.getByTestId("column-toggle-agentVersion").check();
+  await page.getByTestId("modal-footer-submit-button").click();
+  await expect(page.getByTestId("column-customization-modal")).toHaveCount(0);
+}
+
+test("All vCenters opens on Name, Status, Last Seen, Labels and Owners; Collected By and Agent Version wait in Customize Columns", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await open(page, VCENTERS, "vcenters=1");
+
+  await expect(
+    tableCard(page).getByText("vcenter-prod", { exact: true }).first(),
+  ).toBeVisible();
+  expect(await columnHeaders(page)).toEqual(VCENTER_COLUMNS);
+  // Neither column's cells are drawn: no probe, no agent, no version.
+  await expect(tableCard(page).getByText("Probe: Lab Probe")).toHaveCount(0);
+  await expect(
+    tableCard(page).getByText("VMware Agent", { exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByTestId("agent-version-outdated")).toHaveCount(0);
+  expect(await scrollsSideways(page)).toBe(false);
+  await screenshot(page, "vcenters-default-columns");
+
+  // Both are offered, switched off, beside the columns that are on.
+  const picker: Locator = await openColumnPicker(page);
+  await expect(picker.getByText("Collected By", { exact: true })).toBeVisible();
+  await expect(
+    picker.getByText("Agent Version", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    picker.getByTestId("column-toggle-collectionMethod"),
+  ).not.toBeChecked();
+  await expect(
+    picker.getByTestId("column-toggle-agentVersion"),
+  ).not.toBeChecked();
+  await expect(picker.getByTestId("column-toggle-name")).toBeChecked();
+  await expect(picker.getByTestId("column-toggle-lastSeenAt")).toBeChecked();
+  await screenshot(page, "vcenters-column-picker");
+  await page.getByTestId("modal-footer-close-button").click();
+  await expect(picker).toHaveCount(0);
+
+  // Switched on, they show after Status, saying what they always said.
+  await switchOnBothColumns(page);
+  await expect
+    .poll((): Promise<Array<string>> => {
+      return columnHeaders(page);
+    })
+    .toEqual(VCENTER_COLUMNS_SWITCHED_ON);
+  await expect(
+    tableCard(page).getByText("Probe: Lab Probe", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    tableCard(page).getByText("VMware Agent", { exact: true }),
+  ).toBeVisible();
+  // The outdated agent keeps its upgrade sign.
+  await expect(page.getByTestId("agent-version-outdated")).toContainText(
+    "0.100.0",
+  );
+  await screenshot(page, "vcenters-columns-switched-on");
+
+  // The viewer's choice outlives a reload.
+  await page.reload();
+  await expect(page.getByTestId("synthetic-banner")).toBeVisible({
+    timeout: 60000,
+  });
+  await expect
+    .poll((): Promise<Array<string>> => {
+      return columnHeaders(page);
+    })
+    .toEqual(VCENTER_COLUMNS_SWITCHED_ON);
+
+  // Reset to default puts the list back to its five columns.
+  await openColumnPicker(page);
+  await page.getByTestId("column-customization-reset").click();
+  await expect
+    .poll((): Promise<Array<string>> => {
+      return columnHeaders(page);
+    })
+    .toEqual(VCENTER_COLUMNS);
+});
+
+test("on a phone, a vCenter's card shows neither until Customize Columns switches them on", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await open(page, VCENTERS, "vcenters=1");
+
+  const agentCard: Locator = phoneCard(page, "vcenter-prod");
+  await expect(agentCard).toBeVisible();
+  expect(await cardFields(agentCard)).toEqual(["Name", "Status", "Last Seen"]);
+  await expect(page.getByTestId("agent-version-outdated")).toHaveCount(0);
+  expect(await scrollsSideways(page)).toBe(false);
+  await screenshot(page, "vcenters-default-columns-phone");
+
+  await switchOnBothColumns(page);
+
+  await expect
+    .poll((): Promise<Array<string>> => {
+      return cardFields(agentCard);
+    })
+    .toEqual(["Name", "Status", "Collected By", "Agent Version", "Last Seen"]);
+  await expect(
+    agentCard.getByText("VMware Agent", { exact: true }),
+  ).toBeVisible();
+  await expect(agentCard.getByTestId("agent-version-outdated")).toContainText(
+    "0.100.0",
+  );
+  // A vCenter a probe collects has no agent version: no field over nothing.
+  const probeCard: Locator = phoneCard(page, "vcenter-lab");
+  await expect(
+    probeCard.getByText("Probe: Lab Probe", { exact: true }),
+  ).toBeVisible();
+  expect(await cardFields(probeCard)).toEqual([
+    "Name",
+    "Status",
+    "Collected By",
+    "Last Seen",
+  ]);
+  expect(await scrollsSideways(page)).toBe(false);
+  await screenshot(page, "vcenters-columns-switched-on-phone");
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * On a phone, in the dark, in German
  * ---------------------------------------------------------------------------
  */
