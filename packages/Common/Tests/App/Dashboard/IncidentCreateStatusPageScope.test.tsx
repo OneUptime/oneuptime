@@ -156,6 +156,15 @@ import SubscriberNotificationPreview, {
 } from "../../../Types/StatusPage/SubscriberNotificationPreview";
 import Navigation from "../../../UI/Utils/Navigation";
 
+/*
+ * How long a test waits for what the debounced audience request draws. The
+ * wait ends as soon as it is drawn; on a busy CI runner the debounce, the
+ * answer and the render took more than a second past the debounce (1,646 ms
+ * against the 1,400 ms this was), so the wait is the 20 seconds the other
+ * Dashboard form suites give a busy runner.
+ */
+const WAIT_FOR_TIMEOUT: number = 20000;
+
 const TEMPLATE_ID: string = "66666666-6666-4666-8666-000000000001";
 const MONITOR_ID: string = "c0000000-0000-4000-8000-000000000001";
 const SITE_03: string = "b0000000-0000-4000-8000-000000000003";
@@ -468,7 +477,7 @@ describe("the status page picker on the Create page", () => {
         "status-pages-not-listing-monitors",
         undefined,
         {
-          timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000,
+          timeout: WAIT_FOR_TIMEOUT,
         },
       ),
     ).toHaveTextContent(
@@ -508,7 +517,7 @@ describe("the status page picker on the Create page", () => {
         "status-pages-not-listing-monitors",
         undefined,
         {
-          timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000,
+          timeout: WAIT_FOR_TIMEOUT,
         },
       ),
     ).toHaveTextContent(
@@ -595,7 +604,7 @@ describe("the status page picker on the Create page", () => {
     );
 
     await screen.findByTestId("status-pages-not-listing-monitors", undefined, {
-      timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000,
+      timeout: WAIT_FOR_TIMEOUT,
     });
 
     expect(screen.getAllByRole("note")).toHaveLength(1);
@@ -735,7 +744,7 @@ describe("the audience on the last step", () => {
 
     expect(
       await screen.findByText("Site 03 (up to 41 email)", undefined, {
-        timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000,
+        timeout: WAIT_FOR_TIMEOUT,
       }),
     ).toBeInTheDocument();
 
@@ -863,7 +872,7 @@ describe("the audience on the last step", () => {
       await screen.findByText(
         IncidentStatusPageScopeCopy.audienceNoStatusPages,
         undefined,
-        { timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000 },
+        { timeout: WAIT_FOR_TIMEOUT },
       ),
     ).toBeInTheDocument();
     expect(
@@ -901,7 +910,7 @@ describe("the audience on the last step", () => {
       await screen.findByText(
         "Site 07 (only shows incidents limited to it)",
         undefined,
-        { timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000 },
+        { timeout: WAIT_FOR_TIMEOUT },
       ),
     ).toBeInTheDocument();
     expect(
@@ -1022,7 +1031,7 @@ describe("the notify box on the summary step", () => {
     // Who it reaches, under the line rather than on it.
     expect(
       await screen.findByText("Site 03 (up to 41 email)", undefined, {
-        timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000,
+        timeout: WAIT_FOR_TIMEOUT,
       }),
     ).toBeInTheDocument();
     const audience: HTMLElement = screen.getByTestId(
@@ -1225,7 +1234,7 @@ describe("the notify box on the summary step", () => {
       await screen.findByText(
         "Site 03 (lists none of these monitors)",
         undefined,
-        { timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000 },
+        { timeout: WAIT_FOR_TIMEOUT },
       ),
     ).toBeInTheDocument();
     expect(screen.queryByTestId(PREVIEW_TEST_ID)).toBeNull();
