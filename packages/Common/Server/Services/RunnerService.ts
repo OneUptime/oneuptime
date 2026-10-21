@@ -376,7 +376,7 @@ export class Service extends ProjectReferencesService<Model> {
 
       if (renames && Service.isKubernetesAgentName(runner.name)) {
         throw new BadDataException(
-          `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart registered, and its name is how OneUptime recognises it (and keeps credentials, secrets and shell work away from it), so it cannot be renamed. Use its description instead, or upgrade the Kubernetes agent chart: the Kubernetes AI agent replaces this Runner, and the Runner can then be deleted. ${getDeletedAgentRunnerRebindNote()}`,
+          `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart registered, and its name is how OneUptime recognises it (and keeps secrets and shell work away from it), so it cannot be renamed. Use its description instead, or upgrade the Kubernetes agent chart: the Kubernetes AI agent replaces this Runner, and the Runner can then be deleted. ${getDeletedAgentRunnerRebindNote()}`,
         );
       }
 

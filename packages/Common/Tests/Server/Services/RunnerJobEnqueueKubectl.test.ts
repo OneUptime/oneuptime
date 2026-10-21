@@ -5,15 +5,12 @@ import RunnerJobService, {
 import AIRunService from "../../../Server/Services/AIRunService";
 import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
-import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
 import RunnerService from "../../../Server/Services/RunnerService";
 import AIRun from "../../../Models/DatabaseModels/AIRun";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
-import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import AIRunType from "../../../Types/AI/AIRunType";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import RunnerJob from "../../../Models/DatabaseModels/RunnerJob";
-import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import RunnerJobOrigin, {
   AI_COMMAND_JOB_ORIGINS,
@@ -44,18 +41,20 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * - a remediation job must carry its suggestion, and Kubectl never travels
  *   through enqueueAiCommand's Bash/SSH payload shape;
  * - the payload is an argv (never a shell line) plus the rendered command,
- *   the tier, the cluster (id AND identifier) and the optional credential,
- *   and the row carries kubernetesClusterId so the cluster's AI page can
- *   list it;
+ *   the tier and the cluster (id AND identifier), and the row carries
+ *   kubernetesClusterId so the cluster's AI page can list it;
  * - the cluster and the target Runner must belong to the project, and a
- *   credential-less job is enqueued only for the in-cluster Runner OF THAT
- *   CLUSTER — never for a Runner that lives in some other cluster's pod;
+ *   job is enqueued only for the in-cluster Runner OF THAT CLUSTER — never
+ *   for a Runner that lives in some other cluster's pod, nor for one
+ *   outside every cluster;
  * - the job goes through the cluster's CURRENT binding: the target is its
- *   bound Runner, a credential is its bound Kubernetes credential, an
- *   investigation job needs the investigation switch still on and a
- *   remediation job needs remediation still enabled — callers act on a
- *   snapshot, so revoking access on the AI page stops the next command;
- * - a kubernetes-agent Runner is never sent a job that names a credential;
+ *   bound Runner, an investigation job needs the investigation switch
+ *   still on and a remediation job needs remediation still enabled —
+ *   callers act on a snapshot, so revoking access on the AI page stops the
+ *   next command;
+ * - no job names a credential: a Runner outside a cluster reached it only
+ *   with a Kubernetes runbook credential, and runbook credentials are gone
+ *   (Runbooks > Runners > AI Access, removed);
  * - each origin has its own hourly project brake, and the dashboard's
  *   access test (explicitly flagged, no AI run) is exempt from the
  *   investigation switch and never counted against that brake.
@@ -74,7 +73,6 @@ const CLUSTER_ID: ObjectID = new ObjectID(
 const RUNNER_ID: ObjectID = new ObjectID(
   "44444444-4444-4444-8444-444444444444",
 );
-const CREDENTIAL_ID: string = "55555555-5555-4555-8555-555555555555";
 
 type EnqueueArgs = Parameters<
   typeof RunnerJobService.enqueueAiKubectlCommand
@@ -95,10 +93,8 @@ function args(overrides: Partial<EnqueueArgs> = {}): EnqueueArgs {
 }
 
 /*
- * The cluster as its AI page left it: bound to RUNNER_ID with a Kubernetes
- * credential also selected (the in-cluster Runner wins over it, so a
- * credential-less job is still legitimate), investigation on, remediation
- * asking for approval.
+ * The cluster as its AI page left it: bound to RUNNER_ID, its in-cluster
+ * Runner, with investigation on and remediation asking for approval.
  */
 function fakeCluster(
   overrides: Partial<Record<string, unknown>> = {},
@@ -110,23 +106,10 @@ function fakeCluster(
     name: "prod-us",
     clusterIdentifier: "prod-us",
     aiAccessRunnerId: RUNNER_ID,
-    aiAccessCredentialId: new ObjectID(CREDENTIAL_ID),
     isAiInvestigationEnabled: true,
     aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
     ...overrides,
   } as unknown as KubernetesCluster;
-}
-
-function fakeCredential(
-  overrides: Partial<Record<string, unknown>> = {},
-): RunbookCredential {
-  return {
-    id: new ObjectID(CREDENTIAL_ID),
-    _id: CREDENTIAL_ID,
-    name: "prod-us kubeconfig",
-    credentialType: RunbookCredentialType.Kubernetes,
-    ...overrides,
-  } as unknown as RunbookCredential;
 }
 
 // The in-cluster Runner of prod-us, as its posture describes it.
@@ -151,7 +134,6 @@ describe("RunnerJobService.enqueueAiKubectlCommand", () => {
   let createdRows: Array<RunnerJob>;
   let clusterLookup: jest.SpyInstance;
   let runnerLookup: jest.SpyInstance;
-  let credentialLookup: jest.SpyInstance;
   let countBySpy: jest.SpyInstance;
   let aiRunLookup: jest.SpyInstance;
 
@@ -164,9 +146,6 @@ describe("RunnerJobService.enqueueAiKubectlCommand", () => {
     jest
       .spyOn(KubernetesAiAgentService, "findForCluster")
       .mockResolvedValue(null);
-    credentialLookup = jest
-      .spyOn(RunbookCredentialService, "findOneBy")
-      .mockResolvedValue(fakeCredential());
     // The run an investigation-origin job belongs to: an investigation.
     aiRunLookup = jest.spyOn(AIRunService, "findOneBy").mockResolvedValue({
       id: RUN_ID,
@@ -222,24 +201,31 @@ describe("RunnerJobService.enqueueAiKubectlCommand", () => {
     expect(job.claimDeadlineAt).toBeInstanceOf(Date);
   });
 
-  it("includes the credential id for a Runner outside the cluster", async () => {
-    runnerLookup.mockResolvedValue(
-      fakeRunner({ name: "office-runner", hostInfo: { hostname: "x" } }),
-    );
+  /*
+   * Runbook credentials are gone, and the parameter that named one with
+   * them: a caller that still passes a credential id gets a payload that
+   * names none.
+   */
+  it("names no credential on the payload, whatever the caller passes", async () => {
+    const job: RunnerJob = await RunnerJobService.enqueueAiKubectlCommand({
+      ...args(),
+      credentialId: "55555555-5555-4555-8555-555555555555",
+    } as unknown as EnqueueArgs);
 
-    const job: RunnerJob = await RunnerJobService.enqueueAiKubectlCommand(
-      args({ credentialId: CREDENTIAL_ID }),
-    );
-
-    expect(job.payload?.["credentialId"]).toBe(CREDENTIAL_ID);
-    expect(job.payload?.["clusterIdentifier"]).toBe("prod-us");
+    expect(Object.keys(job.payload || {}).sort()).toEqual([
+      "args",
+      "clusterIdentifier",
+      "displayCommand",
+      "kubernetesClusterId",
+      "tier",
+    ]);
   });
 
   /*
-   * The cross-cluster hole, closed at the chokepoint: a credential-less job
-   * runs with the target pod's ServiceAccount, which reaches only the
-   * cluster that pod lives in. So the target must be the in-cluster Runner
-   * of the job's own cluster, and both rows must be this project's.
+   * The cross-cluster hole, closed at the chokepoint: a job runs with the
+   * target pod's ServiceAccount, which reaches only the cluster that pod
+   * lives in. So the target must be the in-cluster Runner of the job's own
+   * cluster, and both rows must be this project's.
    */
   describe("cluster and Runner identity", () => {
     it("resolves the cluster and the Runner scoped to the project", async () => {
@@ -272,16 +258,11 @@ describe("RunnerJobService.enqueueAiKubectlCommand", () => {
      * that is not there is no access target, so nothing reaches the
      * cluster through it.
      */
-    it("refuses a target Runner that is not in the project, credential or not", async () => {
+    it("refuses a target Runner that is not in the project", async () => {
       runnerLookup.mockResolvedValue(null);
 
       await expect(
         RunnerJobService.enqueueAiKubectlCommand(args()),
-      ).rejects.toThrow(/no longer reached through this Runner or agent/);
-      await expect(
-        RunnerJobService.enqueueAiKubectlCommand(
-          args({ credentialId: CREDENTIAL_ID }),
-        ),
       ).rejects.toThrow(/no longer reached through this Runner or agent/);
       expect(createdRows).toHaveLength(0);
     });
@@ -289,9 +270,9 @@ describe("RunnerJobService.enqueueAiKubectlCommand", () => {
     /*
      * The in-cluster Runner of a DIFFERENT cluster is no access target of
      * this one (resolveKubernetesAiAccessTarget), so nothing is enqueued
-     * for it, credential or not.
+     * for it.
      */
-    it("refuses a credential-less job for the in-cluster Runner of a DIFFERENT cluster", async () => {
+    it("refuses a job for the in-cluster Runner of a DIFFERENT cluster", async () => {
       runnerLookup.mockResolvedValue(
         fakeRunner({
           name: "kubernetes-agent/prod-eu",
@@ -307,7 +288,8 @@ describe("RunnerJobService.enqueueAiKubectlCommand", () => {
       expect(createdRows).toHaveLength(0);
     });
 
-    it("refuses a credential-less job for a pod Runner with no cluster identity", async () => {
+    // A pod Runner that names no cluster is no in-cluster Runner of this one.
+    it("refuses a job for a pod Runner with no cluster identity", async () => {
       runnerLookup.mockResolvedValue(
         fakeRunner({
           name: "pod-runner",
@@ -317,22 +299,47 @@ describe("RunnerJobService.enqueueAiKubectlCommand", () => {
 
       await expect(
         RunnerJobService.enqueueAiKubectlCommand(args()),
-      ).rejects.toThrow(/an unnamed cluster/);
+      ).rejects.toThrow(/no longer reached through this Runner or agent/);
       expect(createdRows).toHaveLength(0);
     });
 
-    it("refuses a credential-less job for a Runner outside the cluster", async () => {
+    /*
+     * A Runner outside the cluster reached it only with a Kubernetes
+     * runbook credential. Those are gone, so a cluster still bound to one
+     * (the data migration clears such a binding) is reached by nothing:
+     * the Runner is no access target of it.
+     */
+    it("refuses a job for a Runner outside the cluster: it is no access target", async () => {
       runnerLookup.mockResolvedValue(
         fakeRunner({ name: "office-runner", hostInfo: { hostname: "x" } }),
       );
 
       await expect(
         RunnerJobService.enqueueAiKubectlCommand(args()),
-      ).rejects.toThrow(/runs outside the cluster/);
+      ).rejects.toThrow(/no longer reached through this Runner or agent/);
       expect(createdRows).toHaveLength(0);
     });
 
-    it("refuses a credential-less job when the cluster row has no identifier to match", async () => {
+    /*
+     * The cluster's in-cluster Runner, known by its server-owned name, whose
+     * posture was dropped on a heartbeat: the target, but it has not said it
+     * runs in the cluster, so nothing is sent to it - and the refusal points
+     * at the Kubernetes AI agent, which replaces it.
+     */
+    it("refuses the in-cluster Runner by name while its posture does not name the cluster, and says to install the Kubernetes AI agent", async () => {
+      runnerLookup.mockResolvedValue(
+        fakeRunner({ name: "kubernetes-agent/prod-us", hostInfo: {} }),
+      );
+
+      await expect(
+        RunnerJobService.enqueueAiKubectlCommand(args()),
+      ).rejects.toThrow(
+        'A kubectl command can only run on the in-cluster Runner of cluster "prod-us", and Runner "kubernetes-agent/prod-us" has not reported that it runs in it. Install the Kubernetes AI agent on the cluster: the Kubernetes agent chart installs it, and it replaces the in-cluster Runner.',
+      );
+      expect(createdRows).toHaveLength(0);
+    });
+
+    it("refuses a job when the cluster row has no identifier to match", async () => {
       clusterLookup.mockResolvedValue(fakeCluster({ clusterIdentifier: "" }));
 
       await expect(
@@ -341,7 +348,7 @@ describe("RunnerJobService.enqueueAiKubectlCommand", () => {
       expect(createdRows).toHaveLength(0);
     });
 
-    it("accepts a credential-less job when the posture names the cluster in a different case", async () => {
+    it("accepts a job when the posture names the cluster in a different case", async () => {
       runnerLookup.mockResolvedValue(
         fakeRunner({
           hostInfo: {
@@ -354,101 +361,6 @@ describe("RunnerJobService.enqueueAiKubectlCommand", () => {
         await RunnerJobService.enqueueAiKubectlCommand(args());
 
       expect(job.payload?.["clusterIdentifier"]).toBe("prod-us");
-      expect(createdRows).toHaveLength(1);
-    });
-
-    /*
-     * Flipped with the credential-exfiltration fix. This used to enqueue:
-     * "the credential names the API server". But a kubernetes-agent Runner
-     * is minted and re-keyed with the telemetry ingestion key, so it is
-     * never handed credential material — the job must never exist.
-     */
-    it("refuses a credential job for this cluster's own kubernetes-agent Runner", async () => {
-      await expect(
-        RunnerJobService.enqueueAiKubectlCommand(
-          args({ credentialId: CREDENTIAL_ID }),
-        ),
-      ).rejects.toThrow(/is never given a credential/);
-      expect(createdRows).toHaveLength(0);
-    });
-
-    it("refuses a credential job for another cluster's kubernetes-agent Runner, which is no target at all", async () => {
-      runnerLookup.mockResolvedValue(
-        fakeRunner({
-          name: "kubernetes-agent/prod-eu",
-          hostInfo: {
-            kubernetes: { inCluster: true, clusterIdentifier: "prod-eu" },
-          },
-        }),
-      );
-
-      await expect(
-        RunnerJobService.enqueueAiKubectlCommand(
-          args({ credentialId: CREDENTIAL_ID }),
-        ),
-      ).rejects.toThrow(BadDataException);
-      expect(createdRows).toHaveLength(0);
-    });
-
-    it("refuses it by the server-owned NAME, even when the Runner's posture was dropped on heartbeat", async () => {
-      runnerLookup.mockResolvedValue(
-        fakeRunner({ name: "kubernetes-agent/prod-us", hostInfo: {} }),
-      );
-
-      await expect(
-        RunnerJobService.enqueueAiKubectlCommand(
-          args({ credentialId: CREDENTIAL_ID }),
-        ),
-      ).rejects.toThrow(/is never given a credential/);
-      expect(createdRows).toHaveLength(0);
-    });
-
-    /*
-     * The one "is an agent row" rule fails closed on the name OR the
-     * posture: an agent row renamed (only root can) keeps its posture.
-     */
-    it("refuses a credential job for a row with an agent posture but no name marker, or a case-variant marker", async () => {
-      for (const runner of [
-        fakeRunner({
-          name: "prod-us in-cluster runner",
-          hostInfo: {
-            kubernetes: { inCluster: true, clusterIdentifier: "prod-us" },
-          },
-        }),
-        fakeRunner({ name: "Kubernetes-Agent/prod-us", hostInfo: {} }),
-      ]) {
-        runnerLookup.mockResolvedValue(runner);
-
-        await expect(
-          RunnerJobService.enqueueAiKubectlCommand(
-            args({ credentialId: CREDENTIAL_ID }),
-          ),
-        ).rejects.toThrow(/is never given a credential/);
-      }
-
-      expect(createdRows).toHaveLength(0);
-    });
-
-    /*
-     * Before round two this fixture's posture named a cluster (an agent
-     * posture, which only the kubernetes-agent binary reports). A dashboard
-     * Runner that merely lives in a pod reports no cluster identity.
-     */
-    it("negative control: a dashboard Runner living in a pod may carry the credential", async () => {
-      runnerLookup.mockResolvedValue(
-        fakeRunner({
-          name: "pod-runner",
-          hostInfo: {
-            kubernetes: { inCluster: true },
-          },
-        }),
-      );
-
-      const job: RunnerJob = await RunnerJobService.enqueueAiKubectlCommand(
-        args({ credentialId: CREDENTIAL_ID }),
-      );
-
-      expect(job.payload?.["credentialId"]).toBe(CREDENTIAL_ID);
       expect(createdRows).toHaveLength(1);
     });
 
@@ -823,10 +735,11 @@ describe("RunnerJobService.enqueueAiKubectlCommand", () => {
       ).select;
       expect(select).toMatchObject({
         aiAccessRunnerId: true,
-        aiAccessCredentialId: true,
         isAiInvestigationEnabled: true,
         aiRemediationMode: true,
       });
+      // The credential column is gone, and nothing reads it.
+      expect(select["aiAccessCredentialId"]).toBeUndefined();
     });
 
     it("refuses a job for a Runner the cluster is no longer bound to", async () => {
@@ -858,64 +771,6 @@ describe("RunnerJobService.enqueueAiKubectlCommand", () => {
       await expect(
         RunnerJobService.enqueueAiKubectlCommand(args()),
       ).rejects.toThrow(/no longer reached through this Runner/);
-      expect(createdRows).toHaveLength(0);
-    });
-
-    it("refuses a credential that is no longer the cluster's bound credential", async () => {
-      clusterLookup.mockResolvedValue(
-        fakeCluster({ aiAccessCredentialId: ObjectID.generate() }),
-      );
-      runnerLookup.mockResolvedValue(
-        fakeRunner({ name: "office-runner", hostInfo: { hostname: "x" } }),
-      );
-
-      await expect(
-        RunnerJobService.enqueueAiKubectlCommand(
-          args({ credentialId: CREDENTIAL_ID }),
-        ),
-      ).rejects.toThrow(/no longer reached with this Kubernetes credential/);
-
-      clusterLookup.mockResolvedValue(
-        fakeCluster({ aiAccessCredentialId: undefined }),
-      );
-
-      await expect(
-        RunnerJobService.enqueueAiKubectlCommand(
-          args({ credentialId: CREDENTIAL_ID }),
-        ),
-      ).rejects.toThrow(/no longer reached with this Kubernetes credential/);
-      expect(createdRows).toHaveLength(0);
-    });
-
-    it("refuses a bound credential that is not a Kubernetes credential of this project", async () => {
-      runnerLookup.mockResolvedValue(
-        fakeRunner({ name: "office-runner", hostInfo: { hostname: "x" } }),
-      );
-      credentialLookup.mockResolvedValue(
-        fakeCredential({ credentialType: RunbookCredentialType.SSH }),
-      );
-
-      await expect(
-        RunnerJobService.enqueueAiKubectlCommand(
-          args({ credentialId: CREDENTIAL_ID }),
-        ),
-      ).rejects.toThrow(/not a Kubernetes credential of this project/);
-
-      credentialLookup.mockResolvedValue(null);
-
-      await expect(
-        RunnerJobService.enqueueAiKubectlCommand(
-          args({ credentialId: CREDENTIAL_ID }),
-        ),
-      ).rejects.toThrow(/not a Kubernetes credential of this project/);
-
-      const query: Record<string, unknown> = (
-        credentialLookup.mock.calls[0]![0] as {
-          query: Record<string, unknown>;
-        }
-      ).query;
-      expect(query["_id"]).toBe(CREDENTIAL_ID);
-      expect(query["projectId"]).toBe(PROJECT_ID);
       expect(createdRows).toHaveLength(0);
     });
 
@@ -1065,28 +920,14 @@ describe("RunnerJobService.enqueueAiKubectlCommand", () => {
       expect(createdRows).toHaveLength(1);
     });
 
-    it("negative control: a credential-less job for the cluster's own agent is fine with a credential still selected", async () => {
-      // The default cluster has aiAccessCredentialId set; the job has none.
+    it("negative control: a job for the cluster's own in-cluster Runner enqueues, naming no credential", async () => {
       const job: RunnerJob =
         await RunnerJobService.enqueueAiKubectlCommand(args());
 
       expect(job.payload?.["credentialId"]).toBeUndefined();
-      expect(credentialLookup).not.toHaveBeenCalled();
       expect(createdRows).toHaveLength(1);
     });
 
-    it("negative control: the bound Runner and bound credential enqueue with the credential on the payload", async () => {
-      runnerLookup.mockResolvedValue(
-        fakeRunner({ name: "office-runner", hostInfo: { hostname: "x" } }),
-      );
-
-      const job: RunnerJob = await RunnerJobService.enqueueAiKubectlCommand(
-        args({ credentialId: CREDENTIAL_ID }),
-      );
-
-      expect(job.payload?.["credentialId"]).toBe(CREDENTIAL_ID);
-      expect(createdRows).toHaveLength(1);
-    });
   });
 });
 

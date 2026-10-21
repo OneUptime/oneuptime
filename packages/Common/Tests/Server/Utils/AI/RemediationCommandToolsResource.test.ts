@@ -387,9 +387,9 @@ describe("the tools a resource round offers", () => {
       tool(toolkit, "execute_remediation_command").definition
         .inputSchema as JSONObject
     )["properties"] as JSONObject;
+    // SSH went with runbook credentials: it reached a host with one.
     expect((properties["stepType"] as JSONObject)["enum"]).toEqual([
       "Bash",
-      "SSH",
       "Kubectl",
     ]);
     expect(properties["resourceId"]).toBeUndefined();
@@ -398,8 +398,8 @@ describe("the tools a resource round offers", () => {
   /*
    * A Kubernetes or rule round never offered ResourceCommand: to it the
    * step type is as unknown as before the resource lane existed, and its
-   * refusal lists exactly the step types it offers — the words it always
-   * had ("stepType must be one of: Bash, SSH, Kubectl.").
+   * refusal lists exactly the step types it offers ("stepType must be one
+   * of: Bash, Kubectl." - SSH left the list with runbook credentials).
    */
   it("a non-resource round refuses a ResourceCommand step with the original words", async () => {
     const toolkit: RemediationCommandToolkit = buildToolkit({
@@ -408,13 +408,11 @@ describe("the tools a resource round offers", () => {
 
     const outcome: ToolCallOutcome = await execute(toolkit, resourceArgs());
 
-    expect(outcome.textForLlm).toBe(
-      "stepType must be one of: Bash, SSH, Kubectl.",
-    );
+    expect(outcome.textForLlm).toBe("stepType must be one of: Bash, Kubectl.");
     expectNothingRanOrRecorded(toolkit, outcome);
   });
 
-  it("a non-resource round refuses an unknown step type naming only Bash, SSH and Kubectl — never ResourceCommand", async () => {
+  it("a non-resource round refuses an unknown step type naming only Bash and Kubectl — never ResourceCommand", async () => {
     const toolkit: RemediationCommandToolkit = buildToolkit({
       resourceTargets: [],
     });
@@ -424,9 +422,7 @@ describe("the tools a resource round offers", () => {
       resourceArgs({ stepType: "kubectl" }),
     );
 
-    expect(outcome.textForLlm).toBe(
-      "stepType must be one of: Bash, SSH, Kubectl.",
-    );
+    expect(outcome.textForLlm).toBe("stepType must be one of: Bash, Kubectl.");
     expectNothingRanOrRecorded(toolkit, outcome);
   });
 
@@ -530,7 +526,8 @@ describe("execute_remediation_command on a resource round", () => {
       policyVerdict: AiRemediationCommandPolicyVerdict.AutoApproved,
       wasAutoExecuted: true,
     });
-    expect(executed.credentialId).toBeUndefined();
+    // No command names a runbook credential: they were removed.
+    expect(executed).not.toHaveProperty("credentialId");
     expect(executed.kubernetesClusterId).toBeUndefined();
     expect(executed.execution).toMatchObject({
       status: AiRemediationCommandExecutionStatus.Succeeded,
@@ -678,7 +675,7 @@ describe("execute_remediation_command on a resource round", () => {
     expect(enqueue).toHaveBeenCalledTimes(1);
   });
 
-  it.each([["Bash"], ["SSH"], ["Kubectl"]])(
+  it.each([["Bash"], ["Kubectl"]])(
     "refuses a %s step: a resource round runs resource commands only",
     async (stepType: string) => {
       const toolkit: RemediationCommandToolkit = buildToolkit();
@@ -692,6 +689,23 @@ describe("execute_remediation_command on a resource round", () => {
       expectNothingRanOrRecorded(toolkit, outcome);
     },
   );
+
+  /*
+   * An SSH command reached a host with a runbook credential. Those are
+   * gone, so SSH is no step type of any round: a resource round names only
+   * ResourceCommand, as for any type it does not know.
+   */
+  it("refuses an SSH step as a step type it does not know", async () => {
+    const toolkit: RemediationCommandToolkit = buildToolkit();
+
+    const outcome: ToolCallOutcome = await execute(
+      toolkit,
+      resourceArgs({ stepType: "SSH", runnerId: AGENT_ID }),
+    );
+
+    expect(outcome.textForLlm).toBe("stepType must be one of: ResourceCommand.");
+    expectNothingRanOrRecorded(toolkit, outcome);
+  });
 
   it("refuses a riskier change on an Automatic resource and KEEPS it for the proposal", async () => {
     const toolkit: RemediationCommandToolkit = buildToolkit();

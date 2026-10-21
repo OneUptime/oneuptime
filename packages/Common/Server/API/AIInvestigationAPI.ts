@@ -446,8 +446,8 @@ async function sendLatestInvestigation(
    * reader "we investigated with OneUptime data only; here is what is
    * missing and where to fix it". Enrichment: a failure yields no rows.
    * Present, possibly empty, in every response shape. How much of each row
-   * the viewer gets follows THEIR read access to the cluster (and to
-   * credentials), not their access to the incident or alert.
+   * the viewer gets follows THEIR read access to the cluster, not their
+   * access to the incident or alert.
    */
   const clusterAccess: Array<InvestigationPanelClusterAccess> =
     await getClusterAccessForPanel({

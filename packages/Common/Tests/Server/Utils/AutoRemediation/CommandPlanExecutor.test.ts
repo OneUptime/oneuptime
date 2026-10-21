@@ -9,6 +9,7 @@ import AutoRemediationSuggestionStatus from "../../../../Types/AutoRemediation/A
 import AutoRemediationSuggestionType from "../../../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import AutoRemediationVerificationStatus from "../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
+import { REMOVED_SSH_COMMAND_MESSAGE } from "../../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import {
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
@@ -47,8 +48,11 @@ beforeEach(() => {
  *
  * Kubectl commands are re-checked against the cluster's AI page as it is
  * NOW before every enqueue: remediation still enabled and ready, the same
- * Runner and credential bound — and a rollback must be allowed unattended
+ * Runner or agent reaching it — and a rollback must be allowed unattended
  * under the cluster's CURRENT mode, or it is left for a human and said so.
+ *
+ * An SSH command, composed before runbook credentials were removed, never
+ * runs: it reached its host with one.
  */
 
 const SUGGESTION_ID: ObjectID = new ObjectID(
@@ -532,6 +536,55 @@ describe("CommandPlanExecutor.executeApprovedPlan", () => {
         }),
       }),
     );
+  });
+
+  /*
+   * An SSH command reached its host with a runbook credential. A plan
+   * composed before those were removed may still hold one: approved (or
+   * Full Auto), it fails with the removal's reason, nothing reaches a
+   * Runner, and the rest of the plan is skipped as after any failure.
+   */
+  it("never runs an SSH command: it fails with the removal's reason, and nothing is enqueued", async () => {
+    mockFetch(
+      fakeSuggestion({
+        commandPlan: rawPlan([
+          rawCommand({
+            stepType: "SSH",
+            credentialId: "55555555-5555-4555-8555-555555555555",
+            credentialNameSnapshot: "web-1 key",
+          }),
+          rawCommand({ sequence: 2, command: CMD_TWO }),
+        ]),
+      }),
+    );
+    const update: jest.SpyInstance = mockPersist();
+    const enqueue: jest.SpyInstance = mockEnqueue();
+    const kubectl: jest.SpyInstance = jest.spyOn(
+      RunnerJobService,
+      "enqueueAiKubectlCommand",
+    );
+    mockPoll();
+    mockFeed();
+
+    await CommandPlanExecutor.executeApprovedPlan({
+      suggestionId: SUGGESTION_ID,
+    });
+
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(kubectl).not.toHaveBeenCalled();
+
+    const finalPlan: Record<string, unknown> = lastPersistedPlan(update);
+    expect(finalPlan["executionStatus"]).toBe("Failed");
+    const ssh: Record<string, unknown> = commandInPlan(finalPlan, 0)[
+      "execution"
+    ] as Record<string, unknown>;
+    expect(ssh["status"]).toBe("Failed");
+    expect(ssh["errorMessage"]).toBe(REMOVED_SSH_COMMAND_MESSAGE);
+    expect(
+      (
+        commandInPlan(finalPlan, 1)["execution"] as Record<string, unknown>
+      )["status"],
+    ).toBe("Skipped");
   });
 
   /*
@@ -1391,8 +1444,8 @@ describe("CommandPlanExecutor.executeRollback", () => {
 
 /*
  * Shared fixtures for the kubectl re-check suites below. A kubectl command
- * freezes the cluster, the Runner and the credential its AI page bound at
- * planning time; the executor reads that page again right before enqueueing.
+ * freezes the cluster and the Runner or agent that reached it at planning
+ * time; the executor reads that page again right before enqueueing.
  */
 const CLUSTER_ID: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
@@ -1753,32 +1806,6 @@ describe("CommandPlanExecutor re-checks the cluster before an approved kubectl c
     });
 
     expectRefused("no longer reached through Runner");
-  });
-
-  it("refuses when the credential the plan froze is no longer the cluster's", async () => {
-    mockFetch(
-      fakeSuggestion({
-        commandPlan: rawPlan([
-          rawKubectlCommand({
-            credentialId: "55555555-5555-4555-8555-555555555555",
-            credentialNameSnapshot: "old kubeconfig",
-          }),
-        ]),
-      }),
-    );
-    mockClusterStatus(
-      clusterStatus({
-        accessMethod: "credential",
-        credentialId: "66666666-6666-4666-8666-666666666666",
-        credentialName: "new kubeconfig",
-      }),
-    );
-
-    await CommandPlanExecutor.executeApprovedPlan({
-      suggestionId: SUGGESTION_ID,
-    });
-
-    expectRefused("no longer reached with the credential");
   });
 
   it("refuses when the cluster no longer exists in the project", async () => {

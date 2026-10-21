@@ -11,16 +11,14 @@ import {
   getAiAgentScopedCommandNote,
   getAiAgentWriteDisclosure,
 } from "./KubernetesAiAccessSetup";
-import {
-  getAiAgentSummary,
-  isLegacyRunnerTarget,
-} from "./KubernetesAiAgentStatus";
+import { getAiAgentSummary } from "./KubernetesAiAgentStatus";
 import { AgentAiSettingsSource } from "Common/Types/AI/AgentAiSettings";
 import {
   KubernetesAgentPosture,
   KubernetesAiAgentSummary,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
+  getKubernetesAiAccessTargetKind,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
@@ -43,13 +41,16 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 /*
  * Could the cluster's settings be set in its agent's configuration
  * instead of here? It has a Kubernetes AI agent, and AI reaches the cluster
- * through it — not through the previous in-cluster Runner (upgrade the
- * chart first).
+ * through it — not through a Runner (the previous in-cluster Runner, which
+ * upgrading the chart replaces).
  */
 export function canKubernetesAgentSetAiSettings(
   status: KubernetesClusterAiAccessStatus,
 ): boolean {
-  return getAiAgentSummary(status) !== null && !isLegacyRunnerTarget(status);
+  return (
+    getAiAgentSummary(status) !== null &&
+    getKubernetesAiAccessTargetKind(status.runner) !== "runner"
+  );
 }
 
 // What is in effect on the cluster now, as a choice.

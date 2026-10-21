@@ -24,7 +24,6 @@ import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
 import {
   AI_AGENT_RESET_AGENT_TEST_ID,
-  AI_AGENT_SWITCH_TO_AGENT_TEST_ID,
   AI_AGENT_TEST_CONNECTION_TEST_ID,
   AiAgentAction,
   getAiAgentActions,
@@ -66,14 +65,12 @@ const REQUIREMENT: string =
 
 interface Handlers {
   onRun: VoidMock;
-  onSwitch: VoidMock;
   onReset: VoidMock;
 }
 
 function makeHandlers(): Handlers {
   return {
     onRun: jest.fn<() => void>(),
-    onSwitch: jest.fn<() => void>(),
     onReset: jest.fn<() => void>(),
   };
 }
@@ -85,7 +82,6 @@ function makeActions(
     who?: "admin" | "member" | "reader";
     isRunning?: boolean;
     isActing?: boolean;
-    withSwitch?: boolean;
   } = {},
 ): Array<AiAgentAction> {
   const who: "admin" | "member" | "reader" = options.who || "admin";
@@ -105,9 +101,6 @@ function makeActions(
       isRunning: Boolean(options.isRunning),
       onRun: handlers.onRun,
     },
-    switchToAgent: options.withSwitch
-      ? { isOffered: who === "admin", onClick: handlers.onSwitch }
-      : undefined,
     resetAgent: { isOffered: who === "admin", onClick: handlers.onReset },
     isActing: Boolean(options.isActing),
   });
@@ -205,25 +198,17 @@ describe("the ⋯", () => {
   test("opens a menu of the actions, in order, each with its own icon and test id", () => {
     render(
       <AiAgentActionsMenu
-        actions={makeActions(makeHandlers(), { withSwitch: true })}
+        actions={makeActions(makeHandlers())}
       />,
     );
 
     const menu: HTMLElement = openMenu();
 
     expect(getTrigger()).toHaveAttribute("aria-expanded", "true");
-    expect(getItemTexts(menu)).toEqual([
-      "Test connection",
-      "Switch to the AI agent",
-      "Reset agent",
-    ]);
+    expect(getItemTexts(menu)).toEqual(["Test connection", "Reset agent"]);
 
     const expected: Array<{ testId: string; icon: IconProp }> = [
       { testId: AI_AGENT_TEST_CONNECTION_TEST_ID, icon: IconProp.Play },
-      {
-        testId: AI_AGENT_SWITCH_TO_AGENT_TEST_ID,
-        icon: IconProp.ArrowCircleRight,
-      },
       { testId: AI_AGENT_RESET_AGENT_TEST_ID, icon: IconProp.Refresh },
     ];
 
@@ -311,7 +296,6 @@ describe("the ⋯", () => {
       <AiAgentActionsMenu
         actions={makeActions(makeHandlers(), {
           who: "reader",
-          withSwitch: true,
         })}
       />,
     );
@@ -324,7 +308,6 @@ describe("the ⋯", () => {
       <AiAgentActionsMenu
         actions={makeActions(makeHandlers(), {
           who: "member",
-          withSwitch: true,
         })}
       />,
     );
@@ -342,7 +325,7 @@ describe("the ⋯", () => {
     const handlers: Handlers = makeHandlers();
     render(
       <AiAgentActionsMenu
-        actions={makeActions(handlers, { isRunning: true, withSwitch: true })}
+        actions={makeActions(handlers, { isRunning: true })}
       />,
     );
 
@@ -351,9 +334,6 @@ describe("the ⋯", () => {
     const testItem: HTMLElement = within(menu).getByTestId(
       AI_AGENT_TEST_CONNECTION_TEST_ID,
     );
-    const switchItem: HTMLElement = within(menu).getByTestId(
-      AI_AGENT_SWITCH_TO_AGENT_TEST_ID,
-    );
     const reset: HTMLElement = within(menu).getByTestId(
       AI_AGENT_RESET_AGENT_TEST_ID,
     );
@@ -361,14 +341,14 @@ describe("the ⋯", () => {
     expect(testItem).toBeDisabled();
     expect(testItem).not.toHaveAttribute("aria-describedby");
 
-    // The first item it can reach is the switch, then the reset, then round.
+    // The only item it can reach is the reset: the arrows stay on it.
     await waitFor(() => {
-      expect(switchItem).toHaveFocus();
+      expect(reset).toHaveFocus();
     });
     await userKeyboard(user, "{ArrowDown}");
     expect(reset).toHaveFocus();
-    await userKeyboard(user, "{ArrowDown}");
-    expect(switchItem).toHaveFocus();
+    await userKeyboard(user, "{ArrowUp}");
+    expect(reset).toHaveFocus();
 
     fireEvent.click(testItem);
 
@@ -380,7 +360,7 @@ describe("the ⋯", () => {
     const handlers: Handlers = makeHandlers();
     render(
       <AiAgentActionsMenu
-        actions={makeActions(handlers, { withSwitch: true })}
+        actions={makeActions(handlers)}
       />,
     );
 
@@ -400,17 +380,16 @@ describe("the ⋯", () => {
     ).toHaveFocus();
     await userKeyboard(user, "{ArrowUp}");
     expect(
-      within(menu).getByRole("menuitem", { name: "Switch to the AI agent" }),
+      within(menu).getByRole("menuitem", { name: "Test connection" }),
     ).toHaveFocus();
-    await userKeyboard(user, "{Home}");
+    await userKeyboard(user, "{End}{Home}");
     expect(
       within(menu).getByRole("menuitem", { name: "Test connection" }),
     ).toHaveFocus();
     await userKeyboard(user, "{ArrowDown}{Enter}");
 
-    expect(handlers.onSwitch).toHaveBeenCalledTimes(1);
+    expect(handlers.onReset).toHaveBeenCalledTimes(1);
     expect(handlers.onRun).not.toHaveBeenCalled();
-    expect(handlers.onReset).not.toHaveBeenCalled();
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
 
@@ -498,7 +477,7 @@ describe("in German", () => {
     render(
       <I18nextProvider i18n={german}>
         <AiAgentActionsMenu
-          actions={makeActions(makeHandlers(), { withSwitch: true })}
+          actions={makeActions(makeHandlers())}
         />
       </I18nextProvider>,
     );
@@ -509,7 +488,6 @@ describe("in German", () => {
 
     expect(getItemTexts(screen.getByRole("menu"))).toEqual([
       inGerman("Test connection"),
-      inGerman("Switch to the AI agent"),
       inGerman("Reset agent"),
     ]);
   });
@@ -534,7 +512,6 @@ describe("the card's header buttons", () => {
 
   test("anything to offer: exactly one ⋯, holding all of it", () => {
     const actions: Array<AiAgentAction> = makeActions(makeHandlers(), {
-      withSwitch: true,
     });
     const buttons: Array<ReactElement> = getAiAgentCardButtons(actions);
 
