@@ -205,6 +205,11 @@ function tile(page: Page, title: string): Locator {
     .first();
 }
 
+// A tile's reading: the large figure under its title.
+function tileValue(page: Page, title: string): Locator {
+  return tile(page, title).locator("div.text-2xl");
+}
+
 function detailRow(page: Page, key: string): Locator {
   return page.getByTestId(`vmware-host-detail-${key}`);
 }
@@ -283,13 +288,17 @@ test.describe("a reporting host at a laptop's width", () => {
     await openHost(page);
     await waitForOverview(page);
 
-    await expect(tile(page, "CPU")).toContainText(/\d+(\.\d+)?%/);
+    await expect(tileValue(page, "CPU")).toHaveText(/^\d+(\.\d+)?%$/);
     await expect(tile(page, "CPU")).toContainText("of 76.80 GHz");
-    await expect(tile(page, "Memory")).toContainText(/\d+(\.\d+)?%/);
+    await expect(tileValue(page, "Memory")).toHaveText(/^\d+(\.\d+)?%$/);
     await expect(tile(page, "Memory")).toContainText("of 512 GiB");
-    await expect(tile(page, "Disk latency")).toContainText(/\d+(\.\d+)? ms/);
+    await expect(tileValue(page, "Disk latency")).toHaveText(
+      /^\d+(\.\d+)? ms$/,
+    );
     await expect(tile(page, "Disk latency")).toContainText("slowest disk");
-    await expect(tile(page, "Network")).toContainText(/\d+(\.\d+)? [KMG]?B\/s/);
+    await expect(tileValue(page, "Network")).toHaveText(
+      /^\d+(\.\d+)? [KMG]?B\/s$/,
+    );
 
     const charts: Locator = page.getByTestId("vmware-host-charts");
     await expect(charts.getByText("No data in this time range")).toHaveCount(0);

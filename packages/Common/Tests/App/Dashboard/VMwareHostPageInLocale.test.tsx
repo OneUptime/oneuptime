@@ -53,9 +53,6 @@ const LANGUAGES: Array<string> = [
   "fa",
 ];
 
-const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
-const LINE_COMMENT: RegExp = /(^|[^:])\/\/[^\n]*/g;
-
 function readJson<T>(file: string): T {
   return JSON.parse(fs.readFileSync(file, "utf8")) as T;
 }
@@ -75,12 +72,67 @@ function sameAsEnglish(locale: string): Set<string> {
   );
 }
 
-// A source file without its comments, so a comment cannot stand in for a use.
+// Where a "//" comment starts on a line: not the "//" of a URL's "://".
+function lineCommentStart(line: string): number {
+  let at: number = line.indexOf("//");
+
+  while (at > 0 && line[at - 1] === ":") {
+    at = line.indexOf("//", at + 2);
+  }
+
+  return at;
+}
+
+/*
+ * A source file without its comments, so a comment cannot stand in for a
+ * use. Scanned line by line with indexOf rather than matched with a pattern.
+ */
 function readCode(relativePath: string): string {
-  return fs
-    .readFileSync(path.join(DASHBOARD_SRC, ...relativePath.split("/")), "utf8")
-    .replace(BLOCK_COMMENT, " ")
-    .replace(LINE_COMMENT, "$1");
+  const source: string = fs.readFileSync(
+    path.join(DASHBOARD_SRC, ...relativePath.split("/")),
+    "utf8",
+  );
+  const kept: Array<string> = [];
+  let inBlock: boolean = false;
+
+  for (const line of source.split("\n")) {
+    let rest: string = line;
+    let out: string = "";
+
+    while (rest.length > 0) {
+      if (inBlock) {
+        const end: number = rest.indexOf("*/");
+
+        if (end < 0) {
+          rest = "";
+        } else {
+          rest = rest.slice(end + 2);
+          inBlock = false;
+        }
+
+        continue;
+      }
+
+      const block: number = rest.indexOf("/*");
+      const comment: number = lineCommentStart(rest);
+
+      if (block >= 0 && (comment < 0 || block < comment)) {
+        out += rest.slice(0, block);
+        rest = rest.slice(block + 2);
+        inBlock = true;
+      } else if (comment >= 0) {
+        out += rest.slice(0, comment);
+        rest = "";
+      } else {
+        out += rest;
+        rest = "";
+      }
+    }
+
+    kept.push(out);
+  }
+
+  return kept.join("\n");
 }
 
 /*
