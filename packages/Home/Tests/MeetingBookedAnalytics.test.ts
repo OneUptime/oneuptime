@@ -1,5 +1,6 @@
 import { getPageSEO, PageSEOData } from "../Utils/PageSEO";
 import { getSelfHostedContent } from "../Utils/SelfHosted";
+import { getAirGappedContent } from "../Utils/AirGapped";
 import ejs from "ejs";
 import path from "path";
 
@@ -105,6 +106,22 @@ const renderSelfHosted: RenderSelfHostedFunction = async (
     reviewsList3: [],
     selfHosted: getSelfHostedContent(),
     seo: seoFor("/enterprise/self-hosted"),
+    homeUrl: HOME_URL,
+  });
+};
+
+type RenderAirGappedFunction = (
+  enableGoogleTagManager?: boolean,
+) => Promise<string>;
+
+// The locals Routes.ts hands /enterprise/air-gapped.
+const renderAirGapped: RenderAirGappedFunction = async (
+  enableGoogleTagManager: boolean = true,
+): Promise<string> => {
+  return render("air-gapped.ejs", {
+    enableGoogleTagManager: enableGoogleTagManager,
+    airGapped: getAirGappedContent(),
+    seo: seoFor("/enterprise/air-gapped"),
     homeUrl: HOME_URL,
   });
 };
@@ -366,6 +383,16 @@ describe("meeting_booked analytics", () => {
     [
       "self-hosted.ejs",
       renderSelfHosted,
+      "architecture_assessment",
+      "home/architecture-assessment-booked",
+    ],
+    /*
+     * The air-gapped page books the same conversation as the self-hosted
+     * page; meeting_booked's page_path tells the two apart.
+     */
+    [
+      "air-gapped.ejs",
+      renderAirGapped,
       "architecture_assessment",
       "home/architecture-assessment-booked",
     ],

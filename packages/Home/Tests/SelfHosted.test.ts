@@ -477,6 +477,54 @@ describe("SelfHosted content model", () => {
     expect(updateCheck!.description).toContain("offline license token");
   });
 
+  test("the update-check air-gap step says where the check goes: GitHub's API, not oneuptime.com", () => {
+    const updateCheck: AirGapStep = AirGapSteps.find((step: AirGapStep) => {
+      return step.setting === "updateCheck.disabled";
+    })!;
+
+    expect(updateCheck.description).toContain("GitHub's API");
+    expect(updateCheck.description).toContain("fails quietly");
+    expect(updateCheck.description).not.toContain("oneuptime.com");
+  });
+
+  test("the notifications air-gap step names no SMS gateway OneUptime cannot use", () => {
+    const notifications: AirGapStep = AirGapSteps.find((step: AirGapStep) => {
+      return step.title === "Bring your own notification transports";
+    })!;
+
+    // SMS and calls go through Twilio alone (Common/Types/Call/CallProviderType).
+    expect(notifications.description).not.toContain("SMS gateway");
+    expect(notifications.description).toContain("SMTP relay");
+    expect(notifications.description).toContain(
+      "SMS, calls and push need their providers",
+    );
+    // The installation's mail server is set in the Admin Dashboard.
+    expect(notifications.setting).toBe("Settings > Notifications > Emails");
+  });
+
+  test("the AI air-gap step points at a model on the customer's network", () => {
+    const ai: AirGapStep = AirGapSteps.find((step: AirGapStep) => {
+      return step.title === "Run AI locally, or not at all";
+    })!;
+
+    expect(ai.description).toContain("Ollama");
+    expect(ai.description).toContain("OpenAI-compatible server");
+    expect(ai.setting).toBe("GLOBAL_LLM_PROVIDER_TYPE");
+  });
+
+  test("the phone-home answer names the release emails a sign-up asks for, and offline licensing", () => {
+    const answer: string = SelfHostedFaqs.find((faq: SelfHostedFaq) => {
+      return faq.question === "Does a self-hosted install phone home?";
+    })!.answer;
+
+    expect(answer).toContain("GitHub's API");
+    expect(answer).toContain(
+      "“Notify me about security patches and new releases” ticked",
+    );
+    expect(answer).toContain("untick it on an air-gapped network");
+    expect(answer).toContain("Activated with an offline license token, it never calls us.");
+  });
+
   test("shared responsibility ships single sign-on in both editions, and SCIM and audit logs in the Enterprise Edition", () => {
     const accessControl: ResponsibilityRow | undefined =
       SharedResponsibilities.find((row: ResponsibilityRow) => {
