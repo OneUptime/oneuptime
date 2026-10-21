@@ -111,8 +111,7 @@ function decodePng(file: Buffer): DecodedPng {
 
     for (let column: number = 0; column < stride; column++) {
       const value: number = raw[row * (stride + 1) + 1 + column]!;
-      const left: number =
-        column >= 4 ? pixels[row * stride + column - 4]! : 0;
+      const left: number = column >= 4 ? pixels[row * stride + column - 4]! : 0;
       const up: number = row > 0 ? pixels[(row - 1) * stride + column]! : 0;
       const upLeft: number =
         row > 0 && column >= 4 ? pixels[(row - 1) * stride + column - 4]! : 0;
@@ -456,51 +455,77 @@ describe("EmailLogo.attach", () => {
   });
 
   test.each([
-    ["single quotes", (url: string): string => `<img src='${url}' alt="x">`],
-    ["no quotes", (url: string): string => `<img src=${url} alt="x">`],
+    [
+      "single quotes",
+      (url: string): string => {
+        return `<img src='${url}' alt="x">`;
+      },
+    ],
+    [
+      "no quotes",
+      (url: string): string => {
+        return `<img src=${url} alt="x">`;
+      },
+    ],
     [
       "upper case",
-      (url: string): string => `<IMG SRC="${url}" ALT="x">`,
+      (url: string): string => {
+        return `<IMG SRC="${url}" ALT="x">`;
+      },
     ],
     [
       "a line break before it",
-      (url: string): string => `<img\nalt="x"\nsrc="${url}">`,
+      (url: string): string => {
+        return `<img\nalt="x"\nsrc="${url}">`;
+      },
     ],
-  ])("an <img> written with %s is attached", (
-    _label: string,
-    tag: (url: string) => string,
-  ) => {
-    const attached: EmailHtmlWithInlineImages = EmailLogo.attach(
-      tag(logoDataUrl()),
-    );
+  ])(
+    "an <img> written with %s is attached",
+    (_label: string, tag: (url: string) => string) => {
+      const attached: EmailHtmlWithInlineImages = EmailLogo.attach(
+        tag(logoDataUrl()),
+      );
 
-    expect(attached.inlineImages).toHaveLength(1);
-    expect(attached.html).toBe(
-      tag(`cid:${attached.inlineImages[0]!.contentId}`),
-    );
-  });
+      expect(attached.inlineImages).toHaveLength(1);
+      expect(attached.html).toBe(
+        tag(`cid:${attached.inlineImages[0]!.contentId}`),
+      );
+    },
+  );
 
   test.each([
-    ["as text", (url: string): string => `<p>${url}</p>`],
+    [
+      "as text",
+      (url: string): string => {
+        return `<p>${url}</p>`;
+      },
+    ],
     [
       "in another attribute",
-      (url: string): string =>
-        `<img data-src="${url}" src="https://oneuptime.example.test/a.png">`,
+      (url: string): string => {
+        return `<img data-src="${url}" src="https://oneuptime.example.test/a.png">`;
+      },
     ],
     [
       "inside another attribute's value",
-      (url: string): string =>
-        `<img alt='src="${url}"' src="https://oneuptime.example.test/a.png">`,
+      (url: string): string => {
+        return `<img alt='src="${url}"' src="https://oneuptime.example.test/a.png">`;
+      },
     ],
-    ["as a link", (url: string): string => `<a href="${url}">Logo</a>`],
-  ])("the logo's data: URL %s is left alone", (
-    _label: string,
-    markup: (url: string) => string,
-  ) => {
-    const html: string = markup(logoDataUrl());
+    [
+      "as a link",
+      (url: string): string => {
+        return `<a href="${url}">Logo</a>`;
+      },
+    ],
+  ])(
+    "the logo's data: URL %s is left alone",
+    (_label: string, markup: (url: string) => string) => {
+      const html: string = markup(logoDataUrl());
 
-    expect(EmailLogo.attach(html)).toEqual({ html: html, inlineImages: [] });
-  });
+      expect(EmailLogo.attach(html)).toEqual({ html: html, inlineImages: [] });
+    },
+  );
 
   test("leaves a screenshot beside it to the screenshot's own rules", () => {
     const screenshot: string = `<img src="data:image/png;base64,${SCREENSHOT_PNG}" alt="Shot">`;
@@ -525,10 +550,9 @@ describe("EmailLogo.attach", () => {
   });
 
   test("every email gets a Content-ID of its own", () => {
-    const first: string = EmailLogo.attach(header()).inlineImages[0]!
-      .contentId;
-    const second: string = EmailLogo.attach(header()).inlineImages[0]!
-      .contentId;
+    const first: string = EmailLogo.attach(header()).inlineImages[0]!.contentId;
+    const second: string =
+      EmailLogo.attach(header()).inlineImages[0]!.contentId;
 
     expect(first).not.toBe(second);
   });

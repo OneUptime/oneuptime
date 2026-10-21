@@ -88,7 +88,10 @@ describe("getEmailBrandingVariables", () => {
   test("a website without a name of its own changes nothing: Powered by OneUptime links to oneuptime.com", () => {
     expect(
       getEmailBrandingVariables({ websiteUrl: "https://acme.example" }),
-    ).toEqual({ brandProductName: "OneUptime", oneUptimeLogoUrl: ONEUPTIME_LOGO });
+    ).toEqual({
+      brandProductName: "OneUptime",
+      oneUptimeLogoUrl: ONEUPTIME_LOGO,
+    });
   });
 
   test("a logo a mail client can draw goes in as an absolute address on this host", () => {
@@ -133,7 +136,10 @@ describe("getEmailBrandingVariables", () => {
         logoUrl: "/api/branding/logo?v=1",
         isLogoEmailSafe: false,
       }),
-    ).toEqual({ brandProductName: "OneUptime", oneUptimeLogoUrl: ONEUPTIME_LOGO });
+    ).toEqual({
+      brandProductName: "OneUptime",
+      oneUptimeLogoUrl: ONEUPTIME_LOGO,
+    });
   });
 
   test("a renamed installation never carries OneUptime's logo", () => {
@@ -147,9 +153,9 @@ describe("getEmailBrandingVariables", () => {
         isLogoEmailSafe: true,
       },
     ] as Array<ProductBranding>) {
-      expect(
-        Object.keys(getEmailBrandingVariables(branding)),
-      ).not.toContain("oneUptimeLogoUrl");
+      expect(Object.keys(getEmailBrandingVariables(branding))).not.toContain(
+        "oneUptimeLogoUrl",
+      );
     }
   });
 
@@ -292,7 +298,10 @@ describe("without a host", () => {
           logoUrl: "/api/branding/logo?v=1",
           isLogoEmailSafe: true,
         }),
-      ).toEqual({ brandProductName: "OneUptime", oneUptimeLogoUrl: ONEUPTIME_LOGO });
+      ).toEqual({
+        brandProductName: "OneUptime",
+        oneUptimeLogoUrl: ONEUPTIME_LOGO,
+      });
     },
   );
 });

@@ -483,16 +483,12 @@ const attributeReferences: (
         }));
 
   if (loads) {
-    return [
-      { element: element, attribute: name, value: value, loads: true },
-    ];
+    return [{ element: element, attribute: name, value: value, loads: true }];
   }
 
   // A link, or any other attribute, matters only when it names a host.
   if (isAbsoluteWebAddress(value)) {
-    return [
-      { element: element, attribute: name, value: value, loads: false },
-    ];
+    return [{ element: element, attribute: name, value: value, loads: false }];
   }
 
   return [];
@@ -614,7 +610,9 @@ export const describeReference: (reference: MarkupReference) => string = (
 };
 
 // A value a template is given: the whole of it, or the start of it.
-const isTemplateValue: (value: string) => boolean = (value: string): boolean => {
+const isTemplateValue: (value: string) => boolean = (
+  value: string,
+): boolean => {
   return value.startsWith("{{") || value.startsWith("<%");
 };
 

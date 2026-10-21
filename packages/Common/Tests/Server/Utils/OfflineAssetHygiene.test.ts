@@ -846,7 +846,14 @@ describe("emails load nothing from anywhere", () => {
       templates.some((template: SourceFile): boolean => {
         return (
           template.name ===
-          path.join("App", "FeatureSet", "Notification", "Templates", "Partials", "Logo.hbs")
+          path.join(
+            "App",
+            "FeatureSet",
+            "Notification",
+            "Templates",
+            "Partials",
+            "Logo.hbs",
+          )
         );
       }),
     ).toBe(true);
@@ -1044,12 +1051,12 @@ describe("code that writes an email's markup loads nothing from anywhere", () =>
 
   test("reads what code writes, and not what it says in a comment", () => {
     const source: string = [
-      "// <img src=\"https://comment.example/a.png\">",
-      "/* <img src=\"https://comment.example/b.png\"> */",
+      '// <img src="https://comment.example/a.png">',
+      '/* <img src="https://comment.example/b.png"> */',
       "const logo: string = '<img src=\"https://cdn.example/logo.png\">';",
-      "const own: string = `<img src=\"${logoUrl}\" alt=\"Logo\">`;",
-      "const pixel: string = `<td style=\"background: url(https://cdn.example/${name}.png)\">`;",
-      "const api: string = \"https://graph.microsoft.com/v1.0/me/sendMail\";",
+      'const own: string = `<img src="${logoUrl}" alt="Logo">`;',
+      'const pixel: string = `<td style="background: url(https://cdn.example/${name}.png)">`;',
+      'const api: string = "https://graph.microsoft.com/v1.0/me/sendMail";',
     ].join("\n");
 
     expect(codeLoadProblems(source, "Example.ts")).toEqual([

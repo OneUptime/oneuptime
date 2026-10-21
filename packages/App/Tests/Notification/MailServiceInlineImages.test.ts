@@ -412,7 +412,9 @@ describe("a screenshot in an incident description, over SMTP", () => {
       "subject",
       "to",
     ]);
-    expect(payload.attachments).toEqual([smtpLogo(contentIdsIn(payload.html)[0]!)]);
+    expect(payload.attachments).toEqual([
+      smtpLogo(contentIdsIn(payload.html)[0]!),
+    ]);
   });
 
   test("screenshots past what one email may carry are left out with a note, and the email still goes", async () => {

@@ -25,7 +25,10 @@ const status = "https://status.harbor.example.com";
 // the image itself, sent inside the email (Common/Server/Utils/Mail/EmailLogo.ts).
 const emailLogo = `data:image/png;base64,${fs
   .readFileSync(
-    path.join(root, "packages/Common/Server/Static/Brand/oneuptime-email-logo.png"),
+    path.join(
+      root,
+      "packages/Common/Server/Static/Brand/oneuptime-email-logo.png",
+    ),
   )
   .toString("base64")}`;
 // A status page's uploaded logo: an image of its own, so no preview loads

@@ -130,12 +130,7 @@ describe("readMarkupReferences - what an element loads", () => {
     ],
   ])(
     "%s",
-    (
-      _label: string,
-      markup: string,
-      element: string,
-      attribute: string,
-    ) => {
+    (_label: string, markup: string, element: string, attribute: string) => {
       const references: Array<MarkupReference> = readMarkupReferences(markup);
 
       expect(references).toHaveLength(1);
@@ -178,19 +173,29 @@ describe("readMarkupReferences - what an element loads", () => {
       loaded(
         '<img src="{{logoUrl}}"><img src="{{{@root.oneUptimeLogoUrl}}}"><img src="<%= logoUrl %>">',
       ),
-    ).toEqual(["{{logoUrl}}", "{{{@root.oneUptimeLogoUrl}}}", "<%= logoUrl %>"]);
+    ).toEqual([
+      "{{logoUrl}}",
+      "{{{@root.oneUptimeLogoUrl}}}",
+      "<%= logoUrl %>",
+    ]);
   });
 });
 
 describe("readMarkupReferences - what nothing loads", () => {
   test.each([
-    ["a comment", "<!-- <img src=\"https://cdn.example/a.png\"> -->"],
-    ["a namespace", '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">'],
+    ["a comment", '<!-- <img src="https://cdn.example/a.png"> -->'],
+    [
+      "a namespace",
+      '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">',
+    ],
     [
       "a link that only says where something is",
       '<link rel="canonical" href="https://oneuptime.com/docs">',
     ],
-    ["escaped markup, as text", "<p>&lt;img src=&quot;https://cdn.example/a.png&quot;&gt;</p>"],
+    [
+      "escaped markup, as text",
+      "<p>&lt;img src=&quot;https://cdn.example/a.png&quot;&gt;</p>",
+    ],
   ])("%s", (_label: string, markup: string) => {
     expect(loaded(markup)).toEqual([]);
   });
@@ -257,11 +262,11 @@ describe("emailTemplateProblems", () => {
 
   test.each([
     ["a path no mail client can find", '<img src="/img/logo.png">'],
+    ["a protocol-relative image", '<img src="//cdn.example/logo.png" alt="x">'],
     [
-      "a protocol-relative image",
-      '<img src="//cdn.example/logo.png" alt="x">',
+      "a srcset",
+      '<img src="{{logoUrl}}" srcset="https://cdn.example/a.png 2x">',
     ],
-    ["a srcset", '<img src="{{logoUrl}}" srcset="https://cdn.example/a.png 2x">'],
     [
       "a url() in a style attribute",
       '<td style="background: #000 url(https://cdn.example/a.png)">',
@@ -302,17 +307,17 @@ describe("emailTemplateProblems", () => {
       "OneUptime's logo, carried in the email",
       '<img src="{{{@root.oneUptimeLogoUrl}}}" alt="OneUptime">',
     ],
-    ["an inline image", '<img src="cid:6b1f@oneuptime"><img src="data:image/png;base64,iVBORw0KGgo=">'],
+    [
+      "an inline image",
+      '<img src="cid:6b1f@oneuptime"><img src="data:image/png;base64,iVBORw0KGgo=">',
+    ],
     ["an EJS value", '<img src="<%= logoUrl %>">'],
     [
       "a link to an allowed host",
       '<a href="https://oneuptime.com" style="color: #475569;">OneUptime</a>',
     ],
     ["a mail address", '<a href="mailto:support@oneuptime.com">Contact</a>'],
-    [
-      "a namespace",
-      '<html xmlns="http://www.w3.org/1999/xhtml" lang="en">',
-    ],
+    ["a namespace", '<html xmlns="http://www.w3.org/1999/xhtml" lang="en">'],
     [
       "an address in a comment its language takes out",
       `{{!-- ${CLOUDINARY_LOGO} --}}{{! https://evil.example }}<%# ${CLOUDINARY_LOGO} %>`,

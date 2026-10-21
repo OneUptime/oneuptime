@@ -216,9 +216,12 @@ describe("EmailSize.attachWithinLimit - OneUptime's logo (EmailLogo)", () => {
   });
 
   test("is not one of the twenty screenshots an email may carry", () => {
-    const shots: string = Array.from({ length: 21 }, (_: unknown, index: number): string => {
-      return image(1000, `Shot ${index + 1}`);
-    }).join("");
+    const shots: string = Array.from(
+      { length: 21 },
+      (_: unknown, index: number): string => {
+        return image(1000, `Shot ${index + 1}`);
+      },
+    ).join("");
 
     const attached: EmailWithinLimit = EmailSize.attachWithinLimit(
       `${logoHeader}${shots}`,
@@ -260,7 +263,9 @@ describe("EmailSize.attachWithinLimit - OneUptime's logo (EmailLogo)", () => {
     ).toEqual(["oneuptime-logo.png"]);
     expect(attached.html.startsWith('<img src="cid:')).toBe(true);
     expect(attached.html.endsWith(EMAIL_TRUNCATED_TEXT_NOTE_HTML)).toBe(true);
-    expect(attached.html).toContain("[Small: image too large to include in this email]");
+    expect(attached.html).toContain(
+      "[Small: image too large to include in this email]",
+    );
     // The whole email, the logo's base64 included, is within the limit.
     expect(EmailSize.getSizeInBytes(attached)).toBeLessThanOrEqual(
       MAX_EMAIL_BYTES,
