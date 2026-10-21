@@ -1168,9 +1168,18 @@ describe("Session Replay: the session list's filters", () => {
           return line.includes("`.../session-replay-users`");
         }) || "";
 
-    expect(table).toMatch(
-      /title: "Show ID",[\s\S]{0,200}placement: ActionButtonPlacement\.MoreMenu,/,
-    );
+    /*
+     * Show ID is a row action placed in the row's ⋯: its placement follows
+     * its title within the same few lines (read with indexOf).
+     */
+    const showId: number = table.indexOf('title: "Show ID",');
+
+    expect(showId).toBeGreaterThan(-1);
+    expect(
+      table
+        .slice(showId, showId + 300)
+        .includes("placement: ActionButtonPlacement.MoreMenu,"),
+    ).toBe(true);
     expect(list).toContain(
       "Its **⋯** menu has **Show ID**, the session's whole ID to copy",
     );
