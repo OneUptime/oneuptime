@@ -382,9 +382,7 @@ const openPost: (
             ? undefined
             : (command: string): boolean => {
                 const field: HTMLTextAreaElement | null =
-                  window.document.querySelector(
-                    "textarea[aria-hidden='true']",
-                  );
+                  window.document.querySelector("textarea[aria-hidden='true']");
                 if (command === "copy" && options.copyCommand && field) {
                   copied.push(
                     field.value.slice(field.selectionStart, field.selectionEnd),
@@ -533,9 +531,7 @@ describe("a blog post without an h2 heading", () => {
 
       expect(page.copied).toEqual(['echo "hello"']);
       expect(firstCodeCopyButton(page).textContent).toBe("Copied!");
-      expect(firstCodeCopyButton(page).classList.contains("copied")).toBe(
-        true,
-      );
+      expect(firstCodeCopyButton(page).classList.contains("copied")).toBe(true);
     });
 
     test("a refused write falls back to the copy command, and only then says Copied!", async () => {
@@ -743,12 +739,11 @@ describe("a blog post without an h2 heading", () => {
 
     expect(buttons[0]!.getAttribute("title")).toBe("Link copied");
     expect(
-      buttons[0]!.querySelector(".copy-link-check")?.classList.contains(
-        "hidden",
-      ),
+      buttons[0]!
+        .querySelector(".copy-link-check")
+        ?.classList.contains("hidden"),
     ).toBe(false);
   });
-
 
   test("opens the validation report and loads it once", async () => {
     const page: OpenedPost = await openPost(BODY_WITHOUT_H2);

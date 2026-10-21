@@ -1,10 +1,4 @@
-import {
-  BrowserContext,
-  expect,
-  Locator,
-  Page,
-  test,
-} from "@playwright/test";
+import { BrowserContext, expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 import { STATUS_PAGE_PLAIN_HTTP_HOST } from "./StatusPageOrigins";

@@ -3,9 +3,7 @@ import Tooltip from "../Tooltip/Tooltip";
 import IconProp from "../../../Types/Icon/IconProp";
 import Clipboard from "../../Utils/Clipboard";
 import { Translator } from "../../Utils/TranslateTemplate";
-import useClipboardCopy, {
-  ClipboardCopy,
-} from "../../Utils/UseClipboardCopy";
+import useClipboardCopy, { ClipboardCopy } from "../../Utils/UseClipboardCopy";
 import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useRef } from "react";
 
@@ -44,7 +42,8 @@ const ObjectIDView: FunctionComponent<ComponentProps> = (
 
   let pillClassName: string =
     "bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 hover:border-gray-300";
-  let iconClassName: string = "text-gray-400 group-hover/objectid:text-gray-600";
+  let iconClassName: string =
+    "text-gray-400 group-hover/objectid:text-gray-600";
 
   if (copied) {
     pillClassName = "bg-green-50 border border-green-200 text-green-700";

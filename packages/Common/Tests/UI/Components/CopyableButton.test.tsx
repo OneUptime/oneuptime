@@ -190,9 +190,9 @@ describe("CopyableButton", () => {
   test.each([["Enter"], [" "]])(
     "copies from the keyboard with %p",
     async (key: string) => {
-      const writeText: WriteTextMock = jest.fn<
-        (text: string) => Promise<void>
-      >(async (): Promise<void> => {});
+      const writeText: WriteTextMock = jest.fn<(text: string) => Promise<void>>(
+        async (): Promise<void> => {},
+      );
       installClipboard(writeText);
 
       render(<CopyableButton textToBeCopied={VALUE} />);

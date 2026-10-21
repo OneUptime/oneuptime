@@ -1538,9 +1538,9 @@ describe("ReplayHeader", () => {
           await Promise.resolve();
         });
 
-        expect(
-          screen.getByTestId("replay-copy-link-status"),
-        ).toHaveTextContent("Link copied to the clipboard.");
+        expect(screen.getByTestId("replay-copy-link-status")).toHaveTextContent(
+          "Link copied to the clipboard.",
+        );
         expect(screen.queryByTestId("replay-copy-link-fallback")).toBeNull();
       } finally {
         if (descriptor) {

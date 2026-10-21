@@ -2,9 +2,7 @@ import Icon, { SizeProp, ThickProp } from "../Icon/Icon";
 import Tooltip from "../Tooltip/Tooltip";
 import IconProp from "../../../Types/Icon/IconProp";
 import { Translator } from "../../Utils/TranslateTemplate";
-import useClipboardCopy, {
-  ClipboardCopy,
-} from "../../Utils/UseClipboardCopy";
+import useClipboardCopy, { ClipboardCopy } from "../../Utils/UseClipboardCopy";
 import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 

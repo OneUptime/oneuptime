@@ -103,9 +103,7 @@ import {
   Translator,
 } from "../../Utils/TranslateTemplate";
 import Clipboard from "../../Utils/Clipboard";
-import useClipboardCopy, {
-  ClipboardCopy,
-} from "../../Utils/UseClipboardCopy";
+import useClipboardCopy, { ClipboardCopy } from "../../Utils/UseClipboardCopy";
 import useTranslator from "../../Utils/UseTranslator";
 import {
   InlineReferenceTransformOptions,

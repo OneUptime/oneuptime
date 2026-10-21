@@ -34,9 +34,7 @@ jest.mock(
     return {
       __esModule: true,
       default: (props: { text: string }): React.ReactElement => {
-        const react: typeof React = jest.requireActual(
-          "react",
-        ) as typeof React;
+        const react: typeof React = jest.requireActual("react") as typeof React;
         return react.createElement("p", null, props.text);
       },
     };

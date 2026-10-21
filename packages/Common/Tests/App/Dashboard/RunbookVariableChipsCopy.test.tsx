@@ -27,7 +27,10 @@ import { RunbookVariableScope } from "../../../Types/Runbook/RunbookVariableRefe
  * clipboard, Copy failed when it is not, and a screen reader hears either.
  */
 
-function choice(name: string, isSecret: boolean = false): RunbookVariableChoice {
+function choice(
+  name: string,
+  isSecret: boolean = false,
+): RunbookVariableChoice {
   return {
     scope: RunbookVariableScope.Global,
     name: name,

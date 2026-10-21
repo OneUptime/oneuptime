@@ -104,9 +104,7 @@ async function openPage(
             ? undefined
             : (command: string): boolean => {
                 const field: HTMLTextAreaElement | null =
-                  window.document.querySelector(
-                    "textarea[aria-hidden='true']",
-                  );
+                  window.document.querySelector("textarea[aria-hidden='true']");
                 if (command === "copy" && copyCommand && field) {
                   copied.push(
                     field.value.slice(field.selectionStart, field.selectionEnd),
@@ -120,7 +118,12 @@ async function openPage(
 
   await settle();
 
-  opened = { window: dom.window, document: dom.window.document, copied, errors };
+  opened = {
+    window: dom.window,
+    document: dom.window.document,
+    copied,
+    errors,
+  };
 
   return opened;
 }

@@ -172,7 +172,12 @@ describe("CodeBlock's copy button", () => {
   test("a failure in a language it does not highlight selects the code too", async () => {
     installClipboard(undefined);
 
-    render(<CodeBlock code="3a000000-0000-4000-8000-0000000000a1" language="not-a-language" />);
+    render(
+      <CodeBlock
+        code="3a000000-0000-4000-8000-0000000000a1"
+        language="not-a-language"
+      />,
+    );
     await pressCopy();
 
     expect(window.getSelection()?.toString()).toBe(
@@ -198,9 +203,7 @@ describe("CodeBlock's copy button", () => {
   });
 
   test("a block without a copy button has no status region either", () => {
-    render(
-      <CodeBlock code={COMMAND} language="bash" showCopyButton={false} />,
-    );
+    render(<CodeBlock code={COMMAND} language="bash" showCopyButton={false} />);
 
     expect(screen.queryByTestId("code-block-copy-button")).toBeNull();
     expect(screen.queryByRole("status")).toBeNull();

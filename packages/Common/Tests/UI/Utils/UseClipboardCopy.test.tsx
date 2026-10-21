@@ -55,11 +55,9 @@ function acceptingClipboard(): WriteTextMock {
 }
 
 function refusingClipboard(): WriteTextMock {
-  return jest.fn<(text: string) => Promise<void>>(
-    async (): Promise<void> => {
-      throw new DOMException("Write permission denied.", "NotAllowedError");
-    },
-  );
+  return jest.fn<(text: string) => Promise<void>>(async (): Promise<void> => {
+    throw new DOMException("Write permission denied.", "NotAllowedError");
+  });
 }
 
 // A write the test finishes (or refuses) when it chooses.

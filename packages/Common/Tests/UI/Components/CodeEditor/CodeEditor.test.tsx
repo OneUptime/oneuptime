@@ -1275,9 +1275,11 @@ describe("CodeEditor — Copy", () => {
     let copiedText: string = "";
     const execCommand: jest.Mock = jest.fn(() => {
       copiedText =
-        (document.querySelector("textarea[aria-hidden='true']") as
-          | HTMLTextAreaElement
-          | null)?.value || "";
+        (
+          document.querySelector(
+            "textarea[aria-hidden='true']",
+          ) as HTMLTextAreaElement | null
+        )?.value || "";
       return true;
     });
 
@@ -1368,9 +1370,9 @@ describe("CodeEditor — Copy", () => {
     // As browsers do: selecting the scratch field focuses it.
     const execCommand: jest.Mock = jest.fn(() => {
       (
-        document.querySelector("textarea[aria-hidden='true']") as
-          | HTMLTextAreaElement
-          | null
+        document.querySelector(
+          "textarea[aria-hidden='true']",
+        ) as HTMLTextAreaElement | null
       )?.focus();
       return true;
     });

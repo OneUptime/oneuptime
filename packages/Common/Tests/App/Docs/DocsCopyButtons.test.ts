@@ -175,9 +175,7 @@ async function openPage(options: PageOptions): Promise<OpenedPage> {
             ? undefined
             : (command: string): boolean => {
                 const field: HTMLTextAreaElement | null =
-                  window.document.querySelector(
-                    "textarea[aria-hidden='true']",
-                  );
+                  window.document.querySelector("textarea[aria-hidden='true']");
                 if (command === "copy" && options.copyCommand && field) {
                   copied.push(
                     field.value.slice(field.selectionStart, field.selectionEnd),
@@ -217,15 +215,11 @@ async function openPage(options: PageOptions): Promise<OpenedPage> {
 }
 
 function copyCodeButton(page: OpenedPage): HTMLButtonElement {
-  return page.document.querySelector(
-    "[data-copy-code]",
-  ) as HTMLButtonElement;
+  return page.document.querySelector("[data-copy-code]") as HTMLButtonElement;
 }
 
 function copyPageButton(page: OpenedPage): HTMLButtonElement {
-  return page.document.querySelector(
-    "[data-copy-page]",
-  ) as HTMLButtonElement;
+  return page.document.querySelector("[data-copy-page]") as HTMLButtonElement;
 }
 
 async function click(page: OpenedPage, button: HTMLElement): Promise<void> {

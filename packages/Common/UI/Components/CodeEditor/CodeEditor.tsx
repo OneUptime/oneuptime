@@ -42,9 +42,7 @@ import {
   Translator,
   translationKey,
 } from "../../Utils/TranslateTemplate";
-import useClipboardCopy, {
-  ClipboardCopy,
-} from "../../Utils/UseClipboardCopy";
+import useClipboardCopy, { ClipboardCopy } from "../../Utils/UseClipboardCopy";
 import useTranslator from "../../Utils/UseTranslator";
 import React, {
   FunctionComponent,

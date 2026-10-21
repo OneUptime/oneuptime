@@ -41,7 +41,10 @@ function kinds(sites: Array<ClipboardWriteSite>): Array<string> {
   });
 }
 
-function sitesIn(source: string, fileName: string = "Fixture.tsx"): Array<string> {
+function sitesIn(
+  source: string,
+  fileName: string = "Fixture.tsx",
+): Array<string> {
   return kinds(findClipboardWriteSites(fileName, source));
 }
 
@@ -89,11 +92,9 @@ describe("the detector finds every way of reaching the clipboard", () => {
     expect(sitesIn("const { clipboard } = navigator;")).toEqual([
       `${ClipboardWriteKind.NavigatorClipboard} @1: { clipboard } = navigator`,
     ]);
-    expect(sitesIn("const { clipboard: board } = window.navigator;")).toEqual(
-      [
-        `${ClipboardWriteKind.NavigatorClipboard} @1: { clipboard: board } = window.navigator`,
-      ],
-    );
+    expect(sitesIn("const { clipboard: board } = window.navigator;")).toEqual([
+      `${ClipboardWriteKind.NavigatorClipboard} @1: { clipboard: board } = window.navigator`,
+    ]);
   });
 
   test.each([
@@ -146,7 +147,10 @@ describe("the detector finds every way of reaching the clipboard", () => {
 
 describe("the detector leaves alone what is not a clipboard write", () => {
   test.each([
-    ["a comment that names it", "// navigator.clipboard is absent on plain http"],
+    [
+      "a comment that names it",
+      "// navigator.clipboard is absent on plain http",
+    ],
     ["a block comment", "/* await navigator.clipboard?.writeText(x) */"],
     ["a string", 'const why = "navigator.clipboard is undefined";'],
     ["a template", "const why = `navigator.clipboard is ${state}`;"],
@@ -157,7 +161,10 @@ describe("the detector leaves alone what is not a clipboard write", () => {
     ["a field named clipboard", "const support = props.clipboard;"],
     ["navigator's other parts", "const lang = navigator.language;"],
     ["an editing command", 'document.execCommand("insertText", false, t);'],
-    ["a command named by a variable", "document.execCommand(command, false, v);"],
+    [
+      "a command named by a variable",
+      "document.execCommand(command, false, v);",
+    ],
     ["a look-alike that is not navigator", "const x = nav.clipboard;"],
   ])("%s", (_name: string, source: string) => {
     expect(sitesIn(source)).toEqual([]);
@@ -282,9 +289,9 @@ describe("the browser code of the whole product", () => {
   });
 
   test("nothing else writes to the clipboard directly", () => {
-    expect(formatClipboardWriteFindings(disallowedClipboardWrites(findings))).toBe(
-      "",
-    );
+    expect(
+      formatClipboardWriteFindings(disallowedClipboardWrites(findings)),
+    ).toBe("");
   });
 
   test("an image writer never writes text itself: that goes through Clipboard.ts", () => {

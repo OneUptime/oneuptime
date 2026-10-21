@@ -347,15 +347,15 @@ describe("Copy link copies, or says it could not (issue #5132)", () => {
 
     await clickCopy();
 
-    expect(screen.getByTestId("maintenance-calendar-copy")).not.toHaveTextContent(
-      CALENDAR_WORDS["copied"]!,
-    );
+    expect(
+      screen.getByTestId("maintenance-calendar-copy"),
+    ).not.toHaveTextContent(CALENDAR_WORDS["copied"]!);
     expect(screen.getByTestId("maintenance-calendar-copy")).toHaveTextContent(
       CALENDAR_WORDS["copy"]!,
     );
-    expect(screen.getByTestId("maintenance-calendar-copy-failed")).toHaveTextContent(
-      CALENDAR_WORDS["copyFailed"]!,
-    );
+    expect(
+      screen.getByTestId("maintenance-calendar-copy-failed"),
+    ).toHaveTextContent(CALENDAR_WORDS["copyFailed"]!);
     expectLinkSelectedToCopyByHand();
   });
 
@@ -404,12 +404,12 @@ describe("Copy link copies, or says it could not (issue #5132)", () => {
     await clickCopy();
 
     expect(copied).toEqual([httpsLink()]);
-    expect(screen.getByTestId("maintenance-calendar-copy")).not.toHaveTextContent(
-      CALENDAR_WORDS["copied"]!,
-    );
-    expect(screen.getByTestId("maintenance-calendar-copy-failed")).toHaveTextContent(
-      CALENDAR_WORDS["copyFailed"]!,
-    );
+    expect(
+      screen.getByTestId("maintenance-calendar-copy"),
+    ).not.toHaveTextContent(CALENDAR_WORDS["copied"]!);
+    expect(
+      screen.getByTestId("maintenance-calendar-copy-failed"),
+    ).toHaveTextContent(CALENDAR_WORDS["copyFailed"]!);
     expectLinkSelectedToCopyByHand();
   });
 

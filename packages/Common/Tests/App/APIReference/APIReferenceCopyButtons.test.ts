@@ -155,9 +155,7 @@ async function openPage(options: PageOptions): Promise<OpenedPage> {
             ? undefined
             : (command: string): boolean => {
                 const field: HTMLTextAreaElement | null =
-                  window.document.querySelector(
-                    "textarea[aria-hidden='true']",
-                  );
+                  window.document.querySelector("textarea[aria-hidden='true']");
                 if (command === "copy" && options.copyCommand && field) {
                   copied.push(
                     field.value.slice(field.selectionStart, field.selectionEnd),
@@ -171,7 +169,12 @@ async function openPage(options: PageOptions): Promise<OpenedPage> {
 
   await settle(dom.window);
 
-  opened = { window: dom.window, document: dom.window.document, copied, errors };
+  opened = {
+    window: dom.window,
+    document: dom.window.document,
+    copied,
+    errors,
+  };
 
   return opened;
 }
@@ -193,9 +196,7 @@ function labelOf(button: HTMLElement): string {
 }
 
 function announced(page: OpenedPage): string {
-  return (
-    page.document.querySelector("[data-copy-status]")?.textContent || ""
-  );
+  return page.document.querySelector("[data-copy-status]")?.textContent || "";
 }
 
 async function click(page: OpenedPage, button: HTMLElement): Promise<void> {
@@ -216,9 +217,7 @@ describe("an API Reference code block's Copy", () => {
     expect(codeCopyButton(page).classList.contains("copied")).toBe(true);
     expect(announced(page)).toBe("Copied!");
     expect(
-      page.document
-        .querySelector("[data-copy-status]")
-        ?.getAttribute("role"),
+      page.document.querySelector("[data-copy-status]")?.getAttribute("role"),
     ).toBe("status");
     expect(page.errors).toEqual([]);
   });
@@ -248,9 +247,7 @@ describe("an API Reference code block's Copy", () => {
     expect(labelOf(codeCopyButton(page))).toBe("Copy failed");
     expect(codeCopyButton(page).classList.contains("copied")).toBe(false);
     expect(codeCopyButton(page).classList.contains("copy-failed")).toBe(true);
-    expect(codeCopyButton(page).getAttribute("data-copy-state")).toBe(
-      "failed",
-    );
+    expect(codeCopyButton(page).getAttribute("data-copy-state")).toBe("failed");
     expect(announced(page)).toBe("Copy failed");
   });
 

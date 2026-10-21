@@ -1,10 +1,5 @@
 import "highlight.js/styles/a11y-dark.css";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useMemo,
-  useRef,
-} from "react";
+import React, { FunctionComponent, ReactElement, useMemo, useRef } from "react";
 /*
  * Trimmed highlight.js instance — lib/core plus only the languages CodeBlock
  * callers actually pass (see the audit in LanguageRegistry.ts). Replaces
@@ -15,9 +10,7 @@ import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import Clipboard from "../../Utils/Clipboard";
 import { Translator } from "../../Utils/TranslateTemplate";
-import useClipboardCopy, {
-  ClipboardCopy,
-} from "../../Utils/UseClipboardCopy";
+import useClipboardCopy, { ClipboardCopy } from "../../Utils/UseClipboardCopy";
 import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {

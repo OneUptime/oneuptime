@@ -249,9 +249,7 @@ describe("CopyTextButton", () => {
   test("an icon-only button says what happened to a screen reader, without words on screen", async () => {
     installClipboard(undefined);
 
-    render(
-      <CopyTextButton textToBeCopied="trace-4bf92f35" iconOnly={true} />,
-    );
+    render(<CopyTextButton textToBeCopied="trace-4bf92f35" iconOnly={true} />);
 
     const button: HTMLElement = screen.getByRole("button", { name: "Copy" });
     const said: HTMLElement = button.querySelector(
@@ -272,9 +270,7 @@ describe("CopyTextButton", () => {
       jest.fn<(text: string) => Promise<void>>(async (): Promise<void> => {}),
     );
 
-    render(
-      <CopyTextButton textToBeCopied="trace-4bf92f35" iconOnly={true} />,
-    );
+    render(<CopyTextButton textToBeCopied="trace-4bf92f35" iconOnly={true} />);
     await clickCopy();
 
     expect(

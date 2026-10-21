@@ -28,7 +28,8 @@ import {
  * navigator.clipboard is not a finding.
  */
 
-export const CLIPBOARD_WRITER_FILE: string = "packages/Common/UI/Utils/Clipboard.ts";
+export const CLIPBOARD_WRITER_FILE: string =
+  "packages/Common/UI/Utils/Clipboard.ts";
 
 /*
  * Files that may reach the clipboard themselves, and why. An image is not
@@ -66,7 +67,10 @@ const NAVIGATOR_OWNERS: ReadonlySet<string> = new Set<string>([
   "self",
 ]);
 
-const CLIPBOARD_COMMANDS: ReadonlySet<string> = new Set<string>(["copy", "cut"]);
+const CLIPBOARD_COMMANDS: ReadonlySet<string> = new Set<string>([
+  "copy",
+  "cut",
+]);
 
 // `x`, `(x)`, `x!` and `x as T` are all `x`.
 function unwrap(expression: ts.Expression): ts.Expression {
@@ -264,4 +268,9 @@ export function formatClipboardWriteFindings(
 }
 
 // packages/Common/Tests -> the repository root.
-export const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..");
+export const REPOSITORY_ROOT: string = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+);
