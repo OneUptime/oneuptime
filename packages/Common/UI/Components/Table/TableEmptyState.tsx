@@ -182,9 +182,14 @@ const TableEmptyState: FunctionComponent<ComponentProps> = (
         {title}
       </h3>
 
+      {/*
+       * text-balance: the centred sentence breaks into lines of about the
+       * same length, rather than leaving a word or two ("case.") alone
+       * under the rest.
+       */}
       {props.description ? (
         <div
-          className="mt-1.5 max-w-lg text-sm leading-6 text-gray-500"
+          className="mt-1.5 max-w-lg text-balance text-sm leading-6 text-gray-500"
           data-testid={`${testId}-description`}
         >
           {translateValue(props.description)}
