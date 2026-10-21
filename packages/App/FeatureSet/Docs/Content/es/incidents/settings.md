@@ -627,6 +627,8 @@ El formulario de creación tiene dos pasos:
 2. **Políticas de guardia** — las políticas que activa esta regla, y el **Nombre** de la regla, que se rellena a partir de ellas ("Avisar a Platform on-call") hasta que escribas uno propio; su **Descripción** espera en **Más campos**. La regla empieza habilitada; su formulario de edición añade el interruptor **Habilitado**, y la lista muestra una etiqueta verde **Habilitado** o roja **Deshabilitado** por regla.
 :::
 
+Una regla avisa en cuanto un incidente coincide con ella. Para que espere al horario laboral, responde **¿Cuándo debe avisar esta regla?** en **Más campos** con **Solo en horario laboral**. El **Horario laboral** empieza de lunes a viernes, de 09:00 a 17:00, en tu propia zona horaria: elige otros días, otra **Hora de inicio** u **Hora de finalización**, u otra **Zona horaria**, y una frase bajo la opción dice lo que pasará. En la lista, la regla muestra su horario bajo su nombre. Un incidente que coincide fuera de ese horario recibe una ejecución que espera, como **Esperando**, y no avisa a nadie; cuando empieza el horario, la política activa su primera regla de escalado y escala como siempre. Si el incidente se reconoce o se resuelve antes, no se avisa a nadie. Si el incidente cambia mientras espera y ahora coincide con una regla que avisa de inmediato, por ejemplo porque se sube su gravedad, la ejecución empieza a avisar en ese momento, y el feed del incidente dice por qué.
+
 ### Cómo se resuelve la coincidencia
 
 Las reglas que trae la propia página merecen interiorizarse:
@@ -635,7 +637,7 @@ Las reglas que trae la propia página merecen interiorizarse:
 - Un criterio de lista —**Monitores**, **Gravedades de incidente**, **Etiquetas de incidentes**, **Etiquetas del monitor**— usa **Tiene alguno de**, **Tiene todos los** o **No tiene ninguno de** los valores que elijas.
 - Un criterio de texto —el título y la descripción del incidente, los nombres y descripciones de sus monitores— usa **Contiene**, **No contiene**, **Es igual a**, **No es igual a**, **Empieza por** o **Termina en**, sin distinguir mayúsculas, o **Coincide con el patrón** / **No coincide con el patrón** para una expresión regular sin distinguir mayúsculas o un comodín `*`. Una condición de texto nueva empieza en **Contiene**.
 - **Se activan todas las reglas que coinciden.** No hay prioridad ni cortocircuito.
-- El conjunto de políticas que se ejecuta de verdad es la unión de las políticas de cada regla que coincide más cualquier política adjunta al incidente a mano o por una plantilla, sin duplicados, para que cada política se ejecute como mucho una vez.
+- El conjunto de políticas que se ejecuta de verdad es la unión de las políticas de cada regla que coincide más cualquier política adjunta al incidente a mano o por una plantilla, sin duplicados, para que cada política se ejecute como mucho una vez. Cuando dos reglas que coinciden activan la misma política, avisa en cuanto cualquiera de ellas lo permite: de inmediato gana al horario laboral.
 
 > [!NOTE]
 > La gravedad es un criterio de coincidencia aquí y en ningún otro sitio. Una gravedad de incidente no tiene ningún campo de guardia: elegir «Critical Incident» no avisa, por sí solo, a nadie. Si quieres que la gravedad dirija los avisos, escribe una regla de guardia que coincida con ella.

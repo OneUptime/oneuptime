@@ -22,7 +22,7 @@ flowchart TB
     ack -->|"No"| level
 ```
 
-1. Un incidente, una alerta o un episodio nuevo ejecuta en el acto sus políticas de guardia: las elegidas en él y las que añaden sus reglas de guardia. Cada política se ejecuta por su cuenta.
+1. Un incidente, una alerta o un episodio nuevo ejecuta en el acto sus políticas de guardia: las elegidas en él y las que añaden sus reglas de guardia. Cada política se ejecuta por su cuenta. Una regla de guardia configurada como **Solo en horario laboral** hace esperar las políticas que añade hasta que empieza ese horario.
 2. La primera regla de escalado de una política avisa de inmediato: a quien está de guardia ahora mismo en sus programaciones, a cada miembro de sus equipos y a las personas que nombra.
 3. Si alguna de ellas está ausente, una sustitución de usuario envía su aviso a la persona que la cubre, o la omite.
 4. Cada persona recibe el aviso según sus reglas de guardia personales: qué método se prueba y al cabo de cuánto tiempo. Un aviso sin regla le llega igualmente por los métodos que ha verificado.
@@ -97,7 +97,7 @@ Cuando estás de guardia para una política, la campana de arriba a la derecha l
 ## Solución de problemas
 
 :::details No se avisó a nadie por un incidente nuevo
-Abre la página **Ejecuciones de guardia** del incidente. Si está vacía, el incidente no tenía ninguna política de guardia: no se eligió ninguna en él y ninguna regla de guardia coincidió. Una ejecución con **Execution Completed - No One Notified** recorrió todas las reglas de escalado sin encontrar a nadie: normalmente una programación sin nadie de guardia. Consulta [Registros de ejecución](/docs/on-call/policies#registros-de-ejecución).
+Abre la página **Ejecuciones de guardia** del incidente. Si está vacía, el incidente no tenía ninguna política de guardia: no se eligió ninguna en él y ninguna regla de guardia coincidió. Una ejecución con **Execution Completed - No One Notified** recorrió todas las reglas de escalado sin encontrar a nadie: normalmente una programación sin nadie de guardia. Consulta [Registros de ejecución](/docs/on-call/policies#registros-de-ejecución). Una ejecución **Esperando** espera al horario laboral, por una regla de guardia configurada como **Solo en horario laboral**, y no avisa a nadie hasta que empiece.
 :::
 
 :::details Alguien recibió el aviso por el canal equivocado, o no lo recibió

@@ -27,6 +27,11 @@ import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
+import OnCallRulePagingHoldUtil, {
+  ON_CALL_RULE_WHEN_TO_PAGE_SELECT,
+  OnCallRulePagingHold,
+  OnCallRulePagingHolds,
+} from "../Utils/OnCall/OnCallRulePagingHold";
 
 class IncidentOnCallRuleEngineServiceClass {
   /**
@@ -34,52 +39,39 @@ class IncidentOnCallRuleEngineServiceClass {
    * matching rules' on-call policies into the incident's onCallDutyPolicies
    * array (deduped). The caller's existing on-call fan-out then runs the
    * merged list, so each policy executes at most once per incident.
+   *
+   * Hands back the holds of the policies it added that may not page yet: a
+   * rule that pages only during working hours, matched outside them, holds
+   * its policies until they begin (OnCallRulePagingHold). The fan-out passes
+   * each to executePolicy. A policy with no hold pages right away.
    */
   @CaptureSpan()
   @RuleEvaluation()
-  public async applyRulesToIncident(incident: Incident): Promise<void> {
+  public async applyRulesToIncident(
+    incident: Incident,
+  ): Promise<Map<string, OnCallRulePagingHold>> {
+    const noHolds: Map<string, OnCallRulePagingHold> = new Map<
+      string,
+      OnCallRulePagingHold
+    >();
+
     if (!incident.id || !incident.projectId) {
-      return;
+      return noHolds;
     }
 
     try {
-      const rules: Array<IncidentOnCallRule> =
-        await IncidentOnCallRuleService.findBy({
-          query: {
-            projectId: incident.projectId,
-            isEnabled: true,
-          },
-          props: { isRoot: true },
-          select: {
-            _id: true,
-            name: true,
-            criteria: true,
-            monitors: { _id: true },
-            incidentSeverities: { _id: true },
-            incidentLabels: { _id: true },
-            monitorLabels: { _id: true },
-            incidentTitlePattern: true,
-            incidentDescriptionPattern: true,
-            monitorNamePattern: true,
-            monitorDescriptionPattern: true,
-            onCallDutyPolicies: { _id: true },
-          },
-          limit: MAX_RULES_EVALUATED_PER_PROJECT,
-          skip: 0,
-        });
-
-      logIfRuleReadWasTruncated({
-        ruleKind: "IncidentOnCallRule",
-        projectId: incident.projectId,
-        rulesRead: rules.length,
-      });
+      const rules: Array<IncidentOnCallRule> = await this.findEnabledRules(
+        incident.projectId,
+      );
 
       if (rules.length === 0) {
-        return;
+        return noHolds;
       }
 
       const matchedPolicies: Map<string, OnCallDutyPolicy> = new Map();
       const matchedRules: Array<IncidentOnCallRule> = [];
+      // When each matched rule lets its policies page: right away wins.
+      const pagingHolds: OnCallRulePagingHolds = new OnCallRulePagingHolds();
 
       for (const rule of rules) {
         const matches: boolean = await this.doesIncidentMatchRule(
@@ -91,6 +83,13 @@ class IncidentOnCallRuleEngineServiceClass {
         }
 
         if (rule.onCallDutyPolicies && rule.onCallDutyPolicies.length > 0) {
+          pagingHolds.addRule(
+            rule,
+            rule.onCallDutyPolicies.map((policy: OnCallDutyPolicy): string => {
+              return policy.id?.toString() || "";
+            }),
+          );
+
           let ruleAddedAny: boolean = false;
           for (const policy of rule.onCallDutyPolicies) {
             const policyId: string | undefined = policy.id?.toString();
@@ -118,7 +117,7 @@ class IncidentOnCallRuleEngineServiceClass {
       });
 
       if (matchedPolicies.size === 0) {
-        return;
+        return noHolds;
       }
 
       const existingIds: Set<string> = new Set(
@@ -181,12 +180,107 @@ class IncidentOnCallRuleEngineServiceClass {
           addedPolicyIds: toAddIds,
         });
       }
+
+      // A policy the incident had already pages as it always has: right away.
+      return pagingHolds.getHolds(toAddIds);
     } catch (error) {
       logger.error(`Error applying incident on-call rules: ${error}`, {
         projectId: incident.projectId?.toString(),
         incidentId: incident.id?.toString(),
       } as LogAttributes);
+
+      return noHolds;
     }
+  }
+
+  /*
+   * The policies the incident's matching rules page now, each with the
+   * names of the rules that do: a rule that pages right away, or a
+   * working-hours rule inside its hours (OnCallRulePagingHoldUtil.getHold).
+   * Reads only: it adds no policy to the incident. For one that changed
+   * while some of its runs wait for working hours (WaitingRunsOnRecordChange).
+   */
+  @CaptureSpan()
+  public async getPoliciesPagingNow(
+    incident: Incident,
+    now: Date,
+  ): Promise<Map<string, Array<string>>> {
+    const pagingNow: Map<string, Array<string>> = new Map<
+      string,
+      Array<string>
+    >();
+
+    if (!incident.id || !incident.projectId) {
+      return pagingNow;
+    }
+
+    for (const rule of await this.findEnabledRules(incident.projectId)) {
+      if (
+        !rule.onCallDutyPolicies ||
+        rule.onCallDutyPolicies.length === 0 ||
+        OnCallRulePagingHoldUtil.getHold(rule, now) !== null
+      ) {
+        continue;
+      }
+
+      if (!(await this.doesIncidentMatchRule(incident, rule))) {
+        continue;
+      }
+
+      for (const policy of rule.onCallDutyPolicies) {
+        const policyId: string | undefined = policy.id?.toString();
+
+        if (!policyId) {
+          continue;
+        }
+
+        pagingNow.set(policyId, [
+          ...(pagingNow.get(policyId) || []),
+          rule.name?.toString() || "",
+        ]);
+      }
+    }
+
+    return pagingNow;
+  }
+
+  // The project's enabled rules of this kind, with what matching them needs.
+  private async findEnabledRules(
+    projectId: ObjectID,
+  ): Promise<Array<IncidentOnCallRule>> {
+    const rules: Array<IncidentOnCallRule> =
+      await IncidentOnCallRuleService.findBy({
+        query: {
+          projectId: projectId,
+          isEnabled: true,
+        },
+        props: { isRoot: true },
+        select: {
+          _id: true,
+          name: true,
+          criteria: true,
+          monitors: { _id: true },
+          incidentSeverities: { _id: true },
+          incidentLabels: { _id: true },
+          monitorLabels: { _id: true },
+          incidentTitlePattern: true,
+          incidentDescriptionPattern: true,
+          monitorNamePattern: true,
+          monitorDescriptionPattern: true,
+          onCallDutyPolicies: { _id: true },
+          ...ON_CALL_RULE_WHEN_TO_PAGE_SELECT,
+        },
+        limit: MAX_RULES_EVALUATED_PER_PROJECT,
+        skip: 0,
+      });
+
+    logIfRuleReadWasTruncated({
+      ruleKind: "IncidentOnCallRule",
+      projectId: projectId,
+      rulesRead: rules.length,
+    });
+
+    return rules;
   }
 
   @CaptureSpan()

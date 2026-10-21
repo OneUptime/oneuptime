@@ -627,6 +627,8 @@ Oprettelsesformularen har to trin:
 2. **Vagtpolitikker** — de politikker, denne regel tilkalder, og reglens **Navn**, udfyldt ud fra dem ("Tilkald Platform on-call"), indtil du skriver dit eget; dens **Beskrivelse** venter under **Flere felter**. Reglen starter aktiveret; dens redigeringsformular tilføjer kontakten **Aktiveret**, og listen viser et grønt mærke **Aktiveret** eller et rødt mærke **Deaktiveret** pr. regel.
 :::
 
+En regel tilkalder, så snart en hændelse matcher den. For at lade den vente på arbejdstiden i stedet, svarer du **Kun i arbejdstiden** på **Hvornår skal denne regel tilkalde?** under **Flere felter**. **Arbejdstid** starter som mandag til fredag, 09:00 til 17:00, i din egen tidszone: vælg andre dage, et andet **Starttidspunkt** eller **Sluttidspunkt** eller en anden **Tidszone**, og en sætning under valget fortæller, hvad der sker. På listen viser reglen sin arbejdstid under navnet. En hændelse, der matcher uden for de tider, får en kørsel, der venter, som **Venter**, og ikke tilkalder nogen; når arbejdstiden begynder, tilkalder politikken sin første eskaleringsregel og eskalerer som normalt. Bliver hændelsen bekræftet eller løst først, bliver ingen tilkaldt. Ændrer hændelsen sig, mens den venter, så den nu matcher en regel, der tilkalder med det samme, for eksempel fordi dens alvorlighed hæves, begynder kørslen at tilkalde straks, og hændelsens feed fortæller hvorfor.
+
 ### Sådan afgøres matchning
 
 De regler, siden selv kommer med, er værd at gøre til dine egne:
@@ -635,7 +637,7 @@ De regler, siden selv kommer med, er værd at gøre til dine egne:
 - Et listekriterium — **Monitorer**, **Hændelse Alvorligheder**, **Hændelsesetiketter**, **Overvågningsetiketter** — bruger **Har en af**, **Har alle** eller **Har ingen af** de værdier, du vælger.
 - Et tekstkriterium — hændelsens titel og beskrivelse, dens monitorers navne og beskrivelser — bruger **Indeholder**, **Indeholder ikke**, **Er lig med**, **Er ikke lig med**, **Starter med** eller **Slutter med**, uden hensyn til store og små bogstaver, eller **Matcher mønster** / **Matcher ikke mønster** til et regulært udtryk uden forskel på store og små bogstaver eller et jokertegn `*`. En ny tekstbetingelse starter på **Indeholder**.
 - **Alle matchende regler udløses.** Der er ingen prioritet og ingen kortslutning.
-- Det sæt politikker, der faktisk udføres, er foreningen af hver matchende regels politikker plus enhver politik, der er knyttet til hændelsen i hånden eller af en skabelon, uden dubletter, så hver politik kører højst én gang.
+- Det sæt politikker, der faktisk udføres, er foreningen af hver matchende regels politikker plus enhver politik, der er knyttet til hændelsen i hånden eller af en skabelon, uden dubletter, så hver politik kører højst én gang. Når to matchende regler tilkalder den samme politik, tilkalder den, så snart en af dem tillader det: med det samme vinder over arbejdstiden.
 
 > [!NOTE]
 > Alvorsgraden er et matchkriterium her og ingen andre steder. Der er intet vagtfelt på en hændelsesalvorsgrad — at vælge "Critical Incident" tilkalder ikke i sig selv nogen. Vil du have, at alvorsgraden styrer tilkaldelsen, så skriv en vagtregel, der matcher på den.

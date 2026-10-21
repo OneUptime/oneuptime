@@ -1756,7 +1756,27 @@ describe("personal on-call rules", () => {
       });
     }
 
-    expect(rules).toContain("OneUptime has no quiet hours");
+    expect(rules).toContain("Your own rules have no quiet hours");
+  });
+
+  /*
+   * What waits for working hours is an alert's or incident's on-call rule
+   * (OnCallRuleWhenToPage), not a person's: the page points there, by the
+   * answer the rule's form gives, and the rule models carry the setting.
+   */
+  it("points at the on-call rule that pages only during working hours, for everyone", () => {
+    expect(rules).toContain(
+      "To make a low-severity page wait for working hours for everyone, set the on-call rule that pages it to **Only during working hours**: see [On-call rules](/docs/alerts/settings#on-call-rules).",
+    );
+    // The answer the rule's form gives, as the page bolds it.
+    expect(readDashboardSource("Utils/Form/EventRuleForm.ts")).toContain(
+      '"Only during working hours"',
+    );
+    expect(
+      readCommonSource(
+        "Models/DatabaseModels/DatabaseBaseModel/OnCallRuleBaseModel.ts",
+      ),
+    ).toContain("public whenToPage?");
   });
 
   it("names the rules' own kinds as Common names them", () => {

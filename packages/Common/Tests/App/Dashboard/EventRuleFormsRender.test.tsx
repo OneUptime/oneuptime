@@ -29,6 +29,11 @@ import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelT
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import escapeRegExp from "../../../Utils/RegExpEscape";
+import OneUptimeDate from "../../../Types/Date";
+import OnCallRuleWhenToPage from "../../../Types/OnCallDutyPolicy/OnCallRuleWhenToPage";
+import RestrictionTimes, {
+  RestrictionType,
+} from "../../../Types/OnCallDutyPolicy/RestrictionTimes";
 
 /*
  * The on-call, privacy, SLA and reminder rule forms of Incidents, Alerts
@@ -458,7 +463,10 @@ describe.each(ON_CALL_CASES)("$name", (page: OnCallCase) => {
     ).toBeVisible();
     expect(nameBox()).toBeVisible();
     expect(nameBox()).toHaveValue("");
-    // The description waits folded; a new rule starts on.
+    /*
+     * The description and when to page wait folded; a new rule starts on.
+     * A rule that pages right away adds nothing to the folded line.
+     */
     expect(moreFields()).toHaveAttribute("aria-expanded", "false");
     expect(listedNames(moreFields())).toEqual(["Description"]);
     expect(
@@ -563,6 +571,217 @@ describe("editing an on-call rule", () => {
     await pickPolicy(user, "Database on-call");
     await settle();
     expect(nameBox()).toHaveValue("Database team");
+  });
+});
+
+/*
+ * WHEN AN ON-CALL RULE PAGES: under More fields, with the description. A
+ * rule starts on Right away, as rules always have, and asks nothing more;
+ * picking Only during working hours fills in Monday to Friday, 09:00 to
+ * 17:00, in the reader's own time zone, and shows both to change - the days
+ * and two times, then the zone - with one sentence under the choice saying
+ * what will happen.
+ */
+describe("when an on-call rule pages", () => {
+  const ZONE: string = OneUptimeDate.getCurrentTimezone().toString();
+
+  // Times read on a 24-hour clock, whatever the machine running this prefers.
+  let clock: { mockRestore: () => void } | null = null;
+
+  beforeEach(() => {
+    clock = jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(false);
+  });
+
+  afterEach(() => {
+    clock?.mockRestore();
+  });
+
+  // The text as it reads: the ranges' word joiners left out.
+  function plain(text: string | null | undefined): string {
+    return (text || "").replace(/\u2060/g, "");
+  }
+
+  function summary(): HTMLElement | null {
+    return within(dialog()).queryByTestId("on-call-rule-working-hours-summary");
+  }
+
+  function day(index: number): HTMLElement {
+    return within(dialog()).getByTestId(`working-hours-picker-day-${index}`);
+  }
+
+  async function openOnCallStep(): Promise<UserEvent> {
+    const user: UserEvent = await renderPage(AlertOnCallRules as RulePage);
+    await within(dialog()).findByRole("navigation", { name: "Progress" });
+    await next();
+    return user;
+  }
+
+  async function openMoreFields(): Promise<void> {
+    await act(async (): Promise<void> => {
+      fireEvent.click(moreFields());
+    });
+    await settle();
+  }
+
+  function whenToPage(): HTMLElement {
+    return within(dialog()).getByRole("radiogroup", {
+      name: "When should this rule page?",
+    });
+  }
+
+  async function pickWorkingHours(user: UserEvent): Promise<void> {
+    await user.click(
+      within(whenToPage()).getByRole("radio", {
+        name: /^Only during working hours/,
+      }),
+    );
+    // The picker settles on the days it was handed.
+    await waitFor(() => {
+      expect(day(0)).toHaveAttribute("aria-pressed", "true");
+    });
+  }
+
+  test("starts on Right away, under More fields, and asks for no hours", async () => {
+    await openOnCallStep();
+    await openMoreFields();
+
+    expect(
+      within(whenToPage()).getByRole("radio", { name: /^Right away/ }),
+    ).toBeChecked();
+    expect(
+      within(whenToPage()).getByText("Page as soon as this rule matches."),
+    ).toBeVisible();
+    expect(within(dialog()).queryByText("Working Hours")).toBeNull();
+    expect(within(dialog()).queryByText("Timezone")).toBeNull();
+    expect(summary()).toBeNull();
+  });
+
+  test("picking Only during working hours shows Monday to Friday, 09:00 to 17:00, and the zone", async () => {
+    const user: UserEvent = await openOnCallStep();
+    await openMoreFields();
+    await pickWorkingHours(user);
+
+    // Monday to Friday picked, the weekend not: one button a day.
+    expect(
+      [0, 1, 2, 3, 4, 5, 6].map((index: number): string | null => {
+        return day(index).getAttribute("aria-pressed");
+      }),
+    ).toEqual(["true", "true", "true", "true", "true", "false", "false"]);
+    expect(day(0)).toHaveAccessibleName("Monday");
+    expect(
+      within(dialog()).getByRole("button", { name: "Weekdays" }),
+    ).toBeVisible();
+    expect(within(dialog()).getByLabelText("Start Time")).toHaveValue("09:00");
+    expect(within(dialog()).getByLabelText("End Time")).toHaveValue("17:00");
+    expect(within(dialog()).getByText("Timezone")).toBeVisible();
+    // Not a schedule layer's editor: no restriction types, no windows to delete.
+    expect(
+      within(dialog()).queryByRole("radio", {
+        name: "Specific Times of the Week",
+      }),
+    ).toBeNull();
+    expect(
+      within(dialog()).queryByRole("button", { name: "Delete" }),
+    ).toBeNull();
+    // Under the choice, what will happen.
+    expect(plain(summary()?.textContent)).toBe(
+      `Alerts that match this rule outside Mon–Fri 09:00–17:00 (${ZONE}) wait, and paging starts at 09:00.`,
+    );
+  });
+
+  test("the sentence follows the days and times picked, and a night ends the next day", async () => {
+    const user: UserEvent = await openOnCallStep();
+    await openMoreFields();
+    await pickWorkingHours(user);
+
+    await user.click(day(5));
+    await waitFor(() => {
+      expect(plain(summary()?.textContent)).toContain("Mon–Sat 09:00–17:00");
+    });
+
+    fireEvent.change(within(dialog()).getByLabelText("Start Time"), {
+      target: { value: "22:00" },
+    });
+    fireEvent.change(within(dialog()).getByLabelText("End Time"), {
+      target: { value: "06:00" },
+    });
+
+    await waitFor(() => {
+      expect(plain(summary()?.textContent)).toBe(
+        `Alerts that match this rule outside Mon–Sat 22:00–06:00 (${ZONE}) wait, and paging starts at 22:00.`,
+      );
+    });
+    expect(within(dialog()).getByText("Ends the next day")).toBeVisible();
+  });
+
+  test("with no day picked, says so under the days and creates nothing", async () => {
+    const user: UserEvent = await openOnCallStep();
+
+    await pickPolicy(user, "Platform on-call");
+    await openMoreFields();
+    await pickWorkingHours(user);
+    await user.click(
+      within(dialog()).getByRole("button", { name: "Weekdays" }),
+    );
+
+    for (const index of [0, 1, 2, 3, 4]) {
+      await user.click(day(index));
+    }
+
+    await submit();
+
+    expect(
+      await within(dialog()).findByText("Pick at least one day."),
+    ).toBeVisible();
+    expect(summary()).toBeNull();
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
+  });
+
+  test("creates the rule with when it pages, its zone and its hours", async () => {
+    const user: UserEvent = await openOnCallStep();
+
+    await pickPolicy(user, "Platform on-call");
+    await waitFor(() => {
+      expect(nameBox()).toHaveValue("Page Platform on-call");
+    });
+    await openMoreFields();
+    await pickWorkingHours(user);
+    await submit();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const model: JSONObject = sentModel();
+    const hours: RestrictionTimes = RestrictionTimes.fromJSON(
+      model["workingHours"] as RestrictionTimes,
+    );
+
+    expect(model["whenToPage"]).toBe(OnCallRuleWhenToPage.WorkingHours);
+    expect(model["workingHoursTimezone"]).toBe(ZONE);
+    expect(hours.restictionType).toBe(RestrictionType.Weekly);
+    expect(hours.weeklyRestrictionTimes).toHaveLength(5);
+  });
+
+  test("a rule that pages right away is created as rules always were", async () => {
+    const user: UserEvent = await openOnCallStep();
+
+    await pickPolicy(user, "Platform on-call");
+    await waitFor(() => {
+      expect(nameBox()).toHaveValue("Page Platform on-call");
+    });
+    await submit();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const model: JSONObject = sentModel();
+
+    expect(model["whenToPage"]).not.toBe(OnCallRuleWhenToPage.WorkingHours);
+    expect(model["workingHours"]).toBeFalsy();
   });
 });
 

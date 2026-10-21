@@ -1052,6 +1052,7 @@ describe("execution logs", () => {
     );
 
     expect(firstCells).toEqual([
+      OnCallDutyPolicyStatus.Waiting,
       OnCallDutyPolicyStatus.Scheduled,
       OnCallDutyPolicyStatus.Started,
       OnCallDutyPolicyStatus.Executing,
