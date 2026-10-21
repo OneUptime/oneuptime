@@ -91,6 +91,7 @@ Monitors, incidents, alerts, status pages, SLOs and many other resources also ha
 | API keys | `API Key` |
 | MCP clients people connect | `MCP Client Authorization` |
 | Inventory items | `Inventory Item` |
+| Collector Configs | `Collector Config` |
 | vCenters | `vCenter` |
 | Packet captures, and their downloads | `Packet Capture` |
 | Security cases and playbooks | `Security Case`, `Security Playbook` |

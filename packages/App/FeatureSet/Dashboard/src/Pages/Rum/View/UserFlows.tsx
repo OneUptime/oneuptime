@@ -21,8 +21,13 @@ import {
 } from "Common/Utils/Rum/UserFlow";
 import Navigation from "Common/UI/Utils/Navigation";
 import API from "Common/UI/Utils/API/API";
-import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
+import Card from "Common/UI/Components/Card/Card";
+import { TimeRangePickerSize } from "Common/UI/Components/Date/TimeRangePickerDropdown";
+import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
+import {
+  TableHeaderToolbar,
+  renderTableHeaderMoreMenu,
+} from "Common/UI/Components/Table/TableHeaderControls";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
@@ -225,18 +230,43 @@ const RumApplicationUserFlows: FunctionComponent<
     updateOptions({ anchorPage: fallback, direction: mode });
   };
 
-  const cardButtons: Array<CardButtonSchema> = [
-    {
-      ...getRefreshButton(),
-      tooltip: "Reload sessions",
-      className: "py-0 pr-0 pl-1 mt-1",
-      onClick: (): void => {
-        setReloadToken((token: number): number => {
-          return token + 1;
-        });
-      },
-    },
-  ];
+  /*
+   * The header the Session Replay section's other pages have - the session
+   * list and Replay Users: the window the map is drawn over, then the ⋯
+   * with Refresh. All one height; nothing loose beside the title. The window
+   * used to be a small chip in the map's own controls, and Refresh a lone
+   * icon in the corner.
+   */
+  const headerToolbar: ReactElement = (
+    <TableHeaderToolbar key="user-flow-header" dataTestId="user-flow-header">
+      <TelemetryTimeRangePicker
+        value={timeRange}
+        size={TimeRangePickerSize.Header}
+        onChange={(value: RangeStartAndEndDateTime): void => {
+          setSelection(null);
+          setState((current: UserFlowUrlState): UserFlowUrlState => {
+            return { ...current, timeRange: value };
+          });
+        }}
+      />
+      {renderTableHeaderMoreMenu([], {
+        dataTestId: "user-flow-more",
+        sections: [
+          <MoreMenuItem
+            key="refresh"
+            text="Refresh"
+            icon={IconProp.Refresh}
+            dataTestId="user-flow-refresh"
+            onClick={(): void => {
+              setReloadToken((token: number): number => {
+                return token + 1;
+              });
+            }}
+          />,
+        ],
+      })}
+    </TableHeaderToolbar>
+  );
 
   const mode: FlowMode = modeOf(options);
   const pageOptions: Array<UserFlowPageCount> = analysis?.availablePages || [];
@@ -251,16 +281,6 @@ const RumApplicationUserFlows: FunctionComponent<
   const toolbar: ReactElement = (
     <div className="mb-4 flex flex-col gap-3" data-testid="user-flow-toolbar">
       <div className="flex flex-wrap items-center gap-3">
-        <TelemetryTimeRangePicker
-          value={timeRange}
-          onChange={(value: RangeStartAndEndDateTime): void => {
-            setSelection(null);
-            setState((current: UserFlowUrlState): UserFlowUrlState => {
-              return { ...current, timeRange: value };
-            });
-          }}
-        />
-
         <div
           className="inline-flex rounded-md shadow-sm"
           role="group"
@@ -632,7 +652,8 @@ const RumApplicationUserFlows: FunctionComponent<
       <Card
         title="User Flows"
         description="How people move through this application, page to page: where they land, where they go next, where they leave, and where they go in circles. Built from Session Replay recordings."
-        buttons={cardButtons}
+        headerLayout="toolbar"
+        buttons={[headerToolbar]}
       >
         <div data-testid="user-flow-page">
           {toolbar}

@@ -4,9 +4,13 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import Navigation from "Common/UI/Utils/Navigation";
-import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Card from "Common/UI/Components/Card/Card";
+import { TimeRangePickerSize } from "Common/UI/Components/Date/TimeRangePickerDropdown";
+import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
+import {
+  TableHeaderToolbar,
+  renderTableHeaderMoreMenu,
+} from "Common/UI/Components/Table/TableHeaderControls";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import React, {
   Fragment,
@@ -122,50 +126,64 @@ const RumApplicationSessionReplayUsers: FunctionComponent<
       [rumApplicationId, listRoute, timeRange],
     );
 
-  const cardButtons: Array<CardButtonSchema> = [
-    {
-      title: "Sessions",
-      icon: IconProp.Film,
-      buttonStyle: ButtonStyleType.NORMAL,
-      /* The list on this window and no filter; the default window as absence. */
-      onClick: (): void => {
-        Navigation.navigate(
-          new Route(
-            `${listRoute.toString()}${buildTimeRangeSearch(timeRange)}`,
-          ),
-        );
-      },
-    },
-    {
-      ...getRefreshButton(),
-      tooltip: "Refresh users",
-      className: "py-0 pr-0 pl-1 mt-1",
-      onClick: (): void => {
-        setReloadToken((token: number): number => {
-          return token + 1;
-        });
-      },
-    },
-  ];
+  /*
+   * The header every table has, as the session list draws it: the window
+   * the people are counted over, then the ⋯ - the whole session list on
+   * this window (the side menu's Session Replay, with the window carried
+   * along) and Refresh. All one height.
+   */
+  const headerToolbar: ReactElement = (
+    <TableHeaderToolbar
+      key="session-users-header"
+      dataTestId="session-users-toolbar"
+    >
+      <TelemetryTimeRangePicker
+        value={timeRange}
+        onChange={setTimeRange}
+        size={TimeRangePickerSize.Header}
+      />
+      {renderTableHeaderMoreMenu([], {
+        dataTestId: "session-users-more",
+        sections: [
+          <MoreMenuItem
+            key="sessions"
+            text="All sessions"
+            icon={IconProp.Film}
+            dataTestId="session-users-all-sessions"
+            /* The list on this window and no filter; the default window as absence. */
+            onClick={(): void => {
+              Navigation.navigate(
+                new Route(
+                  `${listRoute.toString()}${buildTimeRangeSearch(timeRange)}`,
+                ),
+              );
+            }}
+          />,
+          <MoreMenuItem
+            key="refresh"
+            text="Refresh"
+            icon={IconProp.Refresh}
+            dataTestId="session-users-refresh"
+            onClick={(): void => {
+              setReloadToken((token: number): number => {
+                return token + 1;
+              });
+            }}
+          />,
+        ],
+      })}
+    </TableHeaderToolbar>
+  );
 
   return (
     <Fragment>
       <Card
         title="Users"
         description="Everyone who recorded a session in this range, one row per person: identified users by the reference your page supplied, anonymous visitors by browser."
-        buttons={cardButtons}
+        headerLayout="toolbar"
+        buttons={[headerToolbar]}
       >
         <div>
-          <div
-            className="mb-3 flex flex-wrap items-center gap-2"
-            data-testid="session-users-toolbar"
-          >
-            <TelemetryTimeRangePicker
-              value={timeRange}
-              onChange={setTimeRange}
-            />
-          </div>
-
           <SessionReplayUsersTable
             rumApplicationId={rumApplicationId}
             timeRange={timeRange}

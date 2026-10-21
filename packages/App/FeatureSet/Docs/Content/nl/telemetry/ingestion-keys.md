@@ -67,7 +67,7 @@ Een **Browser**-sleutel vraagt om zijn **Allowed Origins** in de volgende stap, 
 Klik op **Inname-sleutel aanmaken**. De pagina van de sleutel opent: kopieer de **Geheime sleutel** en geef die aan uw afzenders.
 :::
 
-De **Installatiegids** van elk product begint met **Choose an ingestion key**, dat de sleutels toont die die gids kan gebruiken en er ter plekke een aanmaakt. De codefragmenten van de gids bevatten daarna die sleutel.
+De **Installatiegids** van elk product begint met **Kies een inname-sleutel**, dat de sleutels toont die die gids kan gebruiken en er ter plekke een aanmaakt. De codefragmenten van de gids bevatten daarna die sleutel.
 
 ## Telemetrie met de sleutel verzenden
 

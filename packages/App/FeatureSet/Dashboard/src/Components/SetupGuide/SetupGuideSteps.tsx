@@ -5,6 +5,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The numbered steps of a guide, joined by a line down the left — the same
@@ -25,6 +27,8 @@ export interface ComponentProps {
 const SetupGuideSteps: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <ol className="list-none p-0 m-0" data-testid="setup-guide-steps">
       {props.steps.map((step: SetupGuideStepView, index: number) => {
@@ -48,7 +52,12 @@ const SetupGuideSteps: FunctionComponent<ComponentProps> = (
             </div>
             <div className={`min-w-0 flex-1 ${isLast ? "pb-0" : "pb-8"}`}>
               <h3 className="text-sm font-semibold leading-9 text-gray-900">
-                <span className="sr-only">Step {stepNumber}: </span>
+                {/* What a screen reader says before the title, in its language. */}
+                <span className="sr-only">
+                  {translator.translateTemplate("Step {{number}}:", {
+                    number: String(stepNumber),
+                  })}{" "}
+                </span>
                 {step.title}
               </h3>
               {step.description && (

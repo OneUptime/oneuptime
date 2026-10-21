@@ -1,5 +1,11 @@
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
@@ -11,7 +17,12 @@ import OneUptimeDate from "../../../Types/Date";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import TimeRange from "../../../Types/Time/TimeRange";
 import Navigation from "../../../UI/Utils/Navigation";
-import { getTimeRangeButtonLabel } from "../../../UI/Components/Date/TimeRangePickerDropdown";
+import {
+  getTimeRangeButtonLabel,
+  TimeRangePickerSize,
+} from "../../../UI/Components/Date/TimeRangePickerDropdown";
+import { TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME } from "../../../UI/Components/Table/TableHeaderControls";
+import { CARD_MORE_MENU_TRIGGER_CLASS_NAME } from "../../../UI/Components/Card/CardMoreMenu";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -154,6 +165,17 @@ async function waitForUserRows(count: number): Promise<Array<HTMLElement>> {
   return screen.getAllByTestId("session-user-row");
 }
 
+/* The ⋯ at the end of the page's header, opened. */
+function openHeaderMenu(): HTMLElement {
+  fireEvent.click(screen.getByTestId("session-users-more"));
+
+  return screen.getByRole("menu");
+}
+
+function chooseHeaderMenuItem(name: string): void {
+  fireEvent.click(within(openHeaderMenu()).getByRole("menuitem", { name }));
+}
+
 /* The Route the page handed to Navigation.navigate on its n-th call. */
 function navigatedTo(index: number = 0): string {
   return (
@@ -259,6 +281,60 @@ describe("SessionReplayUsersPage rendering", () => {
   });
 });
 
+/*
+ * The page's header is the session list's: the window, then the ⋯ with the
+ * list on that window and Refresh - one height, nothing loose beside the
+ * title. It used to hold a Sessions button, a lone refresh icon, and the
+ * window as a small chip under the description.
+ */
+describe("SessionReplayUsersPage header", () => {
+  it("is the toolbar header: the time range and the ⋯, one height, and no loose button", async () => {
+    mockUsers([wireRollup()]);
+
+    renderPage();
+
+    await waitForUserRows(1);
+
+    const header: HTMLElement = screen.getByTestId("card-header");
+
+    expect(header).toHaveAttribute("data-header-layout", "toolbar");
+
+    const toolbar: HTMLElement = within(header).getByTestId(
+      "session-users-toolbar",
+    );
+    const time: HTMLElement = within(toolbar).getByTestId(
+      "telemetry-time-range-picker-button",
+    );
+    const more: HTMLElement = within(toolbar).getByTestId("session-users-more");
+
+    expect(time).toHaveAttribute("data-size", TimeRangePickerSize.Header);
+    expect(time).toHaveClass(
+      ...TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME.split(" "),
+    );
+    expect(more).toHaveClass(...CARD_MORE_MENU_TRIGGER_CLASS_NAME.split(" "));
+    expect(more).toHaveAccessibleName("More options");
+
+    expect(within(header).queryAllByTestId("card-button")).toHaveLength(0);
+    expect(screen.queryByRole("button", { name: "Refresh users" })).toBeNull();
+  });
+
+  it("the ⋯ holds All sessions and Refresh", async () => {
+    mockUsers([wireRollup()]);
+
+    renderPage();
+
+    await waitForUserRows(1);
+
+    expect(
+      within(openHeaderMenu())
+        .getAllByRole("menuitem")
+        .map((item: HTMLElement): string => {
+          return (item.textContent || "").trim();
+        }),
+    ).toEqual(["All sessions", "Refresh"]);
+  });
+});
+
 describe("SessionReplayUsersPage time range", () => {
   it("a picked range refetches and is written to the URL with the list's key", async () => {
     mockUsers([wireRollup()]);
@@ -294,7 +370,7 @@ describe("SessionReplayUsersPage time range", () => {
 
     await waitForUserRows(1);
 
-    fireEvent.click(screen.getByRole("button", { name: "Refresh users" }));
+    chooseHeaderMenuItem("Refresh");
 
     await waitFor(() => {
       expect(requestsTo("/session-replay/users").length).toBe(2);
@@ -381,7 +457,7 @@ describe("SessionReplayUsersPage hand-off to the list", () => {
     expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull();
   });
 
-  it("the Sessions card button goes to the unfiltered list on the same window", async () => {
+  it("All sessions in the header's ⋯ goes to the unfiltered list on the same window", async () => {
     mockUsers([wireRollup()]);
 
     window.history.replaceState(null, "", `${PAGE_PATH}?range=Past%201%20Week`);
@@ -390,16 +466,8 @@ describe("SessionReplayUsersPage hand-off to the list", () => {
 
     await waitForUserRows(1);
 
-    /* The card's own button, not the row's Sessions action. */
-    const cardButton: HTMLElement | undefined = screen
-      .getAllByTestId("card-button")
-      .find((button: HTMLElement): boolean => {
-        return button.textContent?.trim() === "Sessions";
-      });
-
-    expect(cardButton).toBeDefined();
-
-    fireEvent.click(cardButton as HTMLElement);
+    /* The header's own way to the list, not the row's Sessions action. */
+    chooseHeaderMenuItem("All sessions");
 
     expect(navigateMock).toHaveBeenCalledTimes(1);
 
@@ -412,20 +480,14 @@ describe("SessionReplayUsersPage hand-off to the list", () => {
     expect(target).not.toContain("visitor=");
   });
 
-  it("the Sessions card button writes the default window as absence", async () => {
+  it("All sessions writes the default window as absence", async () => {
     mockUsers([wireRollup()]);
 
     renderPage();
 
     await waitForUserRows(1);
 
-    const cardButton: HTMLElement | undefined = screen
-      .getAllByTestId("card-button")
-      .find((button: HTMLElement): boolean => {
-        return button.textContent?.trim() === "Sessions";
-      });
-
-    fireEvent.click(cardButton as HTMLElement);
+    chooseHeaderMenuItem("All sessions");
 
     const target: string = navigatedTo();
 

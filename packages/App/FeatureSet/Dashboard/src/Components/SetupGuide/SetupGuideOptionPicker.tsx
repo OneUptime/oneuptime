@@ -1,4 +1,10 @@
-import React, { FunctionComponent, ReactElement, useId, useRef } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  ReactNode,
+  useId,
+  useRef,
+} from "react";
 import {
   SetupGuideOption,
   SetupGuideOptionGroup,
@@ -18,12 +24,21 @@ import {
  */
 export type SetupGuideOptionLayout = "cards" | "pills";
 
+// A card's content starts at its top, however tall the row's tallest card is.
+export const SETUP_GUIDE_OPTION_CARD_LAYOUT_CLASS_NAME: string =
+  "flex flex-col justify-start";
+
 export interface ComponentProps {
   label: string;
   options: ReadonlyArray<SetupGuideOption>;
   selectedKey: string | undefined;
   onSelect: (key: string) => void;
   layout?: SetupGuideOptionLayout | undefined;
+  /*
+   * A line under the options for a case none of them is: where to go
+   * instead (Add Host: a Kubernetes cluster's nodes).
+   */
+  note?: ReactNode | undefined;
 }
 
 const SetupGuideOptionPicker: FunctionComponent<ComponentProps> = (
@@ -143,12 +158,17 @@ const SetupGuideOptionPicker: FunctionComponent<ComponentProps> = (
       );
     }
 
+    /*
+     * A flex column, so every card of a row starts its radio and name at
+     * the top: a button centres what it holds, and a card with a shorter
+     * description sat lower than the tallest one beside it.
+     */
     return (
       <button
         key={option.key}
         ref={setRef}
         {...commonProps}
-        className={`text-left px-4 py-3 rounded-lg border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${
+        className={`${SETUP_GUIDE_OPTION_CARD_LAYOUT_CLASS_NAME} text-left px-4 py-3 rounded-lg border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${
           isSelected
             ? "border-indigo-500 bg-indigo-50"
             : "border-gray-200 bg-white hover:border-gray-300"
@@ -231,6 +251,16 @@ const SetupGuideOptionPicker: FunctionComponent<ComponentProps> = (
           );
         })}
       </div>
+      {props.note ? (
+        <div
+          className="mt-2.5 text-sm text-gray-500"
+          data-testid="setup-guide-options-note"
+        >
+          {props.note}
+        </div>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

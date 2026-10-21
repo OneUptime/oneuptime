@@ -91,6 +91,7 @@ flowchart TB
 | API 金鑰 | `API Key` |
 | 人們連接的 MCP 用戶端 | `MCP Client Authorization` |
 | 資產清單項目 | `Inventory Item` |
+| 收集器設定 | `Collector Config` |
 | vCenter 伺服器 | `vCenter` |
 | 封包擷取及其下載 | `Packet Capture` |
 | 安全案件與劇本 | `Security Case`、`Security Playbook` |

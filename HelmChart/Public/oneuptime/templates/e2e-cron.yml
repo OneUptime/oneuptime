@@ -21,6 +21,10 @@ spec:
         spec:
           nodeSelector:
             {{- include "oneuptime.nodeSelector" ($.Values.cronJobs.e2e.nodeSelector | default $.Values.nodeSelector) | nindent 12 }}
+          {{- if $.Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml $.Values.imagePullSecrets | nindent 12 }}
+          {{- end }}
           containers:
           - name: e2e-cron
             image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "e2e") }}

@@ -91,6 +91,7 @@ Monitors, incidenten, waarschuwingen, statuspagina's, SLO's en veel andere resou
 | API-sleutels | `API Key` |
 | MCP-clients die mensen koppelen | `MCP Client Authorization` |
 | Inventarisitems | `Inventory Item` |
+| Collectorconfiguraties | `Collector Config` |
 | vCenters | `vCenter` |
 | Pakketopnames, en hun downloads | `Packet Capture` |
 | Beveiligingszaken en playbooks | `Security Case`, `Security Playbook` |

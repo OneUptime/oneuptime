@@ -67,7 +67,7 @@ En **Browser**-nyckel ber om sina **Allowed Origins** i nästa steg, **Webbläsa
 Klicka på **Skapa ingestion-nyckel**. Nyckelns egen sida öppnas: kopiera dess **Hemlig nyckel** och ge den till dina avsändare.
 :::
 
-Varje produkts **Installationsguide** börjar med **Choose an ingestion key**, som listar de nycklar guiden kan använda och skapar en på plats. Kodsnuttarna i guiden innehåller sedan den nyckeln.
+Varje produkts **Installationsguide** börjar med **Välj en ingestion-nyckel**, som listar de nycklar guiden kan använda och skapar en på plats. Kodsnuttarna i guiden innehåller sedan den nyckeln.
 
 ## Skicka telemetri med nyckeln
 

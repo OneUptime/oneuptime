@@ -60,7 +60,7 @@ flowchart TB
 
 :::cards
 - [遥测](/docs/telemetry/open-telemetry): 使用 OpenTelemetry 发送日志、指标和追踪，并进行搜索。
-- [基础设施代理](/docs/telemetry/kubernetes-agent): 为 Kubernetes、主机、Docker、Proxmox、VMware 等安装代理。
+- [基础设施代理](/docs/telemetry/hosts): 用一条命令添加主机，并为 Kubernetes、Docker、Proxmox、VMware 等安装代理。
 - [云](/docs/telemetry/cloud-environments): 观测 ECS、Cloud Run、Azure Container Apps 和其他托管平台。
 - [AI 可观测性](/docs/telemetry/ai-llm-observability): 跟踪你的 AI 的对话，并在它回答得不好时收到通知。
 - [安全](/docs/telemetry/security-events): 收集安全事件和威胁情报。

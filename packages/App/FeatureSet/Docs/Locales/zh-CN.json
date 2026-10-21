@@ -276,6 +276,7 @@
     "Fluent Bit": "Fluent Bit",
     "Fluentd": "Fluentd",
     "Syslog": "Syslog",
+    "Hosts": "主机",
     "Host OpenTelemetry Collector": "主机 OpenTelemetry Collector",
     "Kubernetes Agent": "Kubernetes 代理",
     "Docker Agent": "Docker 代理",

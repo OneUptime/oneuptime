@@ -26,6 +26,7 @@ import {
   SetupGuideContent,
   SetupGuideOption,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
+import { SETUP_GUIDE_WRAP_LONG_LINES_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuideMarkdown";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
@@ -757,6 +758,199 @@ describe("SetupGuideCard", () => {
           screen.getByText("No browser ingestion keys yet"),
         ).toBeInTheDocument();
       });
+    });
+  });
+  /*
+   * What a one-command guide (Add Host) asks of the card: a line under the
+   * options for what none of them covers, a note under a step's code, a key
+   * step without the URL and token its one command already carries, code
+   * that wraps, a live last step, and the guide alone in a dialog.
+   */
+  describe("for a one-command guide", () => {
+    const renderGuide: (
+      props: Partial<React.ComponentProps<typeof SetupGuideCard>>,
+    ) => void = (
+      props: Partial<React.ComponentProps<typeof SetupGuideCard>>,
+    ): void => {
+      render(
+        <MemoryRouter>
+          <SetupGuideCard
+            title="Add a thing"
+            description="One command."
+            optionsLabel="What does it run?"
+            options={OPTIONS}
+            newKeyName="Thing key"
+            getContent={buildContent}
+            {...props}
+          />
+        </MemoryRouter>,
+      );
+    };
+
+    beforeEach(() => {
+      mockKeys([makeKey("key-1", "Production Key", "secret-production")]);
+    });
+
+    test("a note under the options says what none of them covers", () => {
+      renderGuide({
+        optionsNote: <span>Clusters use the cluster agent instead.</span>,
+      });
+
+      expect(screen.getByTestId("setup-guide-options-note")).toHaveTextContent(
+        "Clusters use the cluster agent instead.",
+      );
+    });
+
+    test("no note under the options unless the guide gives one", () => {
+      renderGuide({});
+
+      expect(
+        screen.queryByTestId("setup-guide-options-note"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("a step's note is drawn under its code", () => {
+      renderGuide({
+        getContent: (): SetupGuideContent => {
+          return {
+            steps: [
+              {
+                title: "Run it",
+                markdown: "RUN BODY",
+                note: "Pick a key first.",
+              },
+              { title: "Then this", markdown: "THEN BODY" },
+            ],
+          };
+        },
+      });
+
+      const notes: Array<HTMLElement> = screen.getAllByTestId(
+        "setup-guide-step-note",
+      );
+      expect(notes).toHaveLength(1);
+      expect(notes[0]).toHaveTextContent("Pick a key first.");
+      expect(
+        within(screen.getByTestId("setup-guide-step-2")).getByTestId(
+          "setup-guide-step-note",
+        ),
+      ).toBeInTheDocument();
+    });
+
+    test("hideValues: the key step is the picker alone, without the URL and the token", async () => {
+      renderGuide({
+        getContent: (context: SetupGuideRenderContext): SetupGuideContent => {
+          return {
+            keyStep: { hideValues: true },
+            steps: [
+              {
+                title: "Run it",
+                markdown: `run --url ${context.oneuptimeUrl} --key ${context.apiKey}`,
+              },
+            ],
+          };
+        },
+      });
+
+      // The command has the key: the picker picked it.
+      await waitFor(() => {
+        expect(
+          screen.getByText(
+            (content: string): boolean => {
+              return content.includes("--key secret-production");
+            },
+            { selector: "div" },
+          ),
+        ).toBeInTheDocument();
+      });
+
+      const first: HTMLElement = screen.getByTestId("setup-guide-step-1");
+      expect(
+        within(first).queryByText("OneUptime URL"),
+      ).not.toBeInTheDocument();
+      expect(
+        within(first).queryByText("Ingestion Token"),
+      ).not.toBeInTheDocument();
+      expect(first).not.toHaveTextContent("secret-production");
+    });
+
+    test("wrapLongLines: the guide's code wraps instead of scrolling sideways", () => {
+      renderGuide({
+        getContent: (): SetupGuideContent => {
+          return {
+            wrapLongLines: true,
+            steps: [{ title: "Run it", markdown: "WRAPPED BODY" }],
+            advanced: [{ title: "More", markdown: "MORE BODY" }],
+          };
+        },
+      });
+
+      const body: HTMLElement = screen.getByText("WRAPPED BODY");
+      // The markdown viewer's wrapper carries the rule.
+      expect(body.parentElement!.className).toContain(
+        SETUP_GUIDE_WRAP_LONG_LINES_CLASS_NAME,
+      );
+    });
+
+    test("a guide that does not ask keeps its code on one line", () => {
+      renderGuide({});
+
+      const body: HTMLElement = screen.getByText(
+        (content: string): boolean => {
+          return content.startsWith("install --url");
+        },
+        { selector: "div" },
+      );
+      expect(body.parentElement!.className).not.toContain(
+        "whitespace-pre-wrap",
+      );
+    });
+
+    test("a live last step follows the guide's own", () => {
+      renderGuide({
+        lastStep: {
+          title: "Wait for it",
+          description: "It shows up on its own.",
+          content: <div data-testid="live-step">Waiting.</div>,
+        },
+      });
+
+      const steps: Array<HTMLElement> = screen
+        .getAllByRole("listitem")
+        .filter((item: HTMLElement): boolean => {
+          return (item.getAttribute("data-testid") || "").startsWith(
+            "setup-guide-step-",
+          );
+        });
+      const last: HTMLElement = steps[steps.length - 1]!;
+      expect(last).toHaveTextContent("Wait for it");
+      expect(last).toHaveTextContent("It shows up on its own.");
+      expect(within(last).getByTestId("live-step")).toBeInTheDocument();
+    });
+
+    test("isBare: only the guide, for a dialog that has its own title", () => {
+      renderGuide({ isBare: true });
+
+      expect(
+        screen.queryByRole("heading", { name: "Add a thing" }),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId("setup-guide")).toBeInTheDocument();
+      expect(
+        screen.getByRole("radiogroup", { name: "What does it run?" }),
+      ).toBeInTheDocument();
+    });
+
+    test("a screen reader hears each step's number before its title", () => {
+      renderGuide({});
+
+      expect(
+        screen.getByRole("heading", {
+          name: "Step 1: Choose an ingestion key",
+        }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Step 2: Install on alpha" }),
+      ).toBeInTheDocument();
     });
   });
 });

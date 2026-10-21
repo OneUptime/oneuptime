@@ -276,6 +276,7 @@
     "Fluent Bit": "Fluent Bit",
     "Fluentd": "Fluentd",
     "Syslog": "Syslog",
+    "Hosts": "Verter",
     "Host OpenTelemetry Collector": "OpenTelemetry-collector på verten",
     "Kubernetes Agent": "Kubernetes-agent",
     "Docker Agent": "Docker-agent",

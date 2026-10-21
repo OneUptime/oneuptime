@@ -58,6 +58,11 @@ image:
   overrides: {}
   
   restartPolicy: Always
+# Pull secrets for every pod the chart defines: the OneUptime services, the
+# bundled PostgreSQL, ClickHouse and Valkey, the cleanup CronJobs and the
+# `helm test` hook - and the PostgreSQL cluster and ClickHouse installation
+# the database operators run. Set it when your images come from a registry
+# that asks for credentials, as an air-gapped install's do.
 # imagePullSecrets:
 #   - name: MyCustomSecretNameWithDockerCredentials
 

@@ -358,6 +358,8 @@
     "Variable",
     "Variables",
     "Version",
+    "Version {{number}}",
+    "Versions",
     "Vertical Pod Autoscalers",
     "Volume",
     "Volumes",

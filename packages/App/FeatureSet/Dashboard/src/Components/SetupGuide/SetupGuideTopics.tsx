@@ -7,6 +7,8 @@ import React, {
 } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * A folded section at the bottom of a guide — "Advanced" or
@@ -34,6 +36,7 @@ export interface ComponentProps {
 const SetupGuideTopics: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const baseId: string = `setup-guide-topics-${useId()}`;
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [openTopics, setOpenTopics] = useState<Array<string>>([]);
@@ -66,8 +69,10 @@ const SetupGuideTopics: FunctionComponent<ComponentProps> = (
     });
   };
 
-  const topicCountLabel: string =
-    props.topics.length === 1 ? "1 topic" : `${props.topics.length} topics`;
+  const topicCountLabel: string = translator.translatePlural(
+    { one: "{{count}} topic", other: "{{count}} topics" },
+    props.topics.length,
+  );
 
   return (
     <div

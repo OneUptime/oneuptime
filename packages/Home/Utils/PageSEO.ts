@@ -1417,6 +1417,27 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  /*
+   * Running OneUptime on a network with no route to the internet
+   * (Utils/AirGapped.ts). An "enterprise" page, so llms.txt lists it with
+   * the self-hosted page; /enterprise/air-gapped.md is written from the same
+   * content as the page (AIDiscovery.generateAirGappedMarkdown).
+   */
+  "/enterprise/air-gapped": {
+    title: "Air-Gapped Monitoring & Observability | OneUptime",
+    description:
+      "Run OneUptime on a network with no internet: mirror the images, bring in the signed Helm chart, license offline, and use AI on a model you run.",
+    canonicalPath: "/enterprise/air-gapped",
+    twitterCard: "summary_large_image",
+    pageType: "enterprise",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Enterprise", url: "/enterprise/overview" },
+      { name: "Self-Hosted", url: "/enterprise/self-hosted" },
+      { name: "Air-Gapped", url: "/enterprise/air-gapped" },
+    ],
+  },
+
   "/enterprise/demo": {
     title: "Request a Demo | See the Platform in Action | OneUptime",
     description:
