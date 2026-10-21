@@ -1,5 +1,6 @@
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnBillingAccessControl from "../../Types/Database/AccessControl/ColumnBillingAccessControl";
+import CloudConnection from "./CloudConnection";
 import Label from "./Label";
 import Project from "./Project";
 import User from "./User";
@@ -643,6 +644,78 @@ export default class CloudResource extends BaseModel {
     type: ColumnType.JSON,
   })
   public telemetryAttributes?: Dictionary<string> = undefined;
+
+  /*
+   * The cloud connection (Cloud > Connect) that found this resource, when
+   * one did: set by the connection's reads, never by a form. Removing the
+   * connection keeps the resource - its history, labels and owners - and
+   * leaves it to stop reporting and be archived like any other.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCloudResource,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "cloudConnectionId",
+    type: TableColumnType.Entity,
+    modelType: CloudConnection,
+    title: "Cloud Connection",
+    description:
+      "For a resource: the cloud connection that reads it, when one does.",
+  })
+  @ManyToOne(
+    () => {
+      return CloudConnection;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "cloudConnectionId" })
+  public cloudConnection?: CloudConnection = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCloudResource,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ObjectID,
+    canReadOnRelationQuery: true,
+    title: "Cloud Connection ID",
+    description:
+      "For a resource: ID of the cloud connection that reads it, when one does.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ObjectID,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public cloudConnectionId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

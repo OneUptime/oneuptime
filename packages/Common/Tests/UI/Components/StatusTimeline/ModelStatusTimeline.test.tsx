@@ -710,8 +710,13 @@ describe("moving through time", () => {
   test("Refresh reads the period again", async () => {
     await renderMonitor();
 
+    /* Refresh is in the header's ⋯, where every table keeps it. */
+    expect(screen.queryByRole("button", { name: "Refresh" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "More options" }));
+
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+      fireEvent.click(screen.getByRole("menuitem", { name: "Refresh" }));
     });
 
     // The same period, read again: the rows in it and the row before it.

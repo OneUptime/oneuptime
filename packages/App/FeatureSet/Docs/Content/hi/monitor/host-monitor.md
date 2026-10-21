@@ -44,7 +44,7 @@ OneUptime में मशीनों के लिए दो मॉनिट�
 
 ## शुरू करने से पहले
 
-- **होस्ट पर OpenTelemetry Collector चलाएं**, `hostmetrics` रिसीवर के साथ। [होस्ट OpenTelemetry कलेक्टर](/docs/telemetry/host-otel-collector) Linux, macOS और Windows को कवर करता है, और **उत्पाद → बुनियादी ढांचा → होस्ट्स → दस्तावेज़ीकरण** एक तैयार कॉन्फ़िगरेशन देता है।
+- **होस्ट पर OpenTelemetry Collector चलाएं**, `hostmetrics` रिसीवर के साथ। सबसे तेज़ तरीका [होस्ट](/docs/telemetry/hosts) है: एक कमांड कलेक्टर इंस्टॉल करता है, और OneUptime उसे कॉन्फ़िगर करता है। [होस्ट OpenTelemetry कलेक्टर](/docs/telemetry/host-otel-collector) Linux, macOS और Windows को कवर करता है, और **उत्पाद → बुनियादी ढांचा → होस्ट्स → दस्तावेज़ीकरण** एक तैयार कॉन्फ़िगरेशन देता है।
 - **उपयोग मेट्रिक्स चालू करें।** `system.cpu.utilization`, `system.memory.utilization` और `system.filesystem.utilization` रिसीवर में वैकल्पिक हैं, और CPU, मेमोरी और फ़ाइल सिस्टम टेम्पलेट को इनकी ज़रूरत है। डैशबोर्ड का कॉन्फ़िगरेशन इन्हें चालू करता है।
 - **जाँचें कि होस्ट पंजीकृत है।** पहला डेटा आते ही यह अपने `host.name` के नाम से **उत्पाद → बुनियादी ढांचा → होस्ट्स → सभी होस्ट** के अंतर्गत दिखता है।
 

@@ -1605,3 +1605,56 @@ describe("the host upgrade commands", () => {
     expect(installOf("windows")).toContain(line);
   });
 });
+
+/*
+ * A collector OneUptime installed (Add Host): the same install command,
+ * run again, installs the release this OneUptime pins. The dialog opens on
+ * the host's own pages and says where that command is: the Collector page's
+ * On the host card, Show the install command - named exactly as the
+ * Dashboard draws them, so renaming either fails here until the words
+ * follow.
+ */
+describe("Host collector OneUptime installed: the install command, run again", () => {
+  test("one step, naming the button and the card that give the command", () => {
+    const guide: AgentUpgradeGuide = guideFor(AgentKind.HostCollector, {
+      hostOsType: "linux",
+      isHostCollectorManaged: true,
+    });
+
+    expect(guide.methods).toHaveLength(1);
+    const method: AgentUpgradeMethod = guide.methods[0]!;
+    expect(method.label).toBe("Install command");
+    expect(method.steps).toHaveLength(1);
+
+    const step: AgentUpgradeStep = method.steps[0]!;
+    expect(step.title).toBe("Run the install command again");
+    for (const name of [
+      "Collector",
+      "Show the install command",
+      "On the host",
+    ]) {
+      expect(step.description).toContain(name);
+      expect(EN_LOCALE[name]).toBe(name);
+    }
+    expect(EN_LOCALE[step.title]).toBe(step.title);
+    expect(EN_LOCALE[step.description!]).toBe(step.description);
+    // The command needs a key, which only that page's guide picks.
+    expect(step.code).toBeUndefined();
+  });
+
+  test.each(["linux", "windows", "darwin", ""])(
+    "the same on %p: the command is for the host's own system there",
+    (osType: string) => {
+      const guide: AgentUpgradeGuide = guideFor(AgentKind.HostCollector, {
+        hostOsType: osType,
+        isHostCollectorManaged: true,
+      });
+
+      expect(
+        guide.methods.map((method: AgentUpgradeMethod): string => {
+          return method.label;
+        }),
+      ).toEqual(["Install command"]);
+    },
+  );
+});

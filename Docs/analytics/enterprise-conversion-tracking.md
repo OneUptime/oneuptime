@@ -28,7 +28,9 @@ the CRM can read it back.
 The enterprise licence conversation is not a separate conversion type: asking
 about a licence and booking an architecture assessment are the same
 conversation, so `/enterprise/self-hosted` books through the same Cal embed as
-`/enterprise/demo`.
+`/enterprise/demo`. Planning an air-gapped install is that conversation too, so
+`/enterprise/air-gapped` books an architecture assessment as well;
+`meeting_booked`'s `page_path` tells the two pages apart.
 
 ## Browser `meeting_booked`
 
@@ -44,15 +46,16 @@ commercial count — for that, read Cal.com.
 
 A page view, opening the Cal embed, or choosing a time is not `meeting_booked`.
 
-Three pages book, and each tags the event with the conversation it books:
+Four pages book, and each tags the event with the conversation it books:
 
 | Page                      | `booking_kind`            | Legacy PostHog event                  |
 | ------------------------- | ------------------------- | ------------------------------------- |
 | `/enterprise/demo`        | `enterprise_demo`         | `home/demo-booked`                    |
 | `/support`                | `support_call`            | `home/support-call-booked`            |
 | `/enterprise/self-hosted` | `architecture_assessment` | `home/architecture-assessment-booked` |
+| `/enterprise/air-gapped`  | `architecture_assessment` | `home/architecture-assessment-booked` |
 
-All three book the same Cal event type (`oneuptimehq/demo`), so without
+All four book the same Cal event type (`oneuptimehq/demo`), so without
 `booking_kind` a free user's support call and a net-new enterprise demo are one
 undifferentiated count. The legacy per-page events are still emitted so existing
 dashboards keep their history; `packages/Home/Tests/MeetingBookedAnalytics.test.ts`
@@ -104,7 +107,7 @@ It leaves the browser through two doors:
 1. **The signup form**, which posts it onto the User record
    (`packages/App/FeatureSet/Accounts/src/Pages/Register.tsx`, iterating the contract
    rather than hand-listing keys).
-2. **Cal.com booking metadata.** All three embeds call
+2. **Cal.com booking metadata.** All four embeds call
    `window.oneUptimeCalAttributionMetadata(bookingKind)` and pass the result as
    the embed `config`. Cal returns it on `BOOKING_CREATED` to the CRM, which is
    what makes a booked demo attributable to the ad that produced it.
@@ -134,7 +137,7 @@ while bookings keep succeeding.
 | `metadata[ou_first_touch]`              | The first attributed visit, one JSON string, bounded at 4000  |
 | `metadata[ou_booking_kind]`             | `enterprise_demo`, `support_call` or `architecture_assessment`|
 
-`ou_booking_kind` is not optional detail. All three embeds book the same Cal
+`ou_booking_kind` is not optional detail. All four embeds book the same Cal
 event type (`oneuptimehq/demo`), so without it the CRM cannot tell a free
 user's support call from a net-new enterprise demo — they arrive identical. It
 is sent even when there is no campaign to report, because the embed always

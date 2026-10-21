@@ -44,7 +44,7 @@ Utilisez le moniteur d'hôte quand l'hôte envoie déjà des données OpenTeleme
 
 ## Avant de commencer
 
-- **Exécutez un OpenTelemetry Collector sur l'hôte** avec le récepteur `hostmetrics`. [Collecteur OpenTelemetry sur l'hôte](/docs/telemetry/host-otel-collector) couvre Linux, macOS et Windows, et **Produits → Infrastructure → Hôtes → Documentation** fournit une configuration prête à l'emploi.
+- **Exécutez un OpenTelemetry Collector sur l'hôte** avec le récepteur `hostmetrics`. Le plus rapide est [Hôtes](/docs/telemetry/hosts) : une commande installe le collecteur, et OneUptime le configure. [Collecteur OpenTelemetry sur l'hôte](/docs/telemetry/host-otel-collector) couvre Linux, macOS et Windows, et **Produits → Infrastructure → Hôtes → Documentation** fournit une configuration prête à l'emploi.
 - **Activez les métriques d'utilisation.** `system.cpu.utilization`, `system.memory.utilization` et `system.filesystem.utilization` sont facultatives dans le récepteur, et les modèles de CPU, de mémoire et de système de fichiers en ont besoin. La configuration du tableau de bord les active.
 - **Vérifiez que l'hôte est enregistré.** Il apparaît sous **Produits → Infrastructure → Hôtes → Tous les hôtes**, nommé d'après son `host.name`, dès l'arrivée de ses premières données.
 

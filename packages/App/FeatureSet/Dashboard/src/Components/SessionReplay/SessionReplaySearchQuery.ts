@@ -3,6 +3,7 @@ import {
   SESSION_REPLAY_LIST_SEARCH_MAX_LENGTH,
   SESSION_REPLAY_VISITOR_ID_PATTERN,
 } from "Common/Types/Rum/SessionReplay";
+import { SearchHelpRow } from "Common/UI/Components/TelemetryViewer/types";
 import {
   EMPTY_ADVANCED_FILTERS,
   SessionReplayAdvancedFilters,
@@ -91,6 +92,88 @@ const TRIGGER_ALIASES: Record<string, SessionReplayTriggerReason> = {
 export const SEARCH_BOX_UNCOVERED_FIELDS: ReadonlyArray<
   keyof SessionReplayAdvancedFilters
 > = ["route", "identifiedUserKey"];
+
+/*
+ * The fields the chips above the list hold (SessionReplayFacets: Browser,
+ * OS, Device, Country, Trigger, Duration). The box does
+ * not write them out: a list narrowed by its chips says so in the chips, as
+ * every table's filter chips do, and the search box keeps what the reader
+ * typed. Their tokens still work - browser:Chrome typed into the box narrows
+ * the list at once - and Enter moves them into their chips
+ * (removeSearchBoxChipTokens).
+ */
+export const SEARCH_BOX_CHIP_FIELDS: ReadonlyArray<
+  keyof SessionReplayAdvancedFilters
+> = [
+  "browserName",
+  "osName",
+  "deviceType",
+  "countryCode",
+  "triggerReason",
+  "minDurationSeconds",
+];
+
+// The tokens that set a chip's field, as the grammar spells them.
+export const SEARCH_BOX_CHIP_TOKEN_KEYS: ReadonlyArray<string> = [
+  "browser",
+  "os",
+  "device",
+  "country",
+  "trigger",
+  "min",
+];
+
+/*
+ * What the opened search box drops down while it is empty, as every
+ * explorer's search does (TelemetrySearchHelp): a row per kind of token, with
+ * an example a click puts in the box. The syntax column is the grammar's own
+ * spelling and stays as written; the descriptions are looked up in the
+ * reader's language. Every example is a query the grammar reads without a
+ * warning (pinned by a test), so the help never advertises what the box does
+ * not do.
+ */
+export const SESSION_REPLAY_SEARCH_HELP_ROWS: ReadonlyArray<SearchHelpRow> = [
+  {
+    syntax: "free text",
+    description: "Session and trace IDs, page addresses and user names",
+    example: "checkout",
+  },
+  {
+    syntax: "user:<reference>",
+    description: "Every session of one signed-in user",
+    example: "user:jane@example.com",
+  },
+  {
+    syntax: "url:<path>",
+    description: "Visited a page whose address starts with this",
+    example: "url:/checkout",
+  },
+  {
+    syntax: "tag:<key>=<value>",
+    description: "Carries a tag your page set",
+    example: "tag:plan=pro",
+  },
+  {
+    syntax: "min:<duration>",
+    description: "Lasted at least this long",
+    example: "min:2m",
+  },
+  {
+    syntax: "browser:<name>",
+    description:
+      "Also os:, device:, country: and trigger:, as the filter chips",
+    example: "browser:Chrome",
+  },
+  {
+    syntax: "id:<session ID>",
+    description: "Narrows to that session; press Enter to open it",
+    example: "id:a1b2c3d4",
+  },
+];
+
+// The help's footer: tokens combine.
+export const SESSION_REPLAY_SEARCH_HELP_COMBINED_EXAMPLE: string =
+  "user:jane@example.com url:/checkout";
 
 export interface SessionReplaySearchParseResult {
   advanced: SessionReplayAdvancedFilters;
@@ -513,6 +596,74 @@ export function stringifySessionReplaySearch(
   }
 
   return parts.join(" ");
+}
+
+/*
+ * What the search box shows for a filter state: every field the grammar
+ * covers except the ones the chips above the list show
+ * (SEARCH_BOX_CHIP_FIELDS). Free text, user:, visitor:, url: and tag:.
+ */
+export function stringifySessionReplaySearchBox(
+  advanced: SessionReplayAdvancedFilters,
+): string {
+  const withoutChips: SessionReplayAdvancedFilters = { ...advanced };
+
+  for (const field of SEARCH_BOX_CHIP_FIELDS) {
+    withoutChips[field] = "";
+  }
+
+  return stringifySessionReplaySearch(withoutChips);
+}
+
+/*
+ * The filters the box asks for, typed over `base` - the filters as they were
+ * when the box last took its text from them. The grammar reads the text as it
+ * always has. A chip's field the text has no token for keeps base's value,
+ * since the box no longer writes chips out: a keystroke never clears a chip.
+ * A chip token the reader typed sets its field, and deleting it again puts
+ * back what the chip held before.
+ */
+export function parseSessionReplaySearchBox(
+  query: string,
+  base: SessionReplayAdvancedFilters,
+): SessionReplaySearchParseResult {
+  const parsed: SessionReplaySearchParseResult = parseSessionReplaySearch(
+    query,
+    base,
+  );
+  const advanced: SessionReplayAdvancedFilters = { ...parsed.advanced };
+
+  for (const field of SEARCH_BOX_CHIP_FIELDS) {
+    if (!advanced[field].trim()) {
+      advanced[field] = base[field] || "";
+    }
+  }
+
+  return { ...parsed, advanced: advanced };
+}
+
+/*
+ * The text with every chip token taken out (browser:, os:, device:,
+ * country:, trigger:, min:) and everything else kept as typed. Enter does
+ * this once the chips hold the values, so the box keeps what the reader
+ * searched for and the chips say what narrows the list. Text without a chip
+ * token comes back exactly as it was.
+ */
+export function removeSearchBoxChipTokens(query: string): string {
+  const tokens: Array<string> = tokenize(query);
+  const kept: Array<string> = tokens.filter((token: string): boolean => {
+    const separatorIndex: number = token.indexOf(":");
+
+    if (separatorIndex <= 0) {
+      return true;
+    }
+
+    return !SEARCH_BOX_CHIP_TOKEN_KEYS.includes(
+      token.substring(0, separatorIndex).toLowerCase(),
+    );
+  });
+
+  return kept.length === tokens.length ? query : kept.join(" ");
 }
 
 /*

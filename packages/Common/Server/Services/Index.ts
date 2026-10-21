@@ -475,12 +475,15 @@ import HostLabelRuleService from "./HostLabelRuleService";
 import HostOwnerRuleService from "./HostOwnerRuleService";
 import HostOwnerTeamService from "./HostOwnerTeamService";
 import HostOwnerUserService from "./HostOwnerUserService";
+import HostCollectorConfigService from "./HostCollectorConfigService";
+import HostCollectorConfigVersionService from "./HostCollectorConfigVersionService";
 import IncomingCallPolicyService from "./IncomingCallPolicyService";
 import IncomingCallLogService from "./IncomingCallLogService";
 import IncomingCallPolicyPhoneNumberService from "./IncomingCallPolicyPhoneNumberService";
 import PushNotificationLogService from "./PushNotificationLogService";
 import RunnerOwnerTeamService from "./RunnerOwnerTeamService";
 import RunnerOwnerUserService from "./RunnerOwnerUserService";
+import CloudConnectionService from "./CloudConnectionService";
 import CloudResourceLabelRuleService from "./CloudResourceLabelRuleService";
 import CloudResourceOwnerRuleService from "./CloudResourceOwnerRuleService";
 import CloudResourceOwnerTeamService from "./CloudResourceOwnerTeamService";
@@ -970,6 +973,7 @@ const services: Array<BaseService> = [
    * "Component <id> not found" at execution time. Kept together because
    * none of these families has an existing entry to sit next to.
    */
+  CloudConnectionService,
   CloudResourceLabelRuleService,
   CloudResourceOwnerRuleService,
   CloudResourceOwnerTeamService,
@@ -979,6 +983,8 @@ const services: Array<BaseService> = [
   HostOwnerRuleService,
   HostOwnerTeamService,
   HostOwnerUserService,
+  HostCollectorConfigService,
+  HostCollectorConfigVersionService,
   IncomingCallPolicyService,
   IncomingCallPolicyPhoneNumberService,
   IncomingCallPolicyEscalationRuleService,

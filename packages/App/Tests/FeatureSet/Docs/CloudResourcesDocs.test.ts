@@ -204,15 +204,17 @@ describe("Cloud Resources docs", (): void => {
   });
 
   describe("navigation", (): void => {
-    it("follows the Cloud Environments pages in the Cloud group", (): void => {
+    it("follows the Cloud Environments pages and Connect a Cloud Account in the Cloud group", (): void => {
       const links: Array<NavLink> = cloudGroup().links;
       const urls: Array<string> = links.map((link: NavLink): string => {
         return link.url;
       });
       const index: number = urls.indexOf(PAGE_URL);
 
-      expect(index).toBeGreaterThan(0);
-      expect(urls[index - 1]).toBe("/docs/telemetry/cloud-troubleshooting");
+      expect(index).toBeGreaterThan(1);
+      expect(urls[index - 2]).toBe("/docs/telemetry/cloud-troubleshooting");
+      // The way in without a collector, right before the collector's page.
+      expect(urls[index - 1]).toBe("/docs/telemetry/cloud-accounts");
       expect(links[index]!.title).toBe("Cloud Resources (IaaS & PaaS)");
     });
 

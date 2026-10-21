@@ -92,6 +92,7 @@ interface TranslatedPage {
   navTitle: string;
 }
 
+const HOSTS: string = "telemetry/hosts";
 const HOST: string = "telemetry/host-otel-collector";
 const KUBERNETES: string = "telemetry/kubernetes-agent";
 const COST: string = "telemetry/kubernetes-cost";
@@ -108,6 +109,8 @@ const QUEUES: string = "telemetry/queues";
 const SERVERLESS: string = "telemetry/serverless-functions";
 
 const PAGES: ReadonlyArray<TranslatedPage> = [
+  // Adding a host in one command, and the Collector Configs OneUptime sends it.
+  { page: HOSTS, navTitle: "Hosts" },
   { page: HOST, navTitle: "Host OpenTelemetry Collector" },
   { page: KUBERNETES, navTitle: "Kubernetes Agent" },
   { page: COST, navTitle: "Kubernetes Cost Observability" },
@@ -285,8 +288,12 @@ const PROSE: Record<string, Array<string>> = {
   [CEPH]: ["read-only"],
   [VMWARE]: ["read-only"],
   [DATABASES]: ["read-only"],
-  // The third of the three containers, "**AI agent**: oneuptime-docker-swarm-ai-agent".
-  [DOCKER_SWARM]: ["AI agent", "read-only"],
+  /*
+   * The three containers, "**Collector**: oneuptime-docker-swarm-collector"
+   * and "**AI agent**: oneuptime-docker-swarm-ai-agent" (the Dashboard's
+   * Collector is a host's page).
+   */
+  [DOCKER_SWARM]: ["Collector", "AI agent", "read-only"],
   // "the identity also holds the **namespace**": the stress.
   [QUEUES]: ["namespace"],
   // The two concepts the page defines, "**Fleet**: a group of devices".
@@ -344,7 +351,6 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Its own Ceph client is the hard limit.",
   ],
   [DOCKER_SWARM]: [
-    "Collector",
     "Inventory poller",
     "manager",
     "AI investigations are on by default.",
@@ -463,6 +469,7 @@ const CREATE_BUTTONS: Array<string> = [
   "Create Dashboard",
   "Create Database",
   "Create Queue",
+  "Create Collector Config",
 ];
 
 // Tab labels are names (platforms, presets, install methods), the same in every language.

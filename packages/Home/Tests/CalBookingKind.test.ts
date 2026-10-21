@@ -1,4 +1,5 @@
 import { getSelfHostedContent } from "../Utils/SelfHosted";
+import { getAirGappedContent } from "../Utils/AirGapped";
 import { getPageSEO, PageSEOData } from "../Utils/PageSEO";
 import ejs from "ejs";
 import fs from "fs";
@@ -74,6 +75,13 @@ const BOOKING_PAGES: Array<BookingPage> = [
     seoPath: "/enterprise/self-hosted",
     bookingKind: "architecture_assessment",
     extraLocals: { selfHosted: getSelfHostedContent() },
+  },
+  // Planning an air-gapped install is an architecture assessment too.
+  {
+    template: "air-gapped.ejs",
+    seoPath: "/enterprise/air-gapped",
+    bookingKind: "architecture_assessment",
+    extraLocals: { airGapped: getAirGappedContent() },
   },
 ];
 

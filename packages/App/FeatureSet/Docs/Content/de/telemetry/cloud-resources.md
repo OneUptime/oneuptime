@@ -2,6 +2,9 @@
 
 **Cloud-Ressourcen** listet die IaaS- und PaaS-Ressourcen in Ihren AWS-, Azure- und Google-Cloud-Konten auf: virtuelle Maschinen, Datenträger, Load Balancer, Buckets, verwaltete Datenbanken, Caches, Warteschlangen, API-Gateways und den Rest. Jede erhält eine eigene Seite, mit ihrem Typ, ihrer Region und ihrem Konto, der eigenen ID des Anbieters für sie, jeder Metrik, die der Anbieter über sie veröffentlicht, und Eigentümern und Beschriftungen wie jede andere Ressource in OneUptime. Sie finden sie unter **Cloud → Alle Ressourcen**.
 
+> [!TIP]
+> Lieber keinen Collector betreiben? [Verbinden Sie ein Cloud-Konto](/docs/telemetry/cloud-accounts) unter **Cloud → Verbinden**, und OneUptime liest diese Metriken selbst.
+
 :::cards
 - [Azure verbinden](#azure-verbinden): Jede Ressource eines Abonnements aus Azure Monitor lesen.
 - [AWS verbinden](#aws-verbinden): CloudWatch abfragen oder über Amazon Data Firehose streamen.

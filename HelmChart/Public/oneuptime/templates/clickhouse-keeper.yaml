@@ -180,6 +180,10 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml $.Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
       containers:
         - name: clickhouse-keeper
           image: {{ include "oneuptime.imageReference" (dict "Values" $.Values "Key" "clickhouseKeeper" "Default" (printf "%s:%s" $keeper.image.repository (toString $keeper.image.tag))) | quote }}

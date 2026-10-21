@@ -41,9 +41,7 @@ import {
   BulkActionFailed,
   BulkActionOnClickProps,
 } from "../BulkUpdate/BulkUpdateForm";
-import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
-import CardMoreMenu from "../Card/CardMoreMenu";
-import MoreMenuItem from "../MoreMenu/MoreMenuItem";
+import { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Card, {
   CardButtonSchema,
   ComponentProps as CardComponentProps,
@@ -87,6 +85,22 @@ import {
 } from "../Table/RowClick";
 import TableEmptyState from "../Table/TableEmptyState";
 import { hasFilterValues } from "../Table/TableEmptyStateBuilders";
+import {
+  TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME,
+  TABLE_HEADER_FOLDED_BUTTONS_CLASS_NAME,
+  TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME,
+  TABLE_HEADER_OPEN_SEARCH_CLASS_NAME,
+  TABLE_HEADER_SEARCH_CLASS_NAME,
+  TABLE_HEADER_SEARCH_KEY_HINT_CLASS_NAME,
+  TABLE_HEADER_TOOLBAR_CLASS_NAME,
+  TableHeaderButtonSplit,
+  TableHeaderSearchSlot,
+  TableHeaderToolbar,
+  renderTableHeaderMainButton,
+  renderTableHeaderMoreMenu,
+  splitTableHeaderButtons,
+  useTableHeaderSearchShortcut,
+} from "../Table/TableHeaderControls";
 import EmptyStateOptions from "./EmptyStateOptions";
 import {
   ModelTableEmptyState,
@@ -208,37 +222,25 @@ export enum ShowAs {
 export const BULK_SELECT_ALL_PAGE_SIZE: number = 1000;
 
 /*
- * The row of a table's header controls: its search, saved views, main
- * button and ⋯. On a phone (below md) it takes the card's width.
+ * The row of a table's header controls - its search, saved views, main
+ * button and ⋯ - and how it is laid out. They live in
+ * Table/TableHeaderControls, which every table's header is drawn with (a
+ * table a page builds on Common's Table too); these are their names here.
  */
 export const MODEL_TABLE_HEADER_TOOLBAR_CLASS_NAME: string =
-  "flex flex-wrap items-center justify-end gap-3 max-md:w-full";
+  TABLE_HEADER_TOOLBAR_CLASS_NAME;
 
-/*
- * The search while it is folded to its "Search... /" pill: 14rem from md
- * up. On a phone it fills its line - beside the buttons where they fit, on
- * a line of its own where they do not - never narrower than 11rem.
- */
+// The search folded to its "Search... /" pill.
 export const MODEL_TABLE_PHONE_SEARCH_CLASS_NAME: string =
-  "max-md:min-w-[11rem] max-md:flex-1 md:w-56";
+  TABLE_HEADER_SEARCH_CLASS_NAME;
 
-// The search opened: the card's width on a phone, a wide bar from md up.
+// The search opened.
 export const MODEL_TABLE_EXPANDED_SEARCH_CLASS_NAME: string =
-  "w-full md:w-[26rem] lg:w-[32rem]";
+  TABLE_HEADER_OPEN_SEARCH_CLASS_NAME;
 
-/*
- * The buttons beside an opened search, folded away to no width. They clip
- * what they hold while folded: their buttons, drawn on past a box of no
- * width, reached 31px past a phone's screen and let the whole page scroll
- * sideways. Only while folded - the ⋯ menu opens out of them otherwise.
- * And their words keep to one line: squeezed to no width, "Create
- * Monitor" broke over two, the folded box stood 58px tall, and the opened
- * search dropped 10px below the card's title. Hidden from the keyboard too
- * (invisible, once their fold has run): Tab from the opened search went on
- * to buttons nobody could see.
- */
+// The buttons beside an opened search, folded away to no width.
 export const MODEL_TABLE_FOLDED_BUTTONS_CLASS_NAME: string =
-  "max-w-0 -ml-3 gap-0 opacity-0 pointer-events-none overflow-hidden whitespace-nowrap invisible";
+  TABLE_HEADER_FOLDED_BUTTONS_CLASS_NAME;
 
 /*
  * The frame of a table drawn without a card of its own (no cardProps),
@@ -1381,35 +1383,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
    * "/" focuses the search input — same affordance as GitHub / Linear.
    * Skip while the user is typing in another input/textarea or has a modal open.
    */
-  useEffect(() => {
-    if (!props.searchableFields || props.searchableFields.length === 0) {
-      return undefined;
-    }
-    const handleKey: (e: KeyboardEvent) => void = (e: KeyboardEvent): void => {
-      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) {
-        return;
-      }
-      const target: HTMLElement | null = e.target as HTMLElement | null;
-      if (
-        target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable)
-      ) {
-        return;
-      }
-      e.preventDefault();
+  useTableHeaderSearchShortcut(
+    Boolean(props.searchableFields && props.searchableFields.length > 0),
+    (): void => {
       setIsSearchExpanded(true);
       // Wait one frame so the input mounts/becomes visible before focusing.
       requestAnimationFrame(() => {
         searchInputRef.current?.focus();
       });
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [props.searchableFields]);
+    },
+  );
 
   /*
    * Keep the search expanded whenever there is an active search term — so
@@ -4600,8 +4583,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       <div className="relative flex w-full items-center">
         {/* Expanded input + dropdown — sized to the full title slot */}
         <div className="relative flex w-full flex-col gap-1">
+          {/*
+           * As tall as the header's buttons: 42px on a phone, 38px from md
+           * up (TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME). The pill folded
+           * over it takes its height.
+           */}
           <div
-            className={`flex w-full items-center gap-2 rounded-md border bg-white px-3 py-2 transition-all duration-200 ${borderClass}`}
+            className={`flex w-full items-center gap-2 rounded-md border bg-white px-3 ${TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME} transition-all duration-200 ${borderClass}`}
             onClick={() => {
               searchInputRef.current?.focus();
             }}
@@ -4803,13 +4791,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 }}
                 title={tx("Clear search (Esc Esc)")}
                 aria-label={tx("Clear search")}
-                className="flex-none rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                className={TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME}
               >
                 <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
               </button>
             ) : (
               <kbd
-                className="max-sm:hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex"
+                className={TABLE_HEADER_SEARCH_KEY_HINT_CLASS_NAME}
                 title={tx("Press / to focus search")}
               >
                 /
@@ -4916,161 +4904,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
    * Refresh / Filter / Create remain accessible while searching.
    */
   /*
-   * The "primary" button is the one with NORMAL style and the Add icon — the
-   * Create button that BaseModelTable injects automatically. We surface it
-   * alongside the search bar and hide everything else behind a kebab menu.
-   * If the page has no such button we fall back to the first NORMAL- or
-   * PRIMARY-styled one. PRIMARY is treated as a main candidate because it
-   * explicitly marks a primary action (e.g. "Run Runbook") — hiding it in
-   * the overflow menu defeats the purpose of the style.
+   * The main button beside the search and the ⋯ that holds the rest: the
+   * same split every table's header makes (Table/TableHeaderControls).
    */
-  type FindMainButtonResult = {
-    main: CardButtonSchema | null;
-    rest: Array<CardButtonSchema | ReactElement>;
-  };
-
-  const splitButtonsForHeader: (
-    buttons: Array<CardButtonSchema | ReactElement>,
-  ) => FindMainButtonResult = (
-    buttons: Array<CardButtonSchema | ReactElement>,
-  ): FindMainButtonResult => {
-    let mainIndex: number = -1;
-    for (let i: number = 0; i < buttons.length; i++) {
-      const b: CardButtonSchema | ReactElement = buttons[i]!;
-      if (React.isValidElement(b)) {
-        continue;
-      }
-      const c: CardButtonSchema = b as CardButtonSchema;
-      if (c.buttonStyle === ButtonStyleType.NORMAL && c.icon === IconProp.Add) {
-        mainIndex = i;
-        break;
-      }
-    }
-    if (mainIndex < 0) {
-      for (let i: number = 0; i < buttons.length; i++) {
-        const b: CardButtonSchema | ReactElement = buttons[i]!;
-        if (React.isValidElement(b)) {
-          continue;
-        }
-        const style: ButtonStyleType | undefined = (b as CardButtonSchema)
-          .buttonStyle;
-        if (
-          style === ButtonStyleType.NORMAL ||
-          style === ButtonStyleType.PRIMARY
-        ) {
-          mainIndex = i;
-          break;
-        }
-      }
-    }
-    if (mainIndex < 0) {
-      return { main: null, rest: buttons };
-    }
-    const main: CardButtonSchema = buttons[mainIndex] as CardButtonSchema;
-    const rest: Array<CardButtonSchema | ReactElement> = [
-      ...buttons.slice(0, mainIndex),
-      ...buttons.slice(mainIndex + 1),
-    ];
-    return { main, rest };
-  };
-
-  const renderMainButton: (b: CardButtonSchema) => ReactElement = (
-    b: CardButtonSchema,
-  ): ReactElement => {
-    return (
-      <Button
-        key="model-table-main-action"
-        title={b.title}
-        buttonStyle={b.buttonStyle}
-        buttonSize={b.buttonSize}
-        className={b.className}
-        onClick={() => {
-          if (b.disabled) {
-            return;
-          }
-
-          b.onClick?.();
-        }}
-        disabled={b.disabled}
-        tooltip={b.tooltip}
-        icon={b.icon}
-        shortcutKey={b.shortcutKey}
-        dataTestId="card-button"
-        isLoading={b.isLoading}
-      />
-    );
-  };
-
-  /*
-   * Icon-only card buttons (Refresh, Filter, …) have empty titles, so derive
-   * a label from the icon for the More menu.
-   */
-  // Fallback labels for icon-only buttons (Refresh, Filter, ...) in the More menu.
-  const labelForIconButton: (icon: IconProp | undefined) => string = (
-    icon: IconProp | undefined,
-  ): string => {
-    switch (icon) {
-      case IconProp.Refresh:
-        return "Refresh";
-      case IconProp.Filter:
-        return "Filter";
-      case IconProp.Add:
-        return "Add";
-      case IconProp.Help:
-        return "Help";
-      case IconProp.Book:
-        return "Documentation";
-      case IconProp.Play:
-        return "Watch Demo";
-      case IconProp.Search:
-        return "Search";
-      case IconProp.TableCells:
-        return "Columns";
-      default:
-        return "Action";
-    }
-  };
-
-  const renderMoreMenu: (
-    items: Array<CardButtonSchema | ReactElement>,
-  ) => ReactElement | null = (
-    items: Array<CardButtonSchema | ReactElement>,
-  ): ReactElement | null => {
-    if (items.length === 0) {
-      return null;
-    }
-    const children: Array<ReactElement> = items.map(
-      (item: CardButtonSchema | ReactElement, idx: number) => {
-        if (React.isValidElement(item)) {
-          return (
-            <div key={`more-${idx}`} className="px-2 py-1">
-              {item}
-            </div>
-          );
-        }
-        const b: CardButtonSchema = item as CardButtonSchema;
-        const label: string = b.title || labelForIconButton(b.icon);
-        return (
-          <MoreMenuItem
-            key={`more-${idx}`}
-            text={label}
-            icon={b.icon}
-            onClick={() => {
-              if (!b.disabled) {
-                b.onClick?.();
-              }
-            }}
-            isDisabled={b.disabled}
-            tooltip={b.tooltip}
-          />
-        );
-      },
-    );
-
-    // The same ⋯ every card header has: a feed's, too.
-    return <CardMoreMenu key="model-table-more-menu">{children}</CardMoreMenu>;
-  };
-
   /*
    * Builds the right-hand side of the card header. All slots — search
    * trigger/bar, saved views, main button, more menu — stay mounted at all
@@ -5104,16 +4940,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     if (!hasSearch) {
       // Without search, just split into [Saved Views] [main] [⋯]; no special wrapping.
-      const { main, rest }: FindMainButtonResult =
-        splitButtonsForHeader(cardButtons);
+      const { main, rest }: TableHeaderButtonSplit =
+        splitTableHeaderButtons(cardButtons);
       const composed: Array<ReactElement> = [];
       if (savedViewsElement) {
         composed.push(savedViewsElement);
       }
       if (main) {
-        composed.push(renderMainButton(main));
+        composed.push(renderTableHeaderMainButton(main));
       }
-      const moreMenu: ReactElement | null = renderMoreMenu(rest);
+      const moreMenu: ReactElement | null = renderTableHeaderMoreMenu(rest);
       if (moreMenu) {
         composed.push(moreMenu);
       }
@@ -5124,9 +4960,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const isExpanded: boolean =
       isSearchExpanded || trimmedActive.length > 0 || selectedLabels.length > 0;
 
-    const { main, rest }: FindMainButtonResult =
-      splitButtonsForHeader(cardButtons);
-    const moreMenu: ReactElement | null = renderMoreMenu(rest);
+    const { main, rest }: TableHeaderButtonSplit =
+      splitTableHeaderButtons(cardButtons);
+    const moreMenu: ReactElement | null = renderTableHeaderMoreMenu(rest);
 
     /*
      * One row while it fits; in a narrow card (a phone, or beside a product's
@@ -5138,92 +4974,27 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
      * pill hung at the right edge, on a line of its own over the buttons.
      */
     const wrapped: ReactElement = (
-      <div
+      <TableHeaderToolbar
         key="model-table-header-actions"
-        data-testid="model-table-header-toolbar"
-        // Card's CARD_HEADER_TOOLBAR_FILL_ATTRIBUTE: fill the line on a phone.
-        data-toolbar-fill="true"
-        className={MODEL_TABLE_HEADER_TOOLBAR_CLASS_NAME}
-      >
-        {/*
-         * Search slot — a compact pill showing "Search …    /" by default,
-         * grown into the full search bar when expanded. Always advertising
-         * itself (rather than starting as a tiny icon) reads as a more
-         * polished search affordance, in line with Stripe / Linear / GitHub.
-         */}
-        <div
-          data-testid="model-table-search-slot"
-          className={`relative max-w-full shrink-0 transition-[width] duration-300 ease-out ${
-            isExpanded
-              ? MODEL_TABLE_EXPANDED_SEARCH_CLASS_NAME
-              : MODEL_TABLE_PHONE_SEARCH_CLASS_NAME
-          }`}
-        >
-          {/* Trigger (collapsed state) */}
-          <button
-            type="button"
-            onClick={() => {
+        isSearchOpen={isExpanded}
+        search={
+          <TableHeaderSearchSlot
+            isOpen={isExpanded}
+            onOpen={() => {
               setIsSearchExpanded(true);
               requestAnimationFrame(() => {
                 searchInputRef.current?.focus();
               });
             }}
-            title={tx("Search (/)")}
-            aria-label={tx("Open search")}
-            tabIndex={isExpanded ? -1 : 0}
-            className={`absolute inset-0 inline-flex items-center gap-2 rounded-md border bg-white px-3 text-sm shadow-sm transition-all duration-200 ease-out ${
-              isExpanded
-                ? "pointer-events-none border-gray-200 opacity-0"
-                : "border-gray-200 opacity-100 hover:border-gray-300 hover:bg-gray-50"
-            }`}
-          >
-            <Icon
-              icon={IconProp.Search}
-              className="h-4 w-4 flex-none text-gray-400"
-            />
-            <span className="flex-1 truncate text-left text-gray-400">
-              {tx("Search…")}
-            </span>
-            <kbd className="max-sm:hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex">
-              /
-            </kbd>
-          </button>
-
-          {/* Expanded search bar */}
-          <div
-            className={`transition-opacity duration-200 ease-out ${
-              isExpanded
-                ? "opacity-100 delay-150"
-                : "pointer-events-none opacity-0"
-            }`}
           >
             {getSearchControl()}
-          </div>
-        </div>
-
-        {/*
-         * Buttons that collapse when the bar expands. We avoid
-         * `overflow-hidden` here — the MoreMenu dropdown is an absolutely
-         * positioned child of one of these buttons and would otherwise get
-         * clipped by an `overflow-hidden` ancestor, leaving the user with
-         * an apparent "no menu appears" bug when they click ⋯. The wrapper
-         * is hidden via opacity + pointer-events instead, and its width
-         * collapses by setting both `max-width` and `gap` to 0 so the
-         * search slot to the left can grow into the freed space.
-         */}
-        <div
-          className={`flex items-center transition-all duration-300 ease-out [&_button]:md:ml-0 ${
-            isExpanded
-              ? MODEL_TABLE_FOLDED_BUTTONS_CLASS_NAME
-              : "max-w-[600px] gap-3 opacity-100"
-          }`}
-          aria-hidden={isExpanded}
-        >
-          {savedViewsElement}
-          {main && renderMainButton(main)}
-          {moreMenu}
-        </div>
-      </div>
+          </TableHeaderSearchSlot>
+        }
+      >
+        {savedViewsElement}
+        {main && renderTableHeaderMainButton(main)}
+        {moreMenu}
+      </TableHeaderToolbar>
     );
 
     return [wrapped];
