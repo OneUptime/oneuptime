@@ -9,7 +9,10 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import {
+  HOST_COLLECTOR_CONFIG_CHANGED_NOTE,
+  HOST_COLLECTOR_CONFIG_CREATED_NOTE,
   HostCollectorOsType,
+  getHostCollectorConfigRestoredNote,
   isHostCollectorOsType,
 } from "../../Types/HostCollector/HostCollector";
 import { getHostCollectorDefaultConfig } from "../../Utils/HostCollector/HostCollectorDefaultConfig";
@@ -22,18 +25,6 @@ import HostCollectorProjectConfigsMemo from "../Utils/HostCollector/HostCollecto
 import { OnDelete } from "../Types/Database/Hooks";
 import DeleteBy from "../Types/Database/DeleteBy";
 import logger from "../Utils/Logger";
-
-/*
- * What a version records about the change that made it.
- */
-export const HOST_COLLECTOR_CONFIG_CREATED_NOTE: string = "Created";
-export const HOST_COLLECTOR_CONFIG_CHANGED_NOTE: string = "Changed";
-
-export function getHostCollectorConfigRestoredNote(
-  versionNumber: number,
-): string {
-  return `Put version ${versionNumber} back`;
-}
 
 // The columns of an update this service reads and writes.
 interface ConfigWrite {
@@ -92,7 +83,11 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   private static checkOsType(osType: unknown): void {
-    if (osType !== undefined && osType !== null && !isHostCollectorOsType(osType)) {
+    if (
+      osType !== undefined &&
+      osType !== null &&
+      !isHostCollectorOsType(osType)
+    ) {
       throw new BadDataException(
         "System must be linux, windows, darwin (macOS) or any.",
       );

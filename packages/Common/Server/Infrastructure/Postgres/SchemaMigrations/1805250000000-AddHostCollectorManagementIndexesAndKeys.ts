@@ -14,8 +14,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class AddHostCollectorManagementIndexesAndKeys1805250000000
   implements MigrationInterface
 {
-  public name: string =
-    "AddHostCollectorManagementIndexesAndKeys1805250000000";
+  public name: string = "AddHostCollectorManagementIndexesAndKeys1805250000000";
 
   // CREATE INDEX CONCURRENTLY and the validations run outside a transaction.
   public transaction: boolean = false;
@@ -28,6 +27,10 @@ export class AddHostCollectorManagementIndexesAndKeys1805250000000
     await OnlineDdl.createIndex(
       queryRunner,
       `CREATE INDEX "IDX_f5cbc62964363d06f038ce8c0f" ON "Host" ("collectorConfigId") `,
+    );
+    await OnlineDdl.createIndex(
+      queryRunner,
+      `CREATE INDEX "IDX_6f8bd01e329a03746737ced86d" ON "Host" ("collectorRegisteredAt") `,
     );
     await OnlineDdl.addForeignKey(
       queryRunner,
@@ -45,6 +48,10 @@ export class AddHostCollectorManagementIndexesAndKeys1805250000000
     );
     await queryRunner.query(
       `ALTER TABLE "Host" DROP CONSTRAINT "FK_f5cbc62964363d06f038ce8c0f7"`,
+    );
+    await OnlineDdl.dropIndex(
+      queryRunner,
+      `DROP INDEX "public"."IDX_6f8bd01e329a03746737ced86d"`,
     );
     await OnlineDdl.dropIndex(
       queryRunner,

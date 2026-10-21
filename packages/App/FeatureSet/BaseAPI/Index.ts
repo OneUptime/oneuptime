@@ -5108,7 +5108,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<
         HostCollectorConfigVersion,
         HostCollectorConfigVersionServiceType
-      >(HostCollectorConfigVersion, HostCollectorConfigVersionService).getRouter(),
+      >(
+        HostCollectorConfigVersion,
+        HostCollectorConfigVersionService,
+      ).getRouter(),
     );
 
     app.use(

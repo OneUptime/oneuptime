@@ -67,6 +67,9 @@ export class AddHostCollectorManagement1805200000000
     await queryRunner.query(
       `ALTER TABLE "Host" ADD "collectorLastContactAt" TIMESTAMP WITH TIME ZONE`,
     );
+    await queryRunner.query(
+      `ALTER TABLE "Host" ADD "collectorRegisteredAt" TIMESTAMP WITH TIME ZONE`,
+    );
     await queryRunner.query(`ALTER TABLE "Host" ADD "collectorConfigId" uuid`);
     await queryRunner.query(
       `ALTER TABLE "Host" ADD "isCollectorConfigPinned" boolean NOT NULL DEFAULT false`,
@@ -86,7 +89,9 @@ export class AddHostCollectorManagement1805200000000
     await queryRunner.query(
       `ALTER TABLE "Host" ADD "collectorFailedConfigHash" character varying(100)`,
     );
-    await queryRunner.query(`ALTER TABLE "Host" ADD "isCollectorHealthy" boolean`);
+    await queryRunner.query(
+      `ALTER TABLE "Host" ADD "isCollectorHealthy" boolean`,
+    );
     await queryRunner.query(
       `ALTER TABLE "Host" ADD "collectorHealthError" text`,
     );
@@ -150,7 +155,9 @@ export class AddHostCollectorManagement1805200000000
     await queryRunner.query(
       `ALTER TABLE "Host" DROP COLUMN "collectorHealthError"`,
     );
-    await queryRunner.query(`ALTER TABLE "Host" DROP COLUMN "isCollectorHealthy"`);
+    await queryRunner.query(
+      `ALTER TABLE "Host" DROP COLUMN "isCollectorHealthy"`,
+    );
     await queryRunner.query(
       `ALTER TABLE "Host" DROP COLUMN "collectorFailedConfigHash"`,
     );
@@ -169,7 +176,12 @@ export class AddHostCollectorManagement1805200000000
     await queryRunner.query(
       `ALTER TABLE "Host" DROP COLUMN "isCollectorConfigPinned"`,
     );
-    await queryRunner.query(`ALTER TABLE "Host" DROP COLUMN "collectorConfigId"`);
+    await queryRunner.query(
+      `ALTER TABLE "Host" DROP COLUMN "collectorConfigId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "Host" DROP COLUMN "collectorRegisteredAt"`,
+    );
     await queryRunner.query(
       `ALTER TABLE "Host" DROP COLUMN "collectorLastContactAt"`,
     );

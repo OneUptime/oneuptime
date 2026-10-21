@@ -181,7 +181,8 @@ export default class HostCollectorConfigVersion extends BaseModel {
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
     title: "Version",
-    description: "The version's number: 1 for the config as created, then one more for every saved change.",
+    description:
+      "The version's number: 1 for the config as created, then one more for every saved change.",
   })
   @Column({
     type: ColumnType.Number,

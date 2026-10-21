@@ -218,7 +218,10 @@ export function findConfigReferences(text: string): Array<ConfigReference> {
       ) {
         end++;
       }
-      references.push({ body: text.substring(index + 1, end), isBraced: false });
+      references.push({
+        body: text.substring(index + 1, end),
+        isBraced: false,
+      });
       index = text.indexOf("$", end);
       continue;
     }
@@ -324,14 +327,7 @@ class ConfigChecker {
 
     if (Array.isArray(value)) {
       value.forEach((item: ConfigValue, index: number): void => {
-        this.walk(
-          item,
-          `${path}[${index}]`,
-          depth + 1,
-          visit,
-          null,
-          section,
-        );
+        this.walk(item, `${path}[${index}]`, depth + 1, visit, null, section);
       });
       return;
     }
@@ -427,8 +423,10 @@ export default class HostCollectorConfigPolicy {
       return HostCollectorConfigPolicy.result(checker);
     }
 
-    const definedIds: Record<HostCollectorComponentKind, Set<string>> =
-      HostCollectorConfigPolicy.checkComponents(document, checker);
+    const definedIds: Record<
+      HostCollectorComponentKind,
+      Set<string>
+    > = HostCollectorConfigPolicy.checkComponents(document, checker);
 
     HostCollectorConfigPolicy.checkService(document, definedIds, checker);
 
@@ -608,7 +606,10 @@ export default class HostCollectorConfigPolicy {
         definedIds[kind].add(id);
 
         if (id.trim() !== id || id.length === 0) {
-          checker.add(path, "A component's name may not start or end with a space.");
+          checker.add(
+            path,
+            "A component's name may not start or end with a space.",
+          );
           continue;
         }
 
@@ -741,7 +742,10 @@ export default class HostCollectorConfigPolicy {
       }
 
       if (!isMap(pipeline)) {
-        checker.add(path, "A pipeline must be a map with its receivers and exporters.");
+        checker.add(
+          path,
+          "A pipeline must be a map with its receivers and exporters.",
+        );
         continue;
       }
 
@@ -825,7 +829,10 @@ export default class HostCollectorConfigPolicy {
       return [];
     }
 
-    if (!Array.isArray(data.list) || (data.isRequired && data.list.length === 0)) {
+    if (
+      !Array.isArray(data.list) ||
+      (data.isRequired && data.list.length === 0)
+    ) {
       data.checker.add(data.path, "This must be a list of component names.");
       return [];
     }
@@ -834,7 +841,10 @@ export default class HostCollectorConfigPolicy {
 
     data.list.forEach((item: ConfigValue, index: number): void => {
       if (typeof item !== "string") {
-        data.checker.add(`${data.path}[${index}]`, "This must be a component name.");
+        data.checker.add(
+          `${data.path}[${index}]`,
+          "This must be a component name.",
+        );
         return;
       }
 
@@ -845,7 +855,10 @@ export default class HostCollectorConfigPolicy {
       );
 
       if (!isDefined) {
-        data.checker.add(`${data.path}[${index}]`, `${item} ${data.missingMessage}`);
+        data.checker.add(
+          `${data.path}[${index}]`,
+          `${item} ${data.missingMessage}`,
+        );
         return;
       }
 
@@ -865,7 +878,10 @@ export default class HostCollectorConfigPolicy {
     }
 
     if (!Array.isArray(extensions)) {
-      checker.add("service.extensions", "This must be a list of extension names.");
+      checker.add(
+        "service.extensions",
+        "This must be a list of extension names.",
+      );
       return;
     }
 

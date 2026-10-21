@@ -96,6 +96,19 @@ export interface ComponentProps {
   keyStepDescription?: string | undefined;
 
   getContent: (context: SetupGuideRenderContext) => SetupGuideContent;
+
+  /*
+   * A live step after the guide's own: what the reader waits for once the
+   * commands have run (AddHostGuide: the host connecting). Drawn like every
+   * step; its content is a component, not markdown.
+   */
+  lastStep?: SetupGuideStepView | undefined;
+
+  /*
+   * Only the guide, without its card and header: for a dialog whose own
+   * title and description already say what the guide is for (Add Host).
+   */
+  isBare?: boolean | undefined;
 }
 
 const DEFAULT_KEY_STEP_DESCRIPTION: string =
@@ -234,6 +247,7 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
         ),
       };
     }),
+    ...(props.lastStep ? [props.lastStep] : []),
   ];
 
   const toTopicView: (topic: SetupGuideTopic) => SetupGuideTopicView = (
@@ -254,6 +268,95 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
   ).map(toTopicView);
   const links: Array<SetupGuideLink> = content.links || [];
   const prerequisites: Array<string> = content.prerequisites || [];
+
+  const body: ReactElement = (
+    <>
+      {options.length > 1 && (
+        <SetupGuideOptionPicker
+          label={props.optionsLabel || "Choose an option"}
+          options={options}
+          selectedKey={option}
+          onSelect={onSelectOption}
+          layout={props.optionsLayout}
+        />
+      )}
+
+      {content.intro && (
+        <div className="mb-6">
+          <SetupGuideMarkdown text={content.intro} />
+        </div>
+      )}
+
+      {prerequisites.length > 0 && (
+        <div
+          className="mb-6 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+          data-testid="setup-guide-prerequisites"
+        >
+          <div className="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-gray-500">
+            <Icon icon={IconProp.ClipboardDocumentCheck} className="h-4 w-4" />
+            Before you start
+          </div>
+          <SetupGuideMarkdown
+            text={prerequisites
+              .map((line: string): string => {
+                return `- ${line}`;
+              })
+              .join("\n")}
+          />
+        </div>
+      )}
+
+      <SetupGuideSteps steps={steps} />
+
+      {(advanced.length > 0 || troubleshooting.length > 0) && (
+        <div className="mt-8 space-y-3">
+          <SetupGuideTopics
+            title="Advanced"
+            description={summarizeTopics(advanced)}
+            icon={IconProp.AdjustmentHorizontal}
+            topics={advanced}
+            testId="setup-guide-advanced"
+          />
+          <SetupGuideTopics
+            title="Troubleshooting"
+            description={summarizeTopics(troubleshooting)}
+            icon={IconProp.Lifebuoy}
+            topics={troubleshooting}
+            testId="setup-guide-troubleshooting"
+          />
+        </div>
+      )}
+
+      {links.length > 0 && (
+        <div
+          className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500"
+          data-testid="setup-guide-links"
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <Icon icon={IconProp.BookOpen} className="h-4 w-4" />
+            Learn more:
+          </span>
+          {links.map((link: SetupGuideLink) => {
+            return (
+              <a
+                key={link.url}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
+              >
+                {link.title}
+              </a>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+
+  if (props.isBare) {
+    return <div data-testid="setup-guide">{body}</div>;
+  }
 
   return (
     <div className="mb-5" data-testid="setup-guide">
@@ -277,91 +380,7 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
           </div>
         </div>
 
-        <div className="px-4 py-6 sm:px-6">
-          {options.length > 1 && (
-            <SetupGuideOptionPicker
-              label={props.optionsLabel || "Choose an option"}
-              options={options}
-              selectedKey={option}
-              onSelect={onSelectOption}
-              layout={props.optionsLayout}
-            />
-          )}
-
-          {content.intro && (
-            <div className="mb-6">
-              <SetupGuideMarkdown text={content.intro} />
-            </div>
-          )}
-
-          {prerequisites.length > 0 && (
-            <div
-              className="mb-6 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
-              data-testid="setup-guide-prerequisites"
-            >
-              <div className="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-gray-500">
-                <Icon
-                  icon={IconProp.ClipboardDocumentCheck}
-                  className="h-4 w-4"
-                />
-                Before you start
-              </div>
-              <SetupGuideMarkdown
-                text={prerequisites
-                  .map((line: string): string => {
-                    return `- ${line}`;
-                  })
-                  .join("\n")}
-              />
-            </div>
-          )}
-
-          <SetupGuideSteps steps={steps} />
-
-          {(advanced.length > 0 || troubleshooting.length > 0) && (
-            <div className="mt-8 space-y-3">
-              <SetupGuideTopics
-                title="Advanced"
-                description={summarizeTopics(advanced)}
-                icon={IconProp.AdjustmentHorizontal}
-                topics={advanced}
-                testId="setup-guide-advanced"
-              />
-              <SetupGuideTopics
-                title="Troubleshooting"
-                description={summarizeTopics(troubleshooting)}
-                icon={IconProp.Lifebuoy}
-                topics={troubleshooting}
-                testId="setup-guide-troubleshooting"
-              />
-            </div>
-          )}
-
-          {links.length > 0 && (
-            <div
-              className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500"
-              data-testid="setup-guide-links"
-            >
-              <span className="inline-flex items-center gap-1.5">
-                <Icon icon={IconProp.BookOpen} className="h-4 w-4" />
-                Learn more:
-              </span>
-              {links.map((link: SetupGuideLink) => {
-                return (
-                  <a
-                    key={link.url}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
-                  >
-                    {link.title}
-                  </a>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <div className="px-4 py-6 sm:px-6">{body}</div>
       </div>
     </div>
   );

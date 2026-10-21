@@ -1,7 +1,5 @@
 import PageMap from "../../Utils/PageMap";
 import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
-import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -26,13 +24,6 @@ import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelAction
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import getLabelsFormField from "../../Utils/Form/LabelsFormField";
-import {
-  getDisplayNameFormField,
-  getIdentityFormField,
-  getNameFromIdentityField,
-} from "../../Utils/Form/DiscoveredResourceFormFields";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import useFirstRecordWatch, {
@@ -44,9 +35,16 @@ import {
   getFirstRunTopContent,
 } from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import HostDocumentationCard from "../../Components/Host/DocumentationCard";
+import AddHostGuide from "../../Components/HostCollector/AddHostGuide";
+import AddHostModal from "../../Components/HostCollector/AddHostModal";
+import HostCollectorStatePill from "../../Components/HostCollector/HostCollectorStatePill";
+import {
+  getHostCollectorConfigLabel,
+  isHostCollectorManaged,
+} from "../../Components/HostCollector/HostCollectorStatus";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Blue, Green, Red } from "Common/Types/BrandColors";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import { HOST_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/HostMetricDescriptions";
@@ -194,6 +192,9 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<Host>({
     modelType: Host,
   });
+  const [isAddHostOpen, setIsAddHostOpen] = useState<boolean>(false);
+  // Hosts connected from the Add Host dialog show in the list at once.
+  const [connectedCount, setConnectedCount] = useState<number>(0);
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Host>({ modelType: Host });
@@ -296,20 +297,17 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   }
 
   /*
-   * The create form asks for the one thing a host cannot be created
-   * without: the host.name its telemetry reports. The display name follows
-   * it - a host added here is named like a discovered one - and folds under
-   * Advanced with the description and the labels, so the form is two rows
-   * (DiscoveredResourceFormFields).
+   * A host is added by running one command on it (Add Host): the command
+   * installs the collector OneUptime configures, and the host registers
+   * itself when it connects - named after its hostname, with the labels the
+   * command gave it. There is no form: a host typed in by hand would only
+   * wait for telemetry that nothing sends.
    */
-  const advancedSection: FormFieldCollapsibleSection<Host> =
-    getAdvancedFormSection<Host>();
-
   return (
     <Fragment>
       <ModelTable<Host>
         modelType={Host}
-        refreshToggle={firstRecordWatch.refreshToken}
+        refreshToggle={`${firstRecordWatch.refreshToken}-${connectedCount}`}
         id="hosts-table"
         userPreferencesKey="hosts-table"
         saveFilterProps={{
@@ -336,7 +334,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isDeleteable={true}
         deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
-        isCreateable={true}
+        isCreateable={false}
         showRefreshButton={true}
         searchableFields={["name", "description"]}
         bulkActions={{
@@ -357,44 +355,32 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           totalMemoryBytes: true,
           processCount: true,
           containerRuntime: true,
+          lastSeenAt: true,
+          collectorInstanceUid: true,
+          collectorLastContactAt: true,
+          collectorConfigStatus: true,
+          isCollectorHealthy: true,
+          collectorConfig: {
+            name: true,
+          },
         }}
         cardProps={{
           title: "Hosts",
           description:
-            "Hosts being monitored in this project. A host shows up here once its OpenTelemetry Collector sends data.",
+            "Hosts being monitored in this project. Add one with a single command on the host.",
+          buttons: [
+            {
+              title: "Add Host",
+              icon: IconProp.Add,
+              buttonStyle: ButtonStyleType.NORMAL,
+              onClick: () => {
+                setIsAddHostOpen(true);
+              },
+            },
+          ],
         }}
         showViewIdButton={true}
-        formFields={[
-          getIdentityFormField<Host>({
-            field: {
-              hostIdentifier: true,
-            },
-            title: "Host Name (host.name)",
-            placeholder: "host-prod-1",
-            description:
-              "Exactly as your OpenTelemetry Collector reports it. Telemetry is matched to this host by its host name.",
-          }),
-          getDisplayNameFormField<Host>({
-            getDefaultName: getNameFromIdentityField<Host>("hostIdentifier"),
-            placeholder: "Production web server",
-            description:
-              "Starts as the host name. Type your own name to show instead; telemetry is still matched by the host name.",
-            collapsibleSection: advancedSection,
-          }),
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Production host running in US East",
-            collapsibleSection: advancedSection,
-          },
-          getLabelsFormField<Host>({
-            collapsibleSection: advancedSection,
-          }),
-        ]}
+        formFields={[]}
         filters={[
           {
             field: {
@@ -565,11 +551,48 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             getElement: (item: Host): ReactElement => {
               const isConnected: boolean =
                 item.otelCollectorStatus === "connected";
+              /*
+               * A host whose collector OneUptime manages registers before
+               * its first metrics: it is starting, not disconnected.
+               */
+              if (
+                !isConnected &&
+                !item.lastSeenAt &&
+                isHostCollectorManaged(item)
+              ) {
+                return <Pill text="Starting" color={Blue} isPulsing={true} />;
+              }
               return (
                 <Pill
                   text={isConnected ? "Connected" : "Disconnected"}
                   color={isConnected ? Green : Red}
                 />
+              );
+            },
+          },
+          {
+            field: {
+              collectorConfigStatus: true,
+            },
+            title: "Collector",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: Host): ReactElement => {
+              if (!isHostCollectorManaged(item)) {
+                return <HostCollectorStatePill host={item} />;
+              }
+              return (
+                <div className="min-w-0 space-y-1">
+                  <HostCollectorStatePill host={item} />
+                  <div className="truncate text-xs text-gray-500">
+                    {translator.translateText(
+                      getHostCollectorConfigLabel({
+                        configName: item.collectorConfig?.name,
+                        osType: item.osType,
+                      }),
+                    )}
+                  </div>
+                </div>
               );
             },
           },
@@ -625,9 +648,24 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
       />
       {firstRecordWatch.count === 0 && (
-        <HostDocumentationCard
-          title="Getting Started with Host Monitoring"
+        <AddHostGuide
+          title="Add your first host"
           description={FIRST_RUN_GUIDE_DESCRIPTION}
+          onHostConnected={() => {
+            firstRecordWatch.onRecordCreated();
+          }}
+        />
+      )}
+      {isAddHostOpen && (
+        <AddHostModal
+          onClose={() => {
+            setIsAddHostOpen(false);
+          }}
+          onHostConnected={() => {
+            setConnectedCount((count: number): number => {
+              return count + 1;
+            });
+          }}
         />
       )}
       {labelBulkActionModals}

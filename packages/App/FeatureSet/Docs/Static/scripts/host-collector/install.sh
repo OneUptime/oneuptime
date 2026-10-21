@@ -35,6 +35,8 @@
 #                        OneUptime pins).
 #   --download-url URL   Download the releases from a mirror with the same
 #                        layout as GitHub's releases/download.
+#   --proxy URL          Send the downloads and the collector's traffic
+#                        through this HTTP(S) proxy.
 #   --replace-existing   Stop and disable a collector installed by hand
 #                        (otelcol-contrib.service) on this host.
 #   --uninstall          Remove the service and everything this installed.
@@ -54,6 +56,7 @@ ONEUPTIME_URL=""
 INGESTION_KEY=""
 VERSION="$PINNED_VERSION"
 DOWNLOAD_URL="$DEFAULT_DOWNLOAD_URL"
+PROXY_URL=""
 REPLACE_EXISTING="false"
 UNINSTALL="false"
 # Newline-separated KEY=VALUE pairs.
@@ -223,6 +226,11 @@ refused_status() {
                 DOWNLOAD_URL="$2"
                 shift 2
                 ;;
+            --proxy)
+                [ "$#" -ge 2 ] || fail "--proxy needs a value, such as http://proxy:3128."
+                PROXY_URL="$2"
+                shift 2
+                ;;
             --replace-existing)
                 REPLACE_EXISTING="true"
                 shift
@@ -324,6 +332,9 @@ refused_status() {
     is_key "$INGESTION_KEY" || fail "--key does not look like an ingestion key. Copy it again from OneUptime."
     is_url "$DOWNLOAD_URL" || fail "--download-url must be an http:// or https:// address."
     is_version "$VERSION" || fail "--version must be a release number, such as $PINNED_VERSION."
+    if [ -n "$PROXY_URL" ]; then
+        is_url "$PROXY_URL" || fail "--proxy must be an http:// or https:// address, such as http://proxy:3128."
+    fi
 
     # Labels and environment variables: each checked, one per line.
     LABEL_LINES=""
@@ -412,9 +423,14 @@ refused_status() {
     download_checked() {
         url="$1"
         target="$2"
-        curl -fsSL --retry 3 -o "$target" "$url" ||
+        if [ -n "$PROXY_URL" ]; then
+            set -- --proxy "$PROXY_URL"
+        else
+            set --
+        fi
+        curl -fsSL --retry 3 "$@" -o "$target" "$url" ||
             fail "Could not download $url"
-        curl -fsSL --retry 3 -o "$target.sha256" "$url.sha256" ||
+        curl -fsSL --retry 3 "$@" -o "$target.sha256" "$url.sha256" ||
             fail "Could not download $url.sha256"
         expected="$(tr -d ' \r\n' <"$target.sha256" | cut -c1-64)"
         actual="$($SHA256 "$target" | cut -d ' ' -f 1)"
@@ -532,6 +548,11 @@ EOF
             fi
         fi
 
+        PROXY_ENVIRONMENT=""
+        if [ -n "$PROXY_URL" ]; then
+            PROXY_ENVIRONMENT="Environment=HTTPS_PROXY=$PROXY_URL HTTP_PROXY=$PROXY_URL"
+        fi
+
         cat >"$UNIT_FILE" <<EOF
 [Unit]
 Description=OneUptime collector (OpenTelemetry Collector, configured by OneUptime)
@@ -548,6 +569,7 @@ RestartSec=5
 NoNewPrivileges=yes
 ProtectSystem=full
 PrivateTmp=yes
+$PROXY_ENVIRONMENT
 
 [Install]
 WantedBy=multi-user.target
@@ -563,6 +585,15 @@ EOF
         mkdir -p "$LOG_DIR"
         chmod 0700 "$STATE_DIR" "$CONFIG_DIR"
         chmod 0600 "$CONFIG_FILE"
+
+        PROXY_ENVIRONMENT=""
+        if [ -n "$PROXY_URL" ]; then
+            PROXY_ENVIRONMENT="  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HTTPS_PROXY</key><string>$PROXY_URL</string>
+    <key>HTTP_PROXY</key><string>$PROXY_URL</string>
+  </dict>"
+        fi
 
         cat >"$PLIST_FILE" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -580,6 +611,7 @@ EOF
   <key>KeepAlive</key><true/>
   <key>StandardOutPath</key><string>$LOG_DIR/collector.log</string>
   <key>StandardErrorPath</key><string>$LOG_DIR/collector.log</string>
+$PROXY_ENVIRONMENT
 </dict>
 </plist>
 EOF

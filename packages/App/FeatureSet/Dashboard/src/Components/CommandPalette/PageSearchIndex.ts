@@ -1979,6 +1979,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         title: "Hosts",
         pages: [
           allListPage(PageMap.HOSTS, "All Hosts"),
+          {
+            page: PageMap.HOST_COLLECTOR_CONFIGS,
+            title: "Collector Configs",
+            icon: IconProp.Code,
+            keywords: [
+              "config.yaml",
+              "opentelemetry collector config",
+              "fleet config",
+              "opamp",
+            ],
+          },
           documentation(PageMap.HOST_DOCUMENTATION),
         ],
       },

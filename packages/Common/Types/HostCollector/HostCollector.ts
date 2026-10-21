@@ -45,6 +45,19 @@ export const HOST_COLLECTOR_WINDOWS_INSTALL_SCRIPT_PATH: string =
 export const HOST_COLLECTOR_PINNED_VERSION: string = "0.161.0";
 
 /*
+ * What the installers run the collector as: the service oneuptime-collector
+ * (systemd on Linux, a Windows service), the launchd daemon
+ * com.oneuptime.collector on macOS, which writes its log to a file. The
+ * installers carry the same names (HostCollectorInstallers tests hold them
+ * to it), and the Dashboard tells people how to check on the service by them.
+ */
+export const HOST_COLLECTOR_SERVICE_NAME: string = "oneuptime-collector";
+export const HOST_COLLECTOR_MACOS_SERVICE_LABEL: string =
+  "com.oneuptime.collector";
+export const HOST_COLLECTOR_MACOS_LOG_FILE: string =
+  "/usr/local/oneuptime-collector/log/collector.log";
+
+/*
  * The two values the installer gives the collector's environment, and every
  * config OneUptime sends refers to. A config never holds the key itself:
  * each host sends with the key it was installed with.
@@ -154,6 +167,60 @@ export function isHostCollectorConfigStatus(
     typeof value === "string" &&
     (Object.values(HostCollectorConfigStatus) as Array<string>).includes(value)
   );
+}
+
+/*
+ * What a version of a Collector Config says about the change that made it,
+ * which its Versions list shows: "Created", "Changed", or "Put version 3
+ * back" for a save of an older version's YAML. Stored in English and
+ * translated where they are shown.
+ */
+export const HOST_COLLECTOR_CONFIG_CREATED_NOTE: string = "Created";
+export const HOST_COLLECTOR_CONFIG_CHANGED_NOTE: string = "Changed";
+
+const RESTORED_NOTE_PREFIX: string = "Put version ";
+const RESTORED_NOTE_SUFFIX: string = " back";
+
+export function getHostCollectorConfigRestoredNote(
+  versionNumber: number,
+): string {
+  return `${RESTORED_NOTE_PREFIX}${versionNumber}${RESTORED_NOTE_SUFFIX}`;
+}
+
+/*
+ * The version a "Put version 3 back" note names, or null for any other
+ * note. Character checks, not a regular expression.
+ */
+export function getHostCollectorConfigRestoredVersion(
+  note: string | null | undefined,
+): number | null {
+  if (
+    !note ||
+    note.length >
+      RESTORED_NOTE_PREFIX.length + RESTORED_NOTE_SUFFIX.length + 9 ||
+    !note.startsWith(RESTORED_NOTE_PREFIX) ||
+    !note.endsWith(RESTORED_NOTE_SUFFIX)
+  ) {
+    return null;
+  }
+
+  const digits: string = note.substring(
+    RESTORED_NOTE_PREFIX.length,
+    note.length - RESTORED_NOTE_SUFFIX.length,
+  );
+
+  if (!digits) {
+    return null;
+  }
+
+  for (const character of digits) {
+    if (character < "0" || character > "9") {
+      return null;
+    }
+  }
+
+  const versionNumber: number = Number(digits);
+  return versionNumber >= 1 ? versionNumber : null;
 }
 
 /*

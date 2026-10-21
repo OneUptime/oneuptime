@@ -4,6 +4,14 @@ import {
 } from "../../Pages/Kubernetes/Utils/DocumentationMarkdown";
 import { getServerlessPlatformForCloudPlatform } from "../Serverless/ServerlessSetupGuide";
 import {
+  HostCollectorOsType,
+  getHostCollectorOsType,
+} from "Common/Types/HostCollector/HostCollector";
+import {
+  HostCollectorServiceCommands,
+  getHostCollectorServiceCommands,
+} from "Common/Utils/HostCollector/HostCollectorInstallCommand";
+import {
   translatableTerm,
   translateTemplate,
   translationKey,
@@ -47,6 +55,20 @@ export interface ResourceConnectionGuide {
   setupSteps: Array<ResourceConnectionGuideStep>;
   // Shown once data has arrived before and then stopped.
   troubleshootingSteps: Array<ResourceConnectionGuideStep>;
+  /*
+   * For a resource OneUptime installed the agent of (a host added with the
+   * one command): there is nothing to set up while its first data is on
+   * the way, so the card says it is starting instead of "Connect this".
+   * English translation keys.
+   */
+  startingCopy?:
+    | {
+        title: string;
+        description: string;
+      }
+    | undefined;
+  // What the card's link says: "Open the setup guide" when left out.
+  linkText?: string | undefined;
 }
 
 // ---- value quoting ---------------------------------------------------------
@@ -490,11 +512,81 @@ export const getVMwareVCenterConnectionGuide: (
 
 // ---- Hosts (OpenTelemetry Collector) ---------------------------------------
 
+/*
+ * The host's collector, when OneUptime installed it (Add Host): it runs as
+ * the service oneuptime-collector, and the host's Collector page says which
+ * config it runs and whether that config started.
+ */
+export interface HostConnectionGuideCollector {
+  isManaged: boolean;
+  osType?: string | null | undefined;
+}
+
+const getManagedHostConnectionGuide: (
+  osType: string | null | undefined,
+) => ResourceConnectionGuide = (
+  osType: string | null | undefined,
+): ResourceConnectionGuide => {
+  const commands: HostCollectorServiceCommands =
+    getHostCollectorServiceCommands(
+      getHostCollectorOsType(osType) || HostCollectorOsType.Linux,
+    );
+
+  const checkServiceStep: ResourceConnectionGuideStep = {
+    title: "Check the collector's service",
+    description:
+      "OneUptime installed the collector on this host as the service oneuptime-collector.",
+    code: commands.status,
+  };
+
+  const readLogStep: ResourceConnectionGuideStep = {
+    title: "Read the collector's log",
+    description: EXPORT_ERRORS_DESCRIPTION,
+    code: commands.logs,
+  };
+
+  return {
+    resourceNoun: translationKey("host"),
+    agentName: translationKey("OneUptime collector"),
+    startingCopy: {
+      title: translationKey("This host is starting"),
+      description: translationKey(
+        "OneUptime installed the collector on this host and sent it its config. Its first metrics and logs arrive within a minute.",
+      ),
+    },
+    linkText: translationKey("Open the Collector page"),
+    setupSteps: [
+      {
+        title: "Check the collector's config",
+        description:
+          "The Collector page says which config the host runs and whether it started there.",
+      },
+      checkServiceStep,
+      readLogStep,
+    ],
+    troubleshootingSteps: [
+      checkServiceStep,
+      readLogStep,
+      {
+        title: "Check the collector's config",
+        description:
+          "The Collector page says whether the config OneUptime sent started, and why not.",
+      },
+    ],
+  };
+};
+
 export const getHostConnectionGuide: (
   hostIdentifier: string,
+  collector?: HostConnectionGuideCollector | undefined,
 ) => ResourceConnectionGuide = (
   hostIdentifier: string,
+  collector?: HostConnectionGuideCollector | undefined,
 ): ResourceConnectionGuide => {
+  if (collector?.isManaged) {
+    return getManagedHostConnectionGuide(collector.osType);
+  }
+
   return {
     resourceNoun: translationKey("host"),
     agentName: "OpenTelemetry Collector",

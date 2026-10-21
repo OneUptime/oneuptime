@@ -1,5 +1,8 @@
 import {
   HOST_COLLECTOR_INSTALL_SCRIPT_PATH,
+  HOST_COLLECTOR_MACOS_LOG_FILE,
+  HOST_COLLECTOR_MACOS_SERVICE_LABEL,
+  HOST_COLLECTOR_SERVICE_NAME,
   HOST_COLLECTOR_WINDOWS_INSTALL_SCRIPT_PATH,
   HostCollectorOsType,
 } from "../../Types/HostCollector/HostCollector";
@@ -22,6 +25,12 @@ export interface HostCollectorInstallCommandOptions {
   ingestionKey: string;
   // key=value pairs the host is labelled with (env=production).
   labels?: Array<HostCollectorLabel> | undefined;
+  /*
+   * Stop and disable a collector installed by hand (otelcol-contrib) on
+   * the host, for a host that reported through one before: without it the
+   * host would report twice.
+   */
+  replaceExisting?: boolean | undefined;
 }
 
 export interface HostCollectorLabel {
@@ -144,10 +153,7 @@ function quoteForShell(value: string): string {
   const isPlain: boolean =
     value.length > 0 &&
     value.split("").every((char: string): boolean => {
-      return (
-        isLabelKeyCharacter(char, 0) ||
-        "._:/@%+,=-".indexOf(char) !== -1
-      );
+      return isLabelKeyCharacter(char, 0) || "._:/@%+,=-".indexOf(char) !== -1;
     });
 
   return isPlain ? value : `'${value.split("'").join("'\\''")}'`;
@@ -200,6 +206,10 @@ export function getHostCollectorShellInstallCommand(
     words.push(`--label ${quoteForShell(`${label.key}=${label.value}`)}`);
   }
 
+  if (options.replaceExisting) {
+    words.push("--replace-existing");
+  }
+
   return words.join(" ");
 }
 
@@ -233,6 +243,10 @@ export function getHostCollectorPowerShellInstallCommand(
     );
   }
 
+  if (options.replaceExisting) {
+    parameters.push("-ReplaceExisting");
+  }
+
   return `[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12; & ([scriptblock]::Create((Invoke-RestMethod -Uri ${quoteForPowerShell(
     scriptUrl,
   )}))) ${parameters.join(" ")}`;
@@ -255,6 +269,43 @@ export function getHostCollectorInstallCommandLanguage(
   return osType === HostCollectorOsType.Windows ? "powershell" : "bash";
 }
 
+/*
+ * Checking on the collector OneUptime manages on a host, by hand: whether
+ * its service runs, its log, and restarting it. Each in the host's own
+ * shell: bash on Linux and macOS, PowerShell on Windows.
+ */
+export interface HostCollectorServiceCommands {
+  status: string;
+  logs: string;
+  restart: string;
+}
+
+export function getHostCollectorServiceCommands(
+  osType: HostCollectorOsType | null | undefined,
+): HostCollectorServiceCommands {
+  if (osType === HostCollectorOsType.Windows) {
+    return {
+      status: `Get-Service ${HOST_COLLECTOR_SERVICE_NAME}`,
+      logs: `Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = '${HOST_COLLECTOR_SERVICE_NAME}' } -MaxEvents 50 | Format-List TimeCreated, Message`,
+      restart: `Restart-Service ${HOST_COLLECTOR_SERVICE_NAME}`,
+    };
+  }
+
+  if (osType === HostCollectorOsType.MacOS) {
+    return {
+      status: `sudo launchctl print system/${HOST_COLLECTOR_MACOS_SERVICE_LABEL}`,
+      logs: `sudo tail -n 50 ${HOST_COLLECTOR_MACOS_LOG_FILE}`,
+      restart: `sudo launchctl kickstart -k system/${HOST_COLLECTOR_MACOS_SERVICE_LABEL}`,
+    };
+  }
+
+  return {
+    status: `sudo systemctl status ${HOST_COLLECTOR_SERVICE_NAME}`,
+    logs: `sudo journalctl -u ${HOST_COLLECTOR_SERVICE_NAME} -n 50`,
+    restart: `sudo systemctl restart ${HOST_COLLECTOR_SERVICE_NAME}`,
+  };
+}
+
 // Taking the collector off a host again: the same installer, told to remove.
 export function getHostCollectorUninstallCommand(data: {
   osType: HostCollectorOsType;
@@ -262,7 +313,10 @@ export function getHostCollectorUninstallCommand(data: {
 }): string {
   if (data.osType === HostCollectorOsType.Windows) {
     return `& ([scriptblock]::Create((Invoke-RestMethod -Uri ${quoteForPowerShell(
-      getScriptUrl(data.oneuptimeUrl, HOST_COLLECTOR_WINDOWS_INSTALL_SCRIPT_PATH),
+      getScriptUrl(
+        data.oneuptimeUrl,
+        HOST_COLLECTOR_WINDOWS_INSTALL_SCRIPT_PATH,
+      ),
     )}))) -Uninstall`;
   }
 

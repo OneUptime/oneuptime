@@ -106,6 +106,22 @@ const getStateCopy: (
     };
   }
 
+  if (guide.startingCopy) {
+    return {
+      icon: IconProp.RocketLaunch,
+      title: translator.translateTemplate(guide.startingCopy.title),
+      description: translator.translateTemplate(guide.startingCopy.description),
+      steps: guide.setupSteps,
+      accent: {
+        border: "border-indigo-200",
+        gradient: "from-indigo-50",
+        iconRing: "ring-indigo-200",
+        iconText: "text-indigo-600",
+        stepBadge: "bg-indigo-50 text-indigo-700 ring-indigo-200",
+      },
+    };
+  }
+
   return {
     icon: IconProp.RocketLaunch,
     title: translator.translateTemplate("Connect this {{resourceNoun}}", {
@@ -180,7 +196,11 @@ const ResourceConnectionGuideCard: FunctionComponent<ComponentProps> = (
           className="inline-flex flex-shrink-0 items-center justify-center gap-1.5 self-start rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
         >
           <Icon icon={IconProp.BookOpen} className="h-4 w-4" />
-          <span>{translator.translateText("Open the setup guide")}</span>
+          <span>
+            {translator.translateText(
+              props.guide.linkText || "Open the setup guide",
+            )}
+          </span>
         </Link>
       </div>
 

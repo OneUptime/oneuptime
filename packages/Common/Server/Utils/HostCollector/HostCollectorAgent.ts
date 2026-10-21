@@ -19,6 +19,7 @@ import {
 import {
   HostCollectorConfigCandidate,
   HostCollectorConfigChoice,
+  HostCollectorConfigChoiceReason,
   chooseHostCollectorConfig,
 } from "../../../Utils/HostCollector/HostCollectorConfigResolution";
 import {
@@ -156,8 +157,10 @@ export default class HostCollectorAgent {
     message: OpAmpAgentToServer;
   }): Promise<OpAmpServerToAgent> {
     const message: OpAmpAgentToServer = data.message;
-    const instanceUidBytes: Uint8Array = message.instanceUid || new Uint8Array();
-    const instanceUid: string | null = getOpAmpInstanceUidText(instanceUidBytes);
+    const instanceUidBytes: Uint8Array =
+      message.instanceUid || new Uint8Array();
+    const instanceUid: string | null =
+      getOpAmpInstanceUidText(instanceUidBytes);
 
     if (!instanceUid) {
       return getOpAmpErrorResponse({
@@ -208,9 +211,11 @@ export default class HostCollectorAgent {
       });
     }
 
+    // A new instance: the collector was installed, or installed again.
     if (snapshot.instanceUid !== instanceUid) {
       snapshot.instanceUid = instanceUid;
       changes["collectorInstanceUid"] = instanceUid;
+      changes["collectorRegisteredAt"] = OneUptimeDate.getCurrentDate();
     }
 
     const configs: Array<ProjectConfig> =
@@ -241,6 +246,18 @@ export default class HostCollectorAgent {
           hostCollectorHostFeaturesFromText(snapshot.hostFeatures) ||
           UNKNOWN_HOST_FEATURES,
       });
+
+    /*
+     * The config picked for this host is gone (deleted): the host goes back
+     * to the first config that applies to it, and its page says so.
+     */
+    if (
+      snapshot.isConfigPinned &&
+      choice.reason !== HostCollectorConfigChoiceReason.Pinned
+    ) {
+      snapshot.isConfigPinned = false;
+      changes["isCollectorConfigPinned"] = false;
+    }
 
     if (!snapshot.isConfigPinned && snapshot.configId !== choice.configId) {
       snapshot.configId = choice.configId;
@@ -306,7 +323,6 @@ export default class HostCollectorAgent {
 
     return exchange.response;
   }
-
 
   /*
    * The host a message is about: by its host name when it names one (the
@@ -679,7 +695,8 @@ export default class HostCollectorAgent {
           }),
         order: typeof row.order === "number" ? row.order : index,
         configYaml: row.configYaml,
-        configHash: row.configHash || getHostCollectorConfigHash(row.configYaml),
+        configHash:
+          row.configHash || getHostCollectorConfigHash(row.configYaml),
       });
     });
 

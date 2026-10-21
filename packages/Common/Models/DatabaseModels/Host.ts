@@ -1881,6 +1881,40 @@ export default class Host extends BaseModel {
   public collectorLastContactAt?: Date = undefined;
 
   /*
+   * When the collector OneUptime manages on this host was installed, or
+   * installed again: when it first reported with the instance it runs now.
+   * The Add Host guide waits for a host whose collector registered after
+   * the guide opened.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Collector Installed At",
+    description:
+      "When the collector OneUptime manages on this host was installed, or installed again: when it first reported to OneUptime. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public collectorRegisteredAt?: Date = undefined;
+
+  /*
    * The Collector Config this host should run: the first one that applies
    * to it, or the one picked for it on its page (isCollectorConfigPinned).
    * Empty: OneUptime's default for its system. Kept up to date by the

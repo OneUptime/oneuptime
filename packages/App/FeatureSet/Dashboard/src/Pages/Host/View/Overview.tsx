@@ -271,6 +271,7 @@ const HostOverview: FunctionComponent<
           hostType: true,
           hostIpAddresses: true,
           agentVersion: true,
+          collectorInstanceUid: true,
         },
       });
 
@@ -1962,6 +1963,10 @@ const HostOverview: FunctionComponent<
             (host.hostIdentifier as string | undefined) ||
               (host.name as string | undefined) ||
               "",
+            {
+              isManaged: Boolean(host.collectorInstanceUid),
+              osType: host.osType,
+            },
           )}
           documentationRoute={RouteUtil.populateRouteParams(
             RouteMap[PageMap.HOST_VIEW_DOCUMENTATION] as Route,
@@ -2076,6 +2081,9 @@ const HostOverview: FunctionComponent<
                               )}
                               upgradeGuideContext={{
                                 hostOsType: item.osType,
+                                isHostCollectorManaged: Boolean(
+                                  item.collectorInstanceUid,
+                                ),
                               }}
                             />
                           );

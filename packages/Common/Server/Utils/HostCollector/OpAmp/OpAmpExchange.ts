@@ -76,7 +76,8 @@ export interface HostCollectorAgentDescription {
 }
 
 // The attributes OneUptime's installer reports what it found on a host with.
-export const HOST_FEATURE_JOURNALD_ATTRIBUTE: string = "oneuptime.host.journald";
+export const HOST_FEATURE_JOURNALD_ATTRIBUTE: string =
+  "oneuptime.host.journald";
 export const HOST_FEATURE_SYSTEMD_ATTRIBUTE: string = "oneuptime.host.systemd";
 
 export interface OpAmpExchangeResult {
@@ -148,9 +149,7 @@ export function describeHostCollectorAgent(
  * status with no status and no hash (the empty status a supervisor without
  * stored state starts with), or none.
  */
-export function hasNoHostCollectorConfig(
-  message: OpAmpAgentToServer,
-): boolean {
+export function hasNoHostCollectorConfig(message: OpAmpAgentToServer): boolean {
   const status: OpAmpAgentToServer["remoteConfigStatus"] =
     message.remoteConfigStatus;
 

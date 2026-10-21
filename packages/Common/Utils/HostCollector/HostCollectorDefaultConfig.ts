@@ -331,19 +331,3 @@ export function hostCollectorHostFeaturesFromText(
     systemd: names.includes("systemd"),
   };
 }
-
-// The name a host's page gives the default it runs.
-export function getHostCollectorDefaultConfigName(
-  osType: HostCollectorOsType | null | undefined,
-): string {
-  switch (osType) {
-    case HostCollectorOsType.Linux:
-      return "OneUptime default for Linux";
-    case HostCollectorOsType.Windows:
-      return "OneUptime default for Windows";
-    case HostCollectorOsType.MacOS:
-      return "OneUptime default for macOS";
-    default:
-      return "OneUptime default";
-  }
-}

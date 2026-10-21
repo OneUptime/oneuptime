@@ -30,6 +30,8 @@ Parameters:
                       pins).
   -DownloadUrl URL    Download the releases from a mirror with the same
                       layout as GitHub's releases/download.
+  -Proxy URL          Send the downloads and the collector's traffic through
+                      this HTTP(S) proxy.
   -ReplaceExisting    Stop and disable a collector installed by hand (the
                       otelcol-contrib service) on this host.
   -Uninstall          Remove the service and everything this installed.
@@ -44,6 +46,7 @@ param(
     [string[]]$EnvVar = @(),
     [string]$Version = "0.161.0",
     [string]$DownloadUrl = "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download",
+    [string]$Proxy = "",
     [switch]$ReplaceExisting,
     [switch]$Uninstall
 )
@@ -139,6 +142,8 @@ if (-not (Test-UrlValue $Url)) { Stop-WithError "-Url must be an http:// or http
 if (-not (Test-KeyValue $Key)) { Stop-WithError "-Key does not look like an ingestion key. Copy it again from OneUptime." }
 if (-not (Test-UrlValue $DownloadUrl)) { Stop-WithError "-DownloadUrl must be an http:// or https:// address." }
 if ($Version -notmatch '^[0-9]+(\.[0-9]+)*$') { Stop-WithError "-Version must be a release number, such as 0.161.0." }
+$Proxy = Get-TrimmedUrl $Proxy
+if ($Proxy -and -not (Test-UrlValue $Proxy)) { Stop-WithError "-Proxy must be an http:// or https:// address, such as http://proxy:3128." }
 
 $labelLines = ""
 foreach ($text in $Label) {
@@ -180,8 +185,12 @@ New-Item -ItemType Directory -Force -Path $workDir | Out-Null
 
 # Downloads a file and checks it against the SHA-256 published beside it.
 function Get-CheckedDownload([string]$FromUrl, [string]$ToFile) {
-    Invoke-WebRequest -UseBasicParsing -Uri $FromUrl -OutFile $ToFile
-    Invoke-WebRequest -UseBasicParsing -Uri ($FromUrl + ".sha256") -OutFile ($ToFile + ".sha256")
+    $proxyArguments = @{}
+    if ($Proxy) {
+        $proxyArguments["Proxy"] = $Proxy
+    }
+    Invoke-WebRequest -UseBasicParsing -Uri $FromUrl -OutFile $ToFile @proxyArguments
+    Invoke-WebRequest -UseBasicParsing -Uri ($FromUrl + ".sha256") -OutFile ($ToFile + ".sha256") @proxyArguments
     $expected = ((Get-Content -Raw -Path ($ToFile + ".sha256")).Trim() -split '\s+')[0].ToLowerInvariant()
     $actual = (Get-FileHash -Algorithm SHA256 -Path $ToFile).Hash.ToLowerInvariant()
     if ($expected -ne $actual) {
@@ -299,6 +308,16 @@ else {
 }
 # Restart the service if it stops.
 & sc.exe failure $ServiceName reset= 86400 actions= restart/5000/restart/5000/restart/5000 | Out-Null
+
+# The proxy, for the supervisor and the collector it runs: the service's own
+# environment.
+$serviceKey = "HKLM:\SYSTEM\CurrentControlSet\Services\$ServiceName"
+if ($Proxy) {
+    New-ItemProperty -Path $serviceKey -Name "Environment" -PropertyType MultiString -Value @("HTTPS_PROXY=$Proxy", "HTTP_PROXY=$Proxy") -Force | Out-Null
+}
+else {
+    Remove-ItemProperty -Path $serviceKey -Name "Environment" -ErrorAction SilentlyContinue
+}
 
 $startedAt = Get-Date
 Start-Service -Name $ServiceName
