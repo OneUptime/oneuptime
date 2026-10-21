@@ -138,6 +138,11 @@ function choicesWithDefault(
  */
 let changes: Array<string> = [];
 
+// What the picker handed back so far (read from tests built in a loop).
+function recordedChanges(): Array<string> {
+  return changes;
+}
+
 function Harness(props: {
   stepType: string;
   initialValue: string;
@@ -396,7 +401,7 @@ describe("Bash, SSH and Kubernetes steps", () => {
       // Picking it does nothing: the step keeps no Runner.
       fireEvent.click(options[2]!);
 
-      expect(changes).toEqual([]);
+      expect(recordedChanges()).toEqual([]);
       expect(shown()).toBe("");
     });
 

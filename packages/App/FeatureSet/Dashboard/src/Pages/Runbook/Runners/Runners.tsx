@@ -20,7 +20,6 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
-import { Green } from "Common/Types/BrandColors";
 import GlobalRunnersCopy, {
   ADMIN_GLOBAL_RUNNERS_ROUTE,
 } from "../../../Components/Runner/GlobalRunnersCopy";
@@ -52,7 +51,7 @@ import RunnerLiveStatus, {
   getRunnerLiveStatus,
   getRunnerLiveStatusLabel,
 } from "Common/Types/Runner/RunnerLiveStatus";
-import { Gray500 } from "Common/Types/BrandColors";
+import { Gray500, Green } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import React, {

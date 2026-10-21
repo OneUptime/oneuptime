@@ -1195,8 +1195,11 @@ describe("the Runner the runbook pages describe", () => {
 });
 
 describe("a step's options on the authoring page", () => {
-  // The keys of what a new step of this type folds under More fields, in order.
-  // `runner`: what the Steps page names the step's Runner, for a step that runs on one.
+  /*
+   * The keys of what a new step of this type folds under More fields, in
+   * order. `runner`: what the Steps page names the step's Runner, for a
+   * step that runs on one.
+   */
   function foldedKeys(
     type: RunbookStepType,
     runner?: string | undefined,
