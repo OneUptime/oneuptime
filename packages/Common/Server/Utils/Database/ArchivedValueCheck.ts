@@ -256,8 +256,10 @@ export default class ArchivedValueCheck {
       byTable.set(tableName, entry);
     }
 
-    const archivedByTable: Map<string, Map<string, ArchivedValueRow>> =
-      new Map();
+    const archivedByTable: Map<
+      string,
+      Map<string, ArchivedValueRow>
+    > = new Map();
 
     for (const [tableName, entry] of byTable) {
       const rows: Array<ArchivedValueRow> = await data.findArchived({
@@ -308,15 +310,8 @@ export default class ArchivedValueCheck {
       return held;
     }
 
+    // A model holds each column as a property, as a plain object does.
     const read: (name: string) => unknown = (name: string): unknown => {
-      const model: { getColumnValue?: (column: string) => unknown } = row as {
-        getColumnValue?: (column: string) => unknown;
-      };
-
-      if (typeof model.getColumnValue === "function") {
-        return model.getColumnValue(name);
-      }
-
       return (row as Record<string, unknown>)[name];
     };
 

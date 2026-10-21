@@ -37,20 +37,17 @@ import {
 
 type ServiceOf<TBaseModel extends BaseModel> = DatabaseService<TBaseModel>;
 
+/*
+ * A column of a row, a model or a plain object: both hold each column as a
+ * property of their own. Never through a model's getColumnValue, which
+ * reads a false as null - a role's isDeleteable: false would never match.
+ */
 const readValue: (row: unknown, column: string) => unknown = (
   row: unknown,
   column: string,
 ): unknown => {
   if (!row || typeof row !== "object") {
     return undefined;
-  }
-
-  const model: { getColumnValue?: (column: string) => unknown } = row as {
-    getColumnValue?: (column: string) => unknown;
-  };
-
-  if (typeof model.getColumnValue === "function") {
-    return model.getColumnValue(column);
   }
 
   return (row as Record<string, unknown>)[column];
@@ -94,7 +91,8 @@ export default class ArchivableValueGuard {
     const record: TBaseModel = data.createBy.data;
 
     const projectId: ObjectID | undefined =
-      data.createBy.props.tenantId || toObjectId(readValue(record, "projectId"));
+      data.createBy.props.tenantId ||
+      toObjectId(readValue(record, "projectId"));
 
     if (!projectId) {
       return;
@@ -103,21 +101,19 @@ export default class ArchivableValueGuard {
     const name: unknown = readValue(record, "name");
 
     if (typeof name === "string" && name.trim()) {
-      const archivedNamesake: TBaseModel | null = await data.service.findOneBy(
-        {
-          query: {
-            projectId: projectId,
-            name: QueryHelper.findWithSameText(name.trim()),
-            [ARCHIVED_COLUMN]: true,
-          } as unknown as Query<TBaseModel>,
-          select: {
-            _id: true,
-          } as Select<TBaseModel>,
-          props: {
-            isRoot: true,
-          },
+      const archivedNamesake: TBaseModel | null = await data.service.findOneBy({
+        query: {
+          projectId: projectId,
+          name: QueryHelper.findWithSameText(name.trim()),
+          [ARCHIVED_COLUMN]: true,
+        } as unknown as Query<TBaseModel>,
+        select: {
+          _id: true,
+        } as Select<TBaseModel>,
+        props: {
+          isRoot: true,
         },
-      );
+      });
 
       if (archivedNamesake) {
         throw new BadDataException(

@@ -99,14 +99,7 @@ export default class ArchivedValuePicker {
       return false;
     }
 
-    const model: { getColumnValue?: (column: string) => unknown } = value as {
-      getColumnValue?: (column: string) => unknown;
-    };
-
-    if (typeof model.getColumnValue === "function") {
-      return model.getColumnValue(ARCHIVED_COLUMN) === true;
-    }
-
+    // A model holds each column as a property, as its JSON does.
     return (value as Record<string, unknown>)[ARCHIVED_COLUMN] === true;
   }
 

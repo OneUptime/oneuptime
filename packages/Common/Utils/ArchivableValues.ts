@@ -295,20 +295,17 @@ export const getArchivableValueProtectionColumns: (
   return columns;
 };
 
+/*
+ * A column of a row, a model or its JSON: both hold each column as a
+ * property of their own. Never through a model's getColumnValue, which
+ * reads a false as null - a role's isDeleteable: false would never match.
+ */
 const readColumn: (row: unknown, column: string) => unknown = (
   row: unknown,
   column: string,
 ): unknown => {
   if (!row || typeof row !== "object") {
     return undefined;
-  }
-
-  const model: { getColumnValue?: (column: string) => unknown } = row as {
-    getColumnValue?: (column: string) => unknown;
-  };
-
-  if (typeof model.getColumnValue === "function") {
-    return model.getColumnValue(column);
   }
 
   return (row as Record<string, unknown>)[column];
@@ -385,11 +382,9 @@ export const getArchiveRefusal: (data: {
     }),
   );
 
-  const liveLeft: Array<string> = data.liveIds.filter(
-    (id: string): boolean => {
-      return !archiving.has(id.toLowerCase());
-    },
-  );
+  const liveLeft: Array<string> = data.liveIds.filter((id: string): boolean => {
+    return !archiving.has(id.toLowerCase());
+  });
 
   return liveLeft.length === 0 ? data.definition.keepsOneLiveReason : null;
 };

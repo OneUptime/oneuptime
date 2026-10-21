@@ -217,6 +217,31 @@ describe("the rows OneUptime relies on", () => {
     );
   });
 
+  test("a model's false is read as false: a role that may not be deleted is protected", () => {
+    // A model's getColumnValue reads a false as null; the check must not.
+    const role: IncidentRole = new IncidentRole();
+    role.isPrimaryRole = false;
+    role.isDeleteable = false;
+
+    expect(
+      getArchiveProtectionReason({
+        definition: ARCHIVABLE_VALUES[ArchivableValueType.IncidentRole],
+        row: role,
+      }),
+    ).toBe(
+      "Every incident needs someone in charge, so this role can't be archived.",
+    );
+
+    role.isDeleteable = true;
+
+    expect(
+      getArchiveProtectionReason({
+        definition: ARCHIVABLE_VALUES[ArchivableValueType.IncidentRole],
+        row: role,
+      }),
+    ).toBeNull();
+  });
+
   test("severities and labels have no built-in rows", () => {
     for (const type of [
       ArchivableValueType.IncidentSeverity,
