@@ -36,6 +36,7 @@ import {
 import CloudMonitoringDocumentationCard from "../../Components/Cloud/CloudMonitoringDocumentationCard";
 import CloudConnectCallout from "../../Components/Cloud/Connect/CloudConnectCallout";
 import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Cloud → All Resources: the IaaS and PaaS resources discovered from the
@@ -346,7 +347,9 @@ const CloudMonitoredResources: FunctionComponent<
           <CloudConnectCallout />
           <CollapsibleSection
             title="Already run an OpenTelemetry Collector?"
-            collapsedDescription="Send your cloud's metrics through it instead: the steps for Azure Monitor, CloudWatch and Cloud Monitoring."
+            collapsedDescription={translationKey(
+              "Send your cloud's metrics through it instead: the steps for Azure Monitor, CloudWatch and Cloud Monitoring.",
+            )}
             defaultCollapsed={true}
           >
             <CloudMonitoringDocumentationCard

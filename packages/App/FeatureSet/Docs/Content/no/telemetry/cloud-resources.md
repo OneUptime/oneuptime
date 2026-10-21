@@ -2,6 +2,9 @@
 
 **Cloud Resources** viser IaaS- og PaaS-ressursene i AWS-, Azure- og Google Cloud-kontoene dine: virtuelle maskiner, disker, lastbalanserere, bøtter, administrerte databaser, hurtigbuffere, køer, API-gatewayer og resten. Hver ressurs får sin egen side, med type, region og konto, leverandørens egen ID for den, hver metrikk leverandøren publiserer om den, og eiere og etiketter som alle andre ressurser i OneUptime. Du finner dem under **Sky → Alle ressurser**.
 
+> [!TIP]
+> Vil du heller slippe å kjøre en collector? [Koble til en skykonto](/docs/telemetry/cloud-accounts) under **Sky → Koble til**, så leser OneUptime disse målingene selv.
+
 :::cards
 - [Koble til Azure](#koble-til-azure): Les alle ressursene i et abonnement fra Azure Monitor.
 - [Koble til AWS](#koble-til-aws): Poll CloudWatch, eller strøm det gjennom Amazon Data Firehose.

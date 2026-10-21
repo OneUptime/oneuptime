@@ -32316,5 +32316,7 @@
   "arn:aws:iam::123456789012:role/OneUptimeReadOnly": "arn:aws:iam::123456789012:role/OneUptimeReadOnly",
   "us-east-1, eu-west-1": "us-east-1, eu-west-1",
   "{{count}} resources in {{regions}} regions": "{{regions}} リージョンのリソース {{count}} 個",
-  "{{count}} resources in {{regions}} regions_one": "{{regions}} リージョンのリソース {{count}} 個"
+  "{{count}} resources in {{regions}} regions_one": "{{regions}} リージョンのリソース {{count}} 個",
+  "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "クラウド接続を削除すると、OneUptime はそのアカウントの読み取りを停止します。リソースはメトリクスとともに残ります。",
+  "Send your cloud's metrics through it instead: the steps for Azure Monitor, CloudWatch and Cloud Monitoring.": "代わりにコレクター経由でクラウドのメトリクスを送信できます。Azure Monitor、CloudWatch、Cloud Monitoring の手順です。"
 }

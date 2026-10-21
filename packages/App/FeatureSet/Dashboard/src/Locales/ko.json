@@ -8873,7 +8873,7 @@
   "Client URI": "Client URI",
   "Client and device information reported by the recorder.": "Client and device information reported by the recorder.",
   "Client clock skew": "Client clock skew",
-  "Client secret": "클라이언트 비밀",
+  "Client secret": "Client secret",
   "Clipboard access was blocked": "Clipboard access was blocked",
   "Clipboard unavailable. Copy manually:": "Clipboard unavailable. Copy manually:",
   "Clipboard unavailable. The value is selected for manual copy.": "Clipboard unavailable. The value is selected for manual copy.",
@@ -26017,7 +26017,7 @@
   "Video Call": "Video Call",
   "Video Calls": "Video Calls",
   "Video call": "화상 통화",
-  "View error": "오류 보기",
+  "View error": "View error",
   "Want a new Zoom, Google Meet or Microsoft Teams meeting for every incident?": "Want a new Zoom, Google Meet or Microsoft Teams meeting for every incident?",
   "War room": "War room",
   "When this rule fires, start a call and post its Join button wherever the rule posts and on the {{eventNoun}}'s page.": "이 규칙이 실행되면 통화를 시작하고, 규칙이 게시하는 모든 곳과 {{eventNoun}} 페이지에 'Join' 버튼을 게시합니다.",
@@ -32316,5 +32316,7 @@
   "arn:aws:iam::123456789012:role/OneUptimeReadOnly": "arn:aws:iam::123456789012:role/OneUptimeReadOnly",
   "us-east-1, eu-west-1": "us-east-1, eu-west-1",
   "{{count}} resources in {{regions}} regions": "{{regions}}개 리전의 리소스 {{count}}개",
-  "{{count}} resources in {{regions}} regions_one": "{{regions}}개 리전의 리소스 {{count}}개"
+  "{{count}} resources in {{regions}} regions_one": "{{regions}}개 리전의 리소스 {{count}}개",
+  "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "클라우드 연결을 삭제하면 OneUptime이 해당 계정 읽기를 중지합니다. 리소스는 메트릭과 함께 유지됩니다.",
+  "Send your cloud's metrics through it instead: the steps for Azure Monitor, CloudWatch and Cloud Monitoring.": "대신 컬렉터를 통해 클라우드 메트릭을 보내세요. Azure Monitor, CloudWatch, Cloud Monitoring의 단계입니다."
 }

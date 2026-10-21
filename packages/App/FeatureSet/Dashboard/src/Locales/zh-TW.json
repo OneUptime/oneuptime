@@ -8873,7 +8873,7 @@
   "Client URI": "Client URI",
   "Client and device information reported by the recorder.": "Client and device information reported by the recorder.",
   "Client clock skew": "Client clock skew",
-  "Client secret": "用戶端密碼",
+  "Client secret": "Client secret",
   "Clipboard access was blocked": "Clipboard access was blocked",
   "Clipboard unavailable. Copy manually:": "Clipboard unavailable. Copy manually:",
   "Clipboard unavailable. The value is selected for manual copy.": "Clipboard unavailable. The value is selected for manual copy.",
@@ -26017,7 +26017,7 @@
   "Video Call": "Video Call",
   "Video Calls": "Video Calls",
   "Video call": "視訊通話",
-  "View error": "檢視錯誤",
+  "View error": "View error",
   "Want a new Zoom, Google Meet or Microsoft Teams meeting for every incident?": "Want a new Zoom, Google Meet or Microsoft Teams meeting for every incident?",
   "War room": "War room",
   "When this rule fires, start a call and post its Join button wherever the rule posts and on the {{eventNoun}}'s page.": "此規則觸發時，開始通話，並在規則張貼的所有位置以及{{eventNoun}}頁面上張貼其「Join」按鈕。",
@@ -32316,5 +32316,7 @@
   "arn:aws:iam::123456789012:role/OneUptimeReadOnly": "arn:aws:iam::123456789012:role/OneUptimeReadOnly",
   "us-east-1, eu-west-1": "us-east-1, eu-west-1",
   "{{count}} resources in {{regions}} regions": "{{regions}} 個區域中的 {{count}} 個資源",
-  "{{count}} resources in {{regions}} regions_one": "{{regions}} 個區域中的 {{count}} 個資源"
+  "{{count}} resources in {{regions}} regions_one": "{{regions}} 個區域中的 {{count}} 個資源",
+  "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "刪除雲端連線後，OneUptime 會停止讀取該帳戶。其資源及指標會保留。",
+  "Send your cloud's metrics through it instead: the steps for Azure Monitor, CloudWatch and Cloud Monitoring.": "改為透過它傳送雲端指標：Azure Monitor、CloudWatch 和 Cloud Monitoring 的步驟。"
 }

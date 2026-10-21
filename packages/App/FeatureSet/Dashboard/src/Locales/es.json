@@ -32316,5 +32316,7 @@
   "arn:aws:iam::123456789012:role/OneUptimeReadOnly": "arn:aws:iam::123456789012:role/OneUptimeReadOnly",
   "us-east-1, eu-west-1": "us-east-1, eu-west-1",
   "{{count}} resources in {{regions}} regions": "{{count}} recursos en {{regions}} regiones",
-  "{{count}} resources in {{regions}} regions_one": "{{count}} recurso en {{regions}} regiones"
+  "{{count}} resources in {{regions}} regions_one": "{{count}} recurso en {{regions}} regiones",
+  "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "Eliminar una conexión a la nube hace que OneUptime deje de leer la cuenta. Sus recursos se mantienen, con sus métricas.",
+  "Send your cloud's metrics through it instead: the steps for Azure Monitor, CloudWatch and Cloud Monitoring.": "Envía las métricas de tu nube a través de él: los pasos para Azure Monitor, CloudWatch y Cloud Monitoring."
 }

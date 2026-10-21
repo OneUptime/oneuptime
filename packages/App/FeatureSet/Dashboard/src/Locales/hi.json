@@ -8873,7 +8873,7 @@
   "Client URI": "Client URI",
   "Client and device information reported by the recorder.": "Client and device information reported by the recorder.",
   "Client clock skew": "Client clock skew",
-  "Client secret": "क्लाइंट सीक्रेट",
+  "Client secret": "Client secret",
   "Clipboard access was blocked": "Clipboard access was blocked",
   "Clipboard unavailable. Copy manually:": "Clipboard unavailable. Copy manually:",
   "Clipboard unavailable. The value is selected for manual copy.": "Clipboard unavailable. The value is selected for manual copy.",
@@ -26017,7 +26017,7 @@
   "Video Call": "Video Call",
   "Video Calls": "Video Calls",
   "Video call": "वीडियो कॉल",
-  "View error": "त्रुटि देखें",
+  "View error": "View error",
   "Want a new Zoom, Google Meet or Microsoft Teams meeting for every incident?": "Want a new Zoom, Google Meet or Microsoft Teams meeting for every incident?",
   "War room": "War room",
   "When this rule fires, start a call and post its Join button wherever the rule posts and on the {{eventNoun}}'s page.": "जब यह नियम चले, तो कॉल शुरू करें और उसका “Join” बटन वहाँ पोस्ट करें जहाँ नियम पोस्ट करता है और {{eventNoun}} के पेज पर।",
@@ -32316,5 +32316,7 @@
   "arn:aws:iam::123456789012:role/OneUptimeReadOnly": "arn:aws:iam::123456789012:role/OneUptimeReadOnly",
   "us-east-1, eu-west-1": "us-east-1, eu-west-1",
   "{{count}} resources in {{regions}} regions": "{{regions}} क्षेत्रों में {{count}} संसाधन",
-  "{{count}} resources in {{regions}} regions_one": "{{regions}} क्षेत्रों में {{count}} संसाधन"
+  "{{count}} resources in {{regions}} regions_one": "{{regions}} क्षेत्रों में {{count}} संसाधन",
+  "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "क्लाउड कनेक्शन हटाने पर OneUptime उस खाते को पढ़ना बंद कर देता है। उसके संसाधन अपने मेट्रिक्स के साथ बने रहते हैं।",
+  "Send your cloud's metrics through it instead: the steps for Azure Monitor, CloudWatch and Cloud Monitoring.": "इसके बजाय अपने क्लाउड के मेट्रिक्स इसके ज़रिए भेजें: Azure Monitor, CloudWatch और Cloud Monitoring के चरण।"
 }

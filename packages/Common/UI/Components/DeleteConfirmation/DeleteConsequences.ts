@@ -429,6 +429,12 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
         code: "public async findOrCreateByIdentity(",
       },
     },
+    CloudConnection: {
+      sentence: translationKey(
+        "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.",
+      ),
+      stays: ["CloudResource"],
+    },
     CloudResource: {
       addedBackBy: {
         service: "CloudResourceService",

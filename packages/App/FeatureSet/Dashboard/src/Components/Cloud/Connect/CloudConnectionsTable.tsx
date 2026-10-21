@@ -221,7 +221,6 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
           props.onConnectionsLoaded(totalCount);
         }}
         isDeleteable={true}
-        deleteConfirmationWarning="OneUptime stops reading the account. Its resources stay, with their history, and are archived after a week without metrics."
         isEditable={false}
         isCreateable={false}
         isViewable={false}
