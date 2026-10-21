@@ -42,6 +42,7 @@ import {
   getDashboardWidgetSortSpec,
   getDashboardWidgetSortValues,
   getDashboardWidgetSortsProblem,
+  isWritableSortPath,
   readDashboardWidgetListInSteps,
   readDashboardWidgetSavedSort,
   withDashboardWidgetListSortSelect,
@@ -1478,5 +1479,97 @@ describe("a dashboard write's widget sorts", () => {
         ...Object.keys(TRACE_ANALYTICS_TABLE_SORT_ALIASES),
       ].sort(),
     );
+  });
+});
+
+// What Object.prototype holds before any sort is built, to see that none adds to it.
+const OBJECT_PROTOTYPE_NAMES: ReadonlyArray<string> =
+  Object.getOwnPropertyNames(Object.prototype);
+
+/*
+ * A sort and a select are built by writing field paths into objects. Every
+ * path is one the registry declares - a request names only a column key -
+ * so no path can reach an object's prototype: the registry declares none,
+ * a request's column key naming one picks no column, and a path that did
+ * would be left out where it is written (CodeQL #2358).
+ */
+describe("field paths never reach an object's prototype", () => {
+  test("a path is written only when every part is a name and none a prototype key", () => {
+    for (const path of ["name", "monitorStatus.priority", "a.b.c"]) {
+      expect({ path, writable: isWritableSortPath(path) }).toEqual({
+        path,
+        writable: true,
+      });
+    }
+
+    for (const path of [
+      "__proto__",
+      "__proto__.polluted",
+      "monitor.constructor.prototype",
+      "prototype",
+      "",
+      "a..b",
+      "a.",
+    ]) {
+      expect({ path, writable: isWritableSortPath(path) }).toEqual({
+        path,
+        writable: false,
+      });
+    }
+  });
+
+  test("every path the registry declares is writable", () => {
+    const unwritable: Array<string> = [];
+
+    for (const componentType of getDashboardWidgetSortComponentTypes()) {
+      const spec: DashboardWidgetListSortSpec | null =
+        getDashboardWidgetSortSpec(componentType);
+
+      for (const column of spec?.columns || []) {
+        for (const field of column.fields || []) {
+          if (!isWritableSortPath(field.path)) {
+            unwritable.push(`${componentType} ${column.key}: ${field.path}`);
+          }
+        }
+      }
+
+      for (const tieBreak of spec?.thenBy || []) {
+        if (!isWritableSortPath(tieBreak.path)) {
+          unwritable.push(`${componentType} then by: ${tieBreak.path}`);
+        }
+      }
+    }
+
+    expect(unwritable).toEqual([]);
+  });
+
+  test("a request naming a prototype key as its column gets the widget's own order and changes no prototype", () => {
+    for (const componentType of getDashboardWidgetSortComponentTypes()) {
+      const ownOrder: JSONObject = getDashboardWidgetListSort(
+        componentType,
+        null,
+      );
+
+      for (const column of ["__proto__", "constructor", "prototype"]) {
+        const sort: JSONObject = getDashboardWidgetListSort(componentType, {
+          column: column,
+          direction: DashboardWidgetSortDirection.Descending,
+        } as DashboardWidgetSortChoice);
+
+        expect({ componentType, column, sort }).toEqual({
+          componentType,
+          column,
+          sort: ownOrder,
+        });
+      }
+    }
+
+    expect(
+      Object.getOwnPropertyNames(Object.prototype).filter(
+        (name: string): boolean => {
+          return !OBJECT_PROTOTYPE_NAMES.includes(name);
+        },
+      ),
+    ).toEqual([]);
   });
 });

@@ -1178,7 +1178,7 @@ export function getDashboardWidgetListSortSelect(
   for (const path of paths) {
     const parts: Array<string> = path.split(".");
 
-    if (parts.length !== 2) {
+    if (parts.length !== 2 || !isWritableSortPath(path)) {
       continue;
     }
 
@@ -1224,11 +1224,36 @@ export function withDashboardWidgetListSortSelect(
 
 // -- Building the read -------------------------------------------------------
 
+// Keys that reach an object's prototype rather than the object itself.
+const PROTOTYPE_KEYS: ReadonlyArray<string> = [
+  "__proto__",
+  "constructor",
+  "prototype",
+];
+
+/*
+ * Whether a field path may be written into a sort or a select: every part a
+ * name, none of them a key that reaches an object's prototype. Every path
+ * written here is one this registry declares - a request names only a column
+ * key, matched against the registered columns - so this holds while nobody
+ * registers such a path (the registry's tests say none does); it is asked
+ * where a path is written all the same.
+ */
+export function isWritableSortPath(path: string): boolean {
+  return path.split(".").every((part: string): boolean => {
+    return part.length > 0 && !PROTOTYPE_KEYS.includes(part);
+  });
+}
+
 function setSortAtPath(
   sort: JSONObject,
   path: string,
   value: SortOrder | JSONObject,
 ): void {
+  if (!isWritableSortPath(path)) {
+    return;
+  }
+
   const parts: Array<string> = path.split(".");
   let target: JSONObject = sort;
 
