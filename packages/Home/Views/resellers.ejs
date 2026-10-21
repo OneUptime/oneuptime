@@ -27,6 +27,8 @@
   const form = resellers.form;
   const fields = form.fields;
   const fallbackEmail = form.fallbackEmail;
+  // Utils/CloudMarketplaces.ts: OneUptime's listings on the cloud marketplaces.
+  const marketplaces = resellers.cloudMarketplaces;
 -%>
 
 <body class="antialiased bg-white">
@@ -63,6 +65,15 @@
               Become a reseller
             </a>
           </div>
+
+          <% if (marketplaces.hasPublicListing) { -%>
+          <p class="mt-6 text-sm leading-6 text-gray-600" data-testid="resellers-hero-marketplaces">
+            <a href="#<%= marketplaces.sectionId %>" class="inline-flex items-center gap-1 font-medium text-gray-900 hover:text-gray-600">
+              <span class="underline underline-offset-2">Or buy through your cloud marketplace</span>
+              <span aria-hidden="true">&darr;</span>
+            </a>
+          </p>
+          <% } -%>
         </div>
       </div>
     </section>
@@ -143,6 +154,111 @@
         </div>
       </div>
     </section>
+
+    <% if (marketplaces.hasPublicListing) { -%>
+    <!-- Cloud marketplaces -->
+    <%#
+      Not resellers: the cloud marketplaces OneUptime is sold on, after the
+      resellers because they are the other way to buy through an account a
+      buyer already has. Each marketplace is a card with a row for each
+      product; a listing that is not public yet says so, and links nowhere,
+      and a marketplace with no public listing at all is one line. Shown
+      only while at least one listing is public.
+    -%>
+    <section id="<%= marketplaces.sectionId %>" class="scroll-mt-8 border-t border-gray-200 bg-gray-50 py-16 sm:py-24" aria-labelledby="cloud-marketplaces-title">
+      <div class="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 lg:grid-cols-5 lg:gap-16 lg:px-8">
+        <div class="lg:col-span-2">
+          <h2 id="cloud-marketplaces-title" class="text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl">Buy through your cloud marketplace</h2>
+          <p class="mt-3 text-base leading-7 text-gray-600">Buy OneUptime with the cloud account you already have, and pay for it on your cloud bill.</p>
+
+          <dl class="mt-10 space-y-8" data-testid="cloud-marketplace-products">
+            <div class="relative pl-14">
+              <dt class="text-base font-semibold leading-7 text-gray-900">
+                <span class="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-gray-900" aria-hidden="true">
+                  <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
+                  </svg>
+                </span>
+                OneUptime Cloud
+              </dt>
+              <dd class="mt-1 text-sm leading-6 text-gray-600">
+                We run it for you, at the prices on our
+                <a href="/pricing" class="font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600">pricing page</a>.
+              </dd>
+            </div>
+            <div class="relative pl-14">
+              <dt class="text-base font-semibold leading-7 text-gray-900">
+                <span class="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-gray-900" aria-hidden="true">
+                  <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z" />
+                  </svg>
+                </span>
+                OneUptime Enterprise
+              </dt>
+              <dd class="mt-1 text-sm leading-6 text-gray-600">
+                You run it in your own Kubernetes cluster, for <%= marketplaces.enterprisePricePerUserHour %> per user per hour, with no license key to activate.
+                <a href="<%= marketplaces.enterpriseGuidePath %>" class="font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600">How it works</a>
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="space-y-4 lg:col-span-3">
+          <ul role="list" class="space-y-4">
+            <% marketplaces.marketplaces.forEach(function (card) { -%>
+            <li id="<%= card.anchorId %>" class="scroll-mt-8 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200" data-testid="cloud-marketplace-card">
+              <% if (!card.hasPublicListing) { -%>
+              <%#
+                The name stays whole: on a phone too narrow for both, the
+                label moves under the name rather than breaking it in two.
+              -%>
+              <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                <h3 class="text-base font-semibold leading-7 text-gray-900"><%= card.name %></h3>
+                <span class="flex-none rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600" data-testid="cloud-marketplace-coming-soon">Coming soon</span>
+              </div>
+              <% } else { -%>
+              <h3 class="text-base font-semibold leading-7 text-gray-900"><%= card.name %></h3>
+              <%#
+                The last row adds no space of its own under it, so the card
+                has as much room under its last row as above its name.
+              -%>
+              <ul role="list" class="mt-3 divide-y divide-gray-100 border-t border-gray-100">
+                <% card.listings.forEach(function (listing) { -%>
+                <li class="flex items-center justify-between gap-4 py-3 last:pb-0" data-testid="cloud-marketplace-listing" data-product="<%= listing.product %>">
+                  <div class="min-w-0">
+                    <p class="text-sm font-medium leading-6 text-gray-900"><%= listing.productName %></p>
+                    <p class="text-sm leading-6 text-gray-500"><%= listing.detail %></p>
+                  </div>
+                  <% if (listing.listingUrl) { -%>
+                  <a href="<%= listing.listingUrl %>" target="_blank" rel="noopener noreferrer" data-ou-cta="<%= marketplaces.ctaName %>" class="inline-flex flex-none items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
+                    <span>View listing</span>
+                    <svg class="h-4 w-4 flex-none text-gray-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                    </svg>
+                    <span class="sr-only">(opens <%= listing.label %> in a new tab)</span>
+                  </a>
+                  <% } else { -%>
+                  <span class="flex-none rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600" data-testid="cloud-marketplace-coming-soon">Coming soon</span>
+                  <% } -%>
+                </li>
+                <% }); -%>
+              </ul>
+              <% } -%>
+            </li>
+            <% }); -%>
+          </ul>
+
+          <div class="rounded-2xl border border-dashed border-gray-300 px-6 py-5" data-testid="cloud-marketplaces-private-offer">
+            <p class="text-sm font-semibold leading-6 text-gray-900">Need annual pricing or a volume discount?</p>
+            <p class="mt-1 text-sm leading-6 text-gray-600">
+              <a href="<%= marketplaces.privateOfferPath %>" class="font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600">Talk to our team</a>
+              about a private offer, which you accept on your marketplace.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+    <% } -%>
 
     <!-- Become a reseller -->
     <section id="become-a-reseller" class="scroll-mt-8 bg-white py-16 sm:py-24" aria-labelledby="become-a-reseller-title">

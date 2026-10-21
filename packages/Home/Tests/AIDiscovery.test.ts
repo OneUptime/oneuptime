@@ -11,6 +11,11 @@ import {
   RecentBlogPostLink,
 } from "../Utils/AIDiscovery";
 import { getResellersPageContent } from "../Utils/Resellers";
+import {
+  CloudMarketplaceEntries,
+  CloudMarketplaceEntry,
+  getCloudMarketplacesContent,
+} from "../Utils/CloudMarketplaces";
 import PageSEOConfig from "../Utils/PageSEO";
 import { getProductCompareSlugs } from "../Utils/ProductCompare";
 import McpOAuthConfig from "Common/Server/Utils/Mcp/McpOAuthConfig";
@@ -502,5 +507,158 @@ describe("the resellers, for machines", () => {
 
     expect(md).toContain("Canonical page: https://oneuptime.com/resellers");
     expect(md).not.toContain("https://oneuptime.com//");
+  });
+});
+
+describe("the cloud marketplaces, for machines", () => {
+  const noListing: Array<CloudMarketplaceEntry> = CloudMarketplaceEntries.map(
+    (entry: CloudMarketplaceEntry): CloudMarketplaceEntry => {
+      return { ...entry, listingUrls: { cloud: null, enterprise: null } };
+    },
+  );
+
+  function resellersMarkdown(
+    cloudMarketplaces?: Array<CloudMarketplaceEntry>,
+  ): string {
+    return generateResellersMarkdown(
+      homeUrl,
+      getResellersPageContent({
+        inquiryInbox: "partners@example.com",
+        cloudMarketplaces: cloudMarketplaces,
+      }),
+    );
+  }
+
+  // The lines of a markdown section, from its heading to the next one.
+  function sectionOf(markdown: string, heading: string): Array<string> {
+    const lines: Array<string> = markdown.split("\n");
+    const start: number = lines.indexOf(heading);
+
+    expect(start).toBeGreaterThan(-1);
+
+    const rest: Array<string> = lines.slice(start + 1);
+    const end: number = rest.findIndex((line: string): boolean => {
+      return line.startsWith("## ");
+    });
+
+    return end === -1 ? rest : rest.slice(0, end);
+  }
+
+  test("/resellers.md lists them after the resellers and before how to become one", () => {
+    const md: string = resellersMarkdown();
+    const headings: Array<string> = md
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.startsWith("## ");
+      });
+
+    expect(headings).toEqual([
+      "## Resellers by region",
+      "## Buy through your cloud marketplace",
+      "## Become a reseller",
+      "## Learn More",
+    ]);
+  });
+
+  test("/resellers.md says what each product is and lists each listing as the page shows it", () => {
+    expect(
+      sectionOf(resellersMarkdown(), "## Buy through your cloud marketplace"),
+    ).toEqual([
+      "",
+      "Buy OneUptime with the cloud account you already have, and pay for it on your cloud bill. OneUptime Cloud is run by OneUptime, at the prices on https://oneuptime.com/pricing. OneUptime Enterprise runs in your own Kubernetes cluster, for $0.10 per user per hour, with no license key to activate: https://oneuptime.com/docs/installation/cloud-marketplaces",
+      "",
+      "- AWS Marketplace",
+      "  - [OneUptime Cloud](https://aws.amazon.com/marketplace/pp/prodview-ttfnc3eqofayw): Hosted by OneUptime",
+      "  - OneUptime Enterprise: Self-hosted on Amazon EKS, coming soon",
+      "- Microsoft Marketplace",
+      "  - [OneUptime Cloud](https://marketplace.microsoft.com/en-us/product/oneupitme.oneuptime-cloud): Hosted by OneUptime",
+      "  - [OneUptime Enterprise](https://marketplace.microsoft.com/en-us/product/oneupitme.oneuptime-enterprise): Self-hosted on Azure Kubernetes Service",
+      "- Google Cloud Marketplace: coming soon",
+      "",
+      "For annual pricing or a volume discount, ask for a private offer, which you accept on your marketplace: https://oneuptime.com/enterprise/demo",
+      "",
+    ]);
+  });
+
+  test("/resellers.md links every public listing the list has, and no other", () => {
+    const md: string = resellersMarkdown();
+
+    for (const entry of CloudMarketplaceEntries) {
+      for (const url of Object.values(entry.listingUrls)) {
+        if (url) {
+          expect(md).toContain(`](${url})`);
+        }
+      }
+    }
+
+    expect(md.split("](https://aws.amazon.com/").length - 1).toBe(1);
+    expect(md.split("](https://marketplace.microsoft.com/").length - 1).toBe(2);
+    expect(md).not.toContain("](https://console.cloud.google.com/");
+  });
+
+  test("/resellers.md leaves the marketplaces out while no listing is public", () => {
+    const md: string = resellersMarkdown(noListing);
+
+    expect(md).not.toContain("## Buy through your cloud marketplace");
+    expect(md).not.toContain("coming soon");
+    expect(md).not.toContain("Marketplace");
+    expect(md).not.toContain("private offer");
+    expect(md).toContain("## Become a reseller");
+  });
+
+  test("/resellers.md normalizes a trailing slash in the marketplaces' links too", () => {
+    const md: string = generateResellersMarkdown(
+      "https://oneuptime.com/",
+      getResellersPageContent({ inquiryInbox: "partners@example.com" }),
+    );
+
+    expect(md).toContain(
+      "with no license key to activate: https://oneuptime.com/docs/installation/cloud-marketplaces",
+    );
+    expect(md).not.toContain("https://oneuptime.com//");
+  });
+
+  test("/resellers.md keeps third-level headings for the regions alone", () => {
+    const md: string = resellersMarkdown();
+
+    expect(
+      md.split("\n").filter((line: string): boolean => {
+        return line.startsWith("### ");
+      }),
+    ).toEqual(["### Asia Pacific"]);
+  });
+
+  test("pricing markdown names OneUptime Cloud's public listings under the plans", () => {
+    const md: string = generatePricingMarkdown(homeUrl);
+    const line: string =
+      "Prefer to pay on your cloud bill? Buy OneUptime Cloud on [AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-ttfnc3eqofayw) or [Microsoft Marketplace](https://marketplace.microsoft.com/en-us/product/oneupitme.oneuptime-cloud), at the same prices. Every marketplace: https://oneuptime.com/resellers#cloud-marketplaces";
+
+    expect(md).toContain(line);
+    // After the plans, before the feature matrix.
+    expect(
+      md.indexOf("Canonical page: https://oneuptime.com/pricing"),
+    ).toBeLessThan(md.indexOf(line));
+    expect(md.indexOf(line)).toBeLessThan(md.indexOf("### "));
+  });
+
+  test("pricing markdown says nothing of marketplaces while no OneUptime Cloud listing is public", () => {
+    const md: string = generatePricingMarkdown(
+      homeUrl,
+      getCloudMarketplacesContent(noListing),
+    );
+
+    expect(md).not.toContain("Marketplace");
+    expect(md).toContain("| Growth | $22 | $20 |");
+  });
+
+  test("llms.txt lists the Resellers page with the description that names the marketplaces", () => {
+    const txt: string = generateLlmsTxt(homeUrl, []);
+
+    expect(txt).toContain(
+      `- [Resellers](https://oneuptime.com/resellers.md): ${PageSEOConfig["/resellers"]!.description}`,
+    );
+    expect(PageSEOConfig["/resellers"]!.description).toContain(
+      "cloud marketplace",
+    );
   });
 });

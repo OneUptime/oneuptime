@@ -19,6 +19,11 @@ import {
   RESELLER_INQUIRY_PATH,
   ResellerInquiryFieldRules,
 } from "../Utils/ResellerInquiry";
+import {
+  CloudMarketplaceEntries,
+  CloudMarketplaceEntry,
+  getCloudMarketplacesContent,
+} from "../Utils/CloudMarketplaces";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -373,6 +378,50 @@ describe("the page's content", () => {
       honeypotField: RESELLER_INQUIRY_HONEYPOT_FIELD,
       fields: ResellerInquiryFieldRules,
     });
+  });
+
+  test("carries the cloud marketplaces for the section after the resellers", () => {
+    const content: ResellersPageContent = getResellersPageContent({
+      inquiryInbox: "partners@example.com",
+    });
+
+    expect(content.cloudMarketplaces).toEqual(getCloudMarketplacesContent());
+    expect(content.cloudMarketplaces.hasPublicListing).toBe(true);
+  });
+
+  test("can be drawn for another list of marketplaces, and the resellers stay as they are", () => {
+    const marketplaces: Array<CloudMarketplaceEntry> = [
+      CloudMarketplaceEntries[0]!,
+    ];
+    const content: ResellersPageContent = getResellersPageContent({
+      inquiryInbox: "partners@example.com",
+      cloudMarketplaces: marketplaces,
+    });
+
+    expect(content.cloudMarketplaces).toEqual(
+      getCloudMarketplacesContent(marketplaces),
+    );
+    expect(content.regions).toEqual(getResellerRegionGroups(Resellers));
+  });
+
+  test("does not count a marketplace as a reseller", () => {
+    const content: ResellersPageContent = getResellersPageContent({
+      inquiryInbox: "partners@example.com",
+    });
+
+    const names: Array<string> = content.regions.flatMap(
+      (group: ResellerRegionGroup) => {
+        return group.resellers.map((card: ResellerCard) => {
+          return card.name;
+        });
+      },
+    );
+
+    expect(content.resellerCount).toBe(Resellers.length);
+    expect(names).toHaveLength(Resellers.length);
+    for (const marketplace of content.cloudMarketplaces.marketplaces) {
+      expect(names).not.toContain(marketplace.name);
+    }
   });
 
   test("can be drawn for a list with no resellers at all", () => {
