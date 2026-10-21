@@ -90,9 +90,9 @@ const ALLOWED_REPEATED_FILLED_BUTTONS: Array<AllowedRepeatedButton> = [
   },
   {
     file: "packages/App/FeatureSet/Dashboard/src/Pages/Runbook/View/ExecutionView.tsx",
-    label: "Approve & continue / Mark complete",
+    label: "waitingStepButtonTitle",
     reason:
-      "Written inside the steps' map, but only a step that is waiting gets it, and a runbook execution waits on one step at a time.",
+      "Written inside the steps' map, but only the step a run is waiting on gets it (Mark complete, Approve and run, or Approve & continue: RunbookExecutionWaitCopy), and a runbook execution waits on one step at a time.",
   },
 ];
 

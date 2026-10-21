@@ -18,11 +18,11 @@ import path from "path";
  *
  * The note (installation/upgrading, "Other changes in 14") sits after the
  * note on a code repository's Runner (CodeRepositoryRunnerUpgradeDocs) and
- * before the endpoint pointer, and every translation carries it in the
- * English note's place, naming the switch and the rule's fields the way the
- * reader's Dashboard draws them, with a link to the AI SRE page's section on
- * the rules in the reader's language. What it claims is what the upgrade
- * does:
+ * before the note on runbook step approvals (RunbookStepApprovalUpgradeDocs),
+ * and every translation carries it in the English note's place, naming the
+ * switch and the rule's fields the way the reader's Dashboard draws them,
+ * with a link to the AI SRE page's section on the rules in the reader's
+ * language. What it claims is what the upgrade does:
  *
  *   - a rule no longer asks Fix With: OneUptime AI fixes, with any runbook
  *     or only the rule's (AutoRemediationFix), and runs commands on the
@@ -47,7 +47,9 @@ const NOTE_LEAD: string = `**${LEAD}**`;
 // The note before it (CodeRepositoryRunnerUpgradeDocs).
 const PREVIOUS_LEAD: string =
   "**A code repository picks its Runner, and Runners lose their AI code fix switch.**";
-const POINTER_START: string = "- See [API and endpoint changes]";
+// The note after it (RunbookStepApprovalUpgradeDocs).
+const NEXT_LEAD: string =
+  "**A runbook step asks for approval before it runs.**";
 
 const AI_SRE_PAGE: string = "ai/ai-sre";
 const SECTION_HEADING: string = "## Which incidents are investigated and fixed";
@@ -102,7 +104,7 @@ const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
 const ENGLISH_NOTE: string = flattened(ENGLISH_ITEMS[NOTE_INDEX] || "");
 
 describe("the English upgrade note on auto remediation rules' runbooks and Runner", () => {
-  it("is a note of the 13 → 14 changes, once, after the note on a code repository's Runner and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on a code repository's Runner and before the note on runbook step approvals", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {
@@ -114,7 +116,9 @@ describe("the English upgrade note on auto remediation rules' runbooks and Runne
         `- ${PREVIOUS_LEAD}`,
       ),
     ).toBe(true);
-    expect(ENGLISH_ITEMS[NOTE_INDEX + 1]!.startsWith(POINTER_START)).toBe(true);
+    expect(
+      flattened(ENGLISH_ITEMS[NOTE_INDEX + 1]!).startsWith(`- ${NEXT_LEAD}`),
+    ).toBe(true);
   });
 
   it("says what a rule asks now, what OneUptime AI may run, where its commands run, and what the upgrade keeps", () => {

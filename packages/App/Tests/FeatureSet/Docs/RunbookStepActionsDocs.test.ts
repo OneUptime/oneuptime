@@ -2,6 +2,18 @@ import {
   DEFAULT_DOCS_LANGUAGE,
   SUPPORTED_DOCS_LANGUAGE_CODES,
 } from "../../../FeatureSet/Docs/Utils/I18n";
+import {
+  APPROVE_AND_CONTINUE_BUTTON,
+  APPROVE_AND_RUN_BUTTON,
+  MARK_COMPLETE_BUTTON,
+  getWaitingStepButtonTitle,
+} from "../../../FeatureSet/Dashboard/src/Components/Runbook/RunbookExecutionWaitCopy";
+import {
+  REQUIRE_APPROVAL_FOLDED_TITLE,
+  REQUIRE_APPROVAL_TITLE,
+} from "../../../FeatureSet/Dashboard/src/Components/Runbook/Steps/RunbookStepEditorModel";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { RunbookStepWait } from "Common/Types/Runbook/RunbookStepApproval";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -9,12 +21,16 @@ import path from "path";
 /*
  * What a person can do to a step of a runbook run, as the execution page
  * offers it. Only the step the run is waiting on takes a decision: Mark
- * complete on a Manual step, Approve & continue on a step with Require
- * approval, and Skip. While the run is paused, a later automated step that
- * doesn't require approval can be skipped too. The running page said only
- * that Manual steps in WaitingForUser had Mark Complete and Skip buttons, in
- * all seventeen languages. Each language names the buttons in its own
- * Dashboard words, the ones the execution page shows its reader.
+ * complete on a Manual step, Approve and run on a step with Require
+ * approval (which waits before it runs), and Skip. A run started before
+ * approvals moved to the step they guard waits after such a step instead,
+ * and Approve & continue lets it go on. While the run is paused, a later
+ * automated step that doesn't require approval can be skipped too. The
+ * running page once said only that Manual steps in WaitingForUser had Mark
+ * Complete and Skip buttons, in all seventeen languages. Each language
+ * names the buttons in its own Dashboard words, the ones the execution page
+ * shows its reader (RunbookExecutionWaitCopy), and the switch as the step
+ * editor draws it (RunbookStepEditorModel).
  */
 
 const CONTENT_DIR: string = path.resolve(
@@ -22,14 +38,9 @@ const CONTENT_DIR: string = path.resolve(
   "../../../FeatureSet/Docs/Content",
 );
 
-const DASHBOARD_LOCALES_DIR: string = path.resolve(
+const DASHBOARD_PAGES_DIR: string = path.resolve(
   __dirname,
-  "../../../FeatureSet/Dashboard/src/Locales",
-);
-
-const EXECUTION_VIEW: string = path.resolve(
-  __dirname,
-  "../../../FeatureSet/Dashboard/src/Pages/Runbook/View/ExecutionView.tsx",
+  "../../../FeatureSet/Dashboard/src/Pages/Runbook/View",
 );
 
 const RUNNING_PAGE: string = "runbooks/running.md";
@@ -38,15 +49,13 @@ const AUTHORING_PAGE: string = "runbooks/authoring.md";
 
 const NEW_SECTION: string = "## Completing, approving and skipping steps";
 
-// The execution page's buttons, by their English labels.
-const BUTTONS: Array<string> = ["Mark complete", "Approve & continue", "Skip"];
-
-/*
- * English names the Dashboard's labels as they are. Every other language -
- * Persian included since the runbook pages were translated again, as the
- * on-call pages do - names them as its own Dashboard draws them.
- */
-const ENGLISH_UI_LABELS: Set<string> = new Set(["en"]);
+// The buttons of the step a run waits on, by their English labels.
+const SKIP_BUTTON: string = "Skip";
+const EXECUTION_VIEW_BUTTONS: Array<string> = [
+  MARK_COMPLETE_BUTTON,
+  APPROVE_AND_RUN_BUTTON,
+  SKIP_BUTTON,
+];
 
 // The bullet each language had: Mark Complete and Skip, on Manual steps in WaitingForUser.
 const OLD_BULLETS: Record<string, string> = {
@@ -71,37 +80,16 @@ const OLD_BULLETS: Record<string, string> = {
   fa: "- برای گام‌های دستی در وضعیت `WaitingForUser`: دکمه‌های **Mark Complete** و **Skip**.",
 };
 
-/*
- * What each language calls a step's Require approval option, as its
- * authoring and running pages do: words taken from the switch's label as
- * that language's Dashboard draws it ("Require approval before running the
- * next step"), so the reader finds them on the switch.
- */
-const REQUIRE_APPROVAL: Record<string, string> = {
-  en: "Require approval",
-  de: "Genehmigung erforderlich",
-  fr: "Exiger une approbation",
-  es: "Requerir aprobación",
-  it: "Richiedi approvazione",
-  pt: "Exigir aprovação",
-  nl: "Goedkeuring vereisen",
-  da: "Kræv godkendelse",
-  no: "Krev godkjenning",
-  sv: "Kräv godkännande",
-  ru: "Требовать подтверждение",
-  ja: "承認を要求",
-  ko: "승인 필요",
-  "zh-CN": "需要批准",
-  "zh-TW": "需要核准",
-  hi: "अनुमोदन आवश्यक करें",
-  fa: "تأیید لازم است",
-};
-
-const REQUIRE_APPROVAL_SWITCH: string =
-  "Require approval before running the next step";
+// The bullet English had while the switch held back the step after it.
+const OLD_ENGLISH_BUTTONS_BULLET: string =
+  "- On the step the run is waiting on: **Mark complete** (a Manual step) or **Approve & continue** (a step with **Require approval**), and **Skip**.";
 
 function readPage(language: string, page: string): string {
   return fs.readFileSync(path.join(CONTENT_DIR, language, page), "utf8");
+}
+
+function readDashboardPage(file: string): string {
+  return fs.readFileSync(path.join(DASHBOARD_PAGES_DIR, file), "utf8");
 }
 
 // A page's sections, each starting at its "## " heading.
@@ -109,86 +97,81 @@ function sections(page: string): Array<string> {
   return page.split(/^(?=## )/m);
 }
 
-// The buttons as the reader's Dashboard labels them: English where the locale has no translation.
-function dashboardLabels(language: string): Record<string, string> {
-  const strings: Record<string, unknown> = ENGLISH_UI_LABELS.has(language)
-    ? {}
-    : (JSON.parse(
-        fs.readFileSync(
-          path.join(DASHBOARD_LOCALES_DIR, `${language}.json`),
-          "utf8",
-        ),
-      ) as Record<string, unknown>);
-  const labels: Record<string, string> = {};
-
-  for (const button of BUTTONS) {
-    const label: unknown = strings[button];
-
-    labels[button] = typeof label === "string" && label ? label : button;
-  }
-
-  return labels;
-}
-
 describe("completing, approving and skipping a runbook run's steps, in the docs", () => {
-  test("the execution page's buttons are Mark complete, Approve & continue and Skip", () => {
-    const source: string = fs.readFileSync(EXECUTION_VIEW, "utf8");
+  test("the execution page draws the waiting step's button from the copy module, and Skip beside it", () => {
+    const executionView: string = readDashboardPage("ExecutionView.tsx");
 
-    expect(source).toContain('? "Approve & continue"');
-    expect(source).toContain(': "Mark complete"');
-    expect(source).toContain('title="Skip"');
+    expect(executionView).toContain(
+      "getWaitingStepButtonTitle(wait || RunbookStepWait.Manual)",
+    );
+    expect(executionView).toContain(`title="${SKIP_BUTTON}"`);
+
+    expect(getWaitingStepButtonTitle(RunbookStepWait.Manual)).toBe(
+      "Mark complete",
+    );
+    expect(getWaitingStepButtonTitle(RunbookStepWait.ApprovalToRun)).toBe(
+      "Approve and run",
+    );
+    expect(getWaitingStepButtonTitle(RunbookStepWait.ApprovalToContinue)).toBe(
+      "Approve & continue",
+    );
   });
 
   test("every language is checked", () => {
     expect(Object.keys(OLD_BULLETS).sort()).toEqual(
       [...SUPPORTED_DOCS_LANGUAGE_CODES].sort(),
     );
-    expect(Object.keys(REQUIRE_APPROVAL).sort()).toEqual(
-      [...SUPPORTED_DOCS_LANGUAGE_CODES].sort(),
-    );
   });
 
   test("the steps editor's switch is the one the pages name", () => {
-    const steps: string = fs.readFileSync(
-      path.resolve(EXECUTION_VIEW, "../Steps.tsx"),
-      "utf8",
+    expect(readDashboardPage("Steps.tsx")).toContain(
+      "title={REQUIRE_APPROVAL_TITLE}",
     );
-
-    expect(steps).toContain(`title="${REQUIRE_APPROVAL_SWITCH}"`);
+    expect(REQUIRE_APPROVAL_TITLE).toBe(
+      "Require approval before running this step",
+    );
+    expect(REQUIRE_APPROVAL_FOLDED_TITLE).toBe("Require approval");
   });
 
   test.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(
-    "%s names Require approval in words its Dashboard's switch label uses",
+    "%s names Require approval as its Dashboard folds it, in words its switch label uses",
     (language: string) => {
-      const strings: Record<string, unknown> =
-        language === DEFAULT_DOCS_LANGUAGE
-          ? {}
-          : (JSON.parse(
-              fs.readFileSync(
-                path.join(DASHBOARD_LOCALES_DIR, `${language}.json`),
-                "utf8",
-              ),
-            ) as Record<string, unknown>);
-      const drawn: unknown = strings[REQUIRE_APPROVAL_SWITCH];
-      const switchLabel: string =
-        typeof drawn === "string" && drawn ? drawn : REQUIRE_APPROVAL_SWITCH;
+      const folded: string = drawnDashboardLabel(
+        language,
+        REQUIRE_APPROVAL_FOLDED_TITLE,
+      );
+      const switchLabel: string = drawnDashboardLabel(
+        language,
+        REQUIRE_APPROVAL_TITLE,
+      );
 
       expect({ language, inLabel: true }).toEqual({
         language,
-        inLabel: switchLabel.includes(REQUIRE_APPROVAL[language]!),
+        inLabel: switchLabel.includes(folded),
       });
+      expect(readPage(language, AUTHORING_PAGE)).toContain(`**${folded}**`);
+      expect(readPage(language, AUTHORING_PAGE)).toContain(
+        `**${switchLabel}**`,
+      );
     },
   );
 
-  test("the English page says only the step the run is waiting on takes a decision", () => {
+  test("the English page says only the step the run is waiting on takes a decision, and that an approval comes before the step runs", () => {
     const page: string = readPage(DEFAULT_DOCS_LANGUAGE, RUNNING_PAGE);
 
     expect(page).toContain(
-      "- On the step the run is waiting on: **Mark complete** (a Manual step) or **Approve & continue** (a step with **Require approval**), and **Skip**.",
+      "- On the step the run is waiting on: **Mark complete** (a Manual step) or **Approve and run** (a step with **Require approval**, which has not run yet), and **Skip**.",
     );
+    expect(page).not.toContain(OLD_ENGLISH_BUTTONS_BULLET);
     expect(page).toContain(`${NEW_SECTION}\n`);
     expect(page).toContain(
       "Only the step the run is waiting on can be marked complete, approved, or skipped to continue the run.",
+    );
+    expect(page).toContain(
+      "A step with **Require approval** waits before it runs, so read what the steps before it found first: **Approve and run** runs it, **Skip** keeps it from running, and either way the run goes on.",
+    );
+    expect(page).toContain(
+      "A run started before approvals moved to the step they guard waits after such a step instead, once it has run: **Approve & continue** lets that run go on.",
     );
   });
 
@@ -212,19 +195,38 @@ describe("completing, approving and skipping a runbook run's steps, in the docs"
 
       const executionView: string = pageSections[index - 1]!;
       const newSection: string = pageSections[index]!;
-      const labels: Record<string, string> = dashboardLabels(language);
 
-      for (const button of BUTTONS) {
-        expect(executionView).toContain(`**${labels[button]!}**`);
+      for (const button of EXECUTION_VIEW_BUTTONS) {
+        expect({ button, named: true }).toEqual({
+          button,
+          named: executionView.includes(
+            `**${drawnDashboardLabel(language, button)}**`,
+          ),
+        });
       }
 
+      const skip: string = `**${drawnDashboardLabel(language, SKIP_BUTTON)}**`;
+
       // Skip is offered twice: on the step the run waits on, and on later automated steps.
-      expect(executionView.split(`**${labels["Skip"]!}**`)).toHaveLength(3);
+      expect(executionView.split(skip)).toHaveLength(3);
 
-      const requireApproval: string = `**${REQUIRE_APPROVAL[language]!}**`;
+      // The section says what approving runs, and what goes on in a run started before.
+      for (const button of [
+        APPROVE_AND_RUN_BUTTON,
+        APPROVE_AND_CONTINUE_BUTTON,
+        SKIP_BUTTON,
+      ]) {
+        expect({ button, named: true }).toEqual({
+          button,
+          named: newSection.includes(
+            `**${drawnDashboardLabel(language, button)}**`,
+          ),
+        });
+      }
 
-      expect(newSection).toContain(requireApproval);
-      expect(readPage(language, AUTHORING_PAGE)).toContain(requireApproval);
+      expect(newSection).toContain(
+        `**${drawnDashboardLabel(language, REQUIRE_APPROVAL_FOLDED_TITLE)}**`,
+      );
     },
   );
 });

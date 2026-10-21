@@ -142,7 +142,7 @@ Runbooks:    [DB primary failover]
 Een monitor opent incident `INC-4821 · db-primary connection timeout`. De regel komt overeen en er start een uitvoering:
 
 - Stap 1 (JavaScript) loopt op de Runner die u ervoor hebt gekozen. De returnwaarde, zoals `{ lagMs: 412 }`, wordt vastgelegd. Een stap die geen Runner kiest, loopt op een globale Runner.
-- Stap 2 (Manual) pauzeert de uitvoering, die **Wacht op u** toont. De persoon met dienst controleert het dashboard en klikt op **Mark complete**.
+- Stap 2 (Manual) pauzeert de uitvoering, die **Wacht op u** toont. De persoon met dienst controleert het dashboard en klikt op **Markeer als voltooid**.
 - Stap 3 (HTTP request) loopt, en het antwoord op de `POST` wordt vastgelegd.
 - Stap 4 (Manual) pauzeert de uitvoering opnieuw tot iemand de stap voltooit.
 - Stap 5 (HTTP request) loopt, en de uitvoering staat op **Voltooid**.
@@ -158,7 +158,7 @@ De uitvoering blijft op de pagina **Runbooks** van het incident. Wanneer u de po
 - **Cache legen**: één HTTP-verzoek, daarna een Manual-stap "bevestig dat de cache-hitrate herstelt".
 - **Incident met klantimpact**: Manual "plaats een update op de statuspagina", een HTTP-verzoek om het supportteam te waarschuwen, JavaScript om de lijst met getroffen accounts op te halen.
 - **Voorcontrole van gepland onderhoud**: metrics vastleggen, het wijzigingsvenster met belanghebbenden bevestigen (Manual), de onderhoudsmodus op de load balancer inschakelen (HTTP request).
-- **Eerst diagnosticeren, dan oplossen**: een Bash-stap verzamelt diagnosegegevens, een AI-stap met **Goedkeuring vereisen** leest ze en stelt een oplossing voor, en een kubectl-stap herstart de workload pas nadat een persoon heeft goedgekeurd.
+- **Eerst diagnosticeren, dan oplossen**: een Bash-stap verzamelt diagnosegegevens, een AI-stap leest ze en stelt een oplossing voor, en een kubectl-stap met **Goedkeuring vereisen** herstart de workload pas nadat een persoon hem heeft goedgekeurd.
 - **Hygiëne die altijd loopt**: een regel zonder voorwaarden die bij elk incident de systeemtoestand vastlegt, voor de postmortem.
 
 ## Hoe runbooks in de rest van OneUptime passen

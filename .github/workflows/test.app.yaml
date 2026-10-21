@@ -210,6 +210,10 @@ jobs:
           # and Navigation Search (about 8 minutes together) moved here from
           # group 3 when the Probe Status specs in Monitor Overview and the
           # docs' diagrams took group 3 from 25.5 minutes past the job's 30.
+          # Runbook Steps (about 35 seconds locally with its bundle, Chromium
+          # only: a runbook's Steps page and a run's execution page) joined it
+          # on 2026-10-20, when it took 17.6 to 19.2 minutes: group 3, beside
+          # Runbook Variables, had reached 25 and group 7 about 18.
           - group: 2
             browsers: chromium firefox
             suites: >-
@@ -221,6 +225,7 @@ jobs:
               test-color-picker-ui
               test-diagrams-ui
               test-navigation-search-ui
+              test-runbook-steps-ui
           # Value Picker also runs in Firefox (the chip editor's caret handling
           # differs in each). Discovery (about 5 minutes) moved to group 6
           # when this group took 23.5 minutes. Global Runners (about a
@@ -490,6 +495,8 @@ jobs:
             output/playwright/external-mcp-servers-ui/test-results
             output/playwright/runbook-variables-ui/*.png
             output/playwright/runbook-variables-ui/test-results
+            output/playwright/runbook-steps-ui/*.png
+            output/playwright/runbook-steps-ui/test-results
             output/playwright/network-first-run-ui/*.png
             output/playwright/network-first-run-ui/test-results
             output/playwright/code-ui/*.png

@@ -9,6 +9,10 @@ import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import { RunbookStep } from "Common/Types/Runbook/RunbookStep";
 import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecution";
 import {
+  hasApprovalAfterStep,
+  isApprovalNeededBeforeRunning,
+} from "Common/Types/Runbook/RunbookStepApproval";
+import {
   runBashStep,
   runHttpStep,
   runJavaScriptStep,
@@ -133,6 +137,23 @@ export default class RunRunbook {
         return;
       }
 
+      /*
+       * A step that asks for approval before it runs: the run stops here,
+       * before anything of the step starts, until someone approves it (the
+       * step routes record the approval and queue the run again, and this
+       * loop then runs it) or skips it (it never runs). The decision is the
+       * server's alone: no Runner is handed the step's job before then.
+       */
+      if (isApprovalNeededBeforeRunning(stepExec)) {
+        stepExec.status = RunbookStepExecutionStatus.WaitingForUser;
+        await this.persistStepExecutions(
+          execution._id!,
+          stepExecutions,
+          RunbookExecutionStatus.WaitingForManualStep,
+        );
+        return;
+      }
+
       // Pending or Running — execute the step.
       stepExec.status = RunbookStepExecutionStatus.Running;
       stepExec.startedAt = new Date().toISOString();
@@ -194,11 +215,14 @@ export default class RunRunbook {
       stepExec.completedAt = new Date().toISOString();
       stepExec.output = result.output;
       if (result.success) {
-        if (stepExec.step.requireApproval) {
+        if (hasApprovalAfterStep(stepExec.step)) {
           /*
-           * Step ran successfully but is gated on user approval before the
-           * next step runs. Reuse the WaitingForUser flow so the existing
-           * completeManualStep API resumes execution on approval.
+           * A run started before approvals moved to the step they guard:
+           * its copy of the steps still asks for an approval after this
+           * one, so it stops here as it always did, and the step routes'
+           * approval lets it go on. Runs started since read that approval
+           * as one before the next step (RunbookStepApproval), and their
+           * steps never carry the old flag.
            */
           stepExec.status = RunbookStepExecutionStatus.WaitingForUser;
           await this.persistStepExecutions(

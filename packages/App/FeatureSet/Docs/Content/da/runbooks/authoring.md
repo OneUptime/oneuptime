@@ -5,7 +5,7 @@ Du skriver et runbook som en ordnet liste af trin på dets side **Trin**. Denne 
 :::cards
 - [Opret et runbook](#opret-et-runbook): Fra et tomt runbook til gemte trin.
 - [Trintyper](#trintyper): Manual, JavaScript, HTTP request, Bash, SSH, kubectl og AI.
-- [Fejlhåndtering og godkendelser](#fejlhåndtering-og-godkendelser): Hvad der sker, når et trin fejler eller lykkes.
+- [Fejlhåndtering og godkendelser](#fejlhåndtering-og-godkendelser): Hvad der sker, når et trin fejler eller venter på godkendelse.
 - [Et gennemgået eksempel](#et-gennemgået-eksempel): En database-failover i fem trin.
 :::
 
@@ -47,9 +47,9 @@ Hvert trin har disse felter. Et automatiseret trin viser sin **Titel** og indsti
 | Felt | Formål |
 | --- | --- |
 | **Titel** | En kort betegnelse, der vises på trinlisten og ved hver kørsel. |
-| **Beskrivelse** | Valgfri kontekst til den, der reagerer, i Markdown, under **Flere felter**. På et Manual-trin er det den instruktion, personen læser, vist under titlen. |
+| **Beskrivelse** | Valgfri kontekst til den, der reagerer, i Markdown, under **Flere felter**. På et Manual-trin er det de **Instruktioner**, personen læser og følger, vist under titlen. |
 | **Fortsæt ved fejl** | Kun automatiserede trin. Når den er slået til, stopper et fejlende trin ikke kørslen: det næste trin kører alligevel. |
-| **Kræv godkendelse** | Kun automatiserede trin. Når den er slået til, holder runbooket pause efter dette trin og venter på, at en person godkender, før det næste trin kører. Kontakten hedder **Kræv godkendelse før kørsel af næste trin**. |
+| **Kræv godkendelse** | Kun automatiserede trin. Når den er slået til, stopper kørslen før dette trin, indtil nogen godkender det, og først derefter kører det. Kontakten hedder **Kræv godkendelse før kørsel af dette trin**, og trinnets overskrift viser **Kræver godkendelse**. |
 | Typespecifikke indstillinger | Scriptet, URL'en, Runneren, en hemmelig variabel eller prompten. Se [Trintyper](#trintyper). |
 
 ## Trintyper
@@ -64,11 +64,11 @@ Hvert trin har disse felter. Et automatiseret trin viser sin **Titel** og indsti
 | [kubectl](#kubectl) | En Runner | En Runner og en kubeconfig-variabel eller Runnerens egen adgang |
 | [AI](#ai) | OneUptime Worker | En LLM-udbyder |
 
-I hvert trin nedenfor ligger timeouts, **Beskrivelse**, **Fortsæt ved fejl** og **Kræv godkendelse** under trinnets **Flere felter**, og det samme gør et AI-trins udbyder og kontekstkontakter.
+I hvert automatiseret trin nedenfor rummer trinnets **Flere felter** først **Kræv godkendelse** og **Fortsæt ved fejl**, derefter trinnets egne indstillinger - et HTTP-kalds headers, et SSH-trins port og nøglens adgangsfrase, et AI-trins udbyder og kontekstkontakter - og til sidst **Beskrivelse** og timeouts.
 
 ### Manual
 
-Et tjeklistepunkt til en person. Kørslen holder pause, når den når et Manual-trin, og bliver i `WaitingForManualStep` (**Venter på dig**), indtil nogen klikker på **Mark complete** eller **Spring over**. En kørsel, der venter på en person, udløber aldrig.
+Et tjeklistepunkt til en person: trinnets **Instruktioner** siger, hvad der skal gøres eller tjekkes. Kørslen holder pause, når den når et Manual-trin, og bliver i `WaitingForManualStep` (**Venter på dig**), indtil nogen klikker på **Marker som færdig** eller **Spring over**. En kørsel, der venter på en person, udløber aldrig. Et Manual-trin har ingen godkendelseskontakt: det stopper allerede kørslen for en person.
 
 Brug det til det, kun et menneske kan kontrollere eller gøre: "Bekræft i load balancerens dashboard, at trafikken er flyttet til den sekundære region."
 
@@ -100,8 +100,8 @@ Et udgående HTTP-kald, foretaget af OneUptime Worker. Der kræves ingen Runner.
 | --- | --- | --- |
 | **Method** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` eller `HEAD`. | `GET` |
 | **URL** | Det endpoint, der skal kaldes. | Tom |
-| **Headers (JSON)** | Et JSON-objekt, f.eks. `{ "Authorization": "Bearer ..." }`. Headers, der ikke er gyldig JSON, får trinnet til at fejle. | Ingen |
-| **Body** | Sendes som JSON, når den kan læses som JSON, og ellers som tekst. | Ingen |
+| **Headers (JSON)** | Under **Flere felter**. Et JSON-objekt, f.eks. `{ "Authorization": "Bearer ..." }`. Headers, der ikke er gyldig JSON, får trinnet til at fejle. | Ingen |
+| **Body** | Vises for `POST`, `PUT`, `PATCH` og `DELETE`. Sendes som JSON, når den kan læses som JSON, og ellers som tekst. | Ingen |
 | **Request timeout** | Hvor længe der ventes på endpointets svar, før trinnet fejler. | 30 sekunder |
 
 Trinnet lykkes ved et `2xx`- eller `3xx`-svar og fejler ved alt andet med `HTTP <status>` som fejl. Omdirigeringer følges ikke. Svarets status, headers og body registreres, op til 50 KB.
@@ -194,7 +194,7 @@ Bed AI om at analysere, opsummere eller beslutte noget midt i kørslen. Svaret b
 | **Include previous step context** | Når den er slået til, ser AI'en alt om de trin, der kørte før dette: titel, type, status, output og fejlmeddelelser. Den får op til 4.000 tegn af hvert trins output. |
 | **Include trigger context** | Når den er slået til, ser AI'en, hvad der startede kørslen: den tilknyttede hændelse, advarsel eller planlagte vedligeholdelsesbegivenhed (beskrivelse, alvorlighed, nuværende tilstand, berørte monitorer, grundårsag, tilstandstidslinje og offentlige noter), eller hvem der kørte runbooket manuelt. |
 
-Kombiner et AI-trin med **Kræv godkendelse** for at holde et menneske med i løkken: AI'en analyserer, en person læser svaret og godkender, og først derefter kører det næste (afhjælpende) trin.
+For at holde et menneske med i løkken slår du **Kræv godkendelse** til på trinnet efter et AI-trin: AI'en analyserer, en person læser svaret, og det afhjælpende trin kører først, når personen godkender det.
 
 **Hvad AI'en aldrig ser.** Et AI-trins svar gemmes som trinoutput på udførelsen, og udførelser kan læses af alle med læsetilladelse til runbooks, et bredere publikum end hændelsens. Derfor udelader udløserkonteksten **private interne noter** og **kanalbeskeder fra Slack og Microsoft Teams**. Outputtet fra tidligere trin scannes for hemmeligheder (tokens, nøgler, loginoplysninger), som maskeres, før det sendes til modellen. Indlejrede billeder og lange kodede data, f.eks. et skærmbillede indsat i en hændelses beskrivelse, udelades også med en kort note i stedet.
 
@@ -202,19 +202,27 @@ AI-trin måles og faktureres som enhver anden AI-funktion. Trinnet fejler med en
 
 ## Fejlhåndtering og godkendelser
 
-```mermaid title="Hvad der sker efter et automatiseret trin"
+```mermaid title="Hvad der sker ved et automatiseret trin"
 flowchart TB
-    run["Et automatiseret<br/>trin kører"] --> ok{"Lykkedes?"}
-    ok -->|"ja"| approval{"Kræv godkendelse<br/>slået til?"}
+    reach["Kørslen når et<br/>automatiseret trin"] --> approval{"Kræv godkendelse<br/>slået til?"}
     approval -->|"ja"| wait["Kørslen venter på, at<br/>en person godkender"]
-    approval -->|"nej"| next["Det næste trin kører"]
-    wait --> next
+    wait -->|"godkendt"| run["Trinnet kører"]
+    approval -->|"nej"| run
+    wait -->|"sprunget over"| next["Næste trin"]
+    run --> ok{"Lykkedes?"}
+    ok -->|"ja"| next
     ok -->|"nej"| cont{"Fortsæt ved<br/>fejl slået til?"}
     cont -->|"ja"| next
     cont -->|"nej"| failed["Kørslen stopper<br/>som mislykket"]
 ```
 
-Som standard standser et fejlende trin kørslen og markerer udførelsen som `Failed` med trinnets fejl som årsag. Med **Fortsæt ved fejl** slået til registreres fejlen, og det næste trin kører, hvilket passer til runbooks af typen "prøv disse tre ting, og giv så besked". **Kræv godkendelse** gælder, efter at et trin er lykkedes: kørslen venter på det trin, indtil nogen klikker på **Approve & continue** eller **Spring over**.
+Som standard standser et fejlende trin kørslen og markerer udførelsen som `Failed` med trinnets fejl som årsag. Med **Fortsæt ved fejl** slået til registreres fejlen, og det næste trin kører, hvilket passer til runbooks af typen "prøv disse tre ting, og giv så besked".
+
+**Kræv godkendelse** gælder, før et trin kører, uanset hvad der skete før det: kørslen venter, indtil nogen klikker på **Godkend og kør**, og trinnet kører, eller på **Spring over**, og det kører aldrig. Slå det til for det trin, der ændrer noget - genstarten, failoveren, nedskaleringen - så en person først ser, hvad trinnene før det fandt. Godkendelsen hører til trinnet, så når du flytter trinnet, flytter den med.
+
+:::note
+Gennem API'et og Terraform er kontakten et trins felt `requireApprovalBeforeRunning`. Et trins felt `requireApproval`, som runbooks skrev, før godkendelser flyttede til det trin, de beskytter, virker stadig og betyder det, det betød: en godkendelse efter det trin. OneUptime læser det som en godkendelse før det næste trin eller, efter det sidste trin, som et Manual-trin til sidst med titlen **Approve the result**.
+:::
 
 ## Gem og rediger
 

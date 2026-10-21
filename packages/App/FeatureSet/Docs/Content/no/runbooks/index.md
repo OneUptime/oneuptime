@@ -142,7 +142,7 @@ Runbooks:    [DB primary failover]
 En monitor åpner hendelsen `INC-4821 · db-primary connection timeout`. Regelen treffer, og en kjøring starter:
 
 - Trinn 1 (JavaScript) kjører på Runneren du valgte for det. Returverdien, for eksempel `{ lagMs: 412 }`, registreres. Et trinn som ikke velger noen Runner, kjører på en global Runner.
-- Trinn 2 (Manual) setter kjøringen på pause, og den viser **Venter på deg**. Den vakthavende sjekker dashbordet og klikker **Mark complete**.
+- Trinn 2 (Manual) setter kjøringen på pause, og den viser **Venter på deg**. Den vakthavende sjekker dashbordet og klikker **Marker som ferdig**.
 - Trinn 3 (HTTP request) kjører, og svaret på `POST` registreres.
 - Trinn 4 (Manual) setter kjøringen på pause igjen til noen fullfører det.
 - Trinn 5 (HTTP request) kjører, og kjøringen er **Fullført**.
@@ -158,7 +158,7 @@ Kjøringen blir liggende på hendelsens side **Runbooks**. Når du skriver postm
 - **Tømming av cache**: én HTTP-forespørsel, og deretter et Manual-trinn "bekreft at treffraten i cachen er på vei opp igjen".
 - **Hendelse som rammer kunder**: Manual "publiser en oppdatering på statussiden", en HTTP-forespørsel for å varsle supportteamet, JavaScript for å hente listen over berørte kontoer.
 - **Forhåndssjekk før planlagt vedlikehold**: ta et øyeblikksbilde av metrikker, bekreft endringsvinduet med interessentene (Manual), slå på vedlikeholdsmodus på lastbalansereren (HTTP request).
-- **Diagnostiser, og rett deretter**: et Bash-trinn samler inn diagnostikk, et AI-trinn med **Krev godkjenning** leser den og anbefaler en løsning, og et kubectl-trinn starter arbeidsbelastningen på nytt først når en person har godkjent.
+- **Diagnostiser, og rett deretter**: et Bash-trinn samler inn diagnostikk, et AI-trinn leser den og anbefaler en løsning, og et kubectl-trinn med **Krev godkjenning** starter arbeidsbelastningen på nytt først når en person har godkjent det.
 - **Hygiene som alltid kjører**: en regel uten betingelser som registrerer systemets tilstand ved hver hendelse til postmortem.
 
 ## Slik passer runbooks inn i resten av OneUptime

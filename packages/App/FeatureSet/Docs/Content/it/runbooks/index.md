@@ -142,7 +142,7 @@ Runbooks:    [DB primary failover]
 Un monitor apre l'incidente `INC-4821 · db-primary connection timeout`. La regola corrisponde e parte un'esecuzione:
 
 - Il passaggio 1 (JavaScript) viene eseguito sul Runner che hai scelto per lui. Il suo valore di ritorno, ad esempio `{ lagMs: 412 }`, viene acquisito. Un passaggio che non sceglie alcun Runner viene eseguito su un Runner globale.
-- Il passaggio 2 (Manual) mette in pausa l'esecuzione, che mostra **In attesa di te**. Chi è reperibile controlla la dashboard e fa clic su **Mark complete**.
+- Il passaggio 2 (Manual) mette in pausa l'esecuzione, che mostra **In attesa di te**. Chi è reperibile controlla la dashboard e fa clic su **Segna come completato**.
 - Il passaggio 3 (HTTP request) viene eseguito e la risposta al `POST` viene acquisita.
 - Il passaggio 4 (Manual) mette di nuovo in pausa l'esecuzione finché qualcuno non lo completa.
 - Il passaggio 5 (HTTP request) viene eseguito e l'esecuzione risulta **Completato**.
@@ -158,7 +158,7 @@ L'esecuzione resta nella pagina **Runbook** dell'incidente. Quando scrivi il pos
 - **Svuotamento della cache**: una richiesta HTTP, poi un passaggio Manual «conferma che l'hit rate della cache si sta riprendendo».
 - **Incidente con impatto sui clienti**: Manual «pubblica un aggiornamento sulla pagina di stato», una richiesta HTTP per avvisare il team di supporto, JavaScript per ottenere l'elenco degli account coinvolti.
 - **Verifiche prima di una manutenzione programmata**: fotografare le metriche, confermare la finestra di modifica con le parti interessate (Manual), attivare la modalità di manutenzione sul bilanciatore di carico (HTTP request).
-- **Diagnosticare, poi correggere**: un passaggio Bash raccoglie la diagnostica, un passaggio IA con **Richiedi approvazione** la legge e propone una correzione, e un passaggio kubectl riavvia il carico di lavoro solo dopo l'approvazione di una persona.
+- **Diagnosticare, poi correggere**: un passaggio Bash raccoglie la diagnostica, un passaggio IA la legge e propone una correzione, e un passaggio kubectl con **Richiedi approvazione** riavvia il carico di lavoro solo dopo che una persona lo ha approvato.
 - **Igiene da eseguire sempre**: una regola senza condizioni che acquisisce lo stato del sistema a ogni incidente, per il postmortem.
 
 ## Come si inseriscono i runbook nel resto di OneUptime

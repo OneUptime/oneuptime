@@ -1572,6 +1572,19 @@ API, SSO, or the Slack and Microsoft Teams apps.
   was just one. No Runner's switch changes, so a cluster bound to a Runner
   with it off asks you to choose the Runner again on its AI agent page. See
   [Which incidents are investigated and fixed](/docs/ai/ai-sre#which-incidents-are-investigated-and-fixed).
+- **A runbook step asks for approval before it runs.** The approval switch sits
+  on the step it holds back, **Require approval before running this step**,
+  not on the step before it. The upgrade moves every runbook's approvals so
+  each stops where it did: an approval after a step is an approval before the
+  next step, an approval after a step that a Manual step follows is that
+  Manual step's own stop, and one after the last step is a Manual step at the
+  end, **Approve the result**. Runs already started finish as they started. In
+  the API and Terraform the switch is `requireApprovalBeforeRunning`;
+  `requireApproval` still works and means an approval after that step, so a
+  Terraform configuration that turns it on plans one in-place update of
+  `steps` after the upgrade, and applying it changes nothing about how the
+  runbook runs. See
+  [Failure handling and approvals](/docs/runbooks/authoring#failure-handling-and-approvals).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

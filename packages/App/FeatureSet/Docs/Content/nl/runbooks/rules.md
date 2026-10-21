@@ -157,7 +157,7 @@ Controleer, in deze volgorde:
 - De regel is **Ingeschakeld**.
 - Elk runbook heeft **Dit runbook uitvoeren** aan, op de pagina **Instellingen** ervan, en minstens één opgeslagen stap.
 - Het incident of de waarschuwing is niet al opgelost aangemaakt.
-- De uitvoering van het runbook wacht niet gewoon: open haar via de pagina **Runbooks** van het evenement. Een Manual-stap of een goedkeuring toont **Wacht op u**.
+- De uitvoering van het runbook wacht niet gewoon: open haar via de pagina **Runbooks** van het evenement. Een Manual-stap toont **Wacht op u**, en een stap die goedkeuring nodig heeft **Wacht op goedkeuring**.
 :::
 
 :::details Een regel matcht nooit

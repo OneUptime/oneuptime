@@ -1080,6 +1080,47 @@ describe("Runbook execution routes require an authorized member of the runbook's
       );
     });
 
+    test("a person's run takes the runbook's steps with every approval before the step it held back", async () => {
+      memberProps([Permission.ProjectMember]);
+      runbookFindSpy.mockResolvedValue({
+        _id: runbookId.toString(),
+        projectId: callerProjectId,
+        name: "Restart web tier",
+        isEnabled: true,
+        // As a client that still sends the old flag saved it.
+        steps: [
+          { ...makeSteps()[1]!, id: "drain", order: 1, requireApproval: true },
+          { ...makeSteps()[1]!, id: "restart", order: 2 },
+        ],
+      } as unknown as Runbook);
+
+      const result: RouteCallResult = await callRoute({
+        uri: RUN_ROUTE,
+        params: runParams(),
+        body: {},
+      });
+
+      expect(result.nextCallCount).toBe(0);
+
+      const createdSteps: Array<RunbookStepExecutionState> = (
+        executionCreateSpy.mock.calls[0]![0] as { data: RunbookExecution }
+      ).data.stepExecutions as unknown as Array<RunbookStepExecutionState>;
+
+      expect(
+        createdSteps.map((state: RunbookStepExecutionState) => {
+          return [
+            state.step.id,
+            state.step.requireApprovalBeforeRunning === true,
+            state.status,
+          ];
+        }),
+      ).toEqual([
+        ["drain", false, RunbookStepExecutionStatus.Pending],
+        ["restart", true, RunbookStepExecutionStatus.Pending],
+      ]);
+      expect(JSON.stringify(createdSteps)).not.toContain('"requireApproval"');
+    });
+
     test("a person's run is recorded as Manual, whatever the body claims, and carries no inputs", async () => {
       memberProps([Permission.ProjectMember]);
       mockRunbookInProject(callerProjectId);

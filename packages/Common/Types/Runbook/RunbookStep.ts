@@ -258,9 +258,20 @@ export interface RunbookStep {
    */
   continueOnFailure?: boolean;
   /*
-   * Only meaningful for automated steps. When true, the runbook pauses
-   * after this step completes and waits for a user to approve before
-   * running the next step.
+   * Only meaningful for automated steps. When true, the run stops before
+   * this step and waits until someone approves it; then the step runs. A
+   * person who skips it instead keeps it from running at all. (A Manual
+   * step stops the run for a person already.) See RunbookStepApproval.
+   */
+  requireApprovalBeforeRunning?: boolean;
+  /*
+   * THE OLD WAY TO ASK FOR AN APPROVAL: after this step. When true on an
+   * automated step, the run stopped after it and waited for someone to
+   * approve before running the next step. Still accepted from the API and
+   * Terraform, and still means that - it is read as an approval before the
+   * next step (RunbookStepApproval.moveApprovalsBeforeTheirSteps), and the
+   * steps of a run started before approvals moved still stop after it.
+   * Never written by OneUptime any more.
    */
   requireApproval?: boolean;
   config: RunbookStepConfig;

@@ -157,7 +157,7 @@ Kontrollera i den här ordningen:
 - Regeln är **Aktiverad**.
 - Varje runbook har **Kör det här runbooket** påslaget på sin sida **Inställningar** och minst ett sparat steg.
 - Incidenten eller larmet skapades inte redan löst.
-- Runbookets körning väntar inte bara: öppna den från händelsens sida **Runbooks**. Ett Manual-steg eller ett godkännande visar **Väntar på dig**.
+- Runbookets körning väntar inte bara: öppna den från händelsens sida **Runbooks**. Ett Manual-steg visar **Väntar på dig**, och ett steg som kräver godkännande **Väntar på godkännande**.
 :::
 
 :::details En regel matchar aldrig
