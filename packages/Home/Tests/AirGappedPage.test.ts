@@ -349,6 +349,55 @@ describe("the air-gapped page", () => {
     }
   });
 
+  test("keeps the bar that follows the reader under the site's menus, here and on the self-hosted page", async () => {
+    const zIndex: (element: Element | null) => number = (
+      element: Element | null,
+    ): number => {
+      const layer: string | undefined = (element?.className || "")
+        .split(" ")
+        .find((name: string): boolean => {
+          return name.startsWith("z-");
+        });
+
+      return Number((layer || "z-0").slice(2));
+    };
+    const bar: Element | null =
+      page.querySelector('nav[aria-label="On this page"]')?.parentElement
+        ?.parentElement || null;
+
+    expect(bar?.className.split(" ")).toContain("sticky");
+
+    // A phone's menu is taller than the screen: scrolling it must not slide the bar over it.
+    for (const menu of ["mobile-menu", "solutions-menu", "resources-menu"]) {
+      expect([menu, zIndex(bar) < zIndex(page.getElementById(menu))]).toEqual([
+        menu,
+        true,
+      ]);
+    }
+
+    const selfHosted: Document = documentOf(
+      await renderView("self-hosted.ejs", {
+        support: false,
+        enableGoogleTagManager: false,
+        footerCards: true,
+        cta: false,
+        blackLogo: false,
+        requestDemoCta: true,
+        selfHosted: getSelfHostedContent(),
+        seo: seoFor("/enterprise/self-hosted"),
+        homeUrl: HOME_URL,
+      }),
+    );
+    const selfHostedBar: Element | null =
+      selfHosted
+        .querySelector('a[href="#deployment-models"]')
+        ?.closest(".sticky") || null;
+
+    expect(zIndex(selfHostedBar)).toBeLessThan(
+      zIndex(selfHosted.getElementById("mobile-menu")),
+    );
+  });
+
   test("keeps the button to the booking in the bar that follows the reader, from a tablet up", () => {
     const button: Element = page.querySelector(
       '[data-testid="air-gapped-nav-plan"]',
@@ -1073,6 +1122,36 @@ describe("the pages and menus that lead to the air-gapped page", () => {
     expect(textOf(menu.querySelector('a[href="/enterprise/air-gapped"]'))).toBe(
       "Air-Gapped Run it with no internet connection",
     );
+  });
+
+  test("is in the phone menu beside Self-Hosted, with the Enterprise page, and the two columns stay even", () => {
+    const mobile: Element = page.getElementById("mobile-menu")!;
+    const link: Element = mobile.querySelector(
+      '[data-testid="air-gapped-mobile-link"]',
+    )!;
+
+    expect(link.getAttribute("href")).toBe("/enterprise/air-gapped");
+    expect(textOf(link)).toBe("Air-Gapped");
+
+    const grid: Element = link.parentElement!;
+    const links: Array<string> = all(grid, "a").map(
+      (anchor: Element): string => {
+        return `${textOf(anchor)} ${anchor.getAttribute("href")}`;
+      },
+    );
+
+    expect(grid.className).toContain("grid-cols-2");
+    // Read in rows of two: Enterprise beside Request Demo, Self-Hosted beside Air-Gapped.
+    expect(links.slice(2, 6)).toEqual([
+      "Enterprise /enterprise/overview",
+      "Request Demo /enterprise/demo",
+      "Self-Hosted /enterprise/self-hosted",
+      "Air-Gapped /enterprise/air-gapped",
+    ]);
+    expect(links.length % 2).toBe(0);
+    expect(
+      mobile.querySelectorAll('a[href="/enterprise/air-gapped"]'),
+    ).toHaveLength(1);
   });
 
   test("is in the footer's Solutions column, after Self-Hosted", () => {

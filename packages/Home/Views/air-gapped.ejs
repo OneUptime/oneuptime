@@ -281,9 +281,11 @@
       Section nav. It follows the reader down a long page, so the one thing a
       visitor comes to do - plan the install - stays a click away (from a
       tablet up; a phone's bar is all links, and the hero's button leads
-      there).
+      there). z-10 keeps it under the site's menus (z-20): a phone's menu is
+      taller than the screen, and scrolling it would otherwise slide this bar
+      over its links.
     -%>
-    <div class="sticky top-0 z-20 border-y border-gray-200 bg-white/90 backdrop-blur">
+    <div class="sticky top-0 z-10 border-y border-gray-200 bg-white/90 backdrop-blur">
       <div class="mx-auto flex max-w-7xl items-center gap-6 px-6 lg:px-8">
         <nav aria-label="On this page" class="ag-scroll flex min-w-0 flex-1 items-center gap-6 py-3 text-sm text-gray-500 whitespace-nowrap">
           <a href="#who-its-for" class="hover:text-gray-900">Who it's for</a>
