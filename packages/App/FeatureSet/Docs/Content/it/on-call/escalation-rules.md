@@ -228,7 +228,7 @@ Ogni passaggio viene registrato. La **Cronologia di esecuzione** dell'esecuzione
 La scheda di ogni regola ha **Edit rule** e un menu **⋯** con le altre azioni:
 
 - **Edit rule** apre la stessa finestra di dialogo di una pagina, compilata con la regola com'è: i suoi destinatari, la sua attesa, il nome e la descrizione in **Altri campi**. Aggiungi o rimuovi destinatari e fai clic su **Salva modifiche**. Svuotare il nome ridà alla regola il nome del suo livello.
-- **Move up** e **Move down** nel menu **⋯** di una regola ne cambiano il livello. Una regola che prende il nome dal suo livello mantiene un nome coerente con la sua posizione: quando **Level 3** sale sopra **Level 2**, le due si scambiano i nomi. Un nome che hai scelto, come **Responsabili**, resta lo stesso ovunque vada la regola.
+- **Sposta su** e **Sposta giù** nel menu **⋯** di una regola ne cambiano il livello. Una regola che prende il nome dal suo livello mantiene un nome coerente con la sua posizione: quando **Level 3** sale sopra **Level 2**, le due si scambiano i nomi. Un nome che hai scelto, come **Responsabili**, resta lo stesso ovunque vada la regola.
 - **Delete rule** chiede prima conferma e indica chi avvisa il livello. Eliminare un livello fa salire i livelli sottostanti, e le regole che prendono il nome dal livello vengono rinominate di conseguenza.
 
 ## Creare regole con l'API o Terraform

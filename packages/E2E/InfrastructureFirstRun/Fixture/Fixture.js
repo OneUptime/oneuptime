@@ -13,6 +13,9 @@
  * Scenarios are picked with query parameters, parsed once at load:
  *
  *   ?hosts=1   the project already has a host ("web-01")
+ *   ?vcenters=1  the project already has two vCenters: "vcenter-lab", which
+ *              a probe collects, and "vcenter-prod", which an outdated
+ *              VMware Agent sends
  *   ?failFirstCount=1  the page's first count of its list fails (once)
  *   ?lang=     de reads the German locale file
  *   ?theme=    dark adds html.dark (handled by server.js)
@@ -49,6 +52,7 @@ import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import Host from "Common/Models/DatabaseModels/Host";
+import Probe from "Common/Models/DatabaseModels/Probe";
 import Project from "Common/Models/DatabaseModels/Project";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -69,6 +73,7 @@ import UserUtil from "Common/UI/Utils/User";
 const params = new URLSearchParams(window.location.search);
 
 const hasHost = params.get("hosts") === "1";
+const hasVCenters = params.get("vcenters") === "1";
 const language = params.get("lang") === "de" ? "de" : "en";
 // How many of the list's counts still fail: the first one, when asked for.
 let failingCounts = params.get("failFirstCount") === "1" ? 1 : 0;
@@ -175,12 +180,49 @@ if (hasHost) {
 }
 
 /*
+ * A project that has vCenters both ways: one a probe collects (so its
+ * Collected By names the probe), and one the VMware Agent sends, with a
+ * version older than the collector the agent's files pin (so its Agent
+ * Version carries the upgrade sign).
+ */
+if (hasVCenters) {
+  store.VMwareVCenter.push(
+    {
+      _id: uuid("31000000", 2),
+      name: "vcenter-lab",
+      otelCollectorStatus: "connected",
+      collectionMethod: "Probe",
+      collectionProbe: Object.assign(new Probe(), {
+        _id: uuid("33000000", 1),
+        name: "Lab Probe",
+      }),
+      lastSeenAt: new Date(),
+      isArchived: false,
+    },
+    {
+      _id: uuid("31000000", 3),
+      name: "vcenter-prod",
+      otelCollectorStatus: "connected",
+      collectionMethod: "Agent",
+      agentVersion: "0.100.0",
+      lastSeenAt: new Date(),
+      isArchived: false,
+    },
+  );
+}
+
+/*
  * ---------------------------------------------------------------------------
  * Recorder
  * ---------------------------------------------------------------------------
  */
 const fixture = {
-  scenario: { hosts: hasHost, language, failFirstCount: failingCounts > 0 },
+  scenario: {
+    hosts: hasHost,
+    vcenters: hasVCenters,
+    language,
+    failFirstCount: failingCounts > 0,
+  },
   countRequests: [],
   listRequests: [],
   apiRequests: [],
