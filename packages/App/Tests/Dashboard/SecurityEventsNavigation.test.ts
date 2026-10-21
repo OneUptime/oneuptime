@@ -449,9 +449,9 @@ describe("getSecurityEventsPathSegment", () => {
     expect(getSecurityEventsPathSegment(routeFor("SECURITY_CASES"))).toBe(
       "cases",
     );
-    expect(getSecurityEventsPathSegment(routeFor("SECURITY_CASES_CLOSED"))).toBe(
-      "cases",
-    );
+    expect(
+      getSecurityEventsPathSegment(routeFor("SECURITY_CASES_CLOSED")),
+    ).toBe("cases");
   });
 
   test("is the empty string at the product root and null off the product", () => {

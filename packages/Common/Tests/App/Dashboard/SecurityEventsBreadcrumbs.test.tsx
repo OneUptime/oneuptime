@@ -167,7 +167,10 @@ describe("each trail names the page as the menu does", () => {
       ["Security Events", "Security Cases", "View Case"],
     ],
     [PageMap.SECURITY_EVENTS, ["Security Events", "Events"]],
-    [PageMap.SECURITY_EVENTS_ENTITIES, ["Security Events", "Events", "Entities"]],
+    [
+      PageMap.SECURITY_EVENTS_ENTITIES,
+      ["Security Events", "Events", "Entities"],
+    ],
     [
       PageMap.SECURITY_EVENTS_CORRELATE,
       ["Security Events", "Events", "Correlate"],

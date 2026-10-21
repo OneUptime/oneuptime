@@ -184,9 +184,7 @@ describe("the two runs pages", () => {
           '[data-testid^="security-playbook-runs-view-"]:not([data-testid="security-playbook-runs-view-playbooks"])',
         ),
       ).toHaveLength(0);
-      expect(document.querySelectorAll("button[aria-pressed]")).toHaveLength(
-        0,
-      );
+      expect(document.querySelectorAll("button[aria-pressed]")).toHaveLength(0);
     },
   );
 

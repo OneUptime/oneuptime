@@ -6717,7 +6717,9 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
-      SecurityEventsRoutePath[PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL]
+      SecurityEventsRoutePath[
+        PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL
+      ]
     }`,
   ),
 

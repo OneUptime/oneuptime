@@ -518,10 +518,7 @@ async function open(path: string): Promise<void> {
             path={RouteMap[PageMap.SECURITY_EVENTS_ROOT]!.toString()}
             element={<SecurityEventsRoutes {...PAGE_PROPS} />}
           />
-          <RouterRoute
-            path="*"
-            element={<div data-testid="elsewhere" />}
-          />
+          <RouterRoute path="*" element={<div data-testid="elsewhere" />} />
         </Routes>
         <WhereAmI />
       </MemoryRouter>,
@@ -570,12 +567,7 @@ const ADDRESSES: Array<[string, string, string, boolean]> = [
 describe("every Security Events address", () => {
   test.each(ADDRESSES)(
     "%s opens %s (%s)",
-    async (
-      address: string,
-      page: string,
-      view: string,
-      inLayout: boolean,
-    ) => {
+    async (address: string, page: string, view: string, inLayout: boolean) => {
       await open(`${PRODUCT}${address}`);
 
       expect(drawn()).toEqual({ page, view, inLayout });
@@ -626,8 +618,8 @@ describe("every Security Events address", () => {
     const pageAt: (path: string) => string | undefined = (
       path: string,
     ): string | undefined => {
-      const pattern: string | undefined = matchRoutes(routes, path)?.[0]
-        ?.route.path;
+      const pattern: string | undefined = matchRoutes(routes, path)?.[0]?.route
+        .path;
 
       return Object.keys(RouteMap).find((key: string): boolean => {
         return (

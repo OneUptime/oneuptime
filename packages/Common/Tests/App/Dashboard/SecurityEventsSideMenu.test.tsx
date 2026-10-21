@@ -139,13 +139,11 @@ const PAGES: Array<[string, string, string]> = EXPECTED.flatMap(
   ([section, entries]: [string, Array<[string, string]>]): Array<
     [string, string, string]
   > => {
-    return entries.map(([title, page]: [string, string]): [
-      string,
-      string,
-      string,
-    ] => {
-      return [page, section, title];
-    });
+    return entries.map(
+      ([title, page]: [string, string]): [string, string, string] => {
+        return [page, section, title];
+      },
+    );
   },
 );
 
@@ -243,9 +241,7 @@ describe("Security Events side menu", () => {
       "href",
       `/dashboard/${PROJECT_ID}/security-events/cases`,
     );
-    expect(
-      entryAnchor("Playbooks", "Waiting for Approval"),
-    ).toHaveAttribute(
+    expect(entryAnchor("Playbooks", "Waiting for Approval")).toHaveAttribute(
       "href",
       `/dashboard/${PROJECT_ID}/security-events/playbook-runs`,
     );

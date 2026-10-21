@@ -29,7 +29,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 // Playbook Runs' way forward when no playbook has run: the playbooks.
 export const VIEW_PLAYBOOKS: string = translationKey("View Playbooks");
-export const VIEW_PLAYBOOKS_TEST_ID: string = "security-playbook-runs-view-playbooks";
+export const VIEW_PLAYBOOKS_TEST_ID: string =
+  "security-playbook-runs-view-playbooks";
 
 export interface ComponentProps extends PageComponentProps {
   /*

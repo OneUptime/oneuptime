@@ -164,7 +164,14 @@ describe("the case queue's pages", () => {
         key: "closed",
         page: "SECURITY_CASES_CLOSED",
         title: "Closed Cases",
-        columns: ["case", "priority", "verdict", "assignee", "labels", "closed"],
+        columns: [
+          "case",
+          "priority",
+          "verdict",
+          "assignee",
+          "labels",
+          "closed",
+        ],
         hiddenColumns: ["labels"],
         filters: ["title", "priority", "verdict", "labels", "opened", "closed"],
         sortBy: "closedAt",
@@ -420,25 +427,22 @@ describe("the pages' words", () => {
     LANGUAGES.filter((language: string): boolean => {
       return language !== "en";
     }),
-  )(
-    "%s reads every one of them in its own words",
-    (language: string) => {
-      const english: Record<string, string> = locale("en");
-      const translated: Record<string, string> = locale(language);
+  )("%s reads every one of them in its own words", (language: string) => {
+    const english: Record<string, string> = locale("en");
+    const translated: Record<string, string> = locale(language);
 
-      const untranslated: Array<string> = words
-        .map(([, text]: [string, string, number]): string => {
-          return text;
-        })
-        .filter((text: string): boolean => {
-          return (
-            english[text] !== text ||
-            !translated[text] ||
-            translated[text] === text
-          );
-        });
+    const untranslated: Array<string> = words
+      .map(([, text]: [string, string, number]): string => {
+        return text;
+      })
+      .filter((text: string): boolean => {
+        return (
+          english[text] !== text ||
+          !translated[text] ||
+          translated[text] === text
+        );
+      });
 
-      expect(untranslated).toEqual([]);
-    },
-  );
+    expect(untranslated).toEqual([]);
+  });
 });

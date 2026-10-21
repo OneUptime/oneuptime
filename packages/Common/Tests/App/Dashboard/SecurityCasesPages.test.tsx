@@ -213,8 +213,7 @@ const CLOSED_CASE_ID: string = "20000000-0000-4000-8000-000000000135";
 
 // The rows the list is answered with, when a test gives it any.
 let listedRows: Array<SecurityCase> = [];
-let listRequests: Array<{ query: Record<string, unknown>; sort: unknown }> =
-  [];
+let listRequests: Array<{ query: Record<string, unknown>; sort: unknown }> = [];
 
 function viewOf(key: SecurityCaseQueueViewKey): SecurityCaseQueueView {
   const view: SecurityCaseQueueView | undefined =
@@ -565,9 +564,9 @@ describe("each case page draws the list its question needs", () => {
     ]);
 
     for (const key of ["open", "unassigned", "closed", "all"]) {
-      expect(bulkTitles(await capture(key as SecurityCaseQueueViewKey))).toEqual(
-        ["Assign to Me", "Change Status", "Change Priority"],
-      );
+      expect(
+        bulkTitles(await capture(key as SecurityCaseQueueViewKey)),
+      ).toEqual(["Assign to Me", "Change Status", "Change Priority"]);
     }
   });
 
@@ -630,9 +629,7 @@ describe("the list a person sees", () => {
       expect(
         document.querySelectorAll('[data-testid^="security-case-view-"]'),
       ).toHaveLength(0);
-      expect(document.querySelectorAll("button[aria-pressed]")).toHaveLength(
-        0,
-      );
+      expect(document.querySelectorAll("button[aria-pressed]")).toHaveLength(0);
 
       cleanup();
     }
@@ -702,9 +699,7 @@ describe("the list a person sees", () => {
     expect(screen.getAllByText("Benign Positive").length).toBeGreaterThan(0);
     expect(screen.getByRole("columnheader", { name: /Verdict/ })).toBeVisible();
     expect(screen.getByRole("columnheader", { name: /Closed/ })).toBeVisible();
-    expect(
-      screen.queryByRole("columnheader", { name: /Status/ }),
-    ).toBeNull();
+    expect(screen.queryByRole("columnheader", { name: /Status/ })).toBeNull();
   });
 
   test("going from one case page to the next starts the list afresh: a new table, not the last one's", async () => {
