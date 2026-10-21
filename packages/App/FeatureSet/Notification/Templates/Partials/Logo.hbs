@@ -1,9 +1,9 @@
 {{!--
-  The header: the installation's own logo, else its name when it goes by
-  another, else OneUptime's logo and name. OneUptime's logo is the image
-  itself (oneUptimeLogoUrl, a data: URL that goes out as an inline
-  attachment - Common/Server/Utils/Mail/EmailLogo.ts), never an address on
-  another host: an email loads nothing from anywhere when it is opened.
+  The header: the installation's own logo (on its own host), else its name
+  when it goes by another, else OneUptime's logo and name. OneUptime's logo
+  is the image itself (oneUptimeLogoUrl, a data: URL that goes out as an
+  inline attachment - Common/Server/Utils/Mail/EmailLogo.ts), never an
+  address: an email that shows it asks no host for it when it is opened.
   It is placed raw because it is a value MailService alone sets, holding
   only letters, digits and "+/=:;,"; escaped, its base64 "=" would read
   "&#x3D;". Without it - its file could not be read - the name stands alone.
