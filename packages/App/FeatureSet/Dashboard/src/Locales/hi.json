@@ -32210,7 +32210,6 @@
   "Default ({{order}})": "डिफ़ॉल्ट ({{order}})",
   "Default branch": "डिफ़ॉल्ट ब्रांच",
   "Find a branch": "ब्रांच खोजें",
-  "GitHub is not connected to this project, so AI cannot work in these repositories. Connect GitHub again to use them.": "GitHub इस प्रोजेक्ट से जुड़ा नहीं है, इसलिए AI इन रिपॉजिटरी में काम नहीं कर सकता। इन्हें इस्तेमाल करने के लिए GitHub फिर से जोड़ें।",
   "Highest first": "सबसे अधिक पहले",
   "If this step fails, the run goes on instead of stopping.": "यदि यह चरण विफल होता है, तो रन रुकने के बजाय आगे बढ़ता है।",
   "Instructions": "निर्देश",
@@ -32746,7 +32745,6 @@
   "Process Path": "प्रक्रिया का पथ",
   "AI clones the repository on this Runner, builds and tests its change there the way the repository's AGENTS.md says, and opens the pull request.": "AI इस Runner पर रिपॉजिटरी क्लोन करता है, रिपॉजिटरी की AGENTS.md में बताए तरीके से वहीं अपने बदलाव को बिल्ड और टेस्ट करता है, और पुल रिक्वेस्ट खोलता है।",
   "AI then builds and tests its changes the way the repository's AGENTS.md says. You can set commands again through the API or Terraform.": "तब AI अपने बदलावों को रिपॉजिटरी की AGENTS.md में बताए तरीके से बिल्ड और टेस्ट करेगा। आप API या Terraform से कमांड फिर से सेट कर सकते हैं।",
-  "AI works on a Runner OneUptime runs for every project, which does not build or test its change: your repository's own CI does. Pick one of your Runners to have AI build and test it first.": "AI ऐसे Runner पर काम करता है जिसे OneUptime हर प्रोजेक्ट के लिए चलाता है, और जो उसके बदलाव को न बिल्ड करता है न टेस्ट: यह आपकी रिपॉजिटरी की अपनी CI करती है। AI से पहले बिल्ड और टेस्ट करवाने के लिए अपना कोई Runner चुनें।",
   "Build and Test Commands": "बिल्ड और टेस्ट कमांड",
   "GitHub does not give OneUptime access to these repositories any more, so AI cannot work in them.": "GitHub अब OneUptime को इन रिपॉजिटरी तक पहुँच नहीं देता, इसलिए AI इनमें काम नहीं कर सकता।",
   "No connected repositories": "कोई कनेक्टेड रिपॉजिटरी नहीं",
@@ -32754,10 +32752,13 @@
   "Remove Commands": "कमांड हटाएं",
   "Remove these commands?": "ये कमांड हटाएं?",
   "Run by OneUptime for every project. It does not build or test AI's change before the pull request opens.": "OneUptime इसे हर प्रोजेक्ट के लिए चलाता है। पुल रिक्वेस्ट खुलने से पहले यह AI के बदलाव को बिल्ड या टेस्ट नहीं करता।",
-  "Set before AI read how to build and test from the repository itself. A Runner of your own still runs them after AI changes the code. Remove them to have AI follow the repository's AGENTS.md alone.": "AI के रिपॉजिटरी से ही बिल्ड और टेस्ट का तरीका पढ़ने से पहले सेट किए गए थे। AI के कोड बदलने के बाद भी आपका अपना Runner इन्हें चलाता है। इन्हें हटाएं ताकि AI सिर्फ़ रिपॉजिटरी की AGENTS.md का पालन करे।",
   "Their tasks stay readable. Connect GitHub with access to them to use them again, or open one to delete it.": "इनके टास्क पढ़े जा सकते हैं। इन्हें फिर से इस्तेमाल करने के लिए इन तक पहुँच वाले GitHub को कनेक्ट करें, या किसी एक को हटाने के लिए उसे खोलें।",
   "Where AI's pull requests open, and how many may be open at once.": "AI की पुल रिक्वेस्ट कहाँ खुलती हैं, और एक साथ कितनी खुली रह सकती हैं।",
   "Where AI's pull requests open, how many may be open at once, and the label that hands an issue to the GitHub App.": "AI की पुल रिक्वेस्ट कहाँ खुलती हैं, एक साथ कितनी खुली रह सकती हैं, और वह लेबल जो किसी issue को GitHub ऐप को सौंपता है।",
-  "{{count}} repositories that are not connected match it, below.": "{{count}} रिपॉजिटरी जो कनेक्ट नहीं हैं, इससे मेल खाती हैं, नीचे देखें।",
-  "{{count}} repositories that are not connected match it, below._one": "{{count}} रिपॉजिटरी जो कनेक्ट नहीं है, इससे मेल खाती है, नीचे देखें।"
+  "{{count}} repositories under Not connected match it.": "\"कनेक्ट नहीं है\" में {{count}} रिपॉजिटरी इससे मेल खाती हैं।",
+  "{{count}} repositories under Not connected match it._one": "\"कनेक्ट नहीं है\" में {{count}} रिपॉजिटरी इससे मेल खाती है।",
+  "GitHub is not connected to this project, so AI cannot work in its repositories. Connect GitHub again to use them.": "GitHub इस प्रोजेक्ट से जुड़ा नहीं है, इसलिए AI इसकी रिपॉजिटरी में काम नहीं कर सकता। इन्हें इस्तेमाल करने के लिए GitHub फिर से जोड़ें।",
+  "Adding this label to a GitHub issue hands the issue to the app, as a mention does.": "किसी GitHub issue पर यह लेबल लगाने से वह issue उल्लेख की तरह ऐप को सौंप दिया जाता है।",
+  "A Runner of your own runs these after AI changes the code. AI now learns how to build and test from the repository's AGENTS.md, so you can remove them.": "AI के कोड बदलने के बाद आपका अपना Runner इन्हें चलाता है। AI अब रिपॉजिटरी की AGENTS.md से बिल्ड और टेस्ट करना सीखता है, इसलिए आप इन्हें हटा सकते हैं।",
+  "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the pull request opens.": "AI ऐसे Runner पर काम करता है जिसे OneUptime हर प्रोजेक्ट के लिए चलाता है, और जो उसके बदलाव को न बिल्ड करता है न टेस्ट। पुल रिक्वेस्ट खुलने से पहले AI से बिल्ड और टेस्ट करवाने के लिए अपना कोई Runner चुनें।"
 }

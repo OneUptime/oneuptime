@@ -183,7 +183,7 @@ export const CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION: string = translationKey(
  * why a team picks one of its own Runners instead.
  */
 export const CODE_GLOBAL_RUNNER_HELPER_TEXT: string = translationKey(
-  "AI works on a Runner OneUptime runs for every project, which does not build or test its change: your repository's own CI does. Pick one of your Runners to have AI build and test it first.",
+  "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the pull request opens.",
 );
 
 /*

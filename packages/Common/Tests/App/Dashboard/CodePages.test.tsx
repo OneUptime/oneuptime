@@ -208,6 +208,7 @@ import CodeRepositoriesPage, {
   CODE_REPOSITORIES_CARD_TEST_ID,
   CODE_REPOSITORIES_NOT_CONNECTED_TEST_ID,
   groupRepositories,
+  isFoundOnlyUnderNotConnected,
   isGitHubDisconnected,
   matchesRepositorySearch,
   REPOSITORY_SEARCH_THRESHOLD,
@@ -1620,7 +1621,20 @@ describe("Code's Repositories", () => {
     await userEvent.type(search, "acme/store");
     expect(rowNames(connectedList())).toEqual(["web"]);
 
-    // Only a repository that is not connected matches: the list says where.
+    // Matches among both lists: Not connected stays folded, counting its own.
+    const foldHeader: HTMLElement = within(notConnectedFold()).getByRole(
+      "button",
+      { name: "Not connected" },
+    );
+    await userEvent.clear(search);
+    await userEvent.type(search, "i");
+    expect(rowNames(connectedList()).length).toBeGreaterThan(0);
+    expect(foldHeader).toHaveAttribute("aria-expanded", "false");
+
+    /*
+     * Only a repository that is not connected matches: the list says where,
+     * and Not connected opens to show it - not a count behind a fold.
+     */
     await userEvent.clear(search);
     await userEvent.type(search, "billing");
     expect(rowNames(connectedList())).toEqual([]);
@@ -1630,14 +1644,70 @@ describe("Code's Repositories", () => {
     );
     expect(empty).toHaveTextContent("No repository matches your search");
     expect(empty).toHaveTextContent(
-      "1 repository that is not connected matches it, below.",
+      "1 repository under Not connected matches it.",
     );
-    expect(notConnectedFold()).toHaveTextContent("1 repository");
+    await waitFor(() => {
+      expect(foldHeader).toHaveAttribute("aria-expanded", "true");
+    });
+    expect(rowNames(notConnectedFold())).toEqual(["legacy-billing"]);
+
+    // It closes when the reader closes it, though the search still finds it.
+    fireEvent.click(foldHeader);
+    expect(foldHeader).toHaveAttribute("aria-expanded", "false");
+    await userEvent.type(search, "{backspace}");
+    expect(foldHeader).toHaveAttribute("aria-expanded", "false");
 
     fireEvent.click(
-      within(empty).getByRole("button", { name: "Clear Search" }),
+      within(screen.getByTestId("code-repository-search-empty")).getByRole(
+        "button",
+        { name: "Clear Search" },
+      ),
     );
     expect(rowNames(connectedList())).toHaveLength(6);
+  });
+
+  test("a search that finds some under Not connected says how many, for one and for many", async () => {
+    getRepositoriesMock.mockResolvedValue({
+      repositories: [
+        ...["one", "two", "three", "four", "five", "six"].map(
+          (name: string): CodeRepositoryListItem => {
+            return repository({ name });
+          },
+        ),
+        repository({ name: "old-billing", isConnected: false }),
+        repository({ name: "old-billing-ui", isConnected: false }),
+      ],
+      tasksWithoutRepositoryCount: 0,
+    } as never);
+
+    draw(<CodeRepositoriesPage {...PAGE_PROPS} />);
+
+    const search: HTMLElement = await screen.findByTestId(
+      "code-repository-search",
+    );
+
+    await userEvent.type(search, "old-billing");
+    expect(
+      screen.getByTestId("code-repository-search-empty"),
+    ).toHaveTextContent("2 repositories under Not connected match it.");
+    expect(rowNames(notConnectedFold())).toEqual([
+      "old-billing",
+      "old-billing-ui",
+    ]);
+
+    await userEvent.type(search, "-ui");
+    expect(
+      screen.getByTestId("code-repository-search-empty"),
+    ).toHaveTextContent("1 repository under Not connected matches it.");
+
+    // Nothing anywhere: no word about Not connected.
+    await userEvent.clear(search);
+    await userEvent.type(search, "nothing-like-it");
+    const empty: HTMLElement = screen.getByTestId(
+      "code-repository-search-empty",
+    );
+    expect(empty).toHaveTextContent("No repository matches your search");
+    expect(empty).not.toHaveTextContent("Not connected");
   });
 
   test("GitHub reaches none of them: the list says so with Connect GitHub - once, not in its header too", async () => {
@@ -1658,8 +1728,9 @@ describe("Code's Repositories", () => {
     );
 
     expect(empty).toHaveTextContent("No connected repositories");
+    // Its repositories are folded below: the list does not say "these".
     expect(empty).toHaveTextContent(
-      "GitHub is not connected to this project, so AI cannot work in these repositories. Connect GitHub again to use them.",
+      "GitHub is not connected to this project, so AI cannot work in its repositories. Connect GitHub again to use them.",
     );
     expect(rowNames(connectedList())).toEqual([]);
     expect(
@@ -1792,6 +1863,31 @@ describe("Code's Repositories", () => {
     expect(
       groupRepositories([PAYMENTS, CHECKOUT], "payments").connected,
     ).toEqual([]);
+
+    // A search that finds repositories only under Not connected opens it.
+    expect(
+      isFoundOnlyUnderNotConnected(
+        groupRepositories([PAYMENTS, CHECKOUT], "payments"),
+        "payments",
+      ),
+    ).toBe(true);
+    // Not when the list AI can work in has some too, nor with no search.
+    expect(
+      isFoundOnlyUnderNotConnected(
+        groupRepositories([PAYMENTS, CHECKOUT], "-"),
+        "-",
+      ),
+    ).toBe(false);
+    expect(
+      isFoundOnlyUnderNotConnected(groupRepositories([PAYMENTS]), "  "),
+    ).toBe(false);
+    // Nor when nothing is found anywhere.
+    expect(
+      isFoundOnlyUnderNotConnected(
+        groupRepositories([PAYMENTS, CHECKOUT], "zzz"),
+        "zzz",
+      ),
+    ).toBe(false);
 
     // Connected first in the request box's picker, each by name as read.
     expect(

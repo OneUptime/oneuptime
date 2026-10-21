@@ -58,6 +58,14 @@ export interface ComponentProps {
 export const CODE_REPOSITORY_ROW_TEST_ID: string = "code-repository-row";
 
 /*
+ * A row's quieter facts under its name - GitHub's organization/name, the
+ * description: regular weight, grey. The table draws its first column in
+ * the name's weight, which they would otherwise take.
+ */
+export const CODE_REPOSITORY_ROW_FACT_CLASS_NAME: string =
+  "font-normal text-gray-500";
+
+/*
  * The facts of one repository's Tasks cell, as text: how many tasks, its
  * open pull requests, and what needs someone. React-free words, so the
  * cell and the tests read the same.
@@ -179,10 +187,16 @@ const CodeRepositoriesTable: FunctionComponent<ComponentProps> = (
                 >
                   <>{repository.name}</>
                 </Link>
+                {/*
+                 * The first column is drawn a step heavier (the row's name,
+                 * TableLayout's primary cell): only the name is. GitHub's
+                 * organization/name and the description under it are the
+                 * quieter facts, in the regular weight.
+                 */}
                 {fullName && fullName !== repository.name ? (
                   <span
                     data-testid="code-repository-full-name"
-                    className="truncate text-xs text-gray-500"
+                    className={`truncate text-xs ${CODE_REPOSITORY_ROW_FACT_CLASS_NAME}`}
                   >
                     {fullName}
                   </span>
@@ -193,7 +207,7 @@ const CodeRepositoriesTable: FunctionComponent<ComponentProps> = (
               {repository.description ? (
                 <span
                   data-testid="code-repository-row-description"
-                  className="block max-w-md truncate text-sm text-gray-500"
+                  className={`block max-w-md truncate text-sm ${CODE_REPOSITORY_ROW_FACT_CLASS_NAME}`}
                 >
                   {repository.description}
                 </span>

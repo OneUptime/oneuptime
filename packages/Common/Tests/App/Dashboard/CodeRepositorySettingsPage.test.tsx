@@ -86,6 +86,10 @@ import {
   CodeRepositoryRunnerValue,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoryRunner";
 import { CODE_REPOSITORY_COMMANDS_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoryCommandsCard";
+import CodeApi, {
+  CodeRepositoryResponse,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
+import RepositoryConnectionStatus from "../../../../App/FeatureSet/Dashboard/src/Components/CodeRepository/RepositoryConnectionStatus";
 import {
   CODE_REPOSITORY_SETTINGS_COPY,
   DEFAULT_GITHUB_TRIGGER_LABEL,
@@ -130,6 +134,13 @@ interface DetailField {
 // What the repository holds, as the stand-in ModelAPI reads it.
 let stored: Record<string, unknown> = {};
 
+/*
+ * Whether the project's GitHub App reaches the repository, as Code's
+ * repository read answers it - or a read that fails.
+ */
+let reachable: boolean | Error = true;
+let getRepositoryCalls: Array<string> = [];
+
 const english: Translator = createTranslator(undefined, "en");
 
 beforeEach(() => {
@@ -148,6 +159,34 @@ beforeEach(() => {
   updateByIdMock.mockImplementation(async (): Promise<unknown> => {
     return {};
   });
+
+  reachable = true;
+  getRepositoryCalls = [];
+  getJestSpyOn(CodeApi, "getRepository").mockImplementation(
+    async (repositoryId: string): Promise<CodeRepositoryResponse> => {
+      getRepositoryCalls.push(repositoryId);
+
+      if (reachable instanceof Error) {
+        throw reachable;
+      }
+
+      return {
+        repository: {
+          id: repositoryId,
+          name: "checkout-api",
+          isConnected: reachable,
+        },
+        stats: {
+          working: 0,
+          waitingForYou: 0,
+          openPullRequests: 0,
+          taskCount: 0,
+        },
+        canAsk: true,
+        blocker: null,
+      };
+    },
+  );
 
   getJestSpyOn(PermissionGate, "checkColumnUpdate").mockImplementation(
     (): PermissionGateResult => {
@@ -276,6 +315,166 @@ describe("a repository's settings are cards, not a stepped dialog", () => {
       ["Pull Requests", "Edit", "Pull Requests"],
       ["GitHub Trigger Label", "Edit", "GitHub Trigger Label"],
     ]);
+  });
+});
+
+describe("Repository Details' Connection: what Code's Repositories says of it", () => {
+  /*
+   * The Connection field's element as the details card last drew it, for
+   * this record. Checked by its props while waiting - drawing it inside a
+   * waitFor would change the DOM waitFor watches, and wait forever.
+   */
+  function connectionOf(record: Record<string, unknown>): ReactElement {
+    const fields: Array<DetailField> = (
+      card("Repository > Repository Details")["modelDetailProps"] as {
+        fields: Array<DetailField>;
+      }
+    ).fields;
+    const connection: DetailField = fields.find(
+      (field: DetailField): boolean => {
+        return field.title === "Connection";
+      },
+    )!;
+    const item: CodeRepository = new CodeRepository();
+    Object.assign(item, record);
+
+    const element: ReactElement = connection.getElement!(item);
+    expect(element.type).toBe(RepositoryConnectionStatus);
+
+    return element;
+  }
+
+  // What that element draws.
+  function drawnText(element: ReactElement): string {
+    const drawn: HTMLElement = render(element).container;
+
+    return drawn.textContent || "";
+  }
+
+  test("it reads, once, whether the project's GitHub App reaches the repository", async () => {
+    draw();
+
+    await waitFor(() => {
+      expect(getRepositoryCalls).toEqual([REPOSITORY_ID]);
+    });
+  });
+
+  test("one GitHub reaches: GitHub App, as before", async () => {
+    draw();
+
+    await waitFor(() => {
+      expect(
+        connectionOf({ gitHubAppInstallationId: "12345" }).props.isReachable,
+      ).toBe(true);
+    });
+
+    const text: string = drawnText(
+      connectionOf({ gitHubAppInstallationId: "12345" }),
+    );
+    expect(text).toContain("GitHub App");
+    expect(text).not.toContain("Not connected");
+  });
+
+  test("one GitHub no longer reaches: Not connected - where Repositories folds it - not GitHub App", async () => {
+    reachable = false;
+    draw();
+
+    await waitFor(() => {
+      expect(
+        connectionOf({ gitHubAppInstallationId: "12345" }).props.isReachable,
+      ).toBe(false);
+    });
+
+    const text: string = drawnText(
+      connectionOf({ gitHubAppInstallationId: "12345" }),
+    );
+    expect(text).toContain("Not connected");
+    expect(text).not.toContain("GitHub App");
+    // One never connected through the app is no repository AI works in either.
+    expect(drawnText(connectionOf({}))).toContain("Not connected");
+  });
+
+  test("a read that fails leaves the field as it always was", async () => {
+    reachable = new Error("The repository cannot be read right now.");
+    draw();
+
+    await waitFor(() => {
+      expect(getRepositoryCalls).toHaveLength(1);
+    });
+    // Let the failed read settle: nothing changes for it.
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(
+      connectionOf({ gitHubAppInstallationId: "12345" }).props.isReachable,
+    ).toBeNull();
+    expect(
+      drawnText(connectionOf({ gitHubAppInstallationId: "12345" })),
+    ).toContain("GitHub App");
+    expect(drawnText(connectionOf({}))).toContain("Access Token");
+  });
+
+  test("the field itself: unknown says how it connects; false says Not connected, whatever the connection", () => {
+    const cases: Array<{
+      installation: string | undefined;
+      isReachable: boolean | null | undefined;
+      shows: string;
+      kind: string;
+    }> = [
+      {
+        installation: "1",
+        isReachable: undefined,
+        shows: "GitHub App",
+        kind: "github-app",
+      },
+      {
+        installation: "1",
+        isReachable: null,
+        shows: "GitHub App",
+        kind: "github-app",
+      },
+      {
+        installation: "1",
+        isReachable: true,
+        shows: "GitHub App",
+        kind: "github-app",
+      },
+      {
+        installation: "1",
+        isReachable: false,
+        shows: "Not connected",
+        kind: "not-connected",
+      },
+      {
+        installation: undefined,
+        isReachable: undefined,
+        shows: "Access Token",
+        kind: "access-token",
+      },
+      {
+        installation: undefined,
+        isReachable: false,
+        shows: "Not connected",
+        kind: "not-connected",
+      },
+    ];
+
+    for (const each of cases) {
+      cleanup();
+      render(
+        <RepositoryConnectionStatus
+          gitHubAppInstallationId={each.installation}
+          isReachable={each.isReachable}
+        />,
+      );
+
+      const status: HTMLElement = screen.getByTestId(
+        "repository-connection-status",
+      );
+      expect(status).toHaveTextContent(each.shows);
+      expect(status).toHaveAttribute("data-connection", each.kind);
+    }
   });
 });
 
@@ -471,12 +670,24 @@ describe("More settings", () => {
     expect(fields[0]!.placeholder).toBe(DEFAULT_GITHUB_TRIGGER_LABEL);
     // Asked whatever the switch says: it no longer hides behind it.
     expect(fields[0]!.showIf).toBeUndefined();
+    // The form says what empty means; the card only what the label does.
+    expect(fields[0]!.description).toBe(
+      "Adding this label to an issue hands it to the app, like a mention. Leave empty for 'oneuptime'.",
+    );
+    expect((props["cardProps"] as { description: string }).description).toBe(
+      "Adding this label to a GitHub issue hands the issue to the app, as a mention does.",
+    );
 
     const shown: Array<DetailField> = (
       props["modelDetailProps"] as { fields: Array<DetailField> }
     ).fields;
 
+    /*
+     * Named, as the Pull Requests card's values are: a value with no name
+     * under the card's words read as one more line of them.
+     */
     expect(shown).toHaveLength(1);
+    expect(shown[0]!.title).toBe("Label");
     expect(shown[0]!.placeholder).toBe("oneuptime");
   });
 
@@ -528,6 +739,10 @@ describe("build and test commands an operator set", () => {
     expect(
       screen.getByText(CODE_REPOSITORY_SETTINGS_COPY.commandsCardDescription),
     ).toBeInTheDocument();
+    // What they do now, why they are no longer needed, and that they may go.
+    expect(CODE_REPOSITORY_SETTINGS_COPY.commandsCardDescription).toBe(
+      "A Runner of your own runs these after AI changes the code. AI now learns how to build and test from the repository's AGENTS.md, so you can remove them.",
+    );
   });
 
   test("Remove Commands asks first: Cancel saves nothing, confirming clears all three", async () => {

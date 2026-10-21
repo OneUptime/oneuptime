@@ -139,6 +139,22 @@ export const groupRepositories: (
 };
 
 /*
+ * Whether a search found repositories only under Not connected: none among
+ * those AI can work in, some among those it cannot. The page then opens Not
+ * connected, so what was found is in sight - not a count behind a fold.
+ */
+export const isFoundOnlyUnderNotConnected: (
+  groups: CodeRepositoryGroups,
+  search: string,
+) => boolean = (groups: CodeRepositoryGroups, search: string): boolean => {
+  return (
+    search.trim().length > 0 &&
+    groups.connected.length === 0 &&
+    groups.notConnected.length > 0
+  );
+};
+
+/*
  * Whether GitHub reaches none of the repositories - the project's GitHub
  * connection is gone: the list of those AI can work in is empty, and says
  * how to connect GitHub again.

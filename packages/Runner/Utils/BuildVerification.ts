@@ -88,7 +88,7 @@ const REPAIR_AGENT_TIMEOUT_MS: number = 15 * 60 * 1000;
  * worked.
  */
 export const NO_COMMANDS_VERIFICATION_SUMMARY: string =
-  "No separate verification pass: no build or test commands are set for this repository in OneUptime. The AI builds and tests its change as it works, the way the repository says to (its AGENTS.md first), and its summary says which checks it ran. Your repository's own CI checks the change too.";
+  "The AI builds and tests its change as it works, the way the repository says to (its AGENTS.md first), and its summary says which checks it ran. No build or test commands are set for this repository in OneUptime, so no separate pass ran after it.";
 
 export interface VerificationCommand {
   // Which repository field the command came from.

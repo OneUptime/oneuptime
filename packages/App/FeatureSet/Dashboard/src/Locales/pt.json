@@ -32210,7 +32210,6 @@
   "Default ({{order}})": "Padrão ({{order}})",
   "Default branch": "Ramo padrão",
   "Find a branch": "Encontrar um ramo",
-  "GitHub is not connected to this project, so AI cannot work in these repositories. Connect GitHub again to use them.": "O GitHub não está conectado a este projeto, por isso a IA não pode trabalhar nestes repositórios. Conecte o GitHub novamente para usá-los.",
   "Highest first": "Maiores primeiro",
   "If this step fails, the run goes on instead of stopping.": "Se esta etapa falhar, a execução continua em vez de parar.",
   "Instructions": "Instruções",
@@ -32746,7 +32745,6 @@
   "Process Path": "Caminho do processo",
   "AI clones the repository on this Runner, builds and tests its change there the way the repository's AGENTS.md says, and opens the pull request.": "A IA clona o repositório neste Runner, compila e testa lá a sua alteração como diz o AGENTS.md do repositório, e abre o pull request.",
   "AI then builds and tests its changes the way the repository's AGENTS.md says. You can set commands again through the API or Terraform.": "A IA passará a compilar e testar as suas alterações como diz o AGENTS.md do repositório. Você pode definir comandos novamente pela API ou pelo Terraform.",
-  "AI works on a Runner OneUptime runs for every project, which does not build or test its change: your repository's own CI does. Pick one of your Runners to have AI build and test it first.": "A IA trabalha em um Runner que o OneUptime executa para todos os projetos, que não compila nem testa a sua alteração: a CI do seu repositório faz isso. Escolha um dos seus Runners para que a IA a compile e teste antes.",
   "Build and Test Commands": "Comandos de build e teste",
   "GitHub does not give OneUptime access to these repositories any more, so AI cannot work in them.": "O GitHub não dá mais ao OneUptime acesso a estes repositórios, por isso a IA não pode trabalhar neles.",
   "No connected repositories": "Nenhum repositório conectado",
@@ -32754,10 +32752,13 @@
   "Remove Commands": "Remover comandos",
   "Remove these commands?": "Remover estes comandos?",
   "Run by OneUptime for every project. It does not build or test AI's change before the pull request opens.": "Executado pelo OneUptime para todos os projetos. Não compila nem testa a alteração da IA antes de o pull request ser aberto.",
-  "Set before AI read how to build and test from the repository itself. A Runner of your own still runs them after AI changes the code. Remove them to have AI follow the repository's AGENTS.md alone.": "Definidos antes de a IA ler no próprio repositório como compilá-lo e testá-lo. Um Runner seu ainda os executa depois de a IA alterar o código. Remova-os para que a IA siga apenas o AGENTS.md do repositório.",
   "Their tasks stay readable. Connect GitHub with access to them to use them again, or open one to delete it.": "As tarefas deles continuam legíveis. Conecte o GitHub com acesso a eles para voltar a usá-los, ou abra um para excluí-lo.",
   "Where AI's pull requests open, and how many may be open at once.": "Onde os pull requests da IA são abertos e quantos podem estar abertos ao mesmo tempo.",
   "Where AI's pull requests open, how many may be open at once, and the label that hands an issue to the GitHub App.": "Onde os pull requests da IA são abertos, quantos podem estar abertos ao mesmo tempo e o rótulo que entrega uma issue ao app do GitHub.",
-  "{{count}} repositories that are not connected match it, below.": "{{count}} repositórios não conectados correspondem, logo abaixo.",
-  "{{count}} repositories that are not connected match it, below._one": "{{count}} repositório não conectado corresponde, logo abaixo."
+  "{{count}} repositories under Not connected match it.": "{{count}} repositórios em \"Não conectado\" correspondem.",
+  "{{count}} repositories under Not connected match it._one": "{{count}} repositório em \"Não conectado\" corresponde.",
+  "GitHub is not connected to this project, so AI cannot work in its repositories. Connect GitHub again to use them.": "O GitHub não está conectado a este projeto, por isso a IA não pode trabalhar nos repositórios dele. Conecte o GitHub novamente para usá-los.",
+  "Adding this label to a GitHub issue hands the issue to the app, as a mention does.": "Adicionar este rótulo a uma issue do GitHub entrega essa issue ao app, como faz uma menção.",
+  "A Runner of your own runs these after AI changes the code. AI now learns how to build and test from the repository's AGENTS.md, so you can remove them.": "Um Runner seu os executa depois de a IA alterar o código. Agora a IA aprende a compilar e testar pelo AGENTS.md do repositório, então você pode removê-los.",
+  "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the pull request opens.": "A IA trabalha em um Runner que o OneUptime executa para todos os projetos, que não compila nem testa a sua alteração. Escolha um dos seus Runners para que a IA a compile e teste antes de o pull request ser aberto."
 }

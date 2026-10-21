@@ -781,7 +781,7 @@ describe("the Settings page's Runner field and value", () => {
       "AI clones the repository on this Runner, builds and tests its change there the way the repository's AGENTS.md says, and opens the pull request.",
     );
     expect(CODE_GLOBAL_RUNNER_HELPER_TEXT).toBe(
-      "AI works on a Runner OneUptime runs for every project, which does not build or test its change: your repository's own CI does. Pick one of your Runners to have AI build and test it first.",
+      "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the pull request opens.",
     );
 
     for (const words of [
@@ -790,6 +790,8 @@ describe("the Settings page's Runner field and value", () => {
       CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
     ]) {
       expect(words).not.toContain("your setup, build and test commands");
+      // Nor a promise about CI a repository may not have.
+      expect(words).not.toContain("CI");
     }
   });
 

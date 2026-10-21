@@ -39,11 +39,13 @@ import {
   DEFAULT_GITHUB_TRIGGER_LABEL,
   getRepositoryMoreSettingsItems,
 } from "../../../Components/Code/CodeRepositorySettingsCopy";
+import CodeApi from "../../../Components/Code/CodeApi";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
   useState,
 } from "react";
 
@@ -59,8 +61,9 @@ export const CODE_REPOSITORY_MORE_SETTINGS_TEST_ID: string =
  * that saves the moment it is flipped, an Edit beside the rest, and what
  * most people never change folded under More settings.
  *
- *   - Repository Details: its name, description and labels, and where its
- *     code lives (the GitHub App's to say);
+ *   - Repository Details: its name, description and labels, where its code
+ *     lives (the GitHub App's to say), and how it connects - Not connected
+ *     where Code's Repositories folds it;
  *   - GitHub Commands: whether the GitHub App answers mentions, the trigger
  *     label and assignments here - on by default;
  *   - Runner: where AI works in it (CodeRepository.runnerId): a Runner of
@@ -85,6 +88,32 @@ const CodeRepositorySettings: FunctionComponent<
   const [settings, setSettings] = useState<CodeRepositorySettingsValues | null>(
     null,
   );
+
+  /*
+   * Whether the project's GitHub App reaches the repository, as Code's
+   * Repositories reads it: a repository it folds under Not connected says
+   * so here too, not "GitHub App". Unknown until read; a read that fails
+   * leaves the field as it always was.
+   */
+  const [isReachable, setIsReachable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let isCurrent: boolean = true;
+
+    CodeApi.getRepository(modelId.toString())
+      .then((answer: { repository: { isConnected: boolean } }): void => {
+        if (isCurrent) {
+          setIsReachable(answer.repository.isConnected);
+        }
+      })
+      .catch((): void => {
+        // The field then says how the repository connects, as before.
+      });
+
+    return (): void => {
+      isCurrent = false;
+    };
+  }, [modelId.toString()]);
 
   const rememberSettings: (item: CodeRepository) => void = (
     item: CodeRepository,
@@ -172,6 +201,7 @@ const CodeRepositorySettings: FunctionComponent<
                 return (
                   <RepositoryConnectionStatus
                     gitHubAppInstallationId={item.gitHubAppInstallationId}
+                    isReachable={isReachable}
                   />
                 );
               },
@@ -443,8 +473,7 @@ const CodeRepositorySettings: FunctionComponent<
           name="Repository > GitHub Trigger Label"
           cardProps={{
             title: CODE_REPOSITORY_SETTINGS_COPY.triggerLabelCardTitle,
-            description:
-              CODE_REPOSITORY_SETTINGS_COPY.triggerLabelCardDescription,
+            description: CODE_REPOSITORY_SETTINGS_COPY.triggerLabelCardSummary,
           }}
           isEditable={true}
           editButtonText="Edit"
@@ -474,11 +503,16 @@ const CodeRepositorySettings: FunctionComponent<
               });
             },
             fields: [
-              // The card is titled for it: no label of its own.
+              /*
+               * Named, as the Pull Requests card's values are: a value with
+               * no name under the card's words read as one more line of
+               * them. Unset, it shows the label that applies, quieter.
+               */
               {
                 field: {
                   gitHubTriggerLabel: true,
                 },
+                title: CODE_REPOSITORY_SETTINGS_COPY.triggerLabelFieldTitle,
                 placeholder: DEFAULT_GITHUB_TRIGGER_LABEL,
                 fieldType: FieldType.Text,
               },

@@ -80,6 +80,7 @@ import CodeTaskStateMark from "../../../../App/FeatureSet/Dashboard/src/Componen
 import CodeDiffStat from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeDiffStat";
 import { CodeTaskRow } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskList";
 import CodeRepositoriesTable, {
+  CODE_REPOSITORY_ROW_FACT_CLASS_NAME,
   CODE_REPOSITORY_ROW_TEST_ID,
   getRepositoryTaskWords,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoriesTable";
@@ -1559,6 +1560,45 @@ describe("a repository's row in the Repositories table", () => {
     expect(
       within(row).getByTestId("code-repository-row-description").className,
     ).toContain("truncate");
+  });
+
+  test("only the name takes the first column's weight: GitHub's name and the description are the quieter facts", () => {
+    draw(
+      <CodeRepositoriesTable
+        id="rows"
+        repositories={[
+          listed({
+            name: "checkout-api",
+            organizationName: "acme",
+            repositoryName: "checkout-api-service",
+            description: "The checkout API.",
+          }),
+        ]}
+      />,
+    );
+
+    const row: HTMLElement = screen.getByTestId(CODE_REPOSITORY_ROW_TEST_ID);
+    const cell: HTMLElement = within(row)
+      .getByTestId("code-repository-name")
+      .closest("td")!;
+
+    // The table draws its first column a step heavier: the row's name.
+    expect(cell.className.split(" ")).toContain("font-medium");
+
+    for (const testId of [
+      "code-repository-full-name",
+      "code-repository-row-description",
+    ]) {
+      const classes: Array<string> = within(row)
+        .getByTestId(testId)
+        .className.split(" ");
+
+      expect(classes).toEqual(
+        expect.arrayContaining(CODE_REPOSITORY_ROW_FACT_CLASS_NAME.split(" ")),
+      );
+      expect(classes).toContain("font-normal");
+      expect(classes).not.toContain("font-medium");
+    }
   });
 
   test("GitHub's organization/name is left out where it is only the name again", () => {

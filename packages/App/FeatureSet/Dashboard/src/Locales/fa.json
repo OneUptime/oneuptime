@@ -32210,7 +32210,6 @@
   "Default ({{order}})": "پیش‌فرض ({{order}})",
   "Default branch": "شاخهٔ پیش‌فرض",
   "Find a branch": "یافتن شاخه",
-  "GitHub is not connected to this project, so AI cannot work in these repositories. Connect GitHub again to use them.": "GitHub به این پروژه متصل نیست، بنابراین هوش مصنوعی نمی‌تواند در این مخازن کار کند. برای استفاده از آن‌ها GitHub را دوباره متصل کنید.",
   "Highest first": "بیشترین اول",
   "If this step fails, the run goes on instead of stopping.": "اگر این گام ناموفق شود، اجرا به‌جای توقف ادامه پیدا می‌کند.",
   "Instructions": "دستورالعمل‌ها",
@@ -32746,7 +32745,6 @@
   "Process Path": "مسیر فرایند",
   "AI clones the repository on this Runner, builds and tests its change there the way the repository's AGENTS.md says, and opens the pull request.": "هوش مصنوعی مخزن را روی این Runner کلون می‌کند، تغییر خود را همان‌جا همان‌طور که AGENTS.md مخزن می‌گوید می‌سازد و آزمون می‌کند و pull request را باز می‌کند.",
   "AI then builds and tests its changes the way the repository's AGENTS.md says. You can set commands again through the API or Terraform.": "از این پس هوش مصنوعی تغییرهای خود را همان‌طور که AGENTS.md مخزن می‌گوید می‌سازد و آزمون می‌کند. می‌توانید فرمان‌ها را دوباره از طریق API یا Terraform تنظیم کنید.",
-  "AI works on a Runner OneUptime runs for every project, which does not build or test its change: your repository's own CI does. Pick one of your Runners to have AI build and test it first.": "هوش مصنوعی روی Runnerی کار می‌کند که OneUptime برای همه پروژه‌ها اجرا می‌کند و تغییر آن را نه می‌سازد و نه آزمون می‌کند: این کار را CI خود مخزن شما انجام می‌دهد. یکی از Runnerهای خودتان را انتخاب کنید تا هوش مصنوعی ابتدا آن را بسازد و آزمون کند.",
   "Build and Test Commands": "فرمان‌های ساخت و آزمون",
   "GitHub does not give OneUptime access to these repositories any more, so AI cannot work in them.": "GitHub دیگر به OneUptime به این مخازن دسترسی نمی‌دهد، بنابراین هوش مصنوعی نمی‌تواند در آن‌ها کار کند.",
   "No connected repositories": "هیچ مخزن متصلی وجود ندارد",
@@ -32754,10 +32752,13 @@
   "Remove Commands": "حذف فرمان‌ها",
   "Remove these commands?": "این فرمان‌ها حذف شوند؟",
   "Run by OneUptime for every project. It does not build or test AI's change before the pull request opens.": "OneUptime آن را برای همه پروژه‌ها اجرا می‌کند. پیش از باز شدن pull request، تغییر هوش مصنوعی را نمی‌سازد و آزمون نمی‌کند.",
-  "Set before AI read how to build and test from the repository itself. A Runner of your own still runs them after AI changes the code. Remove them to have AI follow the repository's AGENTS.md alone.": "پیش از آنکه هوش مصنوعی شیوه ساخت و آزمون را از خود مخزن بخواند تنظیم شده‌اند. Runner خودتان پس از تغییر کد توسط هوش مصنوعی همچنان آن‌ها را اجرا می‌کند. آن‌ها را حذف کنید تا هوش مصنوعی فقط از AGENTS.md مخزن پیروی کند.",
   "Their tasks stay readable. Connect GitHub with access to them to use them again, or open one to delete it.": "وظایف آن‌ها همچنان خواندنی است. برای استفاده دوباره، GitHub را با دسترسی به آن‌ها متصل کنید، یا یکی را باز کنید تا حذفش کنید.",
   "Where AI's pull requests open, and how many may be open at once.": "pull requestهای هوش مصنوعی کجا باز می‌شوند و چند تا می‌توانند هم‌زمان باز باشند.",
   "Where AI's pull requests open, how many may be open at once, and the label that hands an issue to the GitHub App.": "pull requestهای هوش مصنوعی کجا باز می‌شوند، چند تا می‌توانند هم‌زمان باز باشند، و برچسبی که یک issue را به برنامه GitHub می‌سپارد.",
-  "{{count}} repositories that are not connected match it, below.": "{{count}} مخزن متصل‌نشده با آن مطابقت دارند، در پایین.",
-  "{{count}} repositories that are not connected match it, below._one": "{{count}} مخزن متصل‌نشده با آن مطابقت دارد، در پایین."
+  "{{count}} repositories under Not connected match it.": "{{count}} مخزن در «متصل نیست» با آن مطابقت دارند.",
+  "{{count}} repositories under Not connected match it._one": "{{count}} مخزن در «متصل نیست» با آن مطابقت دارد.",
+  "GitHub is not connected to this project, so AI cannot work in its repositories. Connect GitHub again to use them.": "GitHub به این پروژه متصل نیست، بنابراین هوش مصنوعی نمی‌تواند در مخازن آن کار کند. برای استفاده از آن‌ها GitHub را دوباره متصل کنید.",
+  "Adding this label to a GitHub issue hands the issue to the app, as a mention does.": "افزودن این برچسب به یک issue در GitHub آن issue را مانند اشاره به برنامه می‌سپارد.",
+  "A Runner of your own runs these after AI changes the code. AI now learns how to build and test from the repository's AGENTS.md, so you can remove them.": "Runner خودتان پس از تغییر کد توسط هوش مصنوعی آن‌ها را اجرا می‌کند. هوش مصنوعی اکنون شیوه ساخت و آزمون را از AGENTS.md مخزن یاد می‌گیرد، پس می‌توانید آن‌ها را حذف کنید.",
+  "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the pull request opens.": "هوش مصنوعی روی Runnerی کار می‌کند که OneUptime برای همه پروژه‌ها اجرا می‌کند و تغییر آن را نه می‌سازد و نه آزمون می‌کند. یکی از Runnerهای خودتان را انتخاب کنید تا هوش مصنوعی پیش از باز شدن pull request آن را بسازد و آزمون کند."
 }

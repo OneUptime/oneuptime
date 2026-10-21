@@ -7,6 +7,7 @@ import {
   CODE_REPOSITORIES_COPY,
   CodeRepositoryGroups,
   groupRepositories,
+  isFoundOnlyUnderNotConnected,
   isGitHubDisconnected,
   REPOSITORY_SEARCH_THRESHOLD,
 } from "../../Components/Code/CodeRepositoriesList";
@@ -60,6 +61,7 @@ import React, {
  */
 export {
   groupRepositories,
+  isFoundOnlyUnderNotConnected,
   isGitHubDisconnected,
   matchesRepositorySearch,
   REPOSITORY_SEARCH_THRESHOLD,
@@ -131,6 +133,31 @@ const CodeRepositoriesPage: FunctionComponent<
 
   const repositories: Array<CodeRepositoryListItem> = data?.repositories || [];
   const hasSearch: boolean = repositories.length > REPOSITORY_SEARCH_THRESHOLD;
+  const searchTerm: string = hasSearch ? search.trim() : "";
+
+  // The two lists as the search leaves them, and Not connected as a whole.
+  const groups: CodeRepositoryGroups = groupRepositories(
+    repositories,
+    searchTerm,
+  );
+  const allGroups: CodeRepositoryGroups = groupRepositories(repositories);
+
+  /*
+   * Not connected starts folded, and opens and closes as the reader says -
+   * except that a search finding repositories only there opens it, so what
+   * was found is in sight rather than counted behind a fold.
+   */
+  const [isNotConnectedOpen, setIsNotConnectedOpen] = useState<boolean>(false);
+  const isSearchFoundOnlyNotConnected: boolean = isFoundOnlyUnderNotConnected(
+    groups,
+    searchTerm,
+  );
+
+  useEffect(() => {
+    if (isSearchFoundOnlyNotConnected) {
+      setIsNotConnectedOpen(true);
+    }
+  }, [isSearchFoundOnlyNotConnected]);
 
   const openSearch: () => void = (): void => {
     setIsSearchOpen(true);
@@ -264,74 +291,77 @@ const CodeRepositoriesPage: FunctionComponent<
   };
 
   // What the list of connected repositories shows with none to list.
-  const getConnectedEmptyState: (
-    groups: CodeRepositoryGroups,
-  ) => TableEmptyStateProps = (
-    groups: CodeRepositoryGroups,
-  ): TableEmptyStateProps => {
-    if (search.trim()) {
-      return {
-        kind: TableEmptyStateKind.Filtered,
-        title: translator.translateTemplate(
-          CODE_REPOSITORIES_COPY.noMatchTitle,
-        ),
-        description:
-          groups.notConnected.length > 0
-            ? translator.translatePlural(
-                {
-                  one: "{{count}} repository that is not connected matches it, below.",
-                  other:
-                    "{{count}} repositories that are not connected match it, below.",
-                },
-                groups.notConnected.length,
-              )
-            : undefined,
-        actions: [
-          {
-            title: CLEAR_SEARCH,
-            icon: IconProp.Close,
-            onClick: clearSearch,
-            dataTestId: "code-repository-search-empty-clear",
+  const getConnectedEmptyState: () => TableEmptyStateProps =
+    (): TableEmptyStateProps => {
+      if (searchTerm) {
+        return {
+          kind: TableEmptyStateKind.Filtered,
+          title: translator.translateTemplate(
+            CODE_REPOSITORIES_COPY.noMatchTitle,
+          ),
+          // Found under Not connected, which the search opened, just below.
+          description:
+            groups.notConnected.length > 0
+              ? translator.translatePlural(
+                  {
+                    one: "{{count}} repository under Not connected matches it.",
+                    other:
+                      "{{count}} repositories under Not connected match it.",
+                  },
+                  groups.notConnected.length,
+                )
+              : undefined,
+          // What was found is just below: this says so in less room.
+          isCompact: groups.notConnected.length > 0,
+          actions: [
+            {
+              title: CLEAR_SEARCH,
+              icon: IconProp.Close,
+              onClick: clearSearch,
+              dataTestId: "code-repository-search-empty-clear",
+            },
+          ],
+          dataTestId: "code-repository-search-empty",
+        };
+      }
+
+      // GitHub reaches none of them: the project's connection is gone.
+      const actions: Array<TableEmptyStateAction> = [];
+
+      if (
+        connection.isGitHubAppConfigured &&
+        !connection.connectLock.isLocked
+      ) {
+        actions.push({
+          title: "Connect GitHub",
+          icon: IconProp.Link,
+          onClick: (): void => {
+            connection.connect();
           },
-        ],
-        dataTestId: "code-repository-search-empty",
+          dataTestId: "code-github-reconnect",
+        });
+      }
+
+      return {
+        kind: TableEmptyStateKind.Empty,
+        icon: IconProp.LinkSlash,
+        title: translator.translateTemplate(
+          CODE_REPOSITORIES_COPY.noneConnectedTitle,
+        ),
+        description: translator.translateTemplate(CODE_GITHUB_NOT_CONNECTED),
+        actions: actions,
+        ...(connection.isGitHubAppConfigured && connection.connectLock.isLocked
+          ? {
+              note: (
+                <span data-testid="code-github-disconnected-lock">
+                  {connection.connectLock.reason}
+                </span>
+              ),
+            }
+          : {}),
+        dataTestId: "code-github-disconnected",
       };
-    }
-
-    // GitHub reaches none of them: the project's connection is gone.
-    const actions: Array<TableEmptyStateAction> = [];
-
-    if (connection.isGitHubAppConfigured && !connection.connectLock.isLocked) {
-      actions.push({
-        title: "Connect GitHub",
-        icon: IconProp.Link,
-        onClick: (): void => {
-          connection.connect();
-        },
-        dataTestId: "code-github-reconnect",
-      });
-    }
-
-    return {
-      kind: TableEmptyStateKind.Empty,
-      icon: IconProp.LinkSlash,
-      title: translator.translateTemplate(
-        CODE_REPOSITORIES_COPY.noneConnectedTitle,
-      ),
-      description: translator.translateTemplate(CODE_GITHUB_NOT_CONNECTED),
-      actions: actions,
-      ...(connection.isGitHubAppConfigured && connection.connectLock.isLocked
-        ? {
-            note: (
-              <span data-testid="code-github-disconnected-lock">
-                {connection.connectLock.reason}
-              </span>
-            ),
-          }
-        : {}),
-      dataTestId: "code-github-disconnected",
     };
-  };
 
   const renderBody: () => ReactElement = (): ReactElement => {
     if (isLoading && !data) {
@@ -381,11 +411,6 @@ const CodeRepositoriesPage: FunctionComponent<
       return <ConnectGitHubEmptyState connection={connection} />;
     }
 
-    const groups: CodeRepositoryGroups = groupRepositories(
-      repositories,
-      hasSearch ? search : "",
-    );
-    const allGroups: CodeRepositoryGroups = groupRepositories(repositories);
     const isDisconnected: boolean = isGitHubDisconnected(repositories);
     const headerToolbar: ReactElement = getHeaderToolbar(isDisconnected);
 
@@ -401,7 +426,7 @@ const CodeRepositoriesPage: FunctionComponent<
             <CodeRepositoriesTable
               id="code-repositories"
               repositories={groups.connected}
-              emptyState={getConnectedEmptyState(groups)}
+              emptyState={getConnectedEmptyState()}
             />
           </Card>
         </div>
@@ -424,7 +449,10 @@ const CodeRepositoriesPage: FunctionComponent<
               },
             ]}
             summary={CODE_REPOSITORIES_COPY.notConnectedSummary}
-            defaultCollapsed={true}
+            isCollapsed={!isNotConnectedOpen}
+            onToggle={(isCollapsed: boolean): void => {
+              setIsNotConnectedOpen(!isCollapsed);
+            }}
             isElevated={true}
             isBodyFlush={true}
             className="mb-5"

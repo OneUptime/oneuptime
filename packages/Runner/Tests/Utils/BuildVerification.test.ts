@@ -706,9 +706,17 @@ describe("verifyWithRepairs", () => {
      * Never a pointer to a setting Code no longer asks for.
      */
     expect(outcome.summary).toBe(NO_COMMANDS_VERIFICATION_SUMMARY);
-    expect(outcome.summary).toContain("No separate verification pass");
+    // What checked the change first, for the reviewer; then why no pass ran.
+    expect(
+      outcome.summary.startsWith(
+        "The AI builds and tests its change as it works",
+      ),
+    ).toBe(true);
     expect(outcome.summary).toContain("its AGENTS.md first");
+    expect(outcome.summary).toContain("so no separate pass ran after it.");
     expect(outcome.summary).not.toContain("Configure them");
+    // Nor a promise about CI the repository may not have.
+    expect(outcome.summary).not.toContain("CI");
     // It rides in a varchar(500) column.
     expect(outcome.summary.length).toBeLessThanOrEqual(500);
     expect(agent.tasks).toHaveLength(0);

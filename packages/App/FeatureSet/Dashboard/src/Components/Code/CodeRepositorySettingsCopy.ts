@@ -53,7 +53,9 @@ export const CODE_REPOSITORY_SETTINGS_COPY: {
   mainBranchFormDescription: string;
   mainBranchDetailDescription: string;
   triggerLabelCardTitle: string;
+  triggerLabelCardSummary: string;
   triggerLabelCardDescription: string;
+  triggerLabelFieldTitle: string;
   commandsCardTitle: string;
   commandsCardDescription: string;
   commandsSetValue: string;
@@ -83,12 +85,22 @@ export const CODE_REPOSITORY_SETTINGS_COPY: {
     "The main branch of the repository.",
   ),
   triggerLabelCardTitle: translationKey("GitHub Trigger Label"),
+  // The card: what the label does. How to set it is the form's to say.
+  triggerLabelCardSummary: translationKey(
+    "Adding this label to a GitHub issue hands the issue to the app, as a mention does.",
+  ),
+  // The Edit form's field: what it does, and what empty means.
   triggerLabelCardDescription: translationKey(
     "Adding this label to an issue hands it to the app, like a mention. Leave empty for 'oneuptime'.",
   ),
+  triggerLabelFieldTitle: translationKey("Label"),
   commandsCardTitle: translationKey("Build and Test Commands"),
+  /*
+   * What the commands do now, why they are no longer needed, and that they
+   * may go: in that order, as a reader meeting them asks.
+   */
   commandsCardDescription: translationKey(
-    "Set before AI read how to build and test from the repository itself. A Runner of your own still runs them after AI changes the code. Remove them to have AI follow the repository's AGENTS.md alone.",
+    "A Runner of your own runs these after AI changes the code. AI now learns how to build and test from the repository's AGENTS.md, so you can remove them.",
   ),
   commandsSetValue: translationKey("Configured"),
   removeCommandsButton: translationKey("Remove Commands"),
