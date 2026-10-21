@@ -27,7 +27,7 @@ flowchart TB
     end
     worker --> ingest
     runner -->|"Uitgaand HTTPS, Runner-ID en sleutel"| ingest
-    ingest -->|"Opgepakte taak, met zijn geheimen of inloggegeven"| runner
+    ingest -->|"Opgepakte taak, met zijn geheimen"| runner
     runner -->|"Script, SSH of Kubernetes-API"| targets
 ```
 
@@ -61,13 +61,12 @@ Globale Runners zijn de Runners die OneUptime voor elk project draait. Een JavaS
 | Wat een stap kan bereiken | Openbare internetadressen | Wat zijn host kan bereiken |
 | Langste looptijd van een stap | 5 minuten | 1 uur |
 | Geheime variabelen | Die u globale Runners laat gebruiken | Die hem vermelden |
-| Credentials | Geen | Die u eraan toewijst |
 
 Een globale Runner voert de stappen van veel projecten uit, dus elke stap wordt gescheiden gehouden van alle andere:
 
 - Elke stap loopt in een eigen `isolated-vm`-sandbox, gemaakt voor die stap en daarna weggegooid: geen bestanden, geen processen, geen omgevingsvariabelen en niets dat van de ene stap naar de volgende bewaard blijft.
 - Zijn HTTP-verzoeken bereiken alleen openbare internetadressen, nooit een privé-, loopback- of link-local-adres of een cloudmetadata-endpoint, zodat een globale Runner nooit uw netwerk bereikt.
-- Hij krijgt een geheime variabele alleen als haar schakelaar **Globale Runners mogen het gebruiken** aan staat, en alleen voor een stap van het eigen project van de variabele. Hij krijgt nooit een inloggegeven.
+- Hij krijgt een geheime variabele alleen als haar schakelaar **Globale Runners mogen het gebruiken** aan staat, en alleen voor een stap van het eigen project van de variabele.
 - Een project voert hooguit drie stappen tegelijk uit op globale Runners, zodat geen project ze voor zichzelf houdt.
 
 Kies een van uw eigen Runners voor een stap die uw netwerk moet bereiken, of om de stap op hosts te houden die u beheert. Om elke stap op uw eigen Runners te houden, zet u **Globale Runners gebruiken** uit onderaan **Runbooks → Runbook-agenten**. Een JavaScript-stap die geen Runner kiest, loopt dan op de standaard-Runner van het project of mislukt, als er geen is ingesteld, met een melding, totdat hij een van uw Runners kiest; een stap die een van uw Runners kiest, houdt die in elk geval. Een code-repository die in zijn instellingen in Code geen Runner kiest, werkt ook op een globale Runner, en heeft een van uw Runners nodig zolang de schakelaar uit staat; zie [Code](/docs/ai/ai-agent#de-runner-van-de-repository-kiezen).
@@ -98,7 +97,7 @@ Ga naar **Runbooks → Runbook-agenten** en maak een nieuwe agent. Klik op **Run
 | **Voert Runbooks uit** | Onder **Meer velden** | Standaard aan. Laat deze Runner runbook-stappen oppakken. |
 | **Labels** | Onder **Meer velden** | Optioneel. |
 
-Een Runner neemt een wijziging van zijn mogelijkheden over bij zijn volgende heartbeat; opnieuw starten is niet nodig. AI is geen mogelijkheid. Een code-repository kiest in zijn instellingen in Code de Runner waarop AI erin werkt, en de pagina van de Runner toont de repositories die hem kiezen. Een regel voor automatisch herstel kiest de Runner waarop OneUptime AI zijn opdrachten uitvoert, en de AI-instellingen van een Kubernetes-cluster de Runner waarop zijn kubectl draait: pas door een Runner daar te kiezen mogen de opdrachten van OneUptime AI erop draaien. Een Runner kiezen met SSH-inloggegevens vereist de machtiging om runbook-inloggegevens te lezen; zie [Runners die de opdrachten van OneUptime AI uitvoeren](/docs/runbooks/credentials#runners-die-de-opdrachten-van-oneuptime-ai-uitvoeren).
+Een Runner neemt een wijziging van zijn mogelijkheden over bij zijn volgende heartbeat; opnieuw starten is niet nodig. AI is geen mogelijkheid. Een code-repository kiest in zijn instellingen in Code de Runner waarop AI erin werkt, en de pagina van de Runner toont de repositories die hem kiezen. Een regel voor automatisch herstel kiest de Runner waarop OneUptime AI zijn opdrachten uitvoert: pas door een Runner daar te kiezen mogen de opdrachten van OneUptime AI erop draaien.
 
 ### 2. De installatieopdracht kopiëren
 

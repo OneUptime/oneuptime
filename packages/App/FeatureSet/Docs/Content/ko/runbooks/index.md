@@ -95,7 +95,7 @@ Runbook은 **제품**의 **대시보드 및 자동화** 그룹에 있습니다.
 | Runbook의 **소유자** | 책임지는 사람과 팀을 추가합니다. |
 | Runbook의 **설정** | Runbook을 삭제하지 않고 **이 런북 실행**을 끕니다. |
 | **런북 → 실행** | 프로젝트에 있는 모든 Runbook의 모든 실행입니다. |
-| **런북 → Runbook 에이전트**와 **런북 → Runbook 에이전트 → AI 액세스** | [Runner](/docs/runbooks/agents)를 설치하고, OneUptime AI의 명령이 Runner를 통해 갖는 [액세스](/docs/runbooks/credentials)를 관리합니다. |
+| **런북 → Runbook 에이전트** | 런북 단계가 실행되는 [Runner](/docs/runbooks/agents)를 설치합니다. |
 | **런북 → 설정** | 모든 Runbook이 [사용할 수 있는](/docs/runbooks/variables) **전역 변수**와, 새 Runbook에 소유자와 레이블을 추가하는 **소유자 규칙** 및 **레이블 규칙**을 관리합니다. |
 | **인시던트 / 알림 / 예정된 유지 관리 → 규칙 → Runbook 규칙** | Runbook을 자동으로 시작하는 규칙을 만듭니다. |
 | 인시던트, 알림 또는 유지 관리 이벤트 → **런북** | 연결된 실행을 보고, **런북 실행**을 클릭해 새로 시작합니다. |

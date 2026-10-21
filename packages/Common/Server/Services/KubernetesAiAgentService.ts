@@ -1694,7 +1694,7 @@ export class Service extends DatabaseService<Model> {
    *    LEGACY_RUNNER_RETIREMENT_OFFLINE_DAYS (a Runner that never
    *    heartbeated is left alone: its age is unknown);
    *  - it holds nothing beyond an in-cluster Runner's defaults (no
-   *    credentials or secrets, no runbooks or code fixes, not another
+   *    secret runbook variables, no runbooks or code fixes, not another
    *    cluster's Runner) — what an operator entrusted to it is theirs;
    *  - no auto-remediation rule names it: a rule scoped to only that Runner
    *    would silently widen to "any Runner" once it is gone.

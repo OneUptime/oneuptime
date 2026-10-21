@@ -16,9 +16,9 @@ import path from "path";
  * Every owner table is read through the resource it owns
  * (@CanAccessIfCanReadOn, held by OwnerTablesReadThroughResource), the
  * settings that hold credentials are named only by a caller who may read
- * their table (RelationListPermission.isHeldToTableRead, and a runbook's
- * steps through RunbookService), and where a project was bought is written
- * by OneUptime alone.
+ * their table (RelationListPermission.isHeldToTableRead), and where a
+ * project was bought is written by OneUptime alone. (Runbook credentials,
+ * which a runbook's steps and a Kubernetes cluster named, were removed.)
  *
  * Users, Teams & Permissions says so in every docs language - a paragraph
  * closing the Owners section, and one after the paragraph on fields under
@@ -56,7 +56,7 @@ const OWNERS: Record<string, string> = {
 
 // After the paragraph on fields: a setting that holds credentials.
 const CREDENTIALS: Record<string, string> = {
-  en: "A setting that holds credentials is named only by someone who may read it. A create or a change names an SMTP server, a call and SMS provider, a runbook credential, SNMP credentials, a video call connection, an API key or an external MCP server — such as the SMTP server a status page sends email with, or the credential a runbook step runs with — only when you may read that kind of setting; one you may not read is refused as if it did not exist, while a record keeps the one it names already. Searching a call and SMS provider for numbers to buy, or listing the numbers it owns, takes the same read. Approving an AI command plan with an SSH command, which runs with a runbook credential OneUptime AI picked from those of its Runner, takes the read of runbook credentials (**Read Runbook Credential**; Project Owners and Project Admins may), and so does saving an auto remediation rule that lets OneUptime AI run its commands without asking, when the save turns that on or adds allowlist patterns or Runners, picking a Runner that holds SSH credentials for OneUptime AI's commands, or assigning an SSH credential to a Runner that runs OneUptime AI's commands. A workflow's step acts as a Project Admin but is never lent the read of a setting that holds credentials: it names none of them and makes none of these changes, and a person who may read them has to.",
+  en: "A setting that holds credentials is named only by someone who may read it. A create or a change names an SMTP server, a call and SMS provider, SNMP credentials, a video call connection, an API key or an external MCP server — such as the SMTP server a status page sends email with — only when you may read that kind of setting; one you may not read is refused as if it did not exist, while a record keeps the one it names already. Searching a call and SMS provider for numbers to buy, or listing the numbers it owns, takes the same read. A workflow's step acts as a Project Admin but is never lent the read of a setting that holds credentials: it names none of them, and a person who may read them has to.",
   da: "En indstilling, der indeholder legitimationsoplysninger, angives kun af en, der må læse den.",
   de: "Eine Einstellung, die Zugangsdaten enthält, nennt nur, wer sie lesen darf.",
   es: "Una configuración que contiene credenciales solo la nombra quien puede leerla.",
@@ -257,8 +257,8 @@ describe("Docs: who owns a resource, and a setting that holds credentials", () =
     for (const sentence of [
       "The owners of a resource - the user and team owner records of a monitor, an on-call policy, a dashboard and every other resource with owners - are read through the resource they own the same way",
       "an owner record of a resource you may not read is answered as if it did not exist.",
-      "A setting that holds credentials - an SMTP server, a call and SMS provider, a runbook credential, SNMP credentials, a video call connection, an API key, an external MCP server - is named only by a caller who may read that kind of setting",
-      "a status page's `smtpConfig` and `callSmsConfig`, an incoming call policy's `projectCallSMSConfig`, a Kubernetes cluster's `aiAccessCredential`, a network device's or site's `snmpCredentialProfile`, an incident's or alert's video call `videoCallConnection`, an API key permission's `apiKey`, an investigation or auto remediation rule's `externalMcpServers`, and the `credentialId` of a runbook's SSH and Kubernetes steps.",
+      "A setting that holds credentials - an SMTP server, a call and SMS provider, SNMP credentials, a video call connection, an API key, an external MCP server - is named only by a caller who may read that kind of setting",
+      "a status page's `smtpConfig` and `callSmsConfig`, an incoming call policy's `projectCallSMSConfig`, a network device's or site's `snmpCredentialProfile`, an incident's or alert's video call `videoCallConnection`, an API key permission's `apiKey`, and an investigation or auto remediation rule's `externalMcpServers`.",
       "is refused with the same `400`, under either of its names; a change that keeps the setting a record names already is not asked about.",
       "The number search and the owned-number list of an incoming call policy take the same read of the Call/SMS config they name.",
     ]) {

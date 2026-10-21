@@ -52,8 +52,7 @@ import {
   PROTECTED_KUBERNETES_NAMESPACES,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import { KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS } from "Common/Types/Kubernetes/KubernetesClusterAiAccessPermissions";
-import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
+import { PermissionHelper } from "Common/Types/Permission";
 import { describe, expect, it } from "@jest/globals";
 import path from "path";
 
@@ -108,7 +107,9 @@ function getKubernetesInstallationMarkdown(data: {
  *   server enforces, who may turn fixes on (the permission titles come from
  *   the permission catalog), the deny list, and that the agent is not a
  *   Runner (never a credential, never a Bash/SSH host, never a rule's
- *   command Runner). The advanced Runner + credential route stays documented.
+ *   command Runner). The previous in-cluster Runner is documented until the
+ *   chart is upgraded; a Runner outside the cluster no longer reaches it,
+ *   since it did so with a runbook credential and those were removed.
  * - What the agent would refuse (outside aiAgent.remediation.namespaces, its
  *   own namespace, node operations with nodeOperations=false) is described
  *   as refused when a fix is proposed or approved, not only in the agent.
@@ -856,44 +857,37 @@ describe("the AI SRE page's cluster-access section", () => {
       });
     }
 
-    // The permission only credential binding adds: the read of runbook credentials.
-    const credentialOnly: Array<Permission> = new RunbookCredential()
-      .getReadPermissions()
-      .filter((permission: Permission): boolean => {
-        return !KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS.includes(permission);
-      });
-
-    expect(credentialOnly.length).toBeGreaterThan(0);
-
-    for (const permission of credentialOnly) {
-      const title: string = PermissionHelper.getTitle(permission);
-      expect({ title, named: whoMay.includes(title) }).toEqual({
-        title,
-        named: true,
-      });
-    }
-
+    // Binding a Runner never took a credential's read: there are none now.
+    expect(whoMay).not.toContain("Runbook Credential");
     expect(whoMay).toContain("open to anyone who may edit the cluster");
   });
 
   /*
    * Moving a cluster from Off to any fix mode is a loosening
-   * (KubernetesClusterService.getAiAccessLoosening), and so is clearing a
-   * Runner binding on a cluster that has an AI agent (it moves the cluster
-   * onto the agent). Earlier copy listed only the unattended modes.
+   * (KubernetesClusterService.getAiAccessLoosening), and so is binding a
+   * Runner - only the cluster's own previous in-cluster Runner can be
+   * bound now. Clearing the binding hands the cluster to its AI agent and
+   * is a tightening: no Runner outside the cluster can take its place.
    */
-  it("says turning fixes on and clearing a Runner binding on an agent cluster need the same people", () => {
+  it("says turning fixes on and binding a Runner need the same people, and clearing the binding is a tightening", () => {
     const whoMay: string = getSection(section, "### Who may change it");
 
     expect(whoMay).toContain(
       "Turning fixes on — any move from **Off** to another mode",
     );
     expect(whoMay).toContain(
-      "removing that binding from a cluster that has a Kubernetes AI agent",
+      "writing the kubectl allowlist, or binding a Runner — takes a Project Owner, a Project Admin or the **Edit Auto Remediation Rule** permission",
     );
     expect(whoMay).toContain("**Reset agent** takes the same people");
-    // Tightening no longer includes clearing the binding.
-    expect(whoMay).not.toContain("clearing the allowlist or the binding");
+    expect(whoMay).toContain(
+      "Tightening it — **Off**, going back to **Ask for approval**, clearing the allowlist or the Runner binding — is open to anyone who may edit the cluster",
+    );
+    expect(whoMay).toContain(
+      "the binding to the cluster's previous in-cluster Runner",
+    );
+    expect(whoMay).not.toContain(
+      "removing that binding from a cluster that has a Kubernetes AI agent",
+    );
   });
 
   it("says the Kubernetes AI agent is not a Runner: no credential, no Bash/SSH, no rule command Runner", () => {
@@ -912,14 +906,14 @@ describe("the AI SRE page's cluster-access section", () => {
    * signal kind's own "Fix new incidents automatically" (or alerts), the
    * same through the AI agent or a Runner.
    */
-  it("says fixes need Enable AI and the fixing switch, through the AI agent or a Runner", () => {
+  it("says fixes need Enable AI and the fixing switch", () => {
     const fixes: string = getSection(
       section,
       "### Letting AI fix what it finds",
     );
-    const runner: string = getSection(
+    const previousRunner: string = getSection(
       section,
-      "### Through a Runner instead (advanced)",
+      "### Through the previous in-cluster Runner",
     );
 
     expect(fixes).toContain(
@@ -928,47 +922,55 @@ describe("the AI SRE page's cluster-access section", () => {
     expect(fixes).toContain(
       "**Enable AI** (**Project Settings → AI → AI Features**) is on unless someone turned it off",
     );
-    expect(runner).toContain(
-      "Fixes through a Runner need the same project switches as fixes through the AI agent: **Enable AI**, and **Fix new incidents automatically** (or alerts).",
-    );
 
-    for (const copy of [fixes, runner]) {
+    for (const copy of [fixes, previousRunner]) {
       expect(copy).not.toMatch(/AI command execution/i);
       expect(copy).not.toMatch(/enable auto[- ]?remediation/i);
     }
   });
 
-  it("keeps the advanced Runner + credential route, with its write limits and the switch back to the agent", () => {
-    const runner: string = getSection(
+  /*
+   * A Runner outside the cluster ran OneUptime AI's kubectl with a
+   * Kubernetes runbook credential bound beside it (Runbooks > Runners >
+   * AI Access). Runbook credentials were removed, so the page says that
+   * route is gone and what reaches a cluster now, and names nothing of it.
+   */
+  it("says a Runner outside the cluster no longer reaches it, and that the chart's AI agent is the way in", () => {
+    const previousRunner: string = getSection(
       section,
-      "### Through a Runner instead (advanced)",
+      "### Through the previous in-cluster Runner",
     );
 
-    for (const expected of [
+    expect(previousRunner).toContain(
+      "A Runner outside the cluster no longer reaches it: it did so with a Kubernetes runbook credential, and runbook credentials were removed.",
+    );
+    expect(previousRunner).toContain(
+      "the chart's Kubernetes AI agent is the way in.",
+    );
+
+    for (const gone of [
+      "### Through a Runner instead (advanced)",
       "**Runbooks → Runners → AI Access**",
-      "**AI Access Runner** and **AI Access Credential**",
-      // A Runner has no switch for it: binding it is the consent.
-      "binding the Runner is what lets OneUptime AI run kubectl on it.",
+      "**AI Access Credential**",
       "**Switch to the AI agent**",
-      "`ONEUPTIME_KUBECTL_WRITE_NAMESPACES`",
+      "/docs/runbooks/credentials",
+      "Read Runbook Credential",
     ]) {
-      expect({ expected, named: runner.includes(expected) }).toEqual({
-        expected,
-        named: true,
+      expect({ gone, named: section.includes(gone) }).toEqual({
+        gone,
+        named: false,
       });
     }
-
-    expect(runner).not.toContain("**Runs AI Remediation Commands**");
   });
 
   it("sends clusters still on the previous in-cluster Runner to the upgrade notes", () => {
-    const runner: string = getSection(
+    const previousRunner: string = getSection(
       section,
-      "### Through a Runner instead (advanced)",
+      "### Through the previous in-cluster Runner",
     );
 
-    expect(runner).toContain("`aiAccess.enabled=true`");
-    expect(runner).toContain(
+    expect(previousRunner).toContain("`aiAccess.enabled=true`");
+    expect(previousRunner).toContain(
       "(/docs/telemetry/kubernetes-agent#upgrading-the-agent)",
     );
   });
