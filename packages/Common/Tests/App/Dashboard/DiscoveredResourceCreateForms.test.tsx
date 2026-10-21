@@ -22,8 +22,10 @@ import Permission from "../../../Types/Permission";
 import type { Mock } from "jest-mock";
 
 /*
- * Creating a host, a Docker or Podman host, a Kubernetes cluster, a RUM
- * application, a serverless function or a cloud environment by hand.
+ * Creating a Docker or Podman host, a Kubernetes cluster, a RUM
+ * application, a serverless function or a cloud environment by hand - and
+ * a host, which is not created by hand any more: Add Host's one command
+ * adds it (#5137), so the Hosts list has no create form.
  *
  * "Make software as simple as possible to use and reduce decision
  * paralysis." These forms asked for a Name and an "Identifier" that "should
@@ -187,6 +189,29 @@ jest.mock(
       __esModule: true,
       default: () => {
         return null;
+      },
+    };
+  },
+);
+
+/*
+ * Add Host's dialog, as the Hosts page opens it: its guide (the command,
+ * the key, the wait for the host) is AddHostGuideInLocale's and the
+ * HostCollectors browser suite's.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/HostCollector/AddHostModal",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: { onClose: () => void }) => {
+        return (
+          <div data-testid="add-host-dialog">
+            <button type="button" onClick={props.onClose}>
+              Done
+            </button>
+          </div>
+        );
       },
     };
   },
@@ -503,6 +528,14 @@ interface CapturedTable {
   formFields: Array<ModelField<BaseModel>>;
   onBeforeCreate?: ModelFormOnBeforeCreate<BaseModel> | undefined;
   formSteps?: unknown;
+  isCreateable?: boolean | undefined;
+  cardProps?:
+    | {
+        buttons?:
+          | Array<{ title: string; onClick?: (() => void) | undefined }>
+          | undefined;
+      }
+    | undefined;
 }
 
 async function captureTable(
@@ -539,18 +572,8 @@ interface IdentityPage {
 const HOST_DISPLAY_NAME_HELP: string =
   "Starts as the host name. Type your own name to show instead; telemetry is still matched by the host name.";
 
+// Hosts are not here: Add Host's one command adds them (see below).
 const IDENTITY_PAGES: Array<IdentityPage> = [
-  {
-    label: "Hosts",
-    page: Hosts,
-    modelType: Host,
-    identityKey: "hostIdentifier",
-    identityTitle: "Host Name (host.name)",
-    identityPlaceholder: "host-prod-1",
-    displayNamePlaceholder: "Production web server",
-    displayNameHelp: HOST_DISPLAY_NAME_HELP,
-    submitButtonText: "Create Host",
-  },
   {
     label: "Docker Hosts",
     page: DockerHosts,
@@ -818,6 +841,65 @@ describe.each(IDENTITY_PAGES)(
     });
   },
 );
+
+/*
+ * ---------------------------------------------------------------------------
+ * Hosts: added by a command, not a form
+ * ---------------------------------------------------------------------------
+ *
+ * A host is added by running Add Host's one command on it (#5137): the
+ * collector the command installs registers the host when it connects,
+ * named after its hostname, with the labels the command gave it
+ * (HostCollectorAgent). A host typed in by hand would only wait for
+ * telemetry that nothing sends, so the list has no form to type one in.
+ */
+
+describe("Create on the Hosts page", () => {
+  test("hands its table no create form", async () => {
+    const table: CapturedTable = await captureTable(Hosts);
+
+    expect(table.isCreateable).toBe(false);
+    expect(table.formFields).toEqual([]);
+    expect(table.formSteps).toBeUndefined();
+    expect(table.onBeforeCreate).toBeUndefined();
+  });
+
+  test("offers Add Host instead, which opens the one-command dialog and closes it again", async () => {
+    modelTableCalls = [];
+
+    render(<Hosts {...PAGE_PROPS} />);
+    await flush();
+
+    const table: CapturedTable = modelTableCalls[
+      modelTableCalls.length - 1
+    ] as unknown as CapturedTable;
+
+    const buttons: Array<{
+      title: string;
+      onClick?: (() => void) | undefined;
+    }> = table.cardProps?.buttons || [];
+
+    // The list's one way to add a host.
+    expect(
+      buttons.map((button: { title: string }): string => {
+        return button.title;
+      }),
+    ).toEqual(["Add Host"]);
+    expect(screen.queryByTestId("add-host-dialog")).toBeNull();
+
+    await act(async (): Promise<void> => {
+      buttons[0]!.onClick!();
+    });
+
+    expect(screen.getByTestId("add-host-dialog")).toBeInTheDocument();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    });
+
+    expect(screen.queryByTestId("add-host-dialog")).toBeNull();
+  });
+});
 
 describe("Create on the Cloud Environments page", () => {
   let table: CapturedTable;
