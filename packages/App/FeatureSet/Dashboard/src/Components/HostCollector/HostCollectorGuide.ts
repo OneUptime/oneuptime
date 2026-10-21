@@ -122,6 +122,12 @@ export interface HostAddGuideOptions {
    * the command stops that one, so the host does not report twice.
    */
   replaceExisting?: boolean | undefined;
+  /*
+   * Leave out "Install the collector yourself": the page shows the manual
+   * guide itself (Hosts > Documentation, a host set up by hand), or the
+   * host's collector is OneUptime's already (installing it again).
+   */
+  hideManualInstallTopic?: boolean | undefined;
 }
 
 // The one command for this guide's system, filled in.
@@ -238,12 +244,16 @@ The supervisor asks OneUptime for the host's config every 30 seconds, with the i
 
 The host stays in OneUptime with its history; archive or delete it there.`,
     },
-    {
-      title: "Install the collector yourself",
-      summary: "Write and keep config.yaml on the host instead.",
-      markdown:
-        "Prefer to install the OpenTelemetry Collector and edit its `config.yaml` on the host yourself? The manual guide on the **Documentation** page shows how, for Docker, Debian and Ubuntu, RHEL and Fedora, a release tarball, macOS and Windows. Such a host's config is yours to change; OneUptime does not send it one.",
-    },
+    ...(options.hideManualInstallTopic
+      ? []
+      : [
+          {
+            title: "Install the collector yourself",
+            summary: "Write and keep config.yaml on the host instead.",
+            markdown:
+              "Prefer to install the OpenTelemetry Collector and edit its `config.yaml` on the host yourself? The manual guide on the **Documentation** page shows how, for Docker, Debian and Ubuntu, RHEL and Fedora, a release tarball, macOS and Windows. Such a host's config is yours to change; OneUptime does not send it one.",
+          },
+        ]),
   ];
 }
 

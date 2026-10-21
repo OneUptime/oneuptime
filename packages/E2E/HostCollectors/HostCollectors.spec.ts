@@ -502,6 +502,16 @@ test("Hosts > Documentation: the one command first, the manual guide one card do
 
   await expect(page.getByText("Add a host", { exact: true })).toBeVisible();
   await expect(page.getByText(LINUX_COMMAND, { exact: true })).toBeVisible();
+  // The one command's Advanced topics do not point to the card right below.
+  const advanced: Locator = page.getByTestId("setup-guide-advanced").first();
+  await expect(advanced).toContainText("5 topics");
+  await advanced.getByTestId("setup-guide-advanced-toggle").click();
+  await expect(advanced.getByTestId("setup-guide-topic")).toHaveCount(5);
+  await expect(
+    advanced
+      .getByTestId("setup-guide-topic")
+      .filter({ hasText: "Install the collector yourself" }),
+  ).toHaveCount(0);
 
   // The manual guide waits, folded, under the one command.
   const manual: Locator = page.getByTestId("host-manual-guide");
@@ -579,9 +589,9 @@ test("a new Collector Config asks for a name, a system and labels, then opens on
     ),
   ).toBeVisible();
   // The placeholder says what a name is: no description under it.
-  await expect(
-    form.getByText("What the hosts it is for have in common."),
-  ).toHaveCount(0);
+  await expect(form.getByText("have in common", { exact: false })).toHaveCount(
+    0,
+  );
   await form.getByRole("textbox", { name: /^Name/ }).fill("Database servers");
   await expect(form.getByRole("radio", { name: /^Linux/ })).toBeChecked();
   await form.getByRole("button", { name: "Create" }).click();

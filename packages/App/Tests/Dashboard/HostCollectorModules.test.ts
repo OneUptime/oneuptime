@@ -593,6 +593,8 @@ describe("Create Collector Config", () => {
     ).toEqual(["Name", "System", "Host Labels"]);
     expect(fields[0]!.placeholder).toBe("Web servers");
     expect(fields[0]!.description).toBeUndefined();
+    // Nor the column's description, which is written for the API reference.
+    expect(fields[0]!.hideColumnDescription).toBe(true);
     expect(fields[2]!.required).toBe(false);
   });
 
@@ -714,6 +716,31 @@ describe("the Add Host guide", () => {
       expect(guide.wrapLongLines).toBe(true);
       expect(DASHBOARD_EN[guide.keyStep!.description!]).toBeDefined();
     }
+  });
+
+  test("points to the manual guide, except where the page shows it or the collector is OneUptime's already", () => {
+    const titles: (
+      hideManualInstallTopic: boolean | undefined,
+    ) => Array<string> = (
+      hideManualInstallTopic: boolean | undefined,
+    ): Array<string> => {
+      return (
+        getHostAddGuide({
+          oneuptimeUrl: URL,
+          apiKey: KEY,
+          option: "linux",
+          hideManualInstallTopic,
+        }).advanced || []
+      ).map((topic: { title: string }): string => {
+        return topic.title;
+      });
+    };
+
+    expect(titles(undefined)).toContain("Install the collector yourself");
+    expect(titles(false)).toContain("Install the collector yourself");
+    expect(titles(true)).not.toContain("Install the collector yourself");
+    // Only that topic goes.
+    expect(titles(true)).toHaveLength(titles(undefined).length - 1);
   });
 
   test("what each run step says is a Dashboard string, handing over or not", () => {

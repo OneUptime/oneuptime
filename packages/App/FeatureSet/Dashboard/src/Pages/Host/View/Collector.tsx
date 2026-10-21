@@ -168,6 +168,7 @@ const HostCollector: FunctionComponent<
         )}
         osType={getHostCollectorOsType(host.osType)}
         replaceExisting={true}
+        hideManualInstallTopic={true}
         hostId={modelId}
         onHostConnected={() => {
           setRefreshToken((token: number): number => {

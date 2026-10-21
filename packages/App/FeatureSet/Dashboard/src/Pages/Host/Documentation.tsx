@@ -14,7 +14,8 @@ const HostDocumentation: FunctionComponent<
 > = (): ReactElement => {
   return (
     <Fragment>
-      <AddHostGuide />
+      {/* The manual guide is the next card: no topic pointing to it. */}
+      <AddHostGuide hideManualInstallTopic={true} />
       <FoldedSection
         title="Install the collector yourself"
         icon={IconProp.Book}

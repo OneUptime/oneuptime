@@ -50,9 +50,8 @@ import React, {
  * that system's default, and the config's own page edits it.
  */
 
+// The dialog's title says "How Collector Configs work": the text starts below it.
 const documentationMarkdown: string = `
-### How Collector Configs work
-
 Every host you add with the one-command install runs a config that OneUptime sends it: the first config in this list that applies to it.
 
 - **System**: a config is for Linux, Windows or macOS hosts, or for hosts on any system.

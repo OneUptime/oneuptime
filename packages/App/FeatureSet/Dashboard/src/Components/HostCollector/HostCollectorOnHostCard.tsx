@@ -185,6 +185,7 @@ const HostCollectorOnHostCard: FunctionComponent<ComponentProps> = (
             <AddHostGuide
               isBare={true}
               osType={getHostCollectorOsType(props.osType)}
+              hideManualInstallTopic={true}
               hostId={props.hostId}
               onHostConnected={() => {
                 props.onHostConnected?.();

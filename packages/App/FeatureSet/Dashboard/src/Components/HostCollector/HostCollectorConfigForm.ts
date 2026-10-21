@@ -67,6 +67,8 @@ export function getHostCollectorConfigFormFields(options?: {
       fieldType: FormFieldSchemaType.Text,
       required: true,
       placeholder: "Web servers",
+      // Not the column's API description either: the placeholder says it.
+      hideColumnDescription: true,
     },
     {
       field: {

@@ -58,6 +58,11 @@ export interface ComponentProps {
    * command stops that one (its Collector page hands it over to OneUptime).
    */
   replaceExisting?: boolean | undefined;
+  /*
+   * No "Install the collector yourself" topic: the page shows the manual
+   * guide below, or the collector is OneUptime's already.
+   */
+  hideManualInstallTopic?: boolean | undefined;
   // The last step waits for this host only (a host's own page).
   hostId?: ObjectID | undefined;
   // Without its card and header, in a dialog that has its own (Add Host).
@@ -121,6 +126,7 @@ const AddHostGuide: FunctionComponent<ComponentProps> = (
           apiKey: context.apiKey,
           option: resolveHostAddOption(context.option),
           replaceExisting: props.replaceExisting,
+          hideManualInstallTopic: props.hideManualInstallTopic,
         });
       }}
       lastStep={{
