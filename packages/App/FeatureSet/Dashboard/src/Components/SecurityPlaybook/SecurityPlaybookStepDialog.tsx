@@ -590,7 +590,7 @@ export function getStepSettingsFields(
       field: { requiresApproval: true },
       title: "Needs Approval",
       description:
-        "The run stops before this step until someone other than the person who started it approves it on the case. A step that contains always does, unless a Security Admin turns this off.",
+        "Someone other than whoever started the run must approve this step on the case. Containment steps always need it unless a Security Admin turns it off.",
       fieldType: FormFieldSchemaType.Toggle,
       stepId: "settings",
       required: false,

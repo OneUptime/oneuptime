@@ -282,9 +282,21 @@ describe("the other runbook pages", () => {
     );
   });
 
-  it("say a JavaScript step's Runner starts on Global Runner", () => {
+  it("say a JavaScript step's Runner, under More fields, starts on the project's default Runner, else on Global Runner", () => {
     expect(AUTHORING).toContain(
-      "| **Runner** | The Runner that runs the step: **Global Runner**, or one of yours.",
+      "| **Runner** | Under **More fields**. The Runner that runs the step: **Global Runner**, or one of yours.",
+    );
+    expect(AUTHORING).toContain(
+      "| The project's [default Runner](/docs/runbooks/agents#the-projects-default-runner), if you set one; otherwise **Global Runner**, when there is one |",
+    );
+  });
+
+  it("say a Bash, SSH or kubectl step's dropdown shows the Global Runner, greyed out, with why", () => {
+    expect(RUNNER_PICKER_MODEL).toContain(
+      'translationKey(\n  "Runs JavaScript steps only.",\n)',
+    );
+    expect(SECTION).toContain(
+      "A Bash, SSH or kubectl step's dropdown shows it last, greyed out, saying **Runs JavaScript steps only.** Those steps run on a Runner of your own, inside your network, never on one every project shares.",
     );
   });
 

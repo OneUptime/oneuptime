@@ -18,8 +18,8 @@ import {
   getShownChannelName,
 } from "./ChannelNamePreview";
 import {
+  getNothingChosenSentence,
   getNotificationRuleSummary,
-  NOTHING_CHOSEN_SENTENCE,
 } from "./NotificationRuleCopy";
 
 /*
@@ -158,7 +158,12 @@ const NotificationRuleSummary: FunctionComponent<
 
     return (
       <p data-testid={props.dataTestId} className="text-sm text-gray-500">
-        {translator.translateText(NOTHING_CHOSEN_SENTENCE)}
+        {translator.translateText(
+          getNothingChosenSentence({
+            eventType: props.eventType,
+            workspaceType: props.workspaceType,
+          }),
+        )}
       </p>
     );
   }

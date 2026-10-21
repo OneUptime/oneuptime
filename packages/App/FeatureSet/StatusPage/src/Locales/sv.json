@@ -147,6 +147,7 @@
       "copyHint": "Klistra in den i valfri kalenderapp som kan prenumerera på en kalender via URL.",
       "copy": "Kopiera länk",
       "copied": "Kopierat!",
+      "copyFailed": "Din webbläsare lät inte sidan kopiera länken. Den är markerad ovan så att du kan kopiera den själv.",
       "done": "Klar",
       "refreshNote": "Kalenderappar letar efter ändringar enligt sitt eget schema, så det kan ta några timmar innan en uppdatering syns."
     }

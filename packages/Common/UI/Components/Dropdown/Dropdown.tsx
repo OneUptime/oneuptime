@@ -55,6 +55,14 @@ export interface DropdownOption {
    * label is English to look up.
    */
   isUserContent?: boolean | undefined;
+  /*
+   * Shown in the menu but never picked: a choice that is not open here,
+   * with its description saying why ("Runs JavaScript steps only."). The
+   * menu draws it muted and passes over it, mouse and keyboard alike, and
+   * a screen reader hears it as unavailable (react-select reads this
+   * field).
+   */
+  isDisabled?: boolean | undefined;
 }
 
 export interface DropdownOptionGroup {
@@ -558,11 +566,20 @@ const Dropdown: FunctionComponent<ComponentProps> = (
       );
     }
 
+    /*
+     * An option that cannot be picked reads as such: its name a shade
+     * quieter, not the menu's dark - still legible, since its description
+     * says why it is not open.
+     */
     return (
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
           {renderOptionColorIndicator(option.color)}
-          <span className="text-sm font-medium text-gray-900">
+          <span
+            className={`text-sm font-medium ${
+              option.isDisabled ? "text-gray-500" : "text-gray-900"
+            }`}
+          >
             {getOptionLabelText(option)}
           </span>
         </div>
@@ -743,7 +760,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
             state: OptionProps<DropdownOption, boolean, GroupBase<any>>,
           ): string => {
             if (state.isDisabled) {
-              return "px-3 py-2 text-sm text-gray-300 cursor-not-allowed";
+              return "px-3 py-2 text-sm text-gray-500 cursor-not-allowed";
             }
 
             if (state.isSelected) {

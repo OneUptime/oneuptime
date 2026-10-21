@@ -1,26 +1,55 @@
 import RunnerLiveStatus from "Common/Types/Runner/RunnerLiveStatus";
 import { canGlobalRunnersRunStepType } from "Common/Types/Runner/GlobalRunnerWork";
-import { getChosenRunnerId } from "Common/Types/Runner/RunnerChoice";
+import {
+  ChosenRunnerKind,
+  GLOBAL_RUNNER_CHOICE_ID,
+  RunnerChoiceRefusal,
+  RunnerDefaultOrderResult,
+  RunnerSource,
+  decideRunnerByDefaultOrder,
+  getChosenRunnerId,
+  isGlobalRunnerChoice,
+} from "Common/Types/Runner/RunnerChoice";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * What the Runner picker shows for a step - or for a code repository, whose
- * Runner setting in Code picks the Runner AI works in it on - worked out
- * from what the page loaded - React-free, so App's tests read the same
- * rules the picker draws.
+ * Runner setting in Code picks the Runner AI works in it on, or an auto
+ * remediation rule - worked out from what the page loaded - React-free, so
+ * App's tests read the same rules the picker draws.
  *
- * It follows the server's one "global by default" rule
- * (Common/Types/Runner/RunnerChoice): a step that picked a Runner of its
- * project's own runs on it; a step that picked none runs on the global
- * Runners - the ones OneUptime runs for every project - when they can run it
- * (GlobalRunnerWork), the project uses them and there is one. So the picker
- * offers the global choice first, and it is the choice a step that picked
- * none shows, rather than an empty box; it never says "no Runners" while a
- * global Runner can run the step.
+ * For a runbook step it follows the server's one rule, in its default order
+ * (Common/Types/Runner/RunnerChoice, decideRunnerByDefaultOrder): a step
+ * that picked a Runner of its project's own runs on it; a step that picked
+ * none runs on the project's default Runner when the project has one, and
+ * otherwise on the global Runners - the ones OneUptime runs for every
+ * project - when they can run it (GlobalRunnerWork), the project uses them
+ * and there is one. So the picker's first choice is that default - "the
+ * project's default Runner" or "Global Runner" - and it is what a step that
+ * picked none shows, rather than an empty box.
+ *
+ * The Global Runner is always in the list where the server has one: a
+ * choice of its own while the project has a default Runner (a step can
+ * still pick it), and drawn but never picked where it may not run the step -
+ * a Bash, SSH or kubectl step, which global Runners never run, or a project
+ * that turned them off - with why, so nobody wonders where it went.
  */
 
-// What the global choice stores on a step: no Runner of its own.
+/*
+ * What the first choice of a runbook step stores: no Runner of its own, so
+ * the project's default - its default Runner, or else the Global Runner.
+ * What the Global Runner stores for a code repository and a rule, too.
+ */
 export const GLOBAL_RUNNER_CHOICE_VALUE: string = "";
+
+// The step's first choice, the project's default, by the same value.
+export const PROJECT_DEFAULT_CHOICE_VALUE: string = GLOBAL_RUNNER_CHOICE_VALUE;
+
+/*
+ * What a step stores to pick the Global Runner itself while the project
+ * has a default Runner (Common/Types/Runner/RunnerChoice).
+ */
+export const GLOBAL_RUNNER_PICK_VALUE: string = GLOBAL_RUNNER_CHOICE_ID;
 
 /*
  * What a Runner is picked for. The global choice means the same to people
@@ -53,11 +82,72 @@ export const GLOBAL_RUNNER_CHOICE_DESCRIPTION: string = translationKey(
 );
 
 /*
- * Under the picker of a step that global Runners could run, in a project
- * that turned them off: why there is no global choice, and what to do.
+ * The tag the project's default Runner carries wherever it is listed: the
+ * picker's first choice ("prod-runner · Project default · Connected"), the
+ * Runners list, the Runner's own page.
+ */
+export const PROJECT_DEFAULT_TAG: string = translationKey("Project default");
+
+/*
+ * Why the Global Runner is drawn but cannot be picked, under its name in
+ * the menu: the step's type, which global Runners never run - a shell
+ * cannot be kept apart from other projects' steps on a host every project
+ * shares - or the project, which turned them off.
+ */
+export enum GlobalRunnerUnavailableReason {
+  StepType = "step-type",
+  ProjectTurnedOff = "project-turned-off",
+}
+
+export const GLOBAL_RUNNER_STEP_TYPE_UNAVAILABLE_TEXT: string = translationKey(
+  "Runs JavaScript steps only.",
+);
+
+export const GLOBAL_RUNNER_TURNED_OFF_UNAVAILABLE_TEXT: string = translationKey(
+  "This project does not use global Runners.",
+);
+
+/*
+ * Under the picker of a step global Runners never run that picked no
+ * Runner, in a project with no default Runner ({{stepType}}: the step's
+ * name; {{location}}: a link to Runbooks › Runners): why the Global Runner
+ * is not open to it, and the two ways on - in one line.
+ */
+export const NEEDS_OWN_RUNNER_TEMPLATE: string = translationKey(
+  "{{stepType}} steps run on a Runner of your own, inside your network: the Global Runner runs JavaScript steps only. Pick one, or make one the project default under {{location}}.",
+);
+
+/*
+ * The same, with no Runner of the project's own to pick: where one is
+ * added.
+ */
+export const NEEDS_OWN_RUNNER_ADD_TEMPLATE: string = translationKey(
+  "{{stepType}} steps run on a Runner of your own, inside your network: the Global Runner runs JavaScript steps only. Add one under {{location}}, then pick it here.",
+);
+
+/*
+ * Under the picker of a step global Runners never run that picked the
+ * Global Runner itself (an API client, or a step whose type changed).
+ */
+export const PICKED_GLOBAL_RUNNER_NEEDS_OWN_TEXT: string = translationKey(
+  "This step picks the Global Runner, which runs JavaScript steps only. Pick one of your Runners.",
+);
+
+/*
+ * Under the picker of a step global Runners could run, in a project that
+ * turned them off and has no default Runner: why there is no global choice,
+ * and what to do.
  */
 export const GLOBAL_RUNNERS_OFF_HELPER_TEXT: string = translationKey(
   "This project does not use global Runners: pick one of your Runners for this step.",
+);
+
+/*
+ * Under the picker of a step global Runners could run that picked no
+ * Runner, on a server that runs none, in a project with no default Runner.
+ */
+export const STEP_NO_GLOBAL_RUNNER_HELPER_TEXT: string = translationKey(
+  "This server runs no global Runner: pick one of your Runners for this step.",
 );
 
 /*
@@ -67,6 +157,15 @@ export const GLOBAL_RUNNERS_OFF_HELPER_TEXT: string = translationKey(
  */
 export const GLOBAL_RUNNER_NOT_CONNECTED_TEXT: string = translationKey(
   "No global Runner is connected right now. The step fails if none picks it up within its claim timeout.",
+);
+
+/*
+ * Under the picker of a step on one of the project's own Runners - the one
+ * it picked, or the project's default - that is not connected
+ * ({{runner}}: its name): the same, for that Runner.
+ */
+export const RUNNER_NOT_CONNECTED_TEMPLATE: string = translationKey(
+  "{{runner}} is not connected right now. The step fails if this Runner does not pick it up within its claim timeout.",
 );
 
 // The global choice, under its name, in a code repository's picker.
@@ -159,6 +258,12 @@ export interface RunnerPickerRunner {
   id: string;
   name: string;
   liveStatus: RunnerLiveStatus;
+  /*
+   * The project's default Runner (Runner.isProjectDefault), set by the
+   * loader only on one that may be it (Common/Types/Runner/
+   * ProjectDefaultRunner). Read for a runbook step only.
+   */
+  isProjectDefault?: boolean | undefined;
 }
 
 export interface RunnerPickerFacts {
@@ -169,13 +274,16 @@ export interface RunnerPickerFacts {
    * for a code repository.
    */
   stepType: string;
-  // The Runner the step picked, as stored: "" when it picked none.
+  /*
+   * The Runner the step picked, as stored: "" when it picked none,
+   * GLOBAL_RUNNER_PICK_VALUE for the Global Runner itself.
+   */
   currentRunnerId: string;
   // The project's own Runners.
   projectRunners: Array<RunnerPickerRunner>;
   /*
    * The global Runners that run this work, with how each is doing (and
-   * their ids: a step that names one is on the global Runners, as the
+   * their ids: a step that names one picked the Global Runner, as the
    * server reads it): the ones that run runbook steps, or - for a code
    * repository - the global Runners for code.
    */
@@ -189,7 +297,17 @@ export interface RunnerPickerFacts {
 
 export enum RunnerPickerOptionKind {
   Global = "global",
+  /*
+   * The Global Runner where it may not run the step: drawn, with why
+   * (`unavailableReason`), and never picked.
+   */
+  GlobalUnavailable = "global-unavailable",
   Project = "project",
+  /*
+   * A runbook step's first choice while the project has a default Runner:
+   * no Runner of the step's own, so that Runner.
+   */
+  ProjectDefault = "project-default",
   /*
    * An auto remediation rule's first choice: no Runner of the project's own
    * (REMEDIATION_NO_RUNNER_CHOICE_LABEL).
@@ -209,31 +327,56 @@ export interface RunnerPickerOption {
   name: string;
   // How the Runner is doing; for the global choice, the best of them.
   liveStatus?: RunnerLiveStatus | undefined;
+  /*
+   * The id of the project Runner it stands for: a Runner of the project's
+   * own, or - for the first choice - the project's default Runner.
+   */
+  runnerId?: string | undefined;
+  // Why the Global Runner cannot be picked (GlobalUnavailable only).
+  unavailableReason?: GlobalRunnerUnavailableReason | undefined;
 }
 
 // What the step runs on as it is now, for the line under the picker.
 export enum RunnerPickerOutcome {
   GlobalRunner = "global",
   ProjectRunner = "project",
+  // Picked none, and runs on the project's default Runner (steps only).
+  ProjectDefaultRunner = "project-default",
   UnknownRunner = "unknown",
   // An auto remediation rule that picked no Runner: the AI agents fix.
   NoRunner = "no-runner",
-  // Picked none, and global Runners never run this step type (steps only).
+  /*
+   * Picked none, with no project default Runner - or picked the Global
+   * Runner - and global Runners never run this step type (steps only).
+   */
   NeedsOwnRunner = "needs-own-runner",
-  // Picked none, and the project turned global Runners off.
+  // ... and the project turned global Runners off.
   GlobalRunnersOff = "global-runners-off",
-  // Picked none, and the server has no global Runner.
+  // ... and the server has no global Runner.
   NoGlobalRunner = "no-global-runner",
 }
 
 export interface RunnerPickerModel {
-  // In order: the global choice first when it is offered, then the project's Runners.
+  /*
+   * In order: the first choice (the project's default, or the global
+   * choice), the Global Runner as a choice of its own or drawn as not open
+   * to the step, a pick that is gone, then the project's own Runners.
+   */
   options: Array<RunnerPickerOption>;
   // The option the step has now; undefined when it has none to show.
   selected: RunnerPickerOption | undefined;
   outcome: RunnerPickerOutcome;
   // Whether the step can run as it is: a Runner of its own, or a global one.
   willRun: boolean;
+  // Whether the step picked the Global Runner itself (for the line's words).
+  pickedGlobalRunner: boolean;
+  /*
+   * The project Runner the step runs on - the one it picked, or the
+   * project's default - or "" when it runs on none of the project's own.
+   * Whether a secret the step names lets that Runner use it is asked of
+   * this Runner.
+   */
+  runnerId: string;
 }
 
 /*
@@ -292,7 +435,39 @@ export function offersGlobalRunner(
   );
 }
 
-export function buildRunnerPickerModel(
+/*
+ * The project's default Runner, for a runbook step: the project Runner the
+ * loader marked as the default. Never for a code repository or a rule,
+ * which the default does not reach.
+ */
+export function getProjectDefaultRunner(
+  facts: Pick<RunnerPickerFacts, "work" | "projectRunners">,
+): RunnerPickerRunner | undefined {
+  if (facts.work && facts.work !== RunnerPickerWork.RunbookStep) {
+    return undefined;
+  }
+
+  return facts.projectRunners.find((runner: RunnerPickerRunner): boolean => {
+    return runner.isProjectDefault === true;
+  });
+}
+
+function sameId(a: string | undefined, b: string): boolean {
+  return Boolean(a) && (a || "").toLowerCase() === b.toLowerCase();
+}
+
+function toProjectOption(runner: RunnerPickerRunner): RunnerPickerOption {
+  return {
+    value: runner.id,
+    kind: RunnerPickerOptionKind.Project,
+    name: runner.name,
+    liveStatus: runner.liveStatus,
+    runnerId: runner.id,
+  };
+}
+
+// The picker of a code repository or an auto remediation rule.
+function buildRepositoryOrRuleModel(
   facts: RunnerPickerFacts,
 ): RunnerPickerModel {
   const currentRunnerId: string = getChosenRunnerId(facts.currentRunnerId);
@@ -320,28 +495,20 @@ export function buildRunnerPickerModel(
         }
       : undefined;
 
-  const projectOptions: Array<RunnerPickerOption> = facts.projectRunners.map(
-    (runner: RunnerPickerRunner): RunnerPickerOption => {
-      return {
-        value: runner.id,
-        kind: RunnerPickerOptionKind.Project,
-        name: runner.name,
-        liveStatus: runner.liveStatus,
-      };
-    },
-  );
+  const projectOptions: Array<RunnerPickerOption> =
+    facts.projectRunners.map(toProjectOption);
 
   const currentProjectOption: RunnerPickerOption | undefined = currentRunnerId
     ? projectOptions.find((option: RunnerPickerOption): boolean => {
-        return option.value.toLowerCase() === currentRunnerId.toLowerCase();
+        return sameId(option.value, currentRunnerId);
       })
     : undefined;
 
-  // A step that names one global Runner is on the global Runners.
+  // A pick that names one global Runner is on the global Runners.
   const namesGlobalRunner: boolean =
     Boolean(currentRunnerId) &&
     facts.globalRunners.some((runner: { id?: string | undefined }): boolean => {
-      return (runner.id || "").toLowerCase() === currentRunnerId.toLowerCase();
+      return sameId(runner.id, currentRunnerId);
     });
 
   const unknownOption: RunnerPickerOption | undefined =
@@ -365,6 +532,8 @@ export function buildRunnerPickerModel(
       selected: currentProjectOption,
       outcome: RunnerPickerOutcome.ProjectRunner,
       willRun: true,
+      pickedGlobalRunner: false,
+      runnerId: currentProjectOption.value,
     };
   }
 
@@ -374,6 +543,8 @@ export function buildRunnerPickerModel(
       selected: unknownOption,
       outcome: RunnerPickerOutcome.UnknownRunner,
       willRun: false,
+      pickedGlobalRunner: false,
+      runnerId: "",
     };
   }
 
@@ -386,6 +557,8 @@ export function buildRunnerPickerModel(
           ? RunnerPickerOutcome.NoRunner
           : RunnerPickerOutcome.GlobalRunner,
       willRun: true,
+      pickedGlobalRunner: false,
+      runnerId: "",
     };
   }
 
@@ -398,19 +571,273 @@ export function buildRunnerPickerModel(
         ? RunnerPickerOutcome.GlobalRunnersOff
         : RunnerPickerOutcome.NoGlobalRunner,
     willRun: false,
+    pickedGlobalRunner: false,
+    runnerId: "",
   };
+}
+
+// The outcome a step's refusal reads as on the picker.
+function getRefusedOutcome(refusal: RunnerChoiceRefusal): RunnerPickerOutcome {
+  switch (refusal) {
+    case RunnerChoiceRefusal.InvalidRunnerId:
+    case RunnerChoiceRefusal.RunnerNotFound:
+      return RunnerPickerOutcome.UnknownRunner;
+    case RunnerChoiceRefusal.NeedsOwnRunner:
+      return RunnerPickerOutcome.NeedsOwnRunner;
+    case RunnerChoiceRefusal.ProjectTurnedGlobalRunnersOff:
+      return RunnerPickerOutcome.GlobalRunnersOff;
+    case RunnerChoiceRefusal.NoGlobalRunner:
+      return RunnerPickerOutcome.NoGlobalRunner;
+    default: {
+      const unhandled: never = refusal;
+      return unhandled;
+    }
+  }
+}
+
+/*
+ * A runbook step's picker: its choices, and what it runs on now, by the
+ * server's default order (decideRunnerByDefaultOrder) over the facts the
+ * page loaded - so what the picker says is what the server decides.
+ */
+function buildStepModel(facts: RunnerPickerFacts): RunnerPickerModel {
+  const currentRunnerId: string = getChosenRunnerId(facts.currentRunnerId);
+  const picksGlobalRunner: boolean = isGlobalRunnerChoice(currentRunnerId);
+  const defaultRunner: RunnerPickerRunner | undefined =
+    getProjectDefaultRunner(facts);
+  const hasGlobalRunner: boolean = facts.globalRunners.length > 0;
+  const mayRunOnGlobal: boolean = canGlobalRunnersRunWork(facts);
+  const isGlobalOffered: boolean = offersGlobalRunner(facts);
+  const globalLiveStatus: RunnerLiveStatus = getGlobalRunnersLiveStatus(
+    facts.globalRunners,
+  );
+
+  // What the step's stored id is, as the server would look it up.
+  const currentProjectRunner: RunnerPickerRunner | undefined =
+    currentRunnerId && !picksGlobalRunner
+      ? facts.projectRunners.find((runner: RunnerPickerRunner): boolean => {
+          return sameId(runner.id, currentRunnerId);
+        })
+      : undefined;
+
+  const namesGlobalRunner: boolean =
+    Boolean(currentRunnerId) &&
+    !picksGlobalRunner &&
+    !currentProjectRunner &&
+    facts.globalRunners.some((runner: { id?: string | undefined }): boolean => {
+      return sameId(runner.id, currentRunnerId);
+    });
+
+  const chosenRunnerKind: ChosenRunnerKind | undefined =
+    !currentRunnerId || picksGlobalRunner
+      ? undefined
+      : currentProjectRunner
+        ? ChosenRunnerKind.ProjectRunner
+        : namesGlobalRunner
+          ? ChosenRunnerKind.GlobalRunner
+          : ChosenRunnerKind.NotFound;
+
+  const result: RunnerDefaultOrderResult = decideRunnerByDefaultOrder({
+    chosenRunnerId: currentRunnerId,
+    ...(chosenRunnerKind ? { chosenRunnerKind } : {}),
+    projectDefaultRunnerId: defaultRunner?.id || "",
+    canGlobalRunnersRunWork: mayRunOnGlobal,
+    projectUsesGlobalRunners: facts.projectUsesGlobalRunners,
+    hasGlobalRunner,
+  });
+
+  /*
+   * The first choice: what a step that picks no Runner runs on - the
+   * project's default Runner, or the Global Runner where it runs the step.
+   */
+  const defaultOption: RunnerPickerOption | undefined = defaultRunner
+    ? {
+        value: PROJECT_DEFAULT_CHOICE_VALUE,
+        kind: RunnerPickerOptionKind.ProjectDefault,
+        name: defaultRunner.name,
+        liveStatus: defaultRunner.liveStatus,
+        runnerId: defaultRunner.id,
+      }
+    : isGlobalOffered
+      ? {
+          value: PROJECT_DEFAULT_CHOICE_VALUE,
+          kind: RunnerPickerOptionKind.Global,
+          name: GLOBAL_RUNNER_CHOICE_LABEL,
+          liveStatus: globalLiveStatus,
+        }
+      : undefined;
+
+  /*
+   * The Global Runner, when it is not the first choice: a choice of its own
+   * beside the project's default Runner, or drawn as not open to the step,
+   * with why.
+   */
+  const isGlobalTheFirstChoice: boolean =
+    defaultOption?.kind === RunnerPickerOptionKind.Global;
+
+  const globalOption: RunnerPickerOption | undefined =
+    !hasGlobalRunner || isGlobalTheFirstChoice
+      ? undefined
+      : isGlobalOffered
+        ? {
+            value: GLOBAL_RUNNER_PICK_VALUE,
+            kind: RunnerPickerOptionKind.Global,
+            name: GLOBAL_RUNNER_CHOICE_LABEL,
+            liveStatus: globalLiveStatus,
+          }
+        : {
+            value: GLOBAL_RUNNER_PICK_VALUE,
+            kind: RunnerPickerOptionKind.GlobalUnavailable,
+            name: GLOBAL_RUNNER_CHOICE_LABEL,
+            unavailableReason: !mayRunOnGlobal
+              ? GlobalRunnerUnavailableReason.StepType
+              : GlobalRunnerUnavailableReason.ProjectTurnedOff,
+          };
+
+  const unknownOption: RunnerPickerOption | undefined =
+    currentRunnerId &&
+    !picksGlobalRunner &&
+    !currentProjectRunner &&
+    !namesGlobalRunner
+      ? {
+          value: currentRunnerId,
+          kind: RunnerPickerOptionKind.Unknown,
+          name: currentRunnerId,
+        }
+      : undefined;
+
+  // The project's own Runners; the default is the first choice already.
+  const projectOptions: Array<RunnerPickerOption> = facts.projectRunners
+    .filter((runner: RunnerPickerRunner): boolean => {
+      return runner !== defaultRunner;
+    })
+    .map(toProjectOption);
+
+  /*
+   * The Global Runner that can be picked sits right after the first choice;
+   * the one drawn as not open to the step comes last, under every choice
+   * that can be picked - the menu opens on its first choice, and a choice
+   * that cannot be picked is never the one it opens on.
+   */
+  const isGlobalOptionOpen: boolean =
+    globalOption?.kind === RunnerPickerOptionKind.Global;
+
+  const options: Array<RunnerPickerOption> = [
+    ...(defaultOption ? [defaultOption] : []),
+    ...(globalOption && isGlobalOptionOpen ? [globalOption] : []),
+    ...(unknownOption ? [unknownOption] : []),
+    ...projectOptions,
+    ...(globalOption && !isGlobalOptionOpen ? [globalOption] : []),
+  ];
+
+  // The option that stands for the Global Runner, whichever it is.
+  const globalChoice: RunnerPickerOption | undefined = isGlobalTheFirstChoice
+    ? defaultOption
+    : globalOption;
+
+  switch (result.source) {
+    case RunnerSource.Picked: {
+      /*
+       * A pick of the project's default Runner reads as the first choice,
+       * which is that Runner.
+       */
+      const selected: RunnerPickerOption | undefined =
+        defaultOption && sameId(defaultOption.runnerId, result.runnerId)
+          ? defaultOption
+          : projectOptions.find((option: RunnerPickerOption): boolean => {
+              return sameId(option.value, result.runnerId);
+            });
+
+      return {
+        options,
+        selected,
+        outcome: RunnerPickerOutcome.ProjectRunner,
+        willRun: true,
+        pickedGlobalRunner: false,
+        runnerId: currentProjectRunner?.id || result.runnerId,
+      };
+    }
+    case RunnerSource.ProjectDefault:
+      return {
+        options,
+        selected: defaultOption,
+        outcome: RunnerPickerOutcome.ProjectDefaultRunner,
+        willRun: true,
+        pickedGlobalRunner: false,
+        runnerId: defaultRunner?.id || result.runnerId,
+      };
+    case RunnerSource.Global:
+      return {
+        options,
+        selected: globalChoice,
+        outcome: RunnerPickerOutcome.GlobalRunner,
+        willRun: true,
+        pickedGlobalRunner: Boolean(currentRunnerId),
+        runnerId: "",
+      };
+    case RunnerSource.None: {
+      const outcome: RunnerPickerOutcome = getRefusedOutcome(result.refusal);
+
+      /*
+       * A pick that is gone shows as itself; the Global Runner picked where
+       * it may not run shows as picked, drawn as not open; a step that
+       * picked none shows nothing picked.
+       */
+      const selected: RunnerPickerOption | undefined =
+        outcome === RunnerPickerOutcome.UnknownRunner
+          ? unknownOption
+          : result.pickedGlobalRunner
+            ? globalChoice
+            : undefined;
+
+      return {
+        options,
+        selected,
+        outcome,
+        willRun: false,
+        pickedGlobalRunner: result.pickedGlobalRunner,
+        runnerId: "",
+      };
+    }
+    default: {
+      const unhandled: never = result;
+      return unhandled;
+    }
+  }
+}
+
+export function buildRunnerPickerModel(
+  facts: RunnerPickerFacts,
+): RunnerPickerModel {
+  if (facts.work && facts.work !== RunnerPickerWork.RunbookStep) {
+    return buildRepositoryOrRuleModel(facts);
+  }
+
+  return buildStepModel(facts);
+}
+
+// Whether the picker has a choice that can be picked: else it says what to do.
+export function hasPickableOption(model: RunnerPickerModel): boolean {
+  return model.options.some((option: RunnerPickerOption): boolean => {
+    return option.kind !== RunnerPickerOptionKind.GlobalUnavailable;
+  });
 }
 
 /*
  * What the step runs on, for the line under a folded step's title
- * ("JavaScript on Global Runner", "Bash script on prod-eu-west-1"): the
- * global choice - whose name is a translation key, so `isGlobal` says to
- * translate it - or the project Runner's own name. Undefined while the
+ * ("JavaScript on Global Runner", "Bash script on prod-eu-west-1") and its
+ * folded More fields: the global choice - whose name is a translation key,
+ * so `isGlobal` says to translate it - or the project Runner's own name,
+ * and whether that is the project's default Runner. Undefined while the
  * step cannot run as it is: no Runner picked, or one that is gone.
  */
 export interface RunnerSummary {
   name: string;
   isGlobal: boolean;
+  // The step picked no Runner and runs on the project's default Runner.
+  isProjectDefault?: boolean | undefined;
+  // How it is doing (for the global choice, the best of them).
+  liveStatus?: RunnerLiveStatus | undefined;
 }
 
 export function getRunnerSummary(
@@ -423,6 +850,9 @@ export function getRunnerSummary(
   return {
     name: model.selected.name,
     isGlobal: model.selected.kind === RunnerPickerOptionKind.Global,
+    isProjectDefault:
+      model.outcome === RunnerPickerOutcome.ProjectDefaultRunner,
+    liveStatus: model.selected.liveStatus,
   };
 }
 
@@ -435,4 +865,30 @@ export function isGlobalRunnerChoiceWaiting(model: RunnerPickerModel): boolean {
     model.outcome === RunnerPickerOutcome.GlobalRunner &&
     model.selected?.liveStatus !== RunnerLiveStatus.Connected
   );
+}
+
+/*
+ * The project Runner the step is on - its pick, or the project's default -
+ * when it is not connected now: the step would wait in the queue and fail
+ * after its claim timeout unless it connects. Undefined otherwise.
+ */
+export function getWaitingProjectRunner(
+  model: RunnerPickerModel,
+): RunnerPickerOption | undefined {
+  if (
+    model.outcome !== RunnerPickerOutcome.ProjectRunner &&
+    model.outcome !== RunnerPickerOutcome.ProjectDefaultRunner
+  ) {
+    return undefined;
+  }
+
+  if (
+    !model.selected ||
+    !model.selected.liveStatus ||
+    model.selected.liveStatus === RunnerLiveStatus.Connected
+  ) {
+    return undefined;
+  }
+
+  return model.selected;
 }

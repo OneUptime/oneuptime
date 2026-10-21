@@ -1,29 +1,55 @@
 import Icon, { SizeProp, ThickProp } from "../Icon/Icon";
 import Tooltip from "../Tooltip/Tooltip";
 import IconProp from "../../../Types/Icon/IconProp";
+import Clipboard from "../../Utils/Clipboard";
 import { Translator } from "../../Utils/TranslateTemplate";
+import useClipboardCopy, { ClipboardCopy } from "../../Utils/UseClipboardCopy";
 import useTranslator from "../../Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useRef,
+  useState,
+} from "react";
 
 export interface ComponentProps {
   text: string;
   isCopyable?: boolean;
 }
 
+/*
+ * A secret (an API key, a client secret) behind "Click to reveal". Its copy
+ * button says "Copied!" only once the secret is on the clipboard - it used
+ * to say so over an empty clipboard on a plain-http install (issue #5132) -
+ * and "Copy failed" otherwise, with the revealed secret selected so it can
+ * be copied by hand.
+ */
 const HiddenText: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [showText, setShowText] = useState<boolean>(false);
-  const [copied, setCopied] = useState<boolean>(false);
+  const clipboard: ClipboardCopy = useClipboardCopy();
+  const copied: boolean = clipboard.isCopied;
+  const failed: boolean = clipboard.isFailed;
+  const revealedTextRef: React.RefObject<HTMLElement> =
+    useRef<HTMLElement>(null);
 
   const handleCopy: () => Promise<void> = async (): Promise<void> => {
-    await navigator.clipboard?.writeText(props.text);
-    setCopied(true);
-    setTimeout(() => {
-      setCopied(false);
-    }, 2000);
+    const hasCopied: boolean = await clipboard.copy(props.text);
+
+    if (!hasCopied) {
+      Clipboard.selectForManualCopy(revealedTextRef.current);
+    }
   };
+
+  let copyLabel: string = translator.translateText("Copy") || "Copy";
+
+  if (copied) {
+    copyLabel = translator.translateText("Copied!") || "Copied!";
+  } else if (failed) {
+    copyLabel = translator.translateText("Copy failed") || "Copy failed";
+  }
 
   if (!showText) {
     return (
@@ -68,6 +94,7 @@ const HiddenText: FunctionComponent<ComponentProps> = (
         className={`h-3.5 w-3.5 flex-shrink-0 ${copied ? "text-green-500" : "text-amber-500"}`}
       />
       <code
+        ref={revealedTextRef}
         role="revealed-text"
         className={`font-mono text-sm break-all ${copied ? "text-green-700" : "text-amber-800"}`}
       >
@@ -75,15 +102,22 @@ const HiddenText: FunctionComponent<ComponentProps> = (
       </code>
       <div className="flex items-center gap-1 ml-1 flex-shrink-0">
         {props.isCopyable && (
-          <Tooltip text={copied ? "Copied!" : "Copy"}>
-            <div
-              className={`p-1 rounded cursor-pointer transition-all duration-200 ${
+          <Tooltip text={copied ? "Copied!" : failed ? "Copy failed" : "Copy"}>
+            <button
+              type="button"
+              aria-label={copyLabel}
+              className={`p-1 rounded cursor-pointer transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
                 copied
                   ? "text-green-500"
-                  : "text-amber-400 hover:text-amber-600 hover:bg-amber-100"
+                  : failed
+                    ? "text-red-600 hover:bg-amber-100"
+                    : "text-amber-400 hover:text-amber-600 hover:bg-amber-100"
               }`}
               data-testid="copy-to-clipboard-icon"
-              onClick={handleCopy}
+              data-copy-state={clipboard.status}
+              onClick={() => {
+                void handleCopy();
+              }}
             >
               {copied ? (
                 <Icon
@@ -94,13 +128,13 @@ const HiddenText: FunctionComponent<ComponentProps> = (
                 />
               ) : (
                 <Icon
-                  icon={IconProp.Copy}
+                  icon={failed ? IconProp.Alert : IconProp.Copy}
                   size={SizeProp.Small}
                   thick={ThickProp.Thick}
                   className="h-3.5 w-3.5"
                 />
               )}
-            </div>
+            </button>
           </Tooltip>
         )}
         <Tooltip text="Hide">
@@ -124,6 +158,14 @@ const HiddenText: FunctionComponent<ComponentProps> = (
           </div>
         </Tooltip>
       </div>
+      {/* What the copy did, said to a screen reader. */}
+      <span
+        className="sr-only"
+        role="status"
+        data-testid="hidden-text-copy-status"
+      >
+        {copied || failed ? copyLabel : ""}
+      </span>
     </div>
   );
 };

@@ -14,6 +14,7 @@ import {
   RunbookStep,
 } from "Common/Types/Runbook/RunbookStep";
 import { GLOBAL_RUNNER_MAX_EXECUTION_TIMEOUT_IN_MS } from "Common/Types/Runner/GlobalRunnerWork";
+import { GLOBAL_RUNNER_CHOICE_ID } from "Common/Types/Runner/RunnerChoice";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import {
   StepExecutionContext,
@@ -24,14 +25,20 @@ import {
 
 /*
  * ---------------------------------------------------------------------------
- * Contract under test - the Worker sends a step to the global Runners by the
- * one "global by default" rule (GlobalRunnerChoice, run for real here, with
- * the facts it reads stubbed):
+ * Contract under test - the Worker sends a step where the one rule's default
+ * order says (GlobalRunnerChoice, run for real here, with the facts it reads
+ * stubbed):
  *
- *   - a JavaScript step that picked no Runner, in a project that uses global
- *     Runners, on a server that has one, is queued for ANY global Runner
- *     (runsOnGlobalRunner, no target) with its execution timeout held to the
- *     global most - and the Worker waits on that same window;
+ *   - a JavaScript step that picked no Runner, in a project with no default
+ *     Runner that uses global Runners, on a server that has one, is queued
+ *     for ANY global Runner (runsOnGlobalRunner, no target) with its
+ *     execution timeout held to the global most - and the Worker waits on
+ *     that same window;
+ *   - a step that picked no Runner, in a project with a default Runner, is
+ *     queued for that Runner alone, for as long as the step says - a Bash
+ *     step too, which the Global Runner never runs;
+ *   - a step that picked the Global Runner itself goes to the global Runners
+ *     whatever the project's default;
  *   - a custom pick always wins: the job targets that Runner alone;
  *   - a project that turned global Runners off, a server with none, a Bash
  *     step with none, a deleted Runner: the step fails at once in plain
@@ -49,10 +56,13 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const OWN_RUNNER_ID: string = "a1000000-0000-4000-8000-0000000000a1";
 const GLOBAL_RUNNER_ID: string = "a1000000-0000-4000-8000-0000000000b1";
 const DELETED_RUNNER_ID: string = "a1000000-0000-4000-8000-0000000000c1";
+const DEFAULT_RUNNER_ID: string = "a1000000-0000-4000-8000-0000000000c9";
 
 let usesGlobalRunners: boolean;
 let hasGlobalRunner: boolean;
 let projectReadFails: boolean;
+// The project's default Runner, as RunnerService.findProjectDefaultRunner answers.
+let projectDefaultRunner: Runner | null;
 
 let enqueueSpy: jest.SpyInstance;
 let pollSpy: jest.SpyInstance;
@@ -116,6 +126,13 @@ beforeEach(() => {
   usesGlobalRunners = true;
   hasGlobalRunner = true;
   projectReadFails = false;
+  projectDefaultRunner = null;
+
+  jest
+    .spyOn(RunnerService, "findProjectDefaultRunner")
+    .mockImplementation(async (): Promise<Runner | null> => {
+      return projectDefaultRunner;
+    });
 
   for (const level of ["error", "info"] as const) {
     jest.spyOn(logger, level).mockImplementation((): void => {
@@ -219,7 +236,7 @@ describe("a JavaScript step that picked no Runner", () => {
 
     expect(result.success).toBe(false);
     expect(result.errorMessage).toBe(
-      "This JavaScript step has no Runner of its own, and this project does not use global Runners. Pick one of your Runners for the step, or turn global Runners on under Runbooks → Runners.",
+      "This JavaScript step has no Runner of its own, and this project does not use global Runners. Pick one of your Runners for the step, make one the project's default Runner, or turn global Runners on under Runbooks → Runners.",
     );
     expect(enqueueSpy).not.toHaveBeenCalled();
   });
@@ -434,7 +451,109 @@ describe("a Bash step that picked no Runner", () => {
     expect(result.errorMessage).toContain(
       "Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only.",
     );
+    expect(result.errorMessage).toContain(
+      "make one the project's default Runner",
+    );
     expect(enqueueSpy).not.toHaveBeenCalled();
     expect(projectReadSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("a step that picked no Runner, in a project with a default Runner", () => {
+  beforeEach(() => {
+    const runner: Runner = new Runner();
+    runner._id = DEFAULT_RUNNER_ID;
+    runner.projectId = PROJECT_ID;
+    projectDefaultRunner = runner;
+  });
+
+  test("a JavaScript step is queued for the project's default Runner alone, not for the global Runners", async () => {
+    const result: StepRunResult = await runJavaScriptStep(jsStep(), makeCtx());
+
+    expect(result).toEqual({ success: true, output: "ok" });
+    expect((enqueued()["targetAgentId"] as ObjectID).toString()).toBe(
+      DEFAULT_RUNNER_ID,
+    );
+    expect(enqueued()).not.toHaveProperty("runsOnGlobalRunner");
+    // Neither the project's switch nor the global Runners decide it.
+    expect(projectReadSpy).not.toHaveBeenCalled();
+  });
+
+  test("on the project's own Runner, the step runs for as long as it says, not the global five minutes", async () => {
+    await runJavaScriptStep(jsStep({ timeoutInMs: 60 * 60 * 1000 }), makeCtx());
+
+    expect(enqueued()["timeoutInMs"]).toBe(60 * 60 * 1000);
+    expect(polled()["executionTimeoutInMs"]).toBe(60 * 60 * 1000);
+  });
+
+  test("a Bash step - which the Global Runner never runs - runs on the project's default Runner", async () => {
+    const result: StepRunResult = await runBashStep(bashStep(), makeCtx());
+
+    expect(result).toEqual({ success: true, output: "ok" });
+    expect((enqueued()["targetAgentId"] as ObjectID).toString()).toBe(
+      DEFAULT_RUNNER_ID,
+    );
+    expect(enqueued()["stepType"]).toBe(RunbookStepType.Bash);
+  });
+
+  test("the default runs the step in a project that turned global Runners off, on a server with none", async () => {
+    usesGlobalRunners = false;
+    hasGlobalRunner = false;
+
+    const result: StepRunResult = await runJavaScriptStep(jsStep(), makeCtx());
+
+    expect(result.success).toBe(true);
+    expect((enqueued()["targetAgentId"] as ObjectID).toString()).toBe(
+      DEFAULT_RUNNER_ID,
+    );
+  });
+
+  test("a step that picked one of the project's own Runners runs on it, not on the default", async () => {
+    await runBashStep(bashStep({ agentId: OWN_RUNNER_ID }), makeCtx());
+
+    expect((enqueued()["targetAgentId"] as ObjectID).toString()).toBe(
+      OWN_RUNNER_ID,
+    );
+  });
+
+  test("a JavaScript step that picked the Global Runner itself goes to the global Runners, not to the default", async () => {
+    await runJavaScriptStep(
+      jsStep({ agentId: GLOBAL_RUNNER_CHOICE_ID }),
+      makeCtx(),
+    );
+
+    expect(enqueued()["runsOnGlobalRunner"]).toBe(true);
+    expect(enqueued()).not.toHaveProperty("targetAgentId");
+  });
+
+  test("a Bash step that picked the Global Runner fails at once, reading nothing and queuing nothing", async () => {
+    const result: StepRunResult = await runBashStep(
+      bashStep({ agentId: GLOBAL_RUNNER_CHOICE_ID }),
+      makeCtx(),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toBe(
+      "This Bash step picks the Global Runner, but global Runners run JavaScript steps only: Bash steps run on a Runner of your own, inside your network. Pick one of your Runners for the step.",
+    );
+    expect(findLatestSpy).not.toHaveBeenCalled();
+    expect(enqueueSpy).not.toHaveBeenCalled();
+  });
+
+  test("a step that already has a job keeps it after the project's default changed, never queuing a second", async () => {
+    findLatestSpy.mockResolvedValue({
+      _id: "a1000000-0000-4000-8000-0000000000d6",
+      status: RunnerJobStatus.Succeeded,
+      runsOnGlobalRunner: true,
+      output: "ran on the Global Runner before the default was set",
+    } as unknown as RunnerJob);
+
+    const result: StepRunResult = await runJavaScriptStep(jsStep(), makeCtx());
+
+    expect(result).toEqual({
+      success: true,
+      output: "ran on the Global Runner before the default was set",
+    });
+    expect(enqueueSpy).not.toHaveBeenCalled();
   });
 });

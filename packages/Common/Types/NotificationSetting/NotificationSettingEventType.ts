@@ -65,6 +65,16 @@ enum NotificationSettingEventType {
   // Incoming Call Policies
   SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION = "Send missed call notification when I am the owner of the incoming call policy",
 
+  /*
+   * Security Cases (SecurityCaseNotifications). Sent only to people who can
+   * read the case. The first is sent at the priority each person picks on
+   * their setting (minimumSecurityCasePriority), High and above when they
+   * pick none.
+   */
+  SEND_SECURITY_CASE_OPENED_NOTIFICATION = "Send notification when a security case opens or rises to my chosen priority",
+  SEND_SECURITY_CASE_ASSIGNED_NOTIFICATION = "Send notification when a security case is assigned to me or to a team I am on",
+  SEND_SECURITY_PLAYBOOK_APPROVAL_NOTIFICATION = "Send notification when a playbook step on a security case is waiting for my approval",
+
   // On Call Notifications
   SEND_WHEN_USER_IS_ON_CALL_ROSTER = "When user is on-call roster",
   SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER = "When user is next on-call roster",

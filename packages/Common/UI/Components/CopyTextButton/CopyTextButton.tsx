@@ -1,4 +1,4 @@
-import Clipboard from "../../Utils/Clipboard";
+import useClipboardCopy, { ClipboardCopy } from "../../Utils/UseClipboardCopy";
 import React, {
   FunctionComponent,
   MouseEventHandler,
@@ -19,10 +19,23 @@ export interface ComponentProps {
   title?: string; // tooltip
 }
 
+// How long "Copied!" stays on the button.
+export const COPY_TEXT_BUTTON_COPIED_MS: number = 1000;
+
+/*
+ * Copies the text, and says what happened: "Copied!" only once it is on the
+ * clipboard, "Copy failed" when the browser refused (a plain-http page
+ * whose older copy command was refused too, a locked-down frame) - never a
+ * tick over an empty clipboard, and never silence (issue #5132).
+ */
 const CopyTextButton: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [copied, setCopied] = React.useState(false);
+  const clipboard: ClipboardCopy = useClipboardCopy({
+    copiedForMs: COPY_TEXT_BUTTON_COPIED_MS,
+  });
+  const copied: boolean = clipboard.isCopied;
+  const failed: boolean = clipboard.isFailed;
 
   const size: "xs" | "sm" | "md" = props.size || "xs";
   const variant: "ghost" | "soft" | "solid" = props.variant || "ghost";
@@ -35,23 +48,14 @@ const CopyTextButton: FunctionComponent<ComponentProps> = (
     translateString(props.copiedLabel || "Copied!") ||
     props.copiedLabel ||
     "Copied!";
+  const failedLabel: string = translateString("Copy failed") || "Copy failed";
 
   const handleCopy: MouseEventHandler<HTMLButtonElement> = async (
     event: React.MouseEvent<HTMLButtonElement, MouseEvent>,
   ) => {
     event.preventDefault();
     event.stopPropagation();
-    // A refused or unavailable clipboard resolves false; "Copied!" would lie.
-    const succeeded: boolean = await Clipboard.copyToClipboard(
-      props.textToBeCopied,
-    );
-    if (!succeeded) {
-      return;
-    }
-    setCopied(true);
-    setTimeout(() => {
-      setCopied(false);
-    }, 1000);
+    await clipboard.copy(props.textToBeCopied);
   };
 
   const sizeClasses: Record<typeof size, string> = {
@@ -81,34 +85,58 @@ const CopyTextButton: FunctionComponent<ComponentProps> = (
   const copiedClasses: string =
     "bg-emerald-50 border border-emerald-200 text-emerald-600";
 
+  const failedClasses: string = "bg-red-50 border border-red-200 text-red-600";
+
+  let stateClasses: string = variantClasses[variant];
+  let stateIcon: ReactElement = (
+    <Icon icon={IconProp.Copy} className={`${iconSizes[size]}`} />
+  );
+  let stateText: string = "";
+
+  if (copied) {
+    stateClasses = copiedClasses;
+    stateIcon = (
+      <Icon
+        icon={IconProp.Check}
+        className={`${iconSizes[size]} text-emerald-400`}
+      />
+    );
+    stateText = copiedLabel;
+  } else if (failed) {
+    stateClasses = failedClasses;
+    stateIcon = <Icon icon={IconProp.Alert} className={`${iconSizes[size]}`} />;
+    stateText = failedLabel;
+  }
+
   return (
     <button
       type="button"
-      className={`inline-flex items-center justify-center gap-1 transition-colors duration-150 cursor-pointer select-none ${
-        copied ? copiedClasses : variantClasses[variant]
-      } ${sizeClasses[size]} ${props.className || ""}`}
+      className={`inline-flex items-center justify-center gap-1 transition-colors duration-150 cursor-pointer select-none ${stateClasses} ${sizeClasses[size]} ${props.className || ""}`}
       onClick={handleCopy}
       onKeyDown={(e: React.KeyboardEvent<HTMLButtonElement>) => {
         if (e.key === "Enter" || e.key === " ") {
           handleCopy(e as unknown as React.MouseEvent<HTMLButtonElement>);
         }
       }}
-      title={title || label}
+      title={failed ? failedLabel : title || label}
       aria-label={title || label}
+      data-copy-state={clipboard.status}
     >
       {/* Icon */}
       <span aria-hidden="true" className="flex items-center justify-center">
-        {copied ? (
-          <Icon
-            icon={IconProp.Check}
-            className={`${iconSizes[size]} text-emerald-400`}
-          />
-        ) : (
-          <Icon icon={IconProp.Copy} className={`${iconSizes[size]}`} />
-        )}
+        {stateIcon}
       </span>
-      {/* Label (optional) */}
-      {!props.iconOnly && <span>{copied ? copiedLabel : label}</span>}
+      {/*
+       * The label says what happened, and a screen reader hears it said.
+       * With no label, the words are there for the screen reader alone.
+       */}
+      {props.iconOnly ? (
+        <span className="sr-only" aria-live="polite">
+          {stateText}
+        </span>
+      ) : (
+        <span aria-live="polite">{stateText || label}</span>
+      )}
     </button>
   );
 };

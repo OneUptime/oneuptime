@@ -562,6 +562,41 @@ export default class PushNotificationUtil {
     return PushNotificationUtil.applyDefaults(notification);
   }
 
+  /*
+   * A security case that needs the person: it opened or rose at their
+   * priority, it was assigned to them or their team, or one of its playbook
+   * steps waits for their approval (SecurityCaseNotifications). The mobile
+   * app has no case screen yet, so the page opens the app and the link opens
+   * the case in the browser.
+   */
+  public static createSecurityCaseNotification(params: {
+    title: string;
+    body: string;
+    caseViewLink: string;
+    // security-case-opened, security-case-assigned, security-playbook-approval
+    type: string;
+    securityCaseId: string;
+    projectId: string;
+    requireInteraction: boolean;
+  }): PushNotificationMessage {
+    return PushNotificationUtil.applyDefaults({
+      title: params.title,
+      body: params.body,
+      clickAction: params.caseViewLink,
+      url: params.caseViewLink,
+      // One per case: a newer page about the case replaces the older one.
+      tag: `security-case-${params.securityCaseId}`,
+      requireInteraction: params.requireInteraction,
+      data: {
+        type: params.type,
+        entityType: "security-case",
+        entityId: params.securityCaseId,
+        projectId: params.projectId,
+        url: params.caseViewLink,
+      },
+    });
+  }
+
   public static createAIAgentStatusChangedNotification(params: {
     aiAgentName: string;
     projectName: string;

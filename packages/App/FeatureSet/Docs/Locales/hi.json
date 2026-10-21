@@ -17,6 +17,7 @@
     "backToTop": "शीर्ष पर जाएं",
     "copy": "कॉपी करें",
     "copied": "कॉपी हो गया",
+    "copyFailed": "कॉपी नहीं हो सका",
     "copyCode": "कोड कॉपी करें",
     "diagramNotDrawn": "यह आरेख नहीं बनाया जा सका।",
     "searchHintNavigate": "नेविगेट करें",

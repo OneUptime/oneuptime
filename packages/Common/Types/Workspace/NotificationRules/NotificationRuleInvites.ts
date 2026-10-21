@@ -77,6 +77,9 @@ export default class NotificationRuleInvites {
       case NotificationRuleEventType.Monitor:
       case NotificationRuleEventType.OnCallDutyPolicy:
         return [NotificationRuleInvitee.Owners];
+      // A security case has no owners and no channel of its own to add anybody to.
+      case NotificationRuleEventType.SecurityCase:
+        return [];
       default:
         return [];
     }

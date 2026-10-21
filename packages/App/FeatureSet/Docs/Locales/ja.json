@@ -17,6 +17,7 @@
     "backToTop": "トップに戻る",
     "copy": "コピー",
     "copied": "コピーしました",
+    "copyFailed": "コピーに失敗しました",
     "copyCode": "コードをコピー",
     "diagramNotDrawn": "この図を描画できませんでした。",
     "searchHintNavigate": "移動",
