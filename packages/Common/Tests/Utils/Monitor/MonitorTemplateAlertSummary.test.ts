@@ -13,8 +13,10 @@ import MonitorCriteriaInstance, {
 } from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 import NetworkDeviceAlertPackUtil from "../../../Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
 import ObjectID from "../../../Types/ObjectID";
+import { DEVICE_ADDRESS_MONITOR_TYPES } from "../../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import {
   MonitorCriteriaAlertSummary,
   MonitorTemplateAlertSummary,
@@ -487,5 +489,107 @@ describe("a whole template", () => {
     expect(pingOnly).toEqual(["Device unreachable"]);
     expect(summary.raisesIncidentsOnPingOnlyDevices).toBe(true);
     expect(summary.raisesAlertsOnPingOnlyDevices).toBe(false);
+  });
+});
+
+/*
+ * A Ping, IP, Port or NTP template's monitor checks each device's address
+ * itself (issue #5145): nothing it checks waits for an SNMP walk, so every
+ * check can fire on a device that only answers ping. A Network Device
+ * template - named, or left unnamed as every caller before #5145 did - is
+ * read as before.
+ */
+describe("a template whose monitors check each device's address", () => {
+  const OFFLINE_CHECK: MonitorCriteriaInstance = criterion({
+    name: "Display stops answering",
+    filters: [filter(CheckOn.IsOnline)],
+    createIncidents: true,
+    incidents: [incident(CRITICAL)],
+    changeMonitorStatus: true,
+    monitorStatusId: OFFLINE,
+  });
+
+  const SLOW_CHECK: MonitorCriteriaInstance = criterion({
+    name: "Display answers slowly",
+    filterCondition: FilterCondition.All,
+    filters: [
+      filter(CheckOn.ResponseTime),
+      filter(CheckOn.IsOnline),
+    ],
+    createAlerts: true,
+    alerts: [alert(WARNING_ALERT)],
+  });
+
+  test.each([...DEVICE_ADDRESS_MONITOR_TYPES])(
+    "%s template: every check fires on a device that answers ping only",
+    (monitorType: MonitorType) => {
+      const summary: MonitorTemplateAlertSummary =
+        summarizeMonitorTemplateAlerts(steps([OFFLINE_CHECK, SLOW_CHECK]), {
+          monitorType: monitorType,
+        });
+
+      expect(
+        summary.criteria.map((item: MonitorCriteriaAlertSummary): boolean => {
+          return item.isEvaluatedOnPingOnlyDevices;
+        }),
+      ).toEqual([true, true]);
+      expect(summary.raisesIncidentsOnPingOnlyDevices).toBe(true);
+      expect(summary.raisesAlertsOnPingOnlyDevices).toBe(true);
+      expect(summary.raisesIncidents).toBe(true);
+      expect(summary.raisesAlerts).toBe(true);
+    },
+  );
+
+  test("the same criteria read as a Network Device template's cannot fire there: they read no walk check it evaluates on ping", () => {
+    for (const options of [{ monitorType: MonitorType.NetworkDevice }, {}]) {
+      const summary: MonitorTemplateAlertSummary =
+        summarizeMonitorTemplateAlerts(
+          steps([OFFLINE_CHECK, SLOW_CHECK]),
+          options,
+        );
+
+      expect(summary.raisesIncidentsOnPingOnlyDevices).toBe(false);
+      expect(summary.raisesAlertsOnPingOnlyDevices).toBe(false);
+    }
+  });
+
+  test("a Network Device template is read exactly as before when its type is named", () => {
+    const named: MonitorTemplateAlertSummary = summarizeMonitorTemplateAlerts(
+      steps([UNREACHABLE, INTERFACE_DOWN]),
+      { monitorType: MonitorType.NetworkDevice },
+    );
+
+    expect(named).toEqual(
+      summarizeMonitorTemplateAlerts(steps([UNREACHABLE, INTERFACE_DOWN])),
+    );
+  });
+
+  test("a criterion that checks nothing is never met, whatever the template", () => {
+    const summary: MonitorCriteriaAlertSummary = summarizeMonitorCriteria(
+      criterion({
+        filters: [],
+        createIncidents: true,
+        incidents: [incident(CRITICAL)],
+      }),
+      0,
+      { monitorType: MonitorType.Ping },
+    );
+
+    expect(summary.isEvaluatedOnPingOnlyDevices).toBe(false);
+  });
+
+  test("a switched-off check of an address template raises nothing, on any device", () => {
+    const summary: MonitorTemplateAlertSummary = summarizeMonitorTemplateAlerts(
+      steps([
+        criterion({
+          ...OFFLINE_CHECK.data!,
+          isEnabled: false,
+        }),
+      ]),
+      { monitorType: MonitorType.Port },
+    );
+
+    expect(summary.raisesIncidents).toBe(false);
+    expect(summary.raisesIncidentsOnPingOnlyDevices).toBe(false);
   });
 });
