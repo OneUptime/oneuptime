@@ -209,7 +209,9 @@ describe.each(RESOURCES)(
       );
 
       // "Archived severities stay on the incidents ... but can't be picked again."
-      expect(description).toMatch(/^Archived .+ stay on .+ again\./);
+      expect(description.startsWith("Archived ")).toBe(true);
+      expect(description).toContain(" stay on ");
+      expect(description).toContain(" again.");
     });
 
     test("reads back whether it is archived, when and by whom", () => {

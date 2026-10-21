@@ -33,7 +33,8 @@ const DASHBOARD_SRC: string = path.join(
 const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 const I18N_DIR: string = path.join(DASHBOARD_SRC, "..", "i18n");
 
-const PLACEHOLDER: RegExp = /\{\{[^}]+\}\}/g;
+// "{{count}}": nothing between the braces may be a brace, which keeps it linear.
+const PLACEHOLDER: RegExp = /\{\{[^{}]+\}\}/g;
 
 const SENTENCE_ENDINGS: Array<string> = [".", "。", "।"];
 const QUESTION_ENDINGS: Array<string> = ["?", "？", "؟"];
