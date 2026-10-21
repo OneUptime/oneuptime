@@ -86,6 +86,16 @@ import SessionReplayTable, {
 import { clearSessionReplayHealthStore } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/useSessionReplayHealth";
 import { readReplayListUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayViewPrefs";
 import { SESSION_REPLAY_SEARCH_DEBOUNCE_MS } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplaySearchBar";
+import {
+  TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME,
+  TABLE_HEADER_OPEN_SEARCH_BESIDE_BUTTONS_CLASS_NAME,
+  TABLE_HEADER_SEARCH_CLASS_NAME,
+} from "../../../UI/Components/Table/TableHeaderControls";
+import { CARD_MORE_MENU_TRIGGER_CLASS_NAME } from "../../../UI/Components/Card/CardMoreMenu";
+import {
+  TIME_RANGE_PICKER_BUTTON_CLASS_NAMES,
+  TimeRangePickerSize,
+} from "../../../UI/Components/Date/TimeRangePickerDropdown";
 
 const APP_ID: string = "0193c0de-1111-4aaa-8bbb-000000000001";
 const SESSION_A: string = "a1b2c3d4e5f60718293a4b5c6d7e8f90";
@@ -258,6 +268,34 @@ async function waitForRows(count: number): Promise<Array<HTMLElement>> {
   });
 
   return screen.getAllByTestId("session-row");
+}
+
+/* The ⋯ at the end of the list's header, opened. */
+function openHeaderMenu(): HTMLElement {
+  fireEvent.click(screen.getByTestId("session-replay-more"));
+
+  return screen.getByRole("menu");
+}
+
+// Refresh, from the header's ⋯, where every table keeps it.
+function refreshList(): void {
+  fireEvent.click(
+    within(openHeaderMenu()).getByRole("menuitem", { name: "Refresh" }),
+  );
+}
+
+// One of the ⋯'s sort orders.
+function chooseSort(label: string): void {
+  fireEvent.click(
+    within(openHeaderMenu()).getByRole("menuitemradio", { name: label }),
+  );
+}
+
+// The filter form, from the header's ⋯.
+function openFilterForm(): void {
+  fireEvent.click(
+    within(openHeaderMenu()).getByRole("menuitem", { name: "Filter" }),
+  );
 }
 
 beforeEach(() => {
@@ -667,12 +705,24 @@ describe("SessionReplayTable rendering", () => {
     expect(screen.queryByTestId("session-row-watch")).toBeNull();
     /*
      * Both rows have errors, but no footage to jump into: no first-error
-     * action, so no ⋯ menu to hold it.
+     * action. Their ⋯ holds Show ID alone.
      */
-    expect(screen.queryByTestId("row-actions-more-button")).toBeNull();
-    expect(
-      screen.queryByRole("menuitem", { name: "Watch from first error" }),
-    ).toBeNull();
+    for (const more of screen.getAllByTestId("row-actions-more-button")) {
+      fireEvent.click(more);
+
+      const menu: HTMLElement = screen.getByRole("menu");
+
+      expect(
+        within(menu).queryByRole("menuitem", {
+          name: "Watch from first error",
+        }),
+      ).toBeNull();
+      expect(
+        within(menu).getByRole("menuitem", { name: "Show ID" }),
+      ).toBeInTheDocument();
+
+      fireEvent.click(more);
+    }
     expect(screen.getAllByTestId("session-row-signals-only").length).toBe(2);
 
     const badges: Array<HTMLElement> = screen.getAllByTestId(
@@ -802,7 +852,7 @@ describe("SessionReplayTable user filter", () => {
     );
   });
 
-  it("clicking a visitor narrows by visitor id, writes it to the URL, and chips it short", async () => {
+  it("clicking a visitor narrows by visitor id, writes it to the URL, and opens the search to show it", async () => {
     mockApi(() => {
       return listResponse([
         wireRow({
@@ -829,12 +879,19 @@ describe("SessionReplayTable user filter", () => {
     expect(navigateMock).not.toHaveBeenCalled();
     expect(window.location.search).toContain(`visitor=${VISITOR_A}`);
 
-    const chip: HTMLElement = screen.getByTestId("session-filter-chip");
-
-    expect(chip).toHaveAttribute("data-field", "visitorId");
-    expect(chip).toHaveTextContent("Visitor");
-    expect(chip).toHaveTextContent("abc123…");
-    expect(chip).not.toHaveTextContent(VISITOR_A);
+    /*
+     * The person is said once, where it is changed: in the search box,
+     * which opens to show it. No chip repeats it.
+     */
+    await waitFor(() => {
+      expect(screen.getByTestId("session-search-input")).toHaveValue(
+        `visitor:${VISITOR_A}`,
+      );
+    });
+    expect(screen.getByTestId("session-search-slot")).toHaveClass(
+      ...TABLE_HEADER_OPEN_SEARCH_BESIDE_BUTTONS_CLASS_NAME.split(" "),
+    );
+    expect(screen.queryByTestId("session-filter-chip")).toBeNull();
   });
 
   it("clicking a hidden identity with a key narrows by the digest without showing it", async () => {
@@ -1058,7 +1115,7 @@ describe("SessionReplayTable identity nudge", () => {
     ).toBe("1");
 
     /* Remembered: a re-render of the same list does not bring it back. */
-    fireEvent.click(screen.getByRole("button", { name: "Refresh sessions" }));
+    refreshList();
 
     await waitFor(() => {
       expect(requestsTo("/session-replay/list").length).toBe(2);
@@ -1110,12 +1167,15 @@ describe("SessionReplayTable and the Users page", () => {
     expect(
       screen.queryByRole("button", { name: "Set up recording" }),
     ).toBeNull();
-    /* The list still has one Refresh and never embeds the Users table. */
+    /*
+     * The list still has one Refresh - in its header's ⋯, as every table
+     * has - and never embeds the Users table.
+     */
     expect(screen.queryByTestId("session-view-toggle")).toBeNull();
     expect(screen.queryByTestId("session-users-table")).toBeNull();
     expect(
-      screen.getByRole("button", { name: "Refresh sessions" }),
-    ).toBeInTheDocument();
+      within(openHeaderMenu()).getAllByRole("menuitem", { name: "Refresh" }),
+    ).toHaveLength(1);
     expect(requestsTo("/session-replay/users").length).toBe(0);
     expect(navigateMock).not.toHaveBeenCalled();
   });
@@ -1143,15 +1203,14 @@ describe("SessionReplayTable and the Users page", () => {
     expect(requestsTo("/session-replay/list")[0]!.data["filters"]).toEqual({
       identifiedUserRef: "jane@acme.com",
     });
-    /* The same UX as clicking the label here: box, chip, no reference in the URL. */
+    /*
+     * The same UX as clicking the label here: the person in the search box,
+     * said once, and no reference in the URL.
+     */
     expect(screen.getByTestId("session-search-input")).toHaveValue(
       "user:jane@acme.com",
     );
-
-    const chip: HTMLElement = screen.getByTestId("session-filter-chip");
-
-    expect(chip).toHaveAttribute("data-field", "identifiedUserRef");
-    expect(chip).toHaveTextContent("jane@acme.com");
+    expect(screen.queryByTestId("session-filter-chip")).toBeNull();
     expect(window.location.search).not.toContain("jane");
     /*
      * The digest stays in the address bar on the reference's behalf, so a
@@ -1174,7 +1233,7 @@ describe("SessionReplayTable and the Users page", () => {
     ).toBeNull();
 
     /* Once the person filter is gone, so is the digest written for it. */
-    fireEvent.click(screen.getByRole("button", { name: /^Remove .* filter$/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
 
     await waitFor(() => {
       expect(requestsTo("/session-replay/list").length).toBe(2);
@@ -1514,7 +1573,7 @@ describe("SessionReplayTable row actions", () => {
 
     const menu: HTMLElement = openMenuOf(row as HTMLElement);
 
-    expect(menuItemNames(menu)).toEqual(["Watch from first error"]);
+    expect(menuItemNames(menu)).toEqual(["Watch from first error", "Show ID"]);
     /* Portalled out of the row, so the table's overflow cannot clip it. */
     expect(row).not.toContainElement(menu);
 
@@ -1522,7 +1581,7 @@ describe("SessionReplayTable row actions", () => {
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
-  it("a watchable row without an error shows Watch and no ⋯", async () => {
+  it("a watchable row without an error shows Watch, and its ⋯ holds Show ID alone", async () => {
     mockApi(() => {
       return listResponse([
         wireRow({ errorCount: 0, hasError: 0, firstErrorOffsetMs: 0 }),
@@ -1536,13 +1595,10 @@ describe("SessionReplayTable row actions", () => {
     expect(
       within(row as HTMLElement).getByTestId("session-row-watch"),
     ).toBeInTheDocument();
-    expect(
-      within(row as HTMLElement).queryByTestId("row-actions-more-button"),
-    ).toBeNull();
-    expect(within(row as HTMLElement).queryByTestId("row-actions")).toBeNull();
+    expect(menuItemNames(openMenuOf(row as HTMLElement))).toEqual(["Show ID"]);
   });
 
-  it("an unplayable row with errors shows Signals only and no ⋯", async () => {
+  it("an unplayable row with errors shows Signals only, and its ⋯ holds Show ID alone", async () => {
     mockApi(() => {
       return listResponse([wireRow({ sealedReason: "recording-lost" })]);
     });
@@ -1554,12 +1610,14 @@ describe("SessionReplayTable row actions", () => {
     expect(
       within(row as HTMLElement).getByTestId("session-row-signals-only"),
     ).toBeInTheDocument();
-    expect(
-      within(row as HTMLElement).queryByTestId("row-actions-more-button"),
-    ).toBeNull();
+    expect(menuItemNames(openMenuOf(row as HTMLElement))).toEqual(["Show ID"]);
   });
 
-  it("only the rows with a first error to jump to carry a ⋯", async () => {
+  /*
+   * A row without a ⋯ drew its Watch where the other rows' ⋯ was: the
+   * Watch buttons zig-zagged down the column. Every row carries one now.
+   */
+  it("every row carries a ⋯, so the rows' buttons line up; only a row with a first error offers the jump", async () => {
     mockApi(() => {
       return listResponse([
         wireRow(),
@@ -1576,7 +1634,50 @@ describe("SessionReplayTable row actions", () => {
       rows.map((row: HTMLElement): boolean => {
         return Boolean(within(row).queryByTestId("row-actions-more-button"));
       }),
-    ).toEqual([true, false, false]);
+    ).toEqual([true, true, true]);
+
+    const offersJump: Array<boolean> = rows.map((row: HTMLElement): boolean => {
+      const more: HTMLElement = moreButtonOf(row);
+
+      fireEvent.click(more);
+
+      const names: Array<string> = menuItemNames(screen.getByRole("menu"));
+
+      fireEvent.click(more);
+
+      return names.includes("Watch from first error");
+    });
+
+    expect(offersJump).toEqual([true, false, false]);
+  });
+
+  it("Show ID puts the session's whole ID on screen, to copy, and opens nothing", async () => {
+    mockApi(() => {
+      return listResponse([wireRow(), wireRow({ sessionId: SESSION_B })]);
+    });
+
+    renderTable();
+
+    const rows: Array<HTMLElement> = await waitForRows(2);
+
+    fireEvent.click(
+      within(openMenuOf(rows[1] as HTMLElement)).getByRole("menuitem", {
+        name: "Show ID",
+      }),
+    );
+
+    const dialog: HTMLElement = await screen.findByRole("dialog");
+
+    expect(dialog).toHaveTextContent("Session ID");
+    expect(dialog).toHaveTextContent(SESSION_B);
+    expect(dialog).not.toHaveTextContent(SESSION_A);
+    expect(navigateMock).not.toHaveBeenCalled();
+
+    fireEvent.click(within(dialog).getByTestId("modal-footer-close-button"));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
   });
 
   it("choosing Watch from first error opens THAT row's session at its own first error", async () => {
@@ -1824,12 +1925,7 @@ describe("SessionReplayTable search, sort and paging", () => {
 
     expect(window.location.search).toContain("page=2");
 
-    const combobox: HTMLElement = screen.getByRole("combobox", {
-      name: "Sort sessions",
-    });
-
-    fireEvent.keyDown(combobox, { key: "ArrowDown", code: "ArrowDown" });
-    fireEvent.click(screen.getByText("Longest"));
+    chooseSort("Longest");
 
     await waitFor(() => {
       expect(requestsTo("/session-replay/list").length).toBe(3);
@@ -1882,14 +1978,20 @@ describe("SessionReplayTable search, sort and paging", () => {
   });
 });
 
-describe("SessionReplayTable filter modal", () => {
-  /*
-   * ux-03: the modal writes urlPrefix straight from a text input and the
-   * endpoint matches it from the start of each stored address, so an
-   * un-anchored value is a filter that can only ever return nothing. It is
-   * anchored on apply, and the chip shows what was actually sent.
-   */
-  it("anchors an un-anchored URL prefix on apply, and chips what was sent", async () => {
+/*
+ * The maintainer's report: the list's header had controls of every size -
+ * a tall sort select with a clear x, a small time chip, a text "Advanced
+ * filters" button, a lone refresh icon and a "Search help" link. It is now
+ * the header every table has: the "Search…  /" pill, the time range, and
+ * the ⋯ holding the sort order, Filter and Refresh - one height - with the
+ * chips in the Filter row under it.
+ */
+describe("SessionReplayTable header", () => {
+  function header(): HTMLElement {
+    return screen.getByTestId("card-header");
+  }
+
+  it("is the toolbar header every table has: search, time range and ⋯, and no loose icon", async () => {
     mockApi(() => {
       return listResponse([wireRow()]);
     });
@@ -1898,7 +2000,410 @@ describe("SessionReplayTable filter modal", () => {
 
     await waitForRows(1);
 
-    fireEvent.click(screen.getByTestId("session-open-filters"));
+    expect(header()).toHaveAttribute("data-header-layout", "toolbar");
+
+    const toolbar: HTMLElement = within(header()).getByTestId(
+      "session-replay-header-toolbar",
+    );
+
+    expect(toolbar).toHaveAttribute("data-toolbar-fill", "true");
+
+    /* Left to right: the search, the window, the ⋯. */
+    const slot: HTMLElement = within(toolbar).getByTestId("session-search-slot");
+    const time: HTMLElement = within(toolbar).getByTestId(
+      "telemetry-time-range-picker-button",
+    );
+    const more: HTMLElement = within(toolbar).getByTestId("session-replay-more");
+
+    expect(
+      slot.compareDocumentPosition(time) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      time.compareDocumentPosition(more) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    /* Nothing else sits in the header: no icon nudged beside the title. */
+    expect(within(header()).queryAllByTestId("card-button")).toHaveLength(0);
+    expect(
+      within(header()).queryByRole("combobox", { name: "Sort sessions" }),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Advanced filters" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Search help" })).toBeNull();
+    expect(screen.queryByText("Filter by")).toBeNull();
+  });
+
+  it("draws its controls at one height: the search box, the time range and the ⋯", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    const heightClasses: Array<string> =
+      TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME.split(" ");
+
+    const box: HTMLElement = screen.getByTestId("session-search-input")
+      .parentElement as HTMLElement;
+
+    expect(box).toHaveClass(...heightClasses);
+
+    const time: HTMLElement = screen.getByTestId(
+      "telemetry-time-range-picker-button",
+    );
+
+    expect(time).toHaveAttribute("data-size", TimeRangePickerSize.Header);
+    expect(time).toHaveClass(
+      ...TIME_RANGE_PICKER_BUTTON_CLASS_NAMES[TimeRangePickerSize.Header].split(
+        " ",
+      ),
+    );
+    expect(time).toHaveClass(...heightClasses, "text-sm");
+    expect(time).not.toHaveClass("text-xs");
+
+    /* The ⋯ is the one every card header has, 42px / 38px like the rest. */
+    expect(screen.getByTestId("session-replay-more")).toHaveClass(
+      ...CARD_MORE_MENU_TRIGGER_CLASS_NAME.split(" "),
+    );
+    expect(CARD_MORE_MENU_TRIGGER_CLASS_NAME).toContain("py-2.5");
+    expect(CARD_MORE_MENU_TRIGGER_CLASS_NAME).toContain("md:py-2");
+  });
+
+  it("keeps the sort order, Filter and Refresh in the ⋯, the order in use ticked", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    window.history.replaceState(null, "", "/?sort=errorCount");
+
+    renderTable();
+
+    await waitForRows(1);
+
+    const menu: HTMLElement = openHeaderMenu();
+
+    expect(within(menu).getByText("SORT")).toBeInTheDocument();
+
+    const choices: Array<HTMLElement> =
+      within(menu).getAllByRole("menuitemradio");
+
+    expect(
+      choices.map((choice: HTMLElement): string => {
+        return (choice.textContent || "").trim();
+      }),
+    ).toEqual(["Newest", "Longest", "Most errors", "Most frustration"]);
+    expect(
+      choices.map((choice: HTMLElement): string | null => {
+        return choice.getAttribute("aria-checked");
+      }),
+    ).toEqual(["false", "false", "true", "false"]);
+    expect(
+      within(menu)
+        .getAllByRole("menuitem")
+        .map((item: HTMLElement): string => {
+          return (item.textContent || "").trim();
+        }),
+    ).toEqual(["Filter", "Refresh"]);
+  });
+
+  it("a sort is applied once, from page one; the order in use changes nothing", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    chooseSort("Newest");
+
+    expect(requestsTo("/session-replay/list").length).toBe(1);
+
+    chooseSort("Most frustration");
+
+    await waitFor(() => {
+      expect(requestsTo("/session-replay/list").length).toBe(2);
+    });
+
+    expect(requestsTo("/session-replay/list")[1]!.data["sortBy"]).toBe(
+      "frustration",
+    );
+    expect(window.location.search).toContain("sort=frustration");
+    expect(
+      within(openHeaderMenu()).getByRole("menuitemradio", {
+        name: "Most frustration",
+      }),
+    ).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("Filter opens the filter form", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    openFilterForm();
+
+    expect(await screen.findByRole("dialog")).toHaveTextContent(
+      "Filter Sessions",
+    );
+  });
+
+  it("the time range is the header's: a new window reads page one again and goes in the URL", async () => {
+    mockApi((_data: JSONObject, index: number) => {
+      return listResponse(
+        [wireRow()],
+        index === 0
+          ? { startTimeUnixMs: NOW - 3 * 60_000, sessionId: SESSION_A }
+          : null,
+      );
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    fireEvent.click(screen.getByTestId("pagination-next-button"));
+
+    await waitFor(() => {
+      expect(window.location.search).toContain("page=2");
+    });
+
+    fireEvent.click(screen.getByTestId("telemetry-time-range-picker-button"));
+    fireEvent.click(screen.getByRole("button", { name: "Past 1 Week" }));
+
+    await waitFor(() => {
+      expect(requestsTo("/session-replay/list").length).toBe(3);
+    });
+
+    const sent: JSONObject = requestsTo("/session-replay/list")[2]!.data;
+
+    expect(sent["cursor"]).toBeUndefined();
+    expect(
+      new Date(sent["endTime"] as string).getTime() -
+        new Date(sent["startTime"] as string).getTime(),
+    ).toBeGreaterThan(6 * DAY_MS);
+    expect(window.location.search).toContain("range=Past+1+Week");
+    expect(window.location.search).not.toContain("page=");
+  });
+
+  it("the search is a folded pill until opened, and opening it puts the focus in the box", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    const slot: HTMLElement = screen.getByTestId("session-search-slot");
+    const input: HTMLElement = screen.getByTestId("session-search-input");
+
+    expect(slot).toHaveClass(...TABLE_HEADER_SEARCH_CLASS_NAME.split(" "));
+    expect(input).toHaveAttribute("tabindex", "-1");
+
+    fireEvent.click(screen.getByRole("button", { name: "Open search" }));
+
+    await waitFor(() => {
+      expect(document.activeElement).toBe(input);
+    });
+
+    expect(slot).toHaveClass(
+      ...TABLE_HEADER_OPEN_SEARCH_BESIDE_BUTTONS_CLASS_NAME.split(" "),
+    );
+    expect(input).toHaveAttribute("tabindex", "0");
+    /* The window and the ⋯ stay beside an opened search. */
+    expect(
+      screen.getByTestId("telemetry-time-range-picker-button"),
+    ).toBeVisible();
+    expect(
+      screen.getByTestId("session-replay-more").closest("[aria-hidden]"),
+    ).toHaveAttribute("aria-hidden", "false");
+
+    /* Left with nothing in it, it folds back. */
+    fireEvent.blur(input);
+
+    await waitFor(() => {
+      expect(slot).toHaveClass(...TABLE_HEADER_SEARCH_CLASS_NAME.split(" "));
+    });
+  });
+
+  it('"/" opens the search from anywhere but a text field', async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    const input: HTMLElement = screen.getByTestId("session-search-input");
+
+    fireEvent.keyDown(document.body, { key: "/" });
+
+    await waitFor(() => {
+      expect(document.activeElement).toBe(input);
+    });
+
+    expect(screen.getByTestId("session-search-slot")).toHaveClass(
+      ...TABLE_HEADER_OPEN_SEARCH_BESIDE_BUTTONS_CLASS_NAME.split(" "),
+    );
+  });
+
+  it("a search typed in the box goes to the server and keeps the search open", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open search" }));
+
+    const input: HTMLElement = screen.getByTestId("session-search-input");
+
+    fireEvent.change(input, { target: { value: "user:jane@acme.com" } });
+
+    await waitFor(
+      () => {
+        expect(requestsTo("/session-replay/list").length).toBe(2);
+      },
+      { timeout: SESSION_REPLAY_SEARCH_DEBOUNCE_MS * 5 },
+    );
+
+    expect(requestsTo("/session-replay/list")[1]!.data["filters"]).toEqual({
+      identifiedUserRef: "jane@acme.com",
+    });
+
+    fireEvent.blur(input);
+
+    expect(screen.getByTestId("session-search-slot")).toHaveClass(
+      ...TABLE_HEADER_OPEN_SEARCH_BESIDE_BUTTONS_CLASS_NAME.split(" "),
+    );
+  });
+
+  it("Clear all empties the chips and keeps what the search box holds", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    window.history.replaceState(
+      null,
+      "",
+      "/?signal=errors&browser=Firefox&country=GB&q=checkout",
+    );
+
+    renderTable();
+
+    await waitForRows(1);
+
+    const bar: HTMLElement = screen.getByTestId("session-replay-facets");
+
+    expect(within(bar).getByTestId("facet-filter-bar-count")).toHaveTextContent(
+      "3",
+    );
+
+    fireEvent.click(within(bar).getByRole("button", { name: "Clear all" }));
+
+    await waitFor(() => {
+      expect(requestsTo("/session-replay/list").length).toBe(2);
+    });
+
+    expect(requestsTo("/session-replay/list")[1]!.data["filters"]).toEqual({
+      search: "checkout",
+    });
+    expect(screen.getByTestId("session-search-input")).toHaveValue("checkout");
+    expect(within(bar).queryByTestId("facet-filter-bar-count")).toBeNull();
+    expect(within(bar).queryByRole("button", { name: "Clear all" })).toBeNull();
+  });
+
+  it("an exact page and a pseudonymous key are listed in the applied filters box; Clear Filters removes only them", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    window.history.replaceState(
+      null,
+      "",
+      `/?route=${encodeURIComponent("https://app.acme.com/checkout")}&userKey=k1&browser=Firefox`,
+    );
+
+    renderTable();
+
+    await waitForRows(1);
+
+    const box: HTMLElement = screen.getByTestId("session-applied-filters");
+    const chips: Array<HTMLElement> =
+      within(box).getAllByTestId("session-filter-chip");
+
+    expect(
+      chips.map((chip: HTMLElement): string | null => {
+        return chip.getAttribute("data-field");
+      }),
+    ).toEqual(["identifiedUserKey", "route"]);
+    expect(box).toHaveTextContent("Showing Sessions that match");
+    expect(chips[0]).toHaveTextContent("User is pseudonymous key");
+    expect(chips[0]).not.toHaveTextContent("k1");
+    expect(chips[1]).toHaveTextContent(
+      "Page URL visited (exact) is https://app.acme.com/checkout",
+    );
+
+    fireEvent.click(within(box).getByRole("button", { name: "Clear Filters" }));
+
+    await waitFor(() => {
+      expect(requestsTo("/session-replay/list").length).toBe(2);
+    });
+
+    expect(requestsTo("/session-replay/list")[1]!.data["filters"]).toEqual({
+      browserNames: ["Firefox"],
+    });
+    expect(screen.queryByTestId("session-applied-filters")).toBeNull();
+  });
+
+  it("a filter the box or the chips show is never listed in the applied filters box", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    window.history.replaceState(
+      null,
+      "",
+      `/?urlPrefix=%2Fcheckout&visitor=${VISITOR_A}&tag=plan%3Dpro&browser=Firefox&q=jane`,
+    );
+
+    renderTable();
+
+    await waitForRows(1);
+
+    expect(screen.queryByTestId("session-applied-filters")).toBeNull();
+    expect(screen.getByTestId("session-search-input")).toHaveValue(
+      `visitor:${VISITOR_A} url:/checkout tag:plan=pro jane`,
+    );
+  });
+});
+
+describe("SessionReplayTable filter modal", () => {
+  /*
+   * ux-03: the modal writes urlPrefix straight from a text input and the
+   * endpoint matches it from the start of each stored address, so an
+   * un-anchored value is a filter that can only ever return nothing. It is
+   * anchored on apply, and the chip shows what was actually sent.
+   */
+  it("anchors an un-anchored URL prefix on apply, and the search box shows what was sent", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    openFilterForm();
     fireEvent.change(screen.getByTestId("session-filter-urlPrefix"), {
       target: { value: "checkout" },
     });
@@ -1912,9 +2417,13 @@ describe("SessionReplayTable filter modal", () => {
       urlPrefix: "/checkout",
     });
 
-    const chip: HTMLElement = screen.getByTestId("session-filter-chip");
-
-    expect(chip).toHaveTextContent("/checkout");
+    await waitFor(() => {
+      expect(screen.getByTestId("session-search-input")).toHaveValue(
+        "url:/checkout",
+      );
+    });
+    /* Said once: no chip repeats what the search box shows. */
+    expect(screen.queryByTestId("session-filter-chip")).toBeNull();
   });
 });
 
@@ -2067,7 +2576,11 @@ describe("SessionReplayTable honesty", () => {
       0,
     );
 
-    fireEvent.click(screen.getByTestId("session-clear-filters"));
+    const clear: HTMLElement = screen.getByTestId("list-empty-action");
+
+    expect(clear).toHaveTextContent("Clear filters");
+
+    fireEvent.click(clear);
 
     await waitFor(() => {
       expect(requestsTo("/session-replay/list").length).toBe(2);
@@ -2076,7 +2589,7 @@ describe("SessionReplayTable honesty", () => {
     expect(requestsTo("/session-replay/list")[1]!.data["filters"]).toEqual({});
   });
 
-  it("the refresh button has an accessible name", async () => {
+  it("the header's ⋯ is named, and its Refresh re-reads the list", async () => {
     mockApi(() => {
       return listResponse([wireRow()]);
     });
@@ -2085,14 +2598,20 @@ describe("SessionReplayTable honesty", () => {
 
     await waitForRows(1);
 
-    expect(
-      screen.getByRole("button", { name: "Refresh sessions" }),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("session-replay-more")).toHaveAccessibleName(
+      "More options",
+    );
+
+    refreshList();
+
+    await waitFor(() => {
+      expect(requestsTo("/session-replay/list").length).toBe(2);
+    });
   });
 });
 
 describe("SessionReplayTable facet integration", () => {
-  it("applies facets to the server, restarts pagination, synchronizes search and clears one selection", async () => {
+  it("applies facets to the server, restarts pagination, leaves the search box alone and clears one selection", async () => {
     mockApi((_data: JSONObject, index: number) => {
       return listResponse(
         [wireRow({ sessionId: index === 1 ? SESSION_B : SESSION_A })],
@@ -2124,9 +2643,11 @@ describe("SessionReplayTable facet integration", () => {
     expect(filtered["cursor"]).toBeUndefined();
     expect(window.location.search).not.toContain("page=");
     expect(window.location.search).toContain("browser=Firefox");
-    expect(screen.getByTestId("session-search-input")).toHaveValue(
-      "browser:Firefox",
+    /* The chip says it; the search box does not repeat it. */
+    expect(screen.getByTestId("session-facet-browserName")).toHaveTextContent(
+      "Firefox",
     );
+    expect(screen.getByTestId("session-search-input")).toHaveValue("");
     fireEvent.click(
       screen.getByRole("button", { name: "Clear Browser filter" }),
     );
@@ -2548,7 +3069,7 @@ describe("SessionReplayTable auto-refresh", () => {
 
     await waitForRows(1);
 
-    fireEvent.click(screen.getByRole("button", { name: "Refresh sessions" }));
+    refreshList();
 
     await waitFor(() => {
       expect(listRequestCount()).toBe(2);
@@ -2637,7 +3158,7 @@ describe("SessionReplayTable auto-refresh", () => {
 
     expect(listRequestCount()).toBe(exhaustedAt);
 
-    fireEvent.click(screen.getByRole("button", { name: "Refresh sessions" }));
+    refreshList();
 
     await waitFor(() => {
       expect(listRequestCount()).toBe(exhaustedAt + 1);
@@ -2906,7 +3427,7 @@ describe("SessionReplayTable auto-refresh", () => {
     });
 
     /* The viewer asks for a fresh read while the silent one hangs. */
-    fireEvent.click(screen.getByRole("button", { name: "Refresh sessions" }));
+    refreshList();
 
     await waitFor(() => {
       expect(screen.getAllByTestId("session-row")[0]).toHaveAttribute(

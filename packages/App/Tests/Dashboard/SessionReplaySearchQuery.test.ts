@@ -9,10 +9,18 @@ import {
   mergeSearchIntoFilters,
   parseDurationToken,
   parseSessionReplaySearch,
+  parseSessionReplaySearchBox,
+  removeSearchBoxChipTokens,
+  SEARCH_BOX_CHIP_FIELDS,
+  SEARCH_BOX_CHIP_TOKEN_KEYS,
+  SESSION_REPLAY_SEARCH_HELP_COMBINED_EXAMPLE,
+  SESSION_REPLAY_SEARCH_HELP_ROWS,
   SESSION_REPLAY_SEARCH_TOKEN_KEYS,
   SessionReplaySearchParseResult,
   stringifySessionReplaySearch,
+  stringifySessionReplaySearchBox,
 } from "../../FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplaySearchQuery";
+import { SearchHelpRow } from "Common/UI/Components/TelemetryViewer/types";
 
 /*
  * The search box grammar. Every token maps to the right filter, bare text
@@ -404,5 +412,229 @@ describe("duration tokens", () => {
 
     expect(formatDurationToken(90)).toBe("1m30s");
     expect(formatDurationToken(3600)).toBe("1h");
+  });
+});
+
+/*
+ * The box leaves the chips' fields to the chips under the header: it never
+ * writes them out, a keystroke never clears them, a typed chip token still
+ * sets its chip, and Enter takes such tokens out of the text.
+ */
+describe("the search box and the chips", () => {
+  const CHIPS: SessionReplayAdvancedFilters = {
+    ...EMPTY_ADVANCED_FILTERS,
+    browserName: "Chrome",
+    osName: "macOS",
+    deviceType: "mobile",
+    countryCode: "DE",
+    triggerReason: "error",
+    minDurationSeconds: "120",
+  };
+
+  test("the chips' fields are the six the chip row shows, and their tokens are the grammar's", () => {
+    expect([...SEARCH_BOX_CHIP_FIELDS]).toEqual([
+      "browserName",
+      "osName",
+      "deviceType",
+      "countryCode",
+      "triggerReason",
+      "minDurationSeconds",
+    ]);
+    expect([...SEARCH_BOX_CHIP_TOKEN_KEYS]).toEqual([
+      "browser",
+      "os",
+      "device",
+      "country",
+      "trigger",
+      "min",
+    ]);
+
+    for (const key of SEARCH_BOX_CHIP_TOKEN_KEYS) {
+      expect(SESSION_REPLAY_SEARCH_TOKEN_KEYS).toContain(key);
+    }
+  });
+
+  test("stringifySessionReplaySearchBox writes everything but the chips", () => {
+    expect(stringifySessionReplaySearchBox(CHIPS)).toBe("");
+    expect(
+      stringifySessionReplaySearchBox({
+        ...CHIPS,
+        identifiedUserRef: "jane@acme.com",
+        visitorId: "abc123def4567890abc123def4567890",
+        urlPrefix: "/checkout",
+        tags: "plan=pro",
+        search: "slow page",
+        route: "https://app.acme.com/exact",
+        identifiedUserKey: "k1",
+      }),
+    ).toBe(
+      "user:jane@acme.com visitor:abc123def4567890abc123def4567890 url:/checkout tag:plan=pro slow page",
+    );
+  });
+
+  test("stringifySessionReplaySearchBox is stringifySessionReplaySearch without the chip tokens", () => {
+    const filters: SessionReplayAdvancedFilters = {
+      ...CHIPS,
+      urlPrefix: "/cart",
+      search: "x",
+    };
+
+    expect(
+      removeSearchBoxChipTokens(stringifySessionReplaySearch(filters)),
+    ).toBe(stringifySessionReplaySearchBox(filters));
+  });
+
+  test("a keystroke keeps every chip the text does not name", () => {
+    const result: SessionReplaySearchParseResult = parseSessionReplaySearchBox(
+      "/checkout jane",
+      CHIPS,
+    );
+
+    expect(result.advanced).toEqual({
+      ...CHIPS,
+      urlPrefix: "/checkout",
+      search: "jane",
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
+  test("a chip token the reader typed wins over the chip", () => {
+    const result: SessionReplaySearchParseResult = parseSessionReplaySearchBox(
+      "browser:Firefox country:gb",
+      CHIPS,
+    );
+
+    expect(result.advanced.browserName).toBe("Firefox");
+    expect(result.advanced.countryCode).toBe("GB");
+    expect(result.advanced.osName).toBe("macOS");
+  });
+
+  test("a chip token the grammar refuses leaves the chip as it was, with the warning", () => {
+    const result: SessionReplaySearchParseResult = parseSessionReplaySearchBox(
+      "device:car min:soon",
+      CHIPS,
+    );
+
+    expect(result.advanced.deviceType).toBe("mobile");
+    expect(result.advanced.minDurationSeconds).toBe("120");
+    expect(result.warnings).toHaveLength(2);
+  });
+
+  test("the box's own fields are read from the text alone; the modal's are carried", () => {
+    const result: SessionReplaySearchParseResult = parseSessionReplaySearchBox(
+      "",
+      {
+        ...EMPTY_ADVANCED_FILTERS,
+        identifiedUserRef: "jane@acme.com",
+        urlPrefix: "/checkout",
+        route: "https://app.acme.com/exact",
+        identifiedUserKey: "k1",
+      },
+    );
+
+    expect(result.advanced).toEqual({
+      ...EMPTY_ADVANCED_FILTERS,
+      route: "https://app.acme.com/exact",
+      identifiedUserKey: "k1",
+    });
+  });
+
+  test("parseSessionReplaySearchBox reads the grammar as parseSessionReplaySearch does", () => {
+    const query: string =
+      'user:jane@acme.com url:/checkout tag:plan=pro "two words" id:a1b2c3';
+
+    expect(
+      parseSessionReplaySearchBox(query, EMPTY_ADVANCED_FILTERS),
+    ).toEqual(parseSessionReplaySearch(query, EMPTY_ADVANCED_FILTERS));
+  });
+
+  test("removeSearchBoxChipTokens takes the chip tokens out and keeps the rest as typed", () => {
+    expect(
+      removeSearchBoxChipTokens(
+        'browser:"Mobile Safari" /cart OS:Linux min:2m "two words" jane',
+      ),
+    ).toBe('/cart "two words" jane');
+    expect(removeSearchBoxChipTokens("country:DE trigger:error")).toBe("");
+  });
+
+  test("removeSearchBoxChipTokens hands back text without a chip token untouched", () => {
+    for (const query of [
+      "",
+      "  /checkout   jane ",
+      'user:"Jane Doe" tag:plan=pro',
+      "browserish:x os",
+    ]) {
+      expect(removeSearchBoxChipTokens(query)).toBe(query);
+    }
+  });
+});
+
+/*
+ * The syntax help the box drops down: a row per kind of token, each with an
+ * example a click puts in the box. The help may not advertise what the
+ * grammar does not do.
+ */
+describe("the search box's syntax help", () => {
+  test("every example reads without a warning and sets what its row says", () => {
+    for (const row of SESSION_REPLAY_SEARCH_HELP_ROWS) {
+      const result: SessionReplaySearchParseResult = parseSessionReplaySearch(
+        row.example,
+      );
+
+      expect(result.warnings).toEqual([]);
+      expect(stringifySessionReplaySearch(result.advanced)).not.toBe("");
+    }
+  });
+
+  test("every row's token is one the grammar knows", () => {
+    for (const row of SESSION_REPLAY_SEARCH_HELP_ROWS) {
+      if (row.syntax === "free text") {
+        continue;
+      }
+
+      const key: string = row.syntax.substring(0, row.syntax.indexOf(":"));
+
+      expect(SESSION_REPLAY_SEARCH_TOKEN_KEYS).toContain(key);
+      expect(row.example.startsWith(`${key}:`)).toBe(true);
+    }
+  });
+
+  test("the chip tokens' row names every chip token", () => {
+    const row: SearchHelpRow | undefined = SESSION_REPLAY_SEARCH_HELP_ROWS.find(
+      (candidate: SearchHelpRow): boolean => {
+        return candidate.syntax.startsWith("browser:");
+      },
+    );
+
+    expect(row).toBeDefined();
+
+    for (const key of SEARCH_BOX_CHIP_TOKEN_KEYS) {
+      if (key === "browser" || key === "min") {
+        continue;
+      }
+
+      expect(row?.description).toContain(`${key}:`);
+    }
+  });
+
+  test("the combined example reads without a warning", () => {
+    expect(
+      parseSessionReplaySearch(SESSION_REPLAY_SEARCH_HELP_COMBINED_EXAMPLE)
+        .warnings,
+    ).toEqual([]);
+  });
+
+  test("the id: example narrows the list and does not open a session", () => {
+    const row: SearchHelpRow | undefined = SESSION_REPLAY_SEARCH_HELP_ROWS.find(
+      (candidate: SearchHelpRow): boolean => {
+        return candidate.syntax.startsWith("id:");
+      },
+    );
+    const result: SessionReplaySearchParseResult = parseSessionReplaySearch(
+      row?.example || "",
+    );
+
+    expect(result.navigateToSessionId).toBeNull();
+    expect(result.advanced.search).not.toBe("");
   });
 });
