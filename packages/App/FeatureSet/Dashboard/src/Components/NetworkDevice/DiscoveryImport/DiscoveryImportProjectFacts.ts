@@ -5,6 +5,7 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import NetworkAlertPolicy from "Common/Models/DatabaseModels/NetworkAlertPolicy";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -13,6 +14,11 @@ import ActiveMonitorLimitUtil, {
 } from "Common/Types/Monitor/ActiveMonitorLimit";
 import { NetworkAlertPolicyScopeUtil } from "Common/Types/NetworkDevice/NetworkAlertPolicyScope";
 import ObjectID from "Common/Types/ObjectID";
+import DeviceMonitorTemplateUtil, {
+  DEVICE_MONITOR_TEMPLATE_TYPES,
+  isDeviceAddressMonitorType,
+  isDeviceMonitorTemplateType,
+} from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
 import { summarizeMonitorTemplateAlerts } from "Common/Utils/Monitor/MonitorTemplateAlertSummary";
 import NetworkAlertPolicyBootstrapUtil, {
   RECOMMENDED_TEMPLATE_NAME,
@@ -26,6 +32,7 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { fetchActiveMonitorLimitStatus } from "../../Monitor/ActiveMonitorLimitStatusApi";
 import PingMonitorSeedIds, { SeedIdsPurpose } from "../PingMonitorSeedIds";
 import { buildRecommendedMonitorTemplatePreview } from "../RecommendedMonitorTemplate";
@@ -36,13 +43,14 @@ import {
 
 /*
  * What the import's monitoring step needs to know about the project, read
- * when the reader reaches that step: the Network Device monitor templates
- * they can pick (with what each raises), the names of the severities and
- * statuses those templates name, the alert policies that already cover
- * devices, how much room the plan has for monitors, and what the reader may
- * do. Every read can fail on its own - a reader who may not list templates
- * still imports devices - so each one is settled separately, and what failed
- * is said where it matters rather than failing the step.
+ * when the reader reaches that step: the monitor templates they can pick -
+ * Network Device ones, and since issue #5145 Ping, IP and Port ones - with
+ * what each raises, the names of the severities and statuses those
+ * templates name, the alert policies that already cover devices, how much
+ * room the plan has for monitors, and what the reader may do. Every read can
+ * fail on its own - a reader who may not list templates still imports
+ * devices - so each one is settled separately, and what failed is said
+ * where it matters rather than failing the step.
  */
 
 export interface NamedColor {
@@ -95,8 +103,44 @@ function toNamedColorMap<
   return map;
 }
 
+/*
+ * Why no template can be picked, when the project has none a device's
+ * monitor can be made from and the reader may not create the recommended
+ * one: who can, and where.
+ */
+export const NO_DEVICE_MONITOR_TEMPLATE_REASON: string = translationKey(
+  "This project has no Network Device, Ping, IP or Port monitor template, and you may not create one. Ask a project owner or admin to create the recommended one under Network > Settings > Alert Policies.",
+);
+
 function settledValue<T>(result: PromiseSettledResult<T>): T | null {
   return result.status === "fulfilled" ? result.value : null;
+}
+
+// A template choice as the step offers it, from a project template.
+export function toTemplateChoice(
+  template: MonitorTemplate,
+): DiscoveryImportTemplateChoice {
+  const monitorType: MonitorType = template.monitorType!;
+  const choice: DiscoveryImportTemplateChoice = {
+    id: template.id!.toString(),
+    name: template.templateName || `Unnamed ${monitorType} template`,
+    monitorType: monitorType,
+    summary: summarizeMonitorTemplateAlerts(template.monitorSteps, {
+      monitorType: monitorType,
+    }),
+  };
+
+  if (isDeviceAddressMonitorType(monitorType)) {
+    if (template.monitoringInterval) {
+      choice.monitoringInterval = template.monitoringInterval;
+    }
+
+    if (monitorType === MonitorType.Port) {
+      choice.ports = DeviceMonitorTemplateUtil.readPorts(template.monitorSteps);
+    }
+  }
+
+  return choice;
 }
 
 /*
@@ -104,7 +148,11 @@ function settledValue<T>(result: PromiseSettledResult<T>): T | null {
  * recommended marker is the recommended one; with none, the recommended pack
  * is offered as the template Import creates - when the reader may create
  * templates and the project has the statuses and severities it is built
- * with.
+ * with. Then the project's other Network Device templates, which read each
+ * device's polls, then its Ping, IP and Port templates, which check each
+ * device's address (#5145) - each in the order they were read, by name.
+ * A template of any other kind is not offered: nothing of a device's is for
+ * it to check (DEVICE_MONITOR_TEMPLATE_TYPES).
  */
 export function buildTemplateChoices(data: {
   templates: Array<MonitorTemplate>;
@@ -112,32 +160,41 @@ export function buildTemplateChoices(data: {
   seedIds: MonitorCriteriaSeedIds | null;
   projectId: ObjectID | null;
 }): Array<DiscoveryImportTemplateChoice> {
-  const choices: Array<DiscoveryImportTemplateChoice> = data.templates
-    .filter((template: MonitorTemplate): boolean => {
-      return Boolean(template.id);
-    })
-    .map((template: MonitorTemplate): DiscoveryImportTemplateChoice => {
-      return {
-        id: template.id!.toString(),
-        name: template.templateName || "Unnamed Network Device template",
-        summary: summarizeMonitorTemplateAlerts(template.monitorSteps),
-      };
-    });
+  const offered: Array<MonitorTemplate> = data.templates.filter(
+    (template: MonitorTemplate): boolean => {
+      return (
+        Boolean(template.id) && isDeviceMonitorTemplateType(template.monitorType)
+      );
+    },
+  );
 
   const recommended: MonitorTemplate | null =
-    NetworkAlertPolicyBootstrapUtil.findRecommendedTemplate(data.templates);
+    NetworkAlertPolicyBootstrapUtil.findRecommendedTemplate(
+      offered.filter((template: MonitorTemplate): boolean => {
+        return template.monitorType === MonitorType.NetworkDevice;
+      }),
+    );
+  const recommendedId: string = recommended?.id?.toString() || "";
+
+  const byKind: (readsPolls: boolean) => Array<DiscoveryImportTemplateChoice> =
+    (readsPolls: boolean): Array<DiscoveryImportTemplateChoice> => {
+      return offered
+        .filter((template: MonitorTemplate): boolean => {
+          return (
+            template.id!.toString() !== recommendedId &&
+            (template.monitorType === MonitorType.NetworkDevice) === readsPolls
+          );
+        })
+        .map(toTemplateChoice);
+    };
+
+  const rest: Array<DiscoveryImportTemplateChoice> = [
+    ...byKind(true),
+    ...byKind(false),
+  ];
 
   if (recommended?.id) {
-    const recommendedId: string = recommended.id.toString();
-
-    return [
-      ...choices.filter((choice: DiscoveryImportTemplateChoice): boolean => {
-        return choice.id === recommendedId;
-      }),
-      ...choices.filter((choice: DiscoveryImportTemplateChoice): boolean => {
-        return choice.id !== recommendedId;
-      }),
-    ];
+    return [toTemplateChoice(recommended), ...rest];
   }
 
   if (data.canCreateTemplates && data.seedIds && data.projectId) {
@@ -150,14 +207,15 @@ export function buildTemplateChoices(data: {
       {
         id: "",
         name: RECOMMENDED_TEMPLATE_NAME,
+        monitorType: MonitorType.NetworkDevice,
         summary: summarizeMonitorTemplateAlerts(preview.monitorSteps),
         isCreatedOnImport: true,
       },
-      ...choices,
+      ...rest,
     ];
   }
 
-  return choices;
+  return rest;
 }
 
 export function toPolicyFacts(data: {
@@ -221,13 +279,16 @@ export async function loadDiscoveryImportProjectFacts(): Promise<DiscoveryImport
           modelType: MonitorTemplate,
           query: {
             ...(projectId ? { projectId: projectId } : {}),
-            monitorType: MonitorType.NetworkDevice,
+            // Every kind a device's monitor can be made from (#5145).
+            monitorType: new Includes([...DEVICE_MONITOR_TEMPLATE_TYPES]),
           },
           select: {
             _id: true,
             templateName: true,
             templateDescription: true,
+            monitorType: true,
             monitorSteps: true,
+            monitoringInterval: true,
           },
           sort: { templateName: SortOrder.Ascending },
           limit: LIMIT_PER_PROJECT,
@@ -338,8 +399,7 @@ export async function loadDiscoveryImportProjectFacts(): Promise<DiscoveryImport
         canReadTemplates.disabledReason ||
         API.getFriendlyMessage(templatesResult.reason);
     } else if (!canCreateTemplates.isAllowed) {
-      templatesUnavailableReason =
-        "This project has no Network Device monitor template, and you may not create one. Ask a project owner or admin to create the recommended one under Network > Settings > Alert Policies.";
+      templatesUnavailableReason = NO_DEVICE_MONITOR_TEMPLATE_REASON;
     } else {
       templatesUnavailableReason = seedIdsError;
     }

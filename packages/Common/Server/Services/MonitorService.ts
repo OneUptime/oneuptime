@@ -115,6 +115,7 @@ import {
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import HostAddressUtil from "../../Utils/HostAddressUtil";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
+import DeviceMonitorTemplateUtil from "../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import IncomingEmailMonitorAddress from "../../Utils/Monitor/IncomingEmailMonitorAddress";
 import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUtil";
 import ProbeStatusMonitorEvaluator from "../Utils/Monitor/ProbeStatusMonitorEvaluator";
@@ -880,7 +881,15 @@ export class Service extends ProjectReferencesService<Model> {
             );
           }
 
-          if (monitor.autoProvisionedNetworkDeviceId) {
+          /*
+           * A Network Device monitor made for a device keeps naming it. A
+           * Ping, IP or Port one made for a device checks an address its
+           * steps hold, which its own form already refuses to leave empty.
+           */
+          if (
+            monitor.autoProvisionedNetworkDeviceId &&
+            monitor.monitorType === MonitorType.NetworkDevice
+          ) {
             NetworkDeviceMonitorTemplateUtil.assertMonitorStepsBoundToNetworkDevice(
               {
                 monitorSteps: updateBy.data.monitorSteps as
@@ -1951,13 +1960,13 @@ export class Service extends ProjectReferencesService<Model> {
         );
       }
 
-      if (createBy.data.monitorType !== MonitorType.NetworkDevice) {
-        throw new BadDataException(
-          "Only Network Device monitors can carry auto-provisioning provenance.",
-        );
-      }
-
-      NetworkDeviceMonitorTemplateUtil.assertMonitorStepsBoundToNetworkDevice({
+      /*
+       * A Network Device monitor whose steps name the device, or - since a
+       * discovery import may give each device a monitor from a Ping, IP or
+       * Port template (issue #5145) - one that checks the device's address.
+       */
+      DeviceMonitorTemplateUtil.assertProvenanceFits({
+        monitorType: createBy.data.monitorType,
         monitorSteps: createBy.data.monitorSteps,
         networkDeviceId: autoProvisionedNetworkDeviceId,
       });

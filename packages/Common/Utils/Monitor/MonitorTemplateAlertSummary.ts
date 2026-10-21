@@ -6,10 +6,12 @@ import { CriteriaIncident } from "../../Types/Monitor/CriteriaIncident";
 import MonitorCriteriaInstance from "../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
+import MonitorType from "../../Types/Monitor/MonitorType";
 import ObjectID from "../../Types/ObjectID";
 
 /*
- * WHAT A NETWORK DEVICE MONITOR TEMPLATE RAISES, IN PLAIN TERMS.
+ * WHAT A MONITOR TEMPLATE FOR DEVICES RAISES, IN PLAIN TERMS: a Network
+ * Device template, or a Ping, IP or Port one (issue #5145).
  *
  * Picking a template for five hundred imported devices is picking what
  * pages people, five hundred times over, so the Review dialog shows what the
@@ -144,9 +146,28 @@ export function isCriterionEvaluatedOnPingOnlyDevices(data: {
   return checks.every(isPingOnlyCheck);
 }
 
+/*
+ * The kind of monitor a template makes, as far as a device that answers
+ * ping only is concerned. Left out, it is a Network Device template's: its
+ * checks read the device's polls, and the walk-only ones never fire on a
+ * device that is not walked. A Ping, IP or Port template's monitor checks
+ * the device's address itself (issue #5145), so every check it has can
+ * fire on any device it can reach.
+ */
+export interface MonitorTemplateSummaryOptions {
+  monitorType?: MonitorType | undefined;
+}
+
+function readsDevicePolls(options: MonitorTemplateSummaryOptions): boolean {
+  return (
+    !options.monitorType || options.monitorType === MonitorType.NetworkDevice
+  );
+}
+
 export function summarizeMonitorCriteria(
   instance: MonitorCriteriaInstance,
   index: number,
+  options: MonitorTemplateSummaryOptions = {},
 ): MonitorCriteriaAlertSummary {
   const data: MonitorCriteriaInstance["data"] = instance.data;
   const incidents: Array<CriteriaIncident> = data?.incidents || [];
@@ -204,10 +225,12 @@ export function summarizeMonitorCriteria(
     changesStatus: Boolean(data?.changeMonitorStatus && data?.monitorStatusId),
     onCallPolicyIds: onCallPolicyIds,
     checks: checks,
-    isEvaluatedOnPingOnlyDevices: isCriterionEvaluatedOnPingOnlyDevices({
-      checks: checks,
-      filterCondition: data?.filterCondition,
-    }),
+    isEvaluatedOnPingOnlyDevices: readsDevicePolls(options)
+      ? isCriterionEvaluatedOnPingOnlyDevices({
+          checks: checks,
+          filterCondition: data?.filterCondition,
+        })
+      : checks.length > 0,
   };
 
   if (summary.changesStatus && data?.monitorStatusId) {
@@ -219,6 +242,7 @@ export function summarizeMonitorCriteria(
 
 export function summarizeMonitorTemplateAlerts(
   monitorSteps: MonitorSteps | JSONObject | null | undefined,
+  options: MonitorTemplateSummaryOptions = {},
 ): MonitorTemplateAlertSummary {
   const criteria: Array<MonitorCriteriaAlertSummary> = [];
 
@@ -227,7 +251,9 @@ export function summarizeMonitorTemplateAlerts(
       step.data?.monitorCriteria?.data?.monitorCriteriaInstanceArray || [];
 
     for (const instance of instances) {
-      criteria.push(summarizeMonitorCriteria(instance, criteria.length));
+      criteria.push(
+        summarizeMonitorCriteria(instance, criteria.length, options),
+      );
     }
   }
 

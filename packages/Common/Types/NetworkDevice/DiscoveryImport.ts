@@ -86,12 +86,15 @@ export function isDiscoveryImportActive(
  *  - None: the import creates no monitor. Every device still has a status
  *    from its probe's polls - Up or Down on its page, its site and the map -
  *    and an alert policy that covers it still gives it the policy's monitor.
- *  - MonitorTemplate: every device gets one Network Device monitor made from
- *    a template the reader picks, so the template's criteria decide what
- *    raises an incident or an alert. The same kind of monitor an alert
- *    policy or an auto import rule makes: evaluated every time the device's
- *    poll results arrive, for a device that only answers ping as much as for
- *    one walked over SNMP.
+ *  - MonitorTemplate: every device gets one monitor made from a template the
+ *    reader picks, so the template's criteria decide what raises an
+ *    incident or an alert. From a Network Device template, the same kind of
+ *    monitor an alert policy or an auto import rule makes: evaluated every
+ *    time the device's poll results arrive, for a device that only answers
+ *    ping as much as for one walked over SNMP. From a Ping, IP or Port
+ *    template (issue #5145), a monitor that checks the device's address on
+ *    the template's own schedule, from the probe that polls the device
+ *    (DeviceMonitorTemplateUtil).
  */
 export enum DiscoveryImportAlerting {
   None = "None",
@@ -143,7 +146,10 @@ export interface DiscoveryImportSettings {
    */
   applyVendorTemplates: boolean;
   alerting: DiscoveryImportAlerting;
-  // The Network Device monitor template, when alerting is MonitorTemplate.
+  /*
+   * The monitor template - a Network Device, Ping, IP or Port one - when
+   * alerting is MonitorTemplate.
+   */
   monitorTemplateId?: string | undefined;
 }
 
