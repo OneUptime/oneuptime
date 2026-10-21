@@ -17,6 +17,10 @@ export function getDockerSwarmBreadcrumbs(
       "DockerSwarm",
       "View Cluster",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DOCKER_SWARM_CLUSTER_VIEW_TOPOLOGY,
+      ["Project", "DockerSwarm", "View Cluster", "Topology"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODES, [
       "Project",
       "DockerSwarm",

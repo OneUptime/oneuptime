@@ -104,7 +104,7 @@ Everything is ready. Begin running and processing data.
 
 ### Finn klyngen i OneUptime
 
-Åpne **Produkter → Infrastruktur → Ceph → Alle klynger**. Klyngen vises under `CEPH_CLUSTER_NAME` innen et minutts tid, med OSD-ene, poolene og daemonene sine.
+Åpne **Produkter → Infrastruktur → Ceph → Alle klynger**. Klyngen vises under `CEPH_CLUSTER_NAME` innen et minutts tid, med OSD-ene, poolene og daemonene sine. Siden **Topologi** tegner dem på ett kart: se [Topologi](/docs/telemetry/topology#åpne-en-ressurs-sitt-eget-kart).
 :::
 
 ## Miljøvariabler

@@ -248,6 +248,16 @@ const StorageArraySideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Topology",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STORAGE_ARRAY_VIEW_TOPOLOGY] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.FlowDiagram}
+        />
+        <SideMenuItem
+          link={{
             title: "Resource Usage",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.STORAGE_ARRAY_VIEW_INSIGHTS] as Route,

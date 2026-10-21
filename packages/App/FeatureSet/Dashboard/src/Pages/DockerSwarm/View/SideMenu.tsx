@@ -132,6 +132,16 @@ const DockerSwarmClusterSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Topology",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_TOPOLOGY] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.FlowDiagram}
+        />
+        <SideMenuItem
+          link={{
             title: "Resource Usage",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_INSIGHTS] as Route,

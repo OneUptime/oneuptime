@@ -75,7 +75,7 @@ Elke OneUptime serveert zijn eigen installatieprogramma's, zodat een zelf gehost
 
 ### Wacht op de host
 
-De laatste stap van het dialoogvenster meldt wanneer de host verbinding maakt, met een link ernaartoe. In de lijst staat hij als **Wordt gestart** tot zijn eerste metrics binnenkomen, meestal binnen een minuut, en daarna als verbonden, met zijn collector **Actief**.
+De laatste stap van het dialoogvenster meldt wanneer de host verbinding maakt, met een link ernaartoe. In de lijst staat hij als **Wordt gestart** tot zijn eerste metrics binnenkomen, meestal binnen een minuut, en daarna als verbonden, met zijn collector **Actief**. De pagina **Topologie** van de host tekent op één kaart wat erop draait, wat hem aanroept en wat hij aanroept: zie [Topologie](/docs/telemetry/topology#de-eigen-kaart-van-een-resource-openen).
 :::
 
 ## Hosts labelen

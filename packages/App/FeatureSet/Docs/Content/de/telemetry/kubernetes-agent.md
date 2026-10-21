@@ -135,7 +135,7 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 
 ### Den Cluster in OneUptime finden
 
-Öffnen Sie **Produkte → Infrastruktur → Kubernetes → Alle Cluster**. Der Cluster erscheint innerhalb weniger Minuten unter seinem `clusterName`, und seine Knoten, Pods und Workloads füllen sich. Der Kubernetes-KI-Agent wird auf der Seite **Agent** des Clusters, unter **KI**, als verbunden angezeigt.
+Öffnen Sie **Produkte → Infrastruktur → Kubernetes → Alle Cluster**. Der Cluster erscheint innerhalb weniger Minuten unter seinem `clusterName`, und seine Knoten, Pods und Workloads füllen sich. Der Kubernetes-KI-Agent wird auf der Seite **Agent** des Clusters, unter **KI**, als verbunden angezeigt. Die Seite **Topologie** des Clusters zeichnet seine Namespaces, Workloads, Pods und Knoten als eine Karte und markiert, was Aufmerksamkeit erfordert: siehe [Topologie](/docs/telemetry/topology#die-eigene-karte-einer-ressource-öffnen).
 :::
 
 ## Als Add-on für Amazon EKS installieren

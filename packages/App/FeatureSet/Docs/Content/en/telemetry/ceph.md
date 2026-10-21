@@ -104,7 +104,7 @@ Everything is ready. Begin running and processing data.
 
 ### Find the cluster in OneUptime
 
-Open **Products → Infrastructure → Ceph → All Clusters**. The cluster appears under its `CEPH_CLUSTER_NAME` within a minute or so, with its OSDs, pools and daemons.
+Open **Products → Infrastructure → Ceph → All Clusters**. The cluster appears under its `CEPH_CLUSTER_NAME` within a minute or so, with its OSDs, pools and daemons. Its **Topology** page draws them as one map: see [Topology](/docs/telemetry/topology#open-a-resources-own-map).
 :::
 
 ## Environment variables

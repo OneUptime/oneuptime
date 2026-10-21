@@ -22,6 +22,12 @@ export function getStorageArrayBreadcrumbs(
       "Storage Arrays",
       "View Storage Array",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.STORAGE_ARRAY_VIEW_TOPOLOGY, [
+      "Project",
+      "Storage Arrays",
+      "View Storage Array",
+      "Topology",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.STORAGE_ARRAY_VIEW_VOLUMES, [
       "Project",
       "Storage Arrays",

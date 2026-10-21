@@ -75,7 +75,7 @@ Every OneUptime serves its own installers, so a self-hosted OneUptime hands out 
 
 ### Wait for the host
 
-The dialog's last step says when the host connects, with a link to it. In the list it shows as **Starting** until its first metrics arrive, usually within a minute, then as connected, with its collector **Running**.
+The dialog's last step says when the host connects, with a link to it. In the list it shows as **Starting** until its first metrics arrive, usually within a minute, then as connected, with its collector **Running**. The host's **Topology** page draws what runs on it, what calls it and what it calls as one map: see [Topology](/docs/telemetry/topology#open-a-resources-own-map).
 :::
 
 ## Label hosts

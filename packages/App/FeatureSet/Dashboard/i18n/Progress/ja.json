@@ -132,6 +132,8 @@
     "OpenTelemetry SDK",
     "OpenTofu",
     "PR #{{number}}",
+    "PV",
+    "PVC",
     "PVE ID",
     "PVE {{version}}",
     "Ping",
