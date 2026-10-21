@@ -110,17 +110,17 @@ function udmProcess(data: {
     return null;
   }
 
-  const process: JSONObject = {};
+  const udmProcessNoun: JSONObject = {};
 
   if (commandLine) {
-    process["commandLine"] = cut(commandLine, 2048);
+    udmProcessNoun["commandLine"] = cut(commandLine, 2048);
   }
 
   if (path) {
-    process["file"] = { fullPath: cut(path, 1024) };
+    udmProcessNoun["file"] = { fullPath: cut(path, 1024) };
   }
 
-  return process;
+  return udmProcessNoun;
 }
 
 /*
@@ -359,18 +359,18 @@ export function toUdmEvent(
    * started it the principal's; in any other event the process is the
    * principal's, with its parent.
    */
-  const process: JSONObject | null = eventProcess(record);
-  const parent: JSONObject | null = parentProcess(record);
+  const theProcess: JSONObject | null = eventProcess(record);
+  const itsParent: JSONObject | null = parentProcess(record);
 
-  if (!isProcessLaunch && process && parent) {
-    process["parentProcess"] = parent;
+  if (!isProcessLaunch && theProcess && itsParent) {
+    theProcess["parentProcess"] = itsParent;
   }
 
   const principal: JSONObject = udmNoun({
     hostname: record.principalHost,
     ip: record.principalIp,
     user: isLogin ? "" : record.principalUser,
-    process: isProcessLaunch ? parent : process,
+    process: isProcessLaunch ? itsParent : theProcess,
   });
 
   const target: JSONObject = udmNoun({
@@ -379,7 +379,7 @@ export function toUdmEvent(
     user: isLogin
       ? record.targetUser || record.principalUser
       : record.targetUser,
-    process: isProcessLaunch ? process : null,
+    process: isProcessLaunch ? theProcess : null,
     port: record.targetPort,
     url: targetResource && isUrl(targetResource) ? targetResource : "",
     resourceName:

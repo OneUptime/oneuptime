@@ -787,6 +787,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new BackfillFirstPagedAt(),
   /*
+   * Security events gained the process an event is about and its parent
+   * (SecurityEvent.processName, processPath, processCommandLine,
+   * parentProcessName, parentProcessPath, parentProcessCommandLine), which
+   * Sigma's Image, CommandLine, ParentImage and ParentCommandLine read.
+   * Metadata-only and idempotent; rows written before it read ''. No
+   * ordering requirement, so it sits above the runbook moves, which keep
+   * their places before the last slot AddAuditLogMcpClientColumns asserts
+   * for itself.
+   */
+  new AddProcessColumnsToSecurityEvent(),
+  /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step
    * N becomes an approval before step N+1, and one after the last step a
@@ -809,16 +820,6 @@ const DataMigrations: Array<DataMigrationBase> = [
    * asserts for itself.
    */
   new MoveRunbookSecretsAndCredentialsToVariables(),
-  /*
-   * Security events gained the process an event is about and its parent
-   * (SecurityEvent.processName, processPath, processCommandLine,
-   * parentProcessName, parentProcessPath, parentProcessCommandLine), which
-   * Sigma's Image, CommandLine, ParentImage and ParentCommandLine read.
-   * Metadata-only and idempotent; rows written before it read ''. No
-   * ordering requirement, so it sits before the last slot
-   * AddAuditLogMcpClientColumns asserts for itself.
-   */
-  new AddProcessColumnsToSecurityEvent(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
