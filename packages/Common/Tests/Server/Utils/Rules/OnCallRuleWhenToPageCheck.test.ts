@@ -73,10 +73,16 @@ function create(model: AlertOnCallRule): void {
   });
 }
 
-// The rules' findBy, as an update's check reads them.
+/*
+ * The service's findRowsAndHoldUpdateToThem, as an update's check reads the
+ * rules it writes: the rows the update writes, the update held to them.
+ */
 type FindBy = Mock<
   (...args: Array<unknown>) => Promise<Array<AlertOnCallRule>>
 >;
+
+// The last update a check handed findRowsAndHoldUpdateToThem.
+let lastUpdateBy: unknown = null;
 
 // An update, against the rules it names as they are stored.
 async function update(
@@ -89,13 +95,19 @@ async function update(
     return stored;
   });
 
+  const updateBy: unknown = {
+    query: { _id: ObjectID.generate().toString() },
+    data: written,
+    props: { isRoot: true },
+  };
+
+  lastUpdateBy = updateBy;
+
   await OnCallRuleWhenToPageCheck.checkUpdate({
-    service: { findBy } as unknown as DatabaseService<AlertOnCallRule>,
-    updateBy: {
-      query: { _id: ObjectID.generate().toString() },
-      data: written,
-      props: { isRoot: true },
-    } as never,
+    service: {
+      findRowsAndHoldUpdateToThem: findBy,
+    } as unknown as DatabaseService<AlertOnCallRule>,
+    updateBy: updateBy as never,
   });
 
   return findBy;
@@ -239,9 +251,9 @@ describe("an update of an on-call rule", () => {
     );
 
     expect(findBy).toHaveBeenCalledTimes(1);
-    expect(
-      (findBy.mock.calls[0]![0] as { select: Record<string, unknown> }).select,
-    ).toEqual({
+    // The update itself is handed over, so it is held to the rules read.
+    expect(findBy.mock.calls[0]![0]).toBe(lastUpdateBy);
+    expect(findBy.mock.calls[0]![1]).toEqual({
       whenToPage: true,
       workingHours: true,
       workingHoursTimezone: true,
@@ -336,7 +348,7 @@ describe("the four on-call rule services", () => {
       stored.setColumnValue("whenToPage", OnCallRuleWhenToPage.RightAway);
 
       jest
-        .spyOn(service as never, "findBy" as never)
+        .spyOn(service as never, "findRowsAndHoldUpdateToThem" as never)
         .mockResolvedValue([stored] as never);
 
       const written: BaseModel = newRule();
