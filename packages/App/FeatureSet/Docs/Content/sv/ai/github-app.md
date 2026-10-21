@@ -118,11 +118,11 @@ Den ignorerar också alla kommentarer som en bot har skrivit, dess egna inräkna
 
 ## Vad det kostar och hur du begränsar det
 
-Varje kommando som startar arbete är en fullständig agentkörning: en klon, upp till 40 LLM-anrop och 100 000 utdatatokens, och ditt repositorys bygg- och testkommandon när du har satt dem. En gransknings frågor mot produktionen, högst 12, räknas mot samma 40 anrop.
+Varje kommando som startar arbete är en fullständig agentkörning: en klon, upp till 40 LLM-anrop och 100 000 utdatatokens, och, på en egen Runner, de bygg- och testkontroller som ditt repositorys `AGENTS.md` beskriver. En gransknings frågor mot produktionen, högst 12, räknas mot samma 40 anrop.
 
 GitHub-kommandon är AI-arbete utanför incidenter och larm, så ingen daglig gräns för åtgärdsuppgifter gäller för dem; projektets egna dagliga AI-gränser gäller, när projektet sätter dem. Den enda andra gränsen är den som redan styr uppgifterna i [Kod](/docs/ai/ai-agent):
 
-- **Taket för öppna pull requests** (**Max Open Fix Pull Requests**, på repositoriets sida **Inställningar**). **AI-rättnings-pull requests** står på **Ingen gräns** tills du väljer **En gräns**, eller **Inga**, som blockerar AI-åtgärds-pull-requests i det repositoriet. Granskningar och revideringar är undantagna: ingen av dem lägger till en pull request i din granskningskö.
+- **Taket för öppna pull requests** (**Max Open Fix Pull Requests**, under **Fler inställningar** på repositoriets sida **Inställningar**). **AI-rättnings-pull requests** står på **Ingen gräns** tills du väljer **En gräns**, eller **Inga**, som blockerar AI-åtgärds-pull-requests i det repositoriet. Granskningar och revideringar är undantagna: ingen av dem lägger till en pull request i din granskningskö.
 
 Bara en körning av ett slag är aktiv åt gången per issue eller pull request. Frågar du två gånger får du veta att den redan arbetar; ber du om en granskning medan en revidering körs startar båda, eftersom det är olika begäranden.
 
@@ -130,9 +130,9 @@ Om en körning inte kan starta säger appen varför i tråden: den fallerar aldr
 
 ## Stänga av den
 
-Varje repository har en brytare: **Respond to GitHub Commands**, på repositoriets sida **Inställningar**. När den är av ignorerar appen omnämnanden, tilldelningar och utlösaretiketten i det repositoriet, och talar om för alla som frågar var brytaren finns.
+Varje repository har en brytare: **Respond to GitHub Commands**, på repositoriets sida **Inställningar**. Den är på för alla repositorier och sparas så fort du slår om den. När den är av ignorerar appen omnämnanden, tilldelningar och utlösaretiketten i det repositoriet, och talar om för alla som frågar var brytaren finns.
 
-Samma sida har **GitHub Trigger Label**, om du vill ha en annan etikett än `oneuptime`.
+Samma sida har **GitHub Trigger Label** under **Fler inställningar**, om du vill ha en annan etikett än `oneuptime`.
 
 ## Vad du ska prenumerera på
 

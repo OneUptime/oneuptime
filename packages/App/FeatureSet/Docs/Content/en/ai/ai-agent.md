@@ -20,7 +20,7 @@ Code is where you ask OneUptime AI to work in your repositories, the way you wou
 :::steps
 ### Open Code
 
-Open **Products → Code**. It opens on **What should AI do?**: the box where you ask, with every task under it, newest first. With no repository yet, it offers **Connect GitHub** instead (see [Before you begin](#before-you-begin)). **Repositories**, in its side menu, lists the connected repositories, and each repository's page has the same box for that repository.
+Open **Products → Code**. It opens on **What should AI do?**: the box where you ask, with every task under it, newest first. With no repository yet, it offers **Connect GitHub** instead (see [Before you begin](#before-you-begin)). **Repositories**, in its side menu, lists the repositories AI can work in, and folds those the GitHub App no longer reaches under **Not connected**. Each repository's page has the same box for that repository.
 
 ### Pick the repository and the branch
 
@@ -89,7 +89,7 @@ flowchart TB
 3. The Runner fetches the task's context. For a request, that is its words, the context added and the conversation so far; for an exception, its type, its message and its stack trace.
 4. It clones the repository into a workspace of its own and makes a branch. A fix of an exception is named `oneuptime-fix-exception-` followed by the first characters of the run's id. A request starts from the branch picked when it was asked, and its pull request opens into it. A reply works on the branch of the task's open pull request instead.
 5. A code agent, powered by your project's LLM provider, reads the code and writes the change. The OneUptime server makes the LLM calls, so the Runner never holds your provider's API key, and every call is metered and listed in the AI Logs. A fix of an exception, a slow trace or an incident also reads production while it works: the exceptions, traces, logs and metrics of the repository's services (see [Production telemetry in a fix](#production-telemetry-in-a-fix)).
-6. If the repository has verification commands, a Runner of your own builds and tests the change before committing anything, and hands a failure back to the code agent to repair (see [Verification before the pull request](#verification-before-the-pull-request)).
+6. On a Runner of your own, the code agent builds and tests its change the way the repository's `AGENTS.md` says before anything is committed, and repairs what fails (see [Verification before the pull request](#verification-before-the-pull-request)).
 7. The Runner commits, pushes the branch, opens the pull request (for a request, only when it changed code), and deletes the workspace.
 
 The page the task was started from shows its live status. Every task is listed in its repository under **Products → Code**: its page is its conversation, and each turn's **Log** has a line for every file the Runner read or wrote and every command it ran.
@@ -148,15 +148,18 @@ When no service maps to the repository, the task runs without production telemet
 
 ## Verification before the pull request
 
-A repository can carry up to three verification commands on its **Settings** page in Code:
+A repository says how it is built and tested in an `AGENTS.md` at its root, the file coding agents read. Before the code agent changes anything, it reads the repository's `AGENTS.md` (or its `CLAUDE.md`, when it has no `AGENTS.md`) from the branch the task starts from, and works the way it says. With neither, it learns how from the repository's `CONTRIBUTING.md`, README, package scripts, `Makefile` or CI workflows. There is nothing to set up in OneUptime.
 
-| Command | Example | When it runs |
-| --- | --- | --- |
-| **Setup Command** | `npm ci` | First, to install dependencies. |
-| **Build Command** | `npm run build` | After setup. |
-| **Test Command** | `npm test` | Last. |
+| Where AI works | What it does with the repository's build and tests |
+| --- | --- |
+| One of your Runners | Builds and tests its change before the pull request opens, fixes what fails and checks again, and says in its summary which checks it ran. Each command it runs gets up to 2 minutes, without the Runner's own credentials in its environment. |
+| **Global Runner** | Runs no command: it writes the change and opens the pull request, and your repository's own CI checks it. |
 
-When any of them is set, every fix run checks its change before the pull request opens:
+Nothing from a pull request that comes from a fork is ever read as the repository's instructions: a revision refuses such a pull request, and a review reads the base branch.
+
+### Commands set on a repository
+
+Code no longer asks for setup, build and test commands, but a repository that has them, set before or through the API or Terraform, keeps them. They show read-only on the **Build and Test Commands** card, under **More settings** on the repository's **Settings** page, and **Remove Commands** removes all three. While any of them is set, every fix run on a Runner of your own also checks its change with them before the pull request opens:
 
 1. When the code agent finishes, the commands run in order at the root of the repository, on the Runner, in the cloned workspace. Each one gets up to 15 minutes and runs with `CI=true`, so nothing waits on a prompt; the first failure stops the pass.
 2. On a failure, the end of the failing command's output goes back to the same code agent as a repair task, with instructions to fix its own change rather than weaken or skip tests, and the commands run again. It makes at most **2** repair attempts. They share the run's LLM budget, and their edits land in the same commit as the fix.
@@ -205,12 +208,12 @@ You do not map repositories to services. When a task starts, OneUptime finds the
 
 ### Pick the repository's Runner
 
-Each repository picks the Runner AI works in it on: on its **Settings** page in Code, click **Edit Settings** and pick one on the **Runner** step. A repository that picks none works on **Global Runner**, which OneUptime runs for every project.
+Each repository picks the Runner AI works in it on: on its **Settings** page in Code, click **Edit** on the **Runner** card and pick one. A repository the GitHub App imports starts on the project's [default Runner](/docs/runbooks/agents#the-projects-default-runner), when it has one. A repository that picks none works on **Global Runner**, which OneUptime runs for every project.
 
 | Runner | What it does with a task |
 | --- | --- |
-| **Global Runner** | Writes the change and opens the pull request, without your setup, build and test commands: your repository's own CI checks the change. |
-| One of your Runners | Also runs your setup, build and test commands, on a host you control. |
+| **Global Runner** | Writes the change and opens the pull request without building or testing it: your repository's own CI checks the change. |
+| One of your Runners | Also builds and tests the change the way the repository's `AGENTS.md` says, on a host you control. |
 
 Only the Runner a repository picks is handed its tasks and a token for it. In a project that turns **Use global Runners** off under **Runbooks → Runners**, every repository needs one of the project's own Runners. A Runner's page lists the repositories that pick it.
 
@@ -233,7 +236,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Pick it for the repository
 
-On the repository's **Settings** page in Code, click **Edit Settings** and pick the Runner on the **Runner** step. The Runner picks the change up with its next heartbeat, within about a minute; there is nothing to restart.
+On the repository's **Settings** page in Code, click **Edit** on the **Runner** card and pick the Runner. The Runner picks the change up with its next heartbeat, within about a minute; there is nothing to restart.
 
 ### Check that it connects
 

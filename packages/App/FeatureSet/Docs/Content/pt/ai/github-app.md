@@ -118,11 +118,11 @@ Ela também ignora todo comentário escrito por um bot, inclusive os próprios, 
 
 ## Quanto custa e como limitar
 
-Todo comando que inicia trabalho é uma execução completa do agente: um clone, até 40 chamadas ao LLM e 100.000 tokens de saída, e os comandos de build e de teste do seu repositório quando você os definiu. As consultas de produção de uma avaliação, no máximo 12, são descontadas das mesmas 40 chamadas.
+Todo comando que inicia trabalho é uma execução completa do agente: um clone, até 40 chamadas ao LLM e 100.000 tokens de saída, e, em um Runner próprio, as verificações de build e de teste que o `AGENTS.md` do seu repositório descreve. As consultas de produção de uma avaliação, no máximo 12, são descontadas das mesmas 40 chamadas.
 
 Comandos do GitHub são trabalho de IA fora de incidentes e alertas, então nenhum limite diário de tarefas de correção se aplica a eles; os limites diários de IA do próprio projeto se aplicam, quando o projeto os define. O único outro limite é o que já rege as tarefas de [Código](/docs/ai/ai-agent):
 
-- **O teto de pull requests abertos** (**Max Open Fix Pull Requests**, na página **Configurações** do repositório). **Pull requests de correção de IA** fica em **Sem limite** até você escolher **Um limite**, ou **Nenhum**, que bloqueia os pull requests de correção de IA nesse repositório. Avaliações e revisões ficam isentas: nenhuma delas adiciona um pull request à sua fila de revisão.
+- **O teto de pull requests abertos** (**Max Open Fix Pull Requests**, em **Mais configurações** na página **Configurações** do repositório). **Pull requests de correção de IA** fica em **Sem limite** até você escolher **Um limite**, ou **Nenhum**, que bloqueia os pull requests de correção de IA nesse repositório. Avaliações e revisões ficam isentas: nenhuma delas adiciona um pull request à sua fila de revisão.
 
 Só uma execução de cada tipo fica ativa por vez em cada issue ou pull request. Pedir duas vezes informa que ela já está trabalhando; pedir uma avaliação enquanto uma revisão roda inicia as duas, já que são pedidos diferentes.
 
@@ -130,9 +130,9 @@ Se uma execução não puder começar, a app diz por quê na conversa: ela nunca
 
 ## Desligando
 
-Cada repositório tem uma chave: **Respond to GitHub Commands**, na página **Configurações** do repositório. Com ela desligada, a app ignora menções, atribuições e o rótulo de gatilho nesse repositório, e diz a quem perguntar onde fica a chave.
+Cada repositório tem uma chave: **Respond to GitHub Commands**, na página **Configurações** do repositório. Ela vem ligada em todos os repositórios e salva assim que você a muda. Com ela desligada, a app ignora menções, atribuições e o rótulo de gatilho nesse repositório, e diz a quem perguntar onde fica a chave.
 
-A mesma página tem o **GitHub Trigger Label**, se você quiser um rótulo diferente de `oneuptime`.
+A mesma página tem o **GitHub Trigger Label**, em **Mais configurações**, se você quiser um rótulo diferente de `oneuptime`.
 
 ## Em que se inscrever
 

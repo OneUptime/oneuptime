@@ -118,11 +118,11 @@ Ignora anche ogni commento scritto da un bot, compresi i propri, e le menzioni d
 
 ## Quanto costa e come limitarlo
 
-Ogni comando che avvia lavoro è un'esecuzione completa dell'agente: un clone, fino a 40 chiamate al LLM e 100.000 token di output, più i comandi di build e di test del tuo repository quando li hai impostati. Le query sulla produzione di una review, al massimo 12, rientrano nelle stesse 40 chiamate.
+Ogni comando che avvia lavoro è un'esecuzione completa dell'agente: un clone, fino a 40 chiamate al LLM e 100.000 token di output, più, su un Runner tuo, le verifiche di build e di test descritte dall'`AGENTS.md` del tuo repository. Le query sulla produzione di una review, al massimo 12, rientrano nelle stesse 40 chiamate.
 
 I comandi GitHub sono lavoro di IA al di fuori di incidenti e avvisi, quindi a loro non si applica alcun limite giornaliero di attività di correzione; si applicano i limiti giornalieri di IA del progetto, quando il progetto li imposta. L'unico altro limite è quello che già governa le attività di [Codice](/docs/ai/ai-agent):
 
-- **Il tetto di pull request aperte** (**Max Open Fix Pull Requests**, nella pagina **Impostazioni** del repository). **Pull request di correzione IA** è su **Nessun limite** finché non scegli **Un limite**, oppure **Nessuno**, che blocca le pull request di correzione IA su quel repository. Review e revisioni sono esenti: nessuna delle due aggiunge una pull request alla tua coda di revisione.
+- **Il tetto di pull request aperte** (**Max Open Fix Pull Requests**, in **Altre impostazioni** nella pagina **Impostazioni** del repository). **Pull request di correzione IA** è su **Nessun limite** finché non scegli **Un limite**, oppure **Nessuno**, che blocca le pull request di correzione IA su quel repository. Review e revisioni sono esenti: nessuna delle due aggiunge una pull request alla tua coda di revisione.
 
 Per ogni issue o pull request è attiva una sola esecuzione per tipo alla volta. Chiedere due volte ti dice che sta già lavorando; chiedere una review mentre è in corso una revisione le avvia entrambe, perché sono richieste diverse.
 
@@ -130,9 +130,9 @@ Se un'esecuzione non può partire, l'app dice perché nel thread: non fallisce m
 
 ## Disattivarla
 
-Ogni repository ha un interruttore: **Respond to GitHub Commands**, nella pagina **Impostazioni** del repository. Quando è spento, l'app ignora menzioni, assegnazioni e l'etichetta di trigger in quel repository, e dice a chiunque chieda dove si trova l'interruttore.
+Ogni repository ha un interruttore: **Respond to GitHub Commands**, nella pagina **Impostazioni** del repository. È acceso per ogni repository e si salva appena lo cambi. Quando è spento, l'app ignora menzioni, assegnazioni e l'etichetta di trigger in quel repository, e dice a chiunque chieda dove si trova l'interruttore.
 
-La stessa pagina contiene il **GitHub Trigger Label**, se vuoi un'etichetta diversa da `oneuptime`.
+La stessa pagina contiene il **GitHub Trigger Label**, in **Altre impostazioni**, se vuoi un'etichetta diversa da `oneuptime`.
 
 ## A cosa iscriversi
 
