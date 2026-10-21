@@ -53,9 +53,15 @@ const STEP_NUMBER_CLASS_NAME: string =
 const LINK_CLASS_NAME: string =
   "font-medium text-indigo-600 hover:text-indigo-700 hover:underline";
 
-export const VMwareHostLogsSetup: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
-): ReactElement => {
+// What the empty list's block needs: the host, not the vCenter's identity.
+export type VMwareHostLogsSetupProps = Pick<
+  ComponentProps,
+  "hostName" | "clusterName" | "isProbeCollected" | "setupGuideRoute"
+>;
+
+export const VMwareHostLogsSetup: FunctionComponent<
+  VMwareHostLogsSetupProps
+> = (props: VMwareHostLogsSetupProps): ReactElement => {
   const translator: Translator = useTranslator();
 
   const tx: (text: string) => string = (text: string): string => {
@@ -266,7 +272,14 @@ const VMwareHostLogsTab: FunctionComponent<ComponentProps> = (
       showFilters={true}
       enableRealtime={true}
       noLogsMessage="No logs from this host match these filters."
-      emptyContentWhenUnfiltered={<VMwareHostLogsSetup {...props} />}
+      emptyContentWhenUnfiltered={
+        <VMwareHostLogsSetup
+          hostName={props.hostName}
+          clusterName={props.clusterName}
+          isProbeCollected={props.isProbeCollected}
+          setupGuideRoute={props.setupGuideRoute}
+        />
+      }
     />
   );
 };
