@@ -423,19 +423,32 @@ export const buildOnCallPageSms: (
           longest,
           MIN_TITLE_CHARACTERS,
         );
-        const readable: string | null =
-          readableTitle === null
-            ? null
-            : compose(parts, {
-                withProject: false,
-                title: readableTitle,
-                isTitleCut: true,
-              });
+        const plainTitle: string = parts.title
+          .slice(0, getWholeCharacterCount(parts.title, longest))
+          .join("");
 
-        // Reading well never costs a part: else the plain cut, which fits.
-        return readable !== null && fits(readable)
-          ? fitted(readable, Boolean(parts.projectName), true)
-          : fitted(withTitleCutTo(longest), Boolean(parts.projectName), true);
+        /*
+         * Reading well never costs a part: the cut at a word if it fits,
+         * else the plain cut without trailing spaces, else the plain cut,
+         * which fits.
+         */
+        const candidates: Array<string> = [
+          ...(readableTitle === null ? [] : [readableTitle]),
+          plainTitle.trimEnd(),
+        ].map((title: string): string => {
+          return compose(parts, {
+            withProject: false,
+            title: title,
+            isTitleCut: true,
+          });
+        });
+
+        const best: string =
+          candidates.find((candidate: string): boolean => {
+            return fits(candidate);
+          }) || withTitleCutTo(longest);
+
+        return fitted(best, Boolean(parts.projectName), true);
       }
     }
   }

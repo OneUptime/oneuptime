@@ -78,6 +78,7 @@ import UserSMS from "Common/Models/DatabaseModels/UserSMS";
 import UserTelegram from "Common/Models/DatabaseModels/UserTelegram";
 import UserWebhook from "Common/Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "Common/Models/DatabaseModels/UserWhatsApp";
+import { ON_CALL_PAGE_SMS_ACTION } from "Common/Utils/Sms/OnCallPageSms";
 import { describe, expect, it } from "@jest/globals";
 import crypto from "crypto";
 import fs from "fs";
@@ -1676,8 +1677,10 @@ describe("personal on-call rules", () => {
     expect(ruleService).toContain(
       "introMessage: `To acknowledge this alert, press 1. ${getOnCallPageCallPassOnPrompt()}`,",
     );
+    // A text's one link acknowledges the page (Utils/Sms/OnCallPageSms).
+    expect(ON_CALL_PAGE_SMS_ACTION).toBe("Ack or pass it on:");
     expect(ruleService).toContain(
-      "To acknowledge this alert, or pass it on if you can't take it, please click on the following link",
+      "link: await this.buildOnCallAcknowledgeShortUrl(",
     );
     expect(ruleService).toContain(">Tap to acknowledge</a>");
     expect(ruleService).toContain("[Acknowledge](${data.ackUrl.toString()})");

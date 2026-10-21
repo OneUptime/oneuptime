@@ -307,6 +307,49 @@ describe("the fitting rule", () => {
     expect(sms.text).not.toContain("....");
   });
 
+  test("reading well never costs a part: when the cut at a word would not fit as sent, the plain cut goes out", () => {
+    // 65 characters of title fit; the 66th is inside a word, which starts at 63.
+    const title: string = "abcdefgh ".repeat(12).trim();
+    const atAWord: OnCallPageSms = page({ title: title });
+
+    expect(atAWord.isTitleCut).toBe(true);
+    expect(atAWord.text).toContain(`${"abcdefgh ".repeat(6)}abcdefgh...`);
+
+    // A send path that would make exactly that text longer than one part.
+    const inflatesTheWordCut: (text: string) => string = (
+      text: string,
+    ): string => {
+      return text === atAWord.text ? `${text}${"!".repeat(200)}` : text;
+    };
+    const sms: OnCallPageSms = page({
+      title: title,
+      sentAs: inflatesTheWordCut,
+    });
+
+    expect(sms.text).not.toBe(atAWord.text);
+    expect(sms.sent.segments).toBe(1);
+    expect(sms.isTitleCut).toBe(true);
+    // The plain cut keeps more of the title than the cut at a word.
+    expect(sms.text.length).toBeGreaterThan(atAWord.text.length);
+  });
+
+  test("a cut that reading well would take below MIN_TITLE_CHARACTERS stays plain, without a trailing space", () => {
+    const sms: OnCallPageSms = page({
+      title: `${"a".repeat(18)} ${",".repeat(200)}`,
+    });
+    const title: string = sms.text.slice(
+      sms.text.indexOf("INC-21033: ") + "INC-21033: ".length,
+      sms.text.indexOf(`...${tail(CLOUD_LINK)}`),
+    );
+
+    expect(sms.isTitleCut).toBe(true);
+    expect(sms.sent.segments).toBe(1);
+    expect(Array.from(title).length).toBeGreaterThanOrEqual(
+      MIN_TITLE_CHARACTERS,
+    );
+    expect(title.endsWith(" ")).toBe(false);
+  });
+
   test("keeps at least MIN_TITLE_CHARACTERS of a title: else it takes a second part and says it all", () => {
     // A long installation name and a long address leave a title 15 characters.
     const renamed: (text: string) => string = (text: string): string => {

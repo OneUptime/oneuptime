@@ -122,7 +122,12 @@ describe("the SMS a team member gets", () => {
     expect(
       sourceFiles.some((file: string): boolean => {
         return file.endsWith(
-          path.join("Workers", "Jobs", "IncidentOwners", "SendStateChangeNotification.ts"),
+          path.join(
+            "Workers",
+            "Jobs",
+            "IncidentOwners",
+            "SendStateChangeNotification.ts",
+          ),
         );
       }),
     ).toBe(true);
@@ -216,7 +221,9 @@ describe("the notifications", () => {
     expect(smsBranch).toContain("...smsMessage,");
     expect(smsBranch).not.toContain("...data.smsMessage,\n              to:");
     // Telegram and the workspace DMs still read the text as written.
-    expect(source).toContain('const smsBody: string = data.smsMessage.message || "";');
+    expect(source).toContain(
+      'const smsBody: string = data.smsMessage.message || "";',
+    );
   });
 
   test("shift reminders send their SMS text, and keep the spoken one for calls", () => {
@@ -224,7 +231,9 @@ describe("the notifications", () => {
       "packages/Common/Server/Utils/OnCall/OnCallShiftReminderRunner.ts",
     );
 
-    expect(source.split("smsText: buildNotificationSms(sentence),").length - 1).toBe(3);
+    expect(
+      source.split("smsText: buildNotificationSms(sentence),").length - 1,
+    ).toBe(3);
     expect(source).toContain("message: message.smsText,");
     expect(source).toContain("sayMessage: `${message.text} Good bye.`,");
   });

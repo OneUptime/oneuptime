@@ -120,12 +120,16 @@ beforeEach(() => {
   jest
     .spyOn(ProjectCallSMSConfigService, "getProjectDefaultTwilioConfig")
     .mockResolvedValue(undefined as never);
-  jest.spyOn(UserSmsService, "findBy").mockResolvedValue([
-    { phone: new Phone(PHONE) } as unknown as UserSMS,
-  ] as never);
-  jest.spyOn(UserTelegramService, "findBy").mockResolvedValue([
-    { telegramChatId: "1234567" } as unknown as UserTelegram,
-  ] as never);
+  jest
+    .spyOn(UserSmsService, "findBy")
+    .mockResolvedValue([
+      { phone: new Phone(PHONE) } as unknown as UserSMS,
+    ] as never);
+  jest
+    .spyOn(UserTelegramService, "findBy")
+    .mockResolvedValue([
+      { telegramChatId: "1234567" } as unknown as UserTelegram,
+    ] as never);
   jest.spyOn(UserSlackService, "findBy").mockResolvedValue([
     {
       id: new ObjectID("5114c000-0000-4000-8000-000000000003"),
@@ -136,12 +140,12 @@ beforeEach(() => {
     smsSent.push(sms);
     return new HTTPResponse(200, {}, {});
   }) as never);
-  jest
-    .spyOn(TelegramService, "sendTelegramMessage")
-    .mockImplementation((async (message: TelegramMessage) => {
-      telegramSent.push(message);
-      return new HTTPResponse(200, {}, {});
-    }) as never);
+  jest.spyOn(TelegramService, "sendTelegramMessage").mockImplementation((async (
+    message: TelegramMessage,
+  ) => {
+    telegramSent.push(message);
+    return new HTTPResponse(200, {}, {});
+  }) as never);
   jest
     .spyOn(WorkspaceUserNotificationService, "sendDirectMessageToUser")
     .mockImplementation((async (data: {
@@ -185,11 +189,9 @@ describe("a notification's SMS copy", () => {
   });
 
   test("is measured with the installation's own name", async () => {
-    jest
-      .spyOn(EnterpriseEdition, "getProductBranding")
-      .mockReturnValue({
-        productName: "Acme Corporation Monitoring Platform",
-      } as never);
+    jest.spyOn(EnterpriseEdition, "getProductBranding").mockReturnValue({
+      productName: "Acme Corporation Monitoring Platform",
+    } as never);
 
     // 150 characters as written; 177 with the longer name.
     const news: string = `${"w".repeat(85)}.`;
