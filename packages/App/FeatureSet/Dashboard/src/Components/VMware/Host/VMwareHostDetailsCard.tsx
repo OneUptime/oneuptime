@@ -75,24 +75,30 @@ const VMwareHostDetailsCard: FunctionComponent<ComponentProps> = (
     });
   }
 
-  rows.push({
-    key: "cluster",
-    label: "Cluster",
-    value: props.row?.clusterName ? (
-      props.clusterRoute ? (
-        <Link
-          to={props.clusterRoute}
-          className="text-indigo-600 hover:text-indigo-700 hover:underline"
-        >
-          {props.row.clusterName}
-        </Link>
+  /*
+   * A host no longer in the inventory may have been in a cluster or not:
+   * nothing says, so no row rather than a guess.
+   */
+  if (props.row) {
+    rows.push({
+      key: "cluster",
+      label: "Cluster",
+      value: props.row.clusterName ? (
+        props.clusterRoute ? (
+          <Link
+            to={props.clusterRoute}
+            className="text-indigo-600 hover:text-indigo-700 hover:underline"
+          >
+            {props.row.clusterName}
+          </Link>
+        ) : (
+          props.row.clusterName
+        )
       ) : (
-        props.row.clusterName
-      )
-    ) : (
-      tx("None - a standalone host")
-    ),
-  });
+        tx("None - a standalone host")
+      ),
+    });
+  }
 
   if (cpuCapacity !== null) {
     rows.push({
@@ -115,14 +121,19 @@ const VMwareHostDetailsCard: FunctionComponent<ComponentProps> = (
     rows.push({
       key: "vms",
       label: "Virtual machines",
-      value: translator.translateTemplate(
-        "{{total}} ({{running}} running, {{off}} off)",
-        {
-          total: props.virtualMachines.total,
-          running: props.virtualMachines.running,
-          off: props.virtualMachines.poweredOff + props.virtualMachines.unknown,
-        },
-      ),
+      value:
+        props.virtualMachines.total === 0
+          ? tx("None")
+          : translator.translateTemplate(
+              "{{total}} ({{running}} running, {{off}} off)",
+              {
+                total: props.virtualMachines.total,
+                running: props.virtualMachines.running,
+                off:
+                  props.virtualMachines.poweredOff +
+                  props.virtualMachines.unknown,
+              },
+            ),
     });
 
     if (props.virtualMachines.templates > 0) {

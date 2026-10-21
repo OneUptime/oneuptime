@@ -271,10 +271,10 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
     if (isInitialLoading || !metrics) {
       return (
         <div
-          className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+          className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
           aria-busy="true"
         >
-          {Array.from({ length: 5 }, (_: unknown, index: number) => {
+          {Array.from({ length: 4 }, (_: unknown, index: number) => {
             return (
               <div
                 key={`vmware-host-tile-skeleton-${index}`}
@@ -300,7 +300,7 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
 
     return (
       <div
-        className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+        className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
         data-testid="vmware-host-tiles"
       >
         <GoldenMetricTile
@@ -350,7 +350,7 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
           value={formatBytesPerSecond(networkTotal)}
           sublabel={
             networkTotal !== null
-              ? translator.translateTemplate("in {{received}} · out {{sent}}", {
+              ? translator.translateTemplate("↓ {{received}} · ↑ {{sent}}", {
                   received: formatBytesPerSecond(
                     tiles.networkReceivedBytesPerSecond,
                   ),
@@ -359,16 +359,6 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
               : undefined
           }
           description={VMWARE_METRIC_DESCRIPTIONS.hostPageNetwork}
-        />
-        <GoldenMetricTile
-          title={tx("Virtual machines")}
-          icon={IconProp.ComputerDesktop}
-          iconColor="slate"
-          value={String(props.virtualMachineSummary.running)}
-          sublabel={translator.translateTemplate("running · {{total}} total", {
-            total: props.virtualMachineSummary.total,
-          })}
-          description={VMWARE_METRIC_DESCRIPTIONS.hostPageVirtualMachines}
         />
       </div>
     );

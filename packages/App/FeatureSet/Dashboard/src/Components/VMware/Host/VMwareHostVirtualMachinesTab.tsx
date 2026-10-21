@@ -13,8 +13,9 @@ import {
 /*
  * The virtual machines one ESXi host runs, with the vCenter's own Virtual
  * Machines list's columns less Host and Cluster (the same for every row
- * here). The rows are the ones the host's page already read for its
- * Overview, so the tab and the Overview's counts never disagree.
+ * here) and Power State (the Status column already says Running, Powered
+ * off or Template). The rows are the ones the host's page already read for
+ * its Overview, so the tab and the Overview's counts never disagree.
  */
 
 export interface ComponentProps {
@@ -48,19 +49,6 @@ const VMwareHostVirtualMachinesTab: FunctionComponent<ComponentProps> = (
         age: VMWARE_METRIC_DESCRIPTIONS.vmListAge,
       }}
       columns={[
-        {
-          /*
-           * Inferred per collection: the receiver emits vcenter.vm.cpu.*
-           * only for powered-on VMs. Unset means the VM has not been seen
-           * in a collection yet - "-" rather than a guess.
-           */
-          title: "Power State",
-          key: "powerState",
-          description: VMWARE_METRIC_DESCRIPTIONS.vmListPowerState,
-          getValue: (resource: InfrastructureResource): string => {
-            return resource.additionalAttributes["powerState"] || "-";
-          },
-        },
         {
           title: "Resource Pool",
           key: "resourcePoolName",

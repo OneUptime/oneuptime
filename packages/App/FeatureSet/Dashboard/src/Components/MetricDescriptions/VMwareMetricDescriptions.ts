@@ -61,7 +61,6 @@ export type VMwareMetric =
   | "hostMemory"
   | "hostPageDiskLatency"
   | "hostPageNetwork"
-  | "hostPageVirtualMachines"
   | "hostPageCpuChart"
   | "hostPageMemoryChart"
   | "hostPageDiskLatencyChart"
@@ -212,9 +211,6 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
   ),
   hostPageNetwork: translationKey(
     "Data this host's physical network adapters received and sent per second, together, averaged over the last 5 minutes of the selected range.",
-  ),
-  hostPageVirtualMachines: translationKey(
-    "Powered-on VMs on this host, out of all the VMs it runs (templates excluded), from the latest inventory. Power state is inferred from which VMs send CPU data, so a suspended VM counts as off.",
   ),
 
   // ---- ESXi host page: charts -------------------------------------------

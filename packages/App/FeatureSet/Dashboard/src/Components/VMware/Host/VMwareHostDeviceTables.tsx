@@ -1,9 +1,12 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import Card from "Common/UI/Components/Card/Card";
-import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
+import {
+  useCardRuledBodyClassName,
+  useCardRuledListClassName,
+} from "Common/UI/Components/Card/CardSurface";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/VMwareMetricDescriptions";
 import {
@@ -22,6 +25,10 @@ import {
  * its Filesystems card, an ESXi host has its NICs and the disks and LUNs
  * its datastores live on.
  *
+ * A table from sm up; on a phone each device is a short list of its own -
+ * the values under its name - rather than a table that scrolls sideways
+ * and squeezes a 40-character device name into a column of letters.
+ *
  * A card shows only when the host reported at least one device: the
  * per-device counters need vCenter's statistics level 2 or higher for the
  * real-time interval, and a vCenter that collects less has nothing to put
@@ -35,59 +42,6 @@ function formatBytesPerSecond(value: number | null): string {
 
   return ValueFormatter.formatValue(value, "By/s");
 }
-
-interface HeaderCell {
-  title: string;
-  description?: string | undefined;
-  alignRight?: boolean | undefined;
-}
-
-const HEADER_CLASS_NAME: string =
-  "px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500 first:pl-5 last:pr-5 md:first:pl-6 md:last:pr-6";
-
-const CELL_CLASS_NAME: string =
-  "px-4 py-3 text-sm text-gray-700 tabular-nums first:pl-5 last:pr-5 md:first:pl-6 md:last:pr-6";
-
-const DeviceTableHeader: FunctionComponent<{
-  cells: Array<HeaderCell>;
-}> = (props: { cells: Array<HeaderCell> }): ReactElement => {
-  const translator: Translator = useTranslator();
-
-  const tx: (text: string) => string = (text: string): string => {
-    return translator.translateText(text) || text;
-  };
-
-  return (
-    <thead className="bg-gray-50">
-      <tr>
-        {props.cells.map((cell: HeaderCell): ReactElement => {
-          return (
-            <th
-              key={cell.title}
-              scope="col"
-              className={`${HEADER_CLASS_NAME} whitespace-nowrap ${
-                cell.alignRight ? "text-right" : "text-left"
-              }`}
-            >
-              <span
-                className={`inline-flex items-center gap-1 ${
-                  cell.alignRight ? "justify-end" : ""
-                }`}
-              >
-                {tx(cell.title)}
-                {cell.description ? (
-                  <InfoTooltip label={cell.title} text={cell.description} />
-                ) : (
-                  <></>
-                )}
-              </span>
-            </th>
-          );
-        })}
-      </tr>
-    </thead>
-  );
-};
 
 /*
  * A count of trouble (errors, drops): quiet at zero, amber above, so a bad
@@ -143,6 +97,144 @@ function renderLatency(value: number | null): ReactElement {
   );
 }
 
+interface DeviceColumn<TRow> {
+  title: string;
+  description?: string | undefined;
+  render: (row: TRow) => ReactElement | string;
+}
+
+interface DeviceTableProps<TRow> {
+  // The first column: the device's own name.
+  nameTitle: string;
+  columns: Array<DeviceColumn<TRow>>;
+  rows: Array<TRow>;
+  getName: (row: TRow) => string;
+  rowTestId: string;
+}
+
+const HEADER_CLASS_NAME: string =
+  "px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500 first:pl-5 last:pr-5 md:first:pl-6 md:last:pr-6";
+
+const CELL_CLASS_NAME: string =
+  "px-4 py-3 text-sm text-gray-700 tabular-nums first:pl-5 last:pr-5 md:first:pl-6 md:last:pr-6";
+
+function DeviceTable<TRow>(props: DeviceTableProps<TRow>): ReactElement {
+  const translator: Translator = useTranslator();
+
+  const tx: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
+
+  const bodyClassName: string = useCardRuledBodyClassName();
+  const listClassName: string = useCardRuledListClassName();
+
+  return (
+    <>
+      <div className={`max-sm:hidden ${bodyClassName}`}>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th
+                  scope="col"
+                  className={`${HEADER_CLASS_NAME} whitespace-nowrap text-left`}
+                >
+                  {tx(props.nameTitle)}
+                </th>
+                {props.columns.map(
+                  (column: DeviceColumn<TRow>): ReactElement => {
+                    return (
+                      <th
+                        key={column.title}
+                        scope="col"
+                        className={`${HEADER_CLASS_NAME} whitespace-nowrap text-right`}
+                      >
+                        <span className="inline-flex items-center justify-end gap-1">
+                          {tx(column.title)}
+                          {column.description ? (
+                            <InfoTooltip
+                              label={column.title}
+                              text={column.description}
+                            />
+                          ) : (
+                            <></>
+                          )}
+                        </span>
+                      </th>
+                    );
+                  },
+                )}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 bg-white">
+              {props.rows.map((row: TRow): ReactElement => {
+                const name: string = props.getName(row);
+
+                return (
+                  <tr key={name} data-testid={props.rowTestId}>
+                    <td
+                      className={`${CELL_CLASS_NAME} min-w-[8rem] max-w-[18rem] break-all font-mono font-medium text-gray-900`}
+                    >
+                      {name}
+                    </td>
+                    {props.columns.map(
+                      (column: DeviceColumn<TRow>): ReactElement => {
+                        return (
+                          <td
+                            key={column.title}
+                            className={`${CELL_CLASS_NAME} whitespace-nowrap text-right`}
+                          >
+                            {column.render(row)}
+                          </td>
+                        );
+                      },
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* A phone: each device under its own name. */}
+      <ul
+        className={`sm:hidden ${listClassName}`}
+        data-testid={`${props.rowTestId}-list`}
+      >
+        {props.rows.map((row: TRow): ReactElement => {
+          const name: string = props.getName(row);
+
+          return (
+            <li key={name} className="px-5 py-3">
+              <div className="break-all font-mono text-sm font-medium text-gray-900">
+                {name}
+              </div>
+              <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5">
+                {props.columns.map(
+                  (column: DeviceColumn<TRow>): ReactElement => {
+                    return (
+                      <div
+                        key={column.title}
+                        className="flex min-w-0 items-baseline justify-between gap-2 text-xs"
+                      >
+                        <dt className="text-gray-500">{tx(column.title)}</dt>
+                        <dd className="tabular-nums text-gray-900">
+                          {column.render(row)}
+                        </dd>
+                      </div>
+                    );
+                  },
+                )}
+              </dl>
+            </li>
+          );
+        })}
+      </ul>
+    </>
+  );
+}
+
 export interface NetworkAdaptersProps {
   adapters: Array<VMwareNetworkAdapterRow>;
 }
@@ -150,8 +242,6 @@ export interface NetworkAdaptersProps {
 export const VMwareHostNetworkAdaptersCard: FunctionComponent<
   NetworkAdaptersProps
 > = (props: NetworkAdaptersProps): ReactElement => {
-  const bodyClassName: string = useCardRuledBodyClassName();
-
   if (props.adapters.length === 0) {
     return <></>;
   }
@@ -162,85 +252,50 @@ export const VMwareHostNetworkAdaptersCard: FunctionComponent<
         title="Network adapters"
         description="The host's physical network adapters, each averaged over the selected range."
       >
-        <div className={bodyClassName}>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <DeviceTableHeader
-                cells={[
-                  { title: "Adapter" },
-                  {
-                    title: "Received",
-                    description:
-                      VMWARE_METRIC_DESCRIPTIONS.hostPageAdapterThroughput,
-                    alignRight: true,
-                  },
-                  { title: "Sent", alignRight: true },
-                  {
-                    title: "Packets",
-                    description:
-                      VMWARE_METRIC_DESCRIPTIONS.hostPageAdapterPackets,
-                    alignRight: true,
-                  },
-                  {
-                    title: "Errors",
-                    description:
-                      VMWARE_METRIC_DESCRIPTIONS.hostPageAdapterErrors,
-                    alignRight: true,
-                  },
-                  {
-                    title: "Drops",
-                    description:
-                      VMWARE_METRIC_DESCRIPTIONS.hostPageAdapterDrops,
-                    alignRight: true,
-                  },
-                ]}
-              />
-              <tbody className="divide-y divide-gray-100 bg-white">
-                {props.adapters.map(
-                  (adapter: VMwareNetworkAdapterRow): ReactElement => {
-                    return (
-                      <tr
-                        key={adapter.name}
-                        data-testid="vmware-host-network-adapter"
-                      >
-                        <td
-                          className={`${CELL_CLASS_NAME} whitespace-nowrap font-mono font-medium text-gray-900`}
-                        >
-                          {adapter.name}
-                        </td>
-                        <td
-                          className={`${CELL_CLASS_NAME} whitespace-nowrap text-right`}
-                        >
-                          {formatBytesPerSecond(adapter.receivedBytesPerSecond)}
-                        </td>
-                        <td
-                          className={`${CELL_CLASS_NAME} whitespace-nowrap text-right`}
-                        >
-                          {formatBytesPerSecond(adapter.sentBytesPerSecond)}
-                        </td>
-                        <td
-                          className={`${CELL_CLASS_NAME} whitespace-nowrap text-right`}
-                        >
-                          {formatVMwarePerSecond(adapter.packetsPerSecond)}
-                        </td>
-                        <td
-                          className={`${CELL_CLASS_NAME} whitespace-nowrap text-right`}
-                        >
-                          {renderTroubleRate(adapter.errorsPerSecond)}
-                        </td>
-                        <td
-                          className={`${CELL_CLASS_NAME} whitespace-nowrap text-right`}
-                        >
-                          {renderTroubleRate(adapter.dropsPerSecond)}
-                        </td>
-                      </tr>
-                    );
-                  },
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <DeviceTable<VMwareNetworkAdapterRow>
+          nameTitle={translationKey("Adapter")}
+          rows={props.adapters}
+          rowTestId="vmware-host-network-adapter"
+          getName={(adapter: VMwareNetworkAdapterRow): string => {
+            return adapter.name;
+          }}
+          columns={[
+            {
+              title: "Received",
+              description: VMWARE_METRIC_DESCRIPTIONS.hostPageAdapterThroughput,
+              render: (adapter: VMwareNetworkAdapterRow): string => {
+                return formatBytesPerSecond(adapter.receivedBytesPerSecond);
+              },
+            },
+            {
+              title: "Sent",
+              render: (adapter: VMwareNetworkAdapterRow): string => {
+                return formatBytesPerSecond(adapter.sentBytesPerSecond);
+              },
+            },
+            {
+              title: "Packets",
+              description: VMWARE_METRIC_DESCRIPTIONS.hostPageAdapterPackets,
+              render: (adapter: VMwareNetworkAdapterRow): string => {
+                return formatVMwarePerSecond(adapter.packetsPerSecond);
+              },
+            },
+            {
+              title: "Errors",
+              description: VMWARE_METRIC_DESCRIPTIONS.hostPageAdapterErrors,
+              render: (adapter: VMwareNetworkAdapterRow): ReactElement => {
+                return renderTroubleRate(adapter.errorsPerSecond);
+              },
+            },
+            {
+              title: "Drops",
+              description: VMWARE_METRIC_DESCRIPTIONS.hostPageAdapterDrops,
+              render: (adapter: VMwareNetworkAdapterRow): ReactElement => {
+                return renderTroubleRate(adapter.dropsPerSecond);
+              },
+            },
+          ]}
+        />
       </Card>
     </div>
   );
@@ -253,8 +308,6 @@ export interface StorageDevicesProps {
 export const VMwareHostStorageDevicesCard: FunctionComponent<
   StorageDevicesProps
 > = (props: StorageDevicesProps): ReactElement => {
-  const bodyClassName: string = useCardRuledBodyClassName();
-
   if (props.devices.length === 0) {
     return <></>;
   }
@@ -265,69 +318,42 @@ export const VMwareHostStorageDevicesCard: FunctionComponent<
         title="Storage devices"
         description="The disks and LUNs this host reads and writes, each averaged over the selected range."
       >
-        <div className={bodyClassName}>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <DeviceTableHeader
-                cells={[
-                  { title: "Device" },
-                  {
-                    title: "Read",
-                    description:
-                      VMWARE_METRIC_DESCRIPTIONS.hostPageDeviceThroughput,
-                    alignRight: true,
-                  },
-                  { title: "Write", alignRight: true },
-                  {
-                    title: "Read latency",
-                    description:
-                      VMWARE_METRIC_DESCRIPTIONS.hostPageDeviceLatency,
-                    alignRight: true,
-                  },
-                  { title: "Write latency", alignRight: true },
-                ]}
-              />
-              <tbody className="divide-y divide-gray-100 bg-white">
-                {props.devices.map(
-                  (device: VMwareStorageDeviceRow): ReactElement => {
-                    return (
-                      <tr
-                        key={device.name}
-                        data-testid="vmware-host-storage-device"
-                      >
-                        <td
-                          className={`${CELL_CLASS_NAME} max-w-[16rem] break-all font-mono font-medium text-gray-900`}
-                        >
-                          {device.name}
-                        </td>
-                        <td
-                          className={`${CELL_CLASS_NAME} whitespace-nowrap text-right`}
-                        >
-                          {formatBytesPerSecond(device.readBytesPerSecond)}
-                        </td>
-                        <td
-                          className={`${CELL_CLASS_NAME} whitespace-nowrap text-right`}
-                        >
-                          {formatBytesPerSecond(device.writeBytesPerSecond)}
-                        </td>
-                        <td
-                          className={`${CELL_CLASS_NAME} whitespace-nowrap text-right`}
-                        >
-                          {renderLatency(device.readLatencyMs)}
-                        </td>
-                        <td
-                          className={`${CELL_CLASS_NAME} whitespace-nowrap text-right`}
-                        >
-                          {renderLatency(device.writeLatencyMs)}
-                        </td>
-                      </tr>
-                    );
-                  },
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <DeviceTable<VMwareStorageDeviceRow>
+          nameTitle={translationKey("Device")}
+          rows={props.devices}
+          rowTestId="vmware-host-storage-device"
+          getName={(device: VMwareStorageDeviceRow): string => {
+            return device.name;
+          }}
+          columns={[
+            {
+              title: "Read",
+              description: VMWARE_METRIC_DESCRIPTIONS.hostPageDeviceThroughput,
+              render: (device: VMwareStorageDeviceRow): string => {
+                return formatBytesPerSecond(device.readBytesPerSecond);
+              },
+            },
+            {
+              title: "Write",
+              render: (device: VMwareStorageDeviceRow): string => {
+                return formatBytesPerSecond(device.writeBytesPerSecond);
+              },
+            },
+            {
+              title: "Read latency",
+              description: VMWARE_METRIC_DESCRIPTIONS.hostPageDeviceLatency,
+              render: (device: VMwareStorageDeviceRow): ReactElement => {
+                return renderLatency(device.readLatencyMs);
+              },
+            },
+            {
+              title: "Write latency",
+              render: (device: VMwareStorageDeviceRow): ReactElement => {
+                return renderLatency(device.writeLatencyMs);
+              },
+            },
+          ]}
+        />
       </Card>
     </div>
   );

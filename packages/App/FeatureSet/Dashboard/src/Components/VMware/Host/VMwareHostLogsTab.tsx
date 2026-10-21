@@ -7,6 +7,7 @@ import Log from "Common/Models/AnalyticsModels/Log";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -193,13 +194,19 @@ export const VMwareHostLogsSetup: FunctionComponent<ComponentProps> = (
         className="mt-5 text-xs text-gray-500"
         data-testid="vmware-host-logs-name-hint"
       >
-        {translator.translateTemplate(
-          "Lines show here when the host names itself {{hostName}} in them. If it uses another name, see it with {{command}} on the host.",
-          {
-            hostName: props.hostName,
-            command: VMWARE_HOST_HOSTNAME_COMMAND,
-          },
-        )}{" "}
+        <TranslatedSentence
+          template="Lines show here when the host names itself {{hostName}} in them. If it uses another name, see it with {{command}} on the host."
+          slots={{
+            hostName: (
+              <span className="font-mono text-gray-700">{props.hostName}</span>
+            ),
+            command: (
+              <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
+                {VMWARE_HOST_HOSTNAME_COMMAND}
+              </code>
+            ),
+          }}
+        />{" "}
         <Link
           to={new Route(VMWARE_SYSLOG_DOCS_PATH)}
           openInNewTab={true}

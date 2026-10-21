@@ -35,6 +35,12 @@ export interface ComponentProps {
   clusterName?: string | undefined;
   // The cluster's own page, when the host is in a cluster.
   clusterRoute?: Route | undefined;
+  /*
+   * Whether the host is known to be in no cluster: true for a host vCenter
+   * reports outside a cluster, unset when nothing says (a host no longer in
+   * the inventory).
+   */
+  isStandalone?: boolean | undefined;
   cpuCapacityMhz: number | null;
   memoryCapacityBytes: number | null;
   virtualMachines: VMwareHostVirtualMachineSummary | null;
@@ -107,11 +113,22 @@ const VMwareHostHero: FunctionComponent<ComponentProps> = (
       );
     }
 
-    if (datacenter) {
+    if (datacenter && props.isStandalone) {
       return (
         <>
           {translator.translateTemplate(
             "Standalone ESXi host in datacenter {{datacenter}}",
+            { datacenter: datacenter },
+          )}
+        </>
+      );
+    }
+
+    if (datacenter) {
+      return (
+        <>
+          {translator.translateTemplate(
+            "ESXi host in datacenter {{datacenter}}",
             { datacenter: datacenter },
           )}
         </>
@@ -202,16 +219,22 @@ const VMwareHostHero: FunctionComponent<ComponentProps> = (
             >
               {renderLocation()}
             </div>
-            <div
-              className="mt-1 text-xs text-gray-500"
-              data-testid="vmware-host-last-seen"
-            >
-              {props.lastReportAt
-                ? translator.translateTemplate("Last seen {{time}}", {
-                    time: OneUptimeDate.fromNow(props.lastReportAt),
-                  })
-                : tx("vCenter has not reported it yet")}
-            </div>
+            {/*
+             * A host no longer in the inventory has no "last seen" left to
+             * show: the notice under the hero says what happened instead.
+             */}
+            {props.lastReportAt ? (
+              <div
+                className="mt-1 text-xs text-gray-500"
+                data-testid="vmware-host-last-seen"
+              >
+                {translator.translateTemplate("Last seen {{time}}", {
+                  time: OneUptimeDate.fromNow(props.lastReportAt),
+                })}
+              </div>
+            ) : (
+              <></>
+            )}
           </div>
         </div>
 

@@ -346,6 +346,7 @@ const VMwareVCenterHostDetail: FunctionComponent<
         datacenterName={identity.datacenterName}
         clusterName={row?.clusterName || undefined}
         clusterRoute={clusterRoute}
+        isStandalone={row ? !row.clusterName : undefined}
         cpuCapacityMhz={toFiniteNumber(row?.cpuCapacityMhz)}
         memoryCapacityBytes={toFiniteNumber(row?.maxMemoryBytes)}
         virtualMachines={virtualMachineSummary}
@@ -358,10 +359,15 @@ const VMwareVCenterHostDetail: FunctionComponent<
         hostsRoute={populate(PageMap.VMWARE_VCENTER_VIEW_HOSTS)}
       />
 
+      {/*
+       * The tab row wraps on a phone, so Logs is never out of sight past
+       * the edge of the screen.
+       */}
       <Tabs
         key={tabsKey}
         tabs={tabs}
         initialTabName={initialTabName}
+        wrap={true}
         onTabChange={() => {}}
       />
     </div>
