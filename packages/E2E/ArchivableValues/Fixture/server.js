@@ -33,6 +33,14 @@ const tailwind = path.join(
   repository,
   "packages/Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
 );
+/*
+ * A person's picture, as the API sends it for someone who never uploaded one:
+ * the archived values' Archived By column draws who archived each.
+ */
+const blankProfilePicture = path.join(
+  repository,
+  "packages/Common/UI/Images/users/blank-profile.svg",
+);
 // The Dashboard's own font, so the dialogs are measured as they are drawn.
 const font = path.join(
   repository,
@@ -74,6 +82,11 @@ async function main() {
         file.endsWith(".css") ? "text/css" : "application/javascript",
       );
       fs.createReadStream(file).pipe(response);
+      return;
+    }
+    if (url.pathname.startsWith("/api/user/profile-picture/")) {
+      response.setHeader("Content-Type", "image/svg+xml");
+      fs.createReadStream(blankProfilePicture).pipe(response);
       return;
     }
     response.setHeader("Content-Type", "text/html");
