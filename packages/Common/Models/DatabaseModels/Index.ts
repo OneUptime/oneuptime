@@ -73,6 +73,7 @@ import ServerlessFunctionOwnerTeam from "./ServerlessFunctionOwnerTeam";
 import ServerlessFunctionOwnerUser from "./ServerlessFunctionOwnerUser";
 import ServerlessFunctionLabelRule from "./ServerlessFunctionLabelRule";
 import ServerlessFunctionOwnerRule from "./ServerlessFunctionOwnerRule";
+import CloudConnection from "./CloudConnection";
 import CloudResource from "./CloudResource";
 import CloudResourceOwnerTeam from "./CloudResourceOwnerTeam";
 import CloudResourceOwnerUser from "./CloudResourceOwnerUser";
@@ -1076,6 +1077,7 @@ const AllModelTypes: Array<{
   ServerlessFunctionOwnerUser,
   ServerlessFunctionLabelRule,
   ServerlessFunctionOwnerRule,
+  CloudConnection,
   CloudResource,
   CloudResourceOwnerTeam,
   CloudResourceOwnerUser,

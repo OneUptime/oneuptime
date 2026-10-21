@@ -2730,6 +2730,22 @@ microsoftTeamsMeetingsApp:
   #   clientIdKey: clientId
   #   clientSecretKey: clientSecret
 
+# Cloud > Connect: this OneUptime's own AWS identity, which signs in to the
+# read-only IAM roles customers create for it - an IAM user's access key,
+# allowed to call sts:AssumeRole and nothing else. With it, an AWS account is
+# connected with a role (nothing secret is stored); without it, with a
+# read-only access key. Azure and Google Cloud need nothing here.
+# See https://oneuptime.com/docs/telemetry/cloud-accounts#amazon-web-services
+cloudConnect:
+  aws:
+    accessKeyId:
+    secretAccessKey:
+    # If you're using an existing secret for the configuration, please use this and update accordingly instead of the parameters above.
+    # existingSecret:
+    #   name: "cloud-connect-aws-secret"
+    #   accessKeyIdKey: accessKeyId
+    #   secretAccessKeyKey: secretAccessKey
+
 # GitHub Example Configuration
 #
 # `name` must match the app's real name on GitHub: its mention handle is derived

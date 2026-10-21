@@ -809,6 +809,32 @@ to `default`, and would render as unset - a relay again where billing is on.
   value: {{ default "" $.Values.microsoftTeamsMeetingsApp.clientSecret | quote }}
   {{- end }}
 
+{{- /*
+Cloud > Connect: the AWS identity that signs in to customers' read-only IAM
+roles. The app reads it for a test and for the role setup the form shows, and
+the worker for every read, so it is part of the runtime env. Unset, both are
+empty and AWS accounts connect with an access key instead.
+*/}}
+- name: CLOUD_CONNECT_AWS_ACCESS_KEY_ID
+  {{- if (($.Values.cloudConnect).aws).existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.cloudConnect.aws.existingSecret.name | quote }}
+      key: {{ $.Values.cloudConnect.aws.existingSecret.accessKeyIdKey | quote }}
+  {{- else }}
+  value: {{ default "" (($.Values.cloudConnect).aws).accessKeyId | quote }}
+  {{- end }}
+
+- name: CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY
+  {{- if (($.Values.cloudConnect).aws).existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.cloudConnect.aws.existingSecret.name | quote }}
+      key: {{ $.Values.cloudConnect.aws.existingSecret.secretAccessKeyKey | quote }}
+  {{- else }}
+  value: {{ default "" (($.Values.cloudConnect).aws).secretAccessKey | quote }}
+  {{- end }}
+
 - name: GITHUB_APP_CLIENT_SECRET
   value: {{ $.Values.gitHubApp.clientSecret }}
 
