@@ -745,7 +745,15 @@ test.describe("the case queue", () => {
     await expect(
       page.getByText("Showing 1-2 of 2 security cases"),
     ).toBeVisible();
-    expect((await rowTexts(page)).join(" ")).toContain("CASE-142");
+    /*
+     * Unassigned held two cases too, so its footer reads the same: wait for
+     * this page's own rows, not for a footer the last page already showed.
+     */
+    await expect
+      .poll(async (): Promise<string> => {
+        return (await rowTexts(page)).join(" ");
+      })
+      .toContain("CASE-142");
     await expect(
       page.getByRole("columnheader", { name: "Assignee" }),
     ).toHaveCount(0);
