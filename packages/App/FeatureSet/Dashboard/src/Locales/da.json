@@ -32990,5 +32990,10 @@
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "Viser {{shown}} af {{total}} dele, det meste kortet læser ad gangen.",
   "Some open incidents or alerts could not be read, so the map may not show them all.": "Nogle åbne hændelser eller alarmer kunne ikke læses, så kortet viser måske ikke dem alle.",
   "See {{count}} more related parts": "Se {{count}} relaterede dele mere",
-  "See {{count}} more related parts_one": "Se {{count}} relateret del mere"
+  "See {{count}} more related parts_one": "Se {{count}} relateret del mere",
+  "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.": "En indikators konfidens fastsætter dens trusselsniveau: alvorligheden af dens fund og advarslens alvorlighed, når feedet ikke angiver en.",
+  "Each matched indicator opens or joins a case, opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.": "Hver matchet indikator åbner en sag eller slutter sig til den åbne, åbner én advarsel (deduplikeret, mens den er åben), eventuelt en hændelse, og registrerer et threat intel-fund.",
+  "Read the source": "Læs kilden",
+  "Threat intel feeds bring in known-bad IPs, domains, URLs, email addresses and file hashes from lists, TAXII collections and Google SecOps, and alert when your security events mention them.": "Threat intel-feeds henter kendte ondsindede IP-adresser, domæner, URL'er, e-mailadresser og fil-hashes fra lister, TAXII-samlinger og Google SecOps og advarer, når dine sikkerhedshændelser nævner dem.",
+  "A single rule's matches are split by the Group By Field, and a group fires once it reaches the Match Count Threshold. A correlation fires when its events line up within its timespan.": "En enkelt regels match opdeles efter grupperingsfeltet, og en gruppe udløses, når den når grænsen for antal match. En korrelation udløses, når dens hændelser passer sammen inden for dens tidsrum."
 }

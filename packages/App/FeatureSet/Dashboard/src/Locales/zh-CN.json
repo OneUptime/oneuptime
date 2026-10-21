@@ -32990,5 +32990,10 @@
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "正在显示 {{total}} 个部分中的 {{shown}} 个，这是此地图一次能读取的上限。",
   "Some open incidents or alerts could not be read, so the map may not show them all.": "部分未关闭的事件或警报无法读取，因此地图可能未全部显示。",
   "See {{count}} more related parts": "查看另外 {{count}} 个相关部分",
-  "See {{count}} more related parts_one": "查看另外 {{count}} 个相关部分"
+  "See {{count}} more related parts_one": "查看另外 {{count}} 个相关部分",
+  "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.": "指标的置信度决定其威胁级别：即其发现的严重程度，以及在源未设置时警报的严重程度。",
+  "Each matched indicator opens or joins a case, opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.": "每个匹配的指标都会开启一个案例或并入已开启的案例，开启一条警报（在其开启期间去重），可选地开启一个事件，并记录一条威胁情报发现。",
+  "Read the source": "读取来源",
+  "Threat intel feeds bring in known-bad IPs, domains, URLs, email addresses and file hashes from lists, TAXII collections and Google SecOps, and alert when your security events mention them.": "威胁情报源从列表、TAXII 集合和 Google SecOps 引入已知恶意的 IP、域名、URL、电子邮件地址和文件哈希，并在你的安全事件提到它们时发出警报。",
+  "A single rule's matches are split by the Group By Field, and a group fires once it reaches the Match Count Threshold. A correlation fires when its events line up within its timespan.": "单条规则的匹配按分组字段拆分，某个分组达到匹配次数阈值时触发。关联规则在其事件于时间跨度内依序出现时触发。"
 }

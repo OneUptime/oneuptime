@@ -32990,5 +32990,10 @@
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "Visar {{shown}} av {{total}} delar, det mesta kartan läser åt gången.",
   "Some open incidents or alerts could not be read, so the map may not show them all.": "Vissa öppna incidenter eller larm kunde inte läsas, så kartan visar kanske inte alla.",
   "See {{count}} more related parts": "Visa {{count}} relaterade delar till",
-  "See {{count}} more related parts_one": "Visa {{count}} relaterad del till"
+  "See {{count}} more related parts_one": "Visa {{count}} relaterad del till",
+  "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.": "En indikators konfidens bestämmer dess hotnivå: allvarlighetsgraden för dess fynd, och larmets allvarlighetsgrad när flödet inte anger någon.",
+  "Each matched indicator opens or joins a case, opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.": "Varje matchande indikator öppnar ett ärende eller ansluter till det öppna, öppnar ett larm (deduplicerat medan det är öppet), eventuellt en incident, och registrerar ett hotunderrättelsefynd.",
+  "Read the source": "Läs källan",
+  "Threat intel feeds bring in known-bad IPs, domains, URLs, email addresses and file hashes from lists, TAXII collections and Google SecOps, and alert when your security events mention them.": "Hotunderrättelseflöden hämtar kända skadliga IP-adresser, domäner, URL:er, e-postadresser och filhashar från listor, TAXII-samlingar och Google SecOps, och larmar när dina säkerhetshändelser nämner dem.",
+  "A single rule's matches are split by the Group By Field, and a group fires once it reaches the Match Count Threshold. A correlation fires when its events line up within its timespan.": "En enskild regels träffar delas upp efter grupperingsfältet, och en grupp utlöses när den når tröskeln för antal träffar. En korrelation utlöses när dess händelser stämmer inom dess tidsrymd."
 }

@@ -32990,5 +32990,10 @@
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "{{shown}} von {{total}} Teilen werden angezeigt, so viele, wie diese Karte auf einmal liest.",
   "Some open incidents or alerts could not be read, so the map may not show them all.": "Einige offene Vorfälle oder Alarme konnten nicht gelesen werden, daher zeigt die Karte möglicherweise nicht alle.",
   "See {{count}} more related parts": "{{count}} weitere zugehörige Teile ansehen",
-  "See {{count}} more related parts_one": "{{count}} weiteres zugehöriges Teil ansehen"
+  "See {{count}} more related parts_one": "{{count}} weiteres zugehöriges Teil ansehen",
+  "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.": "Die Konfidenz eines Indikators legt seine Bedrohungsstufe fest: den Schweregrad seiner Befunde und den Warnungsschweregrad, wenn der Feed keinen festlegt.",
+  "Each matched indicator opens or joins a case, opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.": "Jeder getroffene Indikator eröffnet einen Fall oder schließt sich dem offenen an, eröffnet eine Warnung (dedupliziert, solange sie offen ist), optional einen Vorfall, und erfasst einen Threat-Intel-Befund.",
+  "Read the source": "Quelle lesen",
+  "Threat intel feeds bring in known-bad IPs, domains, URLs, email addresses and file hashes from lists, TAXII collections and Google SecOps, and alert when your security events mention them.": "Threat-Intel-Feeds importieren bekannte schädliche IPs, Domains, URLs, E-Mail-Adressen und Datei-Hashes aus Listen, TAXII-Sammlungen und Google SecOps und warnen, wenn Ihre Sicherheitsereignisse sie erwähnen.",
+  "A single rule's matches are split by the Group By Field, and a group fires once it reaches the Match Count Threshold. A correlation fires when its events line up within its timespan.": "Die Treffer einer einzelnen Regel werden nach dem Feld aus „Nach Feld gruppieren“ aufgeteilt, und eine Gruppe löst aus, sobald sie den „Schwellenwert der Trefferanzahl“ erreicht. Eine Korrelation löst aus, wenn ihre Ereignisse innerhalb ihrer Zeitspanne zusammenpassen."
 }

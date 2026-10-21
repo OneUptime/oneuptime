@@ -379,7 +379,7 @@ export class ThreatIntelIndicatorService extends AnalyticsDatabaseService<Threat
 
     const statement: Statement = SQL`SELECT
       indicatorValue,
-      argMax(indicatorType, version) AS indicatorType,
+      argMax(indicatorType, version) AS indicatorTypeLatest,
       argMax(revoked, version) AS revokedLatest,
       argMax(validFrom, version) AS validFromLatest,
       argMax(validUntil, version) AS validUntilLatest
@@ -420,7 +420,7 @@ export class ThreatIntelIndicatorService extends AnalyticsDatabaseService<Threat
       (row: JSONObject): { indicatorValue: string; indicatorType: string } => {
         return {
           indicatorValue: String(row["indicatorValue"] ?? ""),
-          indicatorType: String(row["indicatorType"] ?? ""),
+          indicatorType: String(row["indicatorTypeLatest"] ?? ""),
         };
       },
     );

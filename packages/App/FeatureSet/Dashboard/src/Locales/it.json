@@ -32990,5 +32990,10 @@
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "Vengono mostrate {{shown}} parti su {{total}}, il massimo che questa mappa legge in una volta.",
   "Some open incidents or alerts could not be read, so the map may not show them all.": "Non è stato possibile leggere alcuni incidenti o avvisi aperti, quindi la mappa potrebbe non mostrarli tutti.",
   "See {{count}} more related parts": "Vedi altre {{count}} parti correlate",
-  "See {{count}} more related parts_one": "Vedi {{count}} altra parte correlata"
+  "See {{count}} more related parts_one": "Vedi {{count}} altra parte correlata",
+  "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.": "La confidenza di un indicatore ne stabilisce il livello di minaccia: la gravità dei suoi rilevamenti e la gravità dell'avviso quando il feed non ne imposta una.",
+  "Each matched indicator opens or joins a case, opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.": "Ogni indicatore corrispondente apre un caso o si aggiunge a quello aperto, apre un avviso (deduplicato finché resta aperto), facoltativamente un incidente, e registra un rilevamento di threat intelligence.",
+  "Read the source": "Leggere la fonte",
+  "Threat intel feeds bring in known-bad IPs, domains, URLs, email addresses and file hashes from lists, TAXII collections and Google SecOps, and alert when your security events mention them.": "I feed di threat intelligence importano IP, domini, URL, indirizzi email e hash di file noti come malevoli da elenchi, raccolte TAXII e Google SecOps, e avvisano quando i tuoi eventi di sicurezza li menzionano.",
+  "A single rule's matches are split by the Group By Field, and a group fires once it reaches the Match Count Threshold. A correlation fires when its events line up within its timespan.": "Le corrispondenze di una regola singola sono suddivise per campo di raggruppamento, e un gruppo scatta quando raggiunge la soglia di corrispondenze. Una correlazione scatta quando i suoi eventi si allineano entro il suo intervallo."
 }

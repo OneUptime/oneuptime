@@ -32990,5 +32990,10 @@
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "{{shown}} از {{total}} بخش نمایش داده می‌شود؛ این بیشترین تعدادی است که این نقشه در یک بار می‌خواند.",
   "Some open incidents or alerts could not be read, so the map may not show them all.": "برخی از حوادث یا هشدارهای باز خوانده نشدند، بنابراین ممکن است نقشه همه آن‌ها را نشان ندهد.",
   "See {{count}} more related parts": "دیدن {{count}} بخش مرتبط دیگر",
-  "See {{count}} more related parts_one": "دیدن {{count}} بخش مرتبط دیگر"
+  "See {{count}} more related parts_one": "دیدن {{count}} بخش مرتبط دیگر",
+  "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.": "اطمینانِ یک شاخص سطح تهدید آن را تعیین می‌کند: شدت یافته‌هایش، و شدت هشدار وقتی فید شدتی تعیین نکرده باشد.",
+  "Each matched indicator opens or joins a case, opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.": "هر شاخصِ منطبق یک پرونده باز می‌کند یا به پروندهٔ باز می‌پیوندد، یک هشدار باز می‌کند (تا وقتی باز است تکراری‌ها حذف می‌شوند)، در صورت نیاز یک حادثه، و یک یافتهٔ اطلاعات تهدید ثبت می‌کند.",
+  "Read the source": "خواندن منبع",
+  "Threat intel feeds bring in known-bad IPs, domains, URLs, email addresses and file hashes from lists, TAXII collections and Google SecOps, and alert when your security events mention them.": "فیدهای اطلاعات تهدید، IPها، دامنه‌ها، URLها، نشانی‌های ایمیل و هش‌های فایلِ شناخته‌شده به‌عنوان مخرب را از فهرست‌ها، مجموعه‌های TAXII و Google SecOps می‌آورند و وقتی رویدادهای امنیتی شما به آن‌ها اشاره کنند هشدار می‌دهند.",
+  "A single rule's matches are split by the Group By Field, and a group fires once it reaches the Match Count Threshold. A correlation fires when its events line up within its timespan.": "انطباق‌های یک قاعدهٔ تکی بر اساس فیلد گروه‌بندی تقسیم می‌شوند و یک گروه وقتی به آستانهٔ تعداد انطباق برسد فعال می‌شود. یک همبستگی وقتی فعال می‌شود که رویدادهایش در بازهٔ زمانی‌اش با هم جور شوند."
 }

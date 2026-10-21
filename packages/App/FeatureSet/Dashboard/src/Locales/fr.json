@@ -32990,5 +32990,10 @@
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "{{shown}} éléments affichés sur {{total}}, le maximum que cette carte lit en une fois.",
   "Some open incidents or alerts could not be read, so the map may not show them all.": "Certains incidents ou alertes ouverts n'ont pas pu être lus, la carte ne les affiche donc peut-être pas tous.",
   "See {{count}} more related parts": "Voir {{count}} autres éléments liés",
-  "See {{count}} more related parts_one": "Voir {{count}} autre élément lié"
+  "See {{count}} more related parts_one": "Voir {{count}} autre élément lié",
+  "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.": "La confiance d'un indicateur détermine son niveau de menace : la gravité de ses détections, et la gravité de l'alerte lorsque le flux n'en définit pas.",
+  "Each matched indicator opens or joins a case, opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.": "Chaque indicateur correspondant ouvre un dossier ou rejoint celui qui est ouvert, ouvre une alerte (dédupliquée tant qu'elle est ouverte), éventuellement un incident, et enregistre une détection Threat Intel.",
+  "Read the source": "Lire la source",
+  "Threat intel feeds bring in known-bad IPs, domains, URLs, email addresses and file hashes from lists, TAXII collections and Google SecOps, and alert when your security events mention them.": "Les flux de renseignements sur les menaces importent des IP, domaines, URL, adresses e-mail et empreintes de fichiers malveillants connus depuis des listes, des collections TAXII et Google SecOps, et alertent quand vos événements de sécurité les mentionnent.",
+  "A single rule's matches are split by the Group By Field, and a group fires once it reaches the Match Count Threshold. A correlation fires when its events line up within its timespan.": "Les correspondances d'une règle simple sont réparties selon le champ de regroupement, et un groupe se déclenche dès qu'il atteint le seuil de nombre de correspondances. Une corrélation se déclenche quand ses événements concordent dans sa période."
 }

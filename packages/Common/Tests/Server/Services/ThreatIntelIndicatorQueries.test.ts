@@ -225,7 +225,7 @@ describe("ThreatIntelIndicatorService's reads", () => {
 
   test("findActiveValuesForFeed: one feed's identity, active now, bounded", async () => {
     const spy: Spy = stubRows([
-      { indicatorValue: "192.0.2.1", indicatorType: "ipv4-addr" },
+      { indicatorValue: "192.0.2.1", indicatorTypeLatest: "ipv4-addr" },
     ]);
 
     const held: Array<{ indicatorValue: string; indicatorType: string }> =
@@ -245,6 +245,10 @@ describe("ThreatIntelIndicatorService's reads", () => {
 
     expect(statement.query).toContain("GROUP BY indicatorValue");
     expect(statement.query).toContain("HAVING revokedLatest = false");
+    // No alias spells a column, not even the one its own argMax reads.
+    expect(statement.query).toContain(
+      "argMax(indicatorType, version) AS indicatorTypeLatest",
+    );
     expect(aliasesReadByAnotherAggregate(statement.query)).toEqual([]);
 
     // Every value bound as a parameter, never written into the SQL.

@@ -776,7 +776,7 @@ const DetectionRulesGuide: SecurityEventsGuide = {
       title: "Matches are counted",
       icon: IconProp.Funnel,
       description:
-        "Matches are split by the Group By Field, and a group fires only once its count reaches the Match Count Threshold.",
+        "A single rule's matches are split by the Group By Field, and a group fires once it reaches the Match Count Threshold. A correlation fires when its events line up within its timespan.",
     },
     {
       title: "Alerts and findings",

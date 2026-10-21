@@ -32990,5 +32990,10 @@
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "{{total}}개 중 {{shown}}개를 표시하고 있습니다. 이 지도가 한 번에 읽을 수 있는 최대 개수입니다.",
   "Some open incidents or alerts could not be read, so the map may not show them all.": "일부 열린 인시던트 또는 알림을 읽을 수 없어 지도에 모두 표시되지 않을 수 있습니다.",
   "See {{count}} more related parts": "관련 항목 {{count}}개 더 보기",
-  "See {{count}} more related parts_one": "관련 항목 {{count}}개 더 보기"
+  "See {{count}} more related parts_one": "관련 항목 {{count}}개 더 보기",
+  "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.": "지표의 신뢰도가 위협 수준을 정합니다. 이는 발견 항목의 심각도가 되고, 피드가 알림 심각도를 정하지 않으면 알림의 심각도도 됩니다.",
+  "Each matched indicator opens or joins a case, opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.": "일치한 각 지표는 케이스를 열거나 열린 케이스에 합류하고, 알림 1건을 열며(열려 있는 동안 중복 제거), 선택적으로 인시던트를 열고, 위협 인텔리전스 발견 항목을 기록합니다.",
+  "Read the source": "소스 읽기",
+  "Threat intel feeds bring in known-bad IPs, domains, URLs, email addresses and file hashes from lists, TAXII collections and Google SecOps, and alert when your security events mention them.": "위협 인텔리전스 피드는 목록, TAXII 컬렉션, Google SecOps에서 알려진 악성 IP, 도메인, URL, 이메일 주소, 파일 해시를 가져오고, 보안 이벤트에 이들이 나타나면 알립니다.",
+  "A single rule's matches are split by the Group By Field, and a group fires once it reaches the Match Count Threshold. A correlation fires when its events line up within its timespan.": "단일 규칙의 일치 항목은 그룹화 필드별로 나뉘고, 그룹이 일치 횟수 임계값에 도달하면 실행됩니다. 상관 규칙은 이벤트가 기간 안에 맞아떨어지면 실행됩니다."
 }

@@ -32990,5 +32990,10 @@
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "{{total}} 件中 {{shown}} 件を表示しています。このマップが一度に読み込める上限です。",
   "Some open incidents or alerts could not be read, so the map may not show them all.": "未解決のインシデントまたはアラートの一部を読み込めなかったため、マップにすべてが表示されていない可能性があります。",
   "See {{count}} more related parts": "ほかの関連する {{count}} 件を見る",
-  "See {{count}} more related parts_one": "ほかの関連する {{count}} 件を見る"
+  "See {{count}} more related parts_one": "ほかの関連する {{count}} 件を見る",
+  "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.": "インジケーターの信頼度によって脅威レベルが決まります。これは検出結果の重大度になり、フィードでアラートの重大度が設定されていない場合はアラートの重大度にもなります。",
+  "Each matched indicator opens or joins a case, opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.": "一致した各インジケーターはケースを開くか未解決のケースに加わり、1 件のアラートを作成し（未解決の間は重複排除されます）、必要に応じてインシデントも作成して、脅威インテリジェンスの検出結果を記録します。",
+  "Read the source": "ソースを読み込む",
+  "Threat intel feeds bring in known-bad IPs, domains, URLs, email addresses and file hashes from lists, TAXII collections and Google SecOps, and alert when your security events mention them.": "脅威インテリジェンスのフィードは、リスト、TAXII コレクション、Google SecOps から既知の悪意ある IP、ドメイン、URL、メールアドレス、ファイルハッシュを取り込み、セキュリティイベントでそれらに言及されたときにアラートを出します。",
+  "A single rule's matches are split by the Group By Field, and a group fires once it reaches the Match Count Threshold. A correlation fires when its events line up within its timespan.": "単一ルールの一致はグループ化のフィールドごとに分けられ、グループが一致件数のしきい値に達すると発火します。相関ルールは、そのイベントが期間内にそろったときに発火します。"
 }

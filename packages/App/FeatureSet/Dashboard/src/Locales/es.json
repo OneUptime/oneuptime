@@ -32990,5 +32990,10 @@
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "Se muestran {{shown}} de {{total}} partes, lo máximo que este mapa lee a la vez.",
   "Some open incidents or alerts could not be read, so the map may not show them all.": "No se pudieron leer algunos incidentes o alertas abiertos, así que es posible que el mapa no los muestre todos.",
   "See {{count}} more related parts": "Ver {{count}} partes relacionadas más",
-  "See {{count}} more related parts_one": "Ver {{count}} parte relacionada más"
+  "See {{count}} more related parts_one": "Ver {{count}} parte relacionada más",
+  "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.": "La confianza de un indicador define su nivel de amenaza: la gravedad de sus hallazgos y la gravedad de la alerta cuando el feed no la define.",
+  "Each matched indicator opens or joins a case, opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.": "Cada indicador coincidente abre un caso o se une al que está abierto, abre una alerta (deduplicada mientras está abierta), opcionalmente un incidente, y registra un hallazgo de inteligencia de amenazas.",
+  "Read the source": "Leer la fuente",
+  "Threat intel feeds bring in known-bad IPs, domains, URLs, email addresses and file hashes from lists, TAXII collections and Google SecOps, and alert when your security events mention them.": "Los feeds de inteligencia de amenazas incorporan IP, dominios, URL, direcciones de correo y hashes de archivos maliciosos conocidos de listas, colecciones TAXII y Google SecOps, y alertan cuando tus eventos de seguridad los mencionan.",
+  "A single rule's matches are split by the Group By Field, and a group fires once it reaches the Match Count Threshold. A correlation fires when its events line up within its timespan.": "Las coincidencias de una regla simple se dividen por el campo de agrupación, y un grupo se activa en cuanto alcanza el umbral de número de coincidencias. Una correlación se activa cuando sus eventos encajan dentro de su intervalo."
 }

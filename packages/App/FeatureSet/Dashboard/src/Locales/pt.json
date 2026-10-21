@@ -32990,5 +32990,10 @@
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "Mostrando {{shown}} de {{total}} partes, o máximo que este mapa lê de uma vez.",
   "Some open incidents or alerts could not be read, so the map may not show them all.": "Não foi possível ler alguns incidentes ou alertas abertos, por isso o mapa pode não mostrar todos.",
   "See {{count}} more related parts": "Ver mais {{count}} partes relacionadas",
-  "See {{count}} more related parts_one": "Ver mais {{count}} parte relacionada"
+  "See {{count}} more related parts_one": "Ver mais {{count}} parte relacionada",
+  "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.": "A confiança de um indicador define seu nível de ameaça: a gravidade de suas descobertas e a gravidade do alerta quando o feed não define uma.",
+  "Each matched indicator opens or joins a case, opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.": "Cada indicador correspondente abre um caso ou entra no que está aberto, abre um alerta (deduplicado enquanto estiver aberto), opcionalmente um incidente, e registra uma descoberta de inteligência de ameaças.",
+  "Read the source": "Ler a fonte",
+  "Threat intel feeds bring in known-bad IPs, domains, URLs, email addresses and file hashes from lists, TAXII collections and Google SecOps, and alert when your security events mention them.": "Os feeds de inteligência de ameaças trazem IPs, domínios, URLs, endereços de e-mail e hashes de arquivos sabidamente maliciosos de listas, coleções TAXII e Google SecOps, e alertam quando seus eventos de segurança os mencionam.",
+  "A single rule's matches are split by the Group By Field, and a group fires once it reaches the Match Count Threshold. A correlation fires when its events line up within its timespan.": "As correspondências de uma regra simples são divididas pelo campo de agrupamento, e um grupo dispara quando atinge o limite de correspondências. Uma correlação dispara quando seus eventos se alinham dentro do seu intervalo."
 }

@@ -5,7 +5,11 @@ import {
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
-import { getRecommendedDetectionRules } from "Common/Types/SecurityEvent/DetectionRuleLibrary";
+import {
+  DETECTION_RULE_LIBRARY,
+  getRecommendedDetectionRules,
+} from "Common/Types/SecurityEvent/DetectionRuleLibrary";
+import { RECOMMENDED_THREAT_INTEL_LISTS } from "Common/Types/SecurityEvent/ThreatIntelFeedType";
 import fs from "fs/promises";
 import path from "path";
 
@@ -55,6 +59,67 @@ const CONTAIN_PLAYBOOK_PATH: string = `${PRODUCT}/playbooks/24000000-0000-4000-8
 const RUNS_PATH: string = `${PRODUCT}/playbook-runs`;
 const ALL_RUNS_PATH: string = `${PRODUCT}/playbook-runs/all`;
 const DETECTION_RULES_PATH: string = `${PRODUCT}/detection-rules`;
+const THREAT_INTEL_PATH: string = `${PRODUCT}/threat-intel`;
+
+// The fixture's two correlation rules, beside its six library rules.
+const SEQUENCE_RULE: string = "Spray, then a success";
+const FIRST_SEEN_RULE: string = "Admin console from a new address";
+
+// What a single rule counts by, which a correlation says in its YAML instead.
+const COUNTING_FIELDS: ReadonlyArray<RegExp> = [
+  /^Group By Field/,
+  /^Distinct Count Field/,
+  /^Match Count Threshold/,
+];
+
+const SINGLE_RULE_YAML: string = `title: Failed sign-in burst
+level: high
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+`;
+
+const CORRELATION_RULE_YAML: string = `title: Brute force, then a success
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_burst
+    - succeeded
+  group-by:
+    - principalIp
+  timespan: 15m
+---
+title: Ten failed sign-ins
+name: failed_burst
+correlation:
+  type: event_count
+  rules:
+    - failed
+  group-by:
+    - principalIp
+  timespan: 15m
+  condition:
+    gte: 10
+---
+title: Failed sign-in
+name: failed
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: succeeded
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+`;
 
 const WAITING_RUN_ID: string = "25000000-0000-4000-8000-000000000001";
 
@@ -66,6 +131,7 @@ const SCREENSHOTS: string = path.resolve(
 interface FixtureState {
   apiRequests: Array<{ method: string; url: string; body: unknown }>;
   listRequests: Array<{ modelName: string; query: unknown }>;
+  creates: Array<{ modelName: string; data: Record<string, unknown> }>;
   unhandled: Array<unknown>;
 }
 
@@ -369,7 +435,8 @@ test.describe("the overview", () => {
     await expect(stage(page, "sources")).toContainText(
       "18,432 events in 24 hours",
     );
-    await expect(stage(page, "detections")).toContainText("6 rules on");
+    // The six library rules and the team's two correlations.
+    await expect(stage(page, "detections")).toContainText("8 rules on");
     await expect(stage(page, "detections")).toContainText(
       `${RECOMMENDED_RULES_ON} of ${RECOMMENDED_RULES} recommended`,
     );
@@ -1636,6 +1703,379 @@ test.describe("detections", () => {
  * ---------------------------------------------------------------------------
  */
 
+/*
+ * ---------------------------------------------------------------------------
+ * Detection rules and threat intel
+ * ---------------------------------------------------------------------------
+ */
+test.describe("detection rules and threat intel", () => {
+  // A detection rule's or a feed's row, by the name it shows.
+  function rowNamed(page: Page, name: string): Locator {
+    return page.locator("table tbody tr").filter({ hasText: name });
+  }
+
+  function dialog(page: Page): Locator {
+    return page.getByRole("dialog");
+  }
+
+  async function openFreeLists(
+    page: Page,
+    options: OpenOptions = {},
+  ): Promise<Locator> {
+    await open(page, THREAT_INTEL_PATH, options);
+    const lists: Locator = page.getByTestId("threat-intel-recommended-lists");
+    // The tiles wait for the project's feeds before they offer Add.
+    await expect(lists).toHaveAttribute("data-loaded", "true", {
+      timeout: 30000,
+    });
+    return lists;
+  }
+
+  test("Detection Rules names each rule's kind: one event, a sequence, a first-seen rule", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DETECTION_RULES_PATH);
+    await expect(rowNamed(page, SEQUENCE_RULE)).toBeVisible({
+      timeout: 30000,
+    });
+
+    await expect(
+      rowNamed(page, SEQUENCE_RULE).getByTestId("detection-rule-type"),
+    ).toHaveText("Sequence");
+    await expect(
+      rowNamed(page, FIRST_SEEN_RULE).getByTestId("detection-rule-type"),
+    ).toHaveText("First seen");
+    await expect(
+      rowNamed(page, DETECTION_RULE_LIBRARY[0]!.title).getByTestId(
+        "detection-rule-type",
+      ),
+    ).toHaveText("Single event");
+    // Every rule's row names its kind.
+    await expect(page.getByTestId("detection-rule-type")).toHaveCount(
+      await page.locator("table tbody tr").count(),
+    );
+    // Hovering a kind says what it means.
+    await expect(
+      rowNamed(page, SEQUENCE_RULE).getByTestId("detection-rule-type"),
+    ).toHaveAttribute("title", /match in order/);
+
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "detection-rules-desktop", { fullPage: false });
+  });
+
+  test("a correlation pasted into the form is said in a sentence, and the single rule's counting fields leave", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DETECTION_RULES_PATH);
+    await expect(rowNamed(page, SEQUENCE_RULE)).toBeVisible({
+      timeout: 30000,
+    });
+
+    // A single rule counts by the form's fields, under More fields.
+    await page
+      .getByRole("button", { name: "Create Detection Rule", exact: true })
+      .click();
+    await expect(dialog(page)).toBeVisible();
+    await dialog(page)
+      .getByRole("textbox", { name: /^Sigma Rule \(YAML\)/ })
+      .fill(SINGLE_RULE_YAML);
+    await expect(
+      dialog(page).getByTestId("detection-rule-summary"),
+    ).toHaveCount(0);
+    await dialog(page)
+      .getByRole("button", { name: "Next", exact: true })
+      .click();
+    await expect(dialog(page).locator("[aria-current='step']")).toHaveText(
+      "On Match",
+    );
+    await dialog(page)
+      .getByRole("button", { name: /More fields/ })
+      .click();
+    for (const field of COUNTING_FIELDS) {
+      await expect(dialog(page).getByText(field).first()).toBeVisible();
+    }
+    await dialog(page)
+      .getByRole("button", { name: "Cancel", exact: true })
+      .click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    // A correlation says how it counts in its YAML, and the form says what it looks for.
+    await page
+      .getByRole("button", { name: "Create Detection Rule", exact: true })
+      .click();
+    await dialog(page)
+      .getByRole("textbox", { name: /^Sigma Rule \(YAML\)/ })
+      .fill(CORRELATION_RULE_YAML);
+    const summary: Locator = dialog(page).getByTestId("detection-rule-summary");
+    await expect(summary).toContainText("Sequence");
+    await expect(summary).toContainText(
+      "Ten failed sign-ins → Successful sign-in happen in this order for the same principalIp within 15 minutes.",
+    );
+    // The rule is named after the correlation's own title.
+    await expect(
+      dialog(page).getByRole("textbox", { name: /^Name/ }),
+    ).toHaveValue("Brute force, then a success");
+    await screenshot(page, "detection-rule-correlation-form-desktop", {
+      fullPage: false,
+    });
+
+    await dialog(page)
+      .getByRole("button", { name: "Next", exact: true })
+      .click();
+    await expect(dialog(page).locator("[aria-current='step']")).toHaveText(
+      "On Match",
+    );
+    await dialog(page)
+      .getByRole("button", { name: /More fields/ })
+      .click();
+    await expect(
+      dialog(page)
+        .getByText(/^Evaluation Interval \(Minutes\)/)
+        .first(),
+    ).toBeVisible();
+    for (const field of COUNTING_FIELDS) {
+      await expect(dialog(page).getByText(field)).toHaveCount(0);
+    }
+    await dialog(page)
+      .getByRole("button", { name: "Cancel", exact: true })
+      .click();
+    expect((await fixture(page)).creates).toEqual([]);
+  });
+
+  test("Free Lists offer each free blocklist with its publisher, schedule and terms; one the project reads says Added", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFreeLists(page);
+
+    for (const list of RECOMMENDED_THREAT_INTEL_LISTS) {
+      const tile: Locator = page.getByTestId(`threat-intel-list-${list.id}`);
+      await expect(tile).toContainText(list.title);
+      await expect(tile).toContainText(list.provider);
+      await expect(tile).toContainText(
+        `Confidence ${list.indicatorConfidence}`,
+      );
+      const terms: Locator = tile.getByRole("link", { name: /Terms/ });
+      await expect(terms).toHaveAttribute("target", "_blank");
+      expect(new URL((await terms.getAttribute("href")) || "").href).toBe(
+        new URL(list.termsUrl).href,
+      );
+    }
+    await expect(
+      page.getByTestId("threat-intel-list-feodo-tracker"),
+    ).toContainText("Read every hour");
+    await expect(
+      page.getByTestId("threat-intel-list-emerging-threats-compromised"),
+    ).toContainText("Read every day");
+
+    // The project reads Feodo Tracker already: Added, and no Add List.
+    await expect(
+      page.getByTestId("threat-intel-list-added-feodo-tracker"),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("threat-intel-list-add-feodo-tracker"),
+    ).toHaveCount(0);
+
+    // Three tiles a row beside the side menu, none wider than the card.
+    const tiles: Array<Box> = [];
+    for (const list of RECOMMENDED_THREAT_INTEL_LISTS) {
+      tiles.push(await boxOf(page.getByTestId(`threat-intel-list-${list.id}`)));
+    }
+    expect(
+      new Set(
+        tiles.map((tile: Box): number => {
+          return Math.round(tile.y);
+        }),
+      ).size,
+    ).toBe(1);
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "threat-intel-desktop", { fullPage: false });
+  });
+
+  test("Add List adds the list as a feed in one click, and the feeds table lists it with its source", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFreeLists(page);
+    const list: (typeof RECOMMENDED_THREAT_INTEL_LISTS)[number] =
+      RECOMMENDED_THREAT_INTEL_LISTS.find(
+        (item: (typeof RECOMMENDED_THREAT_INTEL_LISTS)[number]): boolean => {
+          return item.id === "emerging-threats-compromised";
+        },
+      )!;
+
+    await page.getByTestId(`threat-intel-list-add-${list.id}`).click();
+    await expect(
+      page.getByTestId(`threat-intel-list-added-${list.id}`),
+    ).toBeVisible();
+
+    const created: Array<{ modelName: string; data: Record<string, unknown> }> =
+      (await fixture(page)).creates.filter(
+        (create: { modelName: string }): boolean => {
+          return create.modelName === "ThreatIntelFeed";
+        },
+      );
+    expect(created).toHaveLength(1);
+    expect(created[0]!.data).toMatchObject({
+      name: list.title,
+      feedType: "list",
+      listUrl: list.url,
+      indicatorConfidence: list.indicatorConfidence,
+      pollIntervalInMinutes: list.pollIntervalInMinutes,
+      isEnabled: true,
+      shouldCreateCase: true,
+      shouldCreateAlert: list.raisesAlerts,
+      shouldCreateIncident: false,
+    });
+
+    // The table reads the feeds again: the new list, named by its source.
+    const feeds: Locator = cardTitled(page, "Threat Intel Feeds");
+    await expect(rowNamed(page, list.title)).toBeVisible();
+    await expect(
+      rowNamed(page, list.title).getByTestId("threat-intel-feed-source-cell"),
+    ).toHaveText("List of indicators");
+    await expect(
+      rowNamed(page, "Corporate MISP").getByTestId(
+        "threat-intel-feed-source-cell",
+      ),
+    ).toHaveText("TAXII collection");
+    await expect(feeds.locator("tbody tr")).toHaveCount(3);
+
+    // The indicators the feeds hold, under them.
+    await expect(cardTitled(page, "Indicators")).toContainText(
+      "update-check.example",
+    );
+  });
+
+  test("a Security Viewer reads the lists but cannot add one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFreeLists(page, { role: "viewer" });
+    await expect(
+      page.getByTestId("threat-intel-list-add-tor-exit-nodes"),
+    ).toBeDisabled();
+    await expect(
+      page.getByTestId("threat-intel-list-added-feodo-tracker"),
+    ).toBeVisible();
+  });
+
+  test("a new feed asks where its indicators come from first, then only that source's settings", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFreeLists(page);
+
+    const SOURCES: ReadonlyArray<{
+      title: string;
+      step: string;
+      settings: Array<RegExp>;
+    }> = [
+      {
+        title: "List of indicators",
+        step: "List",
+        settings: [/^List URL/, /^Confidence/],
+      },
+      {
+        title: "TAXII collection",
+        step: "TAXII Server",
+        settings: [/^TAXII API Root URL/, /^Collection ID/],
+      },
+      {
+        title: "Google SecOps",
+        step: "Google SecOps",
+        settings: [/^Google SecOps Connection/],
+      },
+    ];
+
+    for (const source of SOURCES) {
+      await page
+        .getByRole("button", { name: "Create Threat Intel Feed", exact: true })
+        .click();
+      await expect(dialog(page).locator("[aria-current='step']")).toHaveText(
+        "Source",
+      );
+      await expect(dialog(page).getByRole("radio")).toHaveCount(SOURCES.length);
+      if (source.title === SOURCES[0]!.title) {
+        await screenshot(page, "threat-intel-feed-source-desktop", {
+          fullPage: false,
+        });
+      }
+
+      await dialog(page)
+        .getByRole("radio", { name: source.title, exact: true })
+        .click();
+      await dialog(page)
+        .getByRole("textbox", { name: /^Name/ })
+        .fill("Partner blocklist");
+      await dialog(page)
+        .getByRole("button", { name: "Next", exact: true })
+        .click();
+      await expect(dialog(page).locator("[aria-current='step']")).toHaveText(
+        source.step,
+      );
+
+      // That source's settings, and none of another's.
+      for (const other of SOURCES) {
+        for (const setting of other.settings) {
+          if (other.title === source.title) {
+            await expect(dialog(page).getByText(setting).first()).toBeVisible();
+          } else {
+            await expect(dialog(page).getByText(setting)).toHaveCount(0);
+          }
+        }
+      }
+      if (source.title === "Google SecOps") {
+        // No Google SecOps connection yet: the step says where to make one.
+        await expect(
+          dialog(page).getByRole("link", { name: /Connect Google SecOps/ }),
+        ).toBeVisible();
+      }
+
+      await dialog(page)
+        .getByRole("button", { name: "Cancel", exact: true })
+        .click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+    }
+
+    expect((await fixture(page)).creates).toEqual([]);
+  });
+
+  test("both pages in the dark theme, and on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const PAGES: ReadonlyArray<[string, string, string]> = [
+      ["detection-rules", DETECTION_RULES_PATH, SEQUENCE_RULE],
+      ["threat-intel", THREAT_INTEL_PATH, "Corporate MISP"],
+    ];
+
+    for (const [name, pathname, text] of PAGES) {
+      await open(page, pathname, { theme: "dark" });
+      await expect(page.getByText(text).first()).toBeVisible({
+        timeout: 30000,
+      });
+      await screenshot(page, `${name}-dark`, { fullPage: false });
+
+      await open(page, pathname, { width: 390 });
+      await expect(page.getByText(text).first()).toBeVisible({
+        timeout: 30000,
+      });
+      expect(await pageOverflow(page), `${name} at 390`).toBeLessThanOrEqual(1);
+      await screenshot(page, `${name}-phone`);
+    }
+  });
+});
+
 test.describe("every page fits the screen", () => {
   const PAGES: ReadonlyArray<[string, string, string]> = [
     ["overview", OVERVIEW_PATH, "Riskiest Entities"],
@@ -1648,7 +2088,9 @@ test.describe("every page fits the screen", () => {
     ["all cases", ALL_CASES_PATH, "CASE-142"],
     ["case", SPRAY_CASE_PATH, "475 events"],
     ["entities", ENTITIES_PATH, "203.0.113.47"],
+    ["detection rules", DETECTION_RULES_PATH, SEQUENCE_RULE],
     ["rule library", RULE_LIBRARY_PATH, "Added"],
+    ["threat intel", THREAT_INTEL_PATH, "Corporate MISP"],
     ["attack coverage", ATTACK_COVERAGE_PATH, "2 / 227"],
     ["playbooks", PLAYBOOKS_PATH, "Enrich New Cases"],
     ["playbook", CONTAIN_PLAYBOOK_PATH, "Latest Runs"],

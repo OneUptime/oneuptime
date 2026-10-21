@@ -32990,5 +32990,10 @@
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "Showing {{shown}} of {{total}} parts, the most this map reads at once.",
   "Some open incidents or alerts could not be read, so the map may not show them all.": "Some open incidents or alerts could not be read, so the map may not show them all.",
   "See {{count}} more related parts": "See {{count}} more related parts",
-  "See {{count}} more related parts_one": "See {{count}} more related part"
+  "See {{count}} more related parts_one": "See {{count}} more related part",
+  "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.": "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.",
+  "Each matched indicator opens or joins a case, opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.": "Each matched indicator opens or joins a case, opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.",
+  "Read the source": "Read the source",
+  "Threat intel feeds bring in known-bad IPs, domains, URLs, email addresses and file hashes from lists, TAXII collections and Google SecOps, and alert when your security events mention them.": "Threat intel feeds bring in known-bad IPs, domains, URLs, email addresses and file hashes from lists, TAXII collections and Google SecOps, and alert when your security events mention them.",
+  "A single rule's matches are split by the Group By Field, and a group fires once it reaches the Match Count Threshold. A correlation fires when its events line up within its timespan.": "A single rule's matches are split by the Group By Field, and a group fires once it reaches the Match Count Threshold. A correlation fires when its events line up within its timespan."
 }

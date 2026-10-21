@@ -32990,5 +32990,10 @@
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "{{shown}} van {{total}} onderdelen worden getoond, het maximum dat deze kaart in één keer leest.",
   "Some open incidents or alerts could not be read, so the map may not show them all.": "Sommige open incidenten of waarschuwingen konden niet worden gelezen, dus de kaart toont ze mogelijk niet allemaal.",
   "See {{count}} more related parts": "Bekijk nog {{count}} gerelateerde onderdelen",
-  "See {{count}} more related parts_one": "Bekijk nog {{count}} gerelateerd onderdeel"
+  "See {{count}} more related parts_one": "Bekijk nog {{count}} gerelateerd onderdeel",
+  "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.": "De betrouwbaarheid van een indicator bepaalt het dreigingsniveau: de ernst van de bevindingen, en de ernst van de waarschuwing als de feed die niet instelt.",
+  "Each matched indicator opens or joins a case, opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.": "Elke overeenkomende indicator opent een zaak of sluit aan bij de open zaak, opent één waarschuwing (gededupliceerd zolang die open is), optioneel een incident, en legt een threat-intelbevinding vast.",
+  "Read the source": "De bron lezen",
+  "Threat intel feeds bring in known-bad IPs, domains, URLs, email addresses and file hashes from lists, TAXII collections and Google SecOps, and alert when your security events mention them.": "Threat-intelfeeds halen bekende kwaadaardige IP's, domeinen, URL's, e-mailadressen en bestandshashes op uit lijsten, TAXII-collecties en Google SecOps, en waarschuwen wanneer je beveiligingsgebeurtenissen ze noemen.",
+  "A single rule's matches are split by the Group By Field, and a group fires once it reaches the Match Count Threshold. A correlation fires when its events line up within its timespan.": "De treffers van een enkele regel worden verdeeld per groeperingsveld, en een groep gaat af zodra die de drempel voor treffers bereikt. Een correlatie gaat af wanneer haar gebeurtenissen binnen haar tijdspanne op elkaar aansluiten."
 }
