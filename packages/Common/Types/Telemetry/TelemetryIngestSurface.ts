@@ -54,6 +54,14 @@ enum TelemetryIngestSurface {
    * for the same reason as the two above.
    */
   ResourceAiAgent = "resource-ai-agent",
+  /*
+   * The OpAMP supervisor OneUptime's host installer puts on a host
+   * (POST /opamp/v1): it reports the collector's state and receives the
+   * config the host runs. Server keys only - a page never manages a
+   * collector - and a key pinned to one service is refused there: a host's
+   * collector sends the host's telemetry, not one service's.
+   */
+  HostCollectorManagement = "host-collector-management",
 }
 
 /*
@@ -127,6 +135,8 @@ const INGEST_SURFACE_READABLE_NAMES: Record<TelemetryIngestSurface, string> = {
     "Kubernetes AI agent registration",
   [TelemetryIngestSurface.ResourceAiAgent]:
     "infrastructure AI agent registration",
+  [TelemetryIngestSurface.HostCollectorManagement]:
+    "host collector management (OpAMP)",
 };
 
 type GetIngestSurfaceReadableNameFunction = (

@@ -2243,4 +2243,38 @@ export default class Host extends BaseModel {
     nullable: true,
   })
   public collectorHealthError?: string = undefined;
+
+  /*
+   * What the installer found on the host, which decides what OneUptime's
+   * default config reads there: "journald" (the journal) and "systemd"
+   * (systemd units over the system D-Bus), comma-separated. Empty when the
+   * installer found neither; null when the host's supervisor did not say.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Collector Host Features",
+    description:
+      "What the OneUptime installer found on this host for its default config to read: journald, systemd. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public collectorHostFeatures?: string = undefined;
 }

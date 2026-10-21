@@ -41,11 +41,21 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import { canonicalizeEntityValue } from "../../Utils/Telemetry/EntityKey";
 import crypto from "crypto";
 import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
+import HostCollectorAgentCache from "../Utils/HostCollector/HostCollectorAgentCache";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "host-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
 
 const LABELS_APPLIED_CACHE_NAMESPACE: string = "host-labels-applied";
+
+// The columns that decide the config a managed host runs (HostCollectorAgent).
+const HOST_COLLECTOR_STATE_COLUMNS: ReadonlyArray<string> = [
+  "labels",
+  "collectorConfigId",
+  "isCollectorConfigPinned",
+  "collectorFailedConfigHash",
+  "osType",
+];
 const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 
 /*
@@ -160,6 +170,13 @@ export class Service extends ProjectReferencesService<Model> {
      * invalidated by a delete, so it keeps that id for up to its TTL.
      */
     bypassMemo?: boolean | undefined;
+    /*
+     * The collector OneUptime manages on the host asked for its config
+     * before the host sent any telemetry (HostCollectorAgent). The host is
+     * created without a last-seen time or a "connected" status: those say
+     * its telemetry arrives, which it has not yet.
+     */
+    isRegisteredByCollectorManagement?: boolean | undefined;
   }): Promise<Model> {
     /*
      * Canonicalize the identifier (trim + lowercase, matching
@@ -269,8 +286,10 @@ export class Service extends ProjectReferencesService<Model> {
       newHost.projectId = data.projectId;
       newHost.name = hostIdentifier;
       newHost.hostIdentifier = hostIdentifier;
-      newHost.otelCollectorStatus = "connected";
-      newHost.lastSeenAt = OneUptimeDate.getCurrentDate();
+      if (!data.isRegisteredByCollectorManagement) {
+        newHost.otelCollectorStatus = "connected";
+        newHost.lastSeenAt = OneUptimeDate.getCurrentDate();
+      }
 
       const createdHost: Model = await this.create({
         data: newHost,
@@ -908,6 +927,24 @@ export class Service extends ProjectReferencesService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
+    /*
+     * A change to what decides the config a managed host runs (its labels,
+     * the config picked for it, Try again on a failed one) reaches the host
+     * with its next poll, not a minute later: its cached state is dropped.
+     */
+    if (
+      HOST_COLLECTOR_STATE_COLUMNS.some((column: string): boolean => {
+        return (
+          (onUpdate.updateBy.data as unknown as JSONObject)[column] !==
+          undefined
+        );
+      })
+    ) {
+      for (const hostId of updatedItemIds) {
+        await HostCollectorAgentCache.dropState(hostId.toString());
+      }
+    }
+
     this.writeHostUpdatedFeed(onUpdate, updatedItemIds).catch(
       (error: Error) => {
         logger.error(error);

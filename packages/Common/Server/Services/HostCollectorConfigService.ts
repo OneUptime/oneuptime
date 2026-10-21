@@ -18,6 +18,9 @@ import HostCollectorConfigPolicy, {
 } from "../Utils/HostCollector/HostCollectorConfigPolicy";
 import { getHostCollectorConfigHash } from "../Utils/HostCollector/HostCollectorConfigHash";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import HostCollectorProjectConfigsMemo from "../Utils/HostCollector/HostCollectorProjectConfigsMemo";
+import { OnDelete } from "../Types/Database/Hooks";
+import DeleteBy from "../Types/Database/DeleteBy";
 import logger from "../Utils/Logger";
 
 /*
@@ -139,6 +142,10 @@ export class Service extends ProjectReferencesService<Model> {
     const configYaml: string =
       createdItem.configYaml || onCreate.createBy.data.configYaml || "";
 
+    if (createdItem.projectId) {
+      HostCollectorProjectConfigsMemo.forget(createdItem.projectId.toString());
+    }
+
     if (createdItem.id && createdItem.projectId && configYaml) {
       await this.writeVersion({
         configId: createdItem.id,
@@ -257,7 +264,72 @@ export class Service extends ProjectReferencesService<Model> {
       await this.writeVersion(pending);
     }
 
+    await this.forgetConfigsOf(updatedItemIds);
+
     return super.onUpdateSuccess(onUpdate, updatedItemIds);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    const onDelete: OnDelete<Model> = await super.onBeforeDelete(deleteBy);
+    const rows: Array<Model> = await this.findBy({
+      query: deleteBy.query,
+      select: { projectId: true },
+      limit: 1000,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    return {
+      deleteBy: onDelete.deleteBy,
+      carryForward: {
+        projectIds: rows
+          .map((row: Model): string => {
+            return row.projectId?.toString() || "";
+          })
+          .filter((id: string): boolean => {
+            return Boolean(id);
+          }),
+      },
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    const projectIds: Array<string> =
+      (onDelete.carryForward?.projectIds as Array<string> | undefined) || [];
+
+    for (const projectId of projectIds) {
+      HostCollectorProjectConfigsMemo.forget(projectId);
+    }
+
+    return super.onDeleteSuccess(onDelete, itemIdsBeforeDelete);
+  }
+
+  // A saved config reaches its hosts with their next poll in this process.
+  private async forgetConfigsOf(configIds: Array<ObjectID>): Promise<void> {
+    if (configIds.length === 0) {
+      return;
+    }
+
+    const rows: Array<Model> = await this.findBy({
+      query: { _id: configIds[0]! },
+      select: { projectId: true },
+      limit: 1,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    for (const row of rows) {
+      if (row.projectId) {
+        HostCollectorProjectConfigsMemo.forget(row.projectId.toString());
+      }
+    }
   }
 
   // "Put version 3 back" when the YAML is an older version's, else "Changed".

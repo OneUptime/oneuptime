@@ -11,7 +11,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *   - HostCollectorConfigVersion: every saved version of a config.
  *   - Host: what the collector OneUptime manages on a host reports - its
  *     instance, last contact, the config it should run (or was picked for
- *     it), the version it runs, whether that applied, and its health.
+ *     it), the version it runs, whether that applied, its health, and
+ *     what the installer found on the host for the default config to read.
  *
  * Generated with npm run generate-postgres-migration. The new tables are
  * empty, so their indexes and keys are made here. Every column added to
@@ -90,6 +91,9 @@ export class AddHostCollectorManagement1805200000000
       `ALTER TABLE "Host" ADD "collectorHealthError" text`,
     );
     await queryRunner.query(
+      `ALTER TABLE "Host" ADD "collectorHostFeatures" character varying(100)`,
+    );
+    await queryRunner.query(
       `ALTER TABLE "HostCollectorConfig" ADD CONSTRAINT "FK_6f447ee70a8a00cf0a5d5c04f01" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
@@ -139,6 +143,9 @@ export class AddHostCollectorManagement1805200000000
     );
     await queryRunner.query(
       `ALTER TABLE "HostCollectorConfig" DROP CONSTRAINT "FK_6f447ee70a8a00cf0a5d5c04f01"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "Host" DROP COLUMN "collectorHostFeatures"`,
     );
     await queryRunner.query(
       `ALTER TABLE "Host" DROP COLUMN "collectorHealthError"`,

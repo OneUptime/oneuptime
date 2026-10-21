@@ -11,6 +11,12 @@ import {
  * Services on Windows) with what the manual host guide's configs collect,
  * and it is what a new Collector Config starts from.
  *
+ * On Linux it reads only what the host has, as the installer found it
+ * (HostCollectorHostFeatures): the journal where journalctl is, systemd
+ * units where the system D-Bus is. A receiver that cannot start stops the
+ * whole collector, so a default that asked for what a host lacks would send
+ * nothing at all.
+ *
  * Every config OneUptime sends refers to the host's own URL and key through
  * the environment the installer gives the collector, so no config holds a
  * key (HostCollectorConfigPolicy refuses one that tries).
@@ -19,8 +25,31 @@ import {
  * the default gets OneUptime's improvements to it with the next release.
  */
 
+/*
+ * What the installer found on a Linux host, which it reports with the
+ * supervisor's description (oneuptime.host.journald, oneuptime.host.systemd).
+ */
+export interface HostCollectorHostFeatures {
+  // journalctl and a journal: the journald receiver can read the logs.
+  journald: boolean;
+  // The system D-Bus: the systemd receiver can read the units.
+  systemd: boolean;
+}
+
+// What a Linux host OneUptime knows nothing about gets: host metrics only.
+export const UNKNOWN_HOST_FEATURES: HostCollectorHostFeatures = {
+  journald: false,
+  systemd: false,
+};
+
+// What the default for Linux reads on a host that has everything.
+export const ALL_HOST_FEATURES: HostCollectorHostFeatures = {
+  journald: true,
+  systemd: true,
+};
+
 // The receivers every system shares: CPU, memory, disks, network, processes.
-const HOST_METRICS_RECEIVER: string = `  hostmetrics:
+const HOST_METRICS_RECEIVER: string = `  host_metrics:
     collection_interval: 30s
     scrapers:
       cpu:
@@ -53,6 +82,18 @@ const HOST_METRICS_RECEIVER: string = `  hostmetrics:
           process.memory.utilization:
             enabled: true`;
 
+const JOURNALD_RECEIVER: string = `  # The systemd journal: every unit's logs, info and above.
+  journald:
+    priority: info`;
+
+const SYSTEMD_RECEIVER: string = `  # The Systemd Units page: the state of every service.
+  systemd:
+    collection_interval: 30s
+    units: ["*.service"]
+    metrics:
+      systemd.service.cpu.time:
+        enabled: false`;
+
 /*
  * Stamps host.name, host.id and os.type on everything the host sends: that
  * is how OneUptime files the telemetry under the host, so every config keeps
@@ -61,7 +102,7 @@ const HOST_METRICS_RECEIVER: string = `  hostmetrics:
 const PROCESSORS: string = `processors:
   # Stamps host.name, host.id and os.type: this is how OneUptime files the
   # telemetry under this host. Keep it in every pipeline.
-  resourcedetection:
+  resource_detection:
     detectors: [system, env]
     system:
       hostname_sources: [os]
@@ -86,26 +127,35 @@ const PROCESSORS: string = `processors:
 
 const EXPORTERS: string = `exporters:
   # Sends to the OneUptime this host was installed with, with its key.
-  otlphttp/oneuptime:
+  otlp_http/oneuptime:
     endpoint: ${HOST_COLLECTOR_EXPORTER_ENDPOINT}
     headers:
       x-oneuptime-token: ${HOST_COLLECTOR_INGESTION_KEY_REFERENCE}`;
 
-const LINUX_DEFAULT_CONFIG: string = `# OneUptime's default config for Linux hosts.
+function getLinuxDefaultConfig(features: HostCollectorHostFeatures): string {
+  const receivers: Array<string> = [HOST_METRICS_RECEIVER];
+  const metricsReceivers: Array<string> = ["host_metrics"];
+
+  if (features.journald) {
+    receivers.push(JOURNALD_RECEIVER);
+  }
+
+  if (features.systemd) {
+    receivers.push(SYSTEMD_RECEIVER);
+    metricsReceivers.push("systemd");
+  }
+
+  const logsPipeline: string = features.journald
+    ? `
+    logs:
+      receivers: [journald]
+      processors: [resource_detection, batch]
+      exporters: [otlp_http/oneuptime]`
+    : "";
+
+  return `# OneUptime's default config for Linux hosts.
 receivers:
-${HOST_METRICS_RECEIVER}
-
-  # The systemd journal: every unit's logs, info and above.
-  journald:
-    priority: info
-
-  # The Systemd Units page: the state of every service.
-  systemd:
-    collection_interval: 30s
-    units: ["*.service"]
-    metrics:
-      systemd.service.cpu.time:
-        enabled: false
+${receivers.join("\n\n")}
 
 ${PROCESSORS}
 
@@ -114,28 +164,25 @@ ${EXPORTERS}
 service:
   pipelines:
     metrics:
-      receivers: [hostmetrics, systemd]
-      processors: [resourcedetection, batch]
-      exporters: [otlphttp/oneuptime]
-    logs:
-      receivers: [journald]
-      processors: [resourcedetection, batch]
-      exporters: [otlphttp/oneuptime]
+      receivers: [${metricsReceivers.join(", ")}]
+      processors: [resource_detection, batch]
+      exporters: [otlp_http/oneuptime]${logsPipeline}
 `;
+}
 
 const WINDOWS_DEFAULT_CONFIG: string = `# OneUptime's default config for Windows hosts.
 receivers:
 ${HOST_METRICS_RECEIVER}
 
-  windowseventlog/system:
+  windows_event_log/system:
     channel: System
     start_at: end
 
-  windowseventlog/application:
+  windows_event_log/application:
     channel: Application
     start_at: end
 
-  windowseventlog/security:
+  windows_event_log/security:
     channel: Security
     start_at: end
 
@@ -150,23 +197,23 @@ ${EXPORTERS}
 service:
   pipelines:
     metrics:
-      receivers: [hostmetrics, windows_service]
-      processors: [resourcedetection, batch]
-      exporters: [otlphttp/oneuptime]
+      receivers: [host_metrics, windows_service]
+      processors: [resource_detection, batch]
+      exporters: [otlp_http/oneuptime]
     logs:
       receivers:
-        - windowseventlog/system
-        - windowseventlog/application
-        - windowseventlog/security
-      processors: [resourcedetection, batch]
-      exporters: [otlphttp/oneuptime]
+        - windows_event_log/system
+        - windows_event_log/application
+        - windows_event_log/security
+      processors: [resource_detection, batch]
+      exporters: [otlp_http/oneuptime]
 `;
 
 const MACOS_DEFAULT_CONFIG: string = `# OneUptime's default config for macOS hosts.
 receivers:
 ${HOST_METRICS_RECEIVER}
 
-  filelog/system:
+  file_log/system:
     include:
       - /var/log/install.log
       - /var/log/wifi.log
@@ -179,18 +226,19 @@ ${EXPORTERS}
 service:
   pipelines:
     metrics:
-      receivers: [hostmetrics]
-      processors: [resourcedetection, batch]
-      exporters: [otlphttp/oneuptime]
+      receivers: [host_metrics]
+      processors: [resource_detection, batch]
+      exporters: [otlp_http/oneuptime]
     logs:
-      receivers: [filelog/system]
-      processors: [resourcedetection, batch]
-      exporters: [otlphttp/oneuptime]
+      receivers: [file_log/system]
+      processors: [resource_detection, batch]
+      exporters: [otlp_http/oneuptime]
 `;
 
 /*
  * A config for any system can only read what every system has: host
- * metrics. It is what a Collector Config for "any system" starts from.
+ * metrics. It is what a Collector Config for "any system" starts from, and
+ * what a host whose system is not known yet runs.
  */
 const ANY_SYSTEM_DEFAULT_CONFIG: string = `# A config for hosts on any system: host metrics only.
 receivers:
@@ -203,43 +251,99 @@ ${EXPORTERS}
 service:
   pipelines:
     metrics:
-      receivers: [hostmetrics]
-      processors: [resourcedetection, batch]
-      exporters: [otlphttp/oneuptime]
+      receivers: [host_metrics]
+      processors: [resource_detection, batch]
+      exporters: [otlp_http/oneuptime]
 `;
 
-const DEFAULT_CONFIGS: Record<HostCollectorOsType, string> = {
-  [HostCollectorOsType.Linux]: LINUX_DEFAULT_CONFIG,
-  [HostCollectorOsType.Windows]: WINDOWS_DEFAULT_CONFIG,
-  [HostCollectorOsType.MacOS]: MACOS_DEFAULT_CONFIG,
-  [HostCollectorOsType.Any]: ANY_SYSTEM_DEFAULT_CONFIG,
-};
-
 /*
- * OneUptime's default config for hosts of this system. A host whose system
- * is not known (it has not reported one, or it is not one the installers
- * support) gets the one every system can run.
+ * OneUptime's default config for hosts of this system. On Linux it reads
+ * what the host has (features; everything when left out, which is what a
+ * new Collector Config for Linux starts from). A host whose system is not
+ * known (it has not reported one, or it is not one the installers support)
+ * gets the one every system can run.
  */
 export function getHostCollectorDefaultConfig(
   osType: HostCollectorOsType | null | undefined,
+  features: HostCollectorHostFeatures = ALL_HOST_FEATURES,
 ): string {
-  return DEFAULT_CONFIGS[osType || HostCollectorOsType.Any];
+  switch (osType) {
+    case HostCollectorOsType.Linux:
+      return getLinuxDefaultConfig(features);
+    case HostCollectorOsType.Windows:
+      return WINDOWS_DEFAULT_CONFIG;
+    case HostCollectorOsType.MacOS:
+      return MACOS_DEFAULT_CONFIG;
+    default:
+      return ANY_SYSTEM_DEFAULT_CONFIG;
+  }
+}
+
+/*
+ * The features a host reported, as the installer writes them into the
+ * supervisor's description ("true" or "false"), or null when it reported
+ * neither (a supervisor OneUptime's installer did not set up).
+ */
+export function readHostCollectorHostFeatures(data: {
+  journald: string | null | undefined;
+  systemd: string | null | undefined;
+}): HostCollectorHostFeatures | null {
+  if (
+    (data.journald === null || data.journald === undefined) &&
+    (data.systemd === null || data.systemd === undefined)
+  ) {
+    return null;
+  }
+
+  return {
+    journald: data.journald === "true",
+    systemd: data.systemd === "true",
+  };
+}
+
+// Features as a host stores them: "journald,systemd", "" for none.
+export function hostCollectorHostFeaturesToText(
+  features: HostCollectorHostFeatures,
+): string {
+  const names: Array<string> = [];
+  if (features.journald) {
+    names.push("journald");
+  }
+  if (features.systemd) {
+    names.push("systemd");
+  }
+  return names.join(",");
+}
+
+export function hostCollectorHostFeaturesFromText(
+  text: string | null | undefined,
+): HostCollectorHostFeatures | null {
+  if (text === null || text === undefined) {
+    return null;
+  }
+
+  const names: Array<string> = text.split(",").map((name: string): string => {
+    return name.trim();
+  });
+
+  return {
+    journald: names.includes("journald"),
+    systemd: names.includes("systemd"),
+  };
 }
 
 // The name a host's page gives the default it runs.
 export function getHostCollectorDefaultConfigName(
   osType: HostCollectorOsType | null | undefined,
 ): string {
-  if (!osType || osType === HostCollectorOsType.Any) {
-    return "OneUptime default";
+  switch (osType) {
+    case HostCollectorOsType.Linux:
+      return "OneUptime default for Linux";
+    case HostCollectorOsType.Windows:
+      return "OneUptime default for Windows";
+    case HostCollectorOsType.MacOS:
+      return "OneUptime default for macOS";
+    default:
+      return "OneUptime default";
   }
-
-  const names: Record<HostCollectorOsType, string> = {
-    [HostCollectorOsType.Linux]: "OneUptime default for Linux",
-    [HostCollectorOsType.Windows]: "OneUptime default for Windows",
-    [HostCollectorOsType.MacOS]: "OneUptime default for macOS",
-    [HostCollectorOsType.Any]: "OneUptime default",
-  };
-
-  return names[osType];
 }
