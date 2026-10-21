@@ -23,6 +23,7 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import User from "../../../UI/Utils/User";
 import ConnectedWorkspaces from "../../../../App/FeatureSet/Dashboard/src/Utils/Workspace/ConnectedWorkspaces";
+import SecurityCasePriority from "../../../Types/SecurityCase/SecurityCasePriority";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 
 /*
@@ -210,6 +211,7 @@ describe("user settings > notification settings", () => {
         "Status Pages",
         "Scheduled Maintenance",
         "On-Call",
+        "Security",
       ]) {
         fireEvent.click(screen.getByRole("tab", { name: tabName }));
         await waitFor(() => {
@@ -636,6 +638,169 @@ describe("user settings > notification settings", () => {
         expect(call[0].query.projectId).toEqual(otherProjectId);
         expect(call[0].query.userId).toEqual(USER_ID);
       }
+    });
+  });
+  /*
+   * The Security tab: the three security case events, and on New security
+   * case the priority that notifies - High and Critical for a member who
+   * never chose, which is what a project that only turned Security on gets.
+   */
+  describe("the Security tab", () => {
+    async function openSecurityTab(): Promise<void> {
+      renderPage();
+      await findEventRow("Incident created");
+      fireEvent.click(screen.getByRole("tab", { name: "Security" }));
+      await screen.findByText("Security Cases");
+    }
+
+    function openedRow(): UserNotificationSetting {
+      return rows.find((row: UserNotificationSetting): boolean => {
+        return (
+          row.eventType ===
+          NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION
+        );
+      })!;
+    }
+
+    test("lists the three security case events, each with its switches", async () => {
+      await openSecurityTab();
+
+      for (const label of [
+        "New security case",
+        "Security case assigned to me",
+        "Playbook step waiting for my approval",
+      ]) {
+        const row: HTMLElement = await findEventRow(label);
+        expect(within(row).getAllByRole("switch")).toHaveLength(9);
+      }
+    });
+
+    test("only New security case asks for a priority, and it reads High and Critical until chosen", async () => {
+      await openSecurityTab();
+
+      const select: HTMLSelectElement = within(
+        await findEventRow("New security case"),
+      ).getByRole("combobox") as HTMLSelectElement;
+
+      expect(select.value).toBe(SecurityCasePriority.High);
+      expect(
+        Array.from(select.options).map((option: HTMLOptionElement) => {
+          return option.textContent;
+        }),
+      ).toEqual([
+        "Critical only",
+        "High and Critical",
+        "Medium and above",
+        "Low and above",
+        "Every case",
+      ]);
+      expect(
+        within(await findEventRow("Security case assigned to me")).queryByRole(
+          "combobox",
+        ),
+      ).not.toBeInTheDocument();
+    });
+
+    test("shows the priority the member chose", async () => {
+      openedRow().minimumSecurityCasePriority = SecurityCasePriority.Critical;
+
+      await openSecurityTab();
+
+      expect(
+        (
+          within(await findEventRow("New security case")).getByRole(
+            "combobox",
+          ) as HTMLSelectElement
+        ).value,
+      ).toBe(SecurityCasePriority.Critical);
+    });
+
+    test("choosing a priority saves it on that row alone", async () => {
+      const updateById: jest.SpyInstance = jest
+        .spyOn(ModelAPI, "updateById")
+        .mockResolvedValue({} as any);
+
+      await openSecurityTab();
+      fireEvent.change(
+        within(await findEventRow("New security case")).getByRole("combobox"),
+        { target: { value: SecurityCasePriority.Medium } },
+      );
+
+      await waitFor(() => {
+        expect(updateById).toHaveBeenCalledTimes(1);
+      });
+      expect(updateById.mock.calls[0][0].id).toEqual(openedRow().id);
+      expect(updateById.mock.calls[0][0].data).toEqual({
+        minimumSecurityCasePriority: SecurityCasePriority.Medium,
+      });
+      await waitFor(() => {
+        expect(
+          (
+            within(
+              screen.getByText("New security case").closest("tr")!,
+            ).getByRole("combobox") as HTMLSelectElement
+          ).value,
+        ).toBe(SecurityCasePriority.Medium);
+      });
+    });
+
+    test("a failed save puts the choice back and says why", async () => {
+      jest
+        .spyOn(ModelAPI, "updateById")
+        .mockRejectedValue(new Error("Priority could not be saved"));
+
+      await openSecurityTab();
+      fireEvent.change(
+        within(await findEventRow("New security case")).getByRole("combobox"),
+        { target: { value: SecurityCasePriority.Low } },
+      );
+
+      expect(
+        await screen.findByText("Priority could not be saved"),
+      ).toBeVisible();
+      await waitFor(() => {
+        expect(
+          (
+            within(
+              screen.getByText("New security case").closest("tr")!,
+            ).getByRole("combobox") as HTMLSelectElement
+          ).value,
+        ).toBe(SecurityCasePriority.High);
+      });
+    });
+
+    test("without a row yet, choosing makes one as the server would: email and push on, with the choice", async () => {
+      rows = rows.filter((row: UserNotificationSetting): boolean => {
+        return (
+          row.eventType !==
+          NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION
+        );
+      });
+      const create: jest.SpyInstance = jest
+        .spyOn(ModelAPI, "create")
+        .mockResolvedValue({} as any);
+
+      await openSecurityTab();
+      fireEvent.change(
+        within(await findEventRow("New security case")).getByRole("combobox"),
+        { target: { value: SecurityCasePriority.Critical } },
+      );
+
+      await waitFor(() => {
+        expect(create).toHaveBeenCalledTimes(1);
+      });
+      const model: UserNotificationSetting = create.mock.calls[0][0].model;
+      expect(model.eventType).toBe(
+        NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
+      );
+      expect(model.minimumSecurityCasePriority).toBe(
+        SecurityCasePriority.Critical,
+      );
+      expect(model.alertByEmail).toBe(true);
+      expect(model.alertByPush).toBe(true);
+      expect(model.alertBySMS).toBe(false);
+      expect(model.projectId).toEqual(PROJECT_ID);
+      expect(model.userId).toEqual(USER_ID);
     });
   });
 });

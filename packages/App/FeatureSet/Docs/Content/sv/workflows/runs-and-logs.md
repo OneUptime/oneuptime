@@ -69,7 +69,7 @@ Vägen körningen tog, med ett numrerat kort per block, i den ordning de kördes
 
 | Block        | Vad det visar                                                                                                                                                                                                   |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Received** | Inställningarna blocket fick, efter namn och i den ordning dess inställningslista har dem, efter att alla variabler fyllts i. En inställning som hänvisar till ett annat steg eller en variabel visar referensen bredvid värdet den blev, och **Did not resolve** när den blev ingenting. |
+| **Mottaget** | Inställningarna blocket fick, efter namn och i den ordning dess inställningslista har dem, efter att alla variabler fyllts i. En inställning som hänvisar till ett annat steg eller en variabel visar referensen bredvid värdet den blev, och **Did not resolve** när den blev ingenting. |
 | **Returned** | Det det producerade, med varje värdes ID (den sista delen av en `returnValues`-referens). Listor och objekt visas med indrag.                                                                                    |
 
 Misslyckade steg, steg med en varning och en körnings enda steg börjar öppna. Räknaren på fliken **Steg** blir röd när något misslyckades och orange när ett steg har en varning.
@@ -123,7 +123,7 @@ Ett block som inte körs är oftast ett kopplingsproblem. Öppna **Byggare** och
 :::
 
 :::details Ett värde kom fram tomt, eller som {{…}}-text
-Öppna körningen och titta på steget. En referens som inte löstes upp lyfts fram på själva steget som en varning, och dess inställning i blocket **Received** är markerad **Did not resolve**.
+Öppna körningen och titta på steget. En referens som inte löstes upp lyfts fram på själva steget som en varning, och dess inställning i blocket **Mottaget** är markerad **Did not resolve**.
 
 - Ser du den bokstavliga texten `{{local.components.…}}` löstes referensen inte upp. Oftast är det ett stavfel i komponent-ID:t eller returvärdets ID — kom ihåg att det är blockets **Identifier**, inte namnet som visas på det. Kontrollera också stavningen av själva `local.components`: `{{local.componets.api-get-1.returnValues.response-body}}` skickas som bokstavlig text och körningen rapporterar ändå **Executed**. Var körningen ett test med **Run just this step** kördes det tidigare blocket inte alls — kör hela arbetsflödet i stället.
 - Ser du **Empty text** kördes det tidigare blocket men producerade inte det fältet.
@@ -132,7 +132,7 @@ Samma varning finns på fliken **Full Log** som en rad som börjar med `Warning:
 :::
 
 :::details Det fungerar när jag kör det manuellt men inte från utlösaren
-Öppna **Byggare**, klicka på **Kör arbetsflöde** och fyll i utlösarens fält med värden som liknar det den riktiga utlösaren skickar. Jämför sedan den körningens **Received**-värden med den riktiga körningens, sida vid sida. Skillnaden ligger oftast i ett enda fälts namn eller typ.
+Öppna **Byggare**, klicka på **Kör arbetsflöde** och fyll i utlösarens fält med värden som liknar det den riktiga utlösaren skickar. Jämför sedan den körningens **Mottaget**-värden med den riktiga körningens, sida vid sida. Skillnaden ligger oftast i ett enda fälts namn eller typ.
 :::
 
 ## Köra ett arbetsflöde igen

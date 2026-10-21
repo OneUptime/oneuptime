@@ -175,7 +175,12 @@ export function getStatusBadgeClass(status: string): string {
   return "bg-gray-50 text-gray-700";
 }
 
-function getCpuBarColor(pct: number): string {
+/*
+ * The CPU column's bar colour. Exported so a list that shows the same
+ * resources' CPU elsewhere (an ESXi host's busiest VMs) colours a VM the
+ * way its row in this table does.
+ */
+export function getCpuBarColor(pct: number): string {
   if (pct > 80) {
     return "bg-red-500";
   }

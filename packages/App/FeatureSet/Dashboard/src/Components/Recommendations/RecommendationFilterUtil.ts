@@ -12,6 +12,20 @@ import {
 } from "./RecommendationViewModel";
 
 /*
+ * The query parameter that ticks recommendations as the page opens:
+ * `?select=<id>,<id>` (MonitorRecommendations).
+ */
+export const RECOMMENDATION_SELECTION_QUERY_PARAM: string = "select";
+
+/*
+ * How many ids a link may tick, and how long one may be. A catalog has a few
+ * dozen recommendations with ids like "vmware-host-cpu-saturation", so
+ * anything past these is not a link this product wrote.
+ */
+export const MAX_SELECTION_QUERY_IDS: number = 100;
+export const MAX_SELECTION_QUERY_ID_LENGTH: number = 200;
+
+/*
  * Everything the recommendations page does to a list before rendering it.
  *
  * Split out of the component on purpose. The App test suite runs in a plain
@@ -347,6 +361,51 @@ export default class RecommendationFilterUtil {
         )
       );
     });
+  }
+
+  /*
+   * The recommendation ids a `?select=` value names: comma-separated, blank
+   * and overlong pieces dropped, each id once, at most
+   * MAX_SELECTION_QUERY_IDS of them. Nothing here checks that an id is on
+   * the list - getSelectableViewModels counts only those that are, and are
+   * still available.
+   */
+  public static parseSelectionQuery(
+    value: string | null | undefined,
+  ): Set<string> {
+    const selected: Set<string> = new Set<string>();
+
+    if (!value) {
+      return selected;
+    }
+
+    for (const piece of value.split(",")) {
+      const id: string = piece.trim();
+
+      if (!id || id.length > MAX_SELECTION_QUERY_ID_LENGTH) {
+        continue;
+      }
+
+      selected.add(id);
+
+      if (selected.size >= MAX_SELECTION_QUERY_IDS) {
+        break;
+      }
+    }
+
+    return selected;
+  }
+
+  // The `?select=` value that ticks these recommendations.
+  public static toSelectionQuery(recommendationIds: Array<string>): string {
+    return recommendationIds
+      .map((id: string): string => {
+        return encodeURIComponent(id.trim());
+      })
+      .filter((id: string): boolean => {
+        return id.length > 0;
+      })
+      .join(",");
   }
 
   /*

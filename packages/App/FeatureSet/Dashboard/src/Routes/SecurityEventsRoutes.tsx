@@ -34,13 +34,18 @@ import SecurityPlaybooksPage from "../Pages/SecurityEvents/Playbooks";
 import SecurityPlaybookViewPage from "../Pages/SecurityEvents/PlaybookView";
 import SecurityPlaybookRunsPage from "../Pages/SecurityEvents/PlaybookRuns";
 import SecurityProtectedEntitiesPage from "../Pages/SecurityEvents/ProtectedEntities";
+import SecurityEventsWorkspaceConnectionSlackPage from "../Pages/SecurityEvents/WorkspaceConnectionSlack";
+import SecurityEventsWorkspaceConnectionMicrosoftTeamsPage from "../Pages/SecurityEvents/WorkspaceConnectionMicrosoftTeams";
+import WorkspaceConnectionsOverview from "../Components/Workspace/WorkspaceConnectionsOverview";
 
 /*
  * Every page under the product's side menu renders inside its layout; a
  * case and a playbook are each worked on a full-width page of their own,
  * outside it. The case queue's pages and the two runs pages are one page
  * component each, mounted once per page with the list it shows - and keyed
- * by it, so going from one to the next starts the page afresh.
+ * by it, so going from one to the next starts the page afresh. The
+ * Workspace pages - Slack, Microsoft Teams, and the page that connects one
+ * - are every product's, here for security cases.
  */
 const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -231,6 +236,55 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.SECURITY_EVENTS_DOCUMENTATION] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[
+              PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK
+            ] || ""
+          }
+          element={
+            <SecurityEventsWorkspaceConnectionSlackPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK
+                ] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[
+              PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+            ] || ""
+          }
+          element={
+            <SecurityEventsWorkspaceConnectionMicrosoftTeamsPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+                ] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[
+              PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS
+            ] || ""
+          }
+          element={
+            <WorkspaceConnectionsOverview
+              slackPage={PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK}
+              microsoftTeamsPage={
+                PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
               }
             />
           }

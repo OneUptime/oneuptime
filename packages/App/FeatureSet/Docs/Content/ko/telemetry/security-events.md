@@ -179,7 +179,7 @@ auditd, syslog, Falco처럼 이미 수집하고 있는 보안 로그를 보내�
 | AWS Security Hub | Finding을 Detection Finding과 Compliance Finding으로 | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | 로그인, MFA, 계정, 정책 이벤트 | [Okta System Log](/docs/integrations/okta) |
 
-- 제품 자체의 알림 중 **Open Cases From**(다른 수준을 고르지 않는 한 **High and above**, 또는 **없음**) 이상인 것은 그 대상인 사용자, 호스트, 주소별로 묶여 [케이스](/docs/telemetry/security-cases) 를 엽니다.
+- 제품 자체의 알림 중 **Open Cases From**(다른 수준을 고르지 않는 한 **높음 이상**, 또는 **없음**) 이상인 것은 그 대상인 사용자, 호스트, 주소별로 묶여 [케이스](/docs/telemetry/security-cases) 를 엽니다.
 - 연결은 레코드가 설명하는 활동 시각이 아니라, 제품이 레코드를 만든 시각을 기준으로 읽습니다. 매시간 실행되는 SIEM 규칙은 일치한 이벤트보다 한참 뒤에 탐지를 만들지만, 그것도 가져옵니다.
 - 첫 폴링은 24시간 전까지 거슬러 올라가므로, 새 연결에서 최근 레코드가 바로 보입니다.
 - 연결 행의 **연결 테스트** 는 제품에 대한 접근과 OneUptime 자체 워커의 실행 여부를 확인하며, 아무것도 가져오지 않습니다. **Run now** 는 즉시 폴링합니다.

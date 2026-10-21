@@ -240,6 +240,17 @@ La pagina **Panoramica** risponde prima di tutto alla domanda "questo vCenter è
 
 ![La pagina degli host con ogni host ESXi, il suo cluster, datacenter e l'utilizzo di CPU e memoria](/docs/static/images/VMwareHosts.png)
 
+Seleziona un host per aprire la sua pagina. Risponde a ciò a cui risponde la pagina di un host fuori da VMware, con ciò che vCenter sa di un hypervisor:
+
+- **Panoramica**: CPU, memoria, latenza del disco più lento e throughput di rete nell'intervallo di tempo che scegli, come riquadri e grafici (trascina su un grafico per ingrandire); gli incidenti e gli avvisi aperti sull'host; le sue macchine virtuali più cariche, con segnalate quelle in attesa di una CPU fisica; le sue schede di rete fisiche e i dispositivi di archiviazione, con segnalati gli errori dei pacchetti e i dischi lenti; quali avvisi dell'host sono attivi; e i dettagli dell'host.
+- **Macchine virtuali**: le VM e i modelli sull'host, con stato, pool di risorse, CPU ready, CPU e memoria.
+- **Metriche**: le serie di CPU, memoria, rete e disco dell'host come grafici, per scheda di rete e dispositivo di archiviazione, ciascuno apribile nell'explorer delle metriche.
+- **Registri**: il syslog dell'host stesso, non appena lo invia (vedi [Inviare il syslog di ESXi](#facoltativo-inviare-il-syslog-di-esxi)). Fino ad allora la scheda mostra i comandi che indirizzano questo host, o il suo intero cluster, all'agente. Un vCenter raccolto da una sonda non ha syslog, perché una sonda non lo riceve.
+
+Quando vCenter smette di riportare un host, la pagina lo dice sopra le sue schede, con il momento in cui vCenter l'ha riportato l'ultima volta. Dopo 15 minuti senza rapporti l'host esce dall'inventario: la sua pagina allora lo dice, e mostra ancora le sue metriche precedenti.
+
+I cinque avvisi dell'host (saturazione di CPU e memoria, latenza del disco alta, errori dei pacchetti di rete e pacchetti scartati) sorvegliano ciascuno tutti gli host del vCenter e scattano per ogni host che supera la soglia. La scheda **Avvisi dell'host** nella pagina di un host mostra quali sono attivi, e il suo pulsante apre le **Recommendations** del vCenter con quelli mancanti già selezionati: creali lì, una volta, per tutti gli host.
+
 ### Macchine virtuali
 
 ![La pagina delle macchine virtuali con ogni VM, il suo host, stato di alimentazione, cluster, resource pool, CPU ready, CPU e memoria](/docs/static/images/VMwareVirtualMachines.png)

@@ -22,6 +22,7 @@ flowchart TB
 - Een kanaal dat aanstaat, stuurt naar elke geverifieerde methode die je erop hebt in dit project, niet naar één.
 - Een kanaal dat aanstaat zonder geverifieerde methode erachter, stuurt niets. **Your setup checklist** meldt dat onder **Staying informed**.
 - Nieuws gaat naar de eigenaren van het item: de mensen die als eigenaar zijn genoemd, en de leden van de eigenaarsteams ervan. Heeft een item geen eigenaren, dan gaat het in plaats daarvan naar de eigenaren van het project. Een gebeurtenis over het toegevoegd worden als eigenaar gaat alleen naar de toegevoegde persoon.
+- Beveiligingszaken hebben geen eigenaren. Een nieuwe zaak gaat naar iedereen die de zaken van het project kan zien, op de prioriteit die ieder van hen kiest, en een toegewezen zaak naar de mensen aan wie ze is toegewezen. Zie [Beveiligingszaken](/docs/telemetry/security-cases#meldingen).
 - Elke e-mail aan eigenaren eindigt met een link "Manage notification preferences" die terugleidt naar deze pagina.
 
 ## Een instelling wijzigen
@@ -29,7 +30,7 @@ flowchart TB
 :::steps
 ### Je instellingen openen
 
-Ga naar **Gebruikersinstellingen → Meldingsinstellingen**. De tabbladen zijn **Incidenten**, **Waarschuwingen**, **Bewaking**, **Statuspagina's**, **Geplande onderhoud** en **Bereikbaarheid**.
+Ga naar **Gebruikersinstellingen → Meldingsinstellingen**. De tabbladen zijn **Incidenten**, **Waarschuwingen**, **Bewaking**, **Statuspagina's**, **Geplande onderhoud**, **Bereikbaarheid** en **Beveiliging**.
 
 ### De gebeurtenis vinden
 
@@ -52,6 +53,7 @@ Wanneer je lid wordt van een project, staan deze gebeurtenissen aan, per e-mail.
 | **Statuspagina's** | Geen | **Statuspagina aangemaakt**, **Statuspagina-aankondiging geplaatst**, **Toegevoegd als eigenaar van statuspagina** |
 | **Geplande onderhoud** | **Maintenance reminder** | **Onderhoudsgebeurtenis aangemaakt**, **Onderhoudsstatus gewijzigd**, **Onderhoudsnotitie geplaatst**, **Toegevoegd als eigenaar van onderhoud** |
 | **Bereikbaarheid** | **U gaat in bereikbaarheid**, **U bent de volgende voor bereikbaarheid**, **U gaat uit bereikbaarheid**, **Toegevoegd aan bereikbaarheidsbeleid**, **Verwijderd uit bereikbaarheidsbeleid**, **Gemiste oproep**, en ook per push: **Voordat mijn oproepdienst begint**, **Mijn komende oproepdienst wordt opnieuw toegewezen** | Geen |
+| **Beveiliging** | Ook per push: **Nieuwe beveiligingszaak** (zaken met prioriteit High en Kritiek), **Beveiligingszaak aan mij toegewezen**, **Playbookstap wacht op mijn goedkeuring** | Geen |
 
 > [!IMPORTANT]
 > **Monitorstatus gewijzigd** begint uit. Wil je horen wanneer een monitor van jou uitvalt of terugkomt, zet het dan aan op het tabblad **Bewaking**.
@@ -64,6 +66,16 @@ Het tabblad **Bereikbaarheid** gaat over jou, niet over items van jou:
 - **Toegevoegd aan bereikbaarheidsbeleid** en **Verwijderd uit bereikbaarheidsbeleid** vertellen je wanneer een bereikbaarheidsbeleid je begint of ophoudt te noemen.
 - **Voordat mijn oproepdienst begint** stuurt herinneringen op de momenten die je kiest onder **Gebruikersinstellingen → Agenda → Agendafeed**, en **Mijn komende oproepdienst wordt opnieuw toegewezen** vertelt je wanneer iemand anders een dienst overneemt waarvoor je een herinnering kreeg. Zie [Agendafeeds](/docs/on-call/calendar-feeds#herinneringen-en-meldingen-over-hertoewijzing).
 - **Gemiste oproep**, op de kaart **Beleid inkomende gesprekken**, vertelt de eigenaren van een beleid voor inkomende gesprekken dat een beller niemand bereikte. Zie [Beleid voor inkomende oproepen](/docs/on-call/incoming-call-policy#gemiste-oproepen).
+
+## Beveiligingszaken
+
+Het tabblad **Beveiliging** gaat over de beveiligingszaken die je kunt zien:
+
+- **Nieuwe beveiligingszaak** heeft een prioriteit onder de naam: de laagste prioriteit die een zaak moet hebben om je een melding te geven. Die is **Hoog en Kritiek**, tenzij je **Alleen Kritiek**, **Gemiddeld en hoger**, **Laag en hoger** of **Elke zaak** kiest.
+- **Beveiligingszaak aan mij toegewezen** volgt de zaken die aan jou zijn toegewezen, en aan de teams waarin je zit.
+- **Playbookstap wacht op mijn goedkeuring** vraagt je een playbookstap goed te keuren of af te wijzen op een zaak waarop je stappen mag goedkeuren.
+
+Zie [Beveiligingszaken](/docs/telemetry/security-cases#meldingen).
 
 ## Minder e-mails
 

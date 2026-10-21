@@ -5,6 +5,7 @@ import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { VMwareResourceKind } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import { InfrastructureResource } from "../../../Components/Infrastructure/ResourceTable";
+import { VMWARE_METRIC_STALE_MS } from "./VMwareHostData";
 
 /*
  * Shared helpers for the VMware list/detail pages. The pages read the
@@ -19,9 +20,10 @@ import { InfrastructureResource } from "../../../Components/Infrastructure/Resou
  * Latest metric values older than this are treated as "no data" by the
  * list views so bars don't lie about an object that's fallen off the
  * metric stream. Matches the cleanup worker's stale-resource cutoff
- * (VMWARE_INVENTORY_STALE_MINUTES default).
+ * (VMWARE_INVENTORY_STALE_MINUTES default). Kept in VMwareHostData (free
+ * of React) so a host's page calls a host Not reporting at the same age.
  */
-export const METRIC_STALE_MS: number = 15 * 60 * 1000;
+export const METRIC_STALE_MS: number = VMWARE_METRIC_STALE_MS;
 
 export { VMwareResourceKind };
 
@@ -239,12 +241,27 @@ const INVENTORY_SELECT: Record<string, boolean> = {
 export async function fetchVMwareInventoryRows(options: {
   vmwareVCenterId: ObjectID;
   kind?: VMwareResourceKind | undefined;
+  /*
+   * Only the rows that sit on one ESXi host: the virtual machines it runs
+   * (and, on a standalone host, its resource pools). An exact match on the
+   * hostName column, the host's vcenter.host.name - and on the datacenter
+   * when one is given, since two datacenters may each hold a host of the
+   * same name.
+   */
+  hostName?: string | undefined;
+  datacenterName?: string | undefined;
 }): Promise<Array<VMwareResourceModel>> {
   const query: Record<string, unknown> = {
     vmwareVCenterId: options.vmwareVCenterId,
   };
   if (options.kind) {
     query["kind"] = options.kind;
+  }
+  if (options.hostName) {
+    query["hostName"] = options.hostName;
+  }
+  if (options.hostName && options.datacenterName) {
+    query["datacenterName"] = options.datacenterName;
   }
 
   const result: ListResult<VMwareResourceModel> =
@@ -449,11 +466,24 @@ export async function fetchVMwareInventoryResources(options: {
     kind: options.kind,
   });
 
+  return toInfrastructureResources(rows, options.transform);
+}
+
+/*
+ * The rows a page already fetched, mapped for ResourceTable (with the same
+ * best-effort `transform` as fetchVMwareInventoryResources).
+ */
+export function toInfrastructureResources(
+  rows: Array<VMwareResourceModel>,
+  transform?:
+    | ((resource: InfrastructureResource, row: VMwareResourceModel) => void)
+    | undefined,
+): Array<InfrastructureResource> {
   return rows.map((row: VMwareResourceModel): InfrastructureResource => {
     const resource: InfrastructureResource = toInfrastructureResource(row);
-    if (options.transform) {
+    if (transform) {
       try {
-        options.transform(resource, row);
+        transform(resource, row);
       } catch {
         // transform is best-effort enrichment; don't drop the row.
       }
@@ -581,5 +611,6 @@ export default {
   fetchVMwareInventoryResources,
   fetchVMwareInventoryRow,
   toInfrastructureResource,
+  toInfrastructureResources,
   identityAttributesForResource,
 };

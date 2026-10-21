@@ -5,6 +5,7 @@ O Security Events transforma o que as suas regras de detecção, a inteligência
 :::cards
 - [De onde vêm os casos](#de-onde-vêm-os-casos): Regras de detecção, inteligência de ameaças, produtos conectados e pessoas.
 - [Tratar um caso](#tratar-um-caso): Atribua-o, investigue as entidades dele e feche-o com um veredito.
+- [Notificações](#notificações): Quem fica sabendo de um novo caso, de uma atribuição e de uma etapa aguardando aprovação.
 - [Playbooks](#playbooks): Etapas que rodam em um caso, com aprovação onde ela importa.
 - [A visão geral](#a-visão-geral): O que precisa de alguém agora, e com que rapidez os casos são tratados.
 :::
@@ -49,7 +50,7 @@ Cada uma dessas ações também pode ser concedida separadamente, de criar um ca
 | Produtos conectados | Um alerta do próprio produto é importado no limite da conexão ou acima dele | **Open Cases From** definido como **Nunca**, na etapa **Polling** da conexão |
 | Pessoas | Alguém abre um em **Casos de segurança**, ou com **Open Case** no painel de um evento | Não há como |
 
-Todas as origens vêm ativadas por padrão. Uma conexão abre casos para **High and above**, a menos que você escolha outro nível; os alertas abaixo dele continuam sendo importados como eventos.
+Todas as origens vêm ativadas por padrão. Uma conexão abre casos para **Alta e acima**, a menos que você escolha outro nível; os alertas abaixo dele continuam sendo importados como eventos.
 
 ### Como as detecções são agrupadas
 
@@ -107,6 +108,51 @@ Os vereditos são contados na visão geral. Uma regra cujos casos continuam send
 ### Declarar um incidente
 
 **Declarar incidente** abre um incidente do OneUptime para o caso, com a severidade que você escolher, e liga os dois nos dois sentidos: a descrição do incidente cita o caso, e o cabeçalho do caso tem um link para o incidente. A partir daí, o plantão, as páginas de status e o postmortem assumem. É preciso um papel que possa tanto tratar casos quanto criar incidentes.
+
+## Notificações
+
+O OneUptime avisa as pessoas sobre três coisas em um caso. Ninguém precisa configurar nada: um projeto que só clicou em **Ativar o recomendado** fica sabendo dos seus casos High e Crítico por e-mail e push.
+
+| Notificação | Quem é avisado | Por padrão |
+| --- | --- | --- |
+| Novo caso de segurança | Todos que podem ver os casos do projeto, quando um caso abre ou sobe, na prioridade que escolheram ou acima dela | E-mail e push, para casos High e Crítico |
+| Caso de segurança atribuído a mim | A pessoa a quem o caso está atribuído e os membros da equipe a que ele está atribuído | E-mail e push |
+| Etapa de playbook aguardando minha aprovação | As pessoas do caso que podem aprovar a etapa: a pessoa a quem ele está atribuído e os membros da equipe dele. Quando nenhuma delas pode aprovar, todos no projeto que podem | E-mail e push |
+
+- Só são avisadas sobre um caso as pessoas que podem vê-lo: Project Owners, Project Admins e os papéis Security Admin, Security Member e Security Viewer. Um papel limitado a alguns rótulos só é avisado sobre os casos com esses rótulos.
+- Ninguém é avisado sobre o que fez: a pessoa que abre um caso manualmente, o atribui ou inicia uma execução não é notificada disso.
+- Cada pessoa fica sabendo de um caso uma vez só. Um caso que abre como Medium e depois sobe para Crítico chega, quando sobe, às pessoas que escolheram High ou Crítico, e não de novo às que escolheram Medium, que já souberam dele quando ele abriu.
+- O ataque de teste de **Enviar um ataque de teste** abre um caso que não notifica ninguém.
+- Um caso Crítico e uma etapa aguardando aprovação são enviados na hora, nunca retidos em um [resumo de e-mails](/docs/emails/notification-rollup).
+- A **Linha do tempo** do caso diz quem foi avisado, e quando.
+
+### Escolha sobre o que você é avisado
+
+Cada pessoa escolhe por si mesma, em **Configurações do usuário → Configurações de notificação → Segurança**: os canais de cada notificação (e-mail, SMS, chamada, push, Telegram, Slack, Microsoft Teams ou webhook) e, em **Novo caso de segurança**, a prioridade que a notifica:
+
+| Opção | Notifica sobre casos de prioridade |
+| --- | --- |
+| Somente Crítica | Crítico |
+| Alta e Crítica | High e Crítico (o padrão) |
+| Média e acima | Crítico, High e Medium |
+| Baixa e acima | Todas as prioridades, menos Informativos |
+| Todos os casos | Todas as prioridades |
+
+Mensagens de WhatsApp não são enviadas para casos de segurança. Uma notificação push abre o app do OneUptime, e o link dela abre o caso no navegador.
+
+### Publique em canais do Slack e do Microsoft Teams
+
+Para publicar em um canal, adicione uma regra em **Produtos → Security Events → Espaço de trabalho → Slack** (ou **Microsoft Teams**). Sem nenhum dos dois conectado, a única entrada da seção é **Conectar Slack ou Teams**. Uma regra indica os canais em que publicar (e, no Microsoft Teams, os chats) e, se você quiser, os casos a que ela se aplica:
+
+| Condição | Corresponde a |
+| --- | --- |
+| Prioridade do caso de segurança | Crítico, High, Medium, Low ou Informativos |
+| Título do caso de segurança, Descrição do caso de segurança | Um texto que o título ou a descrição do caso contém, com que começa ou com que termina |
+| Status do caso de segurança | Novo, Investigando, Contained ou Fechado |
+| Origem do caso de segurança | Detection Rule, Threat Intel, Connected Product ou Manual |
+| Rótulos do caso de segurança | Os rótulos do caso |
+
+Cada uma das três notificações é publicada nos canais de todas as regras a que o caso corresponde naquele momento. Uma regra em que **Prioridade do caso de segurança** contém qualquer um de **Crítico** e **High** publica os casos High e Crítico assim que abrem, e um caso Medium quando ele sobe para High. Um caso de segurança nunca ganha um canal próprio.
 
 ## Playbooks
 
@@ -250,6 +296,10 @@ Acima, uma faixa mostra como a segurança está configurada: suas origens, detec
 
 :::details Uma regra corresponde, mas nenhum caso abre
 Confira **Open a Case on Match** na etapa **Ao corresponder** da regra. Uma detecção sobre uma entidade que já tem um caso aberto entra nesse caso em vez de abrir outro: procure-a em **Detections** no caso aberto.
+:::
+
+:::details Ninguém foi avisado sobre um caso
+Veja a **Linha do tempo** do caso, que diz quem foi notificado. Uma notificação **Novo caso de segurança** vai para as pessoas cuja prioridade escolhida o caso alcança, então um caso Medium não notifica ninguém que manteve o padrão, **Alta e Crítica**. Confira se as pessoas que deveriam ser avisadas podem ver casos de segurança (um papel de segurança, ou Project Owner ou Project Admin) e se a notificação está ativada para elas em **Configurações do usuário → Configurações de notificação → Segurança**.
 :::
 
 :::details Um playbook não rodou

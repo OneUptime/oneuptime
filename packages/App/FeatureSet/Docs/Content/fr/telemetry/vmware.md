@@ -240,6 +240,17 @@ La page **Vue d'ensemble** répond d'abord à la question « ce vCenter est-il e
 
 ![La page des hôtes listant chaque hôte ESXi avec son cluster, son datacenter, son utilisation CPU et mémoire](/docs/static/images/VMwareHosts.png)
 
+Sélectionnez un hôte pour ouvrir sa page. Elle répond à ce que répond la page d'un hôte hors de VMware, avec ce que vCenter sait d'un hyperviseur :
+
+- **Vue d'ensemble** : le CPU, la mémoire, la latence du disque le plus lent et le débit réseau sur la plage de temps que vous choisissez, en tuiles et en graphiques (faites glisser sur un graphique pour zoomer) ; les incidents et alertes ouverts sur l'hôte ; ses machines virtuelles les plus chargées, celles qui attendent un CPU physique étant signalées ; ses cartes réseau physiques et ses périphériques de stockage, les erreurs de paquets et les disques lents étant signalés ; les alertes d'hôte activées ; et les détails de l'hôte.
+- **Machines virtuelles** : les VM et les modèles de l'hôte, avec leur état, leur pool de ressources, leur CPU ready, leur CPU et leur mémoire.
+- **Métriques** : les séries CPU, mémoire, réseau et disque de l'hôte en graphiques, par carte réseau et par périphérique de stockage, chacun s'ouvrant dans l'explorateur de métriques.
+- **Journaux** : le syslog de l'hôte lui-même, dès qu'il l'envoie (voir [Envoyer le syslog ESXi](#facultatif-envoyer-le-syslog-esxi)). D'ici là, l'onglet donne les commandes qui dirigent cet hôte, ou tout son cluster, vers l'agent. Un vCenter qu'une sonde collecte n'a pas de syslog, car une sonde ne le reçoit pas.
+
+Quand vCenter cesse de signaler un hôte, la page le dit au-dessus de ses onglets, avec le moment où vCenter l'a signalé pour la dernière fois. Après 15 minutes sans rapport, l'hôte quitte l'inventaire : sa page le dit alors, et affiche toujours ses métriques précédentes.
+
+Les cinq alertes d'hôte (saturation du CPU et de la mémoire, latence disque élevée, erreurs de paquets réseau et paquets abandonnés) surveillent chacune tous les hôtes du vCenter et se déclenchent pour chaque hôte qui dépasse leur seuil. La carte **Alertes d'hôte** sur la page d'un hôte indique celles qui sont activées, et son bouton ouvre les **Recommendations** du vCenter avec les manquantes déjà sélectionnées : créez-les là, une fois, pour tous les hôtes.
+
 ### Machines virtuelles
 
 ![La page des machines virtuelles listant chaque VM avec son hôte, son état d'alimentation, son cluster, son pool de ressources, son CPU ready, son CPU et sa mémoire](/docs/static/images/VMwareVirtualMachines.png)

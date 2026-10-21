@@ -208,6 +208,19 @@ describe("each trail names the page as the menu does", () => {
       PageMap.SECURITY_PLAYBOOK_VIEW,
       ["Security Events", "Playbooks", "View Playbook"],
     ],
+    [
+      PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK,
+      ["Security Events", "Workspace", "Slack"],
+    ],
+    [
+      PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      ["Security Events", "Workspace", "Microsoft Teams"],
+    ],
+    // The page that shows both: the section's own page, named once.
+    [
+      PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS,
+      ["Security Events", "Workspace"],
+    ],
     [PageMap.SECURITY_EVENTS_CONNECTIONS, ["Security Events", "Connections"]],
     [
       PageMap.SECURITY_EVENTS_DOCUMENTATION,
@@ -266,6 +279,30 @@ describe("each crumb opens what its name says", () => {
     expect(trailOf(PageMap.SECURITY_EVENTS_DOCUMENTATION)[2]).toEqual([
       "Connections",
       routeFor(PageMap.SECURITY_EVENTS_CONNECTIONS),
+    ]);
+  });
+
+  /*
+   * Workspace's entries depend on what the project has connected, so its
+   * crumb opens the page every project can open: Slack and Microsoft Teams
+   * side by side, each with its next step.
+   */
+  test("Workspace opens the page that shows Slack and Microsoft Teams side by side", () => {
+    for (const page of [
+      PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK,
+      PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+    ]) {
+      expect([page, trailOf(page)[1], trailOf(page)[2]]).toEqual([
+        page,
+        ["Security Events", routeFor(PageMap.SECURITY_EVENTS_OVERVIEW)],
+        ["Workspace", routeFor(PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS)],
+      ]);
+    }
+
+    // On that page, Workspace is the page itself.
+    expect(trailOf(PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS)[2]).toEqual([
+      "Workspace",
+      `${PRODUCT}/workspace-connections`,
     ]);
   });
 

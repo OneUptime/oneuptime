@@ -179,7 +179,7 @@ Kortet **Loggene dine**, øverst på **Connections**, gjør loggene du allerede 
 | AWS Security Hub | Findings, som Detection og Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Hendelser for pålogging, MFA, kontoer og policyer | [Okta System Log](/docs/integrations/okta) |
 
-- Produktets egne varsler på eller over **Open Cases From** (**High and above** med mindre du velger et annet nivå, eller **Aldri**) åpner [saker](/docs/telemetry/security-cases), gruppert etter brukeren, verten eller adressen de gjelder.
+- Produktets egne varsler på eller over **Open Cases From** (**Høy og høyere** med mindre du velger et annet nivå, eller **Aldri**) åpner [saker](/docs/telemetry/security-cases), gruppert etter brukeren, verten eller adressen de gjelder.
 - En tilkobling leser poster etter tidspunktet produktet opprettet dem, ikke etter tidspunktet for aktiviteten de beskriver. En SIEM-regel som kjører hver time, oppretter deteksjoner lenge etter hendelsene den traff, og de importeres likevel.
 - Den første hentingen ser 24 timer tilbake, så en ny tilkobling viser nylige poster med en gang.
 - **Test tilkoblingen**, i tilkoblingens rad, sjekker tilgangen til produktet og at OneUptimes egne workers kjører, og importerer ingenting. **Run now** henter med en gang.

@@ -75,7 +75,7 @@ flowchart TB
 | فیلد | زبانه | چه می‌کند |
 | --- | --- | --- |
 | **vCenter** | همه | الزامی. هر پرس‌وجو را به `resource.vmware.vcenter.name` محدود می‌کند. |
-| **Datacenter** | Custom Metric، پیشرفته | اختیاری. یک دیتاسنتر: `resource.vcenter.datacenter.name`. همه سری‌ها آن را دارند. |
+| **مرکز داده** | Custom Metric، پیشرفته | اختیاری. یک دیتاسنتر: `resource.vcenter.datacenter.name`. همه سری‌ها آن را دارند. |
 | **خوشه** | Custom Metric، پیشرفته | اختیاری. یک خوشه: `resource.vcenter.cluster.name`. با سری‌های خود خوشه و سری‌های میزبان‌ها، ماشین‌های مجازی و استخرهای منبع درون آن جور می‌شود؛ میزبان ESXi مستقل آن را ندارد. |
 | **ESXi Host** | Custom Metric، پیشرفته | اختیاری. یک میزبان ESXi: `resource.vcenter.host.name`. با سری‌های خود میزبان **و** سری‌های هر ماشین مجازی‌ای که اجرا می‌کند جور می‌شود، چون ماشین مجازی نام میزبانش را با خود دارد. |
 | **Virtual Machine** | Custom Metric، پیشرفته | اختیاری. یک ماشین مجازی: `resource.vcenter.vm.name`. نام ماشین‌های مجازی لازم نیست یکتا باشد: وقتی دو ماشین مجازی هم‌نام‌اند، یک میزبان یا خوشه هم اضافه کنید. |
@@ -127,11 +127,11 @@ OneUptime برای مشکلات رایج VMware در مجموع ۲۳ قالب د
 | Datastore Capacity Warning | Datastore | Warning | `vcenter.datastore.disk.utilization`، Avg به ازای هر `resource.vcenter.datastore.name` | بیش از ۸۰٪: یک هشدار زودهنگام، چون دیسک‌های thin و snapshotها باقی‌مانده را به‌سرعت مصرف می‌کنند | ۷۲٪ یا کمتر |
 | Datastore Capacity Critical | Datastore | بحرانی | `vcenter.datastore.disk.utilization`، Avg به ازای هر دیتااستور | بیش از ۹۰٪: دیتااستور پر هر ماشین مجازی‌ای را که دیسکی روی آن دارد متوقف می‌کند | ۸۱٪ یا کمتر |
 | Cluster Host Not Effective | خوشه | بحرانی | `vcenter.cluster.host.count` با فیلتر `effective = false`، Max به ازای هر `resource.vcenter.cluster.name` | بیش از ۰: یک میزبان در حالت نگهداری، قطع یا بی‌پاسخ است، پس خوشه با ظرفیتی کمتر از آنچه برایش طراحی شده کار می‌کند | برابر ۰ |
-| Datacenter Hosts Unhealthy | Datacenter | بحرانی | `vcenter.datacenter.host.count` با فیلتر `status = red`، Max به ازای هر `resource.vcenter.datacenter.name` | بیش از ۰: یک میزبان هشدار بحرانی دارد، مانند یک حسگر سخت‌افزاری، یک مسیر ذخیره‌سازی ازدست‌رفته یا خطای عامل HA | برابر ۰ |
-| Datacenter Hosts Degraded | Datacenter | Warning | `vcenter.datacenter.host.count` با فیلتر `status = yellow`، Max به ازای هر دیتاسنتر | بیش از ۰: یک میزبان هشدار سطح Warning دارد | برابر ۰ |
-| Datacenter Hosts Powered Off | Datacenter | Warning | `vcenter.datacenter.host.count` با فیلتر `power_state = off`، Max به ازای هر دیتاسنتر | بیش از ۰: یک میزبان خاموش است – از کار افتاده، برقش رفته، یا DPM آن را به حالت آماده‌به‌کار برده است | برابر ۰ |
-| Datacenter VMs Unhealthy | Datacenter | Warning | `vcenter.datacenter.vm.count` با فیلتر `status = red`، Max به ازای هر دیتاسنتر | بیش از ۰: یک ماشین مجازی هشدار بحرانی دارد، مانند راه‌اندازی دوباره ناموفق HA، دیتااستور ازدست‌رفته یا ضربان قلب ازدست‌رفته Tools | برابر ۰ |
-| Datacenter Clusters Unhealthy | Datacenter | بحرانی | `vcenter.datacenter.cluster.count` با فیلتر `status = red`، Max به ازای هر دیتاسنتر | بیش از ۰: یک خوشه هشدار بحرانی دارد، مانند منابع ناکافی برای failover در HA، انتخاب ناموفق HA یا یک بررسی سلامت بحرانی vSAN | برابر ۰ |
+| Datacenter Hosts Unhealthy | مرکز داده | بحرانی | `vcenter.datacenter.host.count` با فیلتر `status = red`، Max به ازای هر `resource.vcenter.datacenter.name` | بیش از ۰: یک میزبان هشدار بحرانی دارد، مانند یک حسگر سخت‌افزاری، یک مسیر ذخیره‌سازی ازدست‌رفته یا خطای عامل HA | برابر ۰ |
+| Datacenter Hosts Degraded | مرکز داده | Warning | `vcenter.datacenter.host.count` با فیلتر `status = yellow`، Max به ازای هر دیتاسنتر | بیش از ۰: یک میزبان هشدار سطح Warning دارد | برابر ۰ |
+| Datacenter Hosts Powered Off | مرکز داده | Warning | `vcenter.datacenter.host.count` با فیلتر `power_state = off`، Max به ازای هر دیتاسنتر | بیش از ۰: یک میزبان خاموش است – از کار افتاده، برقش رفته، یا DPM آن را به حالت آماده‌به‌کار برده است | برابر ۰ |
+| Datacenter VMs Unhealthy | مرکز داده | Warning | `vcenter.datacenter.vm.count` با فیلتر `status = red`، Max به ازای هر دیتاسنتر | بیش از ۰: یک ماشین مجازی هشدار بحرانی دارد، مانند راه‌اندازی دوباره ناموفق HA، دیتااستور ازدست‌رفته یا ضربان قلب ازدست‌رفته Tools | برابر ۰ |
+| Datacenter Clusters Unhealthy | مرکز داده | بحرانی | `vcenter.datacenter.cluster.count` با فیلتر `status = red`، Max به ازای هر دیتاسنتر | بیش از ۰: یک خوشه هشدار بحرانی دارد، مانند منابع ناکافی برای failover در HA، انتخاب ناموفق HA یا یک بررسی سلامت بحرانی vSAN | برابر ۰ |
 | vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`، Avg به ازای هر خوشه | بیش از ۲۰ ۰۰۰ µs (۲۰ ms): ذخیره‌سازی برای هر ماشین مجازی روی دیتااستور vSAN کند می‌شود. روی خوشه‌های بدون vSAN ساکت است | ۱۸ ۰۰۰ µs یا کمتر |
 | vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`، Max به ازای هر خوشه | بیش از ۰: یک گروه دیسک نمی‌تواند همپا بماند، و vSAN سرعت I/O کلاینت‌هایش را پایین می‌آورد | برابر ۰ |
 | Resource Pool Memory Swapped | خوشه | Warning | `vcenter.resource_pool.memory.swapped`، Max به ازای هر `resource.vcenter.resource_pool.inventory_path` | بیش از ۰: ماشین‌های مجازی استخر از swap میزبان حافظه می‌گیرند، معمولاً چون حد حافظه یا سهم‌های استخر بیش از حد پایین است | برابر ۰ |
@@ -260,7 +260,7 @@ OneUptime برای مشکلات رایج VMware در مجموع ۲۳ قالب د
 | `vcenter.vm.vsan.throughput` | `By/s` | توان عملیاتی vSAN ماشین مجازی، بر پایه `direction` |
 
 > [!NOTE]
-> وضعیت روشن/خاموش ماشین مجازی یک متریک نیست. گیرنده `vcenter.vm.cpu.*` را فقط برای ماشین‌های مجازی روشن می‌فرستد، پس OneUptime **Powered on** را از **Powered off** با این تشخیص می‌دهد که آیا داده CPU در همان جمع‌آوری‌ای رسیده که داده حافظه و دیسک ماشین مجازی رسیده است؛ صفحه **Virtual Machines** در vCenter نتیجه را نشان می‌دهد. برای هشدار بر پایه میزبان‌های خاموش یا تعداد ماشین‌های مجازی در حال اجرا، از ویژگی `power_state` در `vcenter.datacenter.host.count`، `vcenter.datacenter.vm.count` یا `vcenter.cluster.vm.count` استفاده کنید.
+> وضعیت روشن/خاموش ماشین مجازی یک متریک نیست. گیرنده `vcenter.vm.cpu.*` را فقط برای ماشین‌های مجازی روشن می‌فرستد، پس OneUptime **Powered on** را از **Powered off** با این تشخیص می‌دهد که آیا داده CPU در همان جمع‌آوری‌ای رسیده که داده حافظه و دیسک ماشین مجازی رسیده است؛ صفحه **ماشین‌های مجازی** در vCenter نتیجه را نشان می‌دهد. برای هشدار بر پایه میزبان‌های خاموش یا تعداد ماشین‌های مجازی در حال اجرا، از ویژگی `power_state` در `vcenter.datacenter.host.count`، `vcenter.datacenter.vm.count` یا `vcenter.cluster.vm.count` استفاده کنید.
 
 ## معیارهای مانیتورینگ
 
