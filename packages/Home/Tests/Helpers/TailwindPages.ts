@@ -5,6 +5,7 @@ import ProductCompare, {
 } from "../../Utils/ProductCompare";
 import { getSelfHostedContent } from "../../Utils/SelfHosted";
 import { getResellersPageContent } from "../../Utils/Resellers";
+import { getAirGappedContent } from "../../Utils/AirGapped";
 import { getCloudMarketplacesContent } from "../../Utils/CloudMarketplaces";
 import { getPageSEO, PageSEOData } from "../../Utils/PageSEO";
 import type { BlogPost, BlogPostContributor } from "../../Utils/BlogPost";
@@ -339,6 +340,18 @@ export const MARKETING_PAGES: Array<MarketingPage> = [
         resellers: getResellersPageContent({
           inquiryInbox: "sales@oneuptime.com",
         }),
+      };
+    },
+  },
+  {
+    name: "the air-gapped page",
+    template: "air-gapped.ejs",
+    locals: async (): Promise<Record<string, unknown>> => {
+      // The locals Routes.ts hands the page.
+      return {
+        enableGoogleTagManager: false,
+        seo: seoFor("/enterprise/air-gapped"),
+        airGapped: getAirGappedContent(),
       };
     },
   },

@@ -191,6 +191,12 @@ const KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
     why: "Reads a few days of an AI provider account's usage, or counts a company AI tool's newest chats, as whoever may change the connection; imports nothing and sends nobody a message.",
   },
   {
+    file: "packages/Common/Server/API/CloudConnectionAPI.ts",
+    path: "/test",
+    rule: "check",
+    why: "Signs in to an AWS account, Azure subscription or Google Cloud project with read-only access and counts a few of its resources, as a project owner or admin; imports nothing and sends nobody a message.",
+  },
+  {
     file: "packages/Common/Server/API/ExternalMcpServerAPI.ts",
     path: "/test",
     rule: "check",

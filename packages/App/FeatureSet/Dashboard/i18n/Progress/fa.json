@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 32321,
-    "untranslated": 16461
+    "keys": 32432,
+    "untranslated": 16451
   },
   "sameAsEnglish": [
     "CPU Ready {{percent}}",

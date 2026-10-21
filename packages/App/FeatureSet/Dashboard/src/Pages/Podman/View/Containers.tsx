@@ -28,6 +28,7 @@ import OneUptimeDate from "Common/Types/Date";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderControls";
 import Table from "Common/UI/Components/Table/Table";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Column from "Common/UI/Components/Table/Types/Column";
@@ -431,11 +432,15 @@ const PodmanHostContainers: FunctionComponent<
     },
   ];
 
+  /*
+   * Refresh lives in the ⋯ at the end of the card's header, where every
+   * table keeps it (getTableHeaderButtons), not as a loose icon beside
+   * the title.
+   */
   const cardButtons: Array<CardButtonSchema> = [
     {
       title: "",
       buttonStyle: ButtonStyleType.ICON,
-      className: "py-0 pr-0 pl-1 mt-1",
       onClick: () => {
         fetchData().catch(() => {});
       },
@@ -455,7 +460,8 @@ const PodmanHostContainers: FunctionComponent<
     <Card
       title="Podman Containers"
       description="Containers running on this Podman host (last 5 minutes)."
-      buttons={cardButtons}
+      headerLayout="toolbar"
+      buttons={getTableHeaderButtons(cardButtons)}
     >
       <Table<PodmanContainerRow>
         id="podman-containers-table"

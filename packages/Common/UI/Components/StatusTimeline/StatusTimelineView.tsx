@@ -154,6 +154,15 @@ export interface ComponentProps {
   onChange: (view: StatusTimelineView) => void;
 }
 
+/*
+ * Each choice's padding. With the track's 2px around it, the switch is as
+ * tall as the buttons beside it in a card's header - 42px on a phone, 38px
+ * from md up (TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME): it stood 32px beside
+ * the 38px Create and ⋯.
+ */
+export const STATUS_TIMELINE_VIEW_OPTION_PADDING_CLASS_NAME: string =
+  "px-2.5 py-[9px] md:py-[7px]";
+
 // Timeline | Table, in the card's header beside its other actions.
 const StatusTimelineViewSwitch: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -176,7 +185,7 @@ const StatusTimelineViewSwitch: FunctionComponent<ComponentProps> = (
             type="button"
             aria-pressed={isActive}
             data-testid={`status-timeline-view-${option.view}`}
-            className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+            className={`inline-flex items-center gap-1.5 rounded-md ${STATUS_TIMELINE_VIEW_OPTION_PADDING_CLASS_NAME} text-sm font-medium leading-5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
               isActive
                 ? "bg-white text-gray-900 shadow-sm"
                 : "text-gray-600 hover:text-gray-900"

@@ -799,7 +799,8 @@ const DocsNav: NavGroup[] = [
    * page's order: the three container platforms with their own pages, then
    * the rest, then the shared troubleshooting page, then the IaaS and PaaS
    * resources discovered from Azure Monitor, CloudWatch and Cloud
-   * Monitoring - the Cloud product's other list.
+   * Monitoring - the Cloud product's other list: connected from the
+   * dashboard (Cloud > Connect), or sent by a collector you run.
    */
   {
     title: "Cloud",
@@ -828,6 +829,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Cloud Troubleshooting",
         url: "/docs/telemetry/cloud-troubleshooting",
+      },
+      {
+        title: "Connect a Cloud Account",
+        url: "/docs/telemetry/cloud-accounts",
       },
       {
         title: "Cloud Resources (IaaS & PaaS)",

@@ -11,7 +11,6 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Icon from "Common/UI/Components/Icon/Icon";
 import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -42,7 +41,7 @@ import {
   isTypedValueFacetKind,
 } from "./FilterChipDropdownTypes";
 import { ResourceOwnerEntry } from "./OwnerEntry";
-import { FACET_FILTER_BAR_CLASS_NAME } from "./FilterChipStyles";
+import FacetFilterBar from "./FacetFilterBar";
 import {
   FacetConflictMap,
   FacetSelectionState,
@@ -1482,28 +1481,12 @@ const useResourceOwners: <TResource extends BaseModel>(
         return isFacetActive(f, facetSelections[f.key], facetOperators[f.key]);
       }).length;
 
-    /*
-     * The chips sit on the card itself, in a row between the card's header
-     * and the table, as a list's filters do in GitHub and Linear. They used
-     * to sit in a bordered, shadowed box of their own inside the card - a
-     * box in a box, with a divider inside it - which drew more than the
-     * table's own header did.
-     */
+    // The row every list's chips sit in (FacetFilterBar).
     return (
-      <div
-        className={FACET_FILTER_BAR_CLASS_NAME}
-        data-testid="facet-filter-bar"
+      <FacetFilterBar
+        activeCount={activeCount}
+        onClearAll={hasActiveFilters ? clearAllFacets : undefined}
       >
-        <span className="inline-flex items-center gap-1.5 pr-1 text-xs font-medium text-gray-500">
-          <Icon icon={IconProp.Filter} className="h-3.5 w-3.5" />
-          {translator.translateText("Filter")}
-          {activeCount > 0 && (
-            <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-100 px-1 text-[10px] font-semibold text-indigo-700">
-              {activeCount}
-            </span>
-          )}
-        </span>
-
         {showOwnerFacet && (
           <FilterChipDropdown
             label="Owner"
@@ -1668,17 +1651,7 @@ const useResourceOwners: <TResource extends BaseModel>(
             />
           );
         })}
-        {hasActiveFilters && (
-          <button
-            type="button"
-            onClick={clearAllFacets}
-            className="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-200/60 hover:text-gray-800 focus:outline-none"
-          >
-            <Icon icon={IconProp.Close} className="h-3 w-3" />
-            {translator.translateText("Clear all")}
-          </button>
-        )}
-      </div>
+      </FacetFilterBar>
     );
   }, [
     loadOwners,
