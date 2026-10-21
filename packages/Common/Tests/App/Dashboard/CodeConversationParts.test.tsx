@@ -41,8 +41,8 @@ import { goTo, PROJECT_ID } from "./SideMenuHarness";
  * The pieces a task's conversation and Code's lists are drawn from,
  * rendered for real: a turn (what was asked - the person's message on the
  * right - what started it, the AI's side of it), its steps, its changes,
- * the state badge and the state mark, a task row, a repository's row and
- * the notice that says what stops AI working.
+ * the state badge and the state mark, a task row, a repository's row in
+ * the Repositories table and the notice that says what stops AI working.
  *
  * What they promise a reader: the state is always said - in words while a
  * task moves or asks something of someone, by its mark (named for a screen
@@ -79,7 +79,15 @@ import CodeTaskStateBadge from "../../../../App/FeatureSet/Dashboard/src/Compone
 import CodeTaskStateMark from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskStateMark";
 import CodeDiffStat from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeDiffStat";
 import { CodeTaskRow } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskList";
-import CodeRepositoryRow from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoryRow";
+import CodeRepositoriesTable, {
+  CODE_REPOSITORY_ROW_TEST_ID,
+  getRepositoryTaskWords,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoriesTable";
+import { CodeRepositoryListItem } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
+import {
+  createTranslator,
+  Translator,
+} from "../../../UI/Utils/TranslateTemplate";
 import CodeBlockerNotice from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeBlockerNotice";
 
 const TASK_ID: string = "1d2e3f4a-5b6c-4d7e-8f90-a1b2c3d4e5f6";
@@ -1498,18 +1506,79 @@ describe("a task row", () => {
   });
 });
 
-describe("a repository's row", () => {
-  test("what needs someone, then tasks, open pull requests and the last activity - and it opens the repository", () => {
+describe("a repository's row in the Repositories table", () => {
+  // A repository as /code-task/repositories lists it.
+  function listed(
+    data: Partial<CodeRepositoryListItem> & { name: string },
+  ): CodeRepositoryListItem {
+    return {
+      id: REPOSITORY_ID,
+      isConnected: true,
+      stats: {
+        working: 0,
+        waitingForYou: 0,
+        openPullRequests: 0,
+        taskCount: 0,
+      },
+      ...data,
+    };
+  }
+
+  test("its name links to the repository, beside GitHub's organization/name, its description under them", () => {
     draw(
-      <ul>
-        <CodeRepositoryRow
-          repository={{
-            id: REPOSITORY_ID,
+      <CodeRepositoriesTable
+        id="rows"
+        repositories={[
+          listed({
             name: "checkout-api",
             organizationName: "acme",
             repositoryName: "checkout-api-service",
             description: "The checkout API.",
-            isConnected: true,
+          }),
+        ]}
+      />,
+    );
+
+    const row: HTMLElement = screen.getByTestId(CODE_REPOSITORY_ROW_TEST_ID);
+    expect(row).toHaveAttribute("data-repository-id", REPOSITORY_ID);
+    // It opens its record on a click anywhere, as every table's rows do.
+    expect(row).toHaveAttribute("data-row-opens-record", "true");
+
+    const name: HTMLElement = within(row).getByTestId("code-repository-name");
+    expect(name).toHaveTextContent("checkout-api");
+    expect(hrefOf(name)).toBe(
+      `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}`,
+    );
+    expect(
+      within(row).getByTestId("code-repository-full-name"),
+    ).toHaveTextContent("acme/checkout-api-service");
+    expect(
+      within(row).getByTestId("code-repository-row-description"),
+    ).toHaveTextContent("The checkout API.");
+    // A description is cut short on one line, never painted over the next cell.
+    expect(
+      within(row).getByTestId("code-repository-row-description").className,
+    ).toContain("truncate");
+  });
+
+  test("GitHub's organization/name is left out where it is only the name again", () => {
+    draw(
+      <CodeRepositoriesTable
+        id="rows"
+        repositories={[listed({ name: "web" })]}
+      />,
+    );
+
+    expect(screen.queryByTestId("code-repository-full-name")).toBeNull();
+  });
+
+  test("its tasks and open pull requests, what needs someone, and when anything last happened", () => {
+    draw(
+      <CodeRepositoriesTable
+        id="rows"
+        repositories={[
+          listed({
+            name: "checkout-api",
             stats: {
               working: 2,
               waitingForYou: 1,
@@ -1517,202 +1586,163 @@ describe("a repository's row", () => {
               taskCount: 7,
               lastActivityAt: new Date(Date.now() - 5 * 60000).toISOString(),
             },
-          }}
-        />
-      </ul>,
+          }),
+        ]}
+      />,
     );
 
-    const row: HTMLElement = screen.getByTestId("code-repository-row");
-    expect(row).toHaveAttribute("data-repository-id", REPOSITORY_ID);
-    expect(hrefOf(within(row).getByTestId("code-repository-link"))).toBe(
-      `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}`,
-    );
-    expect(within(row).getByTestId("code-repository-name")).toHaveTextContent(
-      "checkout-api",
-    );
-    expect(row).toHaveTextContent("acme/checkout-api-service");
-    expect(row).toHaveTextContent("The checkout API.");
+    const row: HTMLElement = screen.getByTestId(CODE_REPOSITORY_ROW_TEST_ID);
+
+    expect(
+      within(row).getByTestId("code-repository-task-count"),
+    ).toHaveTextContent("7 tasks");
+    expect(
+      within(row).getByTestId("code-repository-pull-requests"),
+    ).toHaveTextContent("3 open pull requests");
+    // Its open pull requests beside the pull request mark, not GitHub's.
+    expect(
+      within(row)
+        .getByTestId("code-repository-pull-requests")
+        .querySelector("[data-testid='code-pull-request-mark']"),
+    ).not.toBeNull();
     expect(
       within(row).getByTestId("code-repository-working"),
     ).toHaveTextContent("2 working");
     expect(
       within(row).getByTestId("code-repository-waiting"),
     ).toHaveTextContent("1 waiting for you");
-    const stats: HTMLElement = within(row).getByTestId("code-repository-stats");
-    // The facts read apart, a dot between each, the time last.
-    expect(stats.textContent).toBe(
-      "7 tasks·3 open pull requests·5 minutes ago",
-    );
-    expect(within(stats).getAllByTestId("code-meta-dot")).toHaveLength(2);
-    expect(stats.querySelector("time")).not.toBeNull();
-    expect(
-      within(row).queryByTestId("code-repository-not-connected"),
-    ).toBeNull();
-    // A repository AI reaches carries the dark GitHub mark.
-    expect(
-      within(row).getByTestId("code-repository-link").firstElementChild
-        ?.className,
-    ).toContain("bg-gray-900");
-    // Its open pull requests beside the pull request mark, not GitHub's.
-    const marks: Array<Element> = Array.from(stats.querySelectorAll("svg"));
-    expect(marks).toHaveLength(1);
-    expect(marks[0]).toHaveAttribute("data-testid", "code-pull-request-mark");
-  });
-
-  /*
-   * The UI review: from sm up the facts and the chips sat beside the name
-   * and took its room - in German, "checkout-api" was cut to "checkout-…".
-   * The name now has its line to itself, its description and facts under
-   * it, and what needs someone at the row's end; on a phone the chips come
-   * between the name and the facts, what needs someone first.
-   */
-  test("the name keeps its line: the facts under it, what needs someone at the row's end", () => {
-    draw(
-      <ul>
-        <CodeRepositoryRow
-          repository={{
-            id: REPOSITORY_ID,
-            name: "checkout-api",
-            organizationName: "acme",
-            repositoryName: "checkout-api",
-            description: "The checkout API.",
-            isConnected: true,
-            stats: {
-              working: 1,
-              waitingForYou: 1,
-              openPullRequests: 1,
-              taskCount: 6,
-              lastActivityAt: new Date(Date.now() - 2 * 60000).toISOString(),
-            },
-          }}
-        />
-      </ul>,
-    );
-
-    const name: HTMLElement = screen.getByTestId("code-repository-name");
-    const description: HTMLElement = screen.getByTestId(
-      "code-repository-row-description",
-    );
-    const attention: HTMLElement = screen.getByTestId(
-      "code-repository-attention",
-    );
-    const stats: HTMLElement = screen.getByTestId("code-repository-stats");
-    const grid: HTMLElement = attention.parentElement!;
-
-    // One grid holds the three: the name's block, the chips, the facts.
-    expect(grid.className).toContain("grid");
-    expect(grid).toContainElement(name);
-    expect(grid).toContainElement(description);
-    expect(stats.parentElement).toBe(grid);
-    expect(
-      Array.from(grid.children).map((child: Element) => {
-        return child.contains(name)
-          ? "name"
-          : child === attention
-            ? "attention"
-            : child === stats
-              ? "facts"
-              : "other";
-      }),
-    ).toEqual(["name", "attention", "facts"]);
-
-    // From sm up: a second column, the chips in it across both lines.
-    expect(grid.className).toContain("sm:grid-cols-[minmax(0,1fr)_auto]");
-    expect(attention.className).toContain("sm:col-start-2");
-    expect(attention.className).toContain("sm:row-start-1");
-    expect(attention.className).toContain("sm:row-span-2");
-    expect(attention.className).toContain("sm:justify-end");
-    expect(stats.className).toContain("sm:col-start-1");
     // A chip never breaks inside itself.
     for (const chip of [
-      screen.getByTestId("code-repository-working"),
-      screen.getByTestId("code-repository-waiting"),
+      within(row).getByTestId("code-repository-working"),
+      within(row).getByTestId("code-repository-waiting"),
     ]) {
       expect(chip.className).toContain("whitespace-nowrap");
     }
+    expect(row.querySelector("time")).toHaveTextContent("5 minutes ago");
   });
 
-  test("with nothing that needs someone, the row keeps one column", () => {
+  test("a quiet repository says it has no tasks yet, and a dash for its last activity", () => {
     draw(
-      <ul>
-        <CodeRepositoryRow
-          repository={{
-            id: REPOSITORY_ID,
-            name: "storefront-web",
-            isConnected: true,
-            stats: {
-              working: 0,
-              waitingForYou: 0,
-              openPullRequests: 0,
-              taskCount: 0,
-            },
-          }}
-        />
-      </ul>,
+      <CodeRepositoriesTable
+        id="rows"
+        repositories={[listed({ name: "storefront-web" })]}
+      />,
     );
 
-    const grid: HTMLElement = screen.getByTestId(
-      "code-repository-stats",
-    ).parentElement!;
-    expect(grid.className).toContain("grid");
-    expect(grid.className).not.toContain("sm:grid-cols");
-    expect(screen.queryByTestId("code-repository-attention")).toBeNull();
-  });
+    const row: HTMLElement = screen.getByTestId(CODE_REPOSITORY_ROW_TEST_ID);
 
-  test("a quiet repository says it has no tasks yet and nothing more; one AI cannot reach says so, its mark greyed", () => {
-    draw(
-      <ul>
-        <CodeRepositoryRow
-          repository={{
-            id: REPOSITORY_ID,
-            name: "payments-worker",
-            isConnected: false,
-            stats: {
-              working: 0,
-              waitingForYou: 0,
-              openPullRequests: 0,
-              taskCount: 0,
-            },
-          }}
-        />
-      </ul>,
-    );
-
-    const row: HTMLElement = screen.getByTestId("code-repository-row");
-    expect(within(row).getByTestId("code-repository-stats")).toHaveTextContent(
-      /^No tasks yet$/,
-    );
     expect(
-      within(row).getByTestId("code-repository-not-connected"),
-    ).toHaveTextContent("Not connected");
+      within(row).getByTestId("code-repository-stats"),
+    ).toHaveTextContent(/^No tasks yet$/);
+    expect(within(row).queryByTestId("code-repository-attention")).toBeNull();
+    expect(row.querySelector("time")).toBeNull();
+    // The table's quiet dash, as every empty cell is.
     expect(
-      within(row).getByTestId("code-repository-link").firstElementChild
-        ?.className,
-    ).toContain("bg-gray-100");
+      within(row).getByTestId("table-empty-value"),
+    ).toBeInTheDocument();
   });
 
-  test("once the page says GitHub reaches none of them, a row does not say it again", () => {
+  test("a repository AI can work in carries the dark GitHub mark; one in the not-connected list a grey one, and no pill", () => {
     draw(
-      <ul>
-        <CodeRepositoryRow
-          isNotConnectedSaid={true}
-          repository={{
-            id: REPOSITORY_ID,
-            name: "payments-worker",
-            isConnected: false,
-            stats: {
-              working: 0,
-              waitingForYou: 0,
-              openPullRequests: 0,
-              taskCount: 0,
-            },
-          }}
+      <>
+        <CodeRepositoriesTable
+          id="connected"
+          repositories={[listed({ name: "checkout-api" })]}
         />
-      </ul>,
+        <CodeRepositoriesTable
+          id="not-connected"
+          isNotConnected={true}
+          repositories={[
+            listed({
+              id: "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d",
+              name: "payments-worker",
+              isConnected: false,
+            }),
+          ]}
+        />
+      </>,
     );
 
-    expect(screen.queryByTestId("code-repository-not-connected")).toBeNull();
-    expect(screen.queryByTestId("code-repository-attention")).toBeNull();
+    const [connected, notConnected] = screen.getAllByTestId(
+      CODE_REPOSITORY_ROW_TEST_ID,
+    );
+    const markOf: (row: HTMLElement) => string = (row: HTMLElement): string => {
+      return (
+        within(row)
+          .getByTestId("code-repository-name")
+          .closest("div")
+          ?.querySelector("[aria-hidden='true']")?.className || ""
+      );
+    };
+
+    expect(markOf(connected!)).toContain("bg-gray-900");
+    expect(markOf(notConnected!)).toContain("bg-gray-100");
+    // The list it is in says why: no "Not connected" on every row.
+    expect(notConnected).not.toHaveTextContent("Not connected");
+  });
+
+  test("more than a page of them pages through, ten at a time", async () => {
+    draw(
+      <CodeRepositoriesTable
+        id="rows"
+        repositories={Array.from(
+          { length: 14 },
+          (_: unknown, index: number): CodeRepositoryListItem => {
+            return listed({
+              id: `9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c${String(index).padStart(2, "0")}`,
+              name: `repository-${String(index + 1).padStart(2, "0")}`,
+            });
+          },
+        )}
+      />,
+    );
+
+    expect(screen.getAllByTestId(CODE_REPOSITORY_ROW_TEST_ID)).toHaveLength(10);
+    expect(document.body).toHaveTextContent("Showing 1-10 of 14 repositories");
+
+    await userEvent.click(screen.getByTestId("pagination-next-button"));
+
+    expect(screen.getAllByTestId(CODE_REPOSITORY_ROW_TEST_ID)).toHaveLength(4);
+    expect(
+      screen.getAllByTestId("code-repository-name").map((name: HTMLElement) => {
+        return name.textContent;
+      }),
+    ).toEqual([
+      "repository-11",
+      "repository-12",
+      "repository-13",
+      "repository-14",
+    ]);
+  });
+
+  test("the words of a row's tasks cell, as a plain function", () => {
+    const english: Translator = createTranslator(undefined, "en");
+
+    expect(
+      getRepositoryTaskWords(
+        listed({
+          name: "x",
+          stats: {
+            working: 1,
+            waitingForYou: 2,
+            openPullRequests: 1,
+            taskCount: 1,
+          },
+        }),
+        english,
+      ),
+    ).toEqual({
+      tasks: "1 task",
+      pullRequests: "1 open pull request",
+      working: "1 working",
+      waiting: "2 waiting for you",
+    });
+    expect(getRepositoryTaskWords(listed({ name: "y" }), english)).toEqual({
+      tasks: "No tasks yet",
+      pullRequests: null,
+      working: null,
+      waiting: null,
+    });
   });
 });
 
