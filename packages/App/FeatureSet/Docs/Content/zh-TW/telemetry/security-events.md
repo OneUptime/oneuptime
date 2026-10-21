@@ -288,7 +288,64 @@ OneUptime 會執行 Sigma 的布林核心：
 - `Image` 和 `CommandLine` 讀取事件所涉及的處理程序，在處理程序啟動事件中即被啟動的處理程序（`processPath`、`processCommandLine`），`ParentImage` 和 `ParentCommandLine` 讀取啟動它的處理程序（`parentProcessPath`、`parentProcessCommandLine`）。`principalProcess` 是執行動作的處理程序，在處理程序啟動中即父處理程序。
 - `level` 設定嚴重程度：`informational`、`low`、`medium`、`high` 或 `critical`，缺少時為 `medium`。`tags` 中的 ATT&CK ID（`attack.t1110`、`attack.ta0006`）會填入偵測結果的 MITRE 欄位。
 
-像 `| count() by principalIp > 5` 這樣的彙總會在儲存時遭到拒絕：請改用 **Group By Field** 和 **Match Count Threshold** 。`logsource` 只有說明作用，不會縮小任何範圍：請把這種篩選放進選取項目，例如 `className: Authentication`。`timeframe` 會被忽略，因為規則的間隔決定了它的時間窗。
+像 `| count() by principalIp > 5` 這樣的彙總會在儲存時遭到拒絕：請改用 [關聯規則](#關聯規則)，或 **Group By Field** 和 **Match Count Threshold** 。`logsource` 只有說明作用，不會縮小任何範圍：請把這種篩選放進選取項目，例如 `className: Authentication`。`timeframe` 會被忽略，因為規則的間隔決定了它的時間窗。
+
+### 關聯規則
+
+[Sigma 關聯](https://sigmahq.io/docs/meta/correlations.html) 在多個事件一起出現時觸發，而不是在單一事件上。把它和它讀取的規則一起貼到 **Sigma Rule (YAML)** 中，作為以 `---` 分隔的 YAML 文件，或依 Sigma 的 `name` 或 `id` 指定專案中已有的規則。**Rule Library** 中有現成的規則，例如登入失敗後緊接一次成功登入。
+
+| 類型 | 觸發條件 | 顯示為 |
+| --- | --- | --- |
+| `event_count` | 一個群組在 `timespan` 內達到一定數量的事件 | 事件數 |
+| `value_count` | 一個群組在 `timespan` 內出現某欄位一定數量的不同值 | 不同值 |
+| `temporal` | 在 `timespan` 內同一群組的每條規則都符合，順序不限 | 同時發生的事件 |
+| `temporal_ordered` | 在 `timespan` 內同一群組的規則依順序符合 | Sequence |
+| `new_value` | 一個群組出現了它在 `timespan` 內沒有出現過的欄位值 | First seen |
+
+```yaml title="failed-then-success.yml"
+title: Failed sign-ins, then a success from the same address
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_ins
+    - successful_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+---
+title: Five failed sign-ins
+name: failed_sign_ins
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+  condition:
+    gte: 5
+---
+title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+```
+
+- 群組是 `group-by` 欄位的值，例如一個位址。計數是滾動的：被兩次執行分開的一陣突發，在其 `timespan` 內仍會被完整計數，該時間跨度最長 24 小時。
+- `new_value` 是 OneUptime 自有的類型，因為 Sigma 沒有「首次出現」關聯：它會與最多 30 天的歷史比較。`value_sum`、`value_avg`、`value_percentile` 和 `value_median` 會在儲存時遭到拒絕。
+- **Detection Rules** 的 **類型** 欄會寫出每條規則的種類，表單會用一句話說明規則在找什麼。
 
 ### 評估設定
 

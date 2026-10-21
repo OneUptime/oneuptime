@@ -159,6 +159,75 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 
 測試中的每個請求都有 20 秒的期限。測試從不匯入任何內容，也不移動游標，每個失敗的檢查都會說明需要更改什麼。
 
+## 將安全性事件傳送到 Microsoft Sentinel
+
+OneUptime 也可以透過 Azure Monitor 的 Logs Ingestion API 把它發現的內容傳送到 Microsoft Sentinel，寫入 Sentinel 所在工作區的一個自訂資料表。之後你的分析規則、搜捕查詢和活頁簿就可以在其他資料表旁邊查詢 `OneUptimeSecurityEvents_CL`。
+
+:::steps
+### 建立資料表及其資料收集規則
+
+在 Azure 入口網站中，開啟工作區的 **Tables → Create → New custom log (DCR-based)**。將資料表命名為 `OneUptimeSecurityEvents`，新建一個資料收集規則，如果表單要求，再新建一個資料收集端點。把下面的範例當作範例檔案上傳，保持轉換不變，然後建立資料表。
+
+### 讓應用程式向它傳送
+
+依照 [註冊應用程式](#註冊應用程式) 中的步驟註冊一個應用程式並為它建立用戶端密碼。然後開啟資料收集規則，在 **Access control (IAM) → Add → Add role assignment** 中選擇 **Monitoring Metrics Publisher**，並選取該應用程式。
+
+### 新增目的地
+
+開啟 **產品 → Security Events → Connections**。在 **傳送到你的 SIEM** 下按一下 **新增目的地**，在 **SIEM** 下選擇 Microsoft Sentinel，然後按一下 **下一步**。填寫 **目錄（租用戶）ID**、**應用程式（用戶端）ID** 和 **Client secret**，從資料收集端點（或規則）的 **Overview** 中取得的 **記錄擷取端點**，以及從規則的 **JSON View** 中取得的 **資料收集規則不可變 ID**。**串流** 是選用的：留空時為 `Custom-OneUptimeSecurityEvents_CL`。
+
+### 傳送測試事件並開始傳送
+
+按一下 **傳送測試事件**：幾分鐘內會有一列到達該資料表。接著在 **傳送內容** 下保留 **僅偵測結果** 或選擇 **所有安全事件**，再按一下 **開始傳送**。
+:::
+
+範例檔案，一列包含資料表的每一欄：
+
+```json title="oneuptime-security-events-sample.json"
+[
+  {
+    "TimeGenerated": "2026-10-21T10:00:00.000Z",
+    "EventId": "0193c0de-cccc-4aaa-8bbb-000000000001",
+    "EventUid": "okta-1",
+    "ClassName": "Authentication",
+    "CategoryName": "Identity & Access Management",
+    "ActivityName": "Logon",
+    "Severity": "Medium",
+    "SeverityId": 3,
+    "Status": "Failure",
+    "Message": "Failed sign-in for alice",
+    "VendorName": "Okta",
+    "ProductName": "Okta System Log",
+    "RuleId": "",
+    "RuleName": "",
+    "MitreTactics": [],
+    "MitreTechniques": [],
+    "PrincipalUser": "alice@example.com",
+    "PrincipalHost": "laptop-7",
+    "PrincipalIp": "203.0.113.7",
+    "TargetUser": "",
+    "TargetHost": "app.example.com",
+    "TargetIp": "198.51.100.20",
+    "TargetPort": 443,
+    "TargetResource": "",
+    "ProcessName": "",
+    "ProcessCommandLine": "",
+    "ParentProcessName": "",
+    "Observables": [
+      "alice@example.com",
+      "203.0.113.7"
+    ],
+    "Attributes": {
+      "okta.outcome.reason": "INVALID_CREDENTIALS"
+    }
+  }
+]
+```
+
+- Logs Ingestion API 每次呼叫最多接受 1 MB，所以資料列以每批最多 500 列傳送。Azure 拒絕的批次會被拆分，直到找到它不接受的那一列並將其略去，節流（`429`）會重試。
+- `403` 表示應用程式在該規則上缺少 **Monitoring Metrics Publisher**，`404` 表示不可變 ID 或串流有誤。
+- OneUptime 從 Microsoft Sentinel 匯入的事件（incident）永遠不會被傳回 Microsoft Sentinel。
+
 ## 疑難排解
 
 連線的 **最近的錯誤** 會保留完整的錯誤訊息（認證資訊已隱去），前面帶有一個指明失敗步驟的字首。連線出錯時，在它的 **操作** 欄中選擇 **檢視錯誤** 來閱讀，並在對話方塊中用 **複製錯誤** 複製。請先閱讀字首。

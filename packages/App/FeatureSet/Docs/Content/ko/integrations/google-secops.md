@@ -108,6 +108,7 @@ Google SecOps에서 **SIEM Settings → Profile**을 엽니다. 인스턴스 리
 | --- | --- | --- |
 | **지역** | 인스턴스 리소스 이름의 위치와 일치하는 Google SecOps 지역 엔드포인트(`us`, `europe`, `asia-southeast1`, ...). 기본값이 없으므로, 미국 밖의 테넌트가 실수로 잘못된 엔드포인트를 저장하는 일은 없습니다. | 예 |
 | **인스턴스 리소스 이름** | Google SecOps **SIEM Settings → Profile**: `projects/{project}/locations/{location}/instances/{instance}`. | 예 |
+| **케이스가 닫히면 알림도 닫기** | 양식의 마지막 단계에 있으며, 켜기 전까지는 꺼져 있습니다. 켜면 케이스를 닫을 때 그 케이스의 Google SecOps 알림도 닫힙니다. [케이스가 닫히면 알림도 닫기](#케이스가-닫히면-알림도-닫기) 를 참조하세요. | 아니요 |
 | **서비스 계정 JSON** | Google Cloud, 서비스 계정의 **Keys** 탭. JSON 키 파일 전체를 붙여 넣습니다. 쓰기 전용: 저장 시 암호화되며, API가 반환하지 않고, 페이지에 다시 표시되지 않습니다. 교체하려면 연결의 **Update credentials**를 사용합니다. | 예 |
 | **Data to import** | Google의 알림 API는 항상 알림을 반환하므로 **알림**은 항상 가져옵니다. 알림을 만들지 않은 규칙 일치도 가져오려면 **Detections**를 선택합니다. 원시 UDM 이벤트는 전달하지 않습니다. 그것은 위와 같이 직접 전달하세요. | 알림은 항상 |
 
@@ -213,6 +214,17 @@ Google SecOps는 누가 규칙을 작성했느냐에 따라 탐지의 심각도�
 
 이 중 어느 것으로도 등급이 매겨지지 않은 탐지는 Unknown으로 표시됩니다. 사용자 지정 규칙에 등급을 매기려면 Google SecOps에서 규칙의 `meta` 섹션에 `severity = "High"`처럼 심각도를 추가하거나, `outcome` 섹션에서 `$risk_score`를 설정하세요. 그 뒤로 규칙이 만드는 탐지는 그 심각도로 가져옵니다.
 
+## 케이스가 닫히면 알림도 닫기
+
+**케이스가 닫히면 알림도 닫기** 가 켜져 있으면, [보안 케이스](/docs/telemetry/security-cases#케이스-닫기) 를 닫을 때 그 케이스가 나온 Google SecOps 알림이 닫힙니다. 각 알림은 케이스의 판정과 함께 닫힘으로 표시되며, True Positive는 악성으로, False Positive나 Benign Positive는 악성 아님으로 표시되고, 케이스의 종료 메모와 케이스로 돌아가는 링크가 함께 붙습니다. 닫힌 알림의 수는 케이스의 타임라인에 나옵니다.
+
+- 서비스 계정에는 `chronicle.legacies.legacyUpdateAlert` 가 필요하며, `roles/chronicle.editor` 역할에 이 권한이 있습니다. `roles/chronicle.viewer` 역할은 알림을 읽을 수 있지만 닫을 수는 없으며, 이 경우 케이스에 `403` 이 표시됩니다.
+- Google SecOps에 더 이상 없는 알림은 건너뜁니다. Google SecOps에 연결할 수 없으면 OneUptime이 약 한 시간 동안 다시 시도한 뒤, 닫지 못한 것을 케이스에 기록합니다.
+
+## 다른 이벤트에서 그 지표 지켜보기
+
+**소스** 가 **Google SecOps** 인 [위협 인텔리전스 피드](/docs/telemetry/threat-intelligence#google-secops를-읽는-방식) 는 이 연결을 통해 Google SecOps의 위협 인텔리전스가 그 이벤트에서 찾은 지표를 읽고, 프로젝트의 나머지 이벤트에서 그 지표를 지켜봅니다. Google SecOps가 보지 못한 로그인, 네트워크 흐름, 엔드포인트 이벤트입니다.
+
 ## Google SecOps로 보안 이벤트 보내기
 
 OneUptime은 찾은 것을 Google SecOps로도 보낼 수 있으므로, 팀이 사용하는 SIEM에서 OneUptime의 탐지를 자체 탐지와 나란히 볼 수 있습니다. 각 보안 이벤트는 UDM 이벤트로 가져옵니다. 로그인은 `USER_LOGIN`, 프로세스 시작은 `PROCESS_LAUNCH`, 네트워크 연결은 `NETWORK_CONNECTION`, 나머지는 `GENERIC_EVENT`가 되며, 심각도, MITRE ATT&CK 태그, 이를 찾은 규칙이 함께 붙습니다.
@@ -224,7 +236,7 @@ Google Cloud에서 SecOps 인스턴스가 연결된 프로젝트에 서비스 �
 
 ### 대상 추가하기
 
-**제품 → Security Events → Connections**를 엽니다. **SIEM으로 보내기**에서 **대상 추가**를 클릭합니다. **지역**을 선택하고, 위의 커넥터와 같이 **인스턴스 리소스 이름**을 입력한 다음, 키를 **서비스 계정 JSON**에 붙여 넣습니다.
+**제품 → Security Events → Connections**를 엽니다. **SIEM으로 보내기**에서 **대상 추가**를 클릭하고, **SIEM** 에서 Google SecOps를 고른 뒤 **다음** 을 클릭합니다. **지역**을 선택하고, 위의 커넥터와 같이 **인스턴스 리소스 이름**을 입력한 다음, 키를 **서비스 계정 JSON**에 붙여 넣습니다.
 
 ### 테스트 이벤트 보내기
 

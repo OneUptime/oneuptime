@@ -142,6 +142,48 @@ Kibana의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는
 
 테스트의 모든 요청에는 20초 기한이 있습니다. 테스트는 아무것도 가져오지 않고 커서를 옮기지도 않으며, 실패한 각 검사는 무엇을 바꿔야 하는지 알려 줍니다.
 
+## Elastic Security로 보안 이벤트 보내기
+
+OneUptime은 찾은 것을 데이터 스트림 안의 Elastic Common Schema(ECS) 문서로 Elasticsearch에도 보낼 수 있어, Elastic Security의 알림, 타임라인, 탐지 규칙에서 OneUptime의 탐지를 여러분의 탐지와 나란히 볼 수 있습니다. 탐지는 `event.kind` 가 `alert` 인 문서이고, 그 밖의 모든 이벤트는 `event.kind` 가 `event` 입니다.
+
+:::steps
+### 쓸 수 있는 API 키 만들기
+
+Kibana에서 **Stack Management → API keys** 를 열고 **Create API key** 를 클릭한 뒤, 아래 권한을 주고 **Encoded** 값을 복사합니다.
+
+### 대상 추가하기
+
+**제품 → Security Events → Connections**를 엽니다. **SIEM으로 보내기**에서 **대상 추가**를 클릭하고, **SIEM** 에서 Elastic Security를 고른 뒤 **다음** 을 클릭합니다. **Elasticsearch URL** 에 Kibana가 아니라 배포의 Elasticsearch 엔드포인트를 입력하고, 키를 **API 키** 에 붙여 넣습니다. **데이터 스트림** 은 선택 사항입니다. 비워 두면 문서는 `logs-oneuptime.security-default` 로 가며, Elasticsearch가 처음 쓸 때 이를 만듭니다.
+
+### 테스트 이벤트를 보내고 전송 시작하기
+
+**테스트 이벤트 보내기** 를 클릭하면 데이터 스트림에 문서 하나가 도착합니다. 그런 다음 **보낼 내용** 에서 **탐지만** 을 그대로 두거나 **모든 보안 이벤트** 를 고르고, **전송 시작** 을 클릭합니다.
+:::
+
+기본 데이터 스트림에 대한 키의 권한:
+
+```json title="oneuptime-writer-role.json"
+{
+  "oneuptime-writer": {
+    "indices": [
+      {
+        "names": [
+          "logs-oneuptime.security-*"
+        ],
+        "privileges": [
+          "create_doc",
+          "auto_configure"
+        ]
+      }
+    ]
+  }
+}
+```
+
+- 문서는 최대 500개씩 배치로 가며, 각 문서에는 그 이벤트의 고유 ID가 붙으므로 두 번 보낸 이벤트도 한 번만 저장됩니다.
+- Elasticsearch가 매핑할 수 없는 문서는 빠지고 **오류 보기** 에 이름이 나오며, 지금 받을 수 없는 문서(`429`)는 다시 보냅니다.
+- OneUptime이 Elastic Security에서 가져온 알림은 절대 Elastic Security로 다시 보내지 않습니다.
+
 ## 문제 해결
 
 연결의 **마지막 오류**는 실패한 단계를 나타내는 접두사 뒤에, 자격 증명을 가린 전체 오류 메시지를 보관합니다. 연결에 오류가 있으면 **작업** 열에서 **오류 보기**를 선택해 읽고, 대화 상자의 **오류 복사**로 복사합니다. 먼저 접두사를 읽으세요.

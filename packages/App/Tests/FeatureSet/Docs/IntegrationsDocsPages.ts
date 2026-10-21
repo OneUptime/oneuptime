@@ -593,6 +593,10 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "User, group, or service principal",
     "Select members",
     "Review + assign",
+    // Where a destination's table, rule and role are made.
+    "Tables → Create → New custom log (DCR-based)",
+    "Monitoring Metrics Publisher",
+    "JSON View",
   ],
   [DEFENDER]: [
     "Microsoft Entra ID",
@@ -630,9 +634,18 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Audience",
     "Expiration",
     "Create",
+    // Where a destination's HTTP Event Collector token is made.
+    "Settings → Data inputs → HTTP Event Collector",
+    "Global Settings",
   ],
   // Kibana.
-  [ELASTIC]: ["Stack Management → API keys", "Create API key", "Base64"],
+  [ELASTIC]: [
+    "Stack Management → API keys",
+    "Create API key",
+    "Base64",
+    // The key a destination writes with, as Kibana shows it.
+    "Encoded",
+  ],
   // The AWS console: Security Hub and IAM.
   [AWS_SECURITY_HUB]: [
     "Security Hub → Settings → Regions",

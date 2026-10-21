@@ -253,7 +253,7 @@ describe("the Send to your SIEM table", () => {
     expect(props.query).toEqual({ projectId: PROJECT_ID });
   });
 
-  test("its empty state says nothing is sent yet, names the SIEM it supports and opens the form", async () => {
+  test("its empty state says nothing is sent yet, names the SIEMs it supports and opens the form", async () => {
     await act(async () => {
       render(
         <MemoryRouter>
@@ -276,19 +276,21 @@ describe("the Send to your SIEM table", () => {
 
     // The card already asks who it is for; the empty state says what is true now.
     expect(empty).toHaveTextContent("Nothing is sent to a SIEM yet");
-    expect(empty).toHaveTextContent("Google SecOps is supported today.");
+    expect(empty).toHaveTextContent(
+      "Google SecOps, Splunk, Microsoft Sentinel and Elastic Security are supported.",
+    );
     expect(empty).not.toHaveTextContent("Already use a SIEM?");
     // Drawn like every other empty table.
     expect(empty).toHaveAttribute("data-empty-state-kind", "empty");
 
     await act(async () => {
       fireEvent.click(
-        within(empty).getByRole("button", { name: "Send to Google SecOps" }),
+        within(empty).getByRole("button", { name: "Send to your SIEM" }),
       );
     });
 
     expect(
-      await screen.findByRole("dialog", { name: "Send to Google SecOps" }),
+      await screen.findByRole("dialog", { name: "Send to your SIEM" }),
     ).toBeInTheDocument();
   });
 
@@ -322,7 +324,7 @@ describe("the Send to your SIEM table", () => {
     });
 
     expect(
-      screen.getByRole("button", { name: "Send to Google SecOps" }),
+      screen.getByRole("button", { name: "Send to your SIEM" }),
     ).toBeDisabled();
     expect(
       screen.getByTestId("security-event-destinations-empty-note"),
@@ -432,17 +434,39 @@ describe("the Send to your SIEM table", () => {
   });
 });
 
+// The SIEM step: one card per SIEM OneUptime sends to, then on to its settings.
+async function pickSiem(title: string): Promise<void> {
+  await act(async () => {
+    fireEvent.click(
+      within(dialog()).getByRole("radio", { name: new RegExp(`^${title}`) }),
+    );
+  });
+  await next();
+}
+
 describe("adding a Google SecOps destination", () => {
-  test("walks the SIEM's settings, then what to send; nothing is sent to test until the key is pasted", async () => {
+  test("picks the SIEM, walks its settings, then what to send; nothing is sent to test until the key is pasted", async () => {
     await renderForm();
 
-    /*
-     * One SIEM today, so no step to pick it: its connection, then what to
-     * send. The dialog's title names the SIEM.
-     */
+    // Four SIEMs: a step to pick one, then its connection, then what to send.
+    expect(within(progress()).getByText("SIEM")).toBeInTheDocument();
     expect(within(progress()).getByText("Connection")).toBeInTheDocument();
     expect(within(progress()).getByText("What to send")).toBeInTheDocument();
-    expect(within(progress()).queryByText("SIEM")).toBeNull();
+    expect(activeStep()).toBe("SIEM");
+
+    for (const title of [
+      "Google SecOps",
+      "Splunk",
+      "Microsoft Sentinel",
+      "Elastic Security",
+    ]) {
+      expect(
+        within(dialog()).getByRole("radio", { name: new RegExp(`^${title}`) }),
+      ).toBeInTheDocument();
+    }
+
+    await pickSiem("Google SecOps");
+
     expect(activeStep()).toBe("Connection");
     expect(sendTestButton()).toBeDisabled();
     expect(
@@ -453,6 +477,8 @@ describe("adding a Google SecOps destination", () => {
   test("tests the settings as typed, never saved, then saves them and starts sending detections only", async () => {
     const user: UserEvent = userEvent.setup({ delay: null });
     const { onSaved } = await renderForm();
+
+    await pickSiem("Google SecOps");
 
     await pickRegion(user, "europe");
     fireEvent.change(screen.getByLabelText(/^Instance resource name/), {
@@ -489,7 +515,8 @@ describe("adding a Google SecOps destination", () => {
 
     await next();
     expect(activeStep()).toBe("What to send");
-    expect(screen.getByLabelText(/^Name/)).toHaveValue("Google SecOps");
+    // Left empty, the destination is listed under the SIEM's name.
+    expect(screen.getByLabelText(/^Name/)).toHaveValue("");
     // What to send first, then the name it is listed under.
     expect(
       screen
@@ -538,6 +565,7 @@ describe("adding a Google SecOps destination", () => {
     const user: UserEvent = userEvent.setup({ delay: null });
     await renderForm();
 
+    await pickSiem("Google SecOps");
     await pickRegion(user, "europe");
     fireEvent.change(screen.getByLabelText(/^Instance resource name/), {
       target: { value: INSTANCE },
@@ -569,6 +597,67 @@ describe("adding a Google SecOps destination", () => {
     expect(
       screen.queryByTestId("security-event-destination-test-result"),
     ).toBeNull();
+  });
+});
+
+describe("adding a Splunk destination", () => {
+  test("asks only for Splunk's HEC settings, tests them as typed and saves them", async () => {
+    const { onSaved } = await renderForm();
+
+    await pickSiem("Splunk");
+
+    // Splunk's fields, none of Google SecOps's.
+    expect(screen.queryByLabelText(/^Instance resource name/)).toBeNull();
+
+    fireEvent.change(screen.getByLabelText(/^HEC URL/), {
+      target: { value: "https://splunk.example.com:8088" },
+    });
+    fireEvent.change(screen.getByLabelText(/^Index/), {
+      target: { value: "security" },
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText(/^HEC token/), {
+        target: { value: "00000000-1111-2222-3333-444444444444" },
+      });
+    });
+
+    await act(async () => {
+      fireEvent.click(sendTestButton());
+    });
+
+    expect(postBodies()[0]).toEqual({
+      provider: "splunk",
+      config: { hecUrl: "https://splunk.example.com:8088", index: "security" },
+      secrets: { hecToken: "00000000-1111-2222-3333-444444444444" },
+    });
+
+    await next();
+    fireEvent.change(screen.getByLabelText(/^Name/), {
+      target: { value: "Splunk Cloud" },
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        within(dialog()).getByRole("button", { name: "Start sending" }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(onSaved).toHaveBeenCalledTimes(1);
+    });
+
+    const saved: SecurityEventDestination = jest.mocked(ModelAPI.create).mock
+      .calls[0]![0].model as SecurityEventDestination;
+
+    expect(saved.provider).toBe("splunk");
+    expect(saved.name).toBe("Splunk Cloud");
+    expect(saved.config).toEqual({
+      hecUrl: "https://splunk.example.com:8088",
+      index: "security",
+    });
+    expect(JSON.parse(saved.secrets!)).toEqual({
+      hecToken: "00000000-1111-2222-3333-444444444444",
+    });
   });
 });
 

@@ -41,6 +41,30 @@ export interface SecurityEventDestinationDefinition {
 
 export const GOOGLE_SECOPS_DESTINATION_DOCS_PATH: string =
   "/docs/integrations/google-secops#send-security-events-to-google-secops";
+export const SPLUNK_DESTINATION_DOCS_PATH: string =
+  "/docs/integrations/splunk#send-security-events-to-splunk";
+export const MICROSOFT_SENTINEL_DESTINATION_DOCS_PATH: string =
+  "/docs/integrations/microsoft-sentinel#send-security-events-to-microsoft-sentinel";
+export const ELASTIC_SECURITY_DESTINATION_DOCS_PATH: string =
+  "/docs/integrations/elastic-security#send-security-events-to-elastic-security";
+
+// What a Splunk event's sourcetype is when the destination names none.
+export const SPLUNK_DEFAULT_SOURCE_TYPE: string = "oneuptime:security";
+
+/*
+ * The custom table's stream a Sentinel destination sends to when it names
+ * none: the one the setup guide's data collection rule declares.
+ */
+export const MICROSOFT_SENTINEL_DEFAULT_STREAM_NAME: string =
+  "Custom-OneUptimeSecurityEvents_CL";
+
+/*
+ * The data stream an Elastic destination writes to when it names none:
+ * logs-<dataset>-<namespace>, which Elasticsearch's built-in logs-*-*
+ * template creates on the first write, ECS mapped.
+ */
+export const ELASTIC_DEFAULT_DATA_STREAM: string =
+  "logs-oneuptime.security-default";
 
 export const SecurityEventDestinationCatalog: Array<SecurityEventDestinationDefinition> =
   [
@@ -96,6 +120,186 @@ export const SecurityEventDestinationCatalog: Array<SecurityEventDestinationDefi
           type: "json",
           required: true,
           placeholder: '{ "client_email": "...", "private_key": "..." }',
+        },
+      ],
+    },
+    {
+      provider: SecurityEventDestinationProvider.Splunk,
+      title: "Splunk",
+      description:
+        "Send OneUptime's detections, or all its security events, to Splunk through its HTTP Event Collector (HEC).",
+      icon: IconProp.Search,
+      docsPath: SPLUNK_DESTINATION_DOCS_PATH,
+      sentRecordName: "event",
+      // What the Splunk connector stamps on the notable events it imports.
+      importedProductNames: ["Splunk Enterprise Security"],
+      /*
+       * HEC takes several events in one request, up to the collector's
+       * max_content_length (1 MB by default on Splunk Enterprise).
+       */
+      maxEventsPerRequest: 500,
+      maxBytesPerRequest: 800 * 1024,
+      configFields: [
+        {
+          key: "hecUrl",
+          title: "HEC URL",
+          description:
+            "The HTTP Event Collector's address: on Splunk Cloud https://http-inputs-<stack>.splunkcloud.com, on Splunk Enterprise port 8088.",
+          type: "url",
+          required: true,
+          placeholder: "https://splunk.example.com:8088",
+        },
+        {
+          key: "index",
+          title: "Index",
+          description:
+            "The index events are written to. Leave empty for the token's default index.",
+          type: "text",
+          required: false,
+          placeholder: "security",
+        },
+        {
+          key: "sourceType",
+          title: "Source type",
+          description: `The sourcetype events carry. Leave empty for ${SPLUNK_DEFAULT_SOURCE_TYPE}.`,
+          type: "text",
+          required: false,
+          placeholder: SPLUNK_DEFAULT_SOURCE_TYPE,
+        },
+      ],
+      secretFields: [
+        {
+          key: "hecToken",
+          title: "HEC token",
+          description:
+            "An HTTP Event Collector token (Settings > Data inputs > HTTP Event Collector). Encrypted at rest and never returned by the API.",
+          type: "password",
+          required: true,
+        },
+      ],
+    },
+    {
+      provider: SecurityEventDestinationProvider.MicrosoftSentinel,
+      title: "Microsoft Sentinel",
+      description:
+        "Send OneUptime's detections, or all its security events, to a Microsoft Sentinel workspace through the Azure Monitor Logs Ingestion API.",
+      icon: IconProp.ShieldCheck,
+      docsPath: MICROSOFT_SENTINEL_DESTINATION_DOCS_PATH,
+      sentRecordName: "log record",
+      // What the Sentinel connector stamps on the incidents it imports.
+      importedProductNames: ["Microsoft Sentinel"],
+      // The Logs Ingestion API takes up to 1 MB in one call.
+      maxEventsPerRequest: 500,
+      maxBytesPerRequest: 900 * 1024,
+      configFields: [
+        {
+          key: "tenantId",
+          title: "Directory (tenant) ID",
+          description:
+            "The Microsoft Entra tenant that owns the app registration.",
+          type: "text",
+          required: true,
+          placeholder: "00000000-0000-0000-0000-000000000000",
+        },
+        {
+          key: "clientId",
+          title: "Application (client) ID",
+          description:
+            "The app registration given the Monitoring Metrics Publisher role on the data collection rule.",
+          type: "text",
+          required: true,
+          placeholder: "00000000-0000-0000-0000-000000000000",
+        },
+        {
+          key: "logsIngestionEndpoint",
+          title: "Logs ingestion endpoint",
+          description:
+            "The data collection endpoint's (or rule's) logs ingestion URL, from its Overview page in the Azure portal.",
+          type: "url",
+          required: true,
+          placeholder: "https://my-dce-abcd.eastus-1.ingest.monitor.azure.com",
+        },
+        {
+          key: "dcrImmutableId",
+          title: "Data collection rule immutable ID",
+          description:
+            "The immutable ID of the data collection rule that sends to your Sentinel workspace's custom table.",
+          type: "text",
+          required: true,
+          placeholder: "dcr-00000000000000000000000000000000",
+        },
+        {
+          key: "streamName",
+          title: "Stream",
+          description: `The data collection rule's input stream. Leave empty for ${MICROSOFT_SENTINEL_DEFAULT_STREAM_NAME}.`,
+          type: "text",
+          required: false,
+          placeholder: MICROSOFT_SENTINEL_DEFAULT_STREAM_NAME,
+        },
+        {
+          key: "cloud",
+          title: "Cloud",
+          description: "Which Azure cloud hosts the tenant and workspace.",
+          type: "dropdown",
+          required: true,
+          options: [
+            { label: "Azure public cloud", value: "public" },
+            { label: "Azure Government (US)", value: "usgov" },
+          ],
+          defaultValue: "public",
+        },
+      ],
+      secretFields: [
+        {
+          key: "clientSecret",
+          title: "Client secret",
+          description:
+            "A client secret of the app registration. Encrypted at rest and never returned by the API.",
+          type: "password",
+          required: true,
+        },
+      ],
+    },
+    {
+      provider: SecurityEventDestinationProvider.ElasticSecurity,
+      title: "Elastic Security",
+      description:
+        "Send OneUptime's detections, or all its security events, to Elasticsearch in Elastic Common Schema (ECS), so Elastic Security sees them.",
+      icon: IconProp.Database,
+      docsPath: ELASTIC_SECURITY_DESTINATION_DOCS_PATH,
+      sentRecordName: "document",
+      // What the Elastic connector stamps on the alerts it imports.
+      importedProductNames: ["Elastic Security"],
+      // A bulk request well under the 100 MB http.max_content_length.
+      maxEventsPerRequest: 500,
+      maxBytesPerRequest: 2 * 1024 * 1024,
+      configFields: [
+        {
+          key: "elasticsearchUrl",
+          title: "Elasticsearch URL",
+          description:
+            "The Elasticsearch endpoint, on Elastic Cloud copied from the deployment's page, without a trailing path.",
+          type: "url",
+          required: true,
+          placeholder: "https://my-deployment.es.us-east-1.aws.elastic.cloud",
+        },
+        {
+          key: "dataStream",
+          title: "Data stream",
+          description: `The data stream documents are written to. Leave empty for ${ELASTIC_DEFAULT_DATA_STREAM}.`,
+          type: "text",
+          required: false,
+          placeholder: ELASTIC_DEFAULT_DATA_STREAM,
+        },
+      ],
+      secretFields: [
+        {
+          key: "apiKey",
+          title: "API key",
+          description:
+            "An Elasticsearch API key (the encoded value) that can create documents in the data stream. Encrypted at rest and never returned by the API.",
+          type: "password",
+          required: true,
         },
       ],
     },

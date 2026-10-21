@@ -1,9 +1,10 @@
 # Hotunderrättelser (STIX/TAXII)
 
-Ett threat intel-flöde hämtar in kända skadliga IP-adresser, domäner, URL:er, e-postadresser och filhashar i OneUptime och talar om för dig när dina [säkerhetshändelser](/docs/telemetry/security-events) nämner någon av dem. Varje flöde prenumererar på en TAXII 2.1-samling med STIX 2.1-indikatorer: din egen MISP-, OpenCTI- eller OpenTAXII-server, eller en leverantörs samling. OneUptime levererar inget eget flödesinnehåll: du tar med samlingarna, precis som du tar med Sigma-reglerna.
+Ett threat intel-flöde hämtar in kända skadliga IP-adresser, domäner, URL:er, e-postadresser och filhashar i OneUptime och talar om för dig när dina [säkerhetshändelser](/docs/telemetry/security-events) nämner någon av dem. Ett flöde läser en källa: en lista med indikatorer på en https-adress, som gratislistorna OneUptime lägger till med ett klick, en TAXII 2.1-samling med STIX 2.1-indikatorer från din egen MISP-, OpenCTI- eller OpenTAXII-server eller från en leverantör, eller indikatorerna som Google SecOps hittade i dina händelser.
 
 :::cards
-- [Prenumerera på ett flöde](#prenumerera-på-ett-flöde): En TAXII-server, en samling och hur inloggningen sker.
+- [Lägg till en gratislista](#lägg-till-en-gratislista): Feodo Tracker, Emerging Threats och Tors utgångsnoder, med ett klick.
+- [Prenumerera på ett flöde](#prenumerera-på-ett-flöde): En listas adress, en TAXII-samling eller en Google SecOps-anslutning.
 - [Vad som tas in](#vad-som-tas-in): Indikatormönstren som OneUptime behåller, och hur länge.
 - [Så hittas träffar](#så-hittas-träffar): Märkta när händelser kommer in, och matchade varje minut.
 - [Hotnivåer](#hotnivåer): Hur en indikators confidence blir en allvarlighetsgrad.
@@ -11,9 +12,9 @@ Ett threat intel-flöde hämtar in kända skadliga IP-adresser, domäner, URL:er
 
 ## Så fungerar det
 
-```mermaid title="Från en TAXII-samling till ett larm"
+```mermaid title="Från ett flöde till ett larm"
 flowchart TB
-    taxii["TAXII 2.1-samling"] -->|"Hämtas med flödets<br/>intervall"| indicators["Indikatorer: IP:er,<br/>domäner, URL:er,<br/>e-post, hashar"]
+    taxii["En lista, en<br/>TAXII-samling eller<br/>Google SecOps"] -->|"Hämtas med flödets<br/>intervall"| indicators["Indikatorer: IP:er,<br/>domäner, URL:er,<br/>e-post, hashar"]
     events["Nya<br/>säkerhetshändelser"] --> tag["Märkta vid<br/>ankomst med<br/>threat.*-attribut"]
     indicators --> tag
     indicators --> match["Matchade varje<br/>minut mot nya<br/>händelser"]
@@ -22,9 +23,23 @@ flowchart TB
 
 ## Innan du börjar
 
-- En TAXII 2.1-server som publicerar STIX 2.1-objekt av typen `indicator`, och ID:t för samlingen som ska hämtas. Ett flöde loggar in anonymt, med en bearer-token eller med HTTP Basic-autentisering.
+- För en lista: en `https`-adress som laddar ned en textfil med en indikator per rad.
+- För ett TAXII-flöde: en TAXII 2.1-server som publicerar STIX 2.1-objekt av typen `indicator`, och ID:t för samlingen som ska hämtas. Ett TAXII-flöde loggar in anonymt, med en bearer-token eller med HTTP Basic-autentisering.
+- För ett Google SecOps-flöde: en [Google SecOps-anslutning](/docs/integrations/google-secops#konfigurera-den-hanterade-anslutningen) vars tjänstkonto får söka bland indikatorträffar: rollen `roles/chronicle.viewer` får det.
 - Servrar som kräver ett TLS-klientcertifikat (mutual TLS), till exempel CISA AIS, stöds inte. MITRE:s offentliga ATT&CK-server publicerar tekniker och grupper i stället för indikatorer, så ett flöde som pekar på den förblir tomt.
 - En roll som kan skapa flöden: Project Owner, Project Admin, Security Admin eller Security Member. Security Viewer kan läsa flöden och indikatorer. Se [Roller](/docs/permissions/reference#roller).
+
+## Lägg till en gratislista
+
+Kortet **Gratislistor** på **Threat Intel** lägger till en gratis blockeringslista med ett klick: klicka på **Lägg till lista** vid en lista, så skapar OneUptime ett flöde som laddar ned den enligt listans schema. En lista som projektet redan läser visar **Tillagd**.
+
+| Lista | Publiceras av | Läses | Confidence | En träff öppnar |
+| --- | --- | --- | --- | --- |
+| Feodo Trackers C2-servrar för botnät | abuse.ch | Varje timme | 90, Critical | Ett ärende och ett larm |
+| Emerging Threats komprometterade värdar | Proofpoint Emerging Threats | Varje dag | 70, High | Ett ärende och ett larm |
+| Tors utgångsnoder | The Tor Project | Varje timme | 30, Low | Ett ärende |
+
+En listas ruta länkar till dess villkor: Feodo Tracker är fri för all användning (CC0), och Emerging Threats-listan är BSD-licensierad. Ett flöde som lagts till från en lista redigeras och tas bort som alla andra.
 
 ## Prenumerera på ett flöde
 
@@ -35,7 +50,7 @@ flowchart TB
 
 ### Skapa flödet
 
-Klicka på **Skapa Threat Intel Feed** och fyll i dess tre steg: **TAXII-server**, **Inloggning** och **Vid träff**. Fälten finns i tabellen nedan.
+Klicka på **Skapa Threat Intel Feed** och välj dess **Källa**: **Lista med indikatorer**, **TAXII-samling** eller **Google SecOps**. Nästa steg frågar bara efter den källan: en listas **List-URL**, en samlings **TAXII-server** och **Inloggning**, eller **Google SecOps-anslutning**. **Vid träff** kommer sist. Fälten finns i tabellen nedan.
 
 ### Kontrollera den första hämtningen
 
@@ -44,10 +59,14 @@ Inom en minut eller två visar flödets rad **Last Polled**, och **Last Poll Sum
 
 | Fält | Vad du anger |
 | --- | --- |
+| **Källa** | Var indikatorerna kommer ifrån. Den bestäms när flödet skapas: ett flöde från en annan källa är ett nytt flöde. |
+| **List-URL** | För en lista: `https`-adressen till en textfil med en IP-adress, en domän, en URL eller en filhash per rad. |
+| **Confidence** | För en lista: hur säker listan är, 1 till 100. Varje indikator på listan får värdet, och det avgör [hotnivån](#hotnivåer); tomt är Medium. |
+| **Google SecOps-anslutning** | För Google SecOps: anslutningen vars nyckel läser indikatorerna som Google SecOps hittade. **Anslut Google SecOps** öppnar **Connections** när det inte finns någon. |
 | **TAXII API Root URL** | Serverns TAXII 2.1-API-rot, till exempel `https://taxii.example.com/api1/`. Samlingarna adresseras under den. |
 | **Collection ID** | Samlingen som publicerar indikatorerna. |
-| **Poll Interval (Minutes)** | Hur ofta nya objekt hämtas: 1 till 1440 minuter, 60 som standard. |
-| **Minimum Confidence** | Indikatorer med lägre STIX-`confidence` hoppas över: 0 till 100, och 0 behåller allt. Indikatorer utan confidence släpps alltid igenom. |
+| **Poll Interval (Minutes)** | Hur ofta källan läses: 1 till 1440 minuter, 60 som standard. En lista läses högst var 15:e minut. |
+| **Minimum Confidence** | För en TAXII-samling eller Google SecOps: indikatorer med lägre confidence hoppas över, 0 till 100, och 0 behåller allt. Indikatorer utan confidence släpps alltid igenom. |
 | **Inloggning** | Hur OneUptime loggar in: **Ingen inloggning** för en offentlig samling, **Bearer-token** för en token från serverns operatör eller **Användarnamn och lösenord** för HTTP Basic-autentisering. |
 | **API Token**, **Basic Auth Username** och **Basic Auth Password** | Efterfrågas bara för den valda inloggningen. |
 | **Open a Case on Match** | På som standard: varje händelse som nämner en indikator öppnar ett [ärende](/docs/telemetry/security-cases) om den, eller läggs till i det öppna ärende som redan handlar om den. |
@@ -57,7 +76,7 @@ Inom en minut eller två visar flödets rad **Last Polled**, och **Last Poll Sum
 | **Incidentallvar** | Som **Varningsallvar**, för incidenter. |
 | **Write Detection Finding on Match** | På som standard: varje träff skriver ett fynd i händelseflödet. |
 
-Tokens och lösenord krypteras och visas aldrig igen efter att du har sparat dem. För att ändra dem väljer du **Update Credentials** i flödets rad och sedan **Bearer-token**, **Användarnamn och lösenord** eller **Ingen inloggning**, som rensar det sparade: ditt val ersätter flödets inloggning, så att spara en token rensar ett sparat lösenord, och tvärtom.
+Ett TAXII-flödes tokens och lösenord krypteras och visas aldrig igen efter att du har sparat dem. För att ändra dem väljer du **Update Credentials** i flödets rad och sedan **Bearer-token**, **Användarnamn och lösenord** eller **Ingen inloggning**, som rensar det sparade: ditt val ersätter flödets inloggning, så att spara en token rensar ett sparat lösenord, och tvärtom.
 
 ### Så hämtas ett flöde
 
@@ -67,9 +86,22 @@ Hämtningarna presenterar sig med användaragenten `OneUptime/<version> (+https:
 
 Ett inaktiverat flöde varken hämtas eller matchas. Indikatorerna som det redan har fortsätter att märka nya händelser tills de löper ut.
 
+### Så läses en lista
+
+- Varje hämtning laddar ned hela listan och läser den en rad i taget: det första värdet på en rad, fram till ett mellanslag, en tabb, ett kommatecken eller ett semikolon. Rader som börjar med `#`, `;` eller `//` är kommentarer, en port efter en adress eller en domän tas bort, och ett adressintervall som `198.51.100.0/24` hoppas över.
+- Ett värde förblir en aktiv indikator i 2 dagar efter hämtningen som senast läste det, och ett värde som listan tar bort slutar träffa vid nästa hämtning. En lista som inte har ändrats skrivs om en gång per dag.
+- En lista rymmer högst 50 000 indikatorer. **Last Poll Summary** berättar hur många som lästes, hur många rader som hoppades över och hur många som lämnades utanför.
+- Adressen måste använda `https` och följer samma utgående regler som en anslutning: i OneUptime Cloud avvisas en privat adress.
+
+### Så läses Google SecOps
+
+- Varje hämtning läser indikatorträffarna som Google SecOps har registrerat sedan förra hämtningen, med Mandiants attribut: den träffade domänen, adressen eller filhashen, dess confidence, dess kategori och de kampanjer och aktörer den är kopplad till. Den första hämtningen läser de senaste 7 dagarna.
+- En indikator förblir aktiv i 30 dagar efter att Google SecOps senast såg den, eller tills dess källa säger att den inte längre är aktiv, och en som en analytiker har tystat i Google SecOps slutar träffa även här.
+- En träff som Google SecOps markerar som ett aktivt intrång är Critical, och en med hög prioritet är minst High.
+
 ## Vad som tas in
 
-OneUptime behåller STIX-objekt av typen `indicator` vars mönster är ren likhet på någon av de här typerna:
+Från en TAXII-samling behåller OneUptime STIX-objekt av typen `indicator` vars mönster är ren likhet på någon av de här typerna. En lista och Google SecOps ger samma typer:
 
 | Typ | Exempelmönster |
 | --- | --- |
@@ -108,7 +140,7 @@ Varje inkommande säkerhetshändelse, från intags-API:et eller en anslutning, k
 | Attribut | Värde |
 | --- | --- |
 | `threat.matched` | Alltid `"true"` på en märkt händelse |
-| `threat.indicator_id` | STIX-indikatorns ID |
+| `threat.indicator_id` | STIX-indikatorns ID, eller `list` eller `google-secops` för de källorna |
 | `threat.indicator_type` | Indikatorns typ, till exempel `ipv4-addr` eller `file-hash-sha256` |
 | `threat.indicator_value` | Värdet som träffade, med gemener |
 | `threat.feed` / `threat.feed_id` | Flödet som indikatorn kom från |
@@ -149,7 +181,7 @@ Varje minut matchas varje aktiverat flödes aktiva indikatorer mot händelserna 
 | Attribut | Värde |
 | --- | --- |
 | `oneuptime.threat.feed_id` / `oneuptime.threat.feed_name` | Flödet |
-| `oneuptime.threat.indicator_id` | STIX-indikatorns ID |
+| `oneuptime.threat.indicator_id` | STIX-indikatorns ID, eller `list` eller `google-secops` för de källorna |
 | `oneuptime.threat.indicator_type` / `oneuptime.threat.indicator_value` | Det som träffade |
 | `oneuptime.threat.confidence` | Indikatorns confidence |
 | `oneuptime.threat.match_count` | Hur många händelser som ligger bakom det här fyndet |
@@ -196,6 +228,14 @@ Läs **Last Poll Summary**. Inga objekt hämtade: samlingen är tom eller public
 
 :::details Det finns indikatorer, men ingenting träffar
 Matchningen jämför en indikators värde med en händelses observables, inte med varje fält: öppna en händelse som du väntade dig skulle träffa under **Händelser** och kontrollera att dess observables innehåller värdet. Bara indikatorer med statusen **Aktiv** träffar. Kontrollera **Last Match Error** på flödet.
+:::
+
+:::details Senaste fel för ett listflöde säger att adressen svarade med en webbsida
+**List-URL** öppnar en sida, till exempel en inloggnings- eller felsida, inte listan: öppna den i en webbläsare och kopiera adressen till själva filen. En lista vars text inte innehåller någon IP-adress, domän, URL eller filhash avvisas på samma sätt, och flödets indikatorer behålls som de var.
+:::
+
+:::details Senaste fel för ett Google SecOps-flöde säger HTTP 403
+Anslutningens tjänstkonto får inte söka bland indikatorträffar: ge det `roles/chronicle.viewer`. Om anslutningen har tagits bort säger flödet det: redigera det och välj en annan **Google SecOps-anslutning**.
 :::
 
 :::details En träff öppnade inget larm

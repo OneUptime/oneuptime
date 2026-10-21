@@ -1,6 +1,9 @@
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import SecurityEventDestinationProvider from "../../../../Types/SecurityEvent/Destinations/SecurityEventDestinationProvider";
+import ElasticSecuritySender from "./ElasticSecurity/ElasticSecuritySender";
 import GoogleSecOpsSender from "./GoogleSecOps/GoogleSecOpsSender";
+import MicrosoftSentinelSender from "./MicrosoftSentinel/MicrosoftSentinelSender";
+import SplunkHecSender from "./Splunk/SplunkHecSender";
 import { SecurityEventSender } from "./Types";
 
 /*
@@ -11,6 +14,15 @@ import { SecurityEventSender } from "./Types";
 const SENDERS: Map<SecurityEventDestinationProvider, SecurityEventSender> =
   new Map<SecurityEventDestinationProvider, SecurityEventSender>([
     [SecurityEventDestinationProvider.GoogleSecOps, new GoogleSecOpsSender()],
+    [SecurityEventDestinationProvider.Splunk, new SplunkHecSender()],
+    [
+      SecurityEventDestinationProvider.MicrosoftSentinel,
+      new MicrosoftSentinelSender(),
+    ],
+    [
+      SecurityEventDestinationProvider.ElasticSecurity,
+      new ElasticSecuritySender(),
+    ],
   ]);
 
 export default class SecurityEventDestinationRegistry {

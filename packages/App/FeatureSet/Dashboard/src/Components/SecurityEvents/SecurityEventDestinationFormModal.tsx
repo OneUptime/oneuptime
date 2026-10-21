@@ -159,10 +159,10 @@ export interface ComponentProps {
 }
 
 /*
- * Add or edit a SIEM OneUptime sends security events to. Walks the SIEM's
+ * Add or edit a SIEM OneUptime sends security events to. Picks the SIEM -
+ * Google SecOps, Splunk, Microsoft Sentinel or Elastic Security - walks its
  * own settings (with a test event that can be sent before saving), then
- * what to send. Today the SIEM is Google SecOps; the provider step appears
- * once the catalog offers more than one.
+ * what to send. An edit keeps its SIEM, so it starts at the settings.
  */
 const SecurityEventDestinationFormModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -261,11 +261,13 @@ const SecurityEventDestinationFormModal: FunctionComponent<ComponentProps> = (
     {
       field: { name: true },
       title: "Name",
-      description: "How this destination appears in the list.",
+      description:
+        "How this destination appears in the list. Left empty, it is the SIEM's name.",
       stepId: DESTINATION_SEND_STEP_ID,
       fieldType: FormFieldSchemaType.Text,
-      required: true,
-      placeholder: "e.g. Google SecOps production",
+      // The SIEM's name when none is typed (readSecurityEventDestinationForm).
+      required: false,
+      placeholder: "e.g. Production SIEM",
     },
     ...(isEditing
       ? [

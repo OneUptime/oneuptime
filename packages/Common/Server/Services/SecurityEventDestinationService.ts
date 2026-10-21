@@ -6,7 +6,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
-import { JSONObject } from "../../Types/JSON";
+import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import {
   SecurityEventDestinationDefinition,
@@ -20,6 +20,7 @@ import {
   isSecurityEventDestinationScope,
 } from "../../Types/SecurityEvent/Destinations/SecurityEventDestinationScope";
 import SecurityEventDestinationRegistry from "../Utils/SecurityEvent/Destinations/SecurityEventDestinationRegistry";
+import DataSourceEgressGuard from "../Utils/DataSource/EgressGuard";
 import { SecurityEventDestinationSettings } from "../Utils/SecurityEvent/Destinations/Types";
 
 /*
@@ -98,6 +99,34 @@ export class Service extends DatabaseService<Model> {
     return settings;
   }
 
+  /*
+   * A SIEM's address a person typed (Splunk's HEC, Azure's ingestion
+   * endpoint, Elasticsearch) goes through the egress policy every outbound
+   * connector uses, at save time, so a blocked address is a form error
+   * rather than a send that fails on every run. The sender's own requests
+   * go through it again (DataSourceHttpFetch).
+   */
+  public static async assertUrlsAllowed(
+    definition: SecurityEventDestinationDefinition,
+    config: JSONObject,
+  ): Promise<void> {
+    for (const field of definition.configFields) {
+      if (field.type !== "url") {
+        continue;
+      }
+
+      const value: JSONValue | undefined = config[field.key];
+
+      if (typeof value !== "string" || !value.trim()) {
+        continue;
+      }
+
+      await DataSourceEgressGuard.assertUrlAllowed(value.trim(), {
+        targetLabel: field.title,
+      });
+    }
+  }
+
   private static validateScope(value: unknown): void {
     if (value === undefined) {
       return;
@@ -133,6 +162,8 @@ export class Service extends DatabaseService<Model> {
       secrets,
       requireRequiredSecrets: true,
     });
+
+    await Service.assertUrlsAllowed(definition, config);
 
     createBy.data.config = config;
     createBy.data.secrets = JSON.stringify(secrets);
@@ -243,6 +274,10 @@ export class Service extends DatabaseService<Model> {
       secrets: mergedSecrets,
       requireRequiredSecrets: true,
     });
+
+    if (incoming["config"] !== undefined) {
+      await Service.assertUrlsAllowed(definition, config);
+    }
 
     incoming["config"] = config;
     incoming["secrets"] = JSON.stringify(mergedSecrets);

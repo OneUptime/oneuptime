@@ -137,6 +137,18 @@ import GenericNormalizer from "Common/Utils/SecurityEvent/GenericNormalizer";
 import OcsfNormalizer from "Common/Utils/SecurityEvent/OcsfNormalizer";
 import SecurityEventNormalizer from "Common/Utils/SecurityEvent/SecurityEventNormalizer";
 import SigmaRuleParser from "Common/Utils/SecurityEvent/Sigma/SigmaRuleParser";
+import ThreatIntelFeedType, {
+  RECOMMENDED_THREAT_INTEL_LISTS,
+  RecommendedThreatIntelList,
+  THREAT_INTEL_FEED_TYPE_DEFINITIONS,
+  THREAT_INTEL_GOOGLE_SECOPS_MAX_WINDOW_IN_DAYS,
+  THREAT_INTEL_GOOGLE_SECOPS_VALID_DAYS,
+  THREAT_INTEL_LIST_MAX_INDICATORS,
+  THREAT_INTEL_LIST_MIN_POLL_INTERVAL_IN_MINUTES,
+  THREAT_INTEL_LIST_VALID_DAYS,
+  ThreatIntelFeedTypeDefinition,
+} from "Common/Types/SecurityEvent/ThreatIntelFeedType";
+import IndicatorListParser from "Common/Utils/SecurityEvent/ThreatIntel/IndicatorListParser";
 import StixPatternParser, {
   ParsedIndicatorValue,
 } from "Common/Utils/SecurityEvent/ThreatIntel/StixPatternParser";
@@ -1889,7 +1901,7 @@ describe("the Threat Intelligence page", () => {
     );
   });
 
-  it("creates a feed in the form's three steps, with its fields", () => {
+  it("creates a feed from its source, then the source's own step, with its fields", () => {
     const page_: string = flat(source("threatIntel"));
     // The page, the On Match step it shares, and the choices' words.
     const form: string = [
@@ -1900,13 +1912,28 @@ describe("the Threat Intelligence page", () => {
     const rows: Array<Array<string>> = rowsOf(page, "Subscribe a feed");
 
     expect(page_).toContain(
-      'formSteps={[ { title: "TAXII Server", id: "taxii-server" }, { title: TAXII_SIGN_IN_FIELD_TITLE, id: "sign-in",',
+      'formSteps={[ { title: "Source", id: "source" }, {',
+    );
+    expect(page_).toContain('title: "List", id: "list",');
+    expect(page_).toContain('title: "TAXII Server", id: "taxii-server",');
+    expect(page_).toContain('title: "Google SecOps", id: "google-secops",');
+    expect(page_).toContain(
+      '{ title: TAXII_SIGN_IN_FIELD_TITLE, id: "sign-in",',
     );
     expect(page_).toContain('{ title: "On Match", id: "on-match" }, ]}');
     expect(TAXII_SIGN_IN_FIELD_TITLE).toBe("Sign-in");
     expect(page).toContain(
-      "Click **Create Threat Intel Feed** and fill in its three steps: **TAXII Server**, **Sign-in** and **On Match**.",
+      "Click **Create Threat Intel Feed** and pick its **Source**: **List of indicators**, **TAXII collection** or **Google SecOps**. The next step asks for that source alone: a list's **List URL**, a collection's **TAXII Server** and **Sign-in**, or the **Google SecOps Connection**. **On Match** comes last.",
     );
+
+    // The sources, in the form's order and words.
+    expect(
+      THREAT_INTEL_FEED_TYPE_DEFINITIONS.map(
+        (definition: ThreatIntelFeedTypeDefinition): string => {
+          return definition.title;
+        },
+      ),
+    ).toEqual(["List of indicators", "TAXII collection", "Google SecOps"]);
 
     // Every field a row names is one the form draws, by that title.
     for (const row of rows) {
@@ -1964,13 +1991,13 @@ describe("the Threat Intelligence page", () => {
       "pollIntervalInMinutes: THREAT_INTEL_DEFAULT_POLL_INTERVAL_IN_MINUTES,",
     );
     expect(rowNamed(rows, "**Poll Interval (Minutes)**")[1]).toBe(
-      "How often to fetch new objects: 1 to 1440 minutes, 60 by default.",
+      `How often to read the source: 1 to 1440 minutes, 60 by default. A list is read every ${THREAT_INTEL_LIST_MIN_POLL_INTERVAL_IN_MINUTES} minutes at most.`,
     );
     expect(THREAT_INTEL_MINIMUM_CONFIDENCE_MIN).toBe(0);
     expect(THREAT_INTEL_MINIMUM_CONFIDENCE_MAX).toBe(100);
     expect(form).toContain("minimumConfidence: 0,");
     expect(rowNamed(rows, "**Minimum Confidence**")[1]).toBe(
-      "Indicators with a lower STIX `confidence` are skipped: 0 to 100, 0 keeps everything. Indicators with no confidence always pass.",
+      "For a TAXII collection or Google SecOps: indicators with a lower confidence are skipped, 0 to 100, 0 keeps everything. Indicators with no confidence always pass.",
     );
   });
 
@@ -2031,7 +2058,7 @@ describe("the Threat Intelligence page", () => {
       '} else if (mode === "anonymous") { update = { apiToken: null, basicAuthUsername: null, basicAuthPassword: null, };',
     );
     expect(page).toContain(
-      "Tokens and passwords are encrypted and never shown again after you save them. To change them, pick **Update Credentials** in the feed's row and choose **Bearer token**, **Username and password** or **No sign-in**, which clears what is stored: your choice replaces the feed's sign-in, so saving a token clears a stored password, and the other way round.",
+      "A TAXII feed's tokens and passwords are encrypted and never shown again after you save them. To change them, pick **Update Credentials** in the feed's row and choose **Bearer token**, **Username and password** or **No sign-in**, which clears what is stored: your choice replaces the feed's sign-in, so saving a token clears a stored password, and the other way round.",
     );
   });
 
@@ -2073,8 +2100,71 @@ describe("the Threat Intelligence page", () => {
     expect(ingest({ type: "attack-pattern" }).outcome).toBe("not-indicator");
     expect(ingest().outcome).toBe("ingested");
     expect(page).toContain(
-      "OneUptime keeps STIX `indicator` objects whose pattern is plain equality on one of these types:",
+      "From a TAXII collection, OneUptime keeps STIX `indicator` objects whose pattern is plain equality on one of these types. A list and Google SecOps give the same types:",
     );
+  });
+
+  it("lists the free lists OneUptime adds in one click, as the catalog defines them", () => {
+    const rows: Array<Array<string>> = rowsOf(page, "Add a free list");
+
+    expect(
+      rows.map((row: Array<string>): Array<string> => {
+        return [row[0] as string, row[1] as string, row[3] as string];
+      }),
+    ).toEqual(
+      RECOMMENDED_THREAT_INTEL_LISTS.map(
+        (list: RecommendedThreatIntelList): Array<string> => {
+          return [
+            list.title,
+            list.provider,
+            `${list.indicatorConfidence}, ${ocsfSeverityForConfidence(list.indicatorConfidence)}`,
+          ];
+        },
+      ),
+    );
+
+    for (const [index, list] of RECOMMENDED_THREAT_INTEL_LISTS.entries()) {
+      const row: Array<string> = rows[index] as Array<string>;
+
+      expect(row[2]).toBe(
+        list.pollIntervalInMinutes === 1440 ? "Every day" : "Every hour",
+      );
+      expect(row[4]).toBe(list.raisesAlerts ? "A case and an alert" : "A case");
+    }
+  });
+
+  it("reads a list as the list parser and source read it", () => {
+    expect(THREAT_INTEL_LIST_VALID_DAYS).toBe(2);
+    expect(THREAT_INTEL_LIST_MAX_INDICATORS).toBe(50000);
+    expect(
+      IndicatorListParser.parse(
+        "# comment\n; comment\n// comment\n203.0.113.7:443 C2\n198.51.100.0/24\nevil.example,x",
+        { maxValues: 10 },
+      ),
+    ).toMatchObject({
+      values: [
+        { type: ThreatIntelIndicatorType.Ipv4Address, value: "203.0.113.7" },
+        { type: ThreatIntelIndicatorType.DomainName, value: "evil.example" },
+      ],
+      unsupported: 1,
+    });
+    expect(page).toContain(
+      "Lines starting with `#`, `;` or `//` are comments, a port after an address or a domain is dropped, and an address range such as `198.51.100.0/24` is skipped.",
+    );
+    expect(page).toContain(
+      `A value stays an active indicator for ${THREAT_INTEL_LIST_VALID_DAYS} days after the poll that last read it, and a value the list drops stops matching at the next poll.`,
+    );
+    expect(page).toContain("A list holds at most 50,000 indicators.");
+  });
+
+  it("reads Google SecOps's indicators for the window and validity the source uses", () => {
+    expect(THREAT_INTEL_GOOGLE_SECOPS_MAX_WINDOW_IN_DAYS).toBe(7);
+    expect(THREAT_INTEL_GOOGLE_SECOPS_VALID_DAYS).toBe(30);
+    expect(page).toContain("The first poll reads the last 7 days.");
+    expect(page).toContain(
+      "An indicator stays active for 30 days after Google SecOps last saw it, or until its source says it stops being active, and one an analyst muted in Google SecOps stops matching here too.",
+    );
+    expect(ThreatIntelFeedType.GoogleSecOps).toBe("google-secops");
   });
 
   it("reads each example pattern of the types table as one indicator of its type", () => {

@@ -1,9 +1,10 @@
 # 위협 인텔리전스(STIX/TAXII)
 
-위협 인텔리전스 피드는 알려진 악성 IP 주소, 도메인, URL, 이메일 주소, 파일 해시를 OneUptime으로 가져와, 여러분의 [보안 이벤트](/docs/telemetry/security-events) 가 그중 하나를 언급하면 알려 줍니다. 각 피드는 STIX 2.1 지표를 담은 TAXII 2.1 컬렉션 하나를 구독합니다. 직접 운영하는 MISP, OpenCTI, OpenTAXII 서버일 수도 있고, 공급자의 컬렉션일 수도 있습니다. OneUptime은 자체 피드 콘텐츠를 제공하지 않습니다. Sigma 규칙과 마찬가지로 컬렉션은 여러분이 가져옵니다.
+위협 인텔리전스 피드는 알려진 악성 IP 주소, 도메인, URL, 이메일 주소, 파일 해시를 OneUptime으로 가져와, 여러분의 [보안 이벤트](/docs/telemetry/security-events) 가 그중 하나를 언급하면 알려 줍니다. 피드는 소스 하나를 읽습니다. OneUptime이 클릭 한 번으로 추가하는 무료 목록처럼 https 주소에 있는 지표 목록, 직접 운영하는 MISP, OpenCTI, OpenTAXII 서버나 공급자의 STIX 2.1 지표를 담은 TAXII 2.1 컬렉션, 또는 Google SecOps가 여러분의 이벤트에서 찾은 지표입니다.
 
 :::cards
-- [피드 구독하기](#피드-구독하기): TAXII 서버, 컬렉션, 로그인 방법.
+- [무료 목록 추가하기](#무료-목록-추가하기): Feodo Tracker, Emerging Threats, Tor 출구 노드를 클릭 한 번으로.
+- [피드 구독하기](#피드-구독하기): 목록의 주소, TAXII 컬렉션, 또는 Google SecOps 연결.
 - [수집되는 것](#수집되는-것): OneUptime이 보관하는 지표 패턴과 보관 기간.
 - [일치를 찾는 방법](#일치를-찾는-방법): 이벤트가 도착할 때 태그하고, 매분 대조합니다.
 - [위협 수준](#위협-수준): 지표의 confidence가 심각도가 되는 방식.
@@ -11,9 +12,9 @@
 
 ## 작동 방식
 
-```mermaid title="TAXII 컬렉션에서 알림까지"
+```mermaid title="피드에서 알림까지"
 flowchart TB
-    taxii["TAXII 2.1 컬렉션"] -->|"피드의 간격마다<br/>폴링"| indicators["지표: IP,<br/>도메인, URL,<br/>이메일, 해시"]
+    taxii["목록, TAXII 컬렉션<br/>또는 Google SecOps"] -->|"피드의 간격마다<br/>폴링"| indicators["지표: IP,<br/>도메인, URL,<br/>이메일, 해시"]
     events["새 보안 이벤트"] --> tag["도착할 때<br/>threat.* 속성으로<br/>태그"]
     indicators --> tag
     indicators --> match["매분 최근<br/>이벤트와 대조"]
@@ -22,9 +23,23 @@ flowchart TB
 
 ## 시작하기 전에
 
-- STIX 2.1 `indicator` 객체를 게시하는 TAXII 2.1 서버와, 폴링할 컬렉션의 ID. 피드는 익명, bearer 토큰, 또는 HTTP Basic 인증으로 로그인합니다.
+- 목록이라면 한 줄에 지표 하나씩 적힌 텍스트 파일을 내려받는 `https` 주소.
+- TAXII 피드라면 STIX 2.1 `indicator` 객체를 게시하는 TAXII 2.1 서버와, 폴링할 컬렉션의 ID. TAXII 피드는 익명, bearer 토큰, 또는 HTTP Basic 인증으로 로그인합니다.
+- Google SecOps 피드라면 서비스 계정이 지표 일치를 검색할 수 있는 [Google SecOps 연결](/docs/integrations/google-secops#관리형-커넥터-설정). `roles/chronicle.viewer` 역할이면 검색할 수 있습니다.
 - CISA AIS처럼 TLS 클라이언트 인증서(상호 TLS)를 요구하는 서버는 지원하지 않습니다. MITRE의 공개 ATT&CK 서버는 지표가 아니라 기법과 그룹을 게시하므로, 그 서버를 가리키는 피드는 비어 있게 됩니다.
 - 피드를 만들 수 있는 역할: Project Owner, Project Admin, Security Admin, Security Member. Security Viewer는 피드와 지표를 읽을 수 있습니다. [역할](/docs/permissions/reference#역할) 을 참고하세요.
+
+## 무료 목록 추가하기
+
+**Threat Intel** 의 **무료 목록** 카드는 무료 차단 목록을 클릭 한 번으로 추가합니다. 목록에서 **목록 추가** 를 클릭하면 OneUptime이 목록의 일정대로 그 목록을 내려받는 피드를 만듭니다. 프로젝트가 이미 읽고 있는 목록에는 **추가됨** 이 표시됩니다.
+
+| 목록 | 게시자 | 읽기 | 신뢰도 | 일치하면 여는 것 |
+| --- | --- | --- | --- | --- |
+| Feodo Tracker 봇넷 C2 서버 | abuse.ch | 매시간 | 90, Critical | 케이스와 알림 |
+| Emerging Threats 침해된 호스트 | Proofpoint Emerging Threats | 매일 | 70, High | 케이스와 알림 |
+| Tor 출구 노드 | The Tor Project | 매시간 | 30, Low | 케이스 |
+
+목록의 타일에는 이용 약관 링크가 있습니다. Feodo Tracker는 어떤 용도로든 무료이며(CC0), Emerging Threats 목록은 BSD 라이선스입니다. 목록에서 추가한 피드도 다른 피드처럼 편집하고 삭제합니다.
 
 ## 피드 구독하기
 
@@ -35,7 +50,7 @@ flowchart TB
 
 ### 피드 만들기
 
-**Threat Intel Feed 만들기** 를 클릭하고 **TAXII 서버**, **로그인**, **일치 시** 의 세 단계를 채웁니다. 필드는 아래 표에 있습니다.
+**Threat Intel Feed 만들기** 를 클릭하고 **소스** 로 **지표 목록**, **TAXII 컬렉션**, **Google SecOps** 중 하나를 고릅니다. 다음 단계는 그 소스에 필요한 것만 묻습니다. 목록이면 **목록 URL**, 컬렉션이면 **TAXII 서버** 와 **로그인**, Google SecOps면 **Google SecOps 연결** 입니다. **일치 시** 는 마지막입니다. 필드는 아래 표에 있습니다.
 
 ### 첫 폴링 확인하기
 
@@ -44,10 +59,14 @@ flowchart TB
 
 | 필드 | 입력할 내용 |
 | --- | --- |
+| **소스** | 지표를 가져오는 곳. 피드를 만들 때 정해지며, 다른 소스의 피드는 새 피드입니다. |
+| **목록 URL** | 목록이라면: 한 줄에 IP 주소, 도메인, URL, 파일 해시 하나씩 적힌 텍스트 파일의 `https` 주소. |
+| **Confidence** | 목록이라면: 목록의 확실성으로, 1~100입니다. 목록의 모든 지표가 이 값을 받으며, 이 값이 [위협 수준](#위협-수준) 을 정합니다. 비워 두면 Medium입니다. |
+| **Google SecOps 연결** | Google SecOps라면: Google SecOps가 찾은 지표를 키로 읽는 연결. 연결이 없으면 **Google SecOps 연결** 이 **Connections** 를 엽니다. |
 | **TAXII API Root URL** | 서버의 TAXII 2.1 API 루트. 예: `https://taxii.example.com/api1/`. 컬렉션은 그 아래에서 주소가 지정됩니다. |
 | **Collection ID** | 지표를 게시하는 컬렉션. |
-| **Poll Interval (Minutes)** | 새 객체를 가져오는 빈도. 1~1440분이며 기본값은 60입니다. |
-| **Minimum Confidence** | STIX `confidence` 가 이보다 낮은 지표는 건너뜁니다. 0~100이며, 0이면 모두 남깁니다. confidence가 없는 지표는 항상 통과합니다. |
+| **Poll Interval (Minutes)** | 소스를 읽는 빈도. 1~1440분이며 기본값은 60입니다. 목록은 많아야 15분마다 한 번 읽습니다. |
+| **Minimum Confidence** | TAXII 컬렉션이나 Google SecOps라면: confidence가 이보다 낮은 지표는 건너뜁니다. 0~100이며, 0이면 모두 남깁니다. confidence가 없는 지표는 항상 통과합니다. |
 | **로그인** | OneUptime의 로그인 방식입니다. 공개 컬렉션에는 **로그인 없음**, 서버 운영자에게 받은 토큰에는 **Bearer 토큰**, HTTP Basic 인증에는 **사용자 이름과 비밀번호** 를 고릅니다. |
 | **API Token**, **Basic Auth Username**, **Basic Auth Password** | 고른 로그인 방식에 필요한 것만 묻습니다. |
 | **Open a Case on Match** | 기본적으로 켜짐: 지표가 들어 있는 이벤트마다 그 지표에 관한 [케이스](/docs/telemetry/security-cases) 를 열거나, 이미 그 지표에 관해 열려 있는 케이스에 합류합니다. |
@@ -57,7 +76,7 @@ flowchart TB
 | **인시던트 심각도** | **알림 심각도** 와 같으며, 인시던트용입니다. |
 | **Write Detection Finding on Match** | 기본적으로 켜짐: 일치할 때마다 이벤트 스트림에 탐지 결과를 기록합니다. |
 
-토큰과 비밀번호는 암호화되며, 저장한 뒤에는 다시 표시되지 않습니다. 바꾸려면 피드 행에서 **Update Credentials** 를 고른 뒤 **Bearer 토큰**, **사용자 이름과 비밀번호**, 저장된 것을 지우는 **로그인 없음** 중 하나를 선택하세요. 선택한 것이 피드의 로그인 방식을 대체하므로, 토큰을 저장하면 저장된 비밀번호가 지워지고 그 반대도 마찬가지입니다.
+TAXII 피드의 토큰과 비밀번호는 암호화되며, 저장한 뒤에는 다시 표시되지 않습니다. 바꾸려면 피드 행에서 **Update Credentials** 를 고른 뒤 **Bearer 토큰**, **사용자 이름과 비밀번호**, 저장된 것을 지우는 **로그인 없음** 중 하나를 선택하세요. 선택한 것이 피드의 로그인 방식을 대체하므로, 토큰을 저장하면 저장된 비밀번호가 지워지고 그 반대도 마찬가지입니다.
 
 ### 피드를 폴링하는 방식
 
@@ -67,9 +86,22 @@ flowchart TB
 
 비활성화된 피드는 폴링도 대조도 하지 않습니다. 이미 가진 지표는 만료될 때까지 새 이벤트에 계속 태그를 붙입니다.
 
+### 목록을 읽는 방식
+
+- 폴링할 때마다 목록 전체를 내려받아 한 줄씩 읽습니다. 각 줄의 첫 번째 값을 공백, 탭, 쉼표, 세미콜론 앞까지 읽습니다. `#`, `;`, `//` 로 시작하는 줄은 주석이고, 주소나 도메인 뒤의 포트는 떼어 내며, `198.51.100.0/24` 같은 주소 범위는 건너뜁니다.
+- 값은 마지막으로 그 값을 읽은 폴링 후 2일 동안 활성 지표로 남고, 목록에서 빠진 값은 다음 폴링부터 일치하지 않습니다. 바뀌지 않은 목록도 하루에 한 번 다시 기록됩니다.
+- 목록 하나에는 지표가 최대 50,000개 들어갑니다. **Last Poll Summary** 가 읽은 개수, 건너뛴 줄 수, 제외된 개수를 알려 줍니다.
+- 주소는 `https` 를 써야 하며 연결과 같은 아웃바운드 규칙을 따릅니다. OneUptime Cloud에서는 사설 주소가 거부됩니다.
+
+### Google SecOps를 읽는 방식
+
+- 폴링할 때마다 이전 폴링 이후 Google SecOps가 기록한 지표 일치를 Mandiant의 속성과 함께 읽습니다. 일치한 도메인, 주소, 파일 해시와 그 신뢰도, 카테고리, 관련된 캠페인과 행위자입니다. 첫 폴링은 최근 7일을 읽습니다.
+- 지표는 Google SecOps가 마지막으로 본 뒤 30일 동안, 또는 소스가 더 이상 활성이 아니라고 할 때까지 활성 상태이며, 분석가가 Google SecOps에서 음소거한 지표는 여기서도 더 이상 일치하지 않습니다.
+- Google SecOps가 활성 침해로 표시한 일치는 Critical이고, 우선순위가 높은 일치는 최소 High입니다.
+
 ## 수집되는 것
 
-OneUptime은 패턴이 다음 유형 중 하나에 대한 단순한 동등 비교인 STIX `indicator` 객체를 보관합니다.
+TAXII 컬렉션에서 OneUptime은 패턴이 다음 유형 중 하나에 대한 단순한 동등 비교인 STIX `indicator` 객체를 보관합니다. 목록과 Google SecOps도 같은 유형을 제공합니다.
 
 | 유형 | 패턴 예 |
 | --- | --- |
@@ -108,7 +140,7 @@ OneUptime은 패턴이 다음 유형 중 하나에 대한 단순한 동등 비�
 | 속성 | 값 |
 | --- | --- |
 | `threat.matched` | 태그된 이벤트에서는 항상 `"true"` |
-| `threat.indicator_id` | STIX 지표의 ID |
+| `threat.indicator_id` | STIX 지표의 ID, 또는 그 소스라면 `list` 나 `google-secops` |
 | `threat.indicator_type` | 지표의 유형. 예: `ipv4-addr` 또는 `file-hash-sha256` |
 | `threat.indicator_value` | 일치한 값(소문자) |
 | `threat.feed` / `threat.feed_id` | 지표를 가져온 피드 |
@@ -149,7 +181,7 @@ detection:
 | 속성 | 값 |
 | --- | --- |
 | `oneuptime.threat.feed_id` / `oneuptime.threat.feed_name` | 피드 |
-| `oneuptime.threat.indicator_id` | STIX 지표의 ID |
+| `oneuptime.threat.indicator_id` | STIX 지표의 ID, 또는 그 소스라면 `list` 나 `google-secops` |
 | `oneuptime.threat.indicator_type` / `oneuptime.threat.indicator_value` | 일치한 것 |
 | `oneuptime.threat.confidence` | 지표의 confidence |
 | `oneuptime.threat.match_count` | 이 탐지 결과의 근거가 된 이벤트 수 |
@@ -196,6 +228,14 @@ detection:
 
 :::details 지표는 있는데 아무것도 일치하지 않음
 대조는 지표의 값을 이벤트의 모든 필드가 아니라 observable과 비교합니다. 일치할 것으로 예상한 이벤트를 **이벤트** 에서 열어, 그 observable에 값이 들어 있는지 확인하세요. 상태가 **활성** 인 지표만 일치합니다. 피드의 **Last Match Error** 도 확인하세요.
+:::
+
+:::details 목록 피드의 마지막 오류에 주소가 웹 페이지로 응답했다고 나옴
+**목록 URL** 이 목록이 아니라 로그인 페이지나 오류 페이지 같은 페이지를 엽니다. 브라우저에서 열어 파일 자체의 주소를 복사하세요. IP 주소, 도메인, URL, 파일 해시가 하나도 없는 목록도 같은 방식으로 거부되며, 피드의 지표는 그대로 유지됩니다.
+:::
+
+:::details Google SecOps 피드의 마지막 오류에 HTTP 403이 나옴
+연결의 서비스 계정이 지표 일치를 검색할 수 없습니다. `roles/chronicle.viewer` 를 부여하세요. 연결이 삭제되었으면 피드에 그렇게 표시되니, 피드를 편집해 다른 **Google SecOps 연결** 을 고르세요.
 :::
 
 :::details 일치했는데 알림이 열리지 않음

@@ -288,7 +288,64 @@ OneUptime exécute le noyau booléen de Sigma :
 - `Image` et `CommandLine` lisent le processus dont parle l'événement, celui qui a été lancé lors d'un lancement de processus (`processPath`, `processCommandLine`), et `ParentImage` et `ParentCommandLine` le processus qui l'a lancé (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` est le processus qui a agi, c'est-à-dire le parent lors d'un lancement.
 - `level` fixe la gravité : `informational`, `low`, `medium`, `high` ou `critical`, et `medium` s'il manque. Les ID ATT&CK dans `tags` (`attack.t1110`, `attack.ta0006`) remplissent les champs MITRE du constat.
 
-Les agrégations comme `| count() by principalIp > 5` sont refusées à l'enregistrement : utilisez plutôt **Champ de regroupement** et **Seuil de nombre de correspondances**. `logsource` est purement informatif et ne restreint rien : placez ce filtre dans une sélection, comme `className: Authentication`. Un `timeframe` est ignoré, car l'intervalle de la règle fixe sa fenêtre.
+Les agrégations comme `| count() by principalIp > 5` sont refusées à l'enregistrement : utilisez plutôt une [règle de corrélation](#règles-de-corrélation), ou **Champ de regroupement** et **Seuil de nombre de correspondances**. `logsource` est purement informatif et ne restreint rien : placez ce filtre dans une sélection, comme `className: Authentication`. Un `timeframe` est ignoré, car l'intervalle de la règle fixe sa fenêtre.
+
+### Règles de corrélation
+
+Une [corrélation Sigma](https://sigmahq.io/docs/meta/correlations.html) se déclenche sur plusieurs événements ensemble plutôt que sur un seul. Collez-la dans **Sigma Rule (YAML)** avec les règles qu'elle lit, sous forme de documents YAML séparés par `---`, ou nommez des règles que le projet a déjà par leur `name` ou leur `id` Sigma. La **Rule Library** en propose des prêtes à l'emploi, comme des échecs de connexion suivis d'une réussite.
+
+| Type | Se déclenche quand | Affiché comme |
+| --- | --- | --- |
+| `event_count` | Un groupe atteint un nombre d'événements dans le `timespan` | Nombre d'événements |
+| `value_count` | Un groupe présente un nombre de valeurs différentes d'un champ dans le `timespan` | Valeurs distinctes |
+| `temporal` | Chaque règle correspond pour le même groupe dans le `timespan`, dans n'importe quel ordre | Événements ensemble |
+| `temporal_ordered` | Les règles correspondent dans leur ordre pour le même groupe dans le `timespan` | Sequence |
+| `new_value` | Un groupe présente une valeur d'un champ qu'il n'a pas présentée dans le `timespan` | Vu pour la première fois |
+
+```yaml title="failed-then-success.yml"
+title: Failed sign-ins, then a success from the same address
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_ins
+    - successful_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+---
+title: Five failed sign-ins
+name: failed_sign_ins
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+  condition:
+    gte: 5
+---
+title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+```
+
+- Un groupe est la valeur des champs de `group-by`, comme une adresse. Les comptes sont glissants : une rafale que deux exécutions se partagent est quand même comptée en entier dans son `timespan`, qui dure au plus 24 heures.
+- `new_value` est un type propre à OneUptime, car Sigma n'a pas de corrélation « vu pour la première fois » : il compare avec jusqu'à 30 jours d'historique. `value_sum`, `value_avg`, `value_percentile` et `value_median` sont refusés à l'enregistrement.
+- La colonne **Type** de **Règles de détection** nomme le genre de chaque règle, et le formulaire dit en une phrase ce que la règle recherche.
 
 ### Paramètres d'évaluation
 

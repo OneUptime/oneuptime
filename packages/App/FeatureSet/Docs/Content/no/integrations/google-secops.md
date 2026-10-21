@@ -108,6 +108,7 @@ Velg **Test these settings** under **Test før du lagrer** før du lagrer. Teste
 | --- | --- | --- |
 | **Region** | Det regionale endepunktet for Google SecOps (`us`, `europe`, `asia-southeast1`, ...) som samsvarer med plasseringen i ressursnavnet til instansen din. Det finnes ingen standard, slik at en leier utenfor USA ikke ved et uhell kan lagre feil endepunkt. | Ja |
 | **Ressursnavnet til instansen** | Google SecOps **SIEM Settings → Profile**: `projects/{project}/locations/{location}/instances/{instance}`. | Ja |
+| **Lukk varsler når saken deres lukkes** | På skjemaets siste steg, av til du slår det på. På lukker en lukket sak Google SecOps-varslene dens: se [Lukk varsler når saken deres lukkes](#lukk-varsler-når-saken-deres-lukkes). | Nei |
 | **JSON for tjenestekontoen** | Google Cloud, tjenestekontoens fane **Keys**. Lim inn hele JSON-nøkkelfilen. Bare skriving: kryptert i hvile, aldri returnert av API-et, aldri vist på siden igjen. Bruk **Update credentials** på tilkoblingen for å bytte den. | Ja |
 | **Data to import** | **Varsler** importeres alltid, fordi varsel-API-et til Google alltid returnerer dem. Velg **Detections** for også å importere regeltreff som ikke ga et varsel. Dette videresender ikke rå UDM-hendelser: dem videresender du selv, som ovenfor. | Varsler alltid |
 
@@ -213,6 +214,17 @@ Google SecOps lagrer alvorlighetsgraden til en deteksjon på ulike steder avheng
 
 En deteksjon som ingen av disse deler inn, vises som Unknown. For å dele inn en egendefinert regel legger du til en alvorlighetsgrad i seksjonen `meta` i Google SecOps, for eksempel `severity = "High"`, eller setter `$risk_score` i seksjonen `outcome`. Deteksjoner som regelen oppretter etter det, importeres med den alvorlighetsgraden.
 
+## Lukk varsler når saken deres lukkes
+
+Med **Lukk varsler når saken deres lukkes** på lukker en lukket [sikkerhetssak](/docs/telemetry/security-cases#lukk-en-sak) Google SecOps-varslene den kom fra. Hvert varsel merkes som lukket med sakens konklusjon, en True Positive som ondsinnet og en False Positive eller Benign Positive som ikke ondsinnet, sammen med sakens avslutningsnotat og en lenke tilbake til saken. Sakens tidslinje forteller hvor mange varsler som ble lukket.
+
+- Tjenestekontoen trenger `chronicle.legacies.legacyUpdateAlert`, som rollen `roles/chronicle.editor` har. Rollen `roles/chronicle.viewer` leser varsler, men kan ikke lukke dem, og en `403` står da på saken.
+- Et varsel Google SecOps ikke lenger har, hoppes over. Når Google SecOps ikke kan nås, prøver OneUptime igjen i omtrent en time og skriver så på saken hva den ikke kunne lukke.
+
+## Følg med på de andre hendelsene dine etter indikatorene
+
+En [threat intel-feed](/docs/telemetry/threat-intelligence#slik-leses-google-secops) med **Google SecOps** som **Kilde** leser gjennom denne tilkoblingen indikatorene som trusseletterretningen i Google SecOps fant i hendelsene der, og følger med på resten av prosjektets hendelser etter dem: påloggingene, nettverksflytene og endepunkthendelsene som Google SecOps aldri så.
+
 ## Send sikkerhetshendelser til Google SecOps
 
 OneUptime kan også sende det det finner til Google SecOps, slik at SIEM-et teamet ditt jobber i, ser deteksjonene til OneUptime ved siden av sine egne. Hver sikkerhetshendelse importeres som en UDM-hendelse: en pålogging som `USER_LOGIN`, en prosessoppstart som `PROCESS_LAUNCH`, en nettverkstilkobling som `NETWORK_CONNECTION` og alt annet som `GENERIC_EVENT`, med alvorlighetsgrad, MITRE ATT&CK-tagger og regelen som fant den.
@@ -224,7 +236,7 @@ Opprett en tjenestekonto i Google Cloud i prosjektet SecOps-instansen din er kny
 
 ### Legg til målet
 
-Åpne **Produkter → Security Events → Connections**. Klikk på **Legg til mål** under **Send til SIEM-et ditt**. Velg **Region**, fyll inn **Ressursnavnet til instansen** som for koblingen over, og lim inn nøkkelen i **JSON for tjenestekontoen**.
+Åpne **Produkter → Security Events → Connections**. Klikk på **Legg til mål** under **Send til SIEM-et ditt**, velg Google SecOps under **SIEM**, og klikk på **Neste**. Velg **Region**, fyll inn **Ressursnavnet til instansen** som for koblingen over, og lim inn nøkkelen i **JSON for tjenestekontoen**.
 
 ### Send en testhendelse
 

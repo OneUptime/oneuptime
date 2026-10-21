@@ -108,6 +108,7 @@ OneUptime 按间隔轮询你租户的检测和警报，无需任何 SOAR 配置�
 | --- | --- | --- |
 | **区域** | 与实例资源名称中的位置相匹配的 Google SecOps 区域终结点（`us`、`europe`、`asia-southeast1`……）。它没有默认值，所以美国以外的租户不会意外保存错误的终结点。 | 是 |
 | **实例资源名称** | Google SecOps **SIEM Settings → Profile**：`projects/{project}/locations/{location}/instances/{instance}`。 | 是 |
+| **案例关闭时关闭其警报** | 在表单的最后一步，在你打开之前一直关闭。打开后，关闭案例会关闭它的 Google SecOps 警报：参见 [案例关闭时关闭其警报](#案例关闭时关闭其警报)。 | 否 |
 | **服务账户 JSON** | Google Cloud 中服务账号的 **Keys** 选项卡。粘贴整个 JSON 密钥文件。只写：静态加密存储，API 从不返回，页面上也从不回显。在连接上使用 **Update credentials** 来轮换它。 | 是 |
 | **Data to import** | **警报** 总会被导入，因为 Google 的警报 API 总会返回它们。选择 **Detections** 可以同时导入没有生成警报的规则匹配。这不会转发原始 UDM 事件：请按上文自行转发。 | 警报总是导入 |
 
@@ -213,6 +214,17 @@ Google SecOps 会根据规则的编写者，把检测的严重程度存储在不
 
 以上都无法分级的检测会显示为 Unknown。要为自定义规则分级，请在 Google SecOps 中为它的 `meta` 部分添加严重程度，例如 `severity = "High"`，或在它的 `outcome` 部分设置 `$risk_score`。此后该规则创建的检测会以该严重程度导入。
 
+## 案例关闭时关闭其警报
+
+打开 **案例关闭时关闭其警报** 后，关闭一个 [安全案例](/docs/telemetry/security-cases#关闭案例) 会关闭它所来自的 Google SecOps 警报。每个警报都会按案例的结论标记为已关闭：True Positive 标为恶意，False Positive 或 Benign Positive 标为非恶意，并附上案例的关闭说明和返回案例的链接。案例的时间线会说明关闭了多少个警报。
+
+- 服务账户需要 `chronicle.legacies.legacyUpdateAlert`，`roles/chronicle.editor` 角色具有该权限。`roles/chronicle.viewer` 角色可以读取警报但不能关闭它们，此时案例上会显示 `403`。
+- Google SecOps 中已不存在的警报会被跳过。无法连接 Google SecOps 时，OneUptime 会重试大约一小时，然后在案例上写明哪些没能关闭。
+
+## 在其他事件中监视它的指标
+
+**来源** 为 **Google SecOps** 的 [威胁情报源](/docs/telemetry/threat-intelligence#如何读取-google-secops) 会通过此连接读取 Google SecOps 的威胁情报在其事件中发现的指标，并在你项目的其余事件中监视这些指标：那些 Google SecOps 从未见过的登录、网络流和端点事件。
+
 ## 将安全事件发送到 Google SecOps
 
 OneUptime 也可以把发现的内容发送到 Google SecOps，让您的团队所用的 SIEM 在自身检测结果旁边看到 OneUptime 的检测结果。每个安全事件都会作为 UDM 事件导入：登录为 `USER_LOGIN`，进程启动为 `PROCESS_LAUNCH`，网络连接为 `NETWORK_CONNECTION`，其他一切为 `GENERIC_EVENT`，并带有其严重级别、MITRE ATT&CK 标签以及发现它的规则。
@@ -224,7 +236,7 @@ OneUptime 也可以把发现的内容发送到 Google SecOps，让您的团队�
 
 ### 添加目标
 
-打开 **产品 → Security Events → Connections**。在 **发送到你的 SIEM** 下点击 **添加目标**。选择 **区域**，像上面的连接器一样填写 **实例资源名称**，并把密钥粘贴到 **服务账户 JSON** 中。
+打开 **产品 → Security Events → Connections**。在 **发送到你的 SIEM** 下点击 **添加目标**，在 **SIEM** 下选择 Google SecOps，然后点击 **下一步**。选择 **区域**，像上面的连接器一样填写 **实例资源名称**，并把密钥粘贴到 **服务账户 JSON** 中。
 
 ### 发送测试事件
 

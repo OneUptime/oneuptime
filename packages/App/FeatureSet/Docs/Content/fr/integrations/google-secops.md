@@ -108,6 +108,7 @@ Sélectionnez **Test these settings** sous **Tester avant d'enregistrer** avant 
 | --- | --- | --- |
 | **Région** | Le point de terminaison régional de Google SecOps (`us`, `europe`, `asia-southeast1`, ...) qui correspond à l'emplacement de votre nom de ressource d'instance. Il n'y a pas de valeur par défaut, pour qu'un locataire hors des États-Unis ne puisse pas enregistrer le mauvais point de terminaison par accident. | Oui |
 | **Nom de ressource de l'instance** | Dans Google SecOps, **SIEM Settings → Profile** : `projects/{project}/locations/{location}/instances/{instance}`. | Oui |
+| **Fermer les alertes quand leur dossier est fermé** | À la dernière étape du formulaire, désactivé jusqu'à ce que vous l'activiez. Activé, fermer un dossier ferme ses alertes Google SecOps : voir [Fermer les alertes quand leur dossier est fermé](#fermer-les-alertes-quand-leur-dossier-est-fermé). | Non |
 | **JSON du compte de service** | Google Cloud, l'onglet **Keys** du compte de service. Collez le fichier de clé JSON entier. En écriture seule : chiffré au repos, jamais renvoyé par l'API, plus jamais affiché sur la page. Utilisez **Update credentials** sur la connexion pour le renouveler. | Oui |
 | **Data to import** | Les **Alertes** sont toujours importées, car l'API des alertes de Google les renvoie toujours. Sélectionnez **Détections** pour importer aussi les correspondances de règles qui n'ont pas généré d'alerte. Cela ne transfère pas les événements UDM bruts : transférez-les vous-même, comme ci-dessus. | Alertes toujours |
 
@@ -213,6 +214,17 @@ Google SecOps stocke la gravité d'une détection à des endroits différents se
 
 Une détection qu'aucun de ces éléments ne classe est affichée comme Unknown. Pour classer une règle personnalisée, ajoutez une gravité à sa section `meta` dans Google SecOps, par exemple `severity = "High"`, ou définissez `$risk_score` dans sa section `outcome`. Les détections que la règle crée ensuite sont importées avec cette gravité.
 
+## Fermer les alertes quand leur dossier est fermé
+
+Avec **Fermer les alertes quand leur dossier est fermé** activé, fermer un [dossier de sécurité](/docs/telemetry/security-cases#fermer-un-dossier) ferme les alertes Google SecOps dont il est issu. Chaque alerte est marquée fermée avec le verdict du dossier, un True Positive comme malveillant et un False Positive ou un Benign Positive comme non malveillant, avec la note de clôture du dossier et un lien vers le dossier. La chronologie du dossier indique combien d'alertes ont été fermées.
+
+- Le compte de service a besoin de `chronicle.legacies.legacyUpdateAlert`, que possède le rôle `roles/chronicle.editor`. Le rôle `roles/chronicle.viewer` lit les alertes mais ne peut pas les fermer, et un `403` l'indique sur le dossier.
+- Une alerte que Google SecOps n'a plus est ignorée. Quand Google SecOps est injoignable, OneUptime réessaie pendant environ une heure, puis écrit sur le dossier ce qu'il n'a pas pu fermer.
+
+## Surveiller vos autres événements pour ses indicateurs
+
+Un [flux de renseignement](/docs/telemetry/threat-intelligence#comment-google-secops-est-lu) dont la **Source** est **Google SecOps** lit, par cette connexion, les indicateurs que le renseignement sur les menaces de Google SecOps a trouvés dans ses événements, et surveille le reste des événements de votre projet pour les repérer : les connexions, les flux réseau et les événements de terminaux que Google SecOps n'a jamais vus.
+
 ## Envoyer des événements de sécurité à Google SecOps
 
 OneUptime peut aussi envoyer ce qu'il trouve à Google SecOps, pour que le SIEM dans lequel travaille votre équipe voie les détections de OneUptime à côté des siennes. Chaque événement de sécurité est importé comme événement UDM : une connexion comme `USER_LOGIN`, un lancement de processus comme `PROCESS_LAUNCH`, une connexion réseau comme `NETWORK_CONNECTION` et tout le reste comme `GENERIC_EVENT`, avec sa gravité, ses tags MITRE ATT&CK et la règle qui l'a trouvé.
@@ -224,7 +236,7 @@ Dans Google Cloud, créez un compte de service dans le projet auquel votre insta
 
 ### Ajouter la destination
 
-Ouvrez **Produits → Événements de sécurité → Connexions**. Sous **Envoyer vers votre SIEM**, cliquez sur **Ajouter une destination**. Choisissez la **Région**, renseignez le **Nom de ressource de l'instance** comme pour le connecteur ci-dessus et collez la clé dans **JSON du compte de service**.
+Ouvrez **Produits → Événements de sécurité → Connexions**. Sous **Envoyer vers votre SIEM**, cliquez sur **Ajouter une destination**, choisissez Google SecOps sous **SIEM** et cliquez sur **Suivant**. Choisissez la **Région**, renseignez le **Nom de ressource de l'instance** comme pour le connecteur ci-dessus et collez la clé dans **JSON du compte de service**.
 
 ### Envoyer un événement de test
 

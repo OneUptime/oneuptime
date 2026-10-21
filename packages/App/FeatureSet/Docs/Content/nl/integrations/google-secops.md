@@ -108,6 +108,7 @@ Selecteer **Test these settings** onder **Testen voor het opslaan** voordat je o
 | --- | --- | --- |
 | **Regio** | Het regionale eindpunt van Google SecOps (`us`, `europe`, `asia-southeast1`, ...) dat overeenkomt met de locatie in de resourcenaam van je instantie. Er is geen standaard, zodat een tenant buiten de VS niet per ongeluk het verkeerde eindpunt opslaat. | Ja |
 | **Resourcenaam van de instantie** | Google SecOps **SIEM Settings → Profile**: `projects/{project}/locations/{location}/instances/{instance}`. | Ja |
+| **Waarschuwingen sluiten wanneer hun zaak sluit** | In de laatste stap van het formulier, uit totdat je het aanzet. Aan sluit het sluiten van een zaak de Google SecOps-waarschuwingen ervan: zie [Waarschuwingen sluiten wanneer hun zaak sluit](#waarschuwingen-sluiten-wanneer-hun-zaak-sluit). | Nee |
 | **JSON van het serviceaccount** | Google Cloud, het tabblad **Keys** van het serviceaccount. Plak het hele JSON-sleutelbestand. Alleen schrijven: versleuteld opgeslagen, nooit door de API teruggegeven, nooit meer op de pagina getoond. Gebruik **Update credentials** op de verbinding om de sleutel te vervangen. | Ja |
 | **Data to import** | **Waarschuwingen** worden altijd geïmporteerd, omdat de waarschuwings-API van Google ze altijd teruggeeft. Selecteer **Detections** om ook regeltreffers te importeren die geen waarschuwing hebben opgeleverd. Dit stuurt geen ruwe UDM-gebeurtenissen door: die stuur je zelf door, zoals hierboven. | Waarschuwingen altijd |
 
@@ -213,6 +214,17 @@ Google SecOps slaat de ernst van een detectie op verschillende plekken op, afhan
 
 Een detectie die door geen van deze wordt ingedeeld, wordt getoond als Unknown. Om een aangepaste regel in te delen, voeg je in Google SecOps een ernst toe aan de sectie `meta` ervan, bijvoorbeeld `severity = "High"`, of stel je `$risk_score` in de sectie `outcome` in. Detecties die de regel daarna maakt, worden met die ernst geïmporteerd.
 
+## Waarschuwingen sluiten wanneer hun zaak sluit
+
+Met **Waarschuwingen sluiten wanneer hun zaak sluit** aan sluit het sluiten van een [beveiligingszaak](/docs/telemetry/security-cases#een-zaak-sluiten) de Google SecOps-waarschuwingen waaruit die zaak kwam. Elke waarschuwing wordt als gesloten gemarkeerd met het oordeel van de zaak, een True Positive als kwaadaardig en een False Positive of Benign Positive als niet kwaadaardig, samen met de sluitnotitie van de zaak en een link terug naar de zaak. De tijdlijn van de zaak vertelt hoeveel waarschuwingen zijn gesloten.
+
+- Het serviceaccount heeft `chronicle.legacies.legacyUpdateAlert` nodig, dat de rol `roles/chronicle.editor` heeft. De rol `roles/chronicle.viewer` leest waarschuwingen maar kan ze niet sluiten, en een `403` staat dan bij de zaak.
+- Een waarschuwing die Google SecOps niet meer heeft, wordt overgeslagen. Als Google SecOps niet bereikbaar is, probeert OneUptime het ongeveer een uur opnieuw en schrijft daarna bij de zaak wat het niet kon sluiten.
+
+## Je andere gebeurtenissen controleren op zijn indicatoren
+
+Een [threat-intelfeed](/docs/telemetry/threat-intelligence#hoe-google-secops-wordt-gelezen) met **Google SecOps** als **Bron** leest via deze verbinding de indicatoren die de threat intelligence van Google SecOps in zijn gebeurtenissen vond, en controleert de rest van de gebeurtenissen van je project erop: de aanmeldingen, netwerkstromen en endpointgebeurtenissen die Google SecOps nooit zag.
+
 ## Beveiligingsgebeurtenissen naar Google SecOps sturen
 
 OneUptime kan wat het vindt ook naar Google SecOps sturen, zodat de SIEM waarin uw team werkt de detecties van OneUptime naast die van zichzelf ziet. Elke beveiligingsgebeurtenis wordt geïmporteerd als UDM-gebeurtenis: een aanmelding als `USER_LOGIN`, het starten van een proces als `PROCESS_LAUNCH`, een netwerkverbinding als `NETWORK_CONNECTION` en al het andere als `GENERIC_EVENT`, met de ernst, de MITRE ATT&CK-tags en de regel die haar vond.
@@ -224,7 +236,7 @@ Maak in Google Cloud een serviceaccount aan in het project waaraan uw SecOps-ins
 
 ### De bestemming toevoegen
 
-Open **Producten → Security Events → Connections**. Klik onder **Naar uw SIEM sturen** op **Bestemming toevoegen**. Kies de **Regio**, vul de **Resourcenaam van de instantie** in zoals bij de connector hierboven en plak de sleutel in **JSON van het serviceaccount**.
+Open **Producten → Security Events → Connections**. Klik onder **Naar uw SIEM sturen** op **Bestemming toevoegen**, kies Google SecOps onder **SIEM** en klik op **Volgende**. Kies de **Regio**, vul de **Resourcenaam van de instantie** in zoals bij de connector hierboven en plak de sleutel in **JSON van het serviceaccount**.
 
 ### Een testgebeurtenis versturen
 

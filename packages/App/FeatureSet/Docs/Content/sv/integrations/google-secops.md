@@ -108,6 +108,7 @@ Välj **Test these settings** under **Testa innan du sparar** innan du sparar. T
 | --- | --- | --- |
 | **Region** | Den regionala slutpunkten för Google SecOps (`us`, `europe`, `asia-southeast1`, ...) som matchar platsen i din instans resursnamn. Det finns ingen standard, så att en klientorganisation utanför USA inte av misstag kan spara fel slutpunkt. | Ja |
 | **Instansens resursnamn** | Google SecOps **SIEM Settings → Profile**: `projects/{project}/locations/{location}/instances/{instance}`. | Ja |
+| **Stäng varningar när deras ärende stängs** | I formulärets sista steg, av tills du slår på det. På stänger ett stängt ärende dess Google SecOps-larm: se [Stäng varningar när deras ärende stängs](#stäng-varningar-när-deras-ärende-stängs). | Nej |
 | **Tjänstkontots JSON** | Google Cloud, tjänstkontots flik **Keys**. Klistra in hela JSON-nyckelfilen. Endast skrivning: krypterad i vila, returneras aldrig av API:et och visas aldrig igen på sidan. Använd **Update credentials** på anslutningen för att byta den. | Ja |
 | **Data to import** | **Varningar** importeras alltid, eftersom Googles larm-API alltid returnerar dem. Välj **Detections** för att även importera regelträffar som inte gav något larm. Det vidarebefordrar inte råa UDM-händelser: dem vidarebefordrar du själv, som ovan. | Varningar alltid |
 
@@ -213,6 +214,17 @@ Google SecOps sparar en identifierings allvarlighetsgrad på olika ställen bero
 
 En identifiering som ingen av dessa delar in visas som Unknown. För att dela in en anpassad regel lägger du till en allvarlighetsgrad i dess avsnitt `meta` i Google SecOps, till exempel `severity = "High"`, eller sätter `$risk_score` i dess avsnitt `outcome`. Identifieringar som regeln skapar därefter importeras med den allvarlighetsgraden.
 
+## Stäng varningar när deras ärende stängs
+
+Med **Stäng varningar när deras ärende stängs** påslaget stänger ett stängt [säkerhetsärende](/docs/telemetry/security-cases#stäng-ett-ärende) de Google SecOps-larm det kom från. Varje larm markeras som stängt med ärendets utlåtande, en True Positive som skadlig och en False Positive eller Benign Positive som inte skadlig, tillsammans med ärendets avslutningsanteckning och en länk tillbaka till ärendet. Ärendets tidslinje berättar hur många larm som stängdes.
+
+- Tjänstkontot behöver `chronicle.legacies.legacyUpdateAlert`, som rollen `roles/chronicle.editor` har. Rollen `roles/chronicle.viewer` läser larm men kan inte stänga dem, och en `403` står då på ärendet.
+- Ett larm som Google SecOps inte längre har hoppas över. När Google SecOps inte går att nå försöker OneUptime igen i ungefär en timme och skriver sedan på ärendet vad den inte kunde stänga.
+
+## Bevaka dina andra händelser efter dess indikatorer
+
+Ett [threat intel-flöde](/docs/telemetry/threat-intelligence#så-läses-google-secops) med **Google SecOps** som **Källa** läser via den här anslutningen indikatorerna som hotunderrättelserna i Google SecOps hittade i dess händelser, och bevakar resten av projektets händelser efter dem: inloggningarna, nätverksflödena och slutpunktshändelserna som Google SecOps aldrig såg.
+
 ## Skicka säkerhetshändelser till Google SecOps
 
 OneUptime kan också skicka det det hittar till Google SecOps, så att det SIEM ditt team arbetar i ser OneUptimes detektioner bredvid sina egna. Varje säkerhetshändelse importeras som en UDM-händelse: en inloggning som `USER_LOGIN`, en processtart som `PROCESS_LAUNCH`, en nätverksanslutning som `NETWORK_CONNECTION` och allt annat som `GENERIC_EVENT`, med sin allvarlighetsgrad, sina MITRE ATT&CK-taggar och regeln som hittade den.
@@ -224,7 +236,7 @@ Skapa i Google Cloud ett tjänstkonto i projektet som din SecOps-instans är kop
 
 ### Lägg till målet
 
-Öppna **Produkter → Security Events → Connections**. Klicka på **Lägg till mål** under **Skicka till ditt SIEM**. Välj **Region**, fyll i **Instansens resursnamn** som för anslutningen ovan och klistra in nyckeln i **Tjänstkontots JSON**.
+Öppna **Produkter → Security Events → Connections**. Klicka på **Lägg till mål** under **Skicka till ditt SIEM**, välj Google SecOps under **SIEM** och klicka på **Nästa**. Välj **Region**, fyll i **Instansens resursnamn** som för anslutningen ovan och klistra in nyckeln i **Tjänstkontots JSON**.
 
 ### Skicka en testhändelse
 
