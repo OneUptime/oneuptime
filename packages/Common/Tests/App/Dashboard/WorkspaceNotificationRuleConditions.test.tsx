@@ -215,6 +215,12 @@ const APPLIES_TO: Array<{
     all: "All on-call policies",
     matching: "Only on-call policies that match conditions",
   },
+  {
+    eventType: NotificationRuleEventType.SecurityCase,
+    heading: "Which security cases",
+    all: "All security cases",
+    matching: "Only security cases that match conditions",
+  },
 ];
 
 const INCIDENT_TITLE_CONDITION: NotificationRuleCondition = {
@@ -808,5 +814,251 @@ describe("The saved-rule condition view", () => {
     });
 
     expect(screen.getAllByText("Payments").length).toBeGreaterThan(0);
+  });
+});
+
+/*
+ * A security case rule's conditions (Security Events > Workspace > Slack or
+ * Microsoft Teams): the case's title and description as text, its priority,
+ * status and source as the fixed scales every project shares, and its
+ * labels as the project's own.
+ */
+describe("A security case rule's conditions", () => {
+  const SECURITY_CASE_FIELDS: Array<NotificationRuleConditionCheckOn> = [
+    NotificationRuleConditionCheckOn.SecurityCasePriority,
+    NotificationRuleConditionCheckOn.SecurityCaseTitle,
+    NotificationRuleConditionCheckOn.SecurityCaseDescription,
+    NotificationRuleConditionCheckOn.SecurityCaseStatus,
+    NotificationRuleConditionCheckOn.SecurityCaseSource,
+    NotificationRuleConditionCheckOn.SecurityCaseLabels,
+  ];
+
+  // The options the open dropdown lists, in order.
+  function listedOptions(): Array<string> {
+    return Array.from(document.querySelectorAll("[id*='-option-']")).map(
+      (option: Element): string => {
+        return (option.textContent || "").trim();
+      },
+    );
+  }
+
+  test("the Filter Type lists the six fields of a case, and no other record's", async () => {
+    renderConditions(NotificationRuleEventType.SecurityCase);
+
+    await clickAddCondition();
+    await openDropdown(0);
+
+    expect(screen.queryByText(NO_OPTIONS)).toBeNull();
+    expect(listedOptions()).toEqual(SECURITY_CASE_FIELDS);
+    expect(
+      screen.queryByText(NotificationRuleConditionCheckOn.IncidentTitle),
+    ).toBeNull();
+    expect(
+      screen.queryByText(NotificationRuleConditionCheckOn.OnCallDutyPolicyName),
+    ).toBeNull();
+  });
+
+  test("'Only security cases that match conditions' starts on the case's priority, as one of a list", async () => {
+    const { onChange } = renderConditions(
+      NotificationRuleEventType.SecurityCase,
+    );
+
+    await clickAddCondition();
+
+    const conditions: Array<NotificationRuleCondition> =
+      lastConditionsFrom(onChange);
+
+    expect(conditions).toHaveLength(1);
+    expect(conditions[0]!.checkOn).toBe(
+      NotificationRuleConditionCheckOn.SecurityCasePriority,
+    );
+    expect(conditions[0]!.conditionType).toBe(ConditionType.ContainsAny);
+  });
+
+  test("priority offers the fixed scale, most urgent first, and records each as written", async () => {
+    const { onChange } = renderConditions(
+      NotificationRuleEventType.SecurityCase,
+    );
+
+    await clickAddCondition();
+    await openDropdown(2);
+
+    expect(listedOptions()).toEqual([
+      "Critical",
+      "High",
+      "Medium",
+      "Low",
+      "Informational",
+    ]);
+
+    await userEvent.setup().click(screen.getByText("Critical"));
+    await pickFromDropdown({ index: 2, optionLabel: "High" });
+
+    const conditions: Array<NotificationRuleCondition> =
+      lastConditionsFrom(onChange);
+
+    expect(conditions[0]!.checkOn).toBe(
+      NotificationRuleConditionCheckOn.SecurityCasePriority,
+    );
+    expect(conditions[0]!.value).toEqual(["Critical", "High"]);
+  });
+
+  test.each([
+    [
+      NotificationRuleConditionCheckOn.SecurityCaseStatus,
+      ["New", "Investigating", "Contained", "Closed"],
+    ],
+    [
+      NotificationRuleConditionCheckOn.SecurityCaseSource,
+      ["Detection Rule", "Threat Intel", "Connected Product", "Manual"],
+    ],
+  ])(
+    "%s offers its own fixed list",
+    async (checkOn: string, expected: Array<string>) => {
+      renderConditions(NotificationRuleEventType.SecurityCase);
+
+      await clickAddCondition();
+      await pickFromDropdown({ index: 0, optionLabel: checkOn });
+      await pickFromDropdown({
+        index: 1,
+        optionLabel: ConditionType.ContainsAny,
+      });
+      await openDropdown(2);
+
+      expect(listedOptions()).toEqual(expected);
+    },
+  );
+
+  test("labels offer the project's labels, and record the one chosen by id", async () => {
+    const { onChange } = renderConditions(
+      NotificationRuleEventType.SecurityCase,
+    );
+
+    await clickAddCondition();
+    await pickFromDropdown({
+      index: 0,
+      optionLabel: NotificationRuleConditionCheckOn.SecurityCaseLabels,
+    });
+    await pickFromDropdown({
+      index: 1,
+      optionLabel: ConditionType.ContainsAny,
+    });
+    await openDropdown(2);
+
+    expect(listedOptions()).toEqual(["Payments", "Search"]);
+
+    await userEvent.setup().click(screen.getByText("Payments"));
+
+    const conditions: Array<NotificationRuleCondition> =
+      lastConditionsFrom(onChange);
+
+    expect(conditions[0]!.checkOn).toBe(
+      NotificationRuleConditionCheckOn.SecurityCaseLabels,
+    );
+    expect(conditions[0]!.value).toEqual([PAYMENTS_LABEL_ID]);
+  });
+
+  test("the title is compared as text, written in a box", async () => {
+    const { onChange } = renderConditions(
+      NotificationRuleEventType.SecurityCase,
+    );
+
+    await clickAddCondition();
+    await pickFromDropdown({
+      index: 0,
+      optionLabel: NotificationRuleConditionCheckOn.SecurityCaseTitle,
+    });
+    await openDropdown(1);
+
+    expect(listedOptions()).toEqual(
+      NotificationRuleConditionUtil.getConditionTypeByCheckOn(
+        NotificationRuleConditionCheckOn.SecurityCaseTitle,
+      ),
+    );
+
+    await userEvent.setup().click(screen.getByText(ConditionType.Contains));
+    await userEvent.setup().type(screen.getByRole("textbox"), "ransomware");
+
+    const conditions: Array<NotificationRuleCondition> =
+      lastConditionsFrom(onChange);
+
+    expect(conditions[0]).toEqual({
+      checkOn: NotificationRuleConditionCheckOn.SecurityCaseTitle,
+      conditionType: ConditionType.Contains,
+      value: "ransomware",
+    });
+  });
+});
+
+describe("A saved security case condition, on the rule's card", () => {
+  function renderView(condition: NotificationRuleCondition): void {
+    render(
+      <NotificationRuleViewConditionElement
+        {...lookupProps()}
+        notificationRuleCondition={condition}
+      />,
+    );
+  }
+
+  test("names the case's labels, not their ids", () => {
+    renderView({
+      checkOn: NotificationRuleConditionCheckOn.SecurityCaseLabels,
+      conditionType: ConditionType.ContainsAny,
+      value: [PAYMENTS_LABEL_ID, SEARCH_LABEL_ID],
+    });
+
+    expect(screen.getAllByText("Payments").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Search").length).toBeGreaterThan(0);
+    expect(screen.queryByText(PAYMENTS_LABEL_ID)).toBeNull();
+    expect(
+      screen.queryByText(new RegExp(PAYMENTS_LABEL_ID)),
+    ).not.toBeInTheDocument();
+  });
+
+  test.each([
+    [
+      NotificationRuleConditionCheckOn.SecurityCasePriority,
+      ["Critical", "High"],
+    ],
+    [NotificationRuleConditionCheckOn.SecurityCaseStatus, ["New", "Contained"]],
+  ])(
+    "draws each %s as its own pill",
+    (checkOn: NotificationRuleConditionCheckOn, values: Array<string>) => {
+      renderView({
+        checkOn: checkOn,
+        conditionType: ConditionType.ContainsAny,
+        value: values,
+      });
+
+      for (const value of values) {
+        expect(screen.getByText(value)).toBeInTheDocument();
+      }
+
+      // One pill each, never the values run together.
+      expect(screen.queryByText(values.join(", "))).toBeNull();
+    },
+  );
+
+  test("names the sources it is for, as words", () => {
+    renderView({
+      checkOn: NotificationRuleConditionCheckOn.SecurityCaseSource,
+      conditionType: ConditionType.NotContains,
+      value: ["Threat Intel", "Manual"],
+    });
+
+    expect(screen.getByText("Threat Intel, Manual")).toBeInTheDocument();
+  });
+
+  test("survives a priority condition saved without a value", () => {
+    renderView({
+      checkOn: NotificationRuleConditionCheckOn.SecurityCasePriority,
+      conditionType: ConditionType.ContainsAny,
+      value: undefined,
+    });
+
+    expect(
+      screen.getAllByText(NotificationRuleConditionCheckOn.SecurityCasePriority)
+        .length,
+    ).toBeGreaterThan(0);
   });
 });

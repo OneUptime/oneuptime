@@ -1852,6 +1852,7 @@ describe("notification settings", () => {
     { name: "Status Pages", constant: "statusPages" },
     { name: "Scheduled Maintenance", constant: "scheduledMaintenance" },
     { name: "On-Call", constant: "onCall" },
+    { name: "Security", constant: "security" },
   ];
 
   /*
@@ -2029,7 +2030,7 @@ describe("notification settings", () => {
       }
     }
 
-    // The two shift reminders start on by push too, and they alone.
+    // The two shift reminders and the three security case events start on by push too, and they alone.
     const byPush: Array<string> = Array.from(push).map(
       (type: string): string => {
         return labels[type] as string;
@@ -2040,10 +2041,16 @@ describe("notification settings", () => {
       [
         "Before my on-call shift starts",
         "My upcoming on-call shift is reassigned",
+        "New security case",
+        "Security case assigned to me",
+        "Playbook step waiting for my approval",
       ].sort(),
     );
     expect(settings).toContain(
       "and by push too: **Before my on-call shift starts**, **My upcoming on-call shift is reassigned**",
+    );
+    expect(settings).toContain(
+      "| **Security** | By push too: **New security case** (High and Critical cases), **Security case assigned to me**, **Playbook step waiting for my approval** | None |",
     );
   });
 

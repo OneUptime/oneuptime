@@ -891,14 +891,26 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     userId: ObjectID,
     projectId: ObjectID,
   ): Promise<void> {
-    for (const eventType of SECURITY_CASE_NOTIFICATION_EVENT_TYPES) {
-      await this.addNotificationSettingIfNotExists(
-        userId,
-        projectId,
-        eventType,
-        { alertByPush: true },
-      );
-    }
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
+      { alertByPush: true },
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_SECURITY_CASE_ASSIGNED_NOTIFICATION,
+      { alertByPush: true },
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_SECURITY_PLAYBOOK_APPROVAL_NOTIFICATION,
+      { alertByPush: true },
+    );
   }
 
   /*
