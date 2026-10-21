@@ -24,8 +24,10 @@ import path from "path";
  * the SSH step (the machine as user@host, the secret it signs in with, the
  * bash script, its port and passphrase folded under More fields) and the
  * kubectl step (the kubeconfig, or the Runner's own access, and the
- * script); steps written with a credential and turned into script steps;
- * AI Access; then a phone, dark mode and German. The fixture records every
+ * script); steps written with a runbook credential, which no longer run,
+ * turned into script steps; then a phone, dark mode and German. (AI Access,
+ * the runbook credentials OneUptime AI's commands used, is gone.) The
+ * fixture records every
  * save and create, so the tests check what was sent as well as what was
  * drawn.
  */
@@ -37,7 +39,6 @@ const BASTION_ID: string = "40000000-0000-4000-8000-0000000000d1";
 const VARIABLES_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/settings/variables`;
 const RUNBOOK_VARIABLES_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}/variables`;
 const STEPS_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}/steps`;
-const AI_ACCESS_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/runner-credentials`;
 
 const SSH_STEP: string = "Restart the database proxy";
 const KUBECTL_STEP: string = "Restart checkout";
@@ -733,7 +734,7 @@ test.describe("a kubectl step", () => {
 });
 
 test.describe("steps written with a credential", () => {
-  test("still show as they are, and one button turns each into a script step that does the same", async ({
+  test("say they no longer run, and one button turns each into a script step that does the same", async ({
     page,
   }: {
     page: Page;
@@ -759,10 +760,10 @@ test.describe("steps written with a credential", () => {
     }
 
     await expect(page.getByTestId("runbook-step-2-legacy")).toContainText(
-      "This step signs in with a runbook credential and runs one command. It still runs as it is.",
+      "This step signs in with a runbook credential and runs one command. Runbook credentials were removed, so it no longer runs.",
     );
     await expect(page.getByTestId("runbook-step-3-legacy")).toContainText(
-      "This step restarts or scales one workload with a runbook credential.",
+      "This step restarts or scales one workload with a runbook credential. Runbook credentials were removed, so it no longer runs.",
     );
     /*
      * Its More fields line names only what it folds: its credential holds
@@ -795,22 +796,6 @@ test.describe("steps written with a credential", () => {
       `kubectl patch deployment workers --namespace jobs --subresource scale --patch '{"spec":{"replicas":4}}'`,
     );
     expect(steps[3]!.config).not.toHaveProperty("action");
-  });
-});
-
-test.describe("AI Access", () => {
-  test("is what OneUptime AI's commands reach through your Runners", async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
-    await page.goto(`${AI_ACCESS_PAGE}?page=ai-access`);
-
-    await expect(page.getByTestId("card-details-heading").first()).toHaveText(
-      "OneUptime AI Access",
-    );
-    await expect(row(page, "cache-hosts")).toBeVisible();
-    await screenshot(page, "ai-access");
   });
 });
 

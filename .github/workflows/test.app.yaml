@@ -240,6 +240,9 @@ jobs:
           # here from group 6 on 2026-10-21, when group 6 took 21.9 minutes
           # and this group 17.3, the lightest that holds several suites once
           # group 8 took three of group 5's: about 21.5 for the twelve.
+          # Runbooks Menu (about 25 seconds with its bundle locally, Chromium
+          # only: the Runbooks side menu at 1280 and 390 pixels after AI
+          # Access went) joined it on 2026-10-21, beside Rules Menu Section.
           - group: 3
             browsers: chromium firefox
             suites: >-
@@ -254,6 +257,7 @@ jobs:
               test-global-runners-ui
               test-runbook-variables-ui
               test-rules-menu-section-ui
+              test-runbooks-menu-ui
               test-model-tables-ui
           # The Workflow Builder suite on its own: it sat in group 2 near the
           # job's 30 minutes, and its On Create or Update spec would take that
@@ -551,6 +555,8 @@ jobs:
             output/playwright/public-addresses-ui/test-results
             output/playwright/rules-menu-section-ui/*.png
             output/playwright/rules-menu-section-ui/test-results
+            output/playwright/runbooks-menu-ui/*.png
+            output/playwright/runbooks-menu-ui/test-results
             output/playwright/llm-connect-ui/*.png
             output/playwright/llm-connect-ui/test-results
             output/playwright/public-dashboard-theme-ui/*.png
