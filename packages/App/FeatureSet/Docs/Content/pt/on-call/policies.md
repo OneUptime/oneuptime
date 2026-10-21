@@ -84,7 +84,7 @@ flowchart TB
 
 | Status | O que significa |
 | --- | --- |
-| **Aguardando** | Uma regra de plantão definida como **Somente em horário comercial** faz a execução aguardar até esse horário começar: ela diz quando o acionamento começa, e até lá não aciona ninguém. Termina sem acionar se o incidente ou o alerta for confirmado ou resolvido antes. |
+| **Aguardando** | Uma regra de plantão definida como **Somente em horário comercial** faz a execução aguardar até esse horário começar: ela diz quando o acionamento começa, e até lá não aciona ninguém. Termina sem acionar se o incidente ou o alerta for confirmado ou resolvido antes. Começa a acionar na hora se o incidente ou o alerta mudar e passar a corresponder a uma regra de plantão que aciona imediatamente. |
 | **Agendado**, **Iniciada** | A execução está sendo preparada. Uma que ainda esteja aqui depois de 5 minutos é encerrada como **Erro**. |
 | **Executing** | A execução está acionando. O OneUptime a avança a cada minuto. |
 | **Execution Completed** | Alguém confirmou, o incidente ou alerta foi resolvido, todas as regras e repetições foram usadas, ou a política foi arquivada. |

@@ -75,6 +75,11 @@ interface EngineCase {
   recordService: { getRepository: unknown };
   stubFeed: () => void;
   apply: (record: BaseModel) => Promise<Map<string, OnCallRulePagingHold>>;
+  // The policies its matching rules page now (WaitingRunsOnRecordChange).
+  pagingNow: (
+    record: BaseModel,
+    now: Date,
+  ) => Promise<Map<string, Array<string>>>;
 }
 
 function policy(id: string): OnCallDutyPolicy {
@@ -111,6 +116,15 @@ const ENGINES: Array<EngineCase> = [
         record as Incident,
       );
     },
+    pagingNow: (
+      record: BaseModel,
+      now: Date,
+    ): Promise<Map<string, Array<string>>> => {
+      return IncidentOnCallRuleEngineService.getPoliciesPagingNow(
+        record as Incident,
+        now,
+      );
+    },
   },
   {
     label: "alert on-call rules",
@@ -129,6 +143,15 @@ const ENGINES: Array<EngineCase> = [
     },
     apply: (record: BaseModel): Promise<Map<string, OnCallRulePagingHold>> => {
       return AlertOnCallRuleEngineService.applyRulesToAlert(record as Alert);
+    },
+    pagingNow: (
+      record: BaseModel,
+      now: Date,
+    ): Promise<Map<string, Array<string>>> => {
+      return AlertOnCallRuleEngineService.getPoliciesPagingNow(
+        record as Alert,
+        now,
+      );
     },
   },
   {
@@ -151,6 +174,15 @@ const ENGINES: Array<EngineCase> = [
         record as IncidentEpisode,
       );
     },
+    pagingNow: (
+      record: BaseModel,
+      now: Date,
+    ): Promise<Map<string, Array<string>>> => {
+      return IncidentEpisodeOnCallRuleEngineService.getPoliciesPagingNow(
+        record as IncidentEpisode,
+        now,
+      );
+    },
   },
   {
     label: "alert episode on-call rules",
@@ -170,6 +202,15 @@ const ENGINES: Array<EngineCase> = [
     apply: (record: BaseModel): Promise<Map<string, OnCallRulePagingHold>> => {
       return AlertEpisodeOnCallRuleEngineService.applyRulesToEpisode(
         record as AlertEpisode,
+      );
+    },
+    pagingNow: (
+      record: BaseModel,
+      now: Date,
+    ): Promise<Map<string, Array<string>>> => {
+      return AlertEpisodeOnCallRuleEngineService.getPoliciesPagingNow(
+        record as AlertEpisode,
+        now,
       );
     },
   },
@@ -310,6 +351,75 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
         `^${ON_CALL_POLICY_RUN_WAITING_FOR_WORKING_HOURS_MESSAGE_START}Paging starts [A-Z][a-z]{2} \\d{2}:\\d{2}`,
       ),
     );
+  });
+
+  /*
+   * A record that changed while some of its runs wait: which policies its
+   * matching rules page now (WaitingRunsOnRecordChange) - read only.
+   */
+  test("now: a matching rule that pages right away pages its policies now, by name", async () => {
+    stubRules([
+      rule({ policyIds: [POLICY_A] }),
+      rule({
+        policyIds: [POLICY_B],
+        whenToPage: OnCallRuleWhenToPage.WorkingHours,
+        hours: laterToday(),
+      }),
+    ]);
+
+    const pagingNow: Map<string, Array<string>> = await engine.pagingNow(
+      engine.newRecord(),
+      new Date(),
+    );
+
+    expect([...pagingNow.entries()]).toEqual([
+      [POLICY_A, ["Page the platform rota"]],
+    ]);
+  });
+
+  test("now: a working-hours rule inside its hours pages now too", async () => {
+    stubRules([
+      rule({
+        policyIds: [POLICY_A],
+        whenToPage: OnCallRuleWhenToPage.WorkingHours,
+        hours: now(),
+      }),
+    ]);
+
+    const pagingNow: Map<string, Array<string>> = await engine.pagingNow(
+      engine.newRecord(),
+      new Date(),
+    );
+
+    expect([...pagingNow.keys()]).toEqual([POLICY_A]);
+  });
+
+  test("now: two right-away rules that page one policy are both named", async () => {
+    const second: BaseModel = rule({ policyIds: [POLICY_A] });
+    second.setColumnValue("name", "Everything critical");
+    stubRules([rule({ policyIds: [POLICY_A] }), second]);
+
+    const pagingNow: Map<string, Array<string>> = await engine.pagingNow(
+      engine.newRecord(),
+      new Date(),
+    );
+
+    expect(pagingNow.get(POLICY_A)).toEqual([
+      "Page the platform rota",
+      "Everything critical",
+    ]);
+  });
+
+  test("now: reads only - adds no policy to the record, and writes no feed entry", async () => {
+    stubRules([rule({ policyIds: [POLICY_A] })]);
+    const record: BaseModel = engine.newRecord();
+
+    await engine.pagingNow(record, new Date());
+
+    expect(record.getColumnValue("onCallDutyPolicies")).toEqual([]);
+    expect(
+      (engine.recordService as { getRepository: jest.Mock }).getRepository,
+    ).not.toHaveBeenCalled();
   });
 
   test("a working-hours rule matched inside its hours pages right away", async () => {

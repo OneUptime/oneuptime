@@ -84,7 +84,7 @@ flowchart TB
 
 | Stato | Che cosa significa |
 | --- | --- |
-| **In attesa** | Una regola di reperibilità impostata su **Solo durante l'orario di lavoro** fa attendere l'esecuzione finché quell'orario non inizia: dice quando iniziano le chiamate, e fino ad allora non chiama nessuno. Termina senza chiamare se l'incidente o l'avviso viene riconosciuto o risolto prima. |
+| **In attesa** | Una regola di reperibilità impostata su **Solo durante l'orario di lavoro** fa attendere l'esecuzione finché quell'orario non inizia: dice quando iniziano le chiamate, e fino ad allora non chiama nessuno. Termina senza chiamare se l'incidente o l'avviso viene riconosciuto o risolto prima. Inizia a chiamare in quel momento se l'incidente o l'avviso cambia e ora corrisponde a una regola di reperibilità che chiama subito. |
 | **Programmato**, **Iniziata** | L'esecuzione è in preparazione. Una che è ancora qui dopo 5 minuti viene fermata come **Errore**. |
 | **Executing** | L'esecuzione sta avvisando. OneUptime la fa avanzare ogni minuto. |
 | **Execution Completed** | Qualcuno ha riconosciuto, l'incidente o l'avviso è stato risolto, sono state usate tutte le regole e le ripetizioni, oppure la policy è stata archiviata. |

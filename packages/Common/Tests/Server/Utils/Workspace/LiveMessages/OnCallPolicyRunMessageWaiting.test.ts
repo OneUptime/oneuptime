@@ -1,8 +1,9 @@
-import { describe, expect, test } from "@jest/globals";
+import { describe, expect, jest, test } from "@jest/globals";
 import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "../../../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import WorkspaceLiveMessage from "../../../../../Models/DatabaseModels/WorkspaceLiveMessage";
+import OnCallDutyPolicyExecutionLogService from "../../../../../Server/Services/OnCallDutyPolicyExecutionLogService";
 import OnCallPolicyRunMessage from "../../../../../Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
 import OnCallPolicyRunMessageView, {
   OnCallPolicyRun,
@@ -156,6 +157,73 @@ describe("the message of a run whose record was handled while it waited", () => 
   });
 });
 
+/*
+ * Started before the working hours it waited for: its record came to match
+ * an on-call rule that pages right away (WaitingRunsOnRecordChange). The
+ * message, edited into a paging run's, says why it is paging now.
+ */
+describe("the message of a run that waited, and started early", () => {
+  const REASON: string =
+    'The alert now matches on-call rule "P1 alerts", which pages right away.';
+
+  function startedEarly(
+    overrides: Partial<OnCallPolicyRun> = {},
+  ): OnCallPolicyRun {
+    return run({
+      outcome: OnCallPolicyRunOutcome.Paging,
+      pagingStartsAt: undefined,
+      isWaitingForWorkingHours: undefined,
+      startedEarlyReason: REASON,
+      ...overrides,
+    });
+  }
+
+  test("says it started early, and why, right under what it pages for", () => {
+    const parts: Array<string> =
+      OnCallPolicyRunMessageView.getMarkdown(startedEarly()).split("\n\n");
+
+    expect(parts[1]).toBe(
+      '**Started early.** The alert now matches on-call rule "P1 alerts", which pages right away.',
+    );
+  });
+
+  test("no longer says it waits for working hours", () => {
+    expect(
+      OnCallPolicyRunMessageView.getMarkdown(startedEarly()),
+    ).not.toContain("Waiting for working hours");
+  });
+
+  test("keeps saying so once the run ends", () => {
+    expect(
+      OnCallPolicyRunMessageView.getMarkdown(
+        startedEarly({
+          outcome: OnCallPolicyRunOutcome.Acknowledged,
+          acknowledgedByName: "Ana",
+        }),
+      ),
+    ).toContain("**Started early.**");
+  });
+
+  test("a rule's name is text, never Markdown", () => {
+    const markdown: string = OnCallPolicyRunMessageView.getMarkdown(
+      startedEarly({
+        startedEarlyReason:
+          'The alert now matches on-call rule "[click](https://evil.example)", which pages right away.',
+      }),
+    );
+
+    expect(markdown).not.toContain("[click](https://evil.example)");
+  });
+
+  test("a run that started at its moment says nothing of starting early", () => {
+    expect(
+      OnCallPolicyRunMessageView.getMarkdown(
+        startedEarly({ startedEarlyReason: undefined }),
+      ),
+    ).not.toContain("Started early");
+  });
+});
+
 describe("a waiting run, read for its message", () => {
   function waitingLog(): OnCallDutyPolicyExecutionLog {
     const log: OnCallDutyPolicyExecutionLog =
@@ -231,6 +299,53 @@ describe("a waiting run, read for its message", () => {
 
     expect("pagingStartsAt" in built).toBe(false);
     expect("isWaitingForWorkingHours" in built).toBe(false);
+  });
+
+  test("a run that started early carries why, once it is paging", () => {
+    const log: OnCallDutyPolicyExecutionLog = waitingLog();
+    log.status = OnCallDutyPolicyStatus.Executing;
+    log.pagingStartedEarlyReason =
+      ' The alert now matches on-call rule "P1 alerts", which pages right away. ';
+
+    expect(build(log).startedEarlyReason).toBe(
+      'The alert now matches on-call rule "P1 alerts", which pages right away.',
+    );
+  });
+
+  test("a run still waiting carries no reason to have started", () => {
+    const log: OnCallDutyPolicyExecutionLog = waitingLog();
+    log.pagingStartedEarlyReason =
+      'The alert now matches on-call rule "P1 alerts", which pages right away.';
+
+    expect("startedEarlyReason" in build(log)).toBe(false);
+  });
+
+  test("a run that never waited carries none", () => {
+    const log: OnCallDutyPolicyExecutionLog = waitingLog();
+    log.status = OnCallDutyPolicyStatus.Executing;
+
+    expect("startedEarlyReason" in build(log)).toBe(false);
+  });
+
+  test("reads why it started early with the rest of the run", async () => {
+    const findOneById: jest.SpiedFunction<
+      typeof OnCallDutyPolicyExecutionLogService.findOneById
+    > = jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+      .mockResolvedValue(null);
+
+    try {
+      await expect(
+        OnCallPolicyRunMessage.readRun(ObjectID.generate()),
+      ).resolves.toBeNull();
+
+      expect(findOneById.mock.calls[0]![0].select).toMatchObject({
+        pagingStartsAt: true,
+        pagingStartedEarlyReason: true,
+      });
+    } finally {
+      findOneById.mockRestore();
+    }
   });
 
   test("stands as waiting", async () => {

@@ -84,7 +84,7 @@ flowchart TB
 
 | Status | Hvad den betyder |
 | --- | --- |
-| **Venter** | En vagtregel sat til **Kun i arbejdstiden** lader kørslen vente, til arbejdstiden begynder: den siger, hvornår tilkaldelsen starter, og tilkalder ingen indtil da. Den slutter uden at tilkalde, hvis hændelsen eller advarslen bliver bekræftet eller løst først. |
+| **Venter** | En vagtregel sat til **Kun i arbejdstiden** lader kørslen vente, til arbejdstiden begynder: den siger, hvornår tilkaldelsen starter, og tilkalder ingen indtil da. Den slutter uden at tilkalde, hvis hændelsen eller advarslen bliver bekræftet eller løst først. Den begynder at tilkalde straks, hvis hændelsen eller advarslen ændrer sig og nu matcher en vagtregel, der tilkalder med det samme. |
 | **Planlagt**, **Startet** | Kørslen sættes op. En, der stadig står her efter 5 minutter, stoppes som **Fejl**. |
 | **Executing** | Kørslen tilkalder. OneUptime fører den et skridt videre hvert minut. |
 | **Execution Completed** | Nogen kvitterede, hændelsen eller advarslen blev løst, alle regler og gentagelser blev brugt, eller politikken blev arkiveret. |

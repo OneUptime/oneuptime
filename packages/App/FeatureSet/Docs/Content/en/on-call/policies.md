@@ -84,7 +84,7 @@ flowchart TB
 
 | Status | What it means |
 | --- | --- |
-| **Waiting** | An on-call rule set to **Only during working hours** makes the run wait until those hours begin: it says when paging starts, and pages nobody until then. It ends without paging if the incident or alert is acknowledged or resolved first. |
+| **Waiting** | An on-call rule set to **Only during working hours** makes the run wait until those hours begin: it says when paging starts, and pages nobody until then. It ends without paging if the incident or alert is acknowledged or resolved first. It starts paging at once if the incident or alert changes and now matches an on-call rule that pages right away. |
 | **Scheduled**, **Started** | The run is being set up. One still here after 5 minutes is stopped as **Error**. |
 | **Executing** | The run is paging. OneUptime moves it on every minute. |
 | **Execution Completed** | Someone acknowledged, the incident or alert was resolved, every rule and repeat was used, or the policy was archived. |

@@ -9,7 +9,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * away (OnCallRuleWhenToPage, OnCallDutyPolicyRunWait). The alert, incident
  * and episode on-call rules each get when they page, their working hours
  * and the time zone those are in; an execution log gets the moment a run
- * that waits starts paging.
+ * that waits starts paging, and why it started early when its record came
+ * to match a rule that pages right away (WaitingRunsOnRecordChange).
  *
  * Nothing to backfill: whenToPage starts as Right Away on every rule that
  * exists - how every rule pages today - and a NOT NULL column with a
@@ -24,6 +25,9 @@ export class AddOnCallRuleWorkingHours1805000000000
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "OnCallDutyPolicyExecutionLog" ADD "pagingStartsAt" TIMESTAMP WITH TIME ZONE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "OnCallDutyPolicyExecutionLog" ADD "pagingStartedEarlyReason" character varying(500)`,
     );
     await queryRunner.query(
       `ALTER TABLE "AlertOnCallRule" ADD "whenToPage" character varying(100) NOT NULL DEFAULT 'Right Away'`,
@@ -99,6 +103,9 @@ export class AddOnCallRuleWorkingHours1805000000000
     );
     await queryRunner.query(
       `ALTER TABLE "AlertOnCallRule" DROP COLUMN "whenToPage"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "OnCallDutyPolicyExecutionLog" DROP COLUMN "pagingStartedEarlyReason"`,
     );
     await queryRunner.query(
       `ALTER TABLE "OnCallDutyPolicyExecutionLog" DROP COLUMN "pagingStartsAt"`,

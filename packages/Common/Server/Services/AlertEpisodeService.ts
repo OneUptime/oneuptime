@@ -65,6 +65,7 @@ import AlertService from "./AlertService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import AlertEpisodeLabelRuleEngineService from "./AlertEpisodeLabelRuleEngineService";
 import AlertEpisodeOnCallRuleEngineService from "./AlertEpisodeOnCallRuleEngineService";
+import WaitingRunsOnRecordChange from "../Utils/OnCall/WaitingRunsOnRecordChange";
 import { OnCallRulePagingHold } from "../Utils/OnCall/OnCallRulePagingHold";
 import AlertEpisodeOwnerRuleEngineService from "./AlertEpisodeOwnerRuleEngineService";
 import AlertEpisodePrivacyRuleEngineService from "./AlertEpisodePrivacyRuleEngineService";
@@ -1694,6 +1695,35 @@ export class Service extends ProjectReferencesService<Model> {
             isRoot: true,
           },
         });
+      }
+    }
+
+    /*
+     * The episode on-call rules match the severity, the labels, the title
+     * and the description. An episode whose runs wait for working hours,
+     * written one of those, may now match a rule that pages right away:
+     * those runs start paging now - an episode whose severity rises at
+     * night with a new member pages at once (WaitingRunsOnRecordChange).
+     * Starting a page must not fail the update.
+     */
+    if (
+      WaitingRunsOnRecordChange.isRuleInputWritten({
+        written: onUpdate.updateBy.data as unknown as Record<string, unknown>,
+        severityKeys: ["alertSeverityId", "alertSeverity"],
+      })
+    ) {
+      for (const itemId of updatedItemIds) {
+        try {
+          await WaitingRunsOnRecordChange.startForAlertEpisode(itemId);
+        } catch (waitingRunsError) {
+          logger.error(
+            `Starting waiting on-call runs failed in AlertEpisodeService.onUpdateSuccess: ${waitingRunsError}`,
+            {
+              projectId: onUpdate.updateBy.props.tenantId?.toString(),
+              episodeId: itemId.toString(),
+            } as LogAttributes,
+          );
+        }
       }
     }
 

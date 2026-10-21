@@ -25,7 +25,7 @@ import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
-import {
+import OnCallRulePagingHoldUtil, {
   ON_CALL_RULE_WHEN_TO_PAGE_SELECT,
   OnCallRulePagingHold,
   OnCallRulePagingHolds,
@@ -57,33 +57,9 @@ class AlertEpisodeOnCallRuleEngineServiceClass {
     }
 
     try {
-      const rules: Array<AlertEpisodeOnCallRule> =
-        await AlertEpisodeOnCallRuleService.findBy({
-          query: {
-            projectId: episode.projectId,
-            isEnabled: true,
-          },
-          props: { isRoot: true },
-          select: {
-            _id: true,
-            name: true,
-            criteria: true,
-            alertSeverities: { _id: true },
-            episodeLabels: { _id: true },
-            episodeTitlePattern: true,
-            episodeDescriptionPattern: true,
-            onCallDutyPolicies: { _id: true },
-            ...ON_CALL_RULE_WHEN_TO_PAGE_SELECT,
-          },
-          limit: MAX_RULES_EVALUATED_PER_PROJECT,
-          skip: 0,
-        });
-
-      logIfRuleReadWasTruncated({
-        ruleKind: "AlertEpisodeOnCallRule",
-        projectId: episode.projectId,
-        rulesRead: rules.length,
-      });
+      const rules: Array<AlertEpisodeOnCallRule> = await this.findEnabledRules(
+        episode.projectId,
+      );
 
       if (rules.length === 0) {
         return noHolds;
@@ -200,6 +176,92 @@ class AlertEpisodeOnCallRuleEngineServiceClass {
 
       return noHolds;
     }
+  }
+
+  /*
+   * The policies the alert episode's matching rules page now, each with the
+   * names of the rules that do: a rule that pages right away, or a
+   * working-hours rule inside its hours (OnCallRulePagingHoldUtil.getHold).
+   * Reads only: it adds no policy to the alert episode. For one that changed
+   * while some of its runs wait for working hours (WaitingRunsOnRecordChange).
+   */
+  @CaptureSpan()
+  public async getPoliciesPagingNow(
+    episode: AlertEpisode,
+    now: Date,
+  ): Promise<Map<string, Array<string>>> {
+    const pagingNow: Map<string, Array<string>> = new Map<
+      string,
+      Array<string>
+    >();
+
+    if (!episode.id || !episode.projectId) {
+      return pagingNow;
+    }
+
+    for (const rule of await this.findEnabledRules(episode.projectId)) {
+      if (
+        !rule.onCallDutyPolicies ||
+        rule.onCallDutyPolicies.length === 0 ||
+        OnCallRulePagingHoldUtil.getHold(rule, now) !== null
+      ) {
+        continue;
+      }
+
+      if (!(this.doesEpisodeMatchRule(episode, rule))) {
+        continue;
+      }
+
+      for (const policy of rule.onCallDutyPolicies) {
+        const policyId: string | undefined = policy.id?.toString();
+
+        if (!policyId) {
+          continue;
+        }
+
+        pagingNow.set(policyId, [
+          ...(pagingNow.get(policyId) || []),
+          rule.name?.toString() || "",
+        ]);
+      }
+    }
+
+    return pagingNow;
+  }
+
+  // The project's enabled rules of this kind, with what matching them needs.
+  private async findEnabledRules(
+    projectId: ObjectID,
+  ): Promise<Array<AlertEpisodeOnCallRule>> {
+    const rules: Array<AlertEpisodeOnCallRule> =
+      await AlertEpisodeOnCallRuleService.findBy({
+        query: {
+          projectId: projectId,
+          isEnabled: true,
+        },
+        props: { isRoot: true },
+        select: {
+            _id: true,
+            name: true,
+            criteria: true,
+            alertSeverities: { _id: true },
+            episodeLabels: { _id: true },
+            episodeTitlePattern: true,
+            episodeDescriptionPattern: true,
+            onCallDutyPolicies: { _id: true },
+            ...ON_CALL_RULE_WHEN_TO_PAGE_SELECT,
+        },
+        limit: MAX_RULES_EVALUATED_PER_PROJECT,
+        skip: 0,
+      });
+
+    logIfRuleReadWasTruncated({
+      ruleKind: "AlertEpisodeOnCallRule",
+      projectId: projectId,
+      rulesRead: rules.length,
+    });
+
+    return rules;
   }
 
   @CaptureSpan()

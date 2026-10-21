@@ -86,6 +86,12 @@ describe("AddOnCallRuleWorkingHours1805000000000", () => {
     );
   });
 
+  test("adds why a run that waited started early to the execution log", async () => {
+    expect(await statementsOf("up")).toContain(
+      `ALTER TABLE "OnCallDutyPolicyExecutionLog" ADD "pagingStartedEarlyReason" character varying(500)`,
+    );
+  });
+
   test("builds no index and adds no key: nothing holds a table's writers for a scan", async () => {
     for (const statement of await statementsOf("up")) {
       expect(statement).not.toMatch(/CREATE (UNIQUE )?INDEX|FOREIGN KEY/i);
@@ -105,7 +111,7 @@ describe("AddOnCallRuleWorkingHours1805000000000", () => {
     });
 
     expect([...down].sort()).toEqual([...added].sort());
-    expect(down).toHaveLength(13);
+    expect(down).toHaveLength(14);
   });
 
   test("is registered, named for its class, and ordered after every migration before it", () => {
@@ -176,5 +182,14 @@ describe("AddOnCallRuleWorkingHours1805000000000", () => {
     // OneUptime holds and starts a run; no caller writes when it pages.
     expect(log.getColumnAccessControlFor("pagingStartsAt")?.create).toEqual([]);
     expect(log.getColumnAccessControlFor("pagingStartsAt")?.update).toEqual([]);
+    expect(log.getTableColumnMetadata("pagingStartedEarlyReason").type).toBe(
+      TableColumnType.LongText,
+    );
+    expect(
+      log.getColumnAccessControlFor("pagingStartedEarlyReason")?.create,
+    ).toEqual([]);
+    expect(
+      log.getColumnAccessControlFor("pagingStartedEarlyReason")?.update,
+    ).toEqual([]);
   });
 });

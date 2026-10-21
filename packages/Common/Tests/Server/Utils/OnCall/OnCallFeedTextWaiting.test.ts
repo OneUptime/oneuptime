@@ -2,7 +2,9 @@ import { describe, expect, test } from "@jest/globals";
 import OnCallFeedText from "../../../../Server/Utils/OnCall/OnCallFeedText";
 import { getOnCallPolicyRunRecordHandledMessage } from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
 import {
+  ON_CALL_POLICY_RUN_STARTED_EARLY_REASON_MAX_LENGTH,
   getOnCallPolicyRunEndedWhileWaitingMessage,
+  getOnCallPolicyRunStartedEarlyReason,
   getOnCallPolicyRunWaitingMessage,
   isOnCallPolicyRunEndedWhileWaiting,
   isOnCallPolicyRunWaitingForWorkingHours,
@@ -85,6 +87,108 @@ describe("the message of a run that ended while it waited", () => {
       ),
     ).toBe(false);
     expect(isOnCallPolicyRunEndedWhileWaiting(null)).toBe(false);
+  });
+});
+
+/*
+ * A run that waited for working hours, started before they began: its record
+ * changed and now matches an on-call rule that pages right away
+ * (WaitingRunsOnRecordChange).
+ */
+describe("why a run that waited started early", () => {
+  test("names the rule that pages right away, and the kind of record", () => {
+    expect(
+      getOnCallPolicyRunStartedEarlyReason({
+        recordKind: "alert",
+        ruleNames: ["P1 alerts"],
+      }),
+    ).toBe(
+      'The alert now matches on-call rule "P1 alerts", which pages right away.',
+    );
+    expect(
+      getOnCallPolicyRunStartedEarlyReason({
+        recordKind: "incident episode",
+        ruleNames: ["SEV1"],
+      }),
+    ).toBe(
+      'The incident episode now matches on-call rule "SEV1", which pages right away.',
+    );
+  });
+
+  test("names two rules, counts any more, and names each once", () => {
+    expect(
+      getOnCallPolicyRunStartedEarlyReason({
+        recordKind: "incident",
+        ruleNames: ["SEV1", "Payments", "SEV1"],
+      }),
+    ).toBe(
+      'The incident now matches on-call rules "SEV1" and "Payments", which page right away.',
+    );
+    expect(
+      getOnCallPolicyRunStartedEarlyReason({
+        recordKind: "alert",
+        ruleNames: ["A", "B", "C", "D"],
+      }),
+    ).toBe(
+      'The alert now matches on-call rules "A", "B" and 2 more, which page right away.',
+    );
+  });
+
+  test("rules with no names still say what happened", () => {
+    expect(
+      getOnCallPolicyRunStartedEarlyReason({
+        recordKind: "alert",
+        ruleNames: ["", "  "],
+      }),
+    ).toBe("The alert now matches an on-call rule that pages right away.");
+  });
+
+  test("long names are cut, so it always fits the run's column", () => {
+    const reason: string = getOnCallPolicyRunStartedEarlyReason({
+      recordKind: "incident episode",
+      ruleNames: ["x".repeat(2000), "y".repeat(2000), "z"],
+    });
+
+    expect(reason.length).toBeLessThanOrEqual(
+      ON_CALL_POLICY_RUN_STARTED_EARLY_REASON_MAX_LENGTH,
+    );
+    expect(reason).toContain("…");
+    expect(reason).toMatch(/and 1 more, which page right away\.$/);
+  });
+
+  test("its record's feed says it started paging early, and why", () => {
+    expect(
+      OnCallFeedText.getRunStartedMarkdown({
+        policyLink: POLICY,
+        isStartedBySomeone: false,
+        startedEarlyReason:
+          'The alert now matches on-call rule "P1 alerts", which pages right away.',
+      }),
+    ).toBe(
+      `On-call policy ${POLICY_MD} started paging early. The alert now matches on-call rule "P1 alerts", which pages right away.`,
+    );
+  });
+
+  test("a rule's name is text in the feed, never Markdown", () => {
+    const markdown: string = OnCallFeedText.getRunStartedMarkdown({
+      policyLink: POLICY,
+      isStartedBySomeone: false,
+      startedEarlyReason: getOnCallPolicyRunStartedEarlyReason({
+        recordKind: "alert",
+        ruleNames: ["[click](https://evil.example)"],
+      }),
+    });
+
+    expect(markdown).toContain("\\[click\\](https://evil.example)");
+  });
+
+  test("a run that started at its moment says only that it started paging", () => {
+    expect(
+      OnCallFeedText.getRunStartedMarkdown({
+        policyLink: POLICY,
+        isStartedBySomeone: false,
+      }),
+    ).toBe(`On-call policy ${POLICY_MD} started paging.`);
   });
 });
 

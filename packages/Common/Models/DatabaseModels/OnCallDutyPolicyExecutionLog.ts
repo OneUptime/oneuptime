@@ -1311,6 +1311,47 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
   })
   public pagingStartsAt?: Date = undefined;
 
+  /*
+   * Why a run that waited for working hours started paging before they
+   * began: its record changed - raised to a higher severity, say - and now
+   * matches an on-call rule that pages right away (WaitingRunsOnRecordChange).
+   * "The alert now matches on-call rule "P1 alerts", which pages right
+   * away." Its record's feed and its Slack and Microsoft Teams message say
+   * so. Empty for every other run.
+   *
+   * No caller may write it: OneUptime starts the run (startWaitingRun).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    required: false,
+    title: "Paging Started Early Reason",
+    description:
+      "Why this run started paging before the working hours it waited for began: its record came to match an on-call rule that pages right away. Empty for every other run.",
+    canReadOnRelationQuery: false,
+    example:
+      'The alert now matches on-call rule "P1 alerts", which pages right away.',
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public pagingStartedEarlyReason?: string = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

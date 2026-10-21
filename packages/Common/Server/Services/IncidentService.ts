@@ -133,6 +133,7 @@ import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed"
 import IncidentGroupingEngineService from "./IncidentGroupingEngineService";
 import IncidentLabelRuleEngineService from "./IncidentLabelRuleEngineService";
 import IncidentOnCallRuleEngineService from "./IncidentOnCallRuleEngineService";
+import WaitingRunsOnRecordChange from "../Utils/OnCall/WaitingRunsOnRecordChange";
 import { OnCallRulePagingHold } from "../Utils/OnCall/OnCallRulePagingHold";
 import IncidentOwnerRuleEngineService from "./IncidentOwnerRuleEngineService";
 import IncidentPrivacyRuleEngineService from "./IncidentPrivacyRuleEngineService";
@@ -5715,6 +5716,43 @@ ${incidentSeverity.name}
               sendWorkspaceNotification: true,
             },
           });
+        }
+
+        /*
+         * The on-call rules match the severity, the labels, the title, the
+         * description and the monitors. An incident whose runs wait for
+         * working hours, changed in one of those, may now match a rule that
+         * pages right away: those runs start paging now - a SEV3 raised to
+         * SEV1 at night pages at once (WaitingRunsOnRecordChange). Starting
+         * a page must not fail the edit.
+         */
+        const monitorChangesOfIncident: UpdateCarryForward[string] | undefined =
+          (onUpdate.carryForward as UpdateCarryForward | undefined)?.[
+            incidentId.toString()
+          ];
+
+        if (
+          WaitingRunsOnRecordChange.isRuleInputChanged({
+            isSeverityChanged: isSeverityChanged,
+            fieldChanges: fieldChanges,
+            isMonitorChanged: Boolean(
+              monitorChangesOfIncident &&
+                (monitorChangesOfIncident.monitorsAdded.length > 0 ||
+                  monitorChangesOfIncident.monitorsRemoved.length > 0),
+            ),
+          })
+        ) {
+          try {
+            await WaitingRunsOnRecordChange.startForIncident(incidentId);
+          } catch (waitingRunsError) {
+            logger.error(
+              `Starting waiting on-call runs failed in IncidentService.onUpdateSuccess: ${waitingRunsError}`,
+              {
+                projectId: projectId?.toString(),
+                incidentId: incidentId?.toString(),
+              } as LogAttributes,
+            );
+          }
         }
       }
     }

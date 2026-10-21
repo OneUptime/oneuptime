@@ -732,8 +732,9 @@ export default class OnCallPolicyRunMessage {
           executeNextEscalationRuleInMinutes: true,
           scheduleGapRetryCount: true,
           onCallPolicyExecutionRepeatCount: true,
-          // A run that waits to page: when it starts.
+          // A run that waits to page: when it starts, and why it started early.
           pagingStartsAt: true,
+          pagingStartedEarlyReason: true,
           acknowledgedByUserId: true,
           acknowledgedByUser: {
             name: true,
@@ -1600,8 +1601,20 @@ export default class OnCallPolicyRunMessage {
           }
         : {};
 
+    /*
+     * A run that waited and started before its hours began, because its
+     * record came to match a rule that pages right away
+     * (WaitingRunsOnRecordChange): why, said for as long as the run is
+     * told.
+     */
+    const startedEarlyReason: string =
+      executionLog.status !== OnCallDutyPolicyStatus.Waiting
+        ? (executionLog.pagingStartedEarlyReason || "").trim()
+        : "";
+
     return {
       ...waiting,
+      ...(startedEarlyReason ? { startedEarlyReason: startedEarlyReason } : {}),
       policyName: data.directPage
         ? ""
         : executionLog.onCallDutyPolicy?.name?.trim() || "On-call policy",

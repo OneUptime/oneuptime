@@ -263,6 +263,12 @@ export interface OnCallPolicyRun {
    */
   pagingStartsAt?: Date | undefined;
   isWaitingForWorkingHours?: boolean | undefined;
+  /*
+   * A run that waited and started before its hours began: why. Its record
+   * came to match an on-call rule that pages right away
+   * (WaitingRunsOnRecordChange).
+   */
+  startedEarlyReason?: string | undefined;
   acknowledgedByName?: string | undefined;
   ruleCount: number;
   // The escalation rule the run is on (or ended on).
@@ -383,6 +389,16 @@ export default class OnCallPolicyRunMessageView {
 
     if (recordTitle) {
       parts.push(mdText`“${recordTitle}”`);
+    }
+
+    /*
+     * Started before the working hours it waited for, because its record
+     * came to match a rule that pages right away: why it is paging now.
+     */
+    const startedEarlyReason: string = (run.startedEarlyReason || "").trim();
+
+    if (startedEarlyReason) {
+      parts.push(mdText`**Started early.** ${startedEarlyReason}`);
     }
 
     // A direct page pages everybody at once: there is no rule it is on.

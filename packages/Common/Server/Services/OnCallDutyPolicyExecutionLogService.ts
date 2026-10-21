@@ -34,7 +34,10 @@ import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyArchive";
-import { getOnCallPolicyRunWaitingMessage } from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
+import {
+  ON_CALL_POLICY_RUN_STARTED_EARLY_REASON_MAX_LENGTH,
+  getOnCallPolicyRunWaitingMessage,
+} from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
 import { IsNull, UpdateResult } from "typeorm";
 import FeedMarkdown, { MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -655,6 +658,12 @@ export class Service extends ProjectReferencesService<Model> {
    * that hangs is timed out five minutes after it - not at once because the
    * run was created hours before (TimeoutStuckExecutions).
    *
+   * A run can also start before its moment: its record changed and now
+   * matches an on-call rule that pages right away (WaitingRunsOnRecordChange).
+   * `startedEarlyReason` then says why, in the same claim - kept on the run
+   * (pagingStartedEarlyReason) for its Slack and Microsoft Teams message, and
+   * said in its record's feed.
+   *
    * `run` is the run as the worker read it: its id, its project, its policy
    * and the record it pages about. Returns whether this call started it.
    */
@@ -662,14 +671,18 @@ export class Service extends ProjectReferencesService<Model> {
   public async startWaitingRun(data: {
     run: Model;
     now: Date;
+    startedEarlyReason?: string | undefined;
   }): Promise<boolean> {
     const run: Model = data.run;
+    const startedEarlyReason: string | undefined =
+      data.startedEarlyReason?.trim() || undefined;
 
     const claimed: boolean = await this.claimWaitingRun({
       executionLogId: run.id!,
       status: OnCallDutyPolicyStatus.Started,
       statusMessage: "Execution started...",
       pagingStartsAt: data.now,
+      pagingStartedEarlyReason: startedEarlyReason,
     });
 
     if (!claimed) {
@@ -694,6 +707,7 @@ export class Service extends ProjectReferencesService<Model> {
           feedInfoInMarkdown: OnCallFeedText.getRunStartedMarkdown({
             policyLink: policyLink,
             isStartedBySomeone: false,
+            startedEarlyReason: startedEarlyReason,
           }),
           displayColor: Yellow500,
         });
@@ -758,6 +772,7 @@ export class Service extends ProjectReferencesService<Model> {
     status: OnCallDutyPolicyStatus;
     statusMessage: string;
     pagingStartsAt?: Date | undefined;
+    pagingStartedEarlyReason?: string | undefined;
   }): Promise<boolean> {
     const values: Record<string, unknown> = {
       status: data.status,
@@ -766,6 +781,13 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (data.pagingStartsAt) {
       values["pagingStartsAt"] = data.pagingStartsAt;
+    }
+
+    if (data.pagingStartedEarlyReason) {
+      values["pagingStartedEarlyReason"] = data.pagingStartedEarlyReason.slice(
+        0,
+        ON_CALL_POLICY_RUN_STARTED_EARLY_REASON_MAX_LENGTH,
+      );
     }
 
     const result: UpdateResult = await this.getRepository().update(

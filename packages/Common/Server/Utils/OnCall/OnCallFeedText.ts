@@ -563,12 +563,16 @@ export default class OnCallFeedText {
    * A run starting. With the person who started it by hand, the sentence
    * follows their name in the feed ("Nitin started on-call policy PolicyX").
    * Started by a workflow's step, it names the workflow ("Workflow Page SRE
-   * started on-call policy PolicyX").
+   * started on-call policy PolicyX"). A run that waited for working hours
+   * and started before they began says why (WaitingRunsOnRecordChange):
+   * "On-call policy PolicyX started paging early. The alert now matches
+   * on-call rule "P1 alerts", which pages right away."
    */
   public static getRunStartedMarkdown(data: {
     policyLink: MarkdownText;
     isStartedBySomeone: boolean;
     startedByWorkflowName?: string | undefined;
+    startedEarlyReason?: string | undefined;
   }): string {
     if (data.isStartedBySomeone) {
       return mdText`started on-call policy **${data.policyLink}**.`.toString();
@@ -578,6 +582,18 @@ export default class OnCallFeedText {
 
     if (workflowName) {
       return mdText`Workflow **${workflowName}** started on-call policy **${data.policyLink}**.`.toString();
+    }
+
+    const startedEarlyReason: string = (data.startedEarlyReason || "").trim();
+
+    if (startedEarlyReason) {
+      return FeedMarkdown.join(
+        [
+          mdText`${getPolicy(data.policyLink)} started paging early.`,
+          asSentence(startedEarlyReason),
+        ],
+        " ",
+      ).toString();
     }
 
     return mdText`${getPolicy(data.policyLink)} started paging.`.toString();

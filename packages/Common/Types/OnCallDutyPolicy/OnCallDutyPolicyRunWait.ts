@@ -59,6 +59,74 @@ export function isOnCallPolicyRunWaitingForWorkingHours(
 }
 
 /*
+ * WHY A RUN THAT WAITED STARTED PAGING EARLY: its record changed - raised to
+ * a higher severity, say - and now matches an on-call rule that pages right
+ * away (WaitingRunsOnRecordChange). Plain text, kept on the run
+ * (pagingStartedEarlyReason) and said in its record's feed and its Slack and
+ * Microsoft Teams message:
+ *
+ *   The alert now matches on-call rule "P1 alerts", which pages right away.
+ *   The incident now matches on-call rules "P1" and "Payments", which page
+ *   right away.
+ *
+ * Two rule names at most, each cut to a length that keeps the whole within
+ * the column; any more are counted.
+ */
+export const ON_CALL_POLICY_RUN_STARTED_EARLY_REASON_MAX_LENGTH: number = 500;
+
+const STARTED_EARLY_RULE_NAME_MAX_LENGTH: number = 150;
+
+const RECORD_KIND_SUBJECTS: Record<string, string> = {
+  alert: "The alert",
+  incident: "The incident",
+  "alert episode": "The alert episode",
+  "incident episode": "The incident episode",
+};
+
+export function getOnCallPolicyRunStartedEarlyReason(data: {
+  // "alert", "incident", "alert episode" or "incident episode".
+  recordKind: string;
+  // The rules that page right away and now match the record.
+  ruleNames: Array<string>;
+}): string {
+  const subject: string =
+    RECORD_KIND_SUBJECTS[data.recordKind] || `The ${data.recordKind}`;
+
+  const names: Array<string> = data.ruleNames
+    .map((name: string): string => {
+      const trimmed: string = (name || "").trim();
+
+      return trimmed.length > STARTED_EARLY_RULE_NAME_MAX_LENGTH
+        ? `${trimmed.slice(0, STARTED_EARLY_RULE_NAME_MAX_LENGTH - 1)}…`
+        : trimmed;
+    })
+    .filter((name: string): boolean => {
+      return name.length > 0;
+    });
+
+  const quoted: Array<string> = Array.from(new Set(names)).map(
+    (name: string): string => {
+      return `"${name}"`;
+    },
+  );
+
+  if (quoted.length === 0) {
+    return `${subject} now matches an on-call rule that pages right away.`;
+  }
+
+  if (quoted.length === 1) {
+    return `${subject} now matches on-call rule ${quoted[0]}, which pages right away.`;
+  }
+
+  const listed: string =
+    quoted.length === 2
+      ? `${quoted[0]} and ${quoted[1]}`
+      : `${quoted[0]}, ${quoted[1]} and ${quoted.length - 2} more`;
+
+  return `${subject} now matches on-call rules ${listed}, which page right away.`;
+}
+
+/*
  * How the message of a run that ended while it waited, because its record
  * was handled, starts. Not "Execution completed because ...": that is a run
  * that stopped paging (OnCallDutyPolicyRunEnding), and this one never began.

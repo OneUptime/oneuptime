@@ -84,7 +84,7 @@ flowchart TB
 
 | Statut | Ce qu'il signifie |
 | --- | --- |
-| **En attente** | Une règle d'astreinte réglée sur **Uniquement pendant les heures ouvrées** fait attendre l'exécution jusqu'au début de ces heures : elle indique quand les alertes commencent, et n'alerte personne d'ici là. Elle se termine sans alerter si l'incident ou l'alerte est pris en compte ou résolu avant. |
+| **En attente** | Une règle d'astreinte réglée sur **Uniquement pendant les heures ouvrées** fait attendre l'exécution jusqu'au début de ces heures : elle indique quand les alertes commencent, et n'alerte personne d'ici là. Elle se termine sans alerter si l'incident ou l'alerte est pris en compte ou résolu avant. Elle commence aussitôt à alerter si l'incident ou l'alerte change et correspond désormais à une règle d'astreinte qui alerte immédiatement. |
 | **Planifié**, **Démarrée** | L'exécution est en préparation. Une exécution encore là après 5 minutes est arrêtée en **Erreur**. |
 | **Executing** | L'exécution alerte. OneUptime la fait avancer chaque minute. |
 | **Execution Completed** | Quelqu'un a pris en compte, l'incident ou l'alerte a été résolu, chaque règle et chaque répétition ont été utilisées, ou la politique a été archivée. |

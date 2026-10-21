@@ -20,6 +20,7 @@ import ObjectID from "../../../Types/ObjectID";
 import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import { ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE } from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyArchive";
 import {
+  ON_CALL_POLICY_RUN_STARTED_EARLY_REASON_MAX_LENGTH,
   ON_CALL_POLICY_RUN_WAITING_MESSAGE_START,
   getOnCallPolicyRunEndedWhileWaitingMessage,
 } from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
@@ -591,6 +592,111 @@ describe("starting a run whose moment came", () => {
     });
 
     expect(stubs.startRuleExecution).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * Started before its moment: its record changed and now matches an on-call
+   * rule that pages right away (WaitingRunsOnRecordChange).
+   */
+  test("started early, keeps why on the run, in the same claim", async () => {
+    const stubs: Stubs = stub();
+    const now: Date = new Date();
+
+    await expect(
+      OnCallDutyPolicyExecutionLogService.startWaitingRun({
+        run: run({
+          status: OnCallDutyPolicyStatus.Waiting,
+          pagingStartsAt: new Date(now.getTime() + 8 * HOUR),
+        }),
+        now: now,
+        startedEarlyReason:
+          'The alert now matches on-call rule "P1 alerts", which pages right away.',
+      }),
+    ).resolves.toBe(true);
+
+    expect(stubs.repositoryUpdate).toHaveBeenCalledTimes(1);
+    expect(stubs.repositoryUpdate).toHaveBeenCalledWith(
+      { _id: RUN_ID.toString(), status: OnCallDutyPolicyStatus.Waiting },
+      {
+        status: OnCallDutyPolicyStatus.Started,
+        statusMessage: "Execution started...",
+        pagingStartsAt: now,
+        pagingStartedEarlyReason:
+          'The alert now matches on-call rule "P1 alerts", which pages right away.',
+      },
+    );
+  });
+
+  test("started early, says so in its record's feed, and why, and pages its first rule", async () => {
+    const stubs: Stubs = stub();
+
+    await OnCallDutyPolicyExecutionLogService.startWaitingRun({
+      run: run({ status: OnCallDutyPolicyStatus.Waiting }),
+      now: new Date(),
+      startedEarlyReason:
+        'The alert now matches on-call rule "P1 alerts", which pages right away.',
+    });
+
+    expect(feedTexts(stubs.alertFeed)).toEqual([
+      expect.stringMatching(
+        /started paging early\. The alert now matches on-call rule "P1 alerts", which pages right away\.$/,
+      ),
+    ]);
+    expect(stubs.startRuleExecution).toHaveBeenCalledTimes(1);
+    expect(stubs.refresh).toHaveBeenCalledWith(RUN_ID);
+  });
+
+  test("a reason too long for its column is cut to fit", async () => {
+    const stubs: Stubs = stub();
+
+    await OnCallDutyPolicyExecutionLogService.startWaitingRun({
+      run: run({ status: OnCallDutyPolicyStatus.Waiting }),
+      now: new Date(),
+      startedEarlyReason: "x".repeat(2000),
+    });
+
+    const values: Record<string, unknown> = stubs.repositoryUpdate.mock
+      .calls[0]![1] as Record<string, unknown>;
+
+    expect(values["pagingStartedEarlyReason"]).toBe(
+      "x".repeat(ON_CALL_POLICY_RUN_STARTED_EARLY_REASON_MAX_LENGTH),
+    );
+  });
+
+  test("a blank reason is no reason: it started paging, as at its moment", async () => {
+    const stubs: Stubs = stub();
+
+    await OnCallDutyPolicyExecutionLogService.startWaitingRun({
+      run: run({ status: OnCallDutyPolicyStatus.Waiting }),
+      now: new Date(),
+      startedEarlyReason: "   ",
+    });
+
+    expect(
+      Object.keys(
+        stubs.repositoryUpdate.mock.calls[0]![1] as Record<string, unknown>,
+      ),
+    ).not.toContain("pagingStartedEarlyReason");
+    expect(feedTexts(stubs.alertFeed)).toEqual([
+      expect.stringMatching(/started paging\.$/),
+    ]);
+  });
+
+  test("started early, lost to another tick, keeps no reason and pages once", async () => {
+    const stubs: Stubs = stub({ claimWins: false });
+
+    await expect(
+      OnCallDutyPolicyExecutionLogService.startWaitingRun({
+        run: run({ status: OnCallDutyPolicyStatus.Waiting }),
+        now: new Date(),
+        startedEarlyReason:
+          'The alert now matches on-call rule "P1 alerts", which pages right away.',
+      }),
+    ).resolves.toBe(false);
+
+    expect(stubs.alertFeed).not.toHaveBeenCalled();
+    expect(stubs.startRuleExecution).not.toHaveBeenCalled();
+    expect(stubs.updateOneById).not.toHaveBeenCalled();
   });
 });
 

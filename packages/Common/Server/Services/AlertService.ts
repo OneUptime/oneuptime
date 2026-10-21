@@ -108,6 +108,7 @@ import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import AlertGroupingEngineService from "./AlertGroupingEngineService";
 import AlertLabelRuleEngineService from "./AlertLabelRuleEngineService";
 import AlertOnCallRuleEngineService from "./AlertOnCallRuleEngineService";
+import WaitingRunsOnRecordChange from "../Utils/OnCall/WaitingRunsOnRecordChange";
 import { OnCallRulePagingHold } from "../Utils/OnCall/OnCallRulePagingHold";
 import AlertOwnerRuleEngineService from "./AlertOwnerRuleEngineService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
@@ -2267,6 +2268,34 @@ ${alertSeverity.name}
               sendWorkspaceNotification: true,
             },
           });
+        }
+
+        /*
+         * The on-call rules match the severity, the labels, the title, the
+         * description and the monitor. An alert whose runs wait for working
+         * hours, changed in one of those, may now match a rule that pages
+         * right away: those runs start paging now - a P3 raised to P1 at
+         * night pages at once (WaitingRunsOnRecordChange). Starting a page
+         * must not fail the edit.
+         */
+        if (
+          WaitingRunsOnRecordChange.isRuleInputChanged({
+            isSeverityChanged: isSeverityChanged,
+            fieldChanges: fieldChanges,
+            isMonitorChanged: Boolean(monitorChange),
+          })
+        ) {
+          try {
+            await WaitingRunsOnRecordChange.startForAlert(alertId);
+          } catch (waitingRunsError) {
+            logger.error(
+              `Starting waiting on-call runs failed in AlertService.onUpdateSuccess: ${waitingRunsError}`,
+              {
+                projectId: projectId?.toString(),
+                alertId: alertId?.toString(),
+              } as LogAttributes,
+            );
+          }
         }
       }
     }
