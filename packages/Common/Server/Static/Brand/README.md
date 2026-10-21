@@ -25,8 +25,20 @@ absolute path, or from server code via the `OneUptimeLogoUrl` constant -
 | Path                      | Source                                                  |
 | ------------------------- | ------------------------------------------------------- |
 | `oneuptime-logo.svg`      | `packages/Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg` |
+| `oneuptime-email-logo.png` | `packages/Common/UI/Images/logos/OneUptimePNG/1.png`, at 96 x 96 with rounded corners |
 | `ou-wb.svg`, `hou-wb.svg` | `packages/Home/Static/img/`                                      |
 | `favicons/`               | `packages/Home/Static/img/favicons/`                             |
+
+`oneuptime-email-logo.png` is the logo in the header of every email that
+shows OneUptime's branding. It is not fetched by address: the email carries
+it as an inline image (`packages/Common/Server/Utils/Mail/EmailLogo.ts`), so
+an email shows it on a network without the internet and asks no host for
+anything when it is opened (issue #5124: it used to load from
+res.cloudinary.com). It is 96 x 96 for a header that draws it at 32 x 32, a
+PNG because many mail clients draw no SVG, and a few kilobytes because every
+email carries it - `packages/Common/Tests/Server/Utils/Mail/EmailLogo.test.ts`
+holds it to all three. Its corners are rounded in the image itself, so
+Outlook, which ignores `border-radius`, draws it as every other client does.
 
 `favicons/oneuptime-up-v1.svg` is the cache-versioned browser-tab icon shared
 by the Dashboard, Admin Dashboard, and Home page. It keeps the white `Up.` mark
