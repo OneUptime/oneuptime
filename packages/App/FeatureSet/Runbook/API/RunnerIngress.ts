@@ -3,7 +3,6 @@ import { RunnerExpressRequest } from "../Types/Request";
 import RunbookJobVariables, {
   PreparedJobVariables,
 } from "../Utils/JobVariables";
-import RunbookCredentialsUtil from "../Utils/Credentials";
 import RunnerService, {
   Service as RunnerServiceClass,
 } from "Common/Server/Services/RunnerService";
@@ -43,8 +42,7 @@ import {
   RUNNER_FEATURE_KUBECTL_SCRIPT,
   readRunnerFeatures,
 } from "Common/Types/Runbook/RunnerFeatures";
-import { readLegacyKubernetesStepOfJob } from "Common/Types/Runbook/RunbookLegacySteps";
-import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
+import { REMOVED_RUNBOOK_CREDENTIAL_STEP_MESSAGE } from "Common/Types/Runbook/RunbookLegacySteps";
 import {
   RunbookVariableReference,
   RunbookVariableScope,
@@ -74,30 +72,30 @@ export default class RunnerIngressAPI {
   /*
    * Why a kubectl step that takes a script was not run on a Runner that
    * did not say it can run one (RunnerFeatures): a Runner older than
-   * kubectl scripts would fail it with a confusing error of its own. A step
-   * moved from a Kubernetes action that still keeps it is handed to such a
-   * Runner as that action instead (claimLegacyKubernetesStep).
+   * kubectl scripts would fail it with a confusing error of its own. (A
+   * step moved from a Kubernetes action was handed to such a Runner as that
+   * action, with its runbook credential, until runbook credentials were
+   * removed.)
    */
   public static readonly KUBECTL_SCRIPT_NEEDS_NEWER_RUNNER: string =
     "This kubectl step runs a script, and this Runner is too old to run one, so it was not run. Update the Runner to your server's version (pull its image again and restart it), then run the runbook again.";
 
   /*
-   * Why a step that runs with a runbook credential was not handed to the
-   * Runner that took it: the credential is gone, is another project's, is
-   * not assigned to that Runner, or - for the Kubernetes action a moved
-   * kubectl step kept - is not a Kubernetes credential
-   * (RunbookCredentialsUtil.resolveForJob).
+   * Why a runbook step's job that names a runbook credential is failed:
+   * runbook credentials were removed (the step was written with one
+   * through the API and never moved to variables). Its Steps page turns it
+   * into the script step that does the same.
    */
-  public static readonly CREDENTIAL_NOT_AVAILABLE: string =
-    "The credential this step references is not available to this Runner. Check that it exists and that this Runner is assigned to it.";
+  public static readonly REMOVED_CREDENTIAL_STEP_REFUSAL: string =
+    REMOVED_RUNBOOK_CREDENTIAL_STEP_MESSAGE;
 
-  // Why a job naming a credential is failed for a global Runner.
-  public static readonly GLOBAL_RUNNER_CREDENTIAL_REFUSAL: string =
-    "This step needs a credential, and global Runners are never handed one: they run JavaScript steps for every project, in a sandbox. It was not run. Pick one of your own Runners for the step, assigned to the credential.";
-
-  // Why a job naming a credential is failed for a kubernetes-agent Runner.
-  public static readonly AGENT_RUNNER_CREDENTIAL_REFUSAL: string =
-    "This step needs a credential, and this Runner is a cluster's in-cluster Runner: it runs kubectl with its own ServiceAccount only and is never given a credential. It was not run. Create a Runner under Runbooks → Runners, assign the credential to it and target that Runner instead.";
+  /*
+   * Why a command OneUptime AI composed with a runbook credential - an SSH
+   * command, or kubectl through a Runner outside its cluster - is failed:
+   * it was queued before runbook credentials were removed.
+   */
+  public static readonly REMOVED_CREDENTIAL_COMMAND_REFUSAL: string =
+    "OneUptime AI composed this command to run with a runbook credential, and runbook credentials were removed, so it was not run. A host or Kubernetes cluster is fixed through its own AI agent now.";
 
   public constructor() {
     this.router = Express.getRouter();
@@ -537,6 +535,26 @@ export default class RunnerIngressAPI {
       }
 
       /*
+       * A job that names a runbook credential - a step written with one
+       * through the API and never moved to variables, or a command
+       * OneUptime AI composed with one - was queued before runbook
+       * credentials were removed: there is nothing to hand it, so it is
+       * failed with what to do, never run.
+       */
+      const payload: JSONObject = (job.payload as JSONObject) || {};
+
+      if (payload["credentialId"]) {
+        await RunnerJobService.submitResult({
+          jobId: job.id!,
+          agentId: agent.id,
+          success: false,
+          errorMessage: RunnerIngressAPI.getRemovedCredentialRefusal(job),
+        });
+
+        return Response.sendJsonObjectResponse(req, res, { job: null });
+      }
+
+      /*
        * Fill in the runbook variables the step names - in its script, and
        * for an SSH or kubectl step in its host, user, key, password or
        * kubeconfig (RunbookJobVariables). Read per claim so a value changed
@@ -550,9 +568,7 @@ export default class RunnerIngressAPI {
        * attacker-influenceable telemetry. Filling in there would turn
        * `{{global.variables.X}}` into an exfiltration macro that reads
        * harmless on the approval card and expands to the plaintext secret
-       * at claim time. AI commands reach credentials only through the
-       * credentialId path below, which never exposes the material to the
-       * model.
+       * at claim time. AI commands are handed no secret at all.
        *
        * Never for a kubernetes-agent Runner either: its identity can be
        * minted with the project's telemetry ingestion key, so it is never
@@ -577,33 +593,7 @@ export default class RunnerIngressAPI {
             RUNNER_FEATURE_KUBECTL_SCRIPT,
           )
         ) {
-          /*
-           * A Runner older than kubectl scripts. A step the data migration
-           * moved from a Kubernetes action still carries that action and
-           * its credential while its script and kubeconfig are the ones it
-           * was moved with (RunbookLegacySteps): the Runner is handed the
-           * step that way, as such a step always was, and nothing of the
-           * script's (claimLegacyKubernetesStep). A step written as a
-           * script, or changed since it was moved, has no action to fall
-           * back on: it is failed, saying to update the Runner.
-           */
-          const legacyStep: JSONObject | null = readLegacyKubernetesStepOfJob(
-            job.payload,
-          );
-
-          if (legacyStep) {
-            return Response.sendJsonObjectResponse(
-              req,
-              res,
-              await RunnerIngressAPI.claimLegacyKubernetesStep({
-                job,
-                agentId: agent.id,
-                projectId: agent.projectId,
-                legacyStep,
-              }),
-            );
-          }
-
+          // A Runner older than kubectl scripts: it is failed, saying to update it.
           await RunnerJobService.submitResult({
             jobId: job.id!,
             agentId: agent.id,
@@ -639,38 +629,24 @@ export default class RunnerIngressAPI {
       }
 
       /*
-       * Steps written before runbook variables, and OneUptime AI's SSH and
-       * kubectl commands, carry a credential reference. The credential is
-       * resolved HERE, scoped to this Runner and this project, so its secret
-       * material exists on the wire only in the response to the Runner that
-       * was targeted — never on the job row, and never readable through the
-       * CRUD API.
+       * A Kubectl job is meant for an in-cluster Runner, which uses its own
+       * ServiceAccount — and that ServiceAccount reaches only the cluster
+       * the pod lives in. So it is served only to the in-cluster Runner OF
+       * THE JOB'S CLUSTER: the Runner's posture must name the cluster the
+       * payload names. A plain Runner would run kubectl against whatever its
+       * host's kubeconfig points at, and the agent of another cluster would
+       * run it against that other cluster. The payload's identifier was
+       * stamped by the enqueue chokepoint from the cluster row; a job
+       * without one fails closed.
        */
-      const payload: JSONObject = (job.payload as JSONObject) || {};
-      const credentialId: unknown = payload["credentialId"];
-
-      /*
-       * A Kubectl job without a credential is meant for an in-cluster
-       * Runner, which uses its own ServiceAccount — and that ServiceAccount
-       * reaches only the cluster the pod lives in. So it is served only to
-       * the in-cluster Runner OF THE JOB'S CLUSTER: the Runner's posture
-       * must name the cluster the payload names. A plain Runner would run
-       * kubectl against whatever its host's kubeconfig points at, and the
-       * agent of another cluster would run it against that other cluster.
-       * The payload's identifier was stamped by the enqueue chokepoint from
-       * the cluster row; a job without one fails closed.
-       */
-      if (
-        job.stepType === RunbookStepType.Kubectl &&
-        !(typeof credentialId === "string" && credentialId)
-      ) {
+      if (job.stepType === RunbookStepType.Kubectl) {
         const jobClusterIdentifier: string =
           typeof payload["clusterIdentifier"] === "string"
             ? (payload["clusterIdentifier"] as string).trim()
             : "";
 
         const refusal: string | null =
-          RunnerIngressAPI.getCredentialLessKubectlRefusal({
+          RunnerIngressAPI.getInClusterKubectlRefusal({
             posture,
             jobClusterIdentifier,
           });
@@ -681,50 +657,6 @@ export default class RunnerIngressAPI {
             agentId: agent.id,
             success: false,
             errorMessage: refusal,
-          });
-
-          return Response.sendJsonObjectResponse(req, res, { job: null });
-        }
-      }
-
-      if (typeof credentialId === "string" && credentialId) {
-        /*
-         * A kubernetes-agent Runner is NEVER handed credential material,
-         * whatever is assigned to it. Its row is minted and re-keyed with
-         * the project's telemetry ingestion key — a credential every
-         * collector and CI job holds — so resolving a credential for it
-         * would hand that credential to anyone holding the key. It runs
-         * kubectl with its own ServiceAccount only. The job is failed with
-         * the same refusal shape as the credential-less rule above, and the
-         * credential is never resolved.
-         */
-        if (isAgentRunnerRow) {
-          await RunnerJobService.submitResult({
-            jobId: job.id!,
-            agentId: agent.id,
-            success: false,
-            errorMessage: RunnerIngressAPI.AGENT_RUNNER_CREDENTIAL_REFUSAL,
-          });
-
-          return Response.sendJsonObjectResponse(req, res, { job: null });
-        }
-
-        credential = await RunbookCredentialsUtil.resolveForJob({
-          credentialId,
-          agentId: agent.id,
-          projectId: agent.projectId,
-        });
-
-        if (!credential) {
-          /*
-           * Fail the job rather than handing over a step it cannot run: a
-           * Runner that silently no-ops looks identical to one that worked.
-           */
-          await RunnerJobService.submitResult({
-            jobId: job.id!,
-            agentId: agent.id,
-            success: false,
-            errorMessage: RunnerIngressAPI.CREDENTIAL_NOT_AVAILABLE,
           });
 
           return Response.sendJsonObjectResponse(req, res, { job: null });
@@ -824,57 +756,14 @@ export default class RunnerIngressAPI {
   }
 
   /*
-   * A kubectl step moved from a Kubernetes action, taken by a project's
-   * Runner older than kubectl scripts: handed over as the step it was
-   * written as, exactly as the server handed such a step over before
-   * kubectl scripts - its action (`legacyStep`, the payload such a step was
-   * dispatched with) and the Kubernetes credential it names, resolved for
-   * this Runner (RunbookCredentialsUtil: only one of the project's, assigned
-   * to this Runner). Nothing more: no script, no variable is read for it -
-   * not its kubeconfig - no secret values and no run inputs. A credential
-   * this Runner may not have fails the step with the reason, as before.
+   * What a job that names a runbook credential is failed with: a runbook
+   * step's tells how to fix the step; an AI command's that it was composed
+   * before runbook credentials were removed.
    */
-  public static async claimLegacyKubernetesStep(data: {
-    job: RunnerJob;
-    agentId: ObjectID;
-    projectId: ObjectID;
-    legacyStep: JSONObject;
-  }): Promise<JSONObject> {
-    const credential: JSONObject | null =
-      await RunbookCredentialsUtil.resolveForJob({
-        credentialId: String(data.legacyStep["credentialId"] || ""),
-        agentId: data.agentId,
-        projectId: data.projectId,
-        credentialType: RunbookCredentialType.Kubernetes,
-      });
-
-    if (!credential) {
-      await RunnerJobService.submitResult({
-        jobId: data.job.id!,
-        agentId: data.agentId,
-        success: false,
-        errorMessage: RunnerIngressAPI.CREDENTIAL_NOT_AVAILABLE,
-      });
-
-      return { job: null };
-    }
-
-    return {
-      job: {
-        jobId: data.job.id?.toString(),
-        ...(data.job.runbookExecutionId
-          ? { runbookExecutionId: data.job.runbookExecutionId.toString() }
-          : {}),
-        origin: data.job.origin || RunnerJobOrigin.Runbook,
-        stepId: data.job.stepId,
-        stepType: data.job.stepType,
-        script: "",
-        timeoutInMs: data.job.timeoutInMs,
-        leaseExpiresAt: data.job.leaseExpiresAt?.toISOString(),
-        payload: data.legacyStep,
-        credential,
-      },
-    };
+  public static getRemovedCredentialRefusal(job: RunnerJob): string {
+    return AI_COMMAND_JOB_ORIGINS.includes(job.origin || RunnerJobOrigin.Runbook)
+      ? RunnerIngressAPI.REMOVED_CREDENTIAL_COMMAND_REFUSAL
+      : RunnerIngressAPI.REMOVED_CREDENTIAL_STEP_REFUSAL;
   }
 
   /*
@@ -888,9 +777,10 @@ export default class RunnerIngressAPI {
    *     and the secrets of that project its people let global Runners use
    *     (RunbookJobVariables, with the global-runner access);
    *   - the inputs and trigger of the run it belongs to, from that project;
-   *   - never a credential: a step that names one is failed, not handed
-   *     over (global Runners run no SSH or Kubernetes step, and the job
-   *     could only carry one if something wrote it around the enqueue).
+   *   - never a credential: a step that names a runbook credential is
+   *     failed, not handed over (global Runners run no SSH or Kubernetes
+   *     step, and the job could only carry one if something wrote it around
+   *     the enqueue).
    *
    * A global Runner whose "Runs Runbooks" is off takes nothing.
    */
@@ -930,7 +820,7 @@ export default class RunnerIngressAPI {
         jobId: job.id!,
         agentId: agent.id,
         success: false,
-        errorMessage: RunnerIngressAPI.GLOBAL_RUNNER_CREDENTIAL_REFUSAL,
+        errorMessage: RunnerIngressAPI.getRemovedCredentialRefusal(job),
       });
 
       return { job: null };
@@ -1190,20 +1080,20 @@ export default class RunnerIngressAPI {
   }
 
   /*
-   * Why a credential-less kubectl job may NOT be served to this Runner, or
-   * null when it may. The one rule: only the in-cluster Runner of the job's
-   * own cluster runs kubectl with its ServiceAccount.
+   * Why a kubectl job may NOT be served to this Runner, or null when it
+   * may. The one rule: only the in-cluster Runner of the job's own cluster
+   * runs kubectl, with its ServiceAccount.
    */
-  public static getCredentialLessKubectlRefusal(data: {
+  public static getInClusterKubectlRefusal(data: {
     posture: KubernetesRunnerPosture | undefined;
     jobClusterIdentifier: string;
   }): string | null {
     if (!data.posture?.inCluster) {
-      return "This kubectl command has no Kubernetes credential and this Runner is not the in-cluster Runner. Select a Kubernetes credential for this Runner on the cluster's AI agent page (AI → Agent), or clear the Runner there to use the cluster's Kubernetes AI agent.";
+      return "This kubectl command can only run on the in-cluster Runner of its cluster, and this Runner is not one, so it was not run. OneUptime AI reaches a cluster through its Kubernetes AI agent, which the Kubernetes agent chart installs.";
     }
 
     if (!data.jobClusterIdentifier) {
-      return "This kubectl command has no Kubernetes credential and does not name the cluster it is for, so it cannot be matched to this in-cluster Runner. It was not run.";
+      return "This kubectl command does not name the cluster it is for, so it cannot be matched to this in-cluster Runner. It was not run.";
     }
 
     if (
@@ -1214,7 +1104,7 @@ export default class RunnerIngressAPI {
 
       return `This kubectl command is for cluster "${data.jobClusterIdentifier}" but this Runner is the in-cluster Runner of ${
         reportedCluster ? `cluster "${reportedCluster}"` : "an unnamed cluster"
-      }, so it was not run. Install the Kubernetes AI agent on cluster "${data.jobClusterIdentifier}", or bind a Runner with a Kubernetes credential for it on the cluster's AI agent page (AI → Agent).`;
+      }, so it was not run. Install the Kubernetes AI agent on cluster "${data.jobClusterIdentifier}".`;
     }
 
     return null;

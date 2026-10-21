@@ -4,7 +4,6 @@ import {
   BashStepConfig,
   HttpRequestStepConfig,
   JavaScriptStepConfig,
-  KubernetesAction,
   KubernetesStepConfig,
   RunbookStep,
   SSHStepConfig,
@@ -26,10 +25,7 @@ import RunbookVariableResolver, {
   ResolvedRunbookVariable,
   RunbookVariableResolution,
 } from "Common/Server/Utils/Runbook/RunbookVariableResolver";
-import {
-  LEGACY_KUBERNETES_STEP_JOB_KEY,
-  getLegacyKubernetesStepForOlderRunner,
-} from "Common/Types/Runbook/RunbookLegacySteps";
+import { REMOVED_RUNBOOK_CREDENTIAL_STEP_MESSAGE } from "Common/Types/Runbook/RunbookLegacySteps";
 import { JSONObject } from "Common/Types/JSON";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import {
@@ -150,7 +146,8 @@ async function dispatchToAgent(args: {
   agentId: string;
   /*
    * Structured instructions for step types that are not a script. Never
-   * secret material — the credential is resolved at claim time.
+   * secret material — the variables a step names are filled in when a
+   * Runner takes it.
    */
   payload?: JSONObject | undefined;
   /*
@@ -527,6 +524,18 @@ export async function runBashStep(
 }
 
 /*
+ * What an SSH or Kubernetes step written with a runbook credential (and
+ * never moved to variables) ends with: runbook credentials were removed, so
+ * it is not sent to a Runner. Its Steps page turns it into the script step
+ * that does the same (isLegacyCredentialStep in the Dashboard).
+ */
+const REMOVED_CREDENTIAL_STEP_RESULT: StepRunResult = {
+  success: false,
+  output: "",
+  errorMessage: REMOVED_RUNBOOK_CREDENTIAL_STEP_MESSAGE,
+};
+
+/*
  * An SSH step: sign in to a machine with a secret variable and run a bash
  * script there. Its job carries the references, never a value: the Runner
  * that takes it is handed the host, the user, the script and the key or
@@ -539,7 +548,7 @@ export async function runSshStep(
   const config: SSHStepConfig = step.config as SSHStepConfig;
 
   if (isLegacySSHStepConfig(config)) {
-    return runLegacySshStep(step, ctx);
+    return REMOVED_CREDENTIAL_STEP_RESULT;
   }
 
   const host: string = (config.host || "").trim();
@@ -617,52 +626,12 @@ export async function runSshStep(
 }
 
 /*
- * An SSH step written before runbook variables: a credential and a
- * command, run as they always were. (It names a credential: that is what
- * makes it one, isLegacySSHStepConfig.)
- */
-async function runLegacySshStep(
-  step: RunbookStep,
-  ctx: StepExecutionContext,
-): Promise<StepRunResult> {
-  const config: SSHStepConfig = step.config as SSHStepConfig;
-
-  if (!config.command) {
-    return {
-      success: false,
-      output: "",
-      errorMessage: "SSH step has no command to run.",
-    };
-  }
-
-  return dispatchToAgent({
-    stepType: RunbookStepType.SSH,
-    step,
-    ctx,
-    script: "",
-    payload: {
-      credentialId: config.credentialId,
-      command: config.command || "",
-    },
-    timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
-    claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
-    agentId: config.agentId || "",
-  });
-}
-
-/*
  * A kubectl step: a bash script of kubectl commands, run on the step's
  * Runner with KUBECONFIG pointing at the kubeconfig it names - or at the
  * Runner's own access when it names none. Its job carries the references;
  * the Runner that takes it is handed the script and the kubeconfig, filled
- * in for it.
- *
- * A step the data migration moved from a Kubernetes action kept that action
- * and its credential (RunbookLegacySteps), and its job carries them too,
- * beside the script: a Runner older than kubectl scripts is handed the step
- * that way and runs it as it always did (RunnerIngress), as a moved SSH
- * step's script is also its command. Only while the script is still the
- * one the action became.
+ * in for it. A Runner older than kubectl scripts fails it, saying to update
+ * the Runner (RunnerIngress).
  */
 export async function runKubernetesStep(
   step: RunbookStep,
@@ -671,7 +640,7 @@ export async function runKubernetesStep(
   const config: KubernetesStepConfig = step.config as KubernetesStepConfig;
 
   if (isLegacyKubernetesStepConfig(config)) {
-    return runLegacyKubernetesStep(step, ctx);
+    return REMOVED_CREDENTIAL_STEP_RESULT;
   }
 
   const script: string = config.script || "";
@@ -694,9 +663,6 @@ export async function runKubernetesStep(
     };
   }
 
-  const legacyStep: JSONObject | null =
-    getLegacyKubernetesStepForOlderRunner(config);
-
   return dispatchToAgent({
     stepType: RunbookStepType.Kubernetes,
     step,
@@ -707,65 +673,11 @@ export async function runKubernetesStep(
         ? { kubeconfig: config.kubeconfig.trim() }
         : {}),
       script,
-      ...(legacyStep ? { [LEGACY_KUBERNETES_STEP_JOB_KEY]: legacyStep } : {}),
     },
     timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
     claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
     agentId: config.agentId || "",
     variableTexts: [config.kubeconfig || "", script],
     secretFields: [config.kubeconfig || ""],
-  });
-}
-
-/*
- * A Kubernetes step written before kubectl scripts: one workload action
- * with a credential, run as it always was. (It names a credential: that is
- * what makes it one, isLegacyKubernetesStepConfig.)
- */
-async function runLegacyKubernetesStep(
-  step: RunbookStep,
-  ctx: StepExecutionContext,
-): Promise<StepRunResult> {
-  const config: KubernetesStepConfig = step.config as KubernetesStepConfig;
-
-  if (!config.namespace || !config.workloadName) {
-    return {
-      success: false,
-      output: "",
-      errorMessage: "Kubernetes step needs a namespace and a workload name.",
-    };
-  }
-
-  /*
-   * Scaling to an unspecified replica count is not a safe default in either
-   * direction, so it is an error rather than a guess. Zero is legitimate.
-   */
-  if (
-    config.action === KubernetesAction.ScaleWorkload &&
-    (config.replicas === undefined || config.replicas === null)
-  ) {
-    return {
-      success: false,
-      output: "",
-      errorMessage: "Scale step needs a replica count.",
-    };
-  }
-
-  return dispatchToAgent({
-    stepType: RunbookStepType.Kubernetes,
-    step,
-    ctx,
-    script: "",
-    payload: {
-      credentialId: config.credentialId,
-      action: config.action,
-      workloadKind: config.workloadKind,
-      namespace: config.namespace,
-      workloadName: config.workloadName,
-      ...(config.replicas === undefined ? {} : { replicas: config.replicas }),
-    },
-    timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
-    claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
-    agentId: config.agentId || "",
   });
 }

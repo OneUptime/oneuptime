@@ -19,20 +19,17 @@ import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
  *                           run it; left out while the permission snapshot
  *                           has not landed, when there is nothing honest to
  *                           say. Locked while a test runs: it runs once.
- *   Switch to the AI agent  a Kubernetes cluster bound to a Runner outside
- *                           the chart, while its AI agent is online, for
- *                           the people who may loosen AI access.
  *   Reset agent             once an agent registered, for the people who may
  *                           loosen AI access. Asks before it resets.
  *
- * Switching and resetting are locked while another page action is in
- * flight. The card leaves the ⋯ out when none of them is offered.
+ * Resetting is locked while another page action is in flight. The card
+ * leaves the ⋯ out when neither is offered. ("Switch to the AI agent" moved
+ * a cluster bound to a Runner outside it over to its agent, until runbook
+ * credentials - what such a Runner reached the cluster with - were
+ * removed.)
  */
 
-export type AiAgentActionId =
-  | "test_connection"
-  | "switch_to_agent"
-  | "reset_agent";
+export type AiAgentActionId = "test_connection" | "reset_agent";
 
 export interface AiAgentAction {
   id: AiAgentActionId;
@@ -64,24 +61,15 @@ export interface AiAgentActionsInput {
     isRunning: boolean;
     onRun: () => void;
   };
-  // Kubernetes only: move a cluster's advanced Runner binding to its agent.
-  switchToAgent?:
-    | {
-        isOffered: boolean;
-        onClick: () => void;
-      }
-    | undefined;
   resetAgent: {
     isOffered: boolean;
     onClick: () => void;
   };
-  // A page action (a reset, a switch, a gap's one-click fix) is in flight.
+  // A page action (a reset, a gap's one-click fix) is in flight.
   isActing: boolean;
 }
 
 export const AI_AGENT_TEST_CONNECTION_TEST_ID: string = "ai-agent-test-button";
-export const AI_AGENT_SWITCH_TO_AGENT_TEST_ID: string =
-  "ai-agent-switch-button";
 export const AI_AGENT_RESET_AGENT_TEST_ID: string = "ai-agent-reset-button";
 
 export function getAiAgentActions(
@@ -105,25 +93,6 @@ export function getAiAgentActions(
           return;
         }
         test.onRun();
-      },
-    });
-  }
-
-  if (input.switchToAgent?.isOffered) {
-    const onSwitch: () => void = input.switchToAgent.onClick;
-
-    actions.push({
-      id: "switch_to_agent",
-      text: "Switch to the AI agent",
-      icon: IconProp.ArrowCircleRight,
-      isDisabled: input.isActing,
-      disabledReason: undefined,
-      dataTestId: AI_AGENT_SWITCH_TO_AGENT_TEST_ID,
-      onClick: (): void => {
-        if (input.isActing) {
-          return;
-        }
-        onSwitch();
       },
     });
   }

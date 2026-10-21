@@ -693,7 +693,6 @@ export const RunbookRoutePath: Dictionary<string> = {
   [PageMap.RUNBOOKS_VARIABLES]: "settings/variables",
   [PageMap.RUNBOOKS_RUNNERS]: "runners",
   [PageMap.RUNBOOKS_RUNNER_VIEW]: `runners/${RouteParams.ModelID}`,
-  [PageMap.RUNBOOKS_RUNNER_CREDENTIALS]: "runner-credentials",
   [PageMap.RUNBOOK_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.RUNBOOK_VIEW_STEPS]: `${RouteParams.ModelID}/steps`,
   [PageMap.RUNBOOK_VIEW_EXECUTIONS]: `${RouteParams.ModelID}/executions`,
@@ -7471,11 +7470,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RUNBOOKS_RUNNER_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/runbooks/${
       RunbookRoutePath[PageMap.RUNBOOKS_RUNNER_VIEW]
-    }`,
-  ),
-  [PageMap.RUNBOOKS_RUNNER_CREDENTIALS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/runbooks/${
-      RunbookRoutePath[PageMap.RUNBOOKS_RUNNER_CREDENTIALS]
     }`,
   ),
   [PageMap.RUNBOOK_VIEW]: new Route(

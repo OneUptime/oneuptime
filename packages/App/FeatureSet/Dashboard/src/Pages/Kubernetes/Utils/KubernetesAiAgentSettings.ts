@@ -13,7 +13,6 @@ import {
 } from "./KubernetesAiAccessSetup";
 import {
   getAiAgentSummary,
-  isAdvancedRunnerTarget,
   isLegacyRunnerTarget,
 } from "./KubernetesAiAgentStatus";
 import { AgentAiSettingsSource } from "Common/Types/AI/AgentAiSettings";
@@ -45,17 +44,12 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * Could the cluster's settings be set in its agent's configuration
  * instead of here? It has a Kubernetes AI agent, and AI reaches the cluster
  * through it — not through the previous in-cluster Runner (upgrade the
- * chart first) or a Runner an operator bound (the agent does not run the
- * commands then).
+ * chart first).
  */
 export function canKubernetesAgentSetAiSettings(
   status: KubernetesClusterAiAccessStatus,
 ): boolean {
-  return (
-    getAiAgentSummary(status) !== null &&
-    !isAdvancedRunnerTarget(status) &&
-    !isLegacyRunnerTarget(status)
-  );
+  return getAiAgentSummary(status) !== null && !isLegacyRunnerTarget(status);
 }
 
 // What is in effect on the cluster now, as a choice.

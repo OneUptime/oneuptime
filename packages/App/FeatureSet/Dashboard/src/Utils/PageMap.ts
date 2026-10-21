@@ -1259,7 +1259,6 @@ enum PageMap {
    */
   RUNBOOKS_RUNNERS = "RUNBOOKS_RUNNERS",
   RUNBOOKS_RUNNER_VIEW = "RUNBOOKS_RUNNER_VIEW",
-  RUNBOOKS_RUNNER_CREDENTIALS = "RUNBOOKS_RUNNER_CREDENTIALS",
 
   /*
    * FORMS: forms anyone with the link can fill in, whose submissions create

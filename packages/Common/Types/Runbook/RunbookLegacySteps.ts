@@ -31,6 +31,15 @@ import { shellQuote } from "./ShellWord";
  * with.
  */
 
+/*
+ * What an SSH or Kubernetes step that still names a runbook credential (one
+ * written through the API and never moved to variables) is answered with
+ * when it would run: runbook credentials were removed. Its Steps page turns
+ * it into the script step that does the same.
+ */
+export const REMOVED_RUNBOOK_CREDENTIAL_STEP_MESSAGE: string =
+  "This step names a runbook credential, and runbook credentials were removed, so it was not run. Open the runbook's Steps page, choose Turn into a script step on this step, and pick the secret runbook variable it signs in with.";
+
 const KIND_RESOURCES: Record<string, string> = {
   [KubernetesWorkloadKind.Deployment]: "deployment",
   [KubernetesWorkloadKind.StatefulSet]: "statefulset",
