@@ -24,6 +24,7 @@ import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import Port from "Common/Types/Port";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import { EmailInlineImage } from "Common/Server/Utils/Mail/EmailInlineImages";
+import { EMAIL_LOGO_PATH } from "Common/Server/Utils/Mail/EmailLogo";
 import {
   getEmailServerType,
   getSendgridConfig,
@@ -41,7 +42,9 @@ import "../../FeatureSet/Notification/Utils/Handlebars";
  * render and delivery, and each transport's payload. Since ea611c316 the
  * screenshot was dropped from the email altogether (issue #4532); before it,
  * it went out as a data: URL that Gmail and Outlook do not show. It now goes
- * out as an inline attachment the HTML points at by Content-ID.
+ * out as an inline attachment the HTML points at by Content-ID - after
+ * OneUptime's logo, which the header carries the same way (EmailLogo,
+ * issue #5124).
  *
  * Only infrastructure and the transports themselves are mocked.
  */
@@ -211,6 +214,20 @@ async function acknowledgeIncidentEmail(
 // The description the template in issue #4532 renders for a failed check.
 const SCREENSHOT_DESCRIPTION: string = `Timeout 30000ms exceeded\n![](data:image/png;base64,${PNG})`;
 
+// OneUptime's logo, the first attachment of every email whose header shows it.
+const LOGO: string = fs.readFileSync(EMAIL_LOGO_PATH).toString("base64");
+
+function smtpLogo(contentId: string): Record<string, unknown> {
+  return {
+    filename: "oneuptime-logo.png",
+    content: LOGO,
+    encoding: "base64",
+    contentType: "image/png",
+    contentDisposition: "inline",
+    cid: contentId,
+  };
+}
+
 function contentIdsIn(html: string): Array<string> {
   return Array.from(
     html.matchAll(/src="cid:([^"]+)"/g),
@@ -279,22 +296,23 @@ afterEach(async () => {
 });
 
 describe("a screenshot in an incident description, over SMTP", () => {
-  test("goes out as an inline attachment the HTML points at by Content-ID", async () => {
+  test("goes out as an inline attachment the HTML points at by Content-ID, after the logo", async () => {
     const payload: CapturedSmtpMail = await deliverOverSmtp(
       await acknowledgeIncidentEmail(SCREENSHOT_DESCRIPTION),
     );
 
     const contentIds: Array<string> = contentIdsIn(payload.html);
 
-    expect(contentIds).toHaveLength(1);
+    expect(contentIds).toHaveLength(2);
     expect(payload.attachments).toEqual([
+      smtpLogo(contentIds[0]!),
       {
         filename: "image-1.png",
         content: PNG,
         encoding: "base64",
         contentType: "image/png",
         contentDisposition: "inline",
-        cid: contentIds[0],
+        cid: contentIds[1],
       },
     ]);
     expect(payload.html).not.toContain("data:image");
@@ -323,7 +341,10 @@ describe("a screenshot in an incident description, over SMTP", () => {
     const payload: CapturedSmtpMail = await deliverOverSmtp(
       await acknowledgeIncidentEmail(SCREENSHOT_DESCRIPTION),
     );
-    const contentId: string = contentIdsIn(payload.html)[0]!;
+    const [logoContentId, contentId] = contentIdsIn(payload.html) as [
+      string,
+      string,
+    ];
 
     // The real nodemailer, writing the message instead of sending it.
     const realNodemailer: typeof nodemailer = (
@@ -342,6 +363,14 @@ describe("a screenshot in an incident description, over SMTP", () => {
     expect(raw).toMatch(/Content-Type: multipart\/related; type="text\/html"/);
     expect(raw).toContain(
       [
+        "Content-Type: image/png; name=oneuptime-logo.png",
+        `Content-ID: <${logoContentId}>`,
+        "Content-Transfer-Encoding: base64",
+        "Content-Disposition: inline; filename=oneuptime-logo.png",
+      ].join("\n"),
+    );
+    expect(raw).toContain(
+      [
         "Content-Type: image/png; name=image-1.png",
         `Content-ID: <${contentId}>`,
         "Content-Transfer-Encoding: base64",
@@ -349,6 +378,7 @@ describe("a screenshot in an incident description, over SMTP", () => {
       ].join("\n"),
     );
     expect(raw.replace(/\n/g, "")).toContain(PNG);
+    expect(raw.replace(/\n/g, "")).toContain(LOGO);
   });
 
   test("a JPEG screenshot in the usual image/png template is attached as a JPEG", async () => {
@@ -359,6 +389,7 @@ describe("a screenshot in an incident description, over SMTP", () => {
     );
 
     expect(payload.attachments).toEqual([
+      smtpLogo(contentIdsIn(payload.html)[0]!),
       expect.objectContaining({
         filename: "image-1.jpg",
         contentType: "image/jpeg",
@@ -367,7 +398,7 @@ describe("a screenshot in an incident description, over SMTP", () => {
     ]);
   });
 
-  test("an email with no inline image is sent exactly as before, with no attachments", async () => {
+  test("an email with no inline image of its text carries OneUptime's logo alone", async () => {
     const payload: CapturedSmtpMail = await deliverOverSmtp(
       await acknowledgeIncidentEmail(
         "Timeout 30000ms exceeded\n\n![Graph](https://cdn.example.com/g.png)",
@@ -375,11 +406,13 @@ describe("a screenshot in an incident description, over SMTP", () => {
     );
 
     expect(Object.keys(payload).sort()).toEqual([
+      "attachments",
       "from",
       "html",
       "subject",
       "to",
     ]);
+    expect(payload.attachments).toEqual([smtpLogo(contentIdsIn(payload.html)[0]!)]);
   });
 
   test("screenshots past what one email may carry are left out with a note, and the email still goes", async () => {
@@ -400,8 +433,12 @@ describe("a screenshot in an incident description, over SMTP", () => {
       ),
     );
 
-    expect(payload.attachments).toHaveLength(2);
-    expect(contentIdsIn(payload.html)).toHaveLength(2);
+    // The logo, and the two screenshots that fit.
+    expect(payload.attachments).toHaveLength(3);
+    expect(payload.attachments![0]).toEqual(
+      smtpLogo(contentIdsIn(payload.html)[0]!),
+    );
+    expect(contentIdsIn(payload.html)).toHaveLength(3);
     expect(payload.html).toContain(
       "[Run 3: image too large to include in this email]",
     );
@@ -437,20 +474,27 @@ describe("a screenshot in an incident description, over SendGrid", () => {
     } = jest.mocked(SendgridMail.send).mock.calls[0]![0] as never;
     const contentIds: Array<string> = contentIdsIn(message.html);
 
-    expect(contentIds).toHaveLength(1);
+    expect(contentIds).toHaveLength(2);
     expect(message.attachments).toEqual([
+      {
+        content: LOGO,
+        filename: "oneuptime-logo.png",
+        type: "image/png",
+        disposition: "inline",
+        contentId: contentIds[0],
+      },
       {
         content: PNG,
         filename: "image-1.png",
         type: "image/png",
         disposition: "inline",
-        contentId: contentIds[0],
+        contentId: contentIds[1],
       },
     ]);
     expect(message.html).not.toContain("data:image");
   });
 
-  test("an email with no inline image has no attachments", async () => {
+  test("an email with no inline image of its text carries OneUptime's logo alone", async () => {
     jest.mocked(getEmailServerType).mockResolvedValue("Sendgrid" as never);
     jest.mocked(getSendgridConfig).mockResolvedValue({
       apiKey: "SG.test",
@@ -466,10 +510,20 @@ describe("a screenshot in an incident description, over SendGrid", () => {
 
     await MailService.send(await acknowledgeIncidentEmail("Checkout is down."));
 
-    const message: Record<string, unknown> = jest.mocked(SendgridMail.send).mock
-      .calls[0]![0] as never;
+    const message: {
+      html: string;
+      attachments?: Array<Record<string, unknown>>;
+    } = jest.mocked(SendgridMail.send).mock.calls[0]![0] as never;
 
-    expect(Object.keys(message)).not.toContain("attachments");
+    expect(message.attachments).toEqual([
+      {
+        content: LOGO,
+        filename: "oneuptime-logo.png",
+        type: "image/png",
+        disposition: "inline",
+        contentId: contentIdsIn(message.html)[0],
+      },
+    ]);
   });
 });
 
@@ -490,11 +544,18 @@ describe("a screenshot in an incident description, over Microsoft Graph", () => 
     const contentIds: Array<string> = contentIdsIn(mail.body || "");
 
     expect(server).toBe(GRAPH_SERVER);
-    expect(contentIds).toHaveLength(1);
+    expect(contentIds).toHaveLength(2);
     expect(options?.timeoutMs).toBe(5000);
     expect(options?.inlineImages).toEqual([
       {
         contentId: contentIds[0],
+        fileName: "oneuptime-logo.png",
+        mimeType: "image/png",
+        base64: LOGO,
+        byteLength: Buffer.from(LOGO, "base64").length,
+      } as EmailInlineImage,
+      {
+        contentId: contentIds[1],
         fileName: "image-1.png",
         mimeType: "image/png",
         base64: PNG,
@@ -519,5 +580,16 @@ describe("previewing an email with a screenshot", () => {
       `<img src="data:image/png;base64,${PNG}" alt="" style="max-width:100%;height:auto;">`,
     );
     expect(sendMail).not.toHaveBeenCalled();
+  });
+
+  test("render() keeps OneUptime's logo as the data: URL a browser shows, too", async () => {
+    const rendered: RenderedEmail = await MailService.render(
+      await acknowledgeIncidentEmail(SCREENSHOT_DESCRIPTION),
+    );
+
+    expect(rendered.body).toContain(
+      `<img src="data:image/png;base64,${LOGO}" width="32" height="32" alt="OneUptime"`,
+    );
+    expect(rendered.body).not.toContain("cid:");
   });
 });
