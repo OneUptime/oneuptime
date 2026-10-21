@@ -212,7 +212,11 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             stepId: "sigma-rule",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
-            // A new rule runs (createInitialValues); turning it off is an edit.
+            /*
+             * A new rule runs: the create sends no isEnabled and the
+             * column's default, on, is stored (#5158). Turning it off is an
+             * edit.
+             */
             doNotShowWhenCreating: true,
           },
           {

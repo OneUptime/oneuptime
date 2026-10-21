@@ -550,6 +550,22 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/IncidentFormPostgres.test.ts --forceExit
 
+      # Issue #5158: a create may leave out every required column the API
+      # reference gives a default, and the row holds that default. Reads the
+      # migrated defaults of every model, and clones the 19 tables of the
+      # columns the issue was one of into an isolated schema, so it must run
+      # after the registered migrations.
+      - name: Test required columns with a default on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_REQUIRED_COLUMN_DEFAULTS_TESTS: "true"
+          REQUIRED_COLUMN_DEFAULTS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          REQUIRED_COLUMN_DEFAULTS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          REQUIRED_COLUMN_DEFAULTS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/RequiredColumnDefaultsPostgres.test.ts --forceExit
+
       # Clones the migrated UserProjectSsoConsent table (and its unique index)
       # into an isolated schema: two racing confirmations must leave one row.
       - name: Test project SSO consent records on migrated Postgres

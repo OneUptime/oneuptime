@@ -228,7 +228,10 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             description: "Disabled feeds are neither polled nor matched.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
-            // A new feed is polled (createInitialValues); pausing is an edit.
+            /*
+             * A new feed is polled: the create sends no isEnabled and the
+             * column's default, on, is stored (#5158). Pausing is an edit.
+             */
             doNotShowWhenCreating: true,
           },
           {
