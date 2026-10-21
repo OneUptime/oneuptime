@@ -5,14 +5,16 @@ import { getCrowdStrikeFalconBaseUrl } from "../Connectors/CrowdStrikeFalcon/Cro
 import ResponseHttp, { ResponseHttpResult } from "./ResponseHttp";
 
 /*
- * The Falcon calls a playbook makes to network-contain a host, from the
- * Falcon API (Hosts collection):
+ * The Falcon calls a playbook makes to network-contain a host, and to lift
+ * that, from the Falcon API (Hosts collection):
  *
  *   POST {base}/oauth2/token                              client credentials
  *   GET  {base}/devices/queries/devices/v1?filter=hostname:'<host>'
  *                                                          device ids for a hostname
  *   POST {base}/devices/entities/devices-actions/v2?action_name=contain
  *        { "ids": [...] }                                  contain them
+ *   POST {base}/devices/entities/devices-actions/v2?action_name=lift_containment
+ *        { "ids": [...] }                                  lift their containment
  *
  * The API client needs the Hosts: Write scope (and Hosts: Read to find the
  * device); a client made for importing alerts has only Alerts: Read and is
@@ -153,23 +155,44 @@ export default class CrowdStrikeFalconResponseClient {
   }
 
   public async containDevices(deviceIds: Array<string>): Promise<void> {
-    const step: string = "CrowdStrike Falcon contain";
+    await this.sendDeviceAction({
+      step: "CrowdStrike Falcon contain",
+      actionName: "contain",
+      deviceIds,
+      scopeHint:
+        "The connection's API client needs the Hosts: Write scope to contain hosts.",
+    });
+  }
+
+  public async liftContainment(deviceIds: Array<string>): Promise<void> {
+    await this.sendDeviceAction({
+      step: "CrowdStrike Falcon lift containment",
+      actionName: "lift_containment",
+      deviceIds,
+      scopeHint:
+        "The connection's API client needs the Hosts: Write scope to lift containment.",
+    });
+  }
+
+  private async sendDeviceAction(data: {
+    step: string;
+    actionName: "contain" | "lift_containment";
+    deviceIds: Array<string>;
+    scopeHint: string;
+  }): Promise<void> {
     const result: ResponseHttpResult = await this.sendAuthenticated(
-      step,
+      data.step,
       "POST",
-      `${this.baseUrl}/devices/entities/devices-actions/v2?action_name=contain`,
-      JSON.stringify({ ids: deviceIds }),
+      `${this.baseUrl}/devices/entities/devices-actions/v2?action_name=${data.actionName}`,
+      JSON.stringify({ ids: data.deviceIds }),
     );
 
     if (!ResponseHttp.isSuccess(result)) {
       throw ResponseHttp.failure({
-        step,
+        step: data.step,
         result,
         secrets: this.secrets(),
-        hint:
-          result.statusCode === 403
-            ? "The connection's API client needs the Hosts: Write scope to contain hosts."
-            : undefined,
+        hint: result.statusCode === 403 ? data.scopeHint : undefined,
       });
     }
   }

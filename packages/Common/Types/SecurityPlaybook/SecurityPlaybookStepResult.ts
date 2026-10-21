@@ -1,4 +1,8 @@
 import { JSONObject, JSONValue } from "../JSON";
+import {
+  SECURITY_ENTITY_LIMIT,
+  SecurityEntityType,
+} from "../SecurityCase/SecurityEntity";
 import { SecurityPlaybookActionType } from "./SecurityPlaybookAction";
 import { SecurityPlaybookStepStatus } from "./SecurityPlaybookRunStatus";
 import { SecurityPlaybookStep } from "./SecurityPlaybookStep";
@@ -14,6 +18,60 @@ export interface SecurityPlaybookApproval {
   // ISO 8601.
   decidedAt: string;
   comment?: string | undefined;
+  // For a step that acts on users or hosts: the ones the approver kept ticked.
+  targets?: Array<string> | undefined;
+}
+
+/*
+ * Why a step acts on an entity: what puts it on the attacker's side of the
+ * case (SecurityPlaybookTargets).
+ */
+export enum SecurityPlaybookTargetReason {
+  // A detection of the case is grouped on it: the case is about it.
+  GroupedOn = "Grouped On",
+  // It is a known indicator in the project's threat intel.
+  ThreatIntel = "Threat Intel",
+}
+
+export enum SecurityPlaybookTargetState {
+  // Chosen by the rule; waiting for the approver, or about to be acted on.
+  Proposed = "Proposed",
+  // The approver unticked it.
+  LeftOut = "Left Out",
+  // On the project's protected list, which containment never touches.
+  Protected = "Protected",
+  Done = "Done",
+  AlreadyDone = "Already Done",
+  NotFound = "Not Found",
+  Failed = "Failed",
+  // Contained by the step, then released with its undo.
+  Undone = "Undone",
+}
+
+/*
+ * One user or host a step that acts on entities picked, and what became of
+ * it, from the approval to its undo.
+ */
+export interface SecurityPlaybookTarget {
+  type: SecurityEntityType;
+  value: string;
+  reason: SecurityPlaybookTargetReason;
+  state: SecurityPlaybookTargetState;
+  // What happened to it, in a few words: "suspended", or the product's refusal.
+  detail?: string | undefined;
+  // For a protected one: the protected entry it matches.
+  protectedBy?: string | undefined;
+  // For an undone one: who released it, and when (ISO 8601).
+  undoneByUserId?: string | undefined;
+  undoneAt?: string | undefined;
+}
+
+// Contained, so its undo can release it.
+export function isContainedTarget(target: SecurityPlaybookTarget): boolean {
+  return (
+    target.state === SecurityPlaybookTargetState.Done ||
+    target.state === SecurityPlaybookTargetState.AlreadyDone
+  );
 }
 
 /*
@@ -32,6 +90,8 @@ export interface SecurityPlaybookStepResult {
   message?: string | undefined;
   error?: string | undefined;
   approval?: SecurityPlaybookApproval | undefined;
+  // For a step that acts on users or hosts: the ones it picked, and how each went.
+  targets?: Array<SecurityPlaybookTarget> | undefined;
 }
 
 // The longest message or error a step result keeps.
@@ -65,6 +125,84 @@ function readText(value: JSONValue | undefined): string | undefined {
   return typeof value === "string" && value ? value : undefined;
 }
 
+function readTextList(value: JSONValue | undefined): Array<string> | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const texts: Array<string> = [];
+
+  for (const item of value as Array<unknown>) {
+    if (typeof item === "string" && item.length > 0) {
+      texts.push(item);
+    }
+  }
+
+  return texts.slice(0, SECURITY_ENTITY_LIMIT);
+}
+
+function readEnumValue<T extends string>(
+  value: JSONValue | undefined,
+  values: Record<string, T>,
+): T | undefined {
+  return (Object.values(values) as Array<string>).includes(String(value))
+    ? (value as T)
+    : undefined;
+}
+
+// A step's stored targets, read defensively: a malformed entry is dropped.
+export function readStepTargets(
+  value: unknown,
+): Array<SecurityPlaybookTarget> | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const targets: Array<SecurityPlaybookTarget> = [];
+
+  for (const item of value) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      continue;
+    }
+
+    const record: JSONObject = item as JSONObject;
+    const entityValue: string | undefined = readText(record["value"]);
+    const type: SecurityEntityType | undefined = readEnumValue(
+      record["type"],
+      SecurityEntityType,
+    );
+    const reason: SecurityPlaybookTargetReason | undefined = readEnumValue(
+      record["reason"],
+      SecurityPlaybookTargetReason,
+    );
+    const state: SecurityPlaybookTargetState | undefined = readEnumValue(
+      record["state"],
+      SecurityPlaybookTargetState,
+    );
+
+    if (!entityValue || !type || !reason || !state) {
+      continue;
+    }
+
+    targets.push({
+      type,
+      value: entityValue,
+      reason,
+      state,
+      detail: readText(record["detail"]),
+      protectedBy: readText(record["protectedBy"]),
+      undoneByUserId: readText(record["undoneByUserId"]),
+      undoneAt: readText(record["undoneAt"]),
+    });
+
+    if (targets.length >= SECURITY_ENTITY_LIMIT) {
+      break;
+    }
+  }
+
+  return targets;
+}
+
 function readApproval(
   value: JSONValue | undefined,
 ): SecurityPlaybookApproval | undefined {
@@ -87,6 +225,7 @@ function readApproval(
     decidedByUserId: readText(approval["decidedByUserId"]) || "",
     decidedAt: readText(approval["decidedAt"]) || "",
     comment: readText(approval["comment"]),
+    targets: readTextList(approval["targets"]),
   };
 }
 
@@ -131,6 +270,7 @@ export function readStepResults(
       message: readText(item?.["message"]),
       error: readText(item?.["error"]),
       approval: readApproval(item?.["approval"]),
+      targets: readStepTargets(item?.["targets"]),
     };
   });
 }

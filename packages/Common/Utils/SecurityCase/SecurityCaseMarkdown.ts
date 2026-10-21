@@ -315,12 +315,28 @@ export function playbookStepMarkdown(data: {
   return mdText`⚙️ **${data.playbookName}**, step ${String(data.stepNumber)} (${data.stepTitle}): ${data.summary}`;
 }
 
+// Entity values as code, one after another.
+function valueList(values: Array<string>): MarkdownText {
+  return FeedMarkdown.join(
+    values.map((value: string): MarkdownText => {
+      return FeedMarkdown.code(value);
+    }),
+  );
+}
+
 export function approvalRequestedMarkdown(data: {
   playbookName: string;
   stepNumber: number;
   stepTitle: string;
+  // For a step that acts on users or hosts: the ones it would act on.
+  targets?: Array<string> | undefined;
 }): MarkdownText {
-  return mdText`⏸️ Playbook **${data.playbookName}** is waiting for approval to run step ${String(data.stepNumber)} (${data.stepTitle}).`;
+  const on: MarkdownText =
+    data.targets && data.targets.length > 0
+      ? mdText` on ${valueList(data.targets)}`
+      : FeedMarkdown.empty();
+
+  return mdText`⏸️ Playbook **${data.playbookName}** is waiting for approval to run step ${String(data.stepNumber)} (${data.stepTitle})${on}.`;
 }
 
 export function approvalDecidedMarkdown(data: {
@@ -328,10 +344,35 @@ export function approvalDecidedMarkdown(data: {
   stepNumber: number;
   stepTitle: string;
   isApproved: boolean;
+  // For a step that acts on users or hosts: what the approver kept, and left out.
+  targets?: Array<string> | undefined;
+  leftOut?: Array<string> | undefined;
 }): MarkdownText {
-  return data.isApproved
-    ? mdText`👍 Approved step ${String(data.stepNumber)} (${data.stepTitle}) of playbook **${data.playbookName}**.`
-    : mdText`👎 Rejected step ${String(data.stepNumber)} (${data.stepTitle}) of playbook **${data.playbookName}**, which ends the run.`;
+  if (!data.isApproved) {
+    return mdText`👎 Rejected step ${String(data.stepNumber)} (${data.stepTitle}) of playbook **${data.playbookName}**, which ends the run.`;
+  }
+
+  const forTargets: MarkdownText =
+    data.targets && data.targets.length > 0
+      ? mdText` for ${valueList(data.targets)}`
+      : FeedMarkdown.empty();
+  const leftOut: MarkdownText =
+    data.leftOut && data.leftOut.length > 0
+      ? mdText`, leaving out ${valueList(data.leftOut)}`
+      : FeedMarkdown.empty();
+
+  return mdText`👍 Approved step ${String(data.stepNumber)} (${data.stepTitle}) of playbook **${data.playbookName}**${forTargets}${leftOut}.`;
+}
+
+export function targetUndoneMarkdown(data: {
+  playbookName: string;
+  stepNumber: number;
+  stepTitle: string;
+  undoTitle: string;
+  value: string;
+  detail: string;
+}): MarkdownText {
+  return mdText`↩️ ${data.undoTitle}: ${FeedMarkdown.code(data.value)} ${data.detail}, undoing step ${String(data.stepNumber)} (${data.stepTitle}) of playbook **${data.playbookName}**.`;
 }
 
 export function playbookInterruptedMarkdown(data: {

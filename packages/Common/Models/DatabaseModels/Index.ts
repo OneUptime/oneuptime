@@ -161,6 +161,7 @@ import SecurityCaseNote from "./SecurityCaseNote";
 import SecurityDetection from "./SecurityDetection";
 import SecurityPlaybook from "./SecurityPlaybook";
 import SecurityPlaybookRun from "./SecurityPlaybookRun";
+import SecurityProtectedEntity from "./SecurityProtectedEntity";
 import SecurityEventDestination from "./SecurityEventDestination";
 import SecurityLogSource from "./SecurityLogSource";
 import LogScrubRule from "./LogScrubRule";
@@ -588,6 +589,7 @@ const AllModelTypes: Array<{
   SecurityDetection,
   SecurityPlaybook,
   SecurityPlaybookRun,
+  SecurityProtectedEntity,
   SecurityEventDestination,
   SecurityLogSource,
   LogScrubRule,
