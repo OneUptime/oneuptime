@@ -6,6 +6,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import CodeEditor, {
@@ -1893,6 +1894,30 @@ describe("CodeEditor — read-only", () => {
       "Read-only",
     );
     expect(getInput()).toHaveAttribute("readonly");
+  });
+
+  test("its Read-only words give way to a long button label instead of being drawn under it", () => {
+    render(<CodeEditor type={CodeType.JSON} value="{}" readOnly={true} />);
+
+    const readOnlyLabel: HTMLElement = screen.getByTestId(
+      "code-editor-read-only",
+    );
+    const leftSide: HTMLElement = readOnlyLabel.parentElement as HTMLElement;
+
+    /*
+     * A German "Copy failed" ("Kopieren fehlgeschlagen") is wider than a
+     * phone's toolbar leaves: the left side clips, and the words shorten
+     * with an ellipsis, rather than run on under the button.
+     */
+    expect(leftSide).toHaveClass("min-w-0");
+    expect(leftSide).toHaveClass("overflow-hidden");
+    expect(readOnlyLabel).toHaveClass("min-w-0");
+    expect(readOnlyLabel).not.toHaveClass("shrink-0");
+    expect(within(readOnlyLabel).getByText("Read-only")).toHaveClass(
+      "truncate",
+    );
+    // The language badge keeps its size.
+    expect(screen.getByTestId("code-editor-language")).toHaveClass("shrink-0");
   });
 
   test("ignores every editing key and traps neither Tab nor Escape", () => {

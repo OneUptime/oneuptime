@@ -12,10 +12,11 @@ export interface ComponentProps {
 
 /*
  * The copy icon beside a copyable value (a details card's field, a JSON
- * table's cell). It says "Copied to Clipboard" once the text is there - it
- * used to say so before even trying, so a plain-http page, where the
+ * table's cell). It says "Copied" once the text is there - it used to say
+ * "Copied to Clipboard" before even trying, so a plain-http page, where the
  * clipboard API is missing, showed it over an empty clipboard (issue #5132) -
- * and "Copy failed" when the browser refused.
+ * and "Copy failed" when the browser refused. Both are drawn alike, an icon
+ * and a word in the state's colour, in the icon's place.
  */
 const CopyableButton: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -50,13 +51,13 @@ const CopyableButton: FunctionComponent<ComponentProps> = (
     stateClassName = "cursor-pointer";
   }
 
-  let content: ReactElement | string = (
+  let content: ReactElement = (
     /*
      * The tooltip holds on to an element of its own: Icon is a function
      * component that takes no ref, so handed the Icon the tooltip never
      * showed (React warned "Function components cannot be given refs").
      */
-    <Tooltip text="Copy to Clipboard">
+    <Tooltip text="Copy to clipboard">
       <div className="flex">
         <Icon
           className="h-4 w-4"
@@ -69,12 +70,28 @@ const CopyableButton: FunctionComponent<ComponentProps> = (
     </Tooltip>
   );
 
+  /*
+   * A div, not a span: Icon draws its svg in a div of its own, which a span
+   * cannot hold.
+   */
   if (clipboard.isCopied) {
-    content =
-      translator.translateText("Copied to Clipboard") || "Copied to Clipboard";
+    content = (
+      <div
+        className="inline-flex items-center gap-1 text-emerald-600"
+        data-testid="copy-to-clipboard-copied"
+      >
+        <Icon
+          className="h-4 w-4"
+          icon={IconProp.Check}
+          size={SizeProp.Small}
+          thick={ThickProp.Thick}
+        />
+        {translator.translateText("Copied")}
+      </div>
+    );
   } else if (clipboard.isFailed) {
     content = (
-      <span
+      <div
         className="inline-flex items-center gap-1 text-red-600"
         data-testid="copy-to-clipboard-failed"
       >
@@ -85,7 +102,7 @@ const CopyableButton: FunctionComponent<ComponentProps> = (
           thick={ThickProp.Thick}
         />
         {translator.translateText("Copy failed")}
-      </span>
+      </div>
     );
   }
 

@@ -47,11 +47,11 @@ export const CODE_BLOCK_WRAP_CLASS_NAME: string =
 export const CODE_BLOCK_COPY_BUTTON_GUTTER_CLASS_NAME: string = "!pr-14";
 
 /*
- * The copy button says "Copied!" only once the code is on the clipboard. It
- * used to say so whatever happened, and on a page served over plain http -
- * where the browser has no clipboard API - the click threw instead (issue
- * #5132). When the browser refuses, it says "Copy failed" and selects the
- * code, to copy by hand.
+ * The copy button says "Copied!" (a green tick) only once the code is on the
+ * clipboard. It used to say so whatever happened, and on a page served over
+ * plain http - where the browser has no clipboard API - the click threw
+ * instead (issue #5132). When the browser refuses, it says "Copy failed" (a
+ * red alert) and selects the code, to copy by hand.
  */
 const CodeBlock: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -135,7 +135,9 @@ const CodeBlock: FunctionComponent<ComponentProps> = (
           className={`absolute top-2 right-2 p-2 rounded-md bg-gray-700 hover:bg-gray-600 transition-all hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-100 z-10 ${
             failed
               ? "text-red-300 hover:text-red-200 opacity-100"
-              : "text-gray-300 hover:text-white opacity-70"
+              : copied
+                ? "text-green-400 opacity-100"
+                : "text-gray-300 hover:text-white opacity-70"
           }`}
           title={copyTitle}
           aria-label={copyTitle}

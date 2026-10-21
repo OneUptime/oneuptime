@@ -1048,7 +1048,12 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
       onClick={props.onClick}
     >
       <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 py-1 pl-3 pr-1.5">
-        <div className="flex min-w-0 items-center gap-2">
+        {/*
+         * The left side gives way to the buttons: a long button label (a
+         * German "Copy failed" is "Kopieren fehlgeschlagen") clips the
+         * Read-only words instead of being drawn over them.
+         */}
+        <div className="flex min-w-0 items-center gap-2 overflow-hidden">
           <span
             data-testid="code-editor-language"
             className="inline-flex shrink-0 items-center rounded border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700"
@@ -1058,10 +1063,12 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
           {readOnly && (
             <span
               data-testid="code-editor-read-only"
-              className="inline-flex shrink-0 items-center gap-1 text-xs text-gray-500"
+              className="inline-flex min-w-0 items-center gap-1 text-xs text-gray-500"
             >
               <Icon icon={IconProp.Lock} className="h-3 w-3" />
-              {translator.translateText("Read-only")}
+              <span className="truncate">
+                {translator.translateText("Read-only")}
+              </span>
             </span>
           )}
           {props.hint && (

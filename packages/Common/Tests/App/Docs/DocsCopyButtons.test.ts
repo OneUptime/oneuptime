@@ -124,6 +124,7 @@ async function openPage(options: PageOptions): Promise<OpenedPage> {
     <article id="docs-content">
       <div class="docs-page-actions">
         <button type="button" class="docs-page-action" data-copy-page data-markdown-url="${MARKDOWN_URL}" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
           <span class="docs-page-action__label">${uiString(lang, "copyPage")}</span>
         </button>
       </div>
@@ -220,6 +221,64 @@ function copyCodeButton(page: OpenedPage): HTMLButtonElement {
 
 function copyPageButton(page: OpenedPage): HTMLButtonElement {
   return page.document.querySelector("[data-copy-page]") as HTMLButtonElement;
+}
+
+/*
+ * What a button's one icon draws, by its first path: the copy icon (two
+ * sheets), the tick, or the alert triangle.
+ */
+function iconOf(button: HTMLElement): string {
+  const icons: NodeListOf<SVGElement> = button.querySelectorAll("svg");
+
+  if (icons.length !== 1) {
+    return `${icons.length} icons`;
+  }
+
+  if (icons[0]!.querySelector("rect")) {
+    return "copy";
+  }
+
+  const drawn: string =
+    icons[0]!.querySelector("path")?.getAttribute("d") || "";
+
+  if (drawn.startsWith("M5 13l4 4L19 7")) {
+    return "tick";
+  }
+
+  if (drawn.startsWith("M12 9v3.75")) {
+    return "alert";
+  }
+
+  return "unknown";
+}
+
+// One rule of the docs stylesheet, as its declarations: property -> value.
+function cssRule(selector: string): Record<string, string> {
+  const css: string = fs.readFileSync(
+    path.join(DOCS_ROOT, "Static", "css", "style.css"),
+    "utf8",
+  );
+  const start: number = css.indexOf(`\n${selector} {`);
+
+  expect(start).toBeGreaterThanOrEqual(0);
+
+  const body: string = css.slice(
+    css.indexOf("{", start) + 1,
+    css.indexOf("}", start),
+  );
+  const declarations: Record<string, string> = {};
+
+  for (const declaration of body.split(";")) {
+    const colon: number = declaration.indexOf(":");
+
+    if (colon > 0) {
+      declarations[declaration.slice(0, colon).trim()] = declaration
+        .slice(colon + 1)
+        .trim();
+    }
+  }
+
+  return declarations;
 }
 
 async function click(page: OpenedPage, button: HTMLElement): Promise<void> {
@@ -375,6 +434,40 @@ describe("a docs page's Copy page", () => {
     );
   });
 
+  test("its icon says it too: a tick once copied, the alert when not, then the copy icon again", async () => {
+    const page: OpenedPage = await openPage({
+      clipboard: "accepts",
+      markdownFetch: "ok",
+    });
+
+    expect(iconOf(copyPageButton(page))).toBe("copy");
+
+    await click(page, copyPageButton(page));
+
+    expect(iconOf(copyPageButton(page))).toBe("tick");
+
+    const refused: OpenedPage = await openPage({
+      clipboard: "refuses",
+      copyCommand: false,
+      markdownFetch: "ok",
+    });
+
+    await click(refused, copyPageButton(refused));
+
+    // It kept the copy icon beside Copy failed, as if nothing had happened.
+    expect(iconOf(copyPageButton(refused))).toBe("alert");
+    expect(
+      copyPageButton(refused).querySelector("svg")?.getAttribute("aria-hidden"),
+    ).toBe("true");
+
+    await new Promise<void>((resolve: () => void) => {
+      refused.window.setTimeout(resolve, 4100);
+    });
+
+    expect(iconOf(copyPageButton(refused))).toBe("copy");
+    expect(copyPageButton(refused).textContent?.trim()).toBe("Copy page");
+  }, 10000);
+
   test("says Copy failed when the Markdown cannot be fetched", async () => {
     const page: OpenedPage = await openPage({
       clipboard: "accepts",
@@ -394,6 +487,27 @@ describe("a docs page's Copy page", () => {
     });
 
     expect(copyPageButton(page).hidden).toBe(true);
+  });
+});
+
+describe("a docs code block's bar, with a long Copy failed", () => {
+  test("Copy says what happened on one line, never wrapping inside its button", () => {
+    const copy: Record<string, string> = cssRule(".docs-code__copy");
+
+    // "Kopieren fehlgeschlagen" wrapped onto two lines on a phone.
+    expect(copy["white-space"]).toBe("nowrap");
+    expect(copy["flex"]).toBe("none");
+  });
+
+  test("the block's title gives way instead - wrapping, never cut off, and never pushing Copy out of the bar", () => {
+    const title: Record<string, string> = cssRule(".docs-code__title");
+
+    expect(title["min-width"]).toBe("0");
+    // A path such as /Library/LaunchDaemons/... has no space to wrap at.
+    expect(title["overflow-wrap"]).toBe("anywhere");
+    // Every word of a title stays readable: no ellipsis.
+    expect(title["white-space"]).toBeUndefined();
+    expect(title["text-overflow"]).toBeUndefined();
   });
 });
 

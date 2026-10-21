@@ -217,11 +217,12 @@ const MaintenanceCalendarModal: FunctionComponent<ComponentProps> = (
             </div>
             {/*
              * In the page from the start, so a screen reader hears the
-             * failure when it is written into it.
+             * failure when it is written into it. A div, not a p: the icon
+             * is drawn in a div of its own, which a paragraph cannot hold.
              */}
             <div role="status" data-testid="maintenance-calendar-copy-status">
               {clipboard.isFailed ? (
-                <p
+                <div
                   className="mt-2 flex items-start gap-1.5 text-xs leading-5 text-amber-700"
                   data-testid="maintenance-calendar-copy-failed"
                 >
@@ -232,7 +233,7 @@ const MaintenanceCalendarModal: FunctionComponent<ComponentProps> = (
                   <span className="min-w-0 text-pretty">
                     {t("scheduledEvents.calendar.copyFailed")}
                   </span>
-                </p>
+                </div>
               ) : (
                 <></>
               )}

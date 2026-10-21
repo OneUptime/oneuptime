@@ -511,6 +511,18 @@ test.describe("Copy link copies, or says it could not (issue #5132)", () => {
     }) => {
       await seedClipboard(context);
 
+      // What the page says in its console: React's markup warnings included.
+      const consoleErrors: Array<string> = [];
+
+      page.on(
+        "console",
+        (message: { type: () => string; text: () => string }) => {
+          if (message.type() === "error") {
+            consoleErrors.push(message.text());
+          }
+        },
+      );
+
       const origin: string = originOn(baseURL, STATUS_PAGE_PLAIN_HTTP_HOST);
       const link: string = `${origin}${PREVIEW}/maintenance.ics`;
 
@@ -542,6 +554,16 @@ test.describe("Copy link copies, or says it could not (issue #5132)", () => {
         }),
       ).toEqual([0, link.length, link.length]);
       expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+      /*
+       * The line is markup React accepts: drawn in a <p>, its icon's <div>
+       * made React warn "validateDOMNesting" in the console of every page.
+       */
+      expect(
+        await failed.evaluate((element: Element) => {
+          return element.tagName;
+        }),
+      ).toBe("DIV");
+      expect(consoleErrors).toEqual([]);
       // Nothing reached the clipboard.
       expect(await systemClipboard(context)).toBe(SENTINEL);
 

@@ -383,12 +383,28 @@
       background-color: rgb(248 113 113 / 0.12);
    }
 
-   /* The endpoint chip's icon button, on the page's own surface. */
-   .copy-failed:not(.copy-btn) {
+   /*
+    * The endpoint chip's icon button, on the page's own surface: green once
+    * copied, red when the copy failed - hovered too, where its own hover
+    * colour would otherwise take the state's colour away.
+    */
+   [data-copy-button].copied:not(.copy-btn),
+   [data-copy-button].copied:not(.copy-btn):hover {
+      color: rgb(5 150 105);
+   }
+
+   .dark [data-copy-button].copied:not(.copy-btn),
+   .dark [data-copy-button].copied:not(.copy-btn):hover {
+      color: rgb(52 211 153);
+   }
+
+   [data-copy-button].copy-failed:not(.copy-btn),
+   [data-copy-button].copy-failed:not(.copy-btn):hover {
       color: rgb(220 38 38);
    }
 
-   .dark .copy-failed:not(.copy-btn) {
+   .dark [data-copy-button].copy-failed:not(.copy-btn),
+   .dark [data-copy-button].copy-failed:not(.copy-btn):hover {
       color: rgb(248 113 113);
    }
 

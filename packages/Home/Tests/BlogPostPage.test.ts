@@ -602,6 +602,58 @@ describe("a blog post without an h2 heading", () => {
       ).toBe(true);
       expect(page.errors).toEqual([]);
     });
+
+    test("the share bar's Copy link draws its own grey icon red when the copy fails", async () => {
+      const page: OpenedPost = await openPost(BODY_WITHOUT_H2, {
+        clipboard: "missing",
+      });
+
+      const shareBarButton: Element = page.document.querySelector(
+        ".copy-link-btn.group",
+      ) as Element;
+      const icon: Element = shareBarButton.querySelector(
+        ".copy-link-icon",
+      ) as Element;
+
+      /*
+       * The icon is drawn grey by a utility of its own (text-gray-500, and
+       * group-hover:text-gray-600), which the button's red never reached:
+       * only the border turned red. A rule for the icon itself, at least as
+       * specific as group-hover's (0,3,0), draws it red - read here from
+       * the page's own styles, since jsdom has no Tailwind and weighs no
+       * specificity.
+       */
+      expect(icon.classList.contains("text-gray-500")).toBe(true);
+
+      const iconRules: Array<CSSStyleRule> = Array.from(
+        page.document.styleSheets,
+      )
+        .flatMap((sheet: CSSStyleSheet): Array<CSSRule> => {
+          return Array.from(sheet.cssRules);
+        })
+        .filter((rule: CSSRule): boolean => {
+          const style: CSSStyleRule = rule as CSSStyleRule;
+
+          return (
+            typeof style.selectorText === "string" &&
+            style.selectorText.includes(".copy-failed") &&
+            style.selectorText.includes(".copy-link-icon")
+          );
+        }) as Array<CSSStyleRule>;
+
+      expect(iconRules).toHaveLength(1);
+      expect(iconRules[0]!.style.color.toLowerCase()).toBe("#dc2626");
+      expect(iconRules[0]!.selectorText).toBe(
+        ".copy-link-btn.copy-failed svg.copy-link-icon",
+      );
+      expect(icon.matches(iconRules[0]!.selectorText)).toBe(false);
+
+      click(page, shareBarButton);
+      await settle();
+
+      expect(shareBarButton.classList.contains("copy-failed")).toBe(true);
+      expect(icon.matches(iconRules[0]!.selectorText)).toBe(true);
+    });
   });
 
   test("labels each code block and gives it a copy button", async () => {

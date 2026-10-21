@@ -115,6 +115,22 @@ describe("CodeBlock's copy button", () => {
     expect(copyButton()).toHaveAttribute("aria-label", "Copy to clipboard");
   });
 
+  test("Copied! is a green tick, as a Markdown code block's is - never the grey of Copy", async () => {
+    installClipboard(
+      jest.fn<(text: string) => Promise<void>>(async (): Promise<void> => {}),
+    );
+
+    render(<CodeBlock code={COMMAND} language="bash" />);
+
+    expect(copyButton()).toHaveClass("text-gray-300");
+
+    await pressCopy();
+
+    expect(copyButton()).toHaveClass("text-green-400");
+    expect(copyButton()).not.toHaveClass("text-gray-300");
+    expect(copyButton()).not.toHaveClass("text-red-300");
+  });
+
   test("the bug: on a page with no clipboard API the click no longer throws", async () => {
     installClipboard(undefined);
 

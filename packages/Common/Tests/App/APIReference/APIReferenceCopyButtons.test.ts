@@ -195,6 +195,26 @@ function labelOf(button: HTMLElement): string {
   return button.querySelector(".copy-text")?.textContent?.trim() || "";
 }
 
+/*
+ * Which of a button's icons shows: the copy icon, the tick, or the alert
+ * drawn in their place while it says Copy failed.
+ */
+function shownIcons(button: HTMLElement): Array<string> {
+  return Array.from(button.querySelectorAll("svg"))
+    .filter((icon: SVGElement): boolean => {
+      return !icon.classList.contains("hidden");
+    })
+    .map((icon: SVGElement): string => {
+      return (
+        ["copy-icon", "check-icon", "alert-icon"].find(
+          (name: string): boolean => {
+            return icon.classList.contains(name);
+          },
+        ) || "unnamed"
+      );
+    });
+}
+
 function announced(page: OpenedPage): string {
   return page.document.querySelector("[data-copy-status]")?.textContent || "";
 }
@@ -297,7 +317,47 @@ describe("an API Reference code block's Copy", () => {
     expect(labelOf(codeCopyButton(page))).toBe("Copy");
     expect(codeCopyButton(page).classList.contains("copy-failed")).toBe(false);
     expect(codeCopyButton(page).hasAttribute("data-copy-state")).toBe(false);
+    expect(shownIcons(codeCopyButton(page))).toEqual(["copy-icon"]);
   }, 10000);
+
+  test("each state shows one icon: copy, then the tick - or the alert, never the copy icon beside Copy failed", async () => {
+    const page: OpenedPage = await openPage({ clipboard: "accepts" });
+
+    expect(shownIcons(codeCopyButton(page))).toEqual(["copy-icon"]);
+    // The alert is made only once a copy fails.
+    expect(codeCopyButton(page).querySelector(".alert-icon")).toBeNull();
+
+    await click(page, codeCopyButton(page));
+
+    expect(shownIcons(codeCopyButton(page))).toEqual(["check-icon"]);
+
+    const refused: OpenedPage = await openPage({
+      clipboard: "refuses",
+      copyCommand: false,
+    });
+
+    await click(refused, codeCopyButton(refused));
+
+    expect(shownIcons(codeCopyButton(refused))).toEqual(["alert-icon"]);
+
+    const alert: SVGElement = codeCopyButton(refused).querySelector(
+      ".alert-icon",
+    ) as SVGElement;
+
+    // At the copy icon's size, hidden from a screen reader, beside it.
+    expect(alert.getAttribute("class")).toBe("alert-icon h-3.5 w-3.5");
+    expect(alert.getAttribute("aria-hidden")).toBe("true");
+    expect(alert.previousElementSibling?.classList.contains("copy-icon")).toBe(
+      true,
+    );
+
+    // A second failure reuses it.
+    await click(refused, codeCopyButton(refused));
+
+    expect(
+      codeCopyButton(refused).querySelectorAll(".alert-icon"),
+    ).toHaveLength(1);
+  });
 });
 
 describe("an endpoint path's copy icon", () => {
@@ -323,6 +383,32 @@ describe("an endpoint path's copy icon", () => {
     expect(pathCopyButton(page).classList.contains("copy-failed")).toBe(true);
     expect(announced(page)).toBe("Copy failed");
     expect(page.window.getSelection()?.toString()).toBe(ENDPOINT_PATH);
+    // An icon-only button: the alert, not the copy icon, says it failed.
+    expect(shownIcons(pathCopyButton(page))).toEqual(["alert-icon"]);
+    expect(
+      pathCopyButton(page).querySelector(".alert-icon")?.getAttribute("class"),
+    ).toBe("alert-icon h-4 w-4");
+  });
+
+  test("its state colours hold under the pointer, where its own hover colour used to win", () => {
+    const styles: string = fs.readFileSync(
+      path.join(PARTIALS, "styles.ejs"),
+      "utf8",
+    );
+
+    /*
+     * The button carries hover:text-ink, and a copy is clicked with the
+     * pointer on it: the failed red (and the copied green) has a :hover
+     * rule of its own, more specific than the utility's.
+     */
+    for (const selector of [
+      "[data-copy-button].copy-failed:not(.copy-btn):hover",
+      ".dark [data-copy-button].copy-failed:not(.copy-btn):hover",
+      "[data-copy-button].copied:not(.copy-btn):hover",
+      ".dark [data-copy-button].copied:not(.copy-btn):hover",
+    ]) {
+      expect(styles.includes(selector)).toBe(true);
+    }
   });
 });
 

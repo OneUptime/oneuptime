@@ -427,6 +427,46 @@ describe("Copy link copies, or says it could not (issue #5132)", () => {
     ).toBeInTheDocument();
   });
 
+  test("the failure line is markup React accepts: its icon's div is never inside a paragraph", async () => {
+    const errorSpy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(console, "error")
+      .mockImplementation((): void => {});
+
+    try {
+      setClipboard(null);
+      openSubscribe();
+
+      await clickCopy();
+
+      const line: HTMLElement = screen.getByTestId(
+        "maintenance-calendar-copy-failed",
+      );
+
+      // It used to be a <p>, and React warned in the console of every page.
+      expect(line.tagName).toBe("DIV");
+      expect(line.querySelector("svg")).not.toBeNull();
+      expect(
+        document.querySelectorAll(
+          "[data-testid='maintenance-calendar-subscribe-dialog'] p div",
+        ),
+      ).toHaveLength(0);
+
+      const nestingWarnings: Array<string> = (
+        errorSpy.mock.calls as Array<Array<unknown>>
+      )
+        .map((call: Array<unknown>): string => {
+          return call.map(String).join(" ");
+        })
+        .filter((message: string): boolean => {
+          return message.includes("validateDOMNesting");
+        });
+
+      expect(nestingWarnings).toEqual([]);
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
   test("the failure is said in a status region that is there before it, so a screen reader hears it", async () => {
     setClipboard(null);
     openSubscribe();

@@ -322,16 +322,41 @@
     * when it did not - never the tick over an empty clipboard the button
     * used to show when the browser refused (issue #5132).
     */
+   /*
+    * The alert drawn in a button's copy icon's place while it says Copy
+    * failed - the triangle the rest of the product shows for it, so a
+    * failure never looks like the copy icon it was. Made the first time a
+    * copy fails, at the copy icon's size.
+    */
+   function alertIconFor(button, copyIcon) {
+      var alertIcon = button.querySelector('.alert-icon');
+
+      if (alertIcon || !copyIcon) {
+         return alertIcon;
+      }
+
+      var holder = document.createElement('span');
+      holder.innerHTML = '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">' +
+         '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>';
+      alertIcon = holder.firstChild;
+      alertIcon.setAttribute('class', (copyIcon.getAttribute('class') || '').replace('copy-icon', 'alert-icon') + ' hidden');
+      copyIcon.parentNode.insertBefore(alertIcon, copyIcon.nextSibling);
+
+      return alertIcon;
+   }
+
    function showCopyResult(button, copied) {
       var copyIcon = button.querySelector('.copy-icon');
       var checkIcon = button.querySelector('.check-icon');
+      var alertIcon = copied ? button.querySelector('.alert-icon') : alertIconFor(button, copyIcon);
       var label = button.querySelector('.copy-text');
       var said = copied ? (strings.copied || 'Copied!') : (strings.copyFailed || 'Copy failed');
 
       window.clearTimeout(button.__copyResetTimer);
 
-      if (copyIcon) { copyIcon.classList.toggle('hidden', copied); }
+      if (copyIcon) { copyIcon.classList.add('hidden'); }
       if (checkIcon) { checkIcon.classList.toggle('hidden', !copied); }
+      if (alertIcon) { alertIcon.classList.toggle('hidden', copied); }
       if (label) { label.textContent = said; }
       button.classList.toggle('copied', copied);
       button.classList.toggle('copy-failed', !copied);
@@ -345,6 +370,7 @@
       button.__copyResetTimer = window.setTimeout(function () {
          if (copyIcon) { copyIcon.classList.remove('hidden'); }
          if (checkIcon) { checkIcon.classList.add('hidden'); }
+         if (alertIcon) { alertIcon.classList.add('hidden'); }
          if (label) { label.textContent = strings.copy || 'Copy'; }
          button.classList.remove('copied', 'copy-failed');
          button.removeAttribute('data-copy-state');

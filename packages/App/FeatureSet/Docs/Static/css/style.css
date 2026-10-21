@@ -4657,10 +4657,16 @@ html.dark .docs-theme-toggle .docs-icon-light {
   color: var(--docs-code-fg-muted);
   user-select: none;
 }
+/*
+ * One line, whatever it says: a long word ("Kopieren fehlgeschlagen") would
+ * otherwise wrap inside the button. The block's title gives way instead.
+ */
 .docs-code__copy {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: 0.3rem;
+  white-space: nowrap;
   padding: 0.25rem 0.5rem;
   border-radius: 0.375rem;
   background: transparent;
@@ -5165,8 +5171,14 @@ html.docs-js .docs-tabs__panel:not(.is-active) {
   border-top: 1px solid var(--docs-border-soft);
 }
 
-/* A code block's title ("install.sh"), before its language. */
+/*
+ * A code block's title ("install.sh"), before its language. It wraps, never
+ * pushing the copy button out of the bar: anywhere, if it must - a path such
+ * as /Library/LaunchDaemons/... has no space to wrap at.
+ */
 .docs-code__title {
+  min-width: 0;
+  overflow-wrap: anywhere;
   margin-inline-end: auto;
   font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
     Consolas, monospace;

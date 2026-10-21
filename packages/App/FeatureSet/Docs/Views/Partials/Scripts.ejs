@@ -329,16 +329,25 @@
             if (label) {
                 label.setAttribute('aria-live', 'polite');
             }
+            /* Its icon says what happened too, as a code block's Copy does. */
+            var setIcon = function (icon) {
+                var shown = button.querySelector('svg');
+                if (shown) {
+                    shown.outerHTML = icon;
+                }
+            };
             var resetTimer = null;
             var showResult = function (copied) {
                 window.clearTimeout(resetTimer);
                 button.classList.toggle('is-copied', copied);
                 button.classList.toggle('is-copy-failed', !copied);
+                setIcon(copied ? checkIcon : alertIcon);
                 if (label) {
                     label.textContent = copied ? (i18n.copied || 'Copied') : (i18n.copyFailed || 'Copy failed');
                 }
                 resetTimer = window.setTimeout(function () {
                     button.classList.remove('is-copied', 'is-copy-failed');
+                    setIcon(copyIcon);
                     if (label) {
                         label.textContent = i18n.copyPage || 'Copy page';
                     }
