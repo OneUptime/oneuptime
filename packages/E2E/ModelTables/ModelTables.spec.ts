@@ -2028,7 +2028,10 @@ test.describe("the header's controls are one height", () => {
    * The "/" key hint stood on the 15px line its 10px text inherited - 21px
    * with its padding and border - and made every table's search 39px tall
    * beside its 38px buttons. It keeps a 12px line now, and the search takes
-   * the buttons' padding: 38px from md up, 42px on a phone.
+   * the buttons' padding: 38px from md up, 42px on a phone. The x that
+   * empties it, which comes with the first letter typed, hangs over its
+   * line: it grew the search to 40px (44px on a phone) and moved the
+   * card's description down 2px under the reader's typing.
    */
   for (const size of [
     { width: 1280, height: 38 },
@@ -2063,6 +2066,25 @@ test.describe("the header's controls are one height", () => {
       ).toBeFocused();
 
       expect(await heightOf(slot)).toBe(size.height);
+
+      const description: Locator = page
+        .getByTestId("card-header")
+        .first()
+        .getByTestId("card-description");
+      const descriptionTop: number | null =
+        size.width >= 768 ? (await box(description)).y : null;
+
+      await page.keyboard.type("checkout");
+      await expect(
+        page.getByRole("button", { name: "Clear search", exact: true }),
+      ).toBeVisible();
+
+      expect(await heightOf(slot)).toBe(size.height);
+
+      // The card's description (hidden on a phone) stays where it was.
+      if (descriptionTop !== null) {
+        expect((await box(description)).y).toBe(descriptionTop);
+      }
     });
   }
 });

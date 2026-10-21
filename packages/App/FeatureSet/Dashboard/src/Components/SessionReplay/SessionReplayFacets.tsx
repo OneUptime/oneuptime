@@ -53,6 +53,15 @@ const fromDropdownOptions: (
   });
 };
 
+/*
+ * Each chip goes by the name the filter has everywhere else on the page:
+ * the Filter form's field (SESSION_REPLAY_FILTER_FIELDS), the chips of a
+ * list that matched nothing, and the search token the search's help names
+ * ("os:, device:, country: and trigger:, as the filter chips"). They were
+ * "Operating system" and "Capture reason" here alone - words twelve of the
+ * sixteen languages had no translation of, and a row of chips that ran
+ * onto a second line on a laptop.
+ */
 export const SESSION_REPLAY_FACETS: Array<SessionReplayFacet> = [
   {
     field: "browserName",
@@ -70,7 +79,7 @@ export const SESSION_REPLAY_FACETS: Array<SessionReplayFacet> = [
   },
   {
     field: "osName",
-    label: "Operating system",
+    label: "OS",
     icon: IconProp.ComputerDesktop,
     options: toOptions([
       "Windows",
@@ -102,7 +111,7 @@ export const SESSION_REPLAY_FACETS: Array<SessionReplayFacet> = [
   },
   {
     field: "triggerReason",
-    label: "Capture reason",
+    label: "Trigger",
     icon: IconProp.VideoCamera,
     options: fromDropdownOptions(TRIGGER_REASON_OPTIONS),
   },

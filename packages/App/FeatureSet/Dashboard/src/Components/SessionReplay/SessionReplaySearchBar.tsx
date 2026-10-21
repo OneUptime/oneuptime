@@ -41,8 +41,8 @@ import {
  *
  * What the box holds is what the reader searches for: free text, user:,
  * visitor:, url: and tag: (SessionReplaySearchQuery's grammar). The chips
- * under the header hold the rest - browser, OS, device, country, capture
- * reason, duration - and the box does not write those out again. Their
+ * under the header hold the rest - browser, OS, device, country, trigger,
+ * duration - and the box does not write those out again. Their
  * tokens still work when typed: they narrow the list as the reader types,
  * and Enter moves them into their chips.
  *

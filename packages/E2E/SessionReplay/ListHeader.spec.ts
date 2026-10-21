@@ -286,6 +286,157 @@ test.describe("the session list's header", () => {
     }
 
     expect(new Set(heights).size).toBe(1);
+
+    /*
+     * Each chip goes by its filter's name - the Filter form's, the search
+     * token's - and the row fits a laptop's card on one line: it was
+     * "Operating system" and "Capture reason", and Duration went onto a
+     * line of its own.
+     */
+    await expect(row.getByTestId("filter-chip")).toHaveText([
+      "Signal",
+      "Browser",
+      "OS",
+      "Device",
+      "Country",
+      "Trigger",
+      "Duration",
+    ]);
+    expect(Math.round((await box(row)).height)).toBe(heights[0]!);
+  });
+
+  test("a chip with a value stands where the empty ones do, and the row grows by no pixel", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await openList(page);
+
+    const row: Locator = page.getByTestId("session-replay-facets");
+    const emptyRow: Box = await box(row);
+
+    await page.keyboard.press("/");
+    await page.keyboard.type("browser:Chrome");
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("session-facet-browserName")).toContainText(
+      "Chrome",
+    );
+    await expect(page.getByTestId("facet-filter-bar-count")).toHaveText("1");
+
+    /*
+     * The chip that holds a value cuts its words short where the bar ends
+     * (truncate); on the line's baseline that sat it 1px below its
+     * neighbours, and its place stood 27px tall.
+     */
+    const tops: Array<number> = [];
+    const heights: Array<number> = [];
+
+    for (const chip of await row.getByTestId("filter-chip").all()) {
+      const found: Box = await box(chip);
+
+      tops.push(found.y);
+      heights.push(found.height);
+    }
+
+    for (const place of await row.locator(":scope > div").all()) {
+      heights.push((await box(place)).height);
+    }
+
+    expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(0.5);
+    expect(Math.max(...heights) - Math.min(...heights)).toBeLessThanOrEqual(
+      0.5,
+    );
+    expect((await box(row)).height).toBe(emptyRow.height);
+  });
+
+  /*
+   * The time range is the header's second control, near the card's right
+   * edge. Its list hung from its left edge the first time it opened - it
+   * was measured before the Tailwind runtime had written its width - and
+   * ran past the screen's right edge, the page scrolling sideways with it.
+   */
+  for (const size of [
+    { width: 1280, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    test(`at ${size.width}px the time range opens its list from its right edge, on the screen, the first time`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize(size);
+
+      for (const route of [listRoute, usersRoute]) {
+        await open(page, route);
+        await expect(
+          page.getByTestId("telemetry-time-range-picker-button"),
+        ).toBeVisible();
+
+        const button: Box = await box(
+          page.getByTestId("telemetry-time-range-picker-button"),
+        );
+
+        await page.getByTestId("telemetry-time-range-picker-button").click();
+
+        const dropdown: Locator = page.getByTestId(
+          "telemetry-time-range-picker-dropdown",
+        );
+
+        await expect(dropdown).toHaveAttribute("data-align", "right");
+
+        const list: Box = await box(dropdown);
+
+        expect(
+          Math.abs(list.x + list.width - (button.x + button.width)),
+        ).toBeLessThanOrEqual(1);
+        expect(list.x).toBeGreaterThanOrEqual(0);
+        expect(list.x + list.width).toBeLessThanOrEqual(size.width);
+        await expectNoHorizontalOverflow(page);
+      }
+    });
+  }
+
+  test("the search pill shows the keyboard's focus with the header's indigo ring", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openList(page);
+    await settleHeader(page);
+
+    const pill: Locator = page.getByRole("button", {
+      name: "Open search",
+      exact: true,
+    });
+
+    await pill.focus();
+    await page.keyboard.press("Shift");
+
+    const focusStyle: () => Promise<{ outline: string; ring: string }> =
+      async (): Promise<{ outline: string; ring: string }> => {
+        return pill.evaluate(
+          (element: Element): { outline: string; ring: string } => {
+            const style: CSSStyleDeclaration = getComputedStyle(element);
+
+            return { outline: style.outlineColor, ring: style.boxShadow };
+          },
+        );
+      };
+
+    /*
+     * Not the browser's black outline (Tailwind's outline-none leaves a
+     * transparent one): the indigo-500 ring the ⋯ wears. The pill's
+     * transition runs for 200ms first.
+     */
+    await expect
+      .poll(async (): Promise<string> => {
+        return (await focusStyle()).outline;
+      })
+      .toBe("rgba(0, 0, 0, 0)");
+    expect((await focusStyle()).ring).toContain("rgb(99, 102, 241)");
   });
 
   test("the ⋯ holds the sort order, Refresh and Filter; a sort is sent once and ticked", async ({
@@ -386,10 +537,24 @@ test.describe("the session list's header", () => {
     await expect(page.getByTestId("session-search-help")).toBeVisible();
     await screenshot(page, "session-replay-list-search-open");
 
+    const description: Box = await box(
+      header(page).getByTestId("card-description"),
+    );
+
     /* A person typed into the box goes to the server; the box stays open. */
     await page
       .getByTestId("session-search-input")
       .fill("user:jane@example.com");
+    await expect(page.getByTestId("session-search-clear")).toBeVisible();
+
+    /*
+     * With the x that empties it, the box is as tall as before and the
+     * card's description has not moved: the x hangs over the box's line.
+     */
+    await expectOneHeight(controls(page), 38);
+    expect((await box(header(page).getByTestId("card-description"))).y).toBe(
+      description.y,
+    );
     await expect
       .poll(async (): Promise<unknown> => {
         return (

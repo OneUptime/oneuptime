@@ -47,10 +47,12 @@ export const TELEMETRY_SEARCH_HELP_SYNTAX_CELL_CLASS_NAME: string =
 
 /*
  * Never one word left on a line of its own ("Visited a page whose address
- * starts with / this").
+ * starts with / this"). Its lines are its 12px text's own (text-xs, 16px
+ * apart): on the cell's inherited 24px line, a description that ran onto a
+ * second line left a gap under the first as tall as the text.
  */
 export const TELEMETRY_SEARCH_HELP_DESCRIPTION_CELL_CLASS_NAME: string =
-  "text-pretty px-2 py-1.5 max-sm:col-span-2 max-sm:row-start-2 max-sm:p-0 max-sm:pt-0.5";
+  "text-pretty px-2 py-1.5 text-xs max-sm:col-span-2 max-sm:row-start-2 max-sm:p-0 max-sm:pt-0.5";
 
 export const TELEMETRY_SEARCH_HELP_EXAMPLE_CELL_CLASS_NAME: string =
   "whitespace-nowrap py-1.5 pl-2 pr-3 text-right max-sm:col-start-2 max-sm:row-start-1 max-sm:min-w-0 max-sm:truncate max-sm:p-0";

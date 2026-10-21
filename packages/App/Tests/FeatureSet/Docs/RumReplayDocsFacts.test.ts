@@ -1089,10 +1089,10 @@ describe("Session Replay: the session list's filters", () => {
     expect(chips).toEqual([
       "Signal",
       "Browser",
-      "Operating system",
+      "OS",
       "Device",
       "Country",
-      "Capture reason",
+      "Trigger",
       "Duration",
     ]);
 

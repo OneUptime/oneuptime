@@ -95,7 +95,7 @@ export const SEARCH_BOX_UNCOVERED_FIELDS: ReadonlyArray<
 
 /*
  * The fields the chips above the list hold (SessionReplayFacets: Browser,
- * Operating system, Device, Country, Capture reason, Duration). The box does
+ * OS, Device, Country, Trigger, Duration). The box does
  * not write them out: a list narrowed by its chips says so in the chips, as
  * every table's filter chips do, and the search box keeps what the reader
  * typed. Their tokens still work - browser:Chrome typed into the box narrows

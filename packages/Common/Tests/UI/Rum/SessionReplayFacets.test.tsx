@@ -63,13 +63,18 @@ function openFacet(field: string): void {
 describe("session replay standard facets", () => {
   it("offers all seven facets on an empty application", () => {
     renderFacets();
+    /*
+     * Each chip goes by its filter's name everywhere else on the page - the
+     * Filter form's field, the search token (os:, trigger:) - so OS and
+     * Trigger, never "Operating system" and "Capture reason".
+     */
     for (const name of [
       "Signal",
       "Browser",
-      "Operating system",
+      "OS",
       "Device",
       "Country",
-      "Capture reason",
+      "Trigger",
       "Duration",
     ]) {
       expect(screen.getByRole("button", { name })).toBeInTheDocument();
@@ -151,7 +156,7 @@ describe("session replay standard facets", () => {
       "Slow page",
     );
     fireEvent.click(
-      screen.getByRole("button", { name: "Clear Capture reason filter" }),
+      screen.getByRole("button", { name: "Clear Trigger filter" }),
     );
     expect(changes.signalsChanged).toEqual(["all"]);
     expect(changes.filtersChanged[0]?.triggerReason).toBe("");
@@ -273,7 +278,7 @@ describe("session replay chips row", () => {
     ).toBe(1);
     /*
      * Slow is the performance capture reason: the Signal chip and the
-     * Capture reason chip both read it, and both are set.
+     * Trigger chip both read it, and both are set.
      */
     expect(countActiveSessionReplayChips(EMPTY_ADVANCED_FILTERS, "slow")).toBe(
       2,

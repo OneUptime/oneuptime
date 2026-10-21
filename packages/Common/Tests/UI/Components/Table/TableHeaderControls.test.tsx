@@ -21,6 +21,8 @@ import {
   TABLE_HEADER_OPEN_SEARCH_BESIDE_BUTTONS_CLASS_NAME,
   TABLE_HEADER_OPEN_SEARCH_CLASS_NAME,
   TABLE_HEADER_SEARCH_CLASS_NAME,
+  TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME,
+  TABLE_HEADER_SEARCH_PILL_FOCUS_CLASS_NAME,
   TABLE_HEADER_TOOLBAR_CLASS_NAME,
   TableHeaderButtonSplit,
   TableHeaderSearchSlot,
@@ -411,6 +413,37 @@ describe("TableHeaderSearchSlot", () => {
     expect(onOpen).toHaveBeenCalledTimes(1);
   });
 
+  test("the pill shows the keyboard's focus with the ring the header's other controls wear", () => {
+    render(
+      <TableHeaderSearchSlot isOpen={false} onOpen={noop}>
+        <input data-testid="control" />
+      </TableHeaderSearchSlot>,
+    );
+
+    const pill: HTMLElement = screen.getByRole("button", {
+      name: "Open search",
+    });
+
+    /*
+     * The time range and the ⋯ beside it draw an indigo ring 2px off their
+     * border; the pill drew the browser's own black one.
+     */
+    expect(TABLE_HEADER_SEARCH_PILL_FOCUS_CLASS_NAME.split(" ")).toEqual([
+      "focus:outline-none",
+      "focus-visible:ring-2",
+      "focus-visible:ring-indigo-500",
+      "focus-visible:ring-offset-2",
+    ]);
+    expect(pill).toHaveClass(
+      ...TABLE_HEADER_SEARCH_PILL_FOCUS_CLASS_NAME.split(" "),
+    );
+    expect(CARD_MORE_MENU_TRIGGER_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(
+        TABLE_HEADER_SEARCH_PILL_FOCUS_CLASS_NAME.split(" "),
+      ),
+    );
+  });
+
   test("opened, the control shows at the open width and the pill steps aside", () => {
     render(
       <TableHeaderSearchSlot isOpen={true} onOpen={noop} dataTestId="slot">
@@ -526,6 +559,25 @@ describe("one look for every table's header", () => {
     ]);
     expect(CARD_MORE_MENU_TRIGGER_CLASS_NAME.split(" ")).toEqual(
       expect.arrayContaining(["py-2.5", "md:py-2", "border"]),
+    );
+  });
+
+  test("the x that empties a search hangs over its 20px line instead of growing it", () => {
+    /*
+     * p-1 around a 14px icon is a 22px circle. It appears with the first
+     * letter typed; without the -my-1 the search stood 40px beside its
+     * 38px neighbours and the card's description moved 2px down.
+     */
+    const classes: Array<string> =
+      TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME.split(" ");
+
+    expect(classes).toEqual(expect.arrayContaining(["-my-1", "p-1"]));
+    expect(classes).toEqual(
+      expect.arrayContaining([
+        "focus:outline-none",
+        "focus-visible:ring-2",
+        "focus-visible:ring-indigo-500",
+      ]),
     );
   });
 });

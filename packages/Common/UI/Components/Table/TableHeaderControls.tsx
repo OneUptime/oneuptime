@@ -94,9 +94,22 @@ export const TABLE_HEADER_SEARCH_KEY_HINT_CLASS_NAME: string =
  * The x that empties a table's opened search. Tab reaches it from the box,
  * so it shows where the focus is the way the header's other buttons do -
  * the browser's own black ring was drawn round it instead.
+ *
+ * Its circle (22px) hangs over the search's 20px line rather than growing
+ * it (-my-1): it appears with the first letter typed, and the search grew
+ * to 40px with it, the card's description and chips moving 2px down under
+ * the reader's typing, the box standing taller than the buttons beside it.
  */
 export const TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME: string =
-  "flex-none rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+  "-my-1 flex-none rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
+/*
+ * The folded search's "Search…  /" pill. It shows the keyboard's focus as
+ * the header's other controls do - the time range, the main button, the ⋯
+ * - with the indigo ring, where the browser drew its own black one.
+ */
+export const TABLE_HEADER_SEARCH_PILL_FOCUS_CLASS_NAME: string =
+  "focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
 /*
  * The labels of the ⋯'s items that are icon-only buttons in the header
@@ -407,7 +420,7 @@ export const TableHeaderSearchSlot: FunctionComponent<
         title={tx("Search (/)")}
         aria-label={tx("Open search")}
         tabIndex={props.isOpen ? -1 : 0}
-        className={`absolute inset-0 inline-flex items-center gap-2 rounded-md border bg-white px-3 text-sm shadow-sm transition-all duration-200 ease-out ${
+        className={`absolute inset-0 inline-flex items-center gap-2 rounded-md border bg-white px-3 text-sm shadow-sm transition-all duration-200 ease-out ${TABLE_HEADER_SEARCH_PILL_FOCUS_CLASS_NAME} ${
           props.isOpen
             ? "pointer-events-none border-gray-200 opacity-0"
             : "border-gray-200 opacity-100 hover:border-gray-300 hover:bg-gray-50"

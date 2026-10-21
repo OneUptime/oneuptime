@@ -177,6 +177,17 @@ describe("TelemetrySearchHelp rows", () => {
     ).toContain("text-pretty");
   });
 
+  it("runs what a token does onto a second line 16px under the first, its text's own line", () => {
+    /*
+     * The cell is 12px text (text-xs, a 16px line), not just its words: on
+     * the cell's inherited 24px line, a description that wrapped left a gap
+     * under its first line as tall as the text.
+     */
+    expect(
+      classesOf(TELEMETRY_SEARCH_HELP_DESCRIPTION_CELL_CLASS_NAME),
+    ).toContain("text-xs");
+  });
+
   it("still puts a row's example in the search when it is pressed", () => {
     const onExampleClick: MockFunction = getJestMockFunction();
     const help: HTMLElement = renderHelp("right", onExampleClick);
