@@ -867,6 +867,12 @@ import HostOwnerTeamService, {
 import HostOwnerUserService, {
   Service as HostOwnerUserServiceType,
 } from "Common/Server/Services/HostOwnerUserService";
+import HostCollectorConfigService, {
+  Service as HostCollectorConfigServiceType,
+} from "Common/Server/Services/HostCollectorConfigService";
+import HostCollectorConfigVersionService, {
+  Service as HostCollectorConfigVersionServiceType,
+} from "Common/Server/Services/HostCollectorConfigVersionService";
 import LabelService, {
   Service as LabelServiceType,
 } from "Common/Server/Services/LabelService";
@@ -1470,6 +1476,8 @@ import MessageQueueOwnerRule from "Common/Models/DatabaseModels/MessageQueueOwne
 import Host from "Common/Models/DatabaseModels/Host";
 import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
 import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
+import HostCollectorConfig from "Common/Models/DatabaseModels/HostCollectorConfig";
+import HostCollectorConfigVersion from "Common/Models/DatabaseModels/HostCollectorConfigVersion";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
 import TeamCustomField from "Common/Models/DatabaseModels/TeamCustomField";
@@ -5079,6 +5087,28 @@ const BaseAPIFeatureSet: FeatureSet = {
         HostOwnerUser,
         HostOwnerUserService,
       ).getRouter(),
+    );
+
+    /*
+     * Collector Configs (Hosts > Collector Configs): the config OneUptime
+     * sends to the hosts it manages, checked on every save, and the versions
+     * every save makes - written only by the config's service, so their
+     * router only reads.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<HostCollectorConfig, HostCollectorConfigServiceType>(
+        HostCollectorConfig,
+        HostCollectorConfigService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        HostCollectorConfigVersion,
+        HostCollectorConfigVersionServiceType
+      >(HostCollectorConfigVersion, HostCollectorConfigVersionService).getRouter(),
     );
 
     app.use(

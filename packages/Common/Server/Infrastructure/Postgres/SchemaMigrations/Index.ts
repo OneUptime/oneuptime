@@ -145,6 +145,8 @@ import { AddExternalMcpServers1805000000000 } from "./1805000000000-AddExternalM
 import { AddInvestigationRuleWait1805030000000 } from "./1805030000000-AddInvestigationRuleWait";
 import { AddInvestigationRuleWaitIndexes1805040000000 } from "./1805040000000-AddInvestigationRuleWaitIndexes";
 import { AddScheduledMaintenanceExternalCalendars1805120000000 } from "./1805120000000-AddScheduledMaintenanceExternalCalendars";
+import { AddHostCollectorManagement1805200000000 } from "./1805200000000-AddHostCollectorManagement";
+import { AddHostCollectorManagementIndexesAndKeys1805250000000 } from "./1805250000000-AddHostCollectorManagementIndexesAndKeys";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1492,4 +1494,6 @@ export default [
   AddInvestigationRuleWait1805030000000,
   AddInvestigationRuleWaitIndexes1805040000000,
   AddScheduledMaintenanceExternalCalendars1805120000000,
+  AddHostCollectorManagement1805200000000,
+  AddHostCollectorManagementIndexesAndKeys1805250000000,
 ];

@@ -68,6 +68,9 @@ import VMwareResource from "./VMwareResource";
 import Host from "./Host";
 import HostOwnerTeam from "./HostOwnerTeam";
 import HostOwnerUser from "./HostOwnerUser";
+// The config OneUptime sends to the hosts it manages, and its versions
+import HostCollectorConfig from "./HostCollectorConfig";
+import HostCollectorConfigVersion from "./HostCollectorConfigVersion";
 import ServerlessFunction from "./ServerlessFunction";
 import ServerlessFunctionOwnerTeam from "./ServerlessFunctionOwnerTeam";
 import ServerlessFunctionOwnerUser from "./ServerlessFunctionOwnerUser";
@@ -1071,6 +1074,8 @@ const AllModelTypes: Array<{
   Host,
   HostOwnerTeam,
   HostOwnerUser,
+  HostCollectorConfig,
+  HostCollectorConfigVersion,
   ServerlessFunction,
   ServerlessFunctionOwnerTeam,
   ServerlessFunctionOwnerUser,
