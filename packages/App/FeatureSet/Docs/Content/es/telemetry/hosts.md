@@ -75,7 +75,7 @@ Cada instancia de OneUptime sirve sus propios instaladores, así que una instanc
 
 ### Espera al host
 
-El último paso del diálogo indica cuándo se conecta el host, con un enlace a él. En la lista aparece como **Iniciando** hasta que llegan sus primeras métricas, normalmente en menos de un minuto, y después como conectado, con su recolector **En ejecución**.
+El último paso del diálogo indica cuándo se conecta el host, con un enlace a él. En la lista aparece como **Iniciando** hasta que llegan sus primeras métricas, normalmente en menos de un minuto, y después como conectado, con su recolector **En ejecución**. La página **Topología** del host dibuja en un solo mapa lo que se ejecuta en él, lo que lo llama y lo que llama: consulte [Topología](/docs/telemetry/topology#abrir-el-mapa-propio-de-un-recurso).
 :::
 
 ## Etiquetar hosts

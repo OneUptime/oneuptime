@@ -1,6 +1,7 @@
 import ComponentProps from "../Pages/PageComponentProps";
 import KubernetesLayout from "../Pages/Kubernetes/Layout";
 import KubernetesClusterViewLayout from "../Pages/Kubernetes/View/Layout";
+import KubernetesClusterTopology from "../Pages/Kubernetes/View/Topology";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, KubernetesRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -188,6 +189,20 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
             <KubernetesClusterView
               {...props}
               pageRoute={RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_TOPOLOGY,
+          )}
+          element={
+            <KubernetesClusterTopology
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_TOPOLOGY] as Route
+              }
             />
           }
         />

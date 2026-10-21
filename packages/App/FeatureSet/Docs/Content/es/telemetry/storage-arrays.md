@@ -134,7 +134,7 @@ Everything is ready. Begin running and processing data.
 
 ### Encontrar la cabina en OneUptime
 
-Abre **Productos → Infraestructura → Storage Arrays → All Storage Arrays**. Tras la primera recopilación (un minuto aproximadamente), la cabina está ahí con su capacidad, rendimiento, alertas abiertas y hardware. Los volúmenes, hosts y pods llegan en menos de 2 minutos, los sistemas de archivos y buckets de una FlashBlade en menos de 5, y los directorios de FlashArray en menos de 30.
+Abre **Productos → Infraestructura → Storage Arrays → All Storage Arrays**. Tras la primera recopilación (un minuto aproximadamente), la cabina está ahí con su capacidad, rendimiento, alertas abiertas y hardware. Los volúmenes, hosts y pods llegan en menos de 2 minutos, los sistemas de archivos y buckets de una FlashBlade en menos de 5, y los directorios de FlashArray en menos de 30. La página **Topología** de la cabina dibuja sus hosts, volúmenes, sistemas de archivos y hardware en un solo mapa: consulte [Topología](/docs/telemetry/topology#abrir-el-mapa-propio-de-un-recurso).
 :::
 
 ## Variables de entorno

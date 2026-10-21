@@ -129,7 +129,7 @@ Everything is ready. Begin running and processing data.
 
 ### 在 OneUptime 中找到主機
 
-開啟 **產品 → 基礎設施 → Docker → 所有主機**。大約一分鐘內，主機會以其 `DOCKER_HOST_NAME` 出現，並帶有其容器、指標和日誌。AI 代理程式會在主機的 **AI 代理程式** 頁面上以及其 **概覽** 底部顯示為已連線。
+開啟 **產品 → 基礎設施 → Docker → 所有主機**。大約一分鐘內，主機會以其 `DOCKER_HOST_NAME` 出現，並帶有其容器、指標和日誌。AI 代理程式會在主機的 **AI 代理程式** 頁面上以及其 **概覽** 底部顯示為已連線。主機的 **拓撲** 頁面將其 Compose 專案、容器、映像檔、網路和磁碟區繪製在一張地圖上：請參閱 [拓撲](/docs/telemetry/topology#開啟資源自己的地圖)。
 :::
 
 ## 環境變數

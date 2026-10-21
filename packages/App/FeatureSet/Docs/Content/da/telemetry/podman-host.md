@@ -129,7 +129,7 @@ Everything is ready. Begin running and processing data.
 
 ### Find værten i OneUptime
 
-Åbn **Produkter → Infrastruktur → Podman → Alle værter**. Værten vises under sit `PODMAN_HOST_NAME` inden for et minuts tid, med sine containere, metrikker og logs. AI-agenten vises som forbundet på værtens side **AI-agent** og nederst på dens **Oversigt**.
+Åbn **Produkter → Infrastruktur → Podman → Alle værter**. Værten vises under sit `PODMAN_HOST_NAME` inden for et minuts tid, med sine containere, metrikker og logs. AI-agenten vises som forbundet på værtens side **AI-agent** og nederst på dens **Oversigt**. Værtens side **Topologi** tegner dens Compose-projekter, containere, images, netværk og volumes på ét kort: se [Topologi](/docs/telemetry/topology#åbn-en-ressources-eget-kort).
 :::
 
 ## Miljøvariabler

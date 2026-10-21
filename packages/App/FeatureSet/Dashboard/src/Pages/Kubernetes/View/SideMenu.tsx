@@ -135,6 +135,16 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Info}
         />
+        <SideMenuItem
+          link={{
+            title: "Topology",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_TOPOLOGY] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.FlowDiagram}
+        />
         {/*
          * The cluster's resource charts. Named "Resource Usage" (not
          * "Insights", and not the LightBulb) so the AI section below owns

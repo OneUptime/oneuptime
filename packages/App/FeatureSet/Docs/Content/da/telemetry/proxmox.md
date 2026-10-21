@@ -137,7 +137,7 @@ Everything is ready. Begin running and processing data.
 
 ### Find klyngen i OneUptime
 
-Åbn **Produkter → Infrastruktur → Proxmox → Alle klynger**. Klyngen vises under sit `PROXMOX_CLUSTER_NAME` omkring et minut efter det første scrape, med sine noder, gæster og lager.
+Åbn **Produkter → Infrastruktur → Proxmox → Alle klynger**. Klyngen vises under sit `PROXMOX_CLUSTER_NAME` omkring et minut efter det første scrape, med sine noder, gæster og lager. Dens side **Topologi** tegner dem på ét kort: se [Topologi](/docs/telemetry/topology#åbn-en-ressources-eget-kort).
 :::
 
 ## Miljøvariabler

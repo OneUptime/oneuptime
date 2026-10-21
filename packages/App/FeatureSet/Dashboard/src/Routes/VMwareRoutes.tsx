@@ -24,6 +24,7 @@ import VMwareVCenterClusters from "../Pages/VMware/View/Clusters";
 import VMwareVCenterClusterDetail from "../Pages/VMware/View/ClusterDetail";
 import VMwareVCenterResourcePools from "../Pages/VMware/View/ResourcePools";
 import VMwareVCenterInsights from "../Pages/VMware/View/Insights";
+import VMwareVCenterTopology from "../Pages/VMware/View/Topology";
 import VMwareVCenterMetrics from "../Pages/VMware/View/Metrics";
 import VMwareVCenterRecommendations from "../Pages/VMware/View/Recommendations";
 import VMwareVCenterAiInsights from "../Pages/VMware/View/AI/Insights";
@@ -271,6 +272,21 @@ const VMwareRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.VMWARE_VCENTER_VIEW_RESOURCE_POOLS] as Route
+              }
+            />
+          }
+        />
+
+        {/* Topology */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.VMWARE_VCENTER_VIEW_TOPOLOGY,
+          )}
+          element={
+            <VMwareVCenterTopology
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.VMWARE_VCENTER_VIEW_TOPOLOGY] as Route
               }
             />
           }

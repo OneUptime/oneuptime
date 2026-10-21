@@ -175,7 +175,7 @@ Everything is ready. Begin running and processing data.
 
 ### 在 OneUptime 中找到 vCenter
 
-在第一次完整的清單走訪完成之前不會傳送任何資料，因此請等待一個收集間隔（預設 2 分鐘）。然後開啟 **產品 → 基礎設施 → VMware → 所有 vCenter**：vCenter 就在那裡，帶有它的資料中心、叢集、ESXi 主機、虛擬機器、資料存放區和資源集區。
+在第一次完整的清單走訪完成之前不會傳送任何資料，因此請等待一個收集間隔（預設 2 分鐘）。然後開啟 **產品 → 基礎設施 → VMware → 所有 vCenter**：vCenter 就在那裡，帶有它的資料中心、叢集、ESXi 主機、虛擬機器、資料存放區和資源集區。它的 **拓撲** 頁面將這一切繪製在一張地圖上，並標出需要注意的內容：請參閱 [拓撲](/docs/telemetry/topology#開啟資源自己的地圖)。
 :::
 
 ## 環境變數

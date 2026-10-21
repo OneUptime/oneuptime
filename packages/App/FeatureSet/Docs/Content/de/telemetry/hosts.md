@@ -75,7 +75,7 @@ Jede OneUptime-Instanz stellt ihre eigenen Installer bereit, sodass eine selbst 
 
 ### Auf den Host warten
 
-Der letzte Schritt des Dialogs zeigt an, wann sich der Host verbindet, mit einem Link zu ihm. In der Liste erscheint er als **Wird gestartet**, bis seine ersten Metriken eintreffen, meist innerhalb einer Minute, danach als verbunden, mit dem Collector im Zustand **Wird ausgeführt**.
+Der letzte Schritt des Dialogs zeigt an, wann sich der Host verbindet, mit einem Link zu ihm. In der Liste erscheint er als **Wird gestartet**, bis seine ersten Metriken eintreffen, meist innerhalb einer Minute, danach als verbunden, mit dem Collector im Zustand **Wird ausgeführt**. Die Seite **Topologie** des Hosts zeichnet als eine Karte, was auf ihm läuft, was ihn aufruft und was er aufruft: siehe [Topologie](/docs/telemetry/topology#die-eigene-karte-einer-ressource-öffnen).
 :::
 
 ## Hosts beschriften

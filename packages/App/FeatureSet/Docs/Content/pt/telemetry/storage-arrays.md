@@ -134,7 +134,7 @@ Everything is ready. Begin running and processing data.
 
 ### Encontrar o array no OneUptime
 
-Abra **Produtos → Infraestrutura → Storage Arrays → All Storage Arrays**. Depois da primeira coleta (cerca de um minuto), o array está lá com a capacidade, o desempenho, os alertas abertos e o hardware dele. Volumes, hosts e pods vêm em até 2 minutos, os sistemas de arquivos e buckets de um FlashBlade em até 5, e os diretórios do FlashArray em até 30.
+Abra **Produtos → Infraestrutura → Storage Arrays → All Storage Arrays**. Depois da primeira coleta (cerca de um minuto), o array está lá com a capacidade, o desempenho, os alertas abertos e o hardware dele. Volumes, hosts e pods vêm em até 2 minutos, os sistemas de arquivos e buckets de um FlashBlade em até 5, e os diretórios do FlashArray em até 30. A página **Topologia** do array desenha os seus hosts, volumes, sistemas de arquivos e hardware em um único mapa: veja [Topologia](/docs/telemetry/topology#abrir-o-mapa-próprio-de-um-recurso).
 :::
 
 ## Variáveis de ambiente
