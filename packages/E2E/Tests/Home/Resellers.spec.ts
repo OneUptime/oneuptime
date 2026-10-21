@@ -8,7 +8,9 @@ import URL from "Common/Types/API/URL";
  *
  * Unit tests pin the page, the form and the route's answers; this suite is
  * the deployment contract: the page is served and linked from the footer,
- * and POST /resellers/contact reaches the Home service and answers JSON.
+ * its cloud marketplaces link their listings and fit a phone in a real
+ * browser, and POST /resellers/contact reaches the Home service and answers
+ * JSON.
  *
  * It never sends an inquiry that would be emailed: a valid one goes to the
  * configured inbox - sales@oneuptime.com by default - from whichever stack
@@ -22,6 +24,16 @@ const resellersUrl: string = URL.fromString(BASE_URL.toString())
 const contactUrl: string = URL.fromString(BASE_URL.toString())
   .addRoute("/resellers/contact")
   .toString();
+
+// A listing's link: "View listing", then what a screen reader is told.
+const VIEW_LISTING: RegExp = /^View listing/;
+
+// Where the marketplaces' own listings live.
+const MARKETPLACE_HOSTS: Array<string> = [
+  "aws.amazon.com",
+  "marketplace.microsoft.com",
+  "console.cloud.google.com",
+];
 
 test.describe("Home: Resellers", () => {
   test.skip(
@@ -77,6 +89,85 @@ test.describe("Home: Resellers", () => {
     await expect(
       page.getByRole("button", { name: "Send message" }),
     ).toBeVisible();
+  });
+
+  test("the page offers the cloud marketplaces, each public listing in a new tab, and fits a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(resellersUrl);
+
+    // Not a reseller: a section of its own, which the hero leads to.
+    const section: Locator = page.locator("#cloud-marketplaces");
+    await page
+      .getByRole("link", { name: "Or buy through your cloud marketplace" })
+      .click();
+    await expect(
+      section.getByRole("heading", {
+        level: 2,
+        name: "Buy through your cloud marketplace",
+      }),
+    ).toBeInViewport();
+
+    for (const marketplace of [
+      "AWS Marketplace",
+      "Microsoft Marketplace",
+      "Google Cloud Marketplace",
+    ]) {
+      await expect(
+        section.getByRole("heading", { level: 3, name: marketplace }),
+      ).toBeVisible();
+    }
+
+    // Each public listing opens on its marketplace's own site, in a new tab.
+    const listings: Array<Locator> = await section
+      .getByRole("link", { name: VIEW_LISTING })
+      .all();
+    expect(listings.length).toBeGreaterThan(0);
+
+    for (const listing of listings) {
+      await expect(listing).toHaveAttribute("target", "_blank");
+      expect(MARKETPLACE_HOSTS).toContain(
+        URL.fromString(
+          (await listing.getAttribute("href")) || "",
+        ).hostname.toString(),
+      );
+    }
+
+    // On a phone, every listing's button stays on the screen.
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(
+      await page.evaluate((): number => {
+        return (
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth
+        );
+      }),
+    ).toBeLessThanOrEqual(0);
+
+    for (const listing of listings) {
+      await listing.scrollIntoViewIfNeeded();
+      const box: { x: number; width: number } | null =
+        await listing.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.x).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+    }
+
+    // ...and every marketplace's name stays on one line.
+    for (const heading of await section
+      .getByRole("heading", { level: 3 })
+      .all()) {
+      expect(
+        await heading.evaluate((element: Element): number => {
+          return Math.round(
+            element.getBoundingClientRect().height /
+              parseFloat(window.getComputedStyle(element).lineHeight),
+          );
+        }),
+      ).toBe(1);
+    }
   });
 
   test("the footer links to the page", async ({ page }: { page: Page }) => {

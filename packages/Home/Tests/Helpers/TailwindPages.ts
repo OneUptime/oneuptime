@@ -5,6 +5,7 @@ import ProductCompare, {
 } from "../../Utils/ProductCompare";
 import { getSelfHostedContent } from "../../Utils/SelfHosted";
 import { getResellersPageContent } from "../../Utils/Resellers";
+import { getCloudMarketplacesContent } from "../../Utils/CloudMarketplaces";
 import { getPageSEO, PageSEOData } from "../../Utils/PageSEO";
 import type { BlogPost, BlogPostContributor } from "../../Utils/BlogPost";
 import BlogTag from "../../Utils/BlogTag";
@@ -205,10 +206,12 @@ export const MARKETING_PAGES: Array<MarketingPage> = [
     name: "pricing",
     template: "pricing.ejs",
     locals: async (): Promise<Record<string, unknown>> => {
+      // The locals Routes.ts hands the page.
       return {
         pricing: Pricing,
         enableGoogleTagManager: false,
         seo: seoFor("/pricing"),
+        cloudMarketplaces: getCloudMarketplacesContent(),
       };
     },
   },

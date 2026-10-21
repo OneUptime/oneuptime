@@ -17,6 +17,11 @@ import {
   CONTRIBUTORS_PER_PAGE,
   MAX_CONTRIBUTOR_PAGES,
 } from "../Utils/GitHubContributors";
+import {
+  CloudMarketplacesContent,
+  getCloudMarketplacesContent,
+} from "../Utils/CloudMarketplaces";
+import { SelfHostedContent } from "../Utils/SelfHosted";
 
 /*
  * THE ROUTE TABLE, ANSWERING REAL REQUESTS.
@@ -603,6 +608,78 @@ describe("the route table over HTTP", () => {
           return r.view;
         }),
       ).toEqual(["not-found.ejs"]);
+    });
+  });
+
+  describe("the pages that name the cloud marketplaces", () => {
+    function lastRender(): RenderedView {
+      return home.renders[home.renders.length - 1]!;
+    }
+
+    test("/resellers renders the marketplaces' section from the list", async () => {
+      const answer: Answer = await home.request("GET", "/resellers");
+
+      expect(answer.status).toBe(200);
+      expect(lastRender().view).toBe("resellers.ejs");
+      expect(
+        (lastRender().locals["resellers"] as ResellersPageContent)
+          .cloudMarketplaces,
+      ).toEqual(getCloudMarketplacesContent());
+    });
+
+    test("/pricing renders its plans with OneUptime Cloud's marketplace listings", async () => {
+      const answer: Answer = await home.request("GET", "/pricing");
+
+      expect(answer.status).toBe(200);
+      expect(lastRender().view).toBe("pricing.ejs");
+
+      const content: CloudMarketplacesContent = lastRender().locals[
+        "cloudMarketplaces"
+      ] as CloudMarketplacesContent;
+
+      expect(content).toEqual(getCloudMarketplacesContent());
+      expect(content.publicListings.cloud.length).toBeGreaterThan(0);
+    });
+
+    test("/enterprise/self-hosted renders with OneUptime Enterprise's marketplace listings", async () => {
+      const answer: Answer = await home.request(
+        "GET",
+        "/enterprise/self-hosted",
+      );
+
+      expect(answer.status).toBe(200);
+      expect(lastRender().view).toBe("self-hosted.ejs");
+      expect(
+        (lastRender().locals["selfHosted"] as SelfHostedContent)
+          .cloudMarketplaces,
+      ).toEqual(getCloudMarketplacesContent());
+    });
+
+    test("/resellers.md lists the marketplaces and their listings for machines", async () => {
+      const answer: Answer = await home.request("GET", "/resellers.md");
+
+      expect(answer.status).toBe(200);
+      expect(answer.body).toContain("## Buy through your cloud marketplace");
+      expect(answer.body).toContain(
+        "  - [OneUptime Cloud](https://aws.amazon.com/marketplace/pp/prodview-ttfnc3eqofayw): Hosted by OneUptime",
+      );
+      expect(answer.body).toContain("- Google Cloud Marketplace: coming soon");
+      // After the resellers, before how to become one.
+      expect(answer.body.indexOf("## Resellers by region")).toBeLessThan(
+        answer.body.indexOf("## Buy through your cloud marketplace"),
+      );
+      expect(
+        answer.body.indexOf("## Buy through your cloud marketplace"),
+      ).toBeLessThan(answer.body.indexOf("## Become a reseller"));
+    });
+
+    test("/pricing.md names OneUptime Cloud's listings for machines", async () => {
+      const answer: Answer = await home.request("GET", "/pricing.md");
+
+      expect(answer.status).toBe(200);
+      expect(answer.body).toContain(
+        "Prefer to pay on your cloud bill? Buy OneUptime Cloud on [AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-ttfnc3eqofayw) or [Microsoft Marketplace](https://marketplace.microsoft.com/en-us/product/oneupitme.oneuptime-cloud), at the same prices. Every marketplace: https://oneuptime.com/resellers#cloud-marketplaces",
+      );
     });
   });
 

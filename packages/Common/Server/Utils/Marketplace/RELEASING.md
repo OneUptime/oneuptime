@@ -55,6 +55,26 @@ what it used since the last hourly one. The purchase itself stays active on the
 marketplace until they cancel it there; the project's Danger Zone page tells
 them so before they delete it.
 
+## Public listings
+
+Where buyers find OneUptime Cloud, as each marketplace links it. Microsoft's
+addresses carry the publisher ID Partner Center has for HackerBay,
+`oneupitme` (spelled so, and permanent), before the offer ID.
+
+| Marketplace  | Listing                                                                                                                      | Seen public |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| AWS          | `https://aws.amazon.com/marketplace/pp/prodview-ttfnc3eqofayw` (product `prod-unn56dxklr4mw`, seller `seller-d3b2fafj4knc2`) | 2026-10-21  |
+| Microsoft    | `https://marketplace.microsoft.com/en-us/product/oneupitme.oneuptime-cloud` (offer `oneuptime-cloud`)                        | 2026-10-21  |
+| Google Cloud | Not public yet                                                                                                               |             |
+
+The website shows them, from
+[packages/Home/Utils/CloudMarketplaces.ts](../../../../Home/Utils/CloudMarketplaces.ts):
+the Resellers page's "Buy through your cloud marketplace" section
+(`/resellers#cloud-marketplaces`) and a line under the plans on `/pricing`.
+A listing that is not public there says "Coming soon". When a listing goes
+public, put its address in that file as well as here, exactly as the
+marketplace links it.
+
 ## Pricing: the same prices as oneuptime.com, in usage units
 
 Every marketplace listing has **one public pay-as-you-go plan** and **one
@@ -567,9 +587,10 @@ Marketplace".
 
 Add a row for every submission, approval, rejection and go-live.
 
-| Date | Marketplace | What happened | Who |
-| ---- | ----------- | ------------- | --- |
-|      |             |               |     |
+| Date       | Marketplace | What happened                                                                        | Who   |
+| ---------- | ----------- | ------------------------------------------------------------------------------------ | ----- |
+| 2026-10-21 | AWS         | SaaS listing seen public (`prodview-ttfnc3eqofayw`); the website links it            | Agent |
+| 2026-10-21 | Microsoft   | SaaS offer `oneuptime-cloud` seen live (publisher `oneupitme`); the website links it | Agent |
 
 ## Notes for agents driving the browser
 
