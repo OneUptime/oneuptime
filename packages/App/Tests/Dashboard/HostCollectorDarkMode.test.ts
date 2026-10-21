@@ -56,24 +56,50 @@ const THEME_CSS_PATH: string = path.join(
   "Theme.css",
 );
 
-const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
-const LINE_COMMENT: RegExp = /\/\/.*$/gm;
+// Text without its /* block comments */: one pass, with indexOf.
+function withoutBlockComments(text: string): string {
+  let result: string = "";
+  let from: number = 0;
+  let start: number = text.indexOf("/*", from);
+
+  while (start !== -1) {
+    const end: number = text.indexOf("*/", start + 2);
+    result += text.substring(from, start) + " ";
+    from = end === -1 ? text.length : end + 2;
+    start = end === -1 ? -1 : text.indexOf("/*", from);
+  }
+
+  return result + text.substring(from);
+}
+
+// Text without its // line comments (a "://" in an address is not one).
+function withoutLineComments(text: string): string {
+  return text
+    .split("\n")
+    .map((line: string): string => {
+      const at: number = line.indexOf("//");
+      return at === -1 || line[at - 1] === ":" ? line : line.substring(0, at);
+    })
+    .join("\n");
+}
 
 // Comments hold prose, not classes.
 const CODE: string = SOURCES.map((name: string): string => {
-  return fs
-    .readFileSync(path.join(DASHBOARD_SRC, name), "utf8")
-    .replace(BLOCK_COMMENT, " ")
-    .replace(LINE_COMMENT, " ");
+  return withoutLineComments(
+    withoutBlockComments(
+      fs.readFileSync(path.join(DASHBOARD_SRC, name), "utf8"),
+    ),
+  );
 }).join("\n");
 
 // Block comments only: prose in Theme.css must not count as a rule.
-const THEME_CSS: string = fs
-  .readFileSync(THEME_CSS_PATH, "utf8")
-  .replace(BLOCK_COMMENT, " ");
+const THEME_CSS: string = withoutBlockComments(
+  fs.readFileSync(THEME_CSS_PATH, "utf8"),
+);
 
 const STRING_LITERAL: RegExp = /"([^"\n]*)"|`([^`]*)`/g;
-const TEMPLATE_VALUE: RegExp = /\$\{[^}]*\}/g;
+// A ${...} that holds no brace: linear, even on a run of "${".
+const TEMPLATE_VALUE: RegExp = /\$\{[^{}]*\}/g;
 const WHITESPACE: RegExp = /\s+/;
 const TEMPLATE_COLOUR: RegExp = /(?:bg|text|border|ring)-\$\{/;
 

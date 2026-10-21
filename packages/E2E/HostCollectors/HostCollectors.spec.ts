@@ -57,9 +57,6 @@ function configPage(configId: string): string {
   return `${CONFIGS}/${configId}`;
 }
 
-// A version's dialog: "Created · Sam Patel · Oct 18 2026, 11:21 AM GMT".
-const VERSION_DIALOG_DESCRIPTION: RegExp = /^Created · .+ · .+\d/;
-
 // HOST_CONNECTION_POLL_INTERVAL_MS: how often the last step looks.
 const WATCH_MS: number = 5_000;
 
@@ -737,8 +734,17 @@ test("Put back sends an older version again, as the next version", async ({
   // Read it first: the version's own dialog puts it back.
   await versionRow(versions, 1).getByRole("button", { name: "View" }).click();
   const view: Locator = dialog(page);
-  // What changed, who saved it and when: the row it was opened from.
-  await expect(view.getByText(VERSION_DIALOG_DESCRIPTION)).toBeVisible();
+  // What changed, who saved it and when: "Created · Sam Patel · Oct 18 2026, ...".
+  const said: Array<string> = (
+    (await view
+      .getByText("Created · ", { exact: false })
+      .first()
+      .textContent()) || ""
+  ).split(" · ");
+  expect(said).toHaveLength(3);
+  expect(said[0]).toBe("Created");
+  expect(said[1]!.length).toBeGreaterThan(0);
+  expect(said[2]).toContain("2026");
   await expect(
     page.getByTestId("host-collector-config-version-yaml"),
   ).toContainText("collection_interval: 30s");
