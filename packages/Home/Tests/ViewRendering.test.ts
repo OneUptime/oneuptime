@@ -876,16 +876,30 @@ describe("security-events.ejs", () => {
       `${numberWords[Object.values(SecurityEventConnectorProvider).length]} security products`,
     );
 
+    // An undo (Unsuspend for Suspend) sits with containment but contains nothing.
     const containActions: Array<SecurityPlaybookActionDefinition> =
       SECURITY_PLAYBOOK_ACTIONS.filter(
         (action: SecurityPlaybookActionDefinition): boolean => {
-          return action.category === SecurityPlaybookActionCategory.Contain;
+          return (
+            action.category === SecurityPlaybookActionCategory.Contain &&
+            !action.undoes
+          );
+        },
+      );
+    const undoActions: Array<SecurityPlaybookActionDefinition> =
+      SECURITY_PLAYBOOK_ACTIONS.filter(
+        (action: SecurityPlaybookActionDefinition): boolean => {
+          return Boolean(action.undoes);
         },
       );
     const containWord: string = numberWords[containActions.length]!;
+    const undoWord: string = numberWords[undoActions.length]!;
 
     expect(html).toContain(
       `${containWord.charAt(0).toUpperCase()}${containWord.slice(1)} of them contain the threat`,
+    );
+    expect(html).toContain(
+      `${undoWord.charAt(0).toUpperCase()}${undoWord.slice(1)} more undo one from the run`,
     );
   });
 
@@ -894,13 +908,44 @@ describe("security-events.ejs", () => {
      * A Contain step acts outside OneUptime, so the step editor turns on
      * "Needs approval" for it by default (isDisruptive). Anything else is
      * reached with a webhook or a workflow, which "Not in the box" says.
+     * Its undo (Unsuspend for Suspend) gives back what the step took, so it
+     * asks nobody first - and it acts through the same products.
      */
     const containActions: Array<SecurityPlaybookActionDefinition> =
       SECURITY_PLAYBOOK_ACTIONS.filter(
         (action: SecurityPlaybookActionDefinition): boolean => {
-          return action.category === SecurityPlaybookActionCategory.Contain;
+          return (
+            action.category === SecurityPlaybookActionCategory.Contain &&
+            !action.undoes
+          );
         },
       );
+    const undoActions: Array<SecurityPlaybookActionDefinition> =
+      SECURITY_PLAYBOOK_ACTIONS.filter(
+        (action: SecurityPlaybookActionDefinition): boolean => {
+          return Boolean(action.undoes);
+        },
+      );
+
+    expect(undoActions.length).toBeGreaterThan(0);
+    for (const undo of undoActions) {
+      const undone: SecurityPlaybookActionDefinition | undefined =
+        containActions.find(
+          (action: SecurityPlaybookActionDefinition): boolean => {
+            return action.type === undo.undoes;
+          },
+        );
+
+      expect([undo.type, undone?.isDisruptive, undo.isDisruptive]).toEqual([
+        undo.type,
+        true,
+        false,
+      ]);
+      expect([undo.type, undo.connectionProvider]).toEqual([
+        undo.type,
+        undone?.connectionProvider,
+      ]);
+    }
 
     expect(
       new Set(

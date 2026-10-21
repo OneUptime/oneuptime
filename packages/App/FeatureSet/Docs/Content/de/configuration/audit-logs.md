@@ -94,7 +94,7 @@ Monitore, Vorfälle, Alarme, Statusseiten, SLOs und viele andere Ressourcen habe
 | Collector-Konfigurationen | `Collector Config` |
 | vCenter | `vCenter` |
 | Paketmitschnitte, und ihre Downloads | `Packet Capture` |
-| Sicherheitsfälle und Playbooks | `Security Case`, `Security Playbook` |
+| Sicherheitsfälle, Playbooks und ihre Ausführungen sowie geschützte Entitäten | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 
 Fügt ein Administrator eine Benachrichtigungsmethode oder eine persönliche Bereitschaftsregel zum Konto einer anderen Person hinzu oder entfernt sie, wird das ebenfalls erfasst, ohne die Adresse oder Nummer selbst.
 

@@ -94,7 +94,7 @@ Monitorer, hændelser, alarmer, statussider, SLO'er og mange andre ressourcer ha
 | Collector-konfigurationer | `Collector Config` |
 | vCentre | `vCenter` |
 | Pakkeopsamlinger og deres downloads | `Packet Capture` |
-| Sikkerhedssager og playbooks | `Security Case`, `Security Playbook` |
+| Sikkerhedssager, playbooks og deres kørsler samt beskyttede enheder | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 
 Det registreres også, når en administrator tilføjer eller fjerner en notifikationsmetode eller en personlig vagtregel på en andens konto, uden selve adressen eller nummeret.
 

@@ -69,6 +69,22 @@ export default interface NormalizedSecurityEvent {
   principalProcess: string;
 
   /*
+   * The process the event is about, and its parent - what Sigma's Image,
+   * CommandLine, ParentImage and ParentCommandLine read. In Process
+   * Activity that is the process that was started (or ended, or opened)
+   * and the process that started it; in any other event it is the process
+   * that acted (made the connection, wrote the file). Name is the file
+   * name (powershell.exe), path the executable's full path. Empty when the
+   * source does not say.
+   */
+  processName: string;
+  processPath: string;
+  processCommandLine: string;
+  parentProcessName: string;
+  parentProcessPath: string;
+  parentProcessCommandLine: string;
+
+  /*
    * Target side of the event.
    */
   targetUser: string;

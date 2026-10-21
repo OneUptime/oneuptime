@@ -94,7 +94,7 @@ flowchart TB
 | پیکربندی‌های کالکتور | `Collector Config` |
 | سرورهای vCenter | `vCenter` |
 | ضبط‌های بسته و دانلودهایشان | `Packet Capture` |
-| پرونده‌های امنیتی و پلی‌بوک‌ها | `Security Case`، `Security Playbook` |
+| پرونده‌های امنیتی، پلی‌بوک‌ها و اجراهای آن‌ها، و موجودیت‌های محافظت‌شده | `Security Case`، `Security Playbook`، `Security Playbook Run`، `Protected Entity` |
 
 این هم ثبت می‌شود که مدیری روش اعلان یا قاعدهٔ آنکال شخصی را روی حساب کس دیگری اضافه یا حذف کند، بدون خود نشانی یا شماره.
 

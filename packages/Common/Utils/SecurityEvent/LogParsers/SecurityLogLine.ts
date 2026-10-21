@@ -16,7 +16,11 @@ import SecurityLogFormat, {
   SecurityLogFormatDefinition,
   getSecurityLogFormatDefinition,
 } from "../../../Types/SecurityEvent/SecurityLogFormat";
-import { buildObservables } from "../NormalizerHelpers";
+import {
+  ProcessReading,
+  buildObservables,
+  buildProcessFields,
+} from "../NormalizerHelpers";
 
 /*
  * One log line as the log parsers read it: the line itself, the attributes
@@ -159,6 +163,9 @@ export interface LogSecurityEventInput {
   principalHost?: string | undefined;
   principalIp?: string | undefined;
   principalProcess?: string | undefined;
+  // The process the line is about (a command sudo ran), and its parent.
+  process?: ProcessReading | undefined;
+  parentProcess?: ProcessReading | undefined;
   targetUser?: string | undefined;
   targetHost?: string | undefined;
   targetIp?: string | undefined;
@@ -235,6 +242,10 @@ export function buildLogSecurityEvent(
     principalHost,
     principalIp,
     principalProcess: (input.principalProcess || "").trim(),
+    ...buildProcessFields({
+      process: input.process,
+      parent: input.parentProcess,
+    }),
     targetUser,
     targetHost,
     targetIp,

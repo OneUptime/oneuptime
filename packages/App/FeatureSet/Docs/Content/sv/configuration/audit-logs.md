@@ -94,7 +94,7 @@ Monitorer, incidenter, varningar, statussidor, SLO:er och många andra resurser 
 | Insamlarkonfigurationer | `Collector Config` |
 | vCenter-servrar | `vCenter` |
 | Paketinspelningar och nedladdningarna av dem | `Packet Capture` |
-| Säkerhetsärenden och playbooks | `Security Case`, `Security Playbook` |
+| Säkerhetsärenden, playbooks och deras körningar samt skyddade entiteter | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 
 Det registreras också när en administratör lägger till eller tar bort en aviseringsmetod eller en personlig jourregel på någon annans konto, utan själva adressen eller numret.
 

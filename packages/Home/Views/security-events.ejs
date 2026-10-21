@@ -709,13 +709,13 @@
                 <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Playbooks</span>
               </div>
               <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Playbooks that respond, with a person in the loop where it matters</h3>
-              <p class="mt-4 text-lg text-gray-600">A playbook is a list of steps that runs as a case opens, each time a detection joins one, or when someone clicks Run Playbook. Its 18 actions are the work an analyst would otherwise do by hand: assign and prioritize the case, check its entities against threat intel, email people, post to Slack or Microsoft Teams, page on-call, declare an incident, send a webhook or start a workflow. Four of them contain the threat: suspend the user or end their sessions in Okta, network-contain the host in CrowdStrike Falcon, or isolate the device in Microsoft Defender for Endpoint. Those act outside OneUptime, so by default they wait on the case until someone approves them.</p>
+              <p class="mt-4 text-lg text-gray-600">A playbook is a list of steps that runs as a case opens, each time a detection joins one, or when someone clicks Run Playbook. Its 21 actions are the work an analyst would otherwise do by hand: assign and prioritize the case, check its entities against threat intel, email people, post to Slack or Microsoft Teams, page on-call, declare an incident, send a webhook or start a workflow. Four of them contain the threat: suspend the user or end their sessions in Okta, network-contain the host in CrowdStrike Falcon, or isolate the device in Microsoft Defender for Endpoint. Those act outside OneUptime, so by default they wait on the case until someone approves them. Three more undo one from the run: unsuspend the user in Okta, lift the containment in CrowdStrike, or release the device in Microsoft Defender - an ended session stays ended.</p>
               <ul class="mt-6 space-y-3">
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  18 actions to enrich, notify, escalate, contain &amp; automate
+                  21 actions to enrich, notify, escalate, contain &amp; automate
                 </li>
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
