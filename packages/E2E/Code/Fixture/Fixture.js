@@ -274,7 +274,10 @@ const STALE_REPOSITORIES = [
   ["back-to-metal", ""],
   ["blog", "Engineering Uptime Blog"],
   ["certificates", ""],
-  ["deployment", "Development and disaster recovery principles of OneUptime.com"],
+  [
+    "deployment",
+    "Development and disaster recovery principles of OneUptime.com",
+  ],
   ["gtm-ops", "GTM Ops for OneUptime"],
   ["handbook", "Core Values of the company"],
   ["helm-chart", "Helm Chart for OneUptime"],

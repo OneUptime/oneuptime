@@ -503,7 +503,7 @@ export default class BuildVerification {
       return {
         status: FixVerificationStatus.Skipped,
         summary:
-          "Not verified — a shared Runner does not run the repository's setup/build/test commands. The pull request opened for review; your repository's own CI checks the change. Run a Runner of your own (Runbooks → Runners) to have fixes built and tested on the Runner before the pull request opens.",
+          "Not verified — a shared Runner does not build or test the change. The pull request opened for review; your repository's own CI checks the change. Run a Runner of your own (Runbooks → Runners) to have fixes built and tested on the Runner before the pull request opens.",
         repairAttemptsUsed: 0,
         repairSummaries: [],
         repairPaths: [],

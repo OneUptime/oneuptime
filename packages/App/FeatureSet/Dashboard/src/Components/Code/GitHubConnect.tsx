@@ -41,10 +41,6 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import Exception from "Common/Types/Exception/Exception";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -617,32 +613,5 @@ export const ConnectGitHubEmptyState: FunctionComponent<{
         </div>
       )}
     </div>
-  );
-};
-
-/*
- * Code's first page with repositories: connecting more is a small button in
- * the page's header - the repositories are what the page is for.
- */
-export const ConnectMoreRepositoriesButton: FunctionComponent<{
-  connection: UseGitHubConnect;
-}> = (props: { connection: UseGitHubConnect }): ReactElement => {
-  if (!props.connection.isGitHubAppConfigured) {
-    return <></>;
-  }
-
-  return (
-    <Button
-      title="Connect repositories"
-      icon={IconProp.Add}
-      buttonStyle={ButtonStyleType.NORMAL}
-      buttonSize={ButtonSize.Small}
-      disabled={props.connection.connectLock.isLocked}
-      tooltip={props.connection.connectLock.reason}
-      dataTestId="code-connect-more"
-      onClick={() => {
-        props.connection.connect();
-      }}
-    />
   );
 };
