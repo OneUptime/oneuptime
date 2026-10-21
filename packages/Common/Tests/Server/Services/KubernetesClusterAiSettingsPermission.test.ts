@@ -454,9 +454,9 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
         ).resolves.toBeDefined();
       }
 
-      expect(new KubernetesCluster().isTableColumn("aiAccessCredentialId")).toBe(
-        false,
-      );
+      expect(
+        new KubernetesCluster().isTableColumn("aiAccessCredentialId"),
+      ).toBe(false);
       expect(new KubernetesCluster().isTableColumn("aiAccessCredential")).toBe(
         false,
       );
@@ -874,7 +874,6 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
         ),
       ).rejects.toThrow(NotAuthorizedException);
     });
-
   });
 
   describe("callers the check does not apply to", () => {

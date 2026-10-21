@@ -245,7 +245,8 @@ const SCENARIOS: Array<Scenario> = [
     agent: null,
   },
   {
-    label: "both switches off, every project gate closed, a Runner outside the cluster",
+    label:
+      "both switches off, every project gate closed, a Runner outside the cluster",
     cluster: cluster({
       isAiInvestigationEnabled: false,
       aiRemediationMode: KubernetesAiRemediationMode.Disabled,

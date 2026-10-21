@@ -608,9 +608,9 @@ export class Service extends ProjectReferencesService<Model> {
   private async assertNamesNoRemovedCredential(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
-    const steps: unknown = (updateBy.data as unknown as Record<string, unknown>)[
-      "steps"
-    ];
+    const steps: unknown = (
+      updateBy.data as unknown as Record<string, unknown>
+    )["steps"];
 
     if (Service.getStepCredentialIds(steps).length === 0) {
       return;

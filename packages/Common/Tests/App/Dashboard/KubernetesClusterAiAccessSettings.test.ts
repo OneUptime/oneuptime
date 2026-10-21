@@ -1881,7 +1881,11 @@ describe("who may loosen a cluster's AI access", () => {
     });
 
     // Reading Runners no longer unlocks anything here: there is no picker.
-    grant([...BASE_PERMISSIONS, Permission.ProjectMember, Permission.ReadRunner]);
+    grant([
+      ...BASE_PERMISSIONS,
+      Permission.ProjectMember,
+      Permission.ReadRunner,
+    ]);
     expect(getKubernetesAiAccessEditCapabilities()).toEqual({
       canConfigureUnattended: false,
     });
@@ -2288,7 +2292,6 @@ describe("a kubernetes-agent Runner, by the server's rule", () => {
     expect(isKubernetesAgentRunnerRow(null)).toBe(false);
     expect(isKubernetesAgentRunnerRow({})).toBe(false);
   });
-
 });
 
 /*

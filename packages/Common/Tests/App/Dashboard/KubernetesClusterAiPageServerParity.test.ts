@@ -620,7 +620,6 @@ describe("a cluster editor's tightening through the form is accepted end to end"
       expect(await serverSaysLoosens(edit.settings, changes)).toBe(false);
     });
   }
-
 });
 
 function fakeCluster(
@@ -1342,7 +1341,6 @@ const ATTENTION_GAP_CODES: Array<KubernetesAiAccessGapCode> = [
 
 const UPGRADE_STEP: string =
   "Upgrade the Kubernetes agent chart with the command above. The Kubernetes AI agent replaces the previous in-cluster Runner.";
-
 
 describe("Needs attention, from the server's own statuses", () => {
   test("a new cluster: one item, two steps, no self-reference", async () => {

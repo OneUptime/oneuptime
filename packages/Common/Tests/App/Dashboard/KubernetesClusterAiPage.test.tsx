@@ -3332,9 +3332,7 @@ describe("the Change modal: no Runner or credential", () => {
       ACTIONS_BUTTON_TEST_ID,
     );
     expect(menuButton).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId(SWITCH_ACTION_TEST_ID),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId(SWITCH_ACTION_TEST_ID)).not.toBeInTheDocument();
 
     const dialog: HTMLElement = await openChangeModal();
 

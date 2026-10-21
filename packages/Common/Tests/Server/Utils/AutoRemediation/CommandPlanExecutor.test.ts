@@ -581,9 +581,9 @@ describe("CommandPlanExecutor.executeApprovedPlan", () => {
     expect(ssh["status"]).toBe("Failed");
     expect(ssh["errorMessage"]).toBe(REMOVED_SSH_COMMAND_MESSAGE);
     expect(
-      (
-        commandInPlan(finalPlan, 1)["execution"] as Record<string, unknown>
-      )["status"],
+      (commandInPlan(finalPlan, 1)["execution"] as Record<string, unknown>)[
+        "status"
+      ],
     ).toBe("Skipped");
   });
 

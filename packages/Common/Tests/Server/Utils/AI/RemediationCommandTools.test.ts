@@ -420,9 +420,7 @@ describe("RemediationCommandToolkit execute_remediation_command", () => {
 
     expect(outcome.success).toBe(true);
     expect(enqueue.mock.calls[0]![0]).not.toHaveProperty("credentialId");
-    expect(toolkit.getExecutedCommands()[0]).not.toHaveProperty(
-      "credentialId",
-    );
+    expect(toolkit.getExecutedCommands()[0]).not.toHaveProperty("credentialId");
     expect(toolkit.getExecutedCommands()[0]).not.toHaveProperty(
       "credentialNameSnapshot",
     );

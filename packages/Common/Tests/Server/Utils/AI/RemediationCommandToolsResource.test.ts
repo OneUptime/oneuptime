@@ -703,7 +703,9 @@ describe("execute_remediation_command on a resource round", () => {
       resourceArgs({ stepType: "SSH", runnerId: AGENT_ID }),
     );
 
-    expect(outcome.textForLlm).toBe("stepType must be one of: ResourceCommand.");
+    expect(outcome.textForLlm).toBe(
+      "stepType must be one of: ResourceCommand.",
+    );
     expectNothingRanOrRecorded(toolkit, outcome);
   });
 

@@ -927,7 +927,6 @@ describe("RunnerJobService.enqueueAiKubectlCommand", () => {
       expect(job.payload?.["credentialId"]).toBeUndefined();
       expect(createdRows).toHaveLength(1);
     });
-
   });
 });
 

@@ -482,7 +482,9 @@ export default class RunbookVariablesMove {
     };
 
     const tables: Record<string, unknown> | undefined = options.moveSecrets
-      ? readRows<Record<string, unknown>>(await query(LEGACY_SECRET_TABLE_SQL))[0]
+      ? readRows<Record<string, unknown>>(
+          await query(LEGACY_SECRET_TABLE_SQL),
+        )[0]
       : undefined;
 
     const secrets: Array<LegacyRunbookSecretRow> = tables?.["hasSecretTable"]
@@ -736,16 +738,18 @@ export default class RunbookVariablesMove {
         ]),
       );
 
-    const credentialRunners: Map<string, Array<string>> =
-      await RunbookVariablesMove.readCredentialRunners({
-        credentialIds: credentials.map(
-          (credential: LegacyRunbookCredentialRow): string => {
-            return String(credential._id);
-          },
-        ),
-        tables: data.tables,
-        query: data.query,
-      });
+    const credentialRunners: Map<
+      string,
+      Array<string>
+    > = await RunbookVariablesMove.readCredentialRunners({
+      credentialIds: credentials.map(
+        (credential: LegacyRunbookCredentialRow): string => {
+          return String(credential._id);
+        },
+      ),
+      tables: data.tables,
+      query: data.query,
+    });
 
     for (const credential of credentials) {
       const id: string = String(credential._id || "").toLowerCase();
@@ -874,7 +878,10 @@ export default class RunbookVariablesMove {
       Array<string>
     >();
 
-    if (data.credentialIds.length === 0 || !data.tables.hasCredentialRunnerTable) {
+    if (
+      data.credentialIds.length === 0 ||
+      !data.tables.hasCredentialRunnerTable
+    ) {
       return runners;
     }
 
@@ -1010,9 +1017,8 @@ export default class RunbookVariablesMove {
       return "";
     }
 
-    const stored: string = RunbookVariablesMove.unwrapHashedStringEnvelope(
-      value,
-    );
+    const stored: string =
+      RunbookVariablesMove.unwrapHashedStringEnvelope(value);
 
     return Encryption.looksEncrypted(stored)
       ? await Encryption.decrypt(stored)

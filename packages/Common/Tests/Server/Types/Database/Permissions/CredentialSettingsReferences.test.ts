@@ -544,7 +544,9 @@ describe("a Kubernetes cluster", () => {
         },
       ),
     ).toEqual([]);
-    expect(referenceOf(KubernetesCluster, "aiAccessCredential")).toBeUndefined();
+    expect(
+      referenceOf(KubernetesCluster, "aiAccessCredential"),
+    ).toBeUndefined();
   });
 });
 

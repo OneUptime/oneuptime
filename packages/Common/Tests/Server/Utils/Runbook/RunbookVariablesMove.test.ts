@@ -750,7 +750,6 @@ describe("moveAll", () => {
         created.push(variable);
         return variable as never;
       });
-
   });
 
   afterEach(() => {

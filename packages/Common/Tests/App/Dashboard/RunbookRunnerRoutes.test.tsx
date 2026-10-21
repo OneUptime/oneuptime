@@ -387,9 +387,7 @@ describe("the route table puts Runners under Runbooks and nowhere else", () => {
   test("the Runbooks path table carries them", () => {
     expect(RunbookRoutePath[PageMap.RUNBOOKS_RUNNERS]).toBe("runners");
     expect(RunbookRoutePath[PageMap.RUNBOOKS_RUNNER_VIEW]).toBe("runners/:id");
-    expect(Object.values(RunbookRoutePath)).not.toContain(
-      "runner-credentials",
-    );
+    expect(Object.values(RunbookRoutePath)).not.toContain("runner-credentials");
   });
 
   test("no page key, and no Settings path, still names a Runner page", () => {

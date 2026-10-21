@@ -48,7 +48,9 @@ interface RunnerHookAccess {
 
 const hooks: RunnerHookAccess = RunnerService as unknown as RunnerHookAccess;
 
-function caller(permissions: Array<Permission>): DatabaseCommonInteractionProps {
+function caller(
+  permissions: Array<Permission>,
+): DatabaseCommonInteractionProps {
   return {
     tenantId: PROJECT_ID,
     userId: ObjectID.generate(),

@@ -1193,7 +1193,6 @@ const AGENT_NAME: string = KUBERNETES_AI_AGENT_DISPLAY_NAME;
 
 const UPGRADE_STEP: string = `Upgrade the Kubernetes agent chart with the command above. The ${AGENT_NAME} replaces the previous in-cluster Runner.`;
 
-
 describe("Needs attention, as one item", () => {
   test("nothing to show without gaps, or with only the fixes-off choice", () => {
     expect(getAiAgentAttention(agentStatus({ gaps: [] }), NOW)).toBeNull();

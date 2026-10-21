@@ -140,7 +140,11 @@ describe("the Runbooks side menu lists the Runner pages", () => {
   test("Runners is a row of the Runbooks section: no section of its own any more", async () => {
     await renderMenu(<RunbookSideMenu />);
 
-    expect(sectionTitlesInOrder()).toEqual(["Runbooks", "Settings", "Developer"]);
+    expect(sectionTitlesInOrder()).toEqual([
+      "Runbooks",
+      "Settings",
+      "Developer",
+    ]);
   });
 
   test("the Runbooks section holds Runners after the runbooks and their runs, at its Runbooks URL", async () => {
@@ -226,7 +230,9 @@ describe("the Runbooks side menu lists the Runner pages", () => {
         return anchor.className.includes("bg-indigo-50");
       })
       .map((anchor: Element): string => {
-        return (anchor.querySelector("span.truncate")?.textContent ?? "").trim();
+        return (
+          anchor.querySelector("span.truncate")?.textContent ?? ""
+        ).trim();
       });
 
     expect(highlighted).toEqual(["Runners"]);
@@ -428,7 +434,9 @@ describe("the Runner pages' breadcrumbs lead back through Runbooks", () => {
   // AI Access went with runbook credentials: no trail is kept for it.
   test("Runbooks has no trail for AI Access, which forwards to Runners", () => {
     expect(
-      getRunbooksBreadcrumbs("/dashboard/:projectId/runbooks/runner-credentials"),
+      getRunbooksBreadcrumbs(
+        "/dashboard/:projectId/runbooks/runner-credentials",
+      ),
     ).toBeUndefined();
   });
 

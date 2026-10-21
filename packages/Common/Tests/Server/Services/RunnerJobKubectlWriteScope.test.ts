@@ -584,7 +584,10 @@ describe("RunnerJobService names where each kind of executor sets its write scop
     "and restart it",
   ];
 
-  function refusalFor(command: string, posture: KubernetesRunnerPosture): string {
+  function refusalFor(
+    command: string,
+    posture: KubernetesRunnerPosture,
+  ): string {
     const message: string | null =
       RunnerJobServiceClass.getRunnerWriteScopeRefusal({
         policy: KubectlPolicy.evaluateCommand(command),
@@ -605,7 +608,11 @@ describe("RunnerJobService names where each kind of executor sets its write scop
    * no refusal sends anyone to a Runner's host.
    */
   it("no refusal names a Runner's host: the Runner outside the cluster is no executor any more", () => {
-    for (const executorKind of ["ai_agent", "legacy_runner", undefined] as const) {
+    for (const executorKind of [
+      "ai_agent",
+      "legacy_runner",
+      undefined,
+    ] as const) {
       for (const command of [
         "kubectl cordon n1",
         "kubectl label node/n1 pod-1 x=y -n prod",
@@ -640,10 +647,7 @@ describe("RunnerJobService names where each kind of executor sets its write scop
   // The in-cluster Runner's refusals name its chart, and the AI agent.
   describe("the in-cluster Runner", () => {
     it("node operations: names the chart value and the upgrade", () => {
-      const message: string = refusalFor(
-        "kubectl cordon n1",
-        AGENT_RUNNER,
-      );
+      const message: string = refusalFor("kubectl cordon n1", AGENT_RUNNER);
 
       expect(message).toContain(
         "its Kubernetes agent was installed with aiAccess.remediation.nodeOperations=false (ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS)",

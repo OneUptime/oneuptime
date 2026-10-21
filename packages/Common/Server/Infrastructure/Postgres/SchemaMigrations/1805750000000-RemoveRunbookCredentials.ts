@@ -33,7 +33,9 @@ const PERMISSION_TABLES: Array<string> = [
   "CustomRolePermission",
 ];
 
-export class RemoveRunbookCredentials1805750000000 implements MigrationInterface {
+export class RemoveRunbookCredentials1805750000000
+  implements MigrationInterface
+{
   public name: string = "RemoveRunbookCredentials1805750000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {

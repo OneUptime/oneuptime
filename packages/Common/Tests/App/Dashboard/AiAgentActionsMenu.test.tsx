@@ -196,11 +196,7 @@ describe("the ⋯", () => {
   });
 
   test("opens a menu of the actions, in order, each with its own icon and test id", () => {
-    render(
-      <AiAgentActionsMenu
-        actions={makeActions(makeHandlers())}
-      />,
-    );
+    render(<AiAgentActionsMenu actions={makeActions(makeHandlers())} />);
 
     const menu: HTMLElement = openMenu();
 
@@ -358,11 +354,7 @@ describe("the ⋯", () => {
   test("works from the keyboard: Enter opens it, the arrows move, Enter picks", async () => {
     const user: UserEventController = userEvent.setup();
     const handlers: Handlers = makeHandlers();
-    render(
-      <AiAgentActionsMenu
-        actions={makeActions(handlers)}
-      />,
-    );
+    render(<AiAgentActionsMenu actions={makeActions(handlers)} />);
 
     getTrigger().focus();
     await userKeyboard(user, "{Enter}");
@@ -476,9 +468,7 @@ describe("in German", () => {
   test("names the ⋯ and every item in German", () => {
     render(
       <I18nextProvider i18n={german}>
-        <AiAgentActionsMenu
-          actions={makeActions(makeHandlers())}
-        />
+        <AiAgentActionsMenu actions={makeActions(makeHandlers())} />
       </I18nextProvider>,
     );
 
@@ -511,8 +501,7 @@ describe("the card's header buttons", () => {
   });
 
   test("anything to offer: exactly one ⋯, holding all of it", () => {
-    const actions: Array<AiAgentAction> = makeActions(makeHandlers(), {
-    });
+    const actions: Array<AiAgentAction> = makeActions(makeHandlers(), {});
     const buttons: Array<ReactElement> = getAiAgentCardButtons(actions);
 
     expect(buttons).toHaveLength(1);

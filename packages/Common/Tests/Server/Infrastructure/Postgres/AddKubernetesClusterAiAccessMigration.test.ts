@@ -541,17 +541,15 @@ describe("AddKubernetesClusterAiAccess migration - columns", () => {
         ),
       ).toBe(false);
 
-      expect(
-        await recordQueries("up", column.droppedLater),
-      ).toContain(
+      expect(await recordQueries("up", column.droppedLater)).toContain(
         `ALTER TABLE "${column.table}" DROP COLUMN "${column.property}"`,
       );
       expect(await recordQueries("down", column.droppedLater)).toContain(
         addColumnStatement(column),
       );
-      expect(registeredNames.indexOf(column.droppedLater!.name!)).toBeGreaterThan(
-        registeredNames.indexOf(OWN_CLASS_NAME),
-      );
+      expect(
+        registeredNames.indexOf(column.droppedLater!.name!),
+      ).toBeGreaterThan(registeredNames.indexOf(OWN_CLASS_NAME));
     },
   );
 

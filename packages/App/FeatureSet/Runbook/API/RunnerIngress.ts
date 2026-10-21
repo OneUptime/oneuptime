@@ -761,7 +761,9 @@ export default class RunnerIngressAPI {
    * before runbook credentials were removed.
    */
   public static getRemovedCredentialRefusal(job: RunnerJob): string {
-    return AI_COMMAND_JOB_ORIGINS.includes(job.origin || RunnerJobOrigin.Runbook)
+    return AI_COMMAND_JOB_ORIGINS.includes(
+      job.origin || RunnerJobOrigin.Runbook,
+    )
       ? RunnerIngressAPI.REMOVED_CREDENTIAL_COMMAND_REFUSAL
       : RunnerIngressAPI.REMOVED_CREDENTIAL_STEP_REFUSAL;
   }

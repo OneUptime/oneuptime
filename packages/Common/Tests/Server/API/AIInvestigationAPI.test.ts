@@ -1852,11 +1852,9 @@ describe("AIInvestigationAPI latest-investigation cluster access", () => {
           "kubernetes-agent/prod-us",
         );
         expect(
-          (row["gaps"] as Array<JSONObject>).map(
-            (gap: JSONObject): unknown => {
-              return gap["description"];
-            },
-          ),
+          (row["gaps"] as Array<JSONObject>).map((gap: JSONObject): unknown => {
+            return gap["description"];
+          }),
         ).toEqual(
           detailedStatus().gaps.map((gap: KubernetesAiAccessGap): string => {
             return gap.description;
