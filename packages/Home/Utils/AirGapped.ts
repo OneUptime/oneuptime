@@ -346,7 +346,7 @@ export const AirGappedConnections: Array<AirGappedConnection> = [
     key: "release-emails",
     name: "Release emails at sign-up",
     destination: "oneuptime.com",
-    when: "When someone signs up with “Notify me about security patches and new releases” ticked, as it is at first: their name and email, the company and phone they gave, and the install's address and version.",
+    when: "When someone signs up with “Notify me about security patches and new releases” ticked (it starts ticked): their name and email, any company and phone they gave, and the install's address and version.",
     inside:
       "Untick it when you sign up. With no route out, the request fails and the sign-up still goes through.",
     onByDefault: true,
@@ -469,7 +469,7 @@ export const AirGappedFaqs: Array<AirGappedFaq> = [
   {
     question: "Does OneUptime phone home?",
     answer:
-      "A Community Edition install makes one call on its own: a daily update check against GitHub's API, which updateCheck.disabled turns off. Someone who signs up with release emails ticked is also sent to oneuptime.com, so untick it. An Enterprise Edition install activated with a license key syncs its license with oneuptime.com once a day; one activated with an offline license token never does. Everything else, from SMS to Slack to a hosted AI model, reaches out only once you set it up.",
+      "A Community Edition install makes one call on its own: a daily update check against GitHub's API, which updateCheck.disabled turns off. Signing up with release emails ticked also tells oneuptime.com, so untick that box. An Enterprise Edition install activated with a license key syncs its license with oneuptime.com once a day; one activated with an offline license token never does. Everything else, from SMS to Slack to a hosted AI model, reaches out only once you set it up.",
   },
   {
     question: "How do we license the Enterprise Edition with no internet?",
@@ -532,7 +532,6 @@ export interface AirGappedDocsLinks {
   llmProviders: string;
   privateNetworkAccess: string;
   upgrading: string;
-  pushNetworkAccess: string;
 }
 
 export const AirGappedDocs: AirGappedDocsLinks = {
@@ -545,7 +544,6 @@ export const AirGappedDocs: AirGappedDocsLinks = {
     "/docs/ai/llm-provider#self-hosted-zero-config-via-environment-variables",
   privateNetworkAccess: "/docs/self-hosted/private-network-access",
   upgrading: "/docs/installation/upgrading",
-  pushNetworkAccess: "/docs/self-hosted/push-notifications#network-access",
 };
 
 export interface AirGappedPageContent {

@@ -386,12 +386,12 @@
           </ul>
         </div>
 
-        <p class="mt-6 max-w-3xl text-sm leading-6 text-gray-500">
+        <p class="mt-6 max-w-3xl text-sm leading-6 text-gray-500" data-testid="air-gapped-connections-more">
           Webhooks and Mattermost reach a private address once you allow it with
           <code class="ag-code rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-800">webhooks.allowPrivateNetwork</code>.
-          Read more in
-          <a href="<%= content.docs.connectionsOut %>" class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">connections out of your network</a>
-          and
+          The docs list the addresses each integration needs in
+          <a href="<%= content.docs.connectionsOut %>" class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">connections out of your network</a>,
+          and what may reach private addresses in
           <a href="<%= content.docs.privateNetworkAccess %>" class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">private network access</a>.
         </p>
       </div>

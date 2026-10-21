@@ -479,6 +479,24 @@ describe("the air-gapped page", () => {
     );
   });
 
+  test("says under the table how webhooks reach inside, and where the docs list each integration's addresses", () => {
+    const more: Element = page.querySelector(
+      '[data-testid="air-gapped-connections-more"]',
+    )!;
+
+    expect(textOf(more.querySelector("code"))).toBe(
+      "webhooks.allowPrivateNetwork",
+    );
+    expect(
+      all(more, "a").map((link: Element): string => {
+        return `${textOf(link)} ${link.getAttribute("href")}`;
+      }),
+    ).toEqual([
+      "connections out of your network /docs/self-hosted/architecture#connections-out-of-your-network",
+      "private network access /docs/self-hosted/private-network-access",
+    ]);
+  });
+
   test("labels each connection's columns on a phone, and the table's columns from a tablet up", () => {
     const header: Element = page.querySelector(
       "#connections-out [aria-hidden='true']",

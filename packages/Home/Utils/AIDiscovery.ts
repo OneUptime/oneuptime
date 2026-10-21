@@ -626,7 +626,7 @@ export function generateAirGappedMarkdown(
   }
   lines.push("");
   lines.push(
-    `More: [connections out of your network](${absoluteLink(baseUrl, content.docs.connectionsOut)}) and [private network access](${absoluteLink(baseUrl, content.docs.privateNetworkAccess)}).`,
+    `Webhooks and Mattermost reach a private address once you allow it with \`webhooks.allowPrivateNetwork\`. The addresses each integration needs: [connections out of your network](${absoluteLink(baseUrl, content.docs.connectionsOut)}). What may reach private addresses: [private network access](${absoluteLink(baseUrl, content.docs.privateNetworkAccess)}).`,
   );
 
   lines.push("");
