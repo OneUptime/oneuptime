@@ -1,6 +1,7 @@
 import BadDataException from "../Exception/BadDataException";
 import { JSONObject, JSONValue } from "../JSON";
 import ObjectID from "../ObjectID";
+import Permission from "../Permission";
 import SecurityCasePriority, {
   isSecurityCasePriority,
 } from "../SecurityCase/SecurityCasePriority";
@@ -22,7 +23,9 @@ import {
  * shape how a run treats it.
  *
  *  - requiresApproval: the run stops before the step and waits for a person
- *    to approve or reject it on the case. Rejecting ends the run.
+ *    to approve or reject it on the case. Rejecting ends the run. A
+ *    containment step always waits, unless a Security Admin turned that off
+ *    (approvalTurnedOff, which only the server writes; doesStepNeedApproval).
  *  - continueOnFailure: a failed step does not stop the steps after it.
  *  - onlyIfThreatIntelMatched: the step runs only when an earlier Check
  *    Threat Intel step of the same run found a known-bad entity, and is
@@ -39,6 +42,19 @@ export interface SecurityPlaybookStep {
   requiresApproval: boolean;
   continueOnFailure: boolean;
   onlyIfThreatIntelMatched: boolean;
+  approvalTurnedOff?: SecurityPlaybookApprovalTurnedOff | undefined;
+}
+
+/*
+ * Who let a containment step run without approval, and when: a Security
+ * Admin who saved it with Needs Approval off (or nobody, for an API key or
+ * OneUptime itself). Stamped by the playbook service; one sent with a step
+ * is never taken as it is.
+ */
+export interface SecurityPlaybookApprovalTurnedOff {
+  byUserId?: string | undefined;
+  // ISO 8601.
+  at: string;
 }
 
 export interface AssignCaseConfig {
@@ -118,6 +134,10 @@ export interface SendWebhookConfig {
 export interface RunWorkflowConfig {
   workflowId: string;
 }
+
+// Who may let a containment step run without approval: a Security Admin, or above.
+export const TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS: ReadonlyArray<Permission> =
+  [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.SecurityAdmin];
 
 export const SECURITY_PLAYBOOK_MAX_STEPS: number = 25;
 export const SECURITY_PLAYBOOK_NOTE_MAX_LENGTH: number = 10000;
@@ -391,6 +411,9 @@ export function normalizeSecurityPlaybookStepConfig(
     case SecurityPlaybookActionType.SuspendOktaUser:
     case SecurityPlaybookActionType.EndOktaSessions:
     case SecurityPlaybookActionType.ContainCrowdStrikeHost:
+    case SecurityPlaybookActionType.UnsuspendOktaUser:
+    case SecurityPlaybookActionType.LiftCrowdStrikeContainment:
+    case SecurityPlaybookActionType.ReleaseDefenderDevice:
       return {
         connectionId: requireId(
           rawConfig,
@@ -441,10 +464,48 @@ export function normalizeSecurityPlaybookStepConfig(
   }
 }
 
+function readApprovalTurnedOff(
+  value: JSONValue | undefined,
+): SecurityPlaybookApprovalTurnedOff | undefined {
+  const record: JSONObject = readObject(value);
+  const at: JSONValue | undefined = record["at"];
+  const byUserId: JSONValue | undefined = record["byUserId"];
+
+  if (typeof at !== "string" || !at) {
+    return undefined;
+  }
+
+  return {
+    ...(typeof byUserId === "string" && isObjectIdText(byUserId)
+      ? { byUserId }
+      : {}),
+    at,
+  };
+}
+
+/*
+ * Whether a run stops before this step for a person to approve it: a step
+ * marked so, and every containment step that no Security Admin let run
+ * without approval - a step saved with approval off before that took a
+ * Security Admin waits too.
+ */
+export function doesStepNeedApproval(step: SecurityPlaybookStep): boolean {
+  if (step.requiresApproval) {
+    return true;
+  }
+
+  return Boolean(
+    getSecurityPlaybookAction(step.action)?.isDisruptive &&
+      !step.approvalTurnedOff,
+  );
+}
+
 /*
  * Reads a playbook's steps from what was stored or posted (an array, or the
  * JSON text of one) into clean steps. Throws BadDataException, naming the
- * step, for anything a run could not carry out.
+ * step, for anything a run could not carry out. A containment step needs
+ * approval unless it says false outright; whether it may say so is the
+ * playbook service's to decide.
  */
 export function parseSecurityPlaybookSteps(
   value: unknown,
@@ -501,6 +562,17 @@ export function parseSecurityPlaybookSteps(
 
     seenIds.add(id);
 
+    const isDisruptive: boolean = Boolean(
+      getSecurityPlaybookAction(action)?.isDisruptive,
+    );
+    const requiresApproval: boolean = isDisruptive
+      ? step["requiresApproval"] !== false
+      : step["requiresApproval"] === true;
+    const approvalTurnedOff: SecurityPlaybookApprovalTurnedOff | undefined =
+      isDisruptive && !requiresApproval
+        ? readApprovalTurnedOff(step["approvalTurnedOff"])
+        : undefined;
+
     return {
       id,
       action,
@@ -509,9 +581,10 @@ export function parseSecurityPlaybookSteps(
         readObject(step["config"]),
         label,
       ),
-      requiresApproval: step["requiresApproval"] === true,
+      requiresApproval,
       continueOnFailure: step["continueOnFailure"] === true,
       onlyIfThreatIntelMatched: step["onlyIfThreatIntelMatched"] === true,
+      ...(approvalTurnedOff ? { approvalTurnedOff } : {}),
     };
   });
 }

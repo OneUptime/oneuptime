@@ -34,6 +34,7 @@ export const CLOUD_AZURE_CONTAINER_APPS: string =
   "telemetry/cloud-azure-container-apps";
 export const CLOUD_OTHER_PLATFORMS: string = "telemetry/cloud-other-platforms";
 export const CLOUD_TROUBLESHOOTING: string = "telemetry/cloud-troubleshooting";
+export const CLOUD_ACCOUNTS: string = "telemetry/cloud-accounts";
 export const CLOUD_RESOURCES: string = "telemetry/cloud-resources";
 
 export interface CloudDocsPage {
@@ -49,6 +50,7 @@ export const CLOUD_DOCS_PAGES: ReadonlyArray<CloudDocsPage> = [
   { page: CLOUD_AZURE_CONTAINER_APPS, navTitle: "Azure Container Apps" },
   { page: CLOUD_OTHER_PLATFORMS, navTitle: "Other Cloud Platforms" },
   { page: CLOUD_TROUBLESHOOTING, navTitle: "Cloud Troubleshooting" },
+  { page: CLOUD_ACCOUNTS, navTitle: "Connect a Cloud Account" },
   { page: CLOUD_RESOURCES, navTitle: "Cloud Resources (IaaS & PaaS)" },
 ];
 
@@ -173,6 +175,7 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, Array<string>>> = {
     "Create",
   ],
   [CLOUD_TROUBLESHOOTING]: ["VPC egress: All traffic"],
+  [CLOUD_ACCOUNTS]: ["Monitoring Reader", "Monitoring Viewer"],
   [CLOUD_RESOURCES]: [
     "Monitoring Reader",
     "Direct PUT",
@@ -259,6 +262,13 @@ export const PROSE_LEADS: Readonly<Record<string, Array<string>>> = {
     "A staging environment that scales to zero overnight",
     "Stale:",
     "Deleted:",
+  ],
+  [CLOUD_ACCOUNTS]: [
+    "The access can only read.",
+    "OneUptime reads on a schedule.",
+    "Each resource has a page of its own.",
+    "A project owner or admin.",
+    "Your cloud's terminal",
   ],
   [CLOUD_RESOURCES]: [
     "The provider already measures your resources.",

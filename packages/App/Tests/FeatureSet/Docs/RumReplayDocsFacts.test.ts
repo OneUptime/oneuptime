@@ -76,8 +76,13 @@ const SOURCES: Record<string, string> = {
   listFilters: `${DASHBOARD}/Components/SessionReplay/SessionReplayListFilters.ts`,
   listFacets: `${DASHBOARD}/Components/SessionReplay/SessionReplayFacets.tsx`,
   listSearchBar: `${DASHBOARD}/Components/SessionReplay/SessionReplaySearchBar.tsx`,
+  listSearchQuery: `${DASHBOARD}/Components/SessionReplay/SessionReplaySearchQuery.ts`,
+  listTable: `${DASHBOARD}/Components/SessionReplay/SessionReplayTable.tsx`,
   filterChip: `${DASHBOARD}/Components/ResourceOwners/FilterChipDropdown.tsx`,
-  dropdown: "packages/Common/UI/Components/Dropdown/Dropdown.tsx",
+  facetFilterBar: `${DASHBOARD}/Components/ResourceOwners/FacetFilterBar.tsx`,
+  moreMenuItem: "packages/Common/UI/Components/MoreMenu/MoreMenuItem.tsx",
+  tableHeaderControls:
+    "packages/Common/UI/Components/Table/TableHeaderControls.tsx",
   ruleForm: `${DASHBOARD}/Utils/Form/ResourceRuleForm.ts`,
   ruleTable: "packages/Common/UI/Components/RuleRun/RuleTable.tsx",
   foldedSectionTitles:
@@ -1052,23 +1057,24 @@ describe("Session Replay: the session list's filters", () => {
 
   it("draws a chip's options as the table writes them, and looks the sort menu's up in the locale", () => {
     const chip: string = source("filterChip");
+    const table: string = source("listTable");
 
     // The option list and the chosen value both show the option's own label.
     expect(chip).toContain("{option.label}");
     expect(chip).toContain("return selectedOptions[0]!.label;");
     expect(chip).not.toMatch(/translate\w*\(\s*option\.label/);
-    expect(source("listSearchBar")).toContain(
-      "options={SORT_DROPDOWN_OPTIONS}",
-    );
+    // The order is a ticked item per option in the Sort section of the ⋯.
+    expect(table).toContain('<MoreMenuSection key="sort" title="Sort">');
+    expect(table).toContain("{SESSION_REPLAY_SORT_OPTIONS.map(");
+    expect(table).toContain("text={option.label}");
     // A sort option is not something a person named, so it is looked up.
-    expect(source("listSearchBar")).not.toContain("isUserContent");
-    expect(source("dropdown")).toContain("{getOptionLabelText(option)}");
-    expect(source("dropdown")).toContain(
-      "return tx(option.label) ?? option.label;",
+    expect(table).not.toContain("isUserContent");
+    expect(source("moreMenuItem")).toContain(
+      "{translateString(props.text) ?? props.text}",
     );
   });
 
-  it("names the chips above the list as the facets row draws them, and the button that opens the filter form", () => {
+  it("names the chips above the list as the facets row draws them, its Clear all, and the ⋯ item that opens the filter form", () => {
     const facets: string = source("listFacets");
     const chips: Array<string> = [
       ...(facets.includes('label="Signal"') ? ["Signal"] : []),
@@ -1083,10 +1089,10 @@ describe("Session Replay: the session list's filters", () => {
     expect(chips).toEqual([
       "Signal",
       "Browser",
-      "Operating system",
+      "OS",
       "Device",
       "Country",
-      "Capture reason",
+      "Trigger",
       "Duration",
     ]);
 
@@ -1096,10 +1102,95 @@ describe("Session Replay: the session list's filters", () => {
 
     // The list has no Quick filters: that is the player's rail.
     expect(list).not.toContain("Quick filters");
-    expect(source("listSearchBar")).toContain('title="Advanced filters"');
-    expect(list).toContain(
-      "The **Advanced filters** button opens the same fields as a form",
+    // Clear all, at the end of the chips row, empties every chip.
+    expect(source("facetFilterBar")).toContain(
+      'translator.translateText("Clear all")',
     );
+    expect(facets).toContain(
+      "onClearAll={activeCount > 0 ? props.onClearAll : undefined}",
+    );
+    expect(list).toContain(
+      "**Clear all** at the end of the row empties them all",
+    );
+    // The filter form opens from Filter in the ⋯ that ends the header.
+    expect(source("listTable")).toMatch(
+      /<MoreMenuItem\s+key="filter"\s+text="Filter"/,
+    );
+    expect(list).toContain(
+      "**Filter** in the **⋯** menu opens the same fields as a form",
+    );
+    expect(list).not.toContain("Advanced filters");
+  });
+
+  it("names the header's search, the key that opens it, and the tokens the chips take over", () => {
+    const lines: Array<string> = list.split("\n");
+    const search: string =
+      lines.find((line: string): boolean => {
+        return line.startsWith("**Search.**");
+      }) || "";
+    const chipTokens: Array<string> = allMatches(
+      source("listSearchQuery")
+        .split("SEARCH_BOX_CHIP_TOKEN_KEYS: ReadonlyArray<string> = [")[1]
+        ?.split("];")[0] || "",
+      /"(\w+)"/g,
+      1,
+    ).map((key: string): string => {
+      return `\`${key}:\``;
+    });
+    const tokensLine: string =
+      lines.find((line: string): boolean => {
+        return line.includes("`Enter` moves it into its chip");
+      }) || "";
+
+    // The search is the header's "Search…" pill until it is used; / opens it.
+    expect(source("tableHeaderControls")).toContain('{tx("Search…")}');
+    expect(source("listTable")).toContain("<TableHeaderSearchSlot");
+    expect(source("listTable")).toContain(
+      "useTableHeaderSearchShortcut(true, openSearch);",
+    );
+    expect(search).toContain(
+      "The search box is the **Search…** field in the list's header; `/` opens it from anywhere on the page",
+    );
+
+    // Every token a chip holds narrows as typed and moves to its chip on Enter.
+    expect(chipTokens).toHaveLength(6);
+    expect(tokensLine).toContain(
+      `a ${chipTokens.slice(0, -1).join(", ")} or ${chipTokens[chipTokens.length - 1]} token narrows the list as you type`,
+    );
+  });
+
+  it("offers Show ID in a row's ⋯, Refresh in the header's, and no Users button over the list", () => {
+    const table: string = source("listTable");
+    const users: string =
+      englishPage(SESSION_REPLAY)
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.includes("`.../session-replay-users`");
+        }) || "";
+
+    /*
+     * Show ID is a row action placed in the row's ⋯: its placement follows
+     * its title within the same few lines (read with indexOf).
+     */
+    const showId: number = table.indexOf('title: "Show ID",');
+
+    expect(showId).toBeGreaterThan(-1);
+    expect(
+      table
+        .slice(showId, showId + 300)
+        .includes("placement: ActionButtonPlacement.MoreMenu,"),
+    ).toBe(true);
+    expect(list).toContain(
+      "Its **⋯** menu has **Show ID**, the session's whole ID to copy",
+    );
+    // Refresh, after the 10 minutes of self-refreshing, is in the header's ⋯.
+    expect(table).toMatch(/<MoreMenuItem\s+key="refresh"\s+text="Refresh"/);
+    expect(list).toContain(
+      "after that, **Refresh** in the **⋯** menu reads it again",
+    );
+    // The Users page is reached from the side menu and the identify() banner.
+    expect(users).toContain("reachable from the `identify()` banner");
+    expect(users).not.toContain("**Users** button");
   });
 
   it("orders the list by the sort menu's options, and names its page sizes", () => {

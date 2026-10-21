@@ -209,18 +209,40 @@ describe("the facet chips sit on the card", () => {
   });
 
   test("the bar is drawn with it, without the divider it had inside its box", () => {
-    const source: string = readSource(
+    /*
+     * The row is the shared FacetFilterBar, which the model tables' facets
+     * (useResourceOwners) and the Session Replay list both draw their chips
+     * in.
+     */
+    const bar: string = readSource(
       "Components",
       "ResourceOwners",
-      "useResourceOwners.tsx",
+      "FacetFilterBar.tsx",
     );
 
-    expect(source).toContain("className={FACET_FILTER_BAR_CLASS_NAME}");
-    expect(source).toContain('data-testid="facet-filter-bar"');
-    expect(source).not.toContain(
-      "rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm",
+    expect(bar).toContain("className={FACET_FILTER_BAR_CLASS_NAME}");
+    expect(bar).toContain(
+      'data-testid={props.dataTestId || "facet-filter-bar"}',
     );
-    expect(source).not.toContain("h-5 w-px bg-gray-200");
+
+    for (const user of [
+      ["Components", "ResourceOwners", "useResourceOwners.tsx"],
+      ["Components", "SessionReplay", "SessionReplayFacets.tsx"],
+    ]) {
+      const source: string = readSource(...user);
+
+      expect(source).toContain("<FacetFilterBar");
+    }
+
+    for (const source of [
+      bar,
+      readSource("Components", "ResourceOwners", "useResourceOwners.tsx"),
+    ]) {
+      expect(source).not.toContain(
+        "rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm",
+      );
+      expect(source).not.toContain("h-5 w-px bg-gray-200");
+    }
   });
 });
 

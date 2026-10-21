@@ -45,6 +45,7 @@ Open **Products → Security Events**, under **Observability**. Its menu has a s
 | **Playbooks** | Playbooks | Steps that run on cases, by themselves or by hand |
 | **Waiting for Approval** | Playbooks | The playbook steps waiting for someone to approve or reject them |
 | **Playbook Runs** | Playbooks | What each playbook did, step by step |
+| **Protected Entities** | Playbooks | The users and hosts no playbook contains |
 | **Connections** | Connections | Your logs, the security products OneUptime polls, and the SIEMs it sends to |
 | **Setup Guide** | Connections | Snippets to send events, filled in with your ingestion key |
 
@@ -307,7 +308,7 @@ OneUptime checks every minute for enabled rules whose interval has passed since 
 - Windows are back to back, not rolling. With a 10-minute interval, failures at 09:58 and 10:01 can land in different runs and are counted apart, so leave headroom when you choose a threshold.
 - After a gap, such as a worker outage or a rule turned back on, the next run covers the whole gap, up to the last 24 hours.
 - An event that arrives more than two minutes late, once a run has covered its time, is stored and searchable, but that rule never reads it.
-- At most 100 groups fire per run: the ones with the highest counts.
+- Every group that reaches the threshold becomes a Detection Finding, up to 10,000 a run. Alerts, incidents and cases open for the 100 with the highest counts; the rest share one case about the rule, and the rule's **Last Error** says how many groups matched.
 
 ### Severity
 

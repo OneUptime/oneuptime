@@ -72,6 +72,9 @@ const PLAIN_KEYS_BY_ACTION: Record<
   [SecurityPlaybookActionType.EndOktaSessions]: [],
   [SecurityPlaybookActionType.ContainCrowdStrikeHost]: [],
   [SecurityPlaybookActionType.IsolateDefenderDevice]: ["isolationType"],
+  [SecurityPlaybookActionType.UnsuspendOktaUser]: [],
+  [SecurityPlaybookActionType.LiftCrowdStrikeContainment]: [],
+  [SecurityPlaybookActionType.ReleaseDefenderDevice]: [],
   [SecurityPlaybookActionType.SendWebhook]: ["url"],
   [SecurityPlaybookActionType.RunWorkflow]: ["workflowId"],
 };
@@ -174,7 +177,11 @@ export function stepToFormValues(step: SecurityPlaybookStep): JSONObject {
   return values;
 }
 
-// What a new step of an action starts as: disruptive ones wait for approval.
+/*
+ * What a new step of an action starts as: a containment step waits for
+ * approval, which only a Security Admin can turn off (the server holds
+ * everyone else to it).
+ */
 export function getNewStepFormValues(
   action: SecurityPlaybookActionType,
 ): JSONObject {
@@ -252,6 +259,21 @@ export function formValuesToStep(data: {
     continueOnFailure: data.values["continueOnFailure"] === true,
     onlyIfThreatIntelMatched: data.values["onlyIfThreatIntelMatched"] === true,
   };
+}
+
+/*
+ * Whether the dialog offers the Needs Approval switch for a step of this
+ * action: on a containment step only to whoever may turn approval off (a
+ * Security Admin, or above); everyone else is shown what it is set to.
+ */
+export function isApprovalSwitchOffered(
+  action: unknown,
+  mayTurnOffContainmentApproval: boolean,
+): boolean {
+  return (
+    !getSecurityPlaybookAction(action as string | undefined)?.isDisruptive ||
+    mayTurnOffContainmentApproval
+  );
 }
 
 // Swap a step with its neighbour; out-of-range moves leave the list as it is.

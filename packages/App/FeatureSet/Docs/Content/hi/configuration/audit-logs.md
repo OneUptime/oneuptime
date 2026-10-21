@@ -91,6 +91,7 @@ flowchart TB
 | API कुंजियाँ | `API Key` |
 | लोगों द्वारा कनेक्ट किए गए MCP क्लाइंट | `MCP Client Authorization` |
 | इन्वेंटरी आइटम | `Inventory Item` |
+| कलेक्टर कॉन्फ़िग | `Collector Config` |
 | vCenter सर्वर | `vCenter` |
 | पैकेट कैप्चर और उनके डाउनलोड | `Packet Capture` |
 | सुरक्षा केस और प्लेबुक | `Security Case`, `Security Playbook` |

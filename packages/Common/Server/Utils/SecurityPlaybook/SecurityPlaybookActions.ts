@@ -32,7 +32,11 @@ import {
 import OcsfSeverity, {
   ocsfSeverityFromId,
 } from "../../../Types/SecurityEvent/OcsfSeverity";
-import { SecurityPlaybookActionType } from "../../../Types/SecurityPlaybook/SecurityPlaybookAction";
+import {
+  SecurityPlaybookActionDefinition,
+  SecurityPlaybookActionType,
+  getSecurityPlaybookAction,
+} from "../../../Types/SecurityPlaybook/SecurityPlaybookAction";
 import { SecurityPlaybookStepStatus } from "../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import {
   AddCaseLabelsConfig,
@@ -51,6 +55,7 @@ import {
   SetCasePriorityConfig,
   SetCaseStatusConfig,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookStep";
+import { SecurityPlaybookTarget } from "../../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import { WorkspaceMessageBlock } from "../../../Types/Workspace/WorkspaceMessagePayload";
 import API from "../../../Utils/API";
@@ -81,6 +86,7 @@ import SecurityEventConnectionService from "../../Services/SecurityEventConnecti
 import SecurityEventService, {
   ObservableActivity,
 } from "../../Services/SecurityEventService";
+import SecurityProtectedEntityService from "../../Services/SecurityProtectedEntityService";
 import TeamMemberService from "../../Services/TeamMemberService";
 import TeamService from "../../Services/TeamService";
 import ThreatIntelIndicatorService, {
@@ -99,6 +105,7 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import WorkspaceUtil from "../Workspace/Workspace";
 import { WorkspaceSendMessageResponse } from "../Workspace/WorkspaceBase";
 import SecurityPlaybookContainment from "./SecurityPlaybookContainment";
+import SecurityPlaybookTargets from "./SecurityPlaybookTargets";
 import PartialEntity from "../../../Types/Database/PartialEntity";
 
 export interface PlaybookStepContext {
@@ -110,6 +117,11 @@ export interface PlaybookStepContext {
   // The case as it is right before the step runs.
   securityCase: SecurityCase;
   triggeredByUserId?: ObjectID | undefined;
+  /*
+   * For a step that acts on users or hosts: the targets it picked, as the
+   * approver left them. Picked here when the run has none yet.
+   */
+  targets?: Array<SecurityPlaybookTarget> | undefined;
 }
 
 export interface PlaybookStepOutcome {
@@ -126,6 +138,8 @@ export interface PlaybookStepOutcome {
   // The step wrote its own feed entry (a change of the case already says itself).
   hasWrittenOwnFeed?: boolean | undefined;
   feedEventType?: SecurityCaseFeedEventType | undefined;
+  // For a step that acts on users or hosts: each target, and what became of it.
+  targets?: Array<SecurityPlaybookTarget> | undefined;
 }
 
 const ROOT: { isRoot: true } = { isRoot: true };
@@ -213,6 +227,9 @@ export default class SecurityPlaybookActions {
       case SecurityPlaybookActionType.EndOktaSessions:
       case SecurityPlaybookActionType.ContainCrowdStrikeHost:
       case SecurityPlaybookActionType.IsolateDefenderDevice:
+      case SecurityPlaybookActionType.UnsuspendOktaUser:
+      case SecurityPlaybookActionType.LiftCrowdStrikeContainment:
+      case SecurityPlaybookActionType.ReleaseDefenderDevice:
         return await this.contain(context);
     }
 
@@ -950,9 +967,21 @@ export default class SecurityPlaybookActions {
 
   // ---------- Contain ----------
 
+  /*
+   * A containment step, or its undo, on the step's targets: the attacker
+   * side of the case (SecurityPlaybookTargets), as the approver left them,
+   * held to the protected list as it is right now.
+   */
   private static async contain(
     context: PlaybookStepContext,
   ): Promise<PlaybookStepOutcome> {
+    const definition: SecurityPlaybookActionDefinition | undefined =
+      getSecurityPlaybookAction(context.step.action);
+
+    if (!definition?.entityType) {
+      return failed(`"${context.step.action}" is not a containment action.`);
+    }
+
     const connectionId: JSONValue | undefined =
       context.step.config["connectionId"];
 
@@ -979,12 +1008,26 @@ export default class SecurityPlaybookActions {
       return failed("The connection this step acts through no longer exists.");
     }
 
+    const targets: Array<SecurityPlaybookTarget> = context.targets
+      ? SecurityPlaybookTargets.protect({
+          targets: context.targets,
+          rules: await SecurityProtectedEntityService.getRules({
+            projectId: context.projectId,
+            entityType: definition.entityType,
+          }),
+        })
+      : await SecurityPlaybookTargets.selectTargets({
+          projectId: context.projectId,
+          securityCase: context.securityCase,
+          entityType: definition.entityType,
+        });
+
     return await SecurityPlaybookContainment.run({
       action: context.step.action,
       connection,
       settings:
         await SecurityEventConnectionService.getConnectorSettings(connection),
-      entities: readCaseEntities(context.securityCase),
+      targets,
       caseNumber: context.securityCase.caseNumberWithPrefix || "",
       isolationType:
         context.step.config["isolationType"] === DefenderIsolationType.Selective

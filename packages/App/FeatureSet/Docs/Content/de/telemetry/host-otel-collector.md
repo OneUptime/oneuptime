@@ -2,6 +2,9 @@
 
 Führen Sie den OpenTelemetry Collector auf einem Linux-, macOS- oder Windows-Rechner aus, um dessen Metriken, Prozesse, Logs und Dienstzustände an OneUptime zu senden. Der Rechner erscheint unter **Produkte → Infrastruktur → Hosts** mit eigenen Seiten, ohne dass ein OneUptime-Agent installiert werden muss: Der Collector ist das Upstream-Release `otelcol-contrib`. [Host-Monitore](/docs/monitor/host-monitor) alarmieren anhand dessen, was er sendet.
 
+> [!TIP]
+> Lassen Sie OneUptime den Collector für Sie installieren und konfigurieren: [Hosts](/docs/telemetry/hosts) fügt einen Rechner mit einem Befehl hinzu und hält seine Konfiguration aktuell. Diese Seite ist für den Betrieb des Collectors mit einer `config.yaml`, die Sie selbst auf dem Rechner pflegen.
+
 :::cards
 - [Collector installieren](#collector-installieren): Drei Schritte unter Linux, macOS oder Windows.
 - [Auswählen, was erfasst wird](#auswählen-was-erfasst-wird): Metriken, Logdateien, das Journal, Ereignisprotokolle und Dienstzustände.

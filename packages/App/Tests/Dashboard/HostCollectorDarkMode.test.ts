@@ -1,0 +1,266 @@
+import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
+
+/*
+ * Adding a host and the collectors OneUptime manages, in the dark theme:
+ * the Add Host guide and its dialog, the live last step (waiting, then the
+ * green "connected" line), a host's Collector page (its state pill, the red
+ * box of a config that failed and the amber one of a collector error, the
+ * On the host commands), Collector Configs and a config's page.
+ *
+ * The dark theme does not use Tailwind's dark: variants. Theme.css
+ * re-colours the light utility classes under html.dark, one rule per class
+ * (and per variant: `.bg-amber-50` does not cover `hover:bg-amber-50`). A
+ * class it has no rule for keeps its light colour - a pale box glowing on a
+ * slate card - and nothing fails. So this holds every colour class these
+ * pages draw with to what Theme.css actually remaps.
+ *
+ * Rendering is covered in packages/E2E/HostCollectors (in the dark theme
+ * too).
+ */
+
+const DASHBOARD_SRC: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "FeatureSet",
+  "Dashboard",
+  "src",
+);
+
+const SOURCES: Array<string> = [
+  "Components/HostCollector/AddHostGuide.tsx",
+  "Components/HostCollector/AddHostModal.tsx",
+  "Components/HostCollector/HostCollectorCard.tsx",
+  "Components/HostCollector/HostCollectorConfigPickerModal.tsx",
+  "Components/HostCollector/HostCollectorOnHostCard.tsx",
+  "Components/HostCollector/HostCollectorStatePill.tsx",
+  "Components/HostCollector/HostConnectionWatch.tsx",
+  "Components/SetupGuide/CopyableCommand.tsx",
+  "Pages/Host/CollectorConfigs.tsx",
+  "Pages/Host/CollectorConfigView.tsx",
+  "Pages/Host/Documentation.tsx",
+  "Pages/Host/Hosts.tsx",
+  "Pages/Host/View/Collector.tsx",
+];
+
+const THEME_CSS_PATH: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "Common",
+  "UI",
+  "Styles",
+  "Theme.css",
+);
+
+// Text without its /* block comments */: one pass, with indexOf.
+function withoutBlockComments(text: string): string {
+  let result: string = "";
+  let from: number = 0;
+  let start: number = text.indexOf("/*", from);
+
+  while (start !== -1) {
+    const end: number = text.indexOf("*/", start + 2);
+    result += text.substring(from, start) + " ";
+    from = end === -1 ? text.length : end + 2;
+    start = end === -1 ? -1 : text.indexOf("/*", from);
+  }
+
+  return result + text.substring(from);
+}
+
+// Text without its // line comments (a "://" in an address is not one).
+function withoutLineComments(text: string): string {
+  return text
+    .split("\n")
+    .map((line: string): string => {
+      const at: number = line.indexOf("//");
+      return at === -1 || line[at - 1] === ":" ? line : line.substring(0, at);
+    })
+    .join("\n");
+}
+
+// Comments hold prose, not classes.
+const CODE: string = SOURCES.map((name: string): string => {
+  return withoutLineComments(
+    withoutBlockComments(
+      fs.readFileSync(path.join(DASHBOARD_SRC, name), "utf8"),
+    ),
+  );
+}).join("\n");
+
+// Block comments only: prose in Theme.css must not count as a rule.
+const THEME_CSS: string = withoutBlockComments(
+  fs.readFileSync(THEME_CSS_PATH, "utf8"),
+);
+
+const STRING_LITERAL: RegExp = /"([^"\n]*)"|`([^`]*)`/g;
+// A ${...} that holds no brace: linear, even on a run of "${".
+const TEMPLATE_VALUE: RegExp = /\$\{[^{}]*\}/g;
+const WHITESPACE: RegExp = /\s+/;
+const TEMPLATE_COLOUR: RegExp = /(?:bg|text|border|ring)-\$\{/;
+
+// Every whitespace-separated token of every string literal in the modules.
+function stringTokens(code: string): Array<string> {
+  const tokens: Array<string> = [];
+
+  for (const match of code.matchAll(STRING_LITERAL)) {
+    const text: string = (match[1] ?? match[2] ?? "").replace(
+      TEMPLATE_VALUE,
+      " ",
+    );
+
+    tokens.push(
+      ...text.split(WHITESPACE).filter((token: string): boolean => {
+        return token.length > 0;
+      }),
+    );
+  }
+
+  return tokens;
+}
+
+// The utility a token applies, after its variants.
+function utilityOf(token: string): string {
+  let depth: number = 0;
+  let lastColon: number = -1;
+
+  for (let i: number = 0; i < token.length; i++) {
+    const character: string = token[i]!;
+
+    if (character === "[") {
+      depth++;
+    } else if (character === "]") {
+      depth--;
+    } else if (character === ":" && depth === 0) {
+      lastColon = i;
+    }
+  }
+
+  return token.slice(lastColon + 1);
+}
+
+const COLOR_UTILITY: RegExp =
+  /^(?:bg|text|border|ring|divide|from|via|to|outline|fill|stroke)-(?:white|black|(?:gray|slate|red|amber|yellow|emerald|green|sky|blue|indigo|orange|rose|purple|pink|teal|cyan|lime|violet|fuchsia|zinc|neutral|stone)-\d{2,3})(?:\/\d+)?$/;
+
+// A mid-tone hue reads the same in both themes; a neutral grey does not.
+const SOLID: RegExp =
+  /^(?:bg|text|border|ring)-(?!(?:gray|slate|zinc|neutral|stone)-)[a-z]+-(?:500|600)$/;
+
+const IDENTIFIER_CHAR: RegExp = /[\w-]/;
+
+const SUBSTRING_VARIANT: RegExp = /\[class\*="([^"]+)"\]/g;
+
+// Interaction variants Theme.css remaps by prefix, e.g. [class*="hover:text-amber-"].
+const SUBSTRING_VARIANTS: Array<string> = Array.from(
+  THEME_CSS.matchAll(SUBSTRING_VARIANT),
+  (match: RegExpMatchArray): string => {
+    return match[1]!;
+  },
+).filter((prefix: string): boolean => {
+  return prefix.includes(":");
+});
+
+function isRemapped(token: string): boolean {
+  const utility: string = utilityOf(token);
+
+  // An unprefixed mid-tone hue; a prefixed one needs a rule of its own.
+  if (utility === token && SOLID.test(utility)) {
+    return true;
+  }
+
+  if (THEME_CSS.includes(`[class~="${token}"]`)) {
+    return true;
+  }
+
+  if (
+    SUBSTRING_VARIANTS.some((prefix: string): boolean => {
+      return token.startsWith(prefix);
+    })
+  ) {
+    return true;
+  }
+
+  // A focus ring's mid-tone colour reads the same in both themes.
+  if (token.startsWith("focus-visible:") && SOLID.test(utility)) {
+    return true;
+  }
+
+  const escapedClass: string = token
+    .split("\\")
+    .join("\\\\")
+    .split(":")
+    .join("\\:")
+    .split("/")
+    .join("\\/");
+  let from: number = THEME_CSS.indexOf(`.${escapedClass}`);
+
+  while (from !== -1) {
+    const next: string = THEME_CSS[from + escapedClass.length + 1] || " ";
+
+    if (!IDENTIFIER_CHAR.test(next)) {
+      return true;
+    }
+
+    from = THEME_CSS.indexOf(`.${escapedClass}`, from + 1);
+  }
+
+  return false;
+}
+
+const COLOR_TOKENS: Array<string> = Array.from(
+  new Set(
+    stringTokens(CODE).filter((token: string): boolean => {
+      return COLOR_UTILITY.test(utilityOf(token));
+    }),
+  ),
+);
+
+describe("adding a host and its collector's pages in the dark theme", () => {
+  test("use no dark: variants and build no colour class from a template", () => {
+    expect(CODE).not.toContain("dark:");
+    expect(CODE).not.toMatch(TEMPLATE_COLOUR);
+  });
+
+  test("every colour class they draw with is remapped for dark mode", () => {
+    // The scan found their colours at all, so this is not vacuous.
+    expect(COLOR_TOKENS).toEqual(
+      expect.arrayContaining([
+        // A config that did not start: a red box.
+        "border-red-200",
+        "bg-red-50",
+        "text-red-800",
+        // A collector that reports an error: an amber one, as its pill.
+        "border-amber-200",
+        "bg-amber-50",
+        "text-amber-900",
+        // The live last step: waiting (a pinging dot), then connected.
+        "bg-indigo-500",
+        "border-emerald-200",
+        "bg-emerald-50",
+        "text-emerald-800",
+        // A command on the host, in its light box.
+        "bg-gray-50",
+        "text-gray-800",
+        // Links in sentences: Kubernetes, Collector Configs.
+        "text-indigo-600",
+        "hover:text-indigo-800",
+      ]),
+    );
+
+    expect(
+      COLOR_TOKENS.filter((token: string): boolean => {
+        return !isRemapped(token);
+      }),
+    ).toEqual([]);
+  });
+
+  test("the scan judges a variant by its own rule", () => {
+    expect(utilityOf("hover:text-emerald-900")).toBe("text-emerald-900");
+    // A light shade under a variant Theme.css does not know is caught.
+    expect(isRemapped("group-hover/item:text-gray-500")).toBe(false);
+  });
+});

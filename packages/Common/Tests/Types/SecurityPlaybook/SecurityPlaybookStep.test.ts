@@ -8,14 +8,18 @@ import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connect
 import {
   SECURITY_PLAYBOOK_ACTIONS,
   SECURITY_PLAYBOOK_ACTION_CATEGORIES,
+  SecurityPlaybookActionCategory,
   SecurityPlaybookActionDefinition,
   SecurityPlaybookActionType,
+  actsOnSecurityEntities,
   getSecurityPlaybookAction,
+  getSecurityPlaybookUndoAction,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookAction";
 import {
   DefenderIsolationType,
   SECURITY_PLAYBOOK_MAX_STEPS,
   SecurityPlaybookStep,
+  doesStepNeedApproval,
   parseSecurityPlaybookSteps,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookStep";
 import { describe, expect, test } from "@jest/globals";
@@ -69,10 +73,15 @@ describe("SECURITY_PLAYBOOK_ACTIONS", () => {
     }
   });
 
-  test("only actions that change a connected product are disruptive, and each names its product and entity", () => {
+  test("only the actions that cut someone off are disruptive; every action on a connected product names its product and entity", () => {
     for (const action of SECURITY_PLAYBOOK_ACTIONS) {
-      expect(action.isDisruptive).toBe(Boolean(action.connectionProvider));
+      expect(action.isDisruptive).toBe(
+        Boolean(action.connectionProvider) && !action.undoes,
+      );
       expect(Boolean(action.entityType)).toBe(
+        Boolean(action.connectionProvider),
+      );
+      expect(actsOnSecurityEntities(action)).toBe(
         Boolean(action.connectionProvider),
       );
     }
@@ -91,6 +100,154 @@ describe("SECURITY_PLAYBOOK_ACTIONS", () => {
       connectionProvider: SecurityEventConnectorProvider.CrowdStrikeFalcon,
       entityType: SecurityEntityType.Host,
     });
+  });
+});
+
+describe("the undo actions", () => {
+  test("each undoes a containment action through the same product, on the same kind of entity", () => {
+    const undos: Array<SecurityPlaybookActionDefinition> =
+      SECURITY_PLAYBOOK_ACTIONS.filter(
+        (action: SecurityPlaybookActionDefinition): boolean => {
+          return Boolean(action.undoes);
+        },
+      );
+
+    expect(
+      undos.map((action: SecurityPlaybookActionDefinition): Array<string> => {
+        return [action.type, action.undoes!];
+      }),
+    ).toEqual([
+      [
+        SecurityPlaybookActionType.UnsuspendOktaUser,
+        SecurityPlaybookActionType.SuspendOktaUser,
+      ],
+      [
+        SecurityPlaybookActionType.LiftCrowdStrikeContainment,
+        SecurityPlaybookActionType.ContainCrowdStrikeHost,
+      ],
+      [
+        SecurityPlaybookActionType.ReleaseDefenderDevice,
+        SecurityPlaybookActionType.IsolateDefenderDevice,
+      ],
+    ]);
+
+    for (const undo of undos) {
+      const contained: SecurityPlaybookActionDefinition =
+        getSecurityPlaybookAction(undo.undoes)!;
+
+      expect(undo.category).toBe(SecurityPlaybookActionCategory.Contain);
+      expect(contained.isDisruptive).toBe(true);
+      expect(undo.connectionProvider).toBe(contained.connectionProvider);
+      expect(undo.entityType).toBe(contained.entityType);
+      expect(getSecurityPlaybookUndoAction(contained.type)).toBe(undo);
+    }
+
+    // A session that was ended stays ended.
+    expect(
+      getSecurityPlaybookUndoAction(SecurityPlaybookActionType.EndOktaSessions),
+    ).toBeUndefined();
+  });
+
+  test("act through a connection, like the steps they undo", () => {
+    for (const action of [
+      SecurityPlaybookActionType.UnsuspendOktaUser,
+      SecurityPlaybookActionType.LiftCrowdStrikeContainment,
+      SecurityPlaybookActionType.ReleaseDefenderDevice,
+    ]) {
+      expect(parseOne(action, { connectionId: OTHER_ID }).config).toEqual({
+        connectionId: OTHER_ID,
+      });
+      expectRejected(action, {}, /connection to act through/);
+    }
+  });
+});
+
+describe("approval of a containment step", () => {
+  test("is on unless the step says false outright", () => {
+    const [absent, notTrue, off]: Array<SecurityPlaybookStep> =
+      parseSecurityPlaybookSteps([
+        step(SecurityPlaybookActionType.SuspendOktaUser, {
+          connectionId: OTHER_ID,
+        }),
+        step(
+          SecurityPlaybookActionType.ContainCrowdStrikeHost,
+          { connectionId: OTHER_ID },
+          { requiresApproval: "no" },
+        ),
+        step(
+          SecurityPlaybookActionType.IsolateDefenderDevice,
+          { connectionId: OTHER_ID },
+          { requiresApproval: false },
+        ),
+      ]);
+
+    expect(absent!.requiresApproval).toBe(true);
+    expect(notTrue!.requiresApproval).toBe(true);
+    expect(off!.requiresApproval).toBe(false);
+  });
+
+  test("is still needed when nobody stamped it off: a step saved off before the rule waits too", () => {
+    const [off]: Array<SecurityPlaybookStep> = parseSecurityPlaybookSteps([
+      step(
+        SecurityPlaybookActionType.SuspendOktaUser,
+        { connectionId: OTHER_ID },
+        { requiresApproval: false },
+      ),
+    ]);
+
+    expect(off!.approvalTurnedOff).toBeUndefined();
+    expect(doesStepNeedApproval(off!)).toBe(true);
+  });
+
+  test("is not needed once a Security Admin's stamp says it was turned off", () => {
+    const [off]: Array<SecurityPlaybookStep> = parseSecurityPlaybookSteps([
+      step(
+        SecurityPlaybookActionType.SuspendOktaUser,
+        { connectionId: OTHER_ID },
+        {
+          requiresApproval: false,
+          approvalTurnedOff: {
+            byUserId: USER_ID,
+            at: "2026-10-20T10:00:00.000Z",
+          },
+        },
+      ),
+    ]);
+
+    expect(off!.approvalTurnedOff).toEqual({
+      byUserId: USER_ID,
+      at: "2026-10-20T10:00:00.000Z",
+    });
+    expect(doesStepNeedApproval(off!)).toBe(false);
+  });
+
+  test("a stamp on a step that asks for approval, or on any other step, is dropped", () => {
+    const stamp: Record<string, unknown> = {
+      approvalTurnedOff: { at: "2026-10-20T10:00:00.000Z" },
+    };
+    const [on, note]: Array<SecurityPlaybookStep> = parseSecurityPlaybookSteps([
+      step(
+        SecurityPlaybookActionType.SuspendOktaUser,
+        { connectionId: OTHER_ID },
+        { requiresApproval: true, ...stamp },
+      ),
+      step(SecurityPlaybookActionType.AddCaseNote, { note: "n" }, stamp),
+    ]);
+
+    expect(on!.approvalTurnedOff).toBeUndefined();
+    expect(note!.approvalTurnedOff).toBeUndefined();
+    expect(doesStepNeedApproval(note!)).toBe(false);
+  });
+
+  test("an undo step does not need approval unless marked so", () => {
+    const [undo]: Array<SecurityPlaybookStep> = parseSecurityPlaybookSteps([
+      step(SecurityPlaybookActionType.UnsuspendOktaUser, {
+        connectionId: OTHER_ID,
+      }),
+    ]);
+
+    expect(undo!.requiresApproval).toBe(false);
+    expect(doesStepNeedApproval(undo!)).toBe(false);
   });
 });
 

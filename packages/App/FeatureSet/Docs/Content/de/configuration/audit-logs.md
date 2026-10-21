@@ -91,6 +91,7 @@ Monitore, Vorfälle, Alarme, Statusseiten, SLOs und viele andere Ressourcen habe
 | API-Schlüssel | `API Key` |
 | MCP-Clients, die Personen verbinden | `MCP Client Authorization` |
 | Inventareinträge | `Inventory Item` |
+| Collector-Konfigurationen | `Collector Config` |
 | vCenter | `vCenter` |
 | Paketmitschnitte, und ihre Downloads | `Packet Capture` |
 | Sicherheitsfälle und Playbooks | `Security Case`, `Security Playbook` |

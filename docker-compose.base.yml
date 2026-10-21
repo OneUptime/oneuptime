@@ -257,6 +257,11 @@ x-common-runtime-variables: &common-runtime-variables
   GOOGLE_MEET_APP_CLIENT_SECRET: ${GOOGLE_MEET_APP_CLIENT_SECRET:-}
   MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET: ${MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET:-}
 
+  # Cloud > Connect: the AWS identity that signs in to customers' read-only
+  # IAM roles (see config.example.env). Unset, AWS connects with an access key.
+  CLOUD_CONNECT_AWS_ACCESS_KEY_ID: ${CLOUD_CONNECT_AWS_ACCESS_KEY_ID:-}
+  CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY: ${CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY:-}
+
   # GitHub App Configuration
   GITHUB_APP_ID: ${GITHUB_APP_ID}
   GITHUB_APP_NAME: ${GITHUB_APP_NAME}

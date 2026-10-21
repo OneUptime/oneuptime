@@ -16,7 +16,8 @@ import IconProp from "Common/Types/Icon/IconProp";
  *   Detections       what finds threats in them: Detection Rules, the Rule
  *                    Library, Threat Intel and ATT&CK Coverage
  *   Playbooks        what responds when a case opens: Playbooks, the runs
- *                    Waiting for Approval, and every Playbook Run
+ *                    Waiting for Approval, every Playbook Run, and the
+ *                    Protected Entities no playbook may contain
  *   Connections      where events come from and where they are sent:
  *                    Connections, and the Setup Guide
  *
@@ -173,6 +174,11 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
         page: PageMap.SECURITY_PLAYBOOK_RUNS,
         title: "Playbook Runs",
         icon: IconProp.Play,
+      },
+      {
+        page: PageMap.SECURITY_PROTECTED_ENTITIES,
+        title: "Protected Entities",
+        icon: IconProp.Lock,
       },
     ],
   },

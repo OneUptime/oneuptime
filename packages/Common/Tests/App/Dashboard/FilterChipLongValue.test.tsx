@@ -169,6 +169,26 @@ describe("a chip with a long value picked", () => {
     expect(words).toHaveTextContent("Monitor");
     expect(screen.queryByTestId("filter-chip-clear-place")).toBeNull();
   });
+
+  test("stands where an empty chip stands: its pill hangs from the top of its line", () => {
+    /*
+     * On the line's baseline, a chip whose words are cut short (truncate)
+     * sat 1px below its empty neighbours and made the chips row 1px
+     * taller the moment a value was picked. Both pills hang from the top.
+     */
+    expect(tokens(FILTER_CHIP_BOX_CLASSES)).toContain("align-top");
+
+    render(
+      <div>
+        {monitorChip(["monitor-1"])}
+        {monitorChip([])}
+      </div>,
+    );
+
+    for (const pill of screen.getAllByTestId("filter-chip")) {
+      expect(classesOf(pill)).toContain("align-top");
+    }
+  });
 });
 
 describe("a long name in the chip's list", () => {

@@ -67,7 +67,7 @@ En **Browser**-nøgle beder om sine **Allowed Origins** i det næste trin, **Bro
 Klik på **Opret ingestion-nøgle**. Nøglens egen side åbner: kopiér dens **Hemmelig nøgle**, og giv den til dine afsendere.
 :::
 
-Hvert produkts **Opsætningsvejledning** starter med **Choose an ingestion key**, som viser de nøgler, vejledningen kan bruge, og opretter en på stedet. Kodestumperne i vejledningen indeholder derefter den nøgle.
+Hvert produkts **Opsætningsvejledning** starter med **Vælg en ingestion-nøgle**, som viser de nøgler, vejledningen kan bruge, og opretter en på stedet. Kodestumperne i vejledningen indeholder derefter den nøgle.
 
 ## Send telemetri med nøglen
 

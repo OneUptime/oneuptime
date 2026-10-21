@@ -4,6 +4,7 @@ import {
   ClaimStatuses,
 } from "../Utils/Claims";
 import { getSelfHostedContent } from "../Utils/SelfHosted";
+import { getAirGappedContent } from "../Utils/AirGapped";
 import PageSEOConfig, { getPageSEO, PageSEOData } from "../Utils/PageSEO";
 import ejs from "ejs";
 import fs from "fs";
@@ -116,6 +117,43 @@ describe("self-hosted.ejs", () => {
     );
 
     expect(untagged).toBeNull();
+  });
+});
+
+describe("air-gapped.ejs", () => {
+  let html: string = "";
+
+  beforeAll(async () => {
+    // The locals Routes.ts hands /enterprise/air-gapped.
+    html = await render("air-gapped.ejs", {
+      enableGoogleTagManager: false,
+      airGapped: getAirGappedContent(),
+      seo: seoFor("/enterprise/air-gapped"),
+      homeUrl: HOME_URL,
+    });
+  });
+
+  test("the hero CTA points at the booking embed on the page, tagged so it counts", () => {
+    expect(html).toContain(
+      '<a href="#plan-your-install" data-ou-cta="cta_request_demo"',
+    );
+    expect(html).toContain('id="plan-your-install"');
+    expect(html).toContain('id="my-cal-inline-air-gapped"');
+  });
+
+  test("no link to the booking is left untagged", () => {
+    const untagged: RegExpMatchArray | null = html.match(
+      /<a href="#plan-your-install"(?! data-ou-cta)/g,
+    );
+
+    expect(untagged).toBeNull();
+  });
+
+  test("email is offered beside the booking, not instead of it", () => {
+    expect(html).toContain("mailto:enterprise@oneuptime.com");
+    expect(html.indexOf("mailto:enterprise@oneuptime.com")).toBeLessThan(
+      html.indexOf('id="my-cal-inline-air-gapped"'),
+    );
   });
 });
 

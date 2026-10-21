@@ -10,10 +10,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * attempts. A NOT NULL column with a constant default is added without
  * rewriting a row: every run there is starts at 0, never handed back.
  */
-export class AddAIRunHandedBackCount1805220000000
+export class AddAIRunHandedBackCount1805650000000
   implements MigrationInterface
 {
-  public name: string = "AddAIRunHandedBackCount1805220000000";
+  public name: string = "AddAIRunHandedBackCount1805650000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

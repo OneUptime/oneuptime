@@ -120,8 +120,19 @@ export const THREAT_INTEL_MATCH_MAX_LOOKBACK_IN_MINUTES: number = 24 * 60;
 // First-ever match evaluation window for a feed.
 export const THREAT_INTEL_FIRST_MATCH_WINDOW_IN_MINUTES: number = 15;
 
-// One alert per distinct indicator value per cycle, at most.
+/*
+ * The indicator values one check opens alerts, incidents and cases for, at
+ * most: the ones seen in the most events. A check that matches more records
+ * every value as a finding (up to THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION)
+ * and opens one case about the rest, so none goes unseen.
+ */
 export const THREAT_INTEL_MAX_INDICATORS_PER_EVALUATION: number = 100;
+
+/*
+ * The indicator values one check records as findings, at most. Past it the
+ * feed's lastMatchError and its overflow case say there were more.
+ */
+export const THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION: number = 10000;
 
 /*
  * Indicators whose STIX object carries no valid_until stay active this

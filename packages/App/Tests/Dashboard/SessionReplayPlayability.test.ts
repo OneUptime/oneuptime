@@ -408,3 +408,65 @@ describe("formatIdleShare", () => {
     expect(formatIdleShare(60_000, 0)).toBeNull();
   });
 });
+
+/*
+ * The session list draws the badge's fact under it a line each, never
+ * broken mid-phrase in a narrow column ("about 15s missing - / expires in
+ * 6d" read "- expires in 6d" on a line of its own). detailLines are those
+ * lines; detail stays their one-line form.
+ */
+describe("getSessionReplayPlayability detailLines", () => {
+  test("a Partial recording's gap and expiry are two lines", () => {
+    const result: SessionReplayPlayability = getSessionReplayPlayability(
+      input({ missingChunkCount: 2 }),
+      NOW,
+    );
+
+    expect(result.detailLines).toEqual([
+      `about ${2 * SESSION_REPLAY_ESTIMATED_CHUNK_SECONDS}s missing`,
+      "expires in 6d",
+    ]);
+    expect(result.detail).toBe(result.detailLines.join(" - "));
+  });
+
+  test("a Partial recording with no expiry is one line", () => {
+    const result: SessionReplayPlayability = getSessionReplayPlayability(
+      input({ missingChunkCount: 1, expiresAtUnixMs: undefined }),
+      NOW,
+    );
+
+    expect(result.detailLines).toEqual([
+      `about ${SESSION_REPLAY_ESTIMATED_CHUNK_SECONDS}s missing`,
+    ]);
+    expect(result.detail).toBe(result.detailLines[0]);
+  });
+
+  test("every other state's fact is one line, or none", () => {
+    const cases: Array<{
+      row: SessionReplayPlayabilityInput;
+      lines: Array<string>;
+    }> = [
+      { row: input(), lines: ["expires in 6d"] },
+      { row: input({ expiresAtUnixMs: undefined }), lines: [] },
+      { row: input({ isFinalized: false, chunkCount: 0 }), lines: ["live"] },
+      {
+        row: input({ isFinalized: false, hasRecordingEnded: true }),
+        lines: ["finalizing"],
+      },
+      { row: input({ chunkCount: 0 }), lines: [] },
+      { row: input({ sealedReason: "recording-lost" }), lines: [] },
+    ];
+
+    for (const testCase of cases) {
+      const result: SessionReplayPlayability = getSessionReplayPlayability(
+        testCase.row,
+        NOW,
+      );
+
+      expect(result.detailLines).toEqual(testCase.lines);
+      expect(result.detail).toBe(
+        testCase.lines.length > 0 ? testCase.lines.join(" - ") : null,
+      );
+    }
+  });
+});

@@ -53,6 +53,10 @@ const OCT_4_CHANGES: Array<string> = [4, 5, 6, 7, 8].map(eventId);
 const BLIP_LABEL: RegExp =
   /^Offline, Oct 9, 7:26:01\sAM – 7:26:39\sAM, 38 secs$/;
 
+// The buttons beside the Timeline | Table switch in an incident's header.
+const INCIDENT_HEADER_BUTTON_NAME: RegExp =
+  /^(Create State Change|More options)$/;
+
 const MONITOR_ONLY_EVENT_REFUSAL: string =
   "The monitor's only status event can't be deleted: the monitor would have no status, and status pages would show it gray. To change its status, add a new status event.";
 
@@ -1350,6 +1354,58 @@ test.describe("the Timeline | Table switch's icons", () => {
 });
 
 test.describe("an incident's Status Timeline", () => {
+  /*
+   * "There are buttons which do not match the sizes" - the switch stood
+   * 32px beside the 38px Create State Change and ⋯ in the card's header,
+   * in both views. It is their height now: 38px, and 42px on a phone.
+   */
+  test("the Timeline | Table switch is as tall as the buttons beside it, in both views and on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const heightsInHeader: () => Promise<Array<number>> = async (): Promise<
+      Array<number>
+    > => {
+      const switchBox: { height: number } = await boxOf(
+        page.getByTestId("status-timeline-view-switch"),
+      );
+      const actions: Locator = page.getByTestId("card-header-actions").filter({
+        has: page.getByTestId("status-timeline-view-switch"),
+      });
+      const buttons: Array<Locator> = await actions
+        .getByRole("button", { name: INCIDENT_HEADER_BUTTON_NAME })
+        .all();
+
+      expect(buttons).toHaveLength(2);
+
+      const heights: Array<number> = [Math.round(switchBox.height)];
+
+      for (const button of buttons) {
+        heights.push(Math.round((await boxOf(button)).height));
+      }
+
+      return heights;
+    };
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openIncident(page);
+    expect(await heightsInHeader()).toEqual([38, 38, 38]);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await heightsInHeader()).toEqual([42, 42, 42]);
+
+    await page.getByTestId("status-timeline-view-table").click();
+    await expect(
+      page.getByTestId("status-timeline-view-table"),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(await heightsInHeader()).toEqual([42, 42, 42]);
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    expect(await heightsInHeader()).toEqual([38, 38, 38]);
+    await screenshot(page, "incident-header-switch-table-1280");
+  });
+
   test("its whole life on one band, with no period to pick, and each state's whole time", async ({
     page,
   }: {
