@@ -67,7 +67,9 @@ function listModules(): Array<string> {
       if (entry.isDirectory()) {
         pending.push(full);
       } else if (SOURCE_FILE.test(entry.name)) {
-        modules.push(path.relative(DASHBOARD_SRC, full).split(path.sep).join("/"));
+        modules.push(
+          path.relative(DASHBOARD_SRC, full).split(path.sep).join("/"),
+        );
       }
     }
   }
