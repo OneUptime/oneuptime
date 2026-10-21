@@ -7,7 +7,16 @@ import {
 } from "../../../FeatureSet/APIReference/Utils/DashboardDataTypeExamples";
 import StoredDashboardViewConfig from "Common/Utils/Dashboard/StoredDashboardViewConfig";
 import { isDashboardComponentType } from "Common/Types/Dashboard/DashboardComponentType";
-import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
+import DashboardViewConfig, {
+  AutoRefreshInterval,
+} from "Common/Types/Dashboard/DashboardViewConfig";
+import {
+  DASHBOARD_TIME_RANGES,
+  DASHBOARD_TIME_RANGE_FALLBACK,
+  getDashboardTimeRangeProblem,
+} from "Common/Types/Dashboard/DashboardTimeRange";
+import { getDashboardAutoRefreshProblem } from "Common/Types/Dashboard/DashboardAutoRefresh";
+import TimeRange from "Common/Types/Time/TimeRange";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import { JSONObject } from "Common/Types/JSON";
 
@@ -123,6 +132,64 @@ describe("the API reference's dashboard examples are the shape the dashboard sav
       expect(isDashboardComponentType(component.componentType)).toBe(true);
       expect(Object.keys(component.arguments || {}).length).toBeGreaterThan(0);
     }
+  });
+
+  /*
+   * Issue #5080: a dashboard's defaults - the time range and auto-refresh it
+   * opens on - are part of its config, for the API and Terraform alike.
+   */
+  test("the config example sets both defaults, as values the server saves", () => {
+    expect(DASHBOARD_VIEW_CONFIG_EXAMPLE["timeRange"]).toBe(
+      TimeRange.PAST_ONE_DAY,
+    );
+    expect(DASHBOARD_VIEW_CONFIG_EXAMPLE["refreshInterval"]).toBe(
+      AutoRefreshInterval.ONE_MINUTE,
+    );
+    expect(
+      getDashboardTimeRangeProblem(DASHBOARD_VIEW_CONFIG_EXAMPLE["timeRange"]),
+    ).toBeNull();
+    expect(
+      getDashboardAutoRefreshProblem(
+        DASHBOARD_VIEW_CONFIG_EXAMPLE["refreshInterval"],
+      ),
+    ).toBeNull();
+
+    const read: DashboardViewConfig = StoredDashboardViewConfig.read(
+      DASHBOARD_VIEW_CONFIG_EXAMPLE,
+    );
+
+    expect(read.timeRange).toBe(TimeRange.PAST_ONE_DAY);
+    expect(read.refreshInterval).toBe(AutoRefreshInterval.ONE_MINUTE);
+  });
+
+  test("the reference names every time range and interval the server saves, and what leaving each out means", () => {
+    const source: string = fs.readFileSync(DATA_TYPE_DETAIL, "utf8");
+    const timeRangeEntry: string = source.slice(
+      source.indexOf('name: "timeRange"'),
+      source.indexOf('name: "refreshInterval"'),
+    );
+    const refreshEntry: string = source.slice(
+      source.indexOf('name: "refreshInterval"'),
+      source.indexOf('name: "variables"'),
+    );
+
+    expect(timeRangeEntry.length).toBeGreaterThan(0);
+    expect(refreshEntry.length).toBeGreaterThan(0);
+
+    for (const range of DASHBOARD_TIME_RANGES) {
+      expect(timeRangeEntry).toContain(range);
+    }
+
+    expect(timeRangeEntry).not.toContain(TimeRange.CUSTOM);
+    expect(timeRangeEntry).toContain(
+      `Left out, it opens on ${DASHBOARD_TIME_RANGE_FALLBACK}.`,
+    );
+
+    for (const interval of Object.values(AutoRefreshInterval)) {
+      expect(refreshEntry).toContain(interval);
+    }
+
+    expect(refreshEntry).toContain("Left out, it is off.");
   });
 
   test("the reference page shows these examples, and no envelope of its own", () => {

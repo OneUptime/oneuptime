@@ -10,7 +10,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import DockerSwarmResource from "Common/Models/DatabaseModels/DockerSwarmResource";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -28,12 +28,12 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Node", widthPct: "26%" },
-  { label: "Role", widthPct: "13%" },
-  { label: "Status", widthPct: "16%" },
-  { label: "CPU", widthPct: "13%" },
-  { label: "Memory", widthPct: "13%" },
-  { label: "Cluster", widthPct: "19%" },
+  { label: "Node", widthPct: "26%", sortKey: "name" },
+  { label: "Role", widthPct: "13%", sortKey: "role" },
+  { label: "Status", widthPct: "16%", sortKey: "status" },
+  { label: "CPU", widthPct: "13%", sortKey: "cpu" },
+  { label: "Memory", widthPct: "13%", sortKey: "memory" },
+  { label: "Cluster", widthPct: "19%", sortKey: "cluster" },
 ];
 
 const NODE_LEGEND: Array<HoneycombLegendItem> = [
@@ -260,7 +260,8 @@ const DashboardDockerSwarmNodeListComponentElement: FunctionComponent<
       maxRows={args.maxRows || 25}
       query={query}
       select={BASE_SELECT}
-      sort={{ name: SortOrder.Ascending }}
+      componentType={DashboardComponentType.DockerSwarmNodeList}
+      widgetProps={props}
       refreshTick={props.refreshTick}
       variables={props.variables}
       attributeToColumn={undefined}

@@ -99,6 +99,9 @@ export interface GitHubCommitResult {
 // The commit a pull request merged as: a full or abbreviated SHA.
 const MERGE_COMMIT_SHA: RegExp = /^[0-9a-f]{7,64}$/i;
 
+// What a branch's ref starts with, in the refs GitHub lists.
+const BRANCH_REF_PREFIX: string = "refs/heads/";
+
 // A pull request's state, with its merge commit and time once merged.
 export interface GitHubPullRequestMerge {
   state: PullRequestState;
@@ -1447,6 +1450,124 @@ export default class GitHubUtil extends HostedCodeRepository {
     }
 
     return (result.data["default_branch"] as string) || "";
+  }
+
+  /*
+   * A repository's branch names, for a person picking the branch a task
+   * starts from: the first page GitHub lists (at most `limit`, in GitHub's
+   * order), or - given what the person typed - the branches whose names
+   * start with it (the matching-refs API, which reads refs by prefix).
+   * `isComplete` says the names are every branch that matches: false when
+   * the page was full, so the picker searches instead of filtering.
+   */
+  @CaptureSpan()
+  public static async listBranchNames(data: {
+    installationId: string;
+    organizationName: string;
+    repositoryName: string;
+    search?: string | undefined;
+    limit: number;
+  }): Promise<{ names: Array<string>; isComplete: boolean }> {
+    const tokenData: GitHubInstallationToken =
+      await GitHubUtil.getInstallationAccessToken(data.installationId, {
+        permissions: { contents: "read", metadata: "read" },
+      });
+
+    const repositoryUrl: string = `https://api.github.com/repos/${encodeURIComponent(
+      data.organizationName,
+    )}/${encodeURIComponent(data.repositoryName)}`;
+
+    const search: string = (data.search || "").trim();
+    const limit: number = Math.max(1, Math.min(100, Math.floor(data.limit)));
+
+    if (!search) {
+      const result: HTTPErrorResponse | HTTPResponse<JSONArray> =
+        await API.get<JSONArray>({
+          url: URL.fromString(`${repositoryUrl}/branches?per_page=${limit}`),
+          headers: GitHubUtil.buildApiHeaders(tokenData.token),
+        });
+
+      if (result instanceof HTTPErrorResponse) {
+        throw result;
+      }
+
+      const names: Array<string> = GitHubUtil.readNames(
+        Array.isArray(result.data) ? result.data : [],
+        (entry: JSONObject): unknown => {
+          return entry["name"];
+        },
+      );
+
+      return { names, isComplete: names.length < limit };
+    }
+
+    /*
+     * Each part of the prefix is encoded on its own: a branch name's "/"
+     * is part of the ref's path, which matching-refs reads as written.
+     */
+    const prefix: string = search
+      .split("/")
+      .map((part: string): string => {
+        return encodeURIComponent(part);
+      })
+      .join("/");
+
+    const result: HTTPErrorResponse | HTTPResponse<JSONArray> =
+      await API.get<JSONArray>({
+        url: URL.fromString(
+          `${repositoryUrl}/git/matching-refs/heads/${prefix}`,
+        ),
+        headers: GitHubUtil.buildApiHeaders(tokenData.token),
+      });
+
+    if (result instanceof HTTPErrorResponse) {
+      // A prefix nothing starts with reads as an empty list on GitHub; a 404 too.
+      if (result.statusCode === 404) {
+        return { names: [], isComplete: true };
+      }
+
+      throw result;
+    }
+
+    const names: Array<string> = GitHubUtil.readNames(
+      Array.isArray(result.data) ? result.data : [],
+      (entry: JSONObject): unknown => {
+        const ref: unknown = entry["ref"];
+
+        return typeof ref === "string" && ref.startsWith(BRANCH_REF_PREFIX)
+          ? ref.substring(BRANCH_REF_PREFIX.length)
+          : null;
+      },
+    );
+
+    return {
+      names: names.slice(0, limit),
+      isComplete: names.length <= limit,
+    };
+  }
+
+  // The names a GitHub list holds, once each and in its order.
+  private static readNames(
+    entries: JSONArray,
+    readName: (entry: JSONObject) => unknown,
+  ): Array<string> {
+    const names: Array<string> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (const entry of entries) {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        continue;
+      }
+
+      const name: unknown = readName(entry as JSONObject);
+
+      if (typeof name === "string" && name.length > 0 && !seen.has(name)) {
+        seen.add(name);
+        names.push(name);
+      }
+    }
+
+    return names;
   }
 
   /*

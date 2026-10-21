@@ -46,7 +46,8 @@ Le choix est stocké dans trois colonnes, que l'API et Terraform lisent et écri
 Un tableau de bord public :
 
 - S'ouvre toujours en lecture. Les visiteurs ne peuvent pas le modifier et ne voient jamais ses contrôles de modification.
-- Inclut les variables que vous avez ajoutées. Les visiteurs choisissent dans les mêmes sélecteurs que votre équipe, et peuvent changer la plage temporelle, zoomer, activer l'actualisation automatique et passer en plein écran.
+- Inclut les variables que vous avez ajoutées. Les visiteurs choisissent dans les mêmes sélecteurs que votre équipe, et peuvent changer la plage temporelle, zoomer, activer l'actualisation automatique et passer en plein écran. Il s'ouvre sur la période et l'actualisation automatique par défaut du tableau de bord, et le navigateur de chaque visiteur se souvient de ses propres choix.
+- Permet aux visiteurs de [trier ses listes et ses tableaux](/docs/dashboards/widgets#trier-les-listes-et-les-tableaux) en cliquant sur un en-tête de colonne, comme le fait votre équipe. Le navigateur de chaque visiteur se souvient de son propre tri, et OneUptime trie lui-même toute la liste, toujours selon l'une des colonnes du widget.
 - Utilise l'image de marque définie sur la page **Image de marque** du tableau de bord : titre de page, description, logo, thème, favicon.
 - Permet à chaque visiteur de passer du tableau de bord clair au sombre, et inversement, avec un bouton soleil ou lune dans sa barre d'outils ; [Thème](#thème) explique comment.
 
@@ -197,7 +198,7 @@ Pour donner à un tableau de bord intégré l'apparence de votre site, ajoutez `
 
 ## Envoyer un lien
 
-Le lien public ouvre le tableau de bord sur ses valeurs par défaut enregistrées. Pour envoyer un lien qui s'ouvre sur une valeur précise, ajoutez-y la variable sous la forme `?var-<name>=<value>`, comme le fait la barre d'adresse quand un visiteur choisit une valeur ; plusieurs valeurs se séparent par des virgules. La plage temporelle ne fait pas partie du lien : chaque visite repart de la dernière heure. Pour ouvrir le tableau de bord dans un thème, ajoutez `theme=light`, `theme=dark` ou `theme=system`, comme le décrit [Intégration](#intégration).
+Le lien public ouvre le tableau de bord sur ses valeurs par défaut enregistrées. Pour envoyer un lien qui s'ouvre sur une valeur précise, ajoutez-y la variable sous la forme `?var-<name>=<value>`, comme le fait la barre d'adresse quand un visiteur choisit une valeur ; plusieurs valeurs se séparent par des virgules. Pour qu'il s'ouvre sur une plage temporelle ou une actualisation automatique à lui, ajoutez de la même façon `range` et `refresh` : `?range=1d&refresh=1m` s'ouvre sur la dernière journée, actualisée chaque minute, comme pour un écran mural. `range` accepte `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` ou `3mo`, et `refresh` accepte `off`, `5s`, `10s`, `30s`, `1m`, `5m` ou `15m`. Ils l'emportent sur les valeurs par défaut du tableau de bord et sur les choix du visiteur, qui peut toujours les changer. Pour ouvrir le tableau de bord dans un thème, ajoutez `theme=light`, `theme=dark` ou `theme=system`, comme le décrit [Intégration](#intégration).
 
 ## Prochaines étapes
 

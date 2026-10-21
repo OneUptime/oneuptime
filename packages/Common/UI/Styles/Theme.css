@@ -225,7 +225,9 @@ html.dark :is(
     [class~="hover:bg-white"],
     [class~="hover:bg-white/60"]
   ):hover,
-html.dark :is([class~="focus:bg-gray-50"], [class~="focus:bg-white"]):focus {
+html.dark :is([class~="focus:bg-gray-50"], [class~="focus:bg-white"]):focus,
+/* A row a keyboard reaches takes its hover's ground (Code's task and repository rows). */
+html.dark [class~="focus-visible:bg-gray-50"]:focus-visible {
   background-color: var(--ou-surface-secondary) !important;
 }
 
@@ -1465,6 +1467,15 @@ html.dark .rbc-event.oneuptime-calendar-event--soft {
   box-shadow: var(--ou-calendar-event-dark-shadow) !important;
 }
 
+/* An overlay block (an event from another calendar): the same, its stripes and dashed edge included, and no second edge inside the dashed one. */
+html.dark .rbc-event.oneuptime-calendar-event--overlay {
+  background-color: var(--ou-calendar-overlay-dark-bg) !important;
+  background-image: var(--ou-calendar-overlay-dark-image) !important;
+  color: var(--ou-calendar-overlay-dark-text) !important;
+  border: var(--ou-calendar-overlay-dark-border) !important;
+  box-shadow: none !important;
+}
+
 /* The "+N more" list, a small card at the end of the page's body. */
 html.dark .rbc-overlay {
   background-color: var(--ou-surface-primary);
@@ -1674,4 +1685,22 @@ html.dark [data-ou-logo-plate] {
   .ou-animate-pop-in {
     animation: ou-pop-in 120ms ease-out;
   }
+}
+
+/*
+ * A spinner's arc, and any top border drawn in a colour of its own
+ * (border-t-*), over a border colour the rules above re-colour: their
+ * border-color paints all four sides, so the arc took the track's colour,
+ * and a ring that is one colour all round does not look like it turns.
+ * Last in the sheet, so they win over every remap above.
+ */
+html.dark .border-t-indigo-500,
+html.dark .border-t-indigo-600 {
+  border-top-color: #a5b4fc !important;
+}
+
+html.dark .border-t-gray-400,
+html.dark .border-t-gray-500,
+html.dark .border-t-gray-600 {
+  border-top-color: var(--ou-text-muted) !important;
 }

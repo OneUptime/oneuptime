@@ -55,15 +55,16 @@ Meddelelser beskrives i [Abonnenter og meddelelser](/docs/status-pages/subscribe
 | Sektion       | Hvad du gør der                                                                                                            |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Oversigt**  | **Alle begivenheder** og **Igangværende hændelser**, hvis mærke tæller de begivenheder, der står på lige nu.                |
+| **Kalender** | **Vedligeholdelseskalender**: hver begivenhed på en måned, en uge eller en dag, ved siden af de kalendere uden for projektet, du tilføjer. |
 | **Arbejdsområde** | **Slack** og **Microsoft Teams**, alt efter hvad projektet har forbundet, eller **Forbind Slack eller Teams**, når det ikke har nogen af dem. |
 | **Regler**    | **Ejerregler**, **Runbook-regler**, **Etiketregler**, **Reminder Rules**.                                                   |
-| **Indstillinger** | **Begivenhedsstatus**, **Begivenhedsskabeloner**, **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger**, **Nummerering**. |
+| **Indstillinger** | **Begivenhedsstatus**, **Begivenhedsskabeloner**, **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger**, **Kalenderindstillinger**, **Nummerering**. |
 
-**Oversigt** er åben; **Arbejdsområde**, **Regler**, **Indstillinger** og **Udvikler** starter foldet sammen, og en sektion åbner af sig selv, når du er på en af dens sider. **Udvikler** rummer **Terraform**, **API** og **AI-assistenter** til at styre vedligeholdelse fra kode. Alt om vedligeholdelse ligger her, ikke i **Projektindstillinger**.
+**Oversigt** og **Kalender** er åbne; **Arbejdsområde**, **Regler**, **Indstillinger** og **Udvikler** starter foldet sammen, og en sektion åbner af sig selv, når du er på en af dens sider. **Udvikler** rummer **Terraform**, **API** og **AI-assistenter** til at styre vedligeholdelse fra kode. Alt om vedligeholdelse ligger her, ikke i **Projektindstillinger**.
 
 Listen viser **Nummer for planlagt vedligeholdelse**, **Titel**, **Aktuel tilstand**, **Berørte ressourcer**, **Vist på statusside**, **Begynder den**, **Varighed**, **Slutter den**, **Etiketter** og **Ejere**. Vælg begivenheder for at handle på flere ad gangen: **Skift tilstand**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner** eller **Slet**.
 
-**Liste** og **Kalender** i højre ende af listens filterlinje viser de samme begivenheder som en tabel eller på en måned, en uge eller en dag. Se [Vedligeholdelseskalender](/docs/scheduled-maintenance/calendar).
+**Vedligeholdelseskalender** i sektionen **Kalender** viser de samme begivenheder på en måned, en uge eller en dag og kan vise kalendere uden for projektet ved siden af. Se [Vedligeholdelseskalender](/docs/scheduled-maintenance/calendar).
 
 ## Hvad en begivenhed påvirker
 

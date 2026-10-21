@@ -598,10 +598,34 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     updateMenuPosition();
     window.addEventListener("resize", schedulePositionUpdate);
     document.addEventListener("scroll", schedulePositionUpdate, true);
+    /*
+     * The control can move or change size after the menu was placed with
+     * nothing scrolled or resized: a dialog that opens on a dropdown with
+     * the focus scales in (the menu was placed against its smaller, moving
+     * frame), and a class's styles can arrive a frame late - Code's Add
+     * context dialog opened its incident list half as wide again as the
+     * field, out past the dialog. The menu follows the control: when a
+     * transition ends, and when the control's size changes.
+     */
+    document.addEventListener("transitionend", schedulePositionUpdate, true);
+    const resizeObserver: ResizeObserver | null =
+      typeof window.ResizeObserver === "function" && controlRef.current
+        ? new window.ResizeObserver(schedulePositionUpdate)
+        : null;
+
+    if (resizeObserver && controlRef.current) {
+      resizeObserver.observe(controlRef.current);
+    }
 
     return () => {
       window.removeEventListener("resize", schedulePositionUpdate);
       document.removeEventListener("scroll", schedulePositionUpdate, true);
+      document.removeEventListener(
+        "transitionend",
+        schedulePositionUpdate,
+        true,
+      );
+      resizeObserver?.disconnect();
       if (animationFrame !== null) {
         window.cancelAnimationFrame(animationFrame);
       }

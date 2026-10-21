@@ -5,7 +5,7 @@ Un runbook si scrive come elenco ordinato di passaggi nella sua pagina **Passagg
 :::cards
 - [Creare un runbook](#creare-un-runbook): Da un runbook vuoto ai passaggi salvati.
 - [Tipi di passaggio](#tipi-di-passaggio): Manual, JavaScript, HTTP request, Bash, SSH, kubectl e AI.
-- [Gestione degli errori e approvazioni](#gestione-degli-errori-e-approvazioni): Cosa succede dopo che un passaggio fallisce o riesce.
+- [Gestione degli errori e approvazioni](#gestione-degli-errori-e-approvazioni): Cosa succede quando un passaggio fallisce o attende un'approvazione.
 - [Un esempio completo](#un-esempio-completo): Un failover del database in cinque passaggi.
 :::
 
@@ -47,9 +47,9 @@ Ogni passaggio ha questi campi. Un passaggio automatico mostra il suo **Titolo**
 | Campo | Scopo |
 | --- | --- |
 | **Titolo** | Un'etichetta breve, mostrata nell'elenco dei passaggi e in ogni esecuzione. |
-| **Descrizione** | Contesto facoltativo per chi interviene, in Markdown, in **Altri campi**. In un passaggio Manual è l'istruzione che quella persona legge, mostrata sotto il titolo. |
+| **Descrizione** | Contesto facoltativo per chi interviene, in Markdown, in **Altri campi**. In un passaggio Manual sono le **Istruzioni** che quella persona legge e segue, mostrate sotto il titolo. |
 | **Continua in caso di errore** | Solo passaggi automatici. Se attivo, un passaggio che fallisce non ferma l'esecuzione: il passaggio successivo viene eseguito comunque. |
-| **Richiedi approvazione** | Solo passaggi automatici. Se attivo, il runbook si mette in pausa dopo questo passaggio e attende che una persona approvi prima di eseguire il successivo. L'interruttore si chiama **Richiedi approvazione prima di eseguire il passaggio successivo**. |
+| **Richiedi approvazione** | Solo passaggi automatici. Se attivo, l'esecuzione si ferma prima di questo passaggio finché qualcuno non lo approva, e solo allora lo esegue. L'interruttore si chiama **Richiedi approvazione prima di eseguire questo passaggio**, e l'intestazione del passaggio mostra **Richiede approvazione**. |
 | Impostazioni specifiche del tipo | Lo script, l'URL, il Runner, una variabile segreta o il prompt. Vedi [Tipi di passaggio](#tipi-di-passaggio). |
 
 ## Tipi di passaggio
@@ -64,11 +64,11 @@ Ogni passaggio ha questi campi. Un passaggio automatico mostra il suo **Titolo**
 | [kubectl](#kubectl) | Un Runner | Un Runner, e una variabile kubeconfig o l'accesso proprio del Runner |
 | [AI](#ai) | Il Worker di OneUptime | Un provider LLM |
 
-In ogni passaggio qui sotto, i timeout, la **Descrizione**, **Continua in caso di errore** e **Richiedi approvazione** si trovano in **Altri campi** del passaggio, come il provider e gli interruttori di contesto di un passaggio di IA.
+In ogni passaggio automatico qui sotto, **Altri campi** del passaggio contiene prima **Richiedi approvazione** e **Continua in caso di errore**, poi le impostazioni proprie del passaggio - gli header di una chiamata HTTP, la porta e la passphrase della chiave di un passaggio SSH, il provider e gli interruttori di contesto di un passaggio di IA - e infine la **Descrizione** e i timeout.
 
 ### Manual
 
-Una voce di checklist per una persona. L'esecuzione si mette in pausa quando raggiunge un passaggio Manual e resta in `WaitingForManualStep` (**In attesa di te**) finché qualcuno non fa clic su **Mark complete** o **Salta**. Un'esecuzione che attende una persona non scade mai.
+Una voce di checklist per una persona: le sue **Istruzioni** dicono cosa fare o verificare. L'esecuzione si mette in pausa quando raggiunge un passaggio Manual e resta in `WaitingForManualStep` (**In attesa di te**) finché qualcuno non fa clic su **Segna come completato** o **Salta**. Un'esecuzione che attende una persona non scade mai. Un passaggio Manual non ha un interruttore di approvazione: ferma già l'esecuzione per una persona.
 
 Usalo per ciò che solo una persona può verificare o fare: «Conferma nella dashboard del bilanciatore di carico che il traffico è passato alla regione secondaria.»
 
@@ -100,8 +100,8 @@ Una chiamata HTTP in uscita, effettuata dal Worker di OneUptime. Non serve alcun
 | --- | --- | --- |
 | **Method** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` o `HEAD`. | `GET` |
 | **URL** | L'endpoint da chiamare. | Vuoto |
-| **Headers (JSON)** | Un oggetto JSON, ad esempio `{ "Authorization": "Bearer ..." }`. Header che non sono JSON valido fanno fallire il passaggio. | Nessuno |
-| **Body** | Inviato come JSON se è interpretabile come JSON, altrimenti come testo. | Nessuno |
+| **Headers (JSON)** | In **Altri campi**. Un oggetto JSON, ad esempio `{ "Authorization": "Bearer ..." }`. Header che non sono JSON valido fanno fallire il passaggio. | Nessuno |
+| **Body** | Mostrato per `POST`, `PUT`, `PATCH` e `DELETE`. Inviato come JSON se è interpretabile come JSON, altrimenti come testo. | Nessuno |
 | **Request timeout** | Quanto attendere la risposta dell'endpoint prima di far fallire il passaggio. | 30 secondi |
 
 Il passaggio riesce con una risposta `2xx` o `3xx` e fallisce con qualsiasi altra, con `HTTP <status>` come errore. I reindirizzamenti non vengono seguiti. Stato, header e corpo della risposta vengono acquisiti, fino a 50 KB.
@@ -194,7 +194,7 @@ Chiedi all'IA di analizzare, riassumere o decidere qualcosa durante l'esecuzione
 | **Include previous step context** | Se attivo, l'IA vede tutto dei passaggi eseguiti prima di questo: titolo, tipo, stato, output e messaggi di errore. Riceve fino a 4.000 caratteri dell'output di ogni passaggio. |
 | **Include trigger context** | Se attivo, l'IA vede cosa ha avviato l'esecuzione: l'incidente, l'avviso o l'evento di manutenzione programmata collegato (descrizione, gravità, stato attuale, monitor coinvolti, causa principale, cronologia degli stati e note pubbliche), oppure chi ha avviato il runbook a mano. |
 
-Abbina un passaggio IA a **Richiedi approvazione** per tenere una persona nel processo: l'IA analizza, qualcuno legge la risposta e approva, e solo allora viene eseguito il passaggio successivo (di rimedio).
+Per tenere una persona nel processo, attiva **Richiedi approvazione** sul passaggio che segue un passaggio IA: l'IA analizza, qualcuno legge la risposta, e il passaggio di rimedio viene eseguito solo dopo che quella persona lo ha approvato.
 
 **Cosa l'IA non vede mai.** La risposta di un passaggio IA viene salvata come output del passaggio sull'esecuzione, e le esecuzioni sono leggibili da chiunque abbia il permesso di leggere i runbook, un pubblico più ampio di quello dell'incidente. Per questo il contesto del trigger esclude le **note interne private** e i **messaggi dei canali Slack e Microsoft Teams**. L'output dei passaggi precedenti viene analizzato alla ricerca di segreti (token, chiavi, credenziali), che vengono oscurati prima dell'invio al modello. Anche le immagini incorporate e i dati codificati lunghi, come uno screenshot incollato nella descrizione di un incidente, vengono esclusi, con una breve nota al loro posto.
 
@@ -202,19 +202,27 @@ I passaggi IA vengono misurati e fatturati come qualsiasi altra funzione di IA. 
 
 ## Gestione degli errori e approvazioni
 
-```mermaid title="Cosa succede dopo un passaggio automatico"
+```mermaid title="Cosa succede a un passaggio automatico"
 flowchart TB
-    run["Viene eseguito<br/>un passaggio<br/>automatico"] --> ok{"Riuscito?"}
-    ok -->|"sì"| approval{"Richiedi<br/>approvazione<br/>attivo?"}
+    reach["L'esecuzione<br/>raggiunge un<br/>passaggio automatico"] --> approval{"Richiedi<br/>approvazione<br/>attivo?"}
     approval -->|"sì"| wait["L'esecuzione<br/>attende<br/>l'approvazione<br/>di una persona"]
-    approval -->|"no"| next["Viene eseguito<br/>il passaggio<br/>successivo"]
-    wait --> next
+    wait -->|"approvato"| run["Il passaggio<br/>viene eseguito"]
+    approval -->|"no"| run
+    wait -->|"saltato"| next["Passaggio successivo"]
+    run --> ok{"Riuscito?"}
+    ok -->|"sì"| next
     ok -->|"no"| cont{"Continua in caso<br/>di errore attivo?"}
     cont -->|"sì"| next
     cont -->|"no"| failed["L'esecuzione<br/>si ferma come<br/>non riuscita"]
 ```
 
-Per impostazione predefinita, un passaggio che fallisce interrompe l'esecuzione e la segna come `Failed`, con l'errore del passaggio come motivo. Con **Continua in caso di errore** attivo, l'errore viene registrato e il passaggio successivo viene eseguito, il che si addice ai runbook del tipo «prova queste tre cose, poi avvisa». **Richiedi approvazione** si applica dopo che un passaggio è riuscito: l'esecuzione attende su quel passaggio finché qualcuno non fa clic su **Approve & continue** o **Salta**.
+Per impostazione predefinita, un passaggio che fallisce interrompe l'esecuzione e la segna come `Failed`, con l'errore del passaggio come motivo. Con **Continua in caso di errore** attivo, l'errore viene registrato e il passaggio successivo viene eseguito, il che si addice ai runbook del tipo «prova queste tre cose, poi avvisa».
+
+**Richiedi approvazione** si applica prima che un passaggio venga eseguito, qualunque cosa sia successa prima: l'esecuzione attende finché qualcuno non fa clic su **Approva ed esegui**, e il passaggio viene eseguito, o su **Salta**, e non viene mai eseguito. Attivalo sul passaggio che cambia qualcosa - il riavvio, il failover, la riduzione delle risorse - così che una persona guardi prima cosa hanno trovato i passaggi precedenti. L'approvazione appartiene al passaggio, quindi spostando il passaggio si sposta anche lei.
+
+:::note
+Tramite l'API e Terraform, l'interruttore è il campo `requireApprovalBeforeRunning` di un passaggio. Il campo `requireApproval` di un passaggio, che i runbook scrivevano prima che le approvazioni passassero al passaggio che proteggono, funziona ancora e significa ciò che significava: un'approvazione dopo quel passaggio. OneUptime lo legge come un'approvazione prima del passaggio successivo o, dopo l'ultimo passaggio, come un passaggio Manual alla fine, intitolato **Approve the result**.
+:::
 
 ## Salvare e modificare
 

@@ -210,6 +210,10 @@ jobs:
           # and Navigation Search (about 8 minutes together) moved here from
           # group 3 when the Probe Status specs in Monitor Overview and the
           # docs' diagrams took group 3 from 25.5 minutes past the job's 30.
+          # Runbook Steps (about 35 seconds locally with its bundle, Chromium
+          # only: a runbook's Steps page and a run's execution page) joined it
+          # on 2026-10-20, when it took 17.6 to 19.2 minutes: group 3, beside
+          # Runbook Variables, had reached 25 and group 7 about 18.
           - group: 2
             browsers: chromium firefox
             suites: >-
@@ -221,6 +225,7 @@ jobs:
               test-color-picker-ui
               test-diagrams-ui
               test-navigation-search-ui
+              test-runbook-steps-ui
           # Value Picker also runs in Firefox (the chip editor's caret handling
           # differs in each). Discovery (about 5 minutes) moved to group 6
           # when this group took 23.5 minutes. Global Runners (about a
@@ -286,7 +291,11 @@ jobs:
           # Discovery from group 3, Status Page Theme from group 1 and Calendar
           # Feed from group 4. All Chromium. Postmortem Rules (about 2
           # minutes) joined it at 15.3 to 20.5 minutes on 2026-10-19's runs,
-          # the lightest of the groups that hold several suites.
+          # the lightest of the groups that hold several suites. Maintenance
+          # Calendar grew by 22 specs on 2026-10-20 (the calendar's own page,
+          # its external calendars and Calendar Settings): about 45 seconds
+          # more locally, 2 minutes 10 with its bundle, after Custom Roles
+          # (about 3 minutes) had left for group 7 the same day.
           - group: 6
             browsers: chromium
             suites: >-
@@ -330,6 +339,21 @@ jobs:
               test-public-dashboard-theme-ui
               test-dashboard-templates-ui
               test-external-mcp-servers-ui
+          # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
+          # dashboard's default time range and auto-refresh inside OneUptime
+          # and on its public page, at a laptop's width and, for what a phone
+          # changes, a phone's, Chromium only) would have taken group 7 to
+          # about 21.5 minutes on 2026-10-20, so it opened a group of its own,
+          # with room for the next suites. Dashboard Widget Sort (about a
+          # minute with its bundle locally: click-to-sort on the list and table
+          # widgets inside OneUptime and on the public page, at a laptop's and
+          # a phone's width, Chromium only) joined it the same day: about 4.5
+          # minutes for the two.
+          - group: 8
+            browsers: chromium
+            suites: >-
+              test-dashboard-time-range-ui
+              test-dashboard-widget-sort-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -471,6 +495,8 @@ jobs:
             output/playwright/external-mcp-servers-ui/test-results
             output/playwright/runbook-variables-ui/*.png
             output/playwright/runbook-variables-ui/test-results
+            output/playwright/runbook-steps-ui/*.png
+            output/playwright/runbook-steps-ui/test-results
             output/playwright/network-first-run-ui/*.png
             output/playwright/network-first-run-ui/test-results
             output/playwright/code-ui/*.png
@@ -502,4 +528,8 @@ jobs:
             output/playwright/profiles-ui/test-results
             output/playwright/dashboard-templates-ui/*.png
             output/playwright/dashboard-templates-ui/test-results
+            output/playwright/dashboard-time-range-ui/*.png
+            output/playwright/dashboard-time-range-ui/test-results
+            output/playwright/dashboard-widget-sort-ui/*.png
+            output/playwright/dashboard-widget-sort-ui/test-results
           retention-days: 7

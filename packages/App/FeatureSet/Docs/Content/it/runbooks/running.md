@@ -33,7 +33,7 @@ stateDiagram-v2
     Cancelled --> [*]
 ```
 
-Una nuova esecuzione è **Programmato** finché un Worker non la prende in carico e la segna **In esecuzione**. Si mette in pausa come **In attesa di te** su un passaggio Manual, o dopo un passaggio che richiede approvazione, e torna in coda appena qualcuno agisce. Un'esecuzione che attende una persona non scade mai. Termina come **Completato**, **Non riuscito** o **Annullato**.
+Una nuova esecuzione è **Programmato** finché un Worker non la prende in carico e la segna **In esecuzione**. Si mette in pausa come **In attesa di te** su un passaggio Manual, o prima di un passaggio che richiede approvazione, e torna in coda appena qualcuno agisce. Un'esecuzione che attende una persona non scade mai. Termina come **Completato**, **Non riuscito** o **Annullato**.
 
 ## Avviare un'esecuzione
 
@@ -64,18 +64,19 @@ Avviare un'esecuzione richiede Project Owner, Project Admin, Project Member, Run
 
 Apri un'esecuzione qualsiasi per vederne la checklist. In alto la pagina mostra lo **Stato** dell'esecuzione, il suo **Progress** (passaggi fatti sul totale), **Iniziata** (quando è partita) e **Attivato da** (cosa l'ha avviata). Ogni passaggio mostra:
 
-- **Etichetta di stato** — In sospeso, In esecuzione, In attesa di te, Fatto, Saltato, Non riuscito o Annullato.
+- **Etichetta di stato** — In sospeso, In esecuzione, In attesa di te, In attesa di approvazione, Fatto, Saltato, Non riuscito o Annullato.
 - **Titolo e descrizione** — copiati dal runbook al momento dell'esecuzione.
 - **Output** (comprimibile) — stdout, valori di ritorno, risposte HTTP o la risposta dell'IA.
 - **Messaggio di errore** se il passaggio è fallito.
-- Sul passaggio che l'esecuzione attende: **Mark complete** (un passaggio Manual) o **Approve & continue** (un passaggio con **Richiedi approvazione**), e **Salta**.
+- Sul passaggio che l'esecuzione attende: **Segna come completato** (un passaggio Manual) o **Approva ed esegui** (un passaggio con **Richiedi approvazione**, non ancora eseguito), e **Salta**.
+- **Approvato da** su un passaggio che ha atteso un'approvazione, una volta eseguito.
 - Mentre l'esecuzione è in pausa, **Salta** sui passaggi automatici successivi che non richiedono approvazione.
 
 Mentre l'esecuzione è in corso, la pagina si aggiorna da sola ogni 30 secondi. Fai clic su **Aggiorna** per vedere subito lo stato più recente.
 
 ## Completare, approvare e saltare i passaggi
 
-Solo il passaggio che l'esecuzione attende può essere segnato come completato, approvato o saltato per far proseguire l'esecuzione. Un passaggio Manual o un passaggio con **Richiedi approvazione** non può essere spuntato o saltato prima che l'esecuzione lo raggiunga: il suo compito è fermare l'esecuzione, quindi accetta una decisione solo quando l'esecuzione è arrivata lì (per un'approvazione, quando il passaggio è stato eseguito e puoi vederne l'output).
+Solo il passaggio che l'esecuzione attende può essere segnato come completato, approvato o saltato per far proseguire l'esecuzione. Un passaggio Manual o un passaggio con **Richiedi approvazione** non può essere spuntato o saltato prima che l'esecuzione lo raggiunga: il suo compito è fermare l'esecuzione, quindi accetta una decisione solo quando l'esecuzione è arrivata lì. Un passaggio con **Richiedi approvazione** attende prima di essere eseguito, quindi leggi prima cosa hanno trovato i passaggi precedenti: **Approva ed esegui** lo esegue, **Salta** gli impedisce di essere eseguito, e in entrambi i casi l'esecuzione prosegue. Un'esecuzione avviata prima che le approvazioni passassero al passaggio che proteggono attende invece dopo un passaggio del genere, una volta eseguito: **Approva e continua** fa proseguire quell'esecuzione.
 
 Mentre l'esecuzione è in pausa, puoi anche saltare un passaggio automatico successivo che non richiede approvazione, così non verrà eseguito quando l'esecuzione riprende. L'esecuzione resta in pausa sul passaggio che ti attende. Non puoi saltare mentre ci sono passaggi in esecuzione: attendi la pausa o annulla l'esecuzione. Ogni passaggio registra chi l'ha completato o saltato.
 
@@ -95,7 +96,7 @@ Il flusso classico:
 | # | Passaggio | Cosa succede |
 | --- | --- | --- |
 | 1 | Bash: acquisire lo stato del sistema | Viene eseguito sul suo Runner appena parte l'esecuzione. |
-| 2 | Manual: «Avvisa i clienti con il banner della pagina di stato.» | L'esecuzione si mette in pausa finché qualcuno non fa clic su **Mark complete**. |
+| 2 | Manual: «Avvisa i clienti con il banner della pagina di stato.» | L'esecuzione si mette in pausa finché qualcuno non fa clic su **Segna come completato**. |
 | 3 | HTTP request: chiamare il DBA tramite PagerDuty | Viene eseguito sul Worker. |
 | 4 | Manual: «Conferma che il database secondario è ora il primario.» | L'esecuzione si rimette in pausa. |
 | 5 | HTTP request: pubblicare il cessato allarme su un webhook Slack | Viene eseguito e l'esecuzione risulta **Completato**. |
@@ -145,7 +146,7 @@ Il messaggio dice "No runbook agent picked up this step before the wait window e
 :::
 
 :::details L'esecuzione aspetta da ore
-Un'esecuzione che attende una persona non scade mai. Aprila e agisci sul passaggio segnato **In attesa di te**, oppure fai clic su **Annulla esecuzione**.
+Un'esecuzione che attende una persona non scade mai. Aprila e agisci sul passaggio segnato **In attesa di te** o **In attesa di approvazione**, oppure fai clic su **Annulla esecuzione**.
 :::
 
 :::details Un passaggio dice che potrebbe essere stato eseguito in parte

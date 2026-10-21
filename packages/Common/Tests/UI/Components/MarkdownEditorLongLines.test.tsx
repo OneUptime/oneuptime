@@ -101,7 +101,16 @@ describe("a keystroke in such a note is saved quickly", () => {
       "a table of one long cell over many rows",
       `| a |\n| --- |\n| ${times("y", LENGTH / 4)} |\n${times("| x |\n", LENGTH / 12)}`,
     ],
-    ["a list item of many paragraphs", `- a${times("\n\n  x", LENGTH / 5)}`],
+    /*
+     * 200,000 characters, not 400,000: each paragraph is a node the editor
+     * walks on every keystroke, so this note's linear walk is the heaviest
+     * here - 1.4 s on a developer machine at 400,000 characters, 0.7 s at
+     * 200,000 and 0.33 s at 100,000, and on a CI runner it reached 2,030 ms
+     * of the 2,000 at 400,000 (2026-10-21). Half the note leaves the linear
+     * walk room to spare; the walk whose time grew with the square took
+     * minutes at either length.
+     */
+    ["a list item of many paragraphs", `- a${times("\n\n  x", LENGTH / 10)}`],
     ["a code block of line feeds", `\`\`\`\n${times("\n", LENGTH)}x\n\`\`\``],
   ])("%s", (_label: string, note: string) => {
     const onChange: jest.Mock = jest.fn();

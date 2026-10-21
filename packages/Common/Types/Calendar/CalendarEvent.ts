@@ -25,4 +25,10 @@ export default interface CalendarEvent extends JSONObject {
    * the generic component learning what an override is.
    */
   className?: string | undefined;
+  /*
+   * How this block is painted, when it is not as the calendar paints the
+   * rest (Calendar's eventAppearance): "overlay" for an event from another
+   * calendar drawn beside the page's own (CalendarEventTone).
+   */
+  appearance?: "solid" | "soft" | "overlay" | undefined;
 }

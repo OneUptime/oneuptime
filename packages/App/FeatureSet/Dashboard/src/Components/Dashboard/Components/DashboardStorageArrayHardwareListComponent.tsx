@@ -10,7 +10,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import StorageArrayResource from "Common/Models/DatabaseModels/StorageArrayResource";
 import StorageArrayResourceKind from "Common/Types/StorageArray/StorageArrayResourceKind";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -57,11 +57,11 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Component", widthPct: "24%" },
-  { label: "Type", widthPct: "20%" },
-  { label: "Status", widthPct: "18%" },
+  { label: "Component", widthPct: "24%", sortKey: "name" },
+  { label: "Type", widthPct: "20%", sortKey: "type" },
+  { label: "Status", widthPct: "18%", sortKey: "status" },
   { label: "Detail", widthPct: "20%" },
-  { label: "Array", widthPct: "18%" },
+  { label: "Array", widthPct: "18%", sortKey: "array" },
 ];
 
 /*
@@ -248,7 +248,8 @@ const DashboardStorageArrayHardwareListComponentElement: FunctionComponent<
       maxRows={args.maxRows || 25}
       query={query}
       select={BASE_SELECT}
-      sort={{ name: SortOrder.Ascending }}
+      componentType={DashboardComponentType.StorageArrayHardwareList}
+      widgetProps={props}
       refreshTick={props.refreshTick}
       variables={props.variables}
       attributeToColumn={ATTRIBUTE_TO_COLUMN}

@@ -1759,11 +1759,15 @@ describe("PublicDashboardResourceListPolicy", () => {
       });
       expect(result.limit).toBe(7);
       expect(result.sort).toEqual({ name: SortOrder.Ascending });
+      /*
+       * The status's priority is read too (issue #5082): the Status column
+       * sorts by it, and an ordered list must select what it is ordered by.
+       */
       expect(result.select).toEqual({
         _id: true,
         name: true,
         monitorType: true,
-        currentMonitorStatus: { name: true, color: true },
+        currentMonitorStatus: { name: true, color: true, priority: true },
       });
     });
 

@@ -45,7 +45,7 @@ Os modelos, pela categoria em que o seletor os lista:
 
 ## Editar e salvar
 
-Um painel abre no modo de leitura. Para alterá-lo, abra o menu **⋯** da barra de ferramentas dele e escolha **Edit Dashboard**. A barra de ferramentas mostra **Editing** ao lado do nome e troca o intervalo de tempo e os outros controles por **Adicionar widget**, **Variáveis**, **Cancelar** e **Salvar alterações**.
+Um painel abre no modo de leitura. Para alterá-lo, abra o menu **⋯** da barra de ferramentas dele e escolha **Edit Dashboard**. A barra de ferramentas mostra **Editing** ao lado do nome e troca o intervalo de tempo e os outros controles por **Adicionar widget**, **Variáveis**, **Cancelar** e **Salvar alterações**, com uma linha abaixo para o **Período padrão** e a **Atualização automática padrão** do painel.
 
 ```mermaid title="Da leitura de um painel à edição dele, e de volta"
 flowchart TB
@@ -58,7 +58,7 @@ flowchart TB
 
 Suas alterações são só suas até você salvá-las. Nada é salvo enquanto você edita, então as outras pessoas continuam vendo o painel como ele estava.
 
-- **Salvar alterações** salva os widgets, suas posições e tamanhos, as variáveis e o intervalo de atualização automática, tudo de uma vez, e volta ao modo de leitura. Se o salvamento for recusado, por exemplo porque você perdeu a permissão nesse meio-tempo, você continua no modo de edição com suas alterações, e o motivo aparece acima da grade.
+- **Salvar alterações** salva os widgets, suas posições e tamanhos, as variáveis, e o período e a atualização automática padrão, tudo de uma vez, e volta ao modo de leitura. Se o salvamento for recusado, por exemplo porque você perdeu a permissão nesse meio-tempo, você continua no modo de edição com suas alterações, e o motivo aparece acima da grade.
 - **Cancelar** pergunta antes, porque descarta suas alterações: **Descartar alterações** volta ao painel como ele foi salvo, e **Continuar Editando** devolve você ao seu trabalho.
 
 Durante a edição, a atualização automática fica em pausa, e um intervalo de tempo com zoom volta ao intervalo que você escolheu.
@@ -98,13 +98,25 @@ Para alterar um widget depois, clique nele durante a edição. As configuraçõe
 
 ## Intervalo de tempo e atualização automática
 
-No modo de leitura, o seletor de intervalo de tempo da barra de ferramentas define a janela que todos os widgets de gráfico, número, log e trace leem. Escolha uma predefinição, dos últimos 5 minutos aos últimos 3 meses, ou um início e um fim personalizados. Cada vez que o painel é aberto, ele começa na última hora.
+No modo de leitura, o seletor de intervalo de tempo da barra de ferramentas define a janela que todos os widgets de gráfico, número, log e trace leem. Escolha uma predefinição, dos últimos 5 minutos aos últimos 3 meses, ou um início e um fim personalizados. O painel abre no seu período padrão: a última hora, a menos que quem o edita defina outro.
 
 As listas de incidentes, alertas, monitores e recursos mostram o estado atual, seja qual for o intervalo de tempo.
 
-Ao lado do intervalo de tempo, o menu de atualização automática lê cada widget de novo a cada 5 segundos, 10 segundos, 30 segundos, 1 minuto, 5 minutos ou 15 minutos, com uma contagem regressiva até a próxima atualização. Deixe-a desligada enquanto investiga, para a visualização ficar parada. Para tornar um intervalo o padrão do painel, escolha-o, depois edite o painel e clique em **Salvar alterações**: toda visita passa a começar com ele.
+Ao lado do intervalo de tempo, o menu de atualização automática lê cada widget de novo a cada 5 segundos, 10 segundos, 30 segundos, 1 minuto, 5 minutos ou 15 minutos, com uma contagem regressiva até a próxima atualização. Deixe-a desligada enquanto investiga, para a visualização ficar parada. O painel abre com a sua atualização automática padrão: desligada, a menos que quem o edita defina outra.
 
 O seletor de intervalo de tempo, as variáveis e a atualização automática aparecem assim que o painel tem um widget.
+
+### Os padrões do painel
+
+Enquanto você edita o painel, a linha abaixo dos botões da barra de ferramentas define com o que todos o abrem: **Período padrão**, uma predefinição dos últimos 5 minutos aos últimos 3 meses, e **Atualização automática padrão**. **Salvar alterações** os salva com o resto do painel, tanto para a sua equipe quanto para os visitantes do link público dele. Um início e um fim personalizados não podem ser um padrão: o painel ficaria parado naquele momento para sempre. A linha aparece assim que o painel tem um widget.
+
+Os painéis salvos antes dessas configurações abrem na última hora, com a atualização automática que tinham. Pela API e pelo Terraform, os dois ficam no `dashboardViewConfig` do painel: `timeRange`, uma predefinição escrita como na referência da API, por exemplo `Past 1 Day`, e `refreshInterval`, por exemplo `1m`. Qualquer outro valor é recusado.
+
+### As suas escolhas
+
+O intervalo de tempo e a atualização automática que você escolhe no modo de leitura são só seus, e o seu navegador os lembra para cada painel: um recarregamento, um reinício do navegador ou o de uma tela de parede abre o painel como você o deixou. Só uma predefinição é lembrada. Um intervalo personalizado ou um zoom dura até você sair da página, para que o painel nunca fique parado num momento passado.
+
+A primeira opção de cada seletor mostra o padrão do painel, como em Padrão (Past 1 Day). Escolha-a para voltar ao padrão: o navegador esquece a sua escolha, e o painel volta a seguir o seu padrão, mesmo quando alguém o muda depois. Quando você mesmo salva novos padrões, já os vê na hora.
 
 ### Aplicar zoom em um pico
 

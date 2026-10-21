@@ -19,7 +19,6 @@ import {
   getSloListStatusFilterQuery,
   SLO_LIST_ATTRIBUTE_TO_COLUMN,
   SLO_LIST_DEFAULT_MAX_ROWS,
-  SLO_LIST_SORT,
   SLO_LIST_STATUS_FILTER_VALUES,
 } from "../../../Utils/Slo/SloListWidgetFormat";
 import {
@@ -36,6 +35,18 @@ import {
   STORAGE_ARRAY_HARDWARE_WIDGET_KINDS,
   STORAGE_ARRAY_UNHEALTHY_COMPONENT_STATUSES,
 } from "../../../Utils/Dashboard/Components/DashboardStorageArrayResourceListShared";
+import {
+  DashboardWidgetSortChoice,
+  readDashboardWidgetSortChoiceForColumns,
+} from "../../../Types/Dashboard/DashboardWidgetSort";
+import {
+  getDashboardWidgetEffectiveSort,
+  getDashboardWidgetListSort,
+  getDashboardWidgetSortColumns,
+  getDashboardWidgetSortSpec,
+  readDashboardWidgetSavedSort,
+  withDashboardWidgetListSortSelect,
+} from "../../../Utils/Dashboard/DashboardWidgetSorts";
 
 /*
  * An incident or alert list's "Unresolved", "Resolved" or "Acknowledged"
@@ -57,6 +68,15 @@ export interface PublicDashboardResourceListPolicyResult {
   sort: JSONObject;
   limit: number;
   resolvedStateFilter?: PublicDashboardResolvedStateFilter | undefined;
+  /*
+   * The order the list is read in, for a widget the sort registry orders
+   * (Utils/Dashboard/DashboardWidgetSorts): the viewer's pick when it names
+   * one of the widget's sortable columns, else the widget's own sort, else
+   * the order it always had. `sort` is its database order; a status read
+   * rank by rank is read with getDashboardWidgetListReadSteps. Null for any
+   * other widget.
+   */
+  sortChoice: DashboardWidgetSortChoice | null;
 }
 
 export interface BuildPublicDashboardResourceListPolicyData {
@@ -64,12 +84,20 @@ export interface BuildPublicDashboardResourceListPolicyData {
   dashboardViewConfig: unknown;
   requestedVariables: unknown;
   requestedQuery: unknown;
+  /*
+   * The viewer's own sort from a header click (the request's `widgetSort`,
+   * "status:desc"). Taken only when it names one of the stored widget's
+   * own sortable columns; anything else - another column, another shape,
+   * a database order - is ignored, and the widget's own sort is used.
+   */
+  requestedSort?: unknown;
 }
 
 interface PolicyDraft {
   resourceType: string;
   query: Record<string, unknown>;
-  sort: JSONObject;
+  // Set for a widget the sort registry does not order.
+  sort?: JSONObject | undefined;
   limit: number;
   resolvedStateFilter?: PublicDashboardResolvedStateFilter | undefined;
   attributeToColumn?: AttributeToColumnMap | undefined;
@@ -219,6 +247,13 @@ const STORAGE_ARRAY_HARDWARE_ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
  * Produces the complete server-owned policy for one already-selected public
  * dashboard widget. No caller-supplied project, kind, filter, sort, or limit is
  * copied. The route adds the dashboard's projectId after this policy returns.
+ *
+ * The one thing a request may name is a viewer's sort from a header click
+ * (issue #5082): a column and a direction, taken only when the column is one
+ * of the stored widget's own sortable columns (Utils/Dashboard/
+ * DashboardWidgetSorts). The database order it means is built here from that
+ * registry, so a request can reorder a list by the columns the widget shows
+ * and by nothing else.
  */
 export default class PublicDashboardResourceListPolicy {
   public static build(
@@ -285,18 +320,67 @@ export default class PublicDashboardResourceListPolicy {
       }
     }
 
+    /*
+     * The order: for a widget the sort registry orders, the viewer's pick
+     * when it is one of the widget's own sortable columns, else the
+     * widget's own sort, else the order it always had - never a database
+     * order the request names. Its select gains the related fields that
+     * order reads (a status's place in the project's list).
+     */
+    const sortChoice: DashboardWidgetSortChoice | null =
+      PublicDashboardResourceListPolicy.getSortChoice({
+        componentType,
+        argumentsObject,
+        requestedSort: data.requestedSort,
+      });
+
+    const select: JSONObject =
+      PublicDashboardResourceListPolicy.selectForComponent(
+        componentType as DashboardComponentType,
+      );
+
     return {
       resourceType: draft.resourceType,
       query: query as JSONObject,
-      select: PublicDashboardResourceListPolicy.selectForComponent(
-        componentType as DashboardComponentType,
-      ),
-      sort: draft.sort,
+      select: sortChoice
+        ? withDashboardWidgetListSortSelect(componentType, select)
+        : select,
+      sort: sortChoice
+        ? getDashboardWidgetListSort(componentType, sortChoice)
+        : draft.sort || {},
       limit: draft.limit,
       ...(draft.resolvedStateFilter
         ? { resolvedStateFilter: draft.resolvedStateFilter }
         : {}),
+      sortChoice,
     };
+  }
+
+  /*
+   * The choice a public widget's list is ordered by, or null for a widget
+   * the sort registry does not order. A request's sort that names none of
+   * the widget's own sortable columns is ignored, as is a stored one.
+   */
+  private static getSortChoice(data: {
+    componentType: string;
+    argumentsObject: Record<string, unknown>;
+    requestedSort: unknown;
+  }): DashboardWidgetSortChoice | null {
+    if (!getDashboardWidgetSortSpec(data.componentType)) {
+      return null;
+    }
+
+    const requested: DashboardWidgetSortChoice | null =
+      readDashboardWidgetSortChoiceForColumns(
+        data.requestedSort,
+        getDashboardWidgetSortColumns(data.componentType),
+      );
+
+    return getDashboardWidgetEffectiveSort(
+      data.componentType,
+      requested ||
+        readDashboardWidgetSavedSort(data.componentType, data.argumentsObject),
+    );
   }
 
   /*
@@ -936,7 +1020,6 @@ export default class PublicDashboardResourceListPolicy {
     return PublicDashboardResourceListPolicy.listDraft({
       resourceType: "incident",
       query,
-      sort: { createdAt: SortOrder.Descending },
       argumentsObject,
       resolvedStateFilter:
         PublicDashboardResourceListPolicy.toResolvedStateFilter(stateFilter),
@@ -988,7 +1071,6 @@ export default class PublicDashboardResourceListPolicy {
         PublicDashboardResourceListPolicy.toResolvedStateFilter(stateFilter),
       resourceType: "alert",
       query,
-      sort: { createdAt: SortOrder.Descending },
       argumentsObject,
     });
   }
@@ -1043,7 +1125,6 @@ export default class PublicDashboardResourceListPolicy {
     return PublicDashboardResourceListPolicy.listDraft({
       resourceType: "monitor",
       query,
-      sort: { name: SortOrder.Ascending },
       argumentsObject,
     });
   }
@@ -1110,7 +1191,6 @@ export default class PublicDashboardResourceListPolicy {
       ...PublicDashboardResourceListPolicy.listDraft({
         resourceType: "host",
         query,
-        sort: { name: SortOrder.Ascending },
         argumentsObject,
       }),
       attributeToColumn: HOST_ATTRIBUTE_TO_COLUMN,
@@ -1183,10 +1263,6 @@ export default class PublicDashboardResourceListPolicy {
       ...PublicDashboardResourceListPolicy.listDraft({
         resourceType: "kubernetes-resource",
         query,
-        sort: {
-          namespaceKey: SortOrder.Ascending,
-          name: SortOrder.Ascending,
-        },
         argumentsObject,
       }),
       attributeToColumn: data.attributeToColumn,
@@ -1207,7 +1283,6 @@ export default class PublicDashboardResourceListPolicy {
       ...PublicDashboardResourceListPolicy.listDraft({
         resourceType: data.resourceType,
         query,
-        sort: { name: SortOrder.Ascending },
         argumentsObject: data.argumentsObject,
       }),
       attributeToColumn: HOST_NAME_ATTRIBUTE_TO_COLUMN,
@@ -1242,7 +1317,6 @@ export default class PublicDashboardResourceListPolicy {
       ...PublicDashboardResourceListPolicy.listDraft({
         resourceType: data.resourceType,
         query,
-        sort: { name: SortOrder.Ascending },
         argumentsObject: data.argumentsObject,
       }),
       attributeToColumn: CONTAINER_ATTRIBUTE_TO_COLUMN,
@@ -1277,7 +1351,6 @@ export default class PublicDashboardResourceListPolicy {
       ...PublicDashboardResourceListPolicy.listDraft({
         resourceType: data.resourceType,
         query,
-        sort: { name: SortOrder.Ascending },
         argumentsObject: data.argumentsObject,
       }),
       attributeToColumn: IMAGE_ATTRIBUTE_TO_COLUMN,
@@ -1302,7 +1375,6 @@ export default class PublicDashboardResourceListPolicy {
     return PublicDashboardResourceListPolicy.listDraft({
       resourceType: data.resourceType,
       query,
-      sort: { name: SortOrder.Ascending },
       argumentsObject: data.argumentsObject,
     });
   }
@@ -1334,7 +1406,6 @@ export default class PublicDashboardResourceListPolicy {
       ...PublicDashboardResourceListPolicy.listDraft({
         resourceType: "proxmox-resource",
         query,
-        sort: { name: SortOrder.Ascending },
         argumentsObject,
       }),
       attributeToColumn: PROXMOX_NODE_ATTRIBUTE_TO_COLUMN,
@@ -1377,7 +1448,6 @@ export default class PublicDashboardResourceListPolicy {
     return PublicDashboardResourceListPolicy.listDraft({
       resourceType: "proxmox-resource",
       query,
-      sort: { name: SortOrder.Ascending },
       argumentsObject,
     });
   }
@@ -1402,7 +1472,6 @@ export default class PublicDashboardResourceListPolicy {
       ...PublicDashboardResourceListPolicy.listDraft({
         resourceType: "vmware-resource",
         query,
-        sort: { name: SortOrder.Ascending },
         argumentsObject,
       }),
       attributeToColumn: VMWARE_HOST_ATTRIBUTE_TO_COLUMN,
@@ -1452,7 +1521,6 @@ export default class PublicDashboardResourceListPolicy {
       ...PublicDashboardResourceListPolicy.listDraft({
         resourceType: "vmware-resource",
         query,
-        sort: { name: SortOrder.Ascending },
         argumentsObject,
       }),
       attributeToColumn: VMWARE_VIRTUAL_MACHINE_ATTRIBUTE_TO_COLUMN,
@@ -1488,7 +1556,6 @@ export default class PublicDashboardResourceListPolicy {
       ...PublicDashboardResourceListPolicy.listDraft({
         resourceType: "ceph-resource",
         query,
-        sort: { externalId: SortOrder.Ascending },
         argumentsObject,
       }),
       attributeToColumn: CEPH_OSD_ATTRIBUTE_TO_COLUMN,
@@ -1510,7 +1577,6 @@ export default class PublicDashboardResourceListPolicy {
       ...PublicDashboardResourceListPolicy.listDraft({
         resourceType: "ceph-resource",
         query,
-        sort: { name: SortOrder.Ascending },
         argumentsObject,
       }),
       attributeToColumn: CEPH_POOL_ATTRIBUTE_TO_COLUMN,
@@ -1532,7 +1598,6 @@ export default class PublicDashboardResourceListPolicy {
       ...PublicDashboardResourceListPolicy.listDraft({
         resourceType: "storage-array-resource",
         query,
-        sort: { name: SortOrder.Ascending },
         argumentsObject,
       }),
       attributeToColumn: STORAGE_ARRAY_VOLUME_ATTRIBUTE_TO_COLUMN,
@@ -1584,7 +1649,6 @@ export default class PublicDashboardResourceListPolicy {
       ...PublicDashboardResourceListPolicy.listDraft({
         resourceType: "storage-array-resource",
         query,
-        sort: { name: SortOrder.Ascending },
         argumentsObject,
       }),
       attributeToColumn: STORAGE_ARRAY_HARDWARE_ATTRIBUTE_TO_COLUMN,
@@ -1627,7 +1691,6 @@ export default class PublicDashboardResourceListPolicy {
     return PublicDashboardResourceListPolicy.listDraft({
       resourceType: "docker-swarm-resource",
       query,
-      sort: { name: SortOrder.Ascending },
       argumentsObject,
     });
   }
@@ -1668,7 +1731,6 @@ export default class PublicDashboardResourceListPolicy {
     return PublicDashboardResourceListPolicy.listDraft({
       resourceType: "docker-swarm-resource",
       query,
-      sort: { name: SortOrder.Ascending },
       argumentsObject,
     });
   }
@@ -1697,7 +1759,6 @@ export default class PublicDashboardResourceListPolicy {
     return PublicDashboardResourceListPolicy.listDraft({
       resourceType: "span",
       query,
-      sort: { startTime: SortOrder.Descending },
       argumentsObject: data.argumentsObject,
       fallbackLimit: DEFAULT_TELEMETRY_LIMIT,
     });
@@ -1815,14 +1876,14 @@ export default class PublicDashboardResourceListPolicy {
    * no longer evaluated, so their frozen numbers never reach a public page.
    * Disabled objectives are listed, but the select carries `isEnabled` so the
    * page marks them Disabled instead of presenting their frozen status as
-   * live, and the shared sort puts them after every enabled one.
+   * live, and every order but the name's puts them after every enabled one.
    *
    * The stored status and label filters narrow it (a status filter matches
    * enabled SLOs only, through the same getSloListStatusFilterQuery the
    * browser uses), and a Telemetry Attribute variable on `sloName` narrows it
    * to the picked objective through the same column map the browser applies
-   * (SLO_LIST_ATTRIBUTE_TO_COLUMN). The order and the row cap come from the
-   * widget, never from the request.
+   * (SLO_LIST_ATTRIBUTE_TO_COLUMN). The row cap comes from the widget, never
+   * from the request; the order is the sort registry's (build).
    */
   private static buildSloListPolicy(
     argumentsObject: Record<string, unknown>,
@@ -1872,7 +1933,6 @@ export default class PublicDashboardResourceListPolicy {
       ...PublicDashboardResourceListPolicy.listDraft({
         resourceType: "slo-list",
         query,
-        sort: { ...SLO_LIST_SORT },
         argumentsObject,
         // The widget's own default, so an unset maxRows reads the same page.
         fallbackLimit: SLO_LIST_DEFAULT_MAX_ROWS,
@@ -1884,7 +1944,8 @@ export default class PublicDashboardResourceListPolicy {
   private static listDraft(data: {
     resourceType: string;
     query: Record<string, unknown>;
-    sort: JSONObject;
+    // Only for a widget the sort registry does not order (the log stream).
+    sort?: JSONObject | undefined;
     argumentsObject: Record<string, unknown>;
     fallbackLimit?: number | undefined;
     resolvedStateFilter?: PublicDashboardResolvedStateFilter | undefined;

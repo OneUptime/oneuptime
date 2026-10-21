@@ -46,7 +46,8 @@ Valget lagres i tre kolonner, som API-et og Terraform leser og skriver som før:
 Et offentlig dashbord:
 
 - Åpnes alltid for lesing. Besøkende kan ikke redigere det og ser aldri redigeringskontrollene.
-- Inneholder variablene du har lagt til. Besøkende velger i de samme velgerne som teamet ditt bruker, og kan endre tidsintervallet, zoome, slå på automatisk oppdatering og gå til fullskjerm.
+- Inneholder variablene du har lagt til. Besøkende velger i de samme velgerne som teamet ditt bruker, og kan endre tidsintervallet, zoome, slå på automatisk oppdatering og gå til fullskjerm. Det åpnes med dashbordets standardtidsrom og automatiske standardoppdatering, og nettleseren til hver besøkende husker deres egne valg.
+- Lar besøkende [sortere listene og tabellene](/docs/dashboards/widgets#sortere-lister-og-tabeller) ved å klikke på en kolonneoverskrift, slik teamet ditt gjør. Nettleseren til hver besøkende husker deres egen sortering, og OneUptime sorterer selv hele listen, alltid bare etter en av widgetens egne kolonner.
 - Bruker merkevaren du angir på dashbordets side **Merkevare**: sidetittel, beskrivelse, logo, tema, favicon.
 - Lar hver besøkende bytte mellom det lyse og det mørke dashbordet med en sol- eller måneknapp i verktøylinjen; [Tema](#tema) forklarer hvordan.
 
@@ -197,7 +198,7 @@ For å gi et innebygd dashbord nettstedets utseende legger du til `?theme=light`
 
 ## Send en lenke
 
-Den offentlige lenken åpner dashbordet på de lagrede standardverdiene. For å sende en lenke som åpnes på en bestemt verdi, legger du variabelen til i den som `?var-<name>=<value>`, slik adresselinjen gjør når en besøkende velger en verdi; flere verdier atskilles med komma. Tidsintervallet er ikke en del av lenken: hvert besøk starter på den siste timen. For å åpne dashbordet i et tema legger du til `theme=light`, `theme=dark` eller `theme=system`, slik [Innbygging](#innbygging) beskriver.
+Den offentlige lenken åpner dashbordet på de lagrede standardverdiene. For å sende en lenke som åpnes på en bestemt verdi, legger du variabelen til i den som `?var-<name>=<value>`, slik adresselinjen gjør når en besøkende velger en verdi; flere verdier atskilles med komma. For å åpne det med et eget tidsintervall eller en egen automatisk oppdatering legger du til `range` og `refresh` på samme måte: `?range=1d&refresh=1m` åpnes på det siste døgnet og oppdateres hvert minutt, slik en veggskjerm kanskje trenger. `range` tar `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` eller `3mo`, og `refresh` tar `off`, `5s`, `10s`, `30s`, `1m`, `5m` eller `15m`. De går foran dashbordets standarder og de besøkendes egne valg, og besøkende kan fortsatt endre dem. For å åpne dashbordet i et tema legger du til `theme=light`, `theme=dark` eller `theme=system`, slik [Innbygging](#innbygging) beskriver.
 
 ## Neste steg
 

@@ -45,7 +45,7 @@ De sjablonen, per categorie waaronder de kiezer ze toont:
 
 ## Bewerken en opslaan
 
-Een dashboard opent in leesmodus. Om het te wijzigen, open je het menu **⋯** in de werkbalk en kies je **Edit Dashboard**. De werkbalk toont **Editing** naast de naam, en vervangt het tijdsbereik en de andere bedieningselementen door **Widget toevoegen**, **Variabelen**, **Annuleren** en **Wijzigingen opslaan**.
+Een dashboard opent in leesmodus. Om het te wijzigen, open je het menu **⋯** in de werkbalk en kies je **Edit Dashboard**. De werkbalk toont **Editing** naast de naam, en vervangt het tijdsbereik en de andere bedieningselementen door **Widget toevoegen**, **Variabelen**, **Annuleren** en **Wijzigingen opslaan**, met daaronder een rij voor de **Standaardperiode** en **Standaard automatisch vernieuwen** van het dashboard.
 
 ```mermaid title="Van een dashboard lezen naar het wijzigen, en terug"
 flowchart TB
@@ -58,7 +58,7 @@ flowchart TB
 
 Je wijzigingen zijn alleen van jou totdat je ze opslaat. Tijdens het bewerken wordt niets opgeslagen, dus anderen zien het dashboard zoals het was.
 
-- **Wijzigingen opslaan** slaat de widgets, hun plaatsen en formaten, de variabelen en het interval voor automatisch vernieuwen in één keer op, en gaat terug naar leesmodus. Als het opslaan wordt geweigerd, bijvoorbeeld omdat je intussen de machtiging bent kwijtgeraakt, blijf je in bewerkmodus met je wijzigingen en staat de reden boven het raster.
+- **Wijzigingen opslaan** slaat de widgets, hun plaatsen en formaten, de variabelen, en de standaardperiode en het standaard automatisch vernieuwen in één keer op, en gaat terug naar leesmodus. Als het opslaan wordt geweigerd, bijvoorbeeld omdat je intussen de machtiging bent kwijtgeraakt, blijf je in bewerkmodus met je wijzigingen en staat de reden boven het raster.
 - **Annuleren** vraagt het eerst, omdat het je wijzigingen weggooit: **Wijzigingen verwerpen** gaat terug naar het dashboard zoals het was opgeslagen, en **Doorgaan met bewerken** brengt je terug naar je werk.
 
 Tijdens het bewerken pauzeert het automatisch vernieuwen, en gaat een ingezoomd tijdsbereik terug naar het bereik dat je had gekozen.
@@ -98,13 +98,25 @@ Om een widget later te wijzigen, klik je er tijdens het bewerken op. Zijn instel
 
 ## Tijdsbereik en automatisch vernieuwen
 
-In leesmodus bepaalt de tijdsbereikkiezer van de werkbalk het venster dat elke grafiek-, getal-, log- en tracewidget leest. Kies een voorinstelling, van de afgelopen 5 minuten tot de afgelopen 3 maanden, of een eigen begin en einde. Telkens als het dashboard opent, begint het bij het afgelopen uur.
+In leesmodus bepaalt de tijdsbereikkiezer van de werkbalk het venster dat elke grafiek-, getal-, log- en tracewidget leest. Kies een voorinstelling, van de afgelopen 5 minuten tot de afgelopen 3 maanden, of een eigen begin en einde. Het dashboard opent op zijn standaardperiode: het afgelopen uur, tenzij iemand die het bewerkt een andere instelt.
 
 Lijsten met incidenten, waarschuwingen, monitors en resources tonen hun huidige toestand, wat het tijdsbereik ook is.
 
-Naast het tijdsbereik leest het menu voor automatisch vernieuwen elke widget opnieuw elke 5 seconden, 10 seconden, 30 seconden, 1 minuut, 5 minuten of 15 minuten, met een aftelling tot de volgende vernieuwing. Laat het uit staan terwijl je onderzoek doet, zodat het beeld stil blijft staan. Om een interval het eigen interval van het dashboard te maken, kies je het, bewerk je daarna het dashboard en klik je op **Wijzigingen opslaan**: elk bezoek begint er dan mee.
+Naast het tijdsbereik leest het menu voor automatisch vernieuwen elke widget opnieuw elke 5 seconden, 10 seconden, 30 seconden, 1 minuut, 5 minuten of 15 minuten, met een aftelling tot de volgende vernieuwing. Laat het uit staan terwijl je onderzoek doet, zodat het beeld stil blijft staan. Het dashboard opent met zijn standaard automatisch vernieuwen: uit, tenzij iemand die het bewerkt iets anders instelt.
 
 De tijdsbereikkiezer, de variabelen en automatisch vernieuwen verschijnen zodra het dashboard een widget heeft.
+
+### De standaardwaarden van het dashboard
+
+Terwijl je het dashboard bewerkt, bepaalt de rij onder de knoppen van de werkbalk waarmee iedereen het opent: **Standaardperiode**, een voorinstelling van de afgelopen 5 minuten tot de afgelopen 3 maanden, en **Standaard automatisch vernieuwen**. **Wijzigingen opslaan** slaat ze op met de rest van het dashboard, voor je team en voor de bezoekers van de openbare link. Een eigen begin en einde kunnen geen standaard zijn: het dashboard zou voorgoed op dat moment blijven staan. De rij verschijnt zodra het dashboard een widget heeft.
+
+Dashboards die vóór deze instellingen zijn opgeslagen, openen op het afgelopen uur, met het automatisch vernieuwen dat ze hadden. Via de API en Terraform staan beide in de `dashboardViewConfig` van het dashboard: `timeRange`, een voorinstelling zoals de API-referentie die schrijft, bijvoorbeeld `Past 1 Day`, en `refreshInterval`, bijvoorbeeld `1m`. Elke andere waarde wordt geweigerd.
+
+### Je eigen keuzes
+
+Het tijdsbereik en het automatisch vernieuwen die je in leesmodus kiest, zijn alleen van jou, en je browser onthoudt ze per dashboard: herladen, je browser opnieuw starten of een wandscherm dat herstart opent het dashboard zoals je het achterliet. Alleen een voorinstelling wordt onthouden. Een eigen bereik of een zoom blijft tot je de pagina verlaat, zodat het dashboard nooit op een moment in het verleden blijft hangen.
+
+De eerste keuze van elke kiezer noemt de standaard van het dashboard, zoals in Standaard (Past 1 Day). Kies die om terug te gaan naar de standaard: je browser vergeet je keuze, en het dashboard volgt weer zijn standaard, ook als iemand die later wijzigt. Als je zelf nieuwe standaardwaarden opslaat, zie je ze meteen.
 
 ### Inzoomen op een piek
 

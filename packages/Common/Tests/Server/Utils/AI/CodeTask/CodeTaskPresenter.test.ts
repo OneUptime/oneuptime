@@ -257,6 +257,119 @@ describe("CodeTaskPresenter.summarize", () => {
     expect(summary!.state).toBe(CodeTaskState.Failed);
   });
 
+  test("a row says how much its task changed over its turns: each file once, every turn's lines", async () => {
+    const task: AIRun = requestTurn({
+      id: TASK_ID,
+      status: AIRunStatus.Completed,
+      createdAt: "2026-10-19T08:00:00.000Z",
+      message: "Add retries",
+    });
+    const reply: AIRun = requestTurn({
+      id: REPLY_ID,
+      codeTaskId: TASK_ID,
+      status: AIRunStatus.Completed,
+      createdAt: "2026-10-19T09:00:00.000Z",
+      message: "Log each retry",
+    });
+    const outcomes: Record<string, AIRun["taskOutcome"]> = {
+      [TASK_ID.toString()]: {
+        summary: "Retries.",
+        filesChanged: [
+          {
+            path: "src/payments/client.ts",
+            status: CodeTaskFileStatus.Modified,
+            additions: 9,
+            deletions: 1,
+          },
+          {
+            path: "test/payments/retries.test.ts",
+            status: CodeTaskFileStatus.Added,
+            additions: 14,
+            deletions: 0,
+          },
+        ],
+      },
+      [REPLY_ID.toString()]: {
+        summary: "Logged.",
+        filesChanged: [
+          {
+            path: "src/payments/client.ts",
+            status: CodeTaskFileStatus.Modified,
+            additions: 4,
+            deletions: 0,
+          },
+        ],
+      },
+    };
+
+    const findRuns: jest.SpiedFunction<typeof AIRunService.findBy> = jest
+      .spyOn(AIRunService, "findBy")
+      .mockImplementation((async (data: {
+        select?: Record<string, unknown>;
+      }): Promise<Array<AIRun>> => {
+        // The outcomes read; otherwise the task's replies.
+        if (data.select?.["taskOutcome"]) {
+          return [TASK_ID, REPLY_ID].map((id: ObjectID): AIRun => {
+            const run: AIRun = new AIRun();
+            run._id = id.toString();
+            run.taskOutcome = outcomes[id.toString()]!;
+            return run;
+          });
+        }
+        return [reply];
+      }) as never);
+    jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
+
+    const [summary]: Array<CodeTaskSummaryJSON> =
+      await CodeTaskPresenter.summarize({
+        projectId: PROJECT_ID,
+        tasks: [task],
+        props: READER,
+      });
+
+    expect(summary!.changes).toEqual({
+      files: 2,
+      additions: 27,
+      deletions: 1,
+    });
+
+    // Only the ids and outcomes are read, as OneUptime: the rows are the reader's already.
+    const read: {
+      select: Record<string, unknown>;
+      props: unknown;
+      query: Record<string, unknown>;
+    } = findRuns.mock.calls.find((call: Array<unknown>): boolean => {
+      return Boolean(
+        (call[0] as { select?: Record<string, unknown> }).select?.[
+          "taskOutcome"
+        ],
+      );
+    })![0] as never;
+    expect(read.select).toEqual({ _id: true, taskOutcome: true });
+    expect(read.props).toEqual({ isRoot: true });
+  });
+
+  test("a task that changed no file says nothing about lines", async () => {
+    jest.spyOn(AIRunService, "findBy").mockResolvedValue([]);
+    jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
+
+    const [summary]: Array<CodeTaskSummaryJSON> =
+      await CodeTaskPresenter.summarize({
+        projectId: PROJECT_ID,
+        tasks: [
+          requestTurn({
+            id: TASK_ID,
+            status: AIRunStatus.Completed,
+            createdAt: "2026-10-19T08:00:00.000Z",
+            message: "Explain the code",
+          }),
+        ],
+        props: READER,
+      });
+
+    expect(summary).not.toHaveProperty("changes");
+  });
+
   test("a list reads nothing for no tasks", async () => {
     const findRuns: jest.SpiedFunction<typeof AIRunService.findBy> = jest.spyOn(
       AIRunService,
@@ -493,6 +606,66 @@ describe("CodeTaskPresenter.getConversation", () => {
     expect(second.request?.message).toBe("Use exponential backoff");
     expect(second.state).toBe(CodeTaskState.Working);
     expect(second.pullRequests).toEqual([]);
+  });
+
+  test("the branch the person picked is said on the task's first turn - and only there", async () => {
+    const { task, reply } = setUp();
+    task.taskContext = {
+      request: {
+        ...task.taskContext!.request!,
+        baseBranch: "release/2026-10",
+      },
+    };
+    // A later turn never carries one: if it did, it is not said.
+    reply.taskContext = {
+      request: { ...reply.taskContext!.request!, baseBranch: "elsewhere" },
+    };
+
+    const conversation: { turns: Array<CodeTaskTurnJSON> } =
+      await CodeTaskPresenter.getConversation({
+        projectId: PROJECT_ID,
+        task,
+        canSeeChanges: true,
+        props: READER,
+      });
+
+    expect(conversation.turns[0]!.request?.baseBranch).toBe("release/2026-10");
+    expect(conversation.turns[1]!.request).not.toHaveProperty("baseBranch");
+  });
+
+  test("a branch git would not take is never said", async () => {
+    const { task } = setUp();
+    task.taskContext = {
+      request: { ...task.taskContext!.request!, baseBranch: "bad..branch" },
+    };
+
+    const conversation: { turns: Array<CodeTaskTurnJSON> } =
+      await CodeTaskPresenter.getConversation({
+        projectId: PROJECT_ID,
+        task,
+        canSeeChanges: true,
+        props: READER,
+      });
+
+    expect(conversation.turns[0]!.request).not.toHaveProperty("baseBranch");
+  });
+
+  test("the task at the top says how much it changed, from its turns' outcomes", async () => {
+    const { task } = setUp();
+
+    const conversation: { task: CodeTaskSummaryJSON } =
+      await CodeTaskPresenter.getConversation({
+        projectId: PROJECT_ID,
+        task,
+        canSeeChanges: false,
+        props: READER,
+      });
+
+    expect(conversation.task.changes).toEqual({
+      files: 1,
+      additions: 12,
+      deletions: 3,
+    });
   });
 
   test("never sends the snapshots the AI read", async () => {

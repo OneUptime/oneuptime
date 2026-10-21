@@ -348,6 +348,232 @@ describe("sending", () => {
     expect(screen.queryByTestId("code-composer-keys")).toBeNull();
     expect(document.body).not.toHaveTextContent("Enter to send");
   });
+
+  test("how to send is a laptop's hint: none on a phone or a tablet", () => {
+    renderComposer();
+    expect(screen.getByTestId("code-composer-keys").className).toContain(
+      "max-lg:hidden",
+    );
+  });
+});
+
+/*
+ * The box as coding agents draw theirs: one rounded frame holding the
+ * words, the chips and a bottom row - Add context, what the request goes to
+ * (the pickers a page hands over), Send - with whatever stops AI said at
+ * its top.
+ */
+describe("the box", () => {
+  test("one rounded frame; Send is an arrow and a word, at the end of the bottom row", () => {
+    renderComposer();
+
+    const box: HTMLElement = screen.getByTestId("code-composer-box");
+    expect(box.className).toContain("rounded-2xl");
+    expect(box).toContainElement(input());
+    const toolbar: HTMLElement = screen.getByTestId("code-composer-toolbar");
+    expect(box).toContainElement(toolbar);
+    expect(toolbar).toContainElement(sendButton());
+    expect(toolbar).toContainElement(screen.getByTestId("code-add-context"));
+    expect(sendButton()).toHaveTextContent("Start task");
+    expect(sendButton().querySelector("svg")).not.toBeNull();
+    // Menus open out of the box: it never clips what it holds.
+    expect(box.className).not.toContain("overflow-hidden");
+  });
+
+  test("what the request goes to sits in the bottom row, after Add context and before Send", () => {
+    renderComposer({
+      tools: (
+        <>
+          <button type="button" data-testid="picker-a">
+            checkout-api
+          </button>
+          <button type="button" data-testid="picker-b">
+            main
+          </button>
+        </>
+      ),
+    });
+
+    const tools: HTMLElement = screen.getByTestId("code-composer-tools");
+    expect(screen.getByTestId("code-composer-toolbar")).toContainElement(tools);
+    expect(within(tools).getByTestId("picker-a")).toBeInTheDocument();
+    expect(within(tools).getByTestId("picker-b")).toBeInTheDocument();
+
+    const order: Array<string> = Array.from(
+      screen
+        .getByTestId("code-composer-toolbar")
+        .querySelectorAll(
+          "[data-testid='code-add-context'], [data-testid='picker-a'], [data-testid='code-composer-send']",
+        ),
+    ).map((element: Element) => {
+      return element.getAttribute("data-testid") || "";
+    });
+    expect(order).toEqual([
+      "code-add-context",
+      "picker-a",
+      "code-composer-send",
+    ]);
+    // Beside pickers, a phone shows Add context as its + alone.
+    expect(
+      within(screen.getByTestId("code-add-context")).getByText("Add context")
+        .className,
+    ).toContain("max-sm:hidden");
+  });
+
+  test("with nothing to pick, Add context keeps its words on every screen", () => {
+    renderComposer();
+    expect(
+      within(screen.getByTestId("code-add-context")).getByText("Add context")
+        .className,
+    ).not.toContain("max-sm:hidden");
+    expect(screen.queryByTestId("code-composer-tools")).toBeNull();
+  });
+
+  /*
+   * The UI review: on a phone, Start task wrapped onto a line of its own
+   * under the pickers. Beside them, Send is now its arrow alone - and its
+   * word is still there for a screen reader.
+   */
+  test("beside the pickers, a phone shows Send as its arrow, still named Start task", () => {
+    renderComposer({
+      tools: (
+        <button type="button" data-testid="picker-a">
+          checkout-api
+        </button>
+      ),
+    });
+
+    expect(sendButton()).toHaveAccessibleName("Start task");
+    expect(screen.getByTestId("code-composer-send-label").className).toContain(
+      "max-sm:sr-only",
+    );
+    // A square the size of the other buttons in the row.
+    expect(sendButton().className).toContain("max-sm:w-8");
+    expect(sendButton().className).toContain("max-sm:px-0");
+    expect(sendButton().querySelector("svg")).not.toBeNull();
+  });
+
+  /*
+   * The UI review: a long repository name wrapped the bottom row onto four
+   * lines on a phone, and when the pickers shrank, "main" was cut to "m"
+   * beside a long name. The row never wraps now; the pickers sit in
+   * columns that share its room fairly - each grows toward its whole name
+   * in turn (minmax(0, max-content)), so a short one stays whole.
+   */
+  test("the bottom row never wraps: the pickers share what room it has, a short name staying whole", () => {
+    renderComposer({
+      tools: (
+        <>
+          <div data-testid="picker-a">checkout-and-payments-platform-api</div>
+          <div data-testid="picker-b">main</div>
+        </>
+      ),
+    });
+
+    const toolbar: HTMLElement = screen.getByTestId("code-composer-toolbar");
+    expect(toolbar.className).toContain("flex");
+    expect(toolbar.className).not.toContain("flex-wrap");
+
+    const tools: HTMLElement = screen.getByTestId("code-composer-tools");
+    expect(tools.className).toContain("grid");
+    expect(tools.className).toContain("grid-flow-col");
+    expect(tools.className).toContain("auto-cols-[minmax(0,max-content)]");
+    expect(tools.className).toContain("min-w-0");
+    expect(tools.className).not.toContain("flex-wrap");
+  });
+
+  test("with nothing to pick, Send keeps its word on every screen", () => {
+    renderComposer({ sendLabel: "Send" });
+
+    expect(sendButton()).toHaveAccessibleName("Send");
+    expect(
+      screen.getByTestId("code-composer-send-label").className,
+    ).not.toContain("sr-only");
+    expect(sendButton().className).not.toContain("max-sm:w-8");
+  });
+
+  /*
+   * The UI review: in German at 1280 the hint took so much of the row that
+   * Start task wrapped onto a second line. The hint now lies over the room
+   * the row has left (an absolutely placed layer adds nothing to the row's
+   * width), wrapping under itself - where the row's fixed height hides it -
+   * when that room is too small. The browser suite measures it.
+   */
+  test("the hint takes no room of its own: it lies over what the row has left, and hides where it does not fit", () => {
+    renderComposer();
+
+    const keys: HTMLElement = screen.getByTestId("code-composer-keys");
+    const layer: HTMLElement = keys.parentElement!;
+    const room: HTMLElement = layer.parentElement!;
+
+    expect(keys.className).toContain("whitespace-nowrap");
+    expect(layer.className).toContain("absolute");
+    expect(layer.className).toContain("inset-0");
+    expect(layer.className).toContain("flex-wrap");
+    expect(room.className).toContain("relative");
+    expect(room.className).toContain("overflow-hidden");
+    expect(room.className).toContain("h-8");
+    expect(room.className).toContain("flex-1");
+
+    // Send and the hint's room share one group, as wide as Send at least.
+    const row: HTMLElement = screen.getByTestId("code-composer-send-row");
+    expect(row).toContainElement(room);
+    expect(row).toContainElement(sendButton());
+    expect(row.className).toContain("min-w-min");
+    expect(row.className).toContain("basis-0");
+    expect(sendButton().className).toContain("flex-shrink-0");
+  });
+
+  test("what stops AI is said at the top of the box, over the words", () => {
+    renderComposer({
+      isDisabled: true,
+      notice: (
+        <p data-testid="the-reason">AI is turned off for this project.</p>
+      ),
+    });
+
+    const notice: HTMLElement = screen.getByTestId("code-composer-notice");
+    const box: HTMLElement = screen.getByTestId("code-composer-box");
+    expect(box.firstElementChild).toBe(notice);
+    expect(within(notice).getByTestId("the-reason")).toBeInTheDocument();
+    expect(box).toHaveAttribute("data-disabled", "true");
+    expect(input()).toBeDisabled();
+    // The notice rounds the box's top corners; the words below do not.
+    expect(notice.className).toContain("rounded-t-2xl");
+    expect(input().className).not.toContain("rounded-t-2xl");
+  });
+
+  test("no notice: the words round the box's top corners themselves", () => {
+    renderComposer();
+    expect(screen.queryByTestId("code-composer-notice")).toBeNull();
+    expect(input().className).toContain("rounded-t-2xl");
+  });
+
+  test("while what it goes to is read, the box takes words but sends nothing", async () => {
+    renderComposer({ isWaiting: true });
+
+    expect(input()).toBeEnabled();
+    await userEvent.type(input(), "Add retries{Enter}");
+    expect(input()).toHaveValue("Add retries");
+    expect(sendButton()).toBeDisabled();
+    await userEvent.click(sendButton());
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
+  test("Code's first page draws a taller box, and a shorter one when it cannot send", () => {
+    renderComposer({ isLarge: true });
+    expect(input()).toHaveAttribute("rows", "4");
+    expect(input().className).toContain("text-base");
+    cleanup();
+
+    renderComposer({ isLarge: true, isDisabled: true });
+    expect(input()).toHaveAttribute("rows", "2");
+    cleanup();
+
+    renderComposer();
+    expect(input()).toHaveAttribute("rows", "2");
+    expect(input().className).toContain("text-sm");
+  });
 });
 
 describe("what a chip shows", () => {

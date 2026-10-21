@@ -212,6 +212,12 @@ const EVERYDAY_SECTION_TITLES: ReadonlyArray<string> = [
   "Scheduled Events",
   "Schedules",
   /*
+   * Scheduled maintenance's Maintenance Calendar, a page of its own under a
+   * section of its own, where maintenance is planned: the maintainer asked
+   * for it there, and it is opened as often as the list.
+   */
+  "Calendar",
+  /*
    * "Topology" left this list when the Network menu folded its Topology
    * section (the deeper wiring views and the hand-drawn links): Network's
    * everyday pages are Overview, Devices, Sites, Map and Discovery.

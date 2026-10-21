@@ -6,6 +6,7 @@ import {
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import DashboardKubernetesResourceListBase from "./DashboardKubernetesResourceListBase";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import IconProp from "Common/Types/Icon/IconProp";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import KubernetesResource from "Common/Models/DatabaseModels/KubernetesResource";
@@ -42,10 +43,10 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Pod", widthPct: "40%" },
-  { label: "Namespace", widthPct: "20%" },
-  { label: "Phase", widthPct: "15%" },
-  { label: "Cluster", widthPct: "25%" },
+  { label: "Pod", widthPct: "40%", sortKey: "name" },
+  { label: "Namespace", widthPct: "20%", sortKey: "namespace" },
+  { label: "Phase", widthPct: "15%", sortKey: "phase" },
+  { label: "Cluster", widthPct: "25%", sortKey: "cluster" },
 ];
 
 const PHASE_COLORS: Record<string, { dot: string; text: string }> = {
@@ -167,6 +168,8 @@ const DashboardKubernetesPodListComponentElement: FunctionComponent<
   return (
     <DashboardKubernetesResourceListBase
       componentId={props.componentId}
+      componentType={DashboardComponentType.KubernetesPodList}
+      widgetProps={props}
       title={args.title}
       pluralLabel="pods"
       emptyMessage="No pods found"

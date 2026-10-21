@@ -10,13 +10,14 @@ import {
 import DashboardModelResourceListBase from "../../Infrastructure/DashboardModelResourceListBase";
 import KubernetesResource from "Common/Models/DatabaseModels/KubernetesResource";
 import IconProp from "Common/Types/Icon/IconProp";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Query from "Common/Types/BaseDatabase/Query";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Select from "Common/Types/BaseDatabase/Select";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import { AttributeToColumnMap } from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
 import ObjectID from "Common/Types/ObjectID";
+import { DashboardListWidgetSortProps } from "../Utils/UseDashboardListWidgetSort";
 
 /*
  * Thin Kubernetes wrapper around the shared, model-class-driven
@@ -24,11 +25,16 @@ import ObjectID from "Common/Types/ObjectID";
  * (Components/Infrastructure/DashboardModelResourceListBase.tsx).
  * Keeps the original public API (kind / kubernetesClusterIds /
  * namespaces / extraQuery / extraSelect) so the per-kind Kubernetes
- * widget components compile unchanged; all this wrapper does is fold
- * those props into the generic query / select / sort contract.
+ * widget components stay small; all this wrapper does is fold those props
+ * into the generic query / select contract. The order is the widget
+ * kind's (Common/Utils/Dashboard/DashboardWidgetSorts): namespace then
+ * name, as these lists always had, unless a viewer or the widget's own
+ * sort says otherwise.
  */
 export interface KubernetesResourceListBaseProps {
   componentId: ObjectID;
+  componentType: DashboardComponentType;
+  widgetProps: DashboardListWidgetSortProps;
   title?: string | undefined;
   pluralLabel: string;
   emptyMessage: string;
@@ -118,6 +124,8 @@ const DashboardKubernetesResourceListBase: FunctionComponent<
       modelType={KubernetesResource}
       componentId={props.componentId}
       publicResourceType="kubernetes-resource"
+      componentType={props.componentType}
+      widgetProps={props.widgetProps}
       title={props.title}
       pluralLabel={props.pluralLabel}
       emptyMessage={props.emptyMessage}
@@ -126,10 +134,6 @@ const DashboardKubernetesResourceListBase: FunctionComponent<
       maxRows={props.maxRows}
       query={query}
       select={select}
-      sort={{
-        namespaceKey: SortOrder.Ascending,
-        name: SortOrder.Ascending,
-      }}
       refreshTick={props.refreshTick}
       variables={props.variables}
       attributeToColumn={props.attributeToColumn}

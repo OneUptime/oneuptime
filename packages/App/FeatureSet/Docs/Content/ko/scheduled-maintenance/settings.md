@@ -20,7 +20,7 @@
 | **레이블 규칙**    | 일치하는 이벤트에 레이블을 추가합니다.                              |
 | **Reminder Rules** | 이벤트가 완료될 때까지 일정 간격으로 소유자에게 리마인더를 보냅니다. |
 
-**설정** 섹션에는 [유지 관리 상태](/docs/scheduled-maintenance/states) 에서 다루는 **이벤트 상태**, [템플릿 및 반복 이벤트](/docs/scheduled-maintenance/templates) 에서 다루는 **이벤트 템플릿**, 그리고 아래에서 다루는 **노트 템플릿**, **사용자 정의 필드**, **측정**, **번호 매기기** 가 있습니다.
+**설정** 섹션에는 [유지 관리 상태](/docs/scheduled-maintenance/states) 에서 다루는 **이벤트 상태**, [템플릿 및 반복 이벤트](/docs/scheduled-maintenance/templates) 에서 다루는 **이벤트 템플릿**, 그리고 **노트 템플릿**, **사용자 정의 필드**, **측정**, **캘린더 설정**, **번호 매기기** 가 있습니다. **캘린더 설정** 은 [유지 관리 캘린더](/docs/scheduled-maintenance/calendar#외부-캘린더) 에서, 나머지는 아래에서 다룹니다.
 
 **워크스페이스** 섹션에는 이벤트를 채널에 게시하는 Slack 및 Microsoft Teams 규칙이 있습니다. [Slack](/docs/workspace-connections/slack#알림-규칙) 과 [Microsoft Teams](/docs/workspace-connections/microsoft-teams#알림-규칙) 를 참조하세요.
 

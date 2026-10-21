@@ -1203,6 +1203,22 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
         ],
       },
+      {
+        title: "Calendar",
+        pages: [
+          {
+            page: PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR,
+            title: "Maintenance Calendar",
+            icon: IconProp.Calendar,
+            keywords: [
+              "calendar view",
+              "maintenance schedule",
+              "subscribe to calendar",
+              "ical feed",
+            ],
+          },
+        ],
+      },
       workspaceSection({
         slack: PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK,
         microsoftTeams:
@@ -1253,6 +1269,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MEASUREMENTS,
             title: "Measurements",
             icon: IconProp.Clock,
+          },
+          {
+            page: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR,
+            title: "Calendar Settings",
+            icon: IconProp.Calendar,
+            keywords: [
+              "external calendars",
+              "add external calendar",
+              "ics feed",
+              "public holidays",
+              "change freeze",
+            ],
           },
           {
             page: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING,
@@ -1753,6 +1781,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         pages: [
           {
             page: PageMap.CODE,
+            title: "Tasks",
+            icon: IconProp.Sparkles,
+            keywords: [
+              "ask ai",
+              "what should ai do",
+              "code tasks",
+              "ai agent tasks",
+              "pull requests",
+              "fixes",
+            ],
+          },
+          {
+            page: PageMap.CODE_REPOSITORIES,
             title: "Repositories",
             icon: IconProp.Code,
             keywords: [
@@ -1760,11 +1801,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "repository",
               "connect repository",
               "github",
-              "tasks",
-              "ai agent tasks",
-              "ask ai",
-              "pull requests",
-              "fixes",
             ],
           },
         ],

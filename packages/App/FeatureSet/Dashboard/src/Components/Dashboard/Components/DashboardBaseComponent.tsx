@@ -74,6 +74,7 @@ import DashboardComponentType, {
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
+import { DashboardWidgetSortColumns } from "Common/Types/Dashboard/DashboardWidgetSort";
 import {
   GridDndMode,
   ResizeDirection,
@@ -123,6 +124,25 @@ export interface DashboardBaseComponentProps {
    * library's onTimeRangeReset for why an idle handler is not free.
    */
   isDashboardTimeRangeZoomed?: boolean | undefined;
+  /*
+   * The dashboard the widget is on. A viewer's sort of a list or table
+   * widget is remembered per widget on this dashboard (issue #5082).
+   */
+  dashboardId?: string | undefined;
+  /*
+   * Handed in only by the widget settings' live preview: a click on a
+   * column header sets the widget's own sort (`arguments.sort`, null for
+   * its built-in order) instead of the viewer's pick.
+   */
+  onWidgetSortChange?: ((sort: string | null) => void) | undefined;
+  /*
+   * Also only the live preview's: a widget whose sortable columns are its
+   * own - a metric table's, a Data Source table's, a trace table's - says
+   * what they are, so the Sort setting can offer them.
+   */
+  onWidgetSortColumnsChange?:
+    | ((sortColumns: DashboardWidgetSortColumns) => void)
+    | undefined;
 }
 
 export interface ComponentProps extends DashboardBaseComponentProps {

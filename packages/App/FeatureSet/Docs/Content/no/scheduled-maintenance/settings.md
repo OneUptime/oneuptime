@@ -20,7 +20,7 @@ Konfigurasjonen av vedlikehold ligger i **Planlagt vedlikehold**, ikke i **Prosj
 | **Etikettregler**  | Legger til etiketter på matchende hendelser.                        |
 | **Reminder Rules** | Påminner eierne med et intervall til en hendelse er fullført.       |
 
-Seksjonen **Innstillinger** rommer **Hendelsesstatus**, beskrevet på [Vedlikeholdstilstander](/docs/scheduled-maintenance/states), **Hendelsesmaler**, beskrevet på [Maler og gjentakende hendelser](/docs/scheduled-maintenance/templates), og deretter **Notatmaler**, **Egendefinerte felt**, **Målinger** og **Nummerering**, beskrevet nedenfor.
+Seksjonen **Innstillinger** rommer **Hendelsesstatus**, beskrevet på [Vedlikeholdstilstander](/docs/scheduled-maintenance/states), **Hendelsesmaler**, beskrevet på [Maler og gjentakende hendelser](/docs/scheduled-maintenance/templates), og deretter **Notatmaler**, **Egendefinerte felt**, **Målinger**, **Kalenderinnstillinger** og **Nummerering**. **Kalenderinnstillinger** er beskrevet på [Vedlikeholdskalender](/docs/scheduled-maintenance/calendar#eksterne-kalendere), resten nedenfor.
 
 Seksjonen **Arbeidsområde** rommer Slack- og Microsoft Teams-reglene som poster hendelser i kanaler. Se [Slack](/docs/workspace-connections/slack#varslingsregler) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams#varslingsregler).
 

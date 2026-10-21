@@ -45,7 +45,7 @@ Mallarna, efter den kategori som väljaren listar dem under:
 
 ## Redigera och spara
 
-En instrumentpanel öppnas i visningsläge, för läsning. För att ändra den öppnar du **⋯**-menyn i dess verktygsfält och väljer **Edit Dashboard**. Verktygsfältet visar **Editing** bredvid namnet och byter ut tidsintervallet och de andra kontrollerna mot **Lägg till widget**, **Variabler**, **Avbryt** och **Spara ändringar**.
+En instrumentpanel öppnas i visningsläge, för läsning. För att ändra den öppnar du **⋯**-menyn i dess verktygsfält och väljer **Edit Dashboard**. Verktygsfältet visar **Editing** bredvid namnet och byter ut tidsintervallet och de andra kontrollerna mot **Lägg till widget**, **Variabler**, **Avbryt** och **Spara ändringar**, med en rad under dem för instrumentpanelens **Standardtidsintervall** och **Standard för automatisk uppdatering**.
 
 ```mermaid title="Från att läsa en instrumentpanel till att ändra den, och tillbaka"
 flowchart TB
@@ -58,7 +58,7 @@ flowchart TB
 
 Dina ändringar är bara dina tills du sparar dem. Inget sparas medan du redigerar, så andra ser fortfarande instrumentpanelen som den var.
 
-- **Spara ändringar** sparar widgetarna, deras placeringar och storlekar, variablerna och intervallet för automatisk uppdatering, allt på en gång, och går tillbaka till visningsläge. Om sparandet nekas, till exempel för att du har förlorat behörigheten under tiden, stannar du i redigeringsläge med dina ändringar, och orsaken visas ovanför rutnätet.
+- **Spara ändringar** sparar widgetarna, deras placeringar och storlekar, variablerna samt standardtidsintervallet och standarden för automatisk uppdatering, allt på en gång, och går tillbaka till visningsläge. Om sparandet nekas, till exempel för att du har förlorat behörigheten under tiden, stannar du i redigeringsläge med dina ändringar, och orsaken visas ovanför rutnätet.
 - **Avbryt** frågar först, eftersom den kastar dina ändringar: **Kasta ändringar** går tillbaka till instrumentpanelen som den sparades, och **Fortsätt redigera** tar dig tillbaka till ditt arbete.
 
 Medan du redigerar pausas den automatiska uppdateringen, och ett inzoomat tidsintervall går tillbaka till intervallet du valde.
@@ -98,13 +98,25 @@ För att ändra en widget senare klickar du på den medan du redigerar. Dess ins
 
 ## Tidsintervall och automatisk uppdatering
 
-I visningsläge anger verktygsfältets tidsintervallväljare fönstret som alla diagram-, tal-, logg- och spårwidgetar läser. Välj en förinställning från de senaste 5 minuterna till de senaste 3 månaderna, eller en egen start och ett eget slut. Varje gång instrumentpanelen öppnas börjar den på den senaste timmen.
+I visningsläge anger verktygsfältets tidsintervallväljare fönstret som alla diagram-, tal-, logg- och spårwidgetar läser. Välj en förinställning från de senaste 5 minuterna till de senaste 3 månaderna, eller en egen start och ett eget slut. Instrumentpanelen öppnas på sitt standardtidsintervall: den senaste timmen, om inte någon som redigerar den väljer ett annat.
 
 Listor över incidenter, larm, övervakare och resurser visar sitt aktuella tillstånd, oavsett tidsintervall.
 
-Bredvid tidsintervallet läser menyn för automatisk uppdatering varje widget igen med 5, 10 eller 30 sekunders eller 1, 5 eller 15 minuters mellanrum, med en nedräkning till nästa uppdatering. Låt den vara av medan du felsöker, så att vyn står still. För att göra ett intervall till instrumentpanelens eget väljer du det, redigerar sedan instrumentpanelen och klickar på **Spara ändringar**: varje besök börjar då med det.
+Bredvid tidsintervallet läser menyn för automatisk uppdatering varje widget igen med 5, 10 eller 30 sekunders eller 1, 5 eller 15 minuters mellanrum, med en nedräkning till nästa uppdatering. Låt den vara av medan du felsöker, så att vyn står still. Instrumentpanelen öppnas med sin standard för automatisk uppdatering: av, om inte någon som redigerar den väljer en annan.
 
 Tidsintervallväljaren, variablerna och den automatiska uppdateringen visas så snart instrumentpanelen har en widget.
+
+### Instrumentpanelens standarder
+
+Medan du redigerar instrumentpanelen anger raden under verktygsfältets knappar vad alla öppnar den med: **Standardtidsintervall**, en förinställning från de senaste 5 minuterna till de senaste 3 månaderna, och **Standard för automatisk uppdatering**. **Spara ändringar** sparar dem med resten av instrumentpanelen, för ditt team och för besökarna på dess offentliga länk. En egen start och ett eget slut kan inte vara en standard: instrumentpanelen skulle stå kvar på det ögonblicket för alltid. Raden visas så snart instrumentpanelen har en widget.
+
+Instrumentpaneler som sparades före de här inställningarna öppnas på den senaste timmen, med den automatiska uppdatering de hade. Via API:et och Terraform ligger båda i instrumentpanelens `dashboardViewConfig`: `timeRange`, en förinställning stavad som i API-referensen, till exempel `Past 1 Day`, och `refreshInterval`, till exempel `1m`. Alla andra värden avvisas.
+
+### Dina egna val
+
+Tidsintervallet och den automatiska uppdatering du väljer i visningsläge gäller bara dig, och din webbläsare kommer ihåg dem för varje instrumentpanel: en omladdning, en omstart av webbläsaren eller av en väggskärm öppnar instrumentpanelen som du lämnade den. Bara en förinställning sparas. Ett eget intervall eller en zoom varar tills du lämnar sidan, så att instrumentpanelen aldrig fastnar på ett ögonblick i det förflutna.
+
+Det första valet i varje väljare visar instrumentpanelens standard, som i Standard (Past 1 Day). Välj det för att gå tillbaka till standarden: webbläsaren glömmer ditt val, och instrumentpanelen följer sin standard igen, även när någon ändrar den senare. När du själv sparar nya standarder ser du dem direkt.
 
 ### Zooma in på en topp
 

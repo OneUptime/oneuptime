@@ -393,18 +393,29 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getCodeBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/code/repositories",
+    titles: ["Project", "Code", "Repositories"],
+  },
+  {
+    getter: "getCodeBreadcrumbs",
     pagePattern: "/dashboard/:projectId/code/repositories/:id",
-    titles: ["Project", "Code", "Repository"],
+    titles: ["Project", "Code", "Repositories", "Repository"],
   },
   {
     getter: "getCodeBreadcrumbs",
     pagePattern: "/dashboard/:projectId/code/repositories/:id/delete",
-    titles: ["Project", "Code", "Repository", "Delete Repository"],
+    titles: [
+      "Project",
+      "Code",
+      "Repositories",
+      "Repository",
+      "Delete Repository",
+    ],
   },
   {
     getter: "getCodeBreadcrumbs",
     pagePattern: "/dashboard/:projectId/code/repositories/:id/settings",
-    titles: ["Project", "Code", "Repository", "Settings"],
+    titles: ["Project", "Code", "Repositories", "Repository", "Settings"],
   },
   {
     getter: "getCodeBreadcrumbs",

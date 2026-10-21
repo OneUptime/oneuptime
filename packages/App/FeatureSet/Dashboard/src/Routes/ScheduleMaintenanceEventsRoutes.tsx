@@ -14,6 +14,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 // Pages
 
 import ScheduledMaintenanceEvents from "../Pages/ScheduledMaintenanceEvents/ScheduledMaintenanceEvents";
+import ScheduledMaintenanceCalendarPage from "../Pages/ScheduledMaintenanceEvents/Calendar";
 import ScheduledMaintenanceEventView from "../Pages/ScheduledMaintenanceEvents/View/Index";
 import ScheduledMaintenanceEventViewDelete from "../Pages/ScheduledMaintenanceEvents/View/Delete";
 
@@ -66,6 +67,8 @@ import ScheduledMaintenanceSettingsReminderRules from "../Pages/ScheduledMainten
 import ScheduledMaintenanceSettingsMeasurements from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceMeasurements";
 
 import ScheduledMaintenanceSettingsNumbering from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceNumbering";
+
+import ScheduledMaintenanceSettingsCalendar from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceCalendarSettings";
 import MovedNumberPrefixPageRedirect from "../Components/NumberPrefix/MovedNumberPrefixPageRedirect";
 import {
   MORE_SETTINGS_PATH,
@@ -142,6 +145,22 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR
+            ] || ""
+          }
+          element={
+            <ScheduledMaintenanceCalendarPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR] as Route
               }
             />
           }
@@ -470,6 +489,24 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR
+            ] || ""
+          }
+          element={
+            <ScheduledMaintenanceSettingsCalendar
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR
                 ] as Route
               }
             />

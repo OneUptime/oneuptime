@@ -46,7 +46,8 @@ La scelta è memorizzata in tre colonne, che l'API e Terraform leggono e scrivon
 Una dashboard pubblica:
 
 - Si apre sempre in lettura. I visitatori non possono modificarla, e non vedono mai i suoi controlli di modifica.
-- Include le variabili che hai aggiunto. I visitatori scelgono dagli stessi selettori che usa il tuo team, e possono cambiare l'intervallo di tempo, ingrandire, attivare l'aggiornamento automatico e passare a schermo intero.
+- Include le variabili che hai aggiunto. I visitatori scelgono dagli stessi selettori che usa il tuo team, e possono cambiare l'intervallo di tempo, ingrandire, attivare l'aggiornamento automatico e passare a schermo intero. Si apre sull'intervallo di tempo e sull'aggiornamento automatico predefiniti della dashboard, e il browser di ogni visitatore ricorda le sue scelte.
+- Permette ai visitatori di [ordinare i suoi elenchi e le sue tabelle](/docs/dashboards/widgets#ordinare-elenchi-e-tabelle) facendo clic sull'intestazione di una colonna, come fa il tuo team. Il browser di ogni visitatore ricorda il suo ordinamento, e OneUptime ordina da sé l'intero elenco, sempre in base a una delle colonne del widget.
 - Usa il branding che imposti nella pagina **Branding** della dashboard: titolo della pagina, descrizione, logo, tema, favicon.
 - Permette a ogni visitatore di passare dalla dashboard chiara a quella scura, e viceversa, con un pulsante con il sole o la luna nella sua barra degli strumenti; [Tema](#tema) spiega come.
 
@@ -197,7 +198,7 @@ Per dare a una dashboard incorporata l'aspetto del tuo sito, aggiungi `?theme=li
 
 ## Inviare un link
 
-Il link pubblico apre la dashboard con i suoi valori predefiniti salvati. Per inviare un link che si apra su un certo valore, aggiungici la variabile come `?var-<name>=<value>`, come fa la barra degli indirizzi quando un visitatore sceglie un valore; più valori sono separati da virgole. L'intervallo di tempo non fa parte del link: ogni visita parte dall'ultima ora. Per aprire la dashboard in un tema, aggiungi `theme=light`, `theme=dark` o `theme=system`, come descrive [Incorporare](#incorporare).
+Il link pubblico apre la dashboard con i suoi valori predefiniti salvati. Per inviare un link che si apra su un certo valore, aggiungici la variabile come `?var-<name>=<value>`, come fa la barra degli indirizzi quando un visitatore sceglie un valore; più valori sono separati da virgole. Per aprirla su un intervallo di tempo o un aggiornamento automatico propri, aggiungi allo stesso modo `range` e `refresh`: `?range=1d&refresh=1m` si apre sull'ultimo giorno, aggiornandosi ogni minuto, come farebbe uno schermo a parete. `range` accetta `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` o `3mo`, e `refresh` accetta `off`, `5s`, `10s`, `30s`, `1m`, `5m` o `15m`. Prevalgono sui valori predefiniti della dashboard e sulle scelte del visitatore, che può comunque cambiarli. Per aprire la dashboard in un tema, aggiungi `theme=light`, `theme=dark` o `theme=system`, come descrive [Incorporare](#incorporare).
 
 ## Passaggi successivi
 

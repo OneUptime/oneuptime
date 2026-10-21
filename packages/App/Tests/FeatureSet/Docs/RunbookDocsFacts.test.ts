@@ -43,6 +43,29 @@ import {
 } from "Common/Types/Runbook/RunbookVariableReference";
 import RunbookStepExecutionStatus from "Common/Types/Runbook/RunbookStepExecutionStatus";
 import {
+  RunbookStepWait,
+  canStepTypeRequireApproval,
+} from "Common/Types/Runbook/RunbookStepApproval";
+import { RunbookStep } from "Common/Types/Runbook/RunbookStep";
+import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
+import {
+  CONTINUE_ON_FAILURE_TITLE,
+  HTTP_HEADERS_TITLE,
+  HTTP_METHODS_WITH_BODY,
+  MANUAL_INSTRUCTIONS_TITLE,
+  NEEDS_APPROVAL_LABEL,
+  REQUIRE_APPROVAL_FOLDED_TITLE,
+  REQUIRE_APPROVAL_TITLE,
+  getStepMoreFieldsItems,
+} from "../../../FeatureSet/Dashboard/src/Components/Runbook/Steps/RunbookStepEditorModel";
+import {
+  APPROVED_BY_LABEL,
+  WAITING_FOR_APPROVAL_LABEL,
+  WAITING_FOR_YOU_LABEL,
+  getWaitingStepButtonTitle,
+  getWaitingStepStatusLabel,
+} from "../../../FeatureSet/Dashboard/src/Components/Runbook/RunbookExecutionWaitCopy";
+import {
   DEFAULT_AGENT_CLAIM_TIMEOUT_IN_MS,
   DEFAULT_STEP_EXECUTION_TIMEOUT_IN_MS,
   MAX_AGENT_CLAIM_TIMEOUT_IN_MS,
@@ -1170,6 +1193,108 @@ describe("the Runner the runbook pages describe", () => {
   });
 });
 
+describe("a step's options on the authoring page", () => {
+  // The keys of what a new step of this type folds under More fields, in order.
+  function foldedKeys(type: RunbookStepType): Array<string> {
+    const step: RunbookStep = {
+      id: "step",
+      order: 0,
+      type,
+      title: "Step",
+      config: {},
+    } as RunbookStep;
+
+    return getStepMoreFieldsItems(step).map(
+      (item: FoldedSectionItem): string => {
+        return item.key;
+      },
+    );
+  }
+
+  it("puts the approval switch on the step it holds back, named as the editor and the step's header draw it", () => {
+    expect(AUTHORING).toContain(
+      `| **${REQUIRE_APPROVAL_FOLDED_TITLE}** | Automated steps only. If on, the run stops before this step until someone approves it, and only then runs it. The switch reads **${REQUIRE_APPROVAL_TITLE}**, and the step's header says **${NEEDS_APPROVAL_LABEL}**. |`,
+    );
+    expect(STEPS_PAGE).toContain("title={REQUIRE_APPROVAL_TITLE}");
+    expect(STEPS_PAGE).toContain("NEEDS_APPROVAL_LABEL,");
+  });
+
+  it("lists what an automated step folds under More fields in the fold's order", () => {
+    const switches: Array<string> = [
+      "requireApprovalBeforeRunning",
+      "continueOnFailure",
+    ];
+
+    expect(foldedKeys(RunbookStepType.HttpRequest)).toEqual([
+      ...switches,
+      "headersJson",
+      "description",
+      "timeouts",
+    ]);
+    expect(foldedKeys(RunbookStepType.SSH)).toEqual([
+      ...switches,
+      "port",
+      "passphrase",
+      "description",
+      "timeouts",
+    ]);
+    expect(foldedKeys(RunbookStepType.AI)).toEqual([
+      ...switches,
+      "llmProviderId",
+      "includePreviousStepContext",
+      "includeTriggerContext",
+      "description",
+    ]);
+
+    for (const type of [
+      RunbookStepType.JavaScript,
+      RunbookStepType.Bash,
+      RunbookStepType.Kubernetes,
+    ]) {
+      expect(foldedKeys(type)).toEqual([
+        ...switches,
+        "description",
+        "timeouts",
+      ]);
+    }
+
+    expect(AUTHORING).toContain(
+      `In every automated step below, the step's **More fields** holds **${REQUIRE_APPROVAL_FOLDED_TITLE}** and **${CONTINUE_ON_FAILURE_TITLE}** first, then the step's own extra settings - an HTTP request's headers, an SSH step's port and key passphrase, an AI step's provider and context switches - and last the **Description** and the timeouts.`,
+    );
+    expect(AUTHORING).toContain(
+      `| **${HTTP_HEADERS_TITLE}** | Under **More fields**.`,
+    );
+  });
+
+  it("gives a Manual step Instructions and no approval switch, and folds nothing of it", () => {
+    expect(canStepTypeRequireApproval(RunbookStepType.Manual)).toBe(false);
+    expect(foldedKeys(RunbookStepType.Manual)).toEqual([]);
+    expect(STEPS_PAGE).toContain(
+      'isManual ? MANUAL_INSTRUCTIONS_TITLE : "Description"',
+    );
+    expect(AUTHORING).toContain(
+      `On a Manual step it is the **${MANUAL_INSTRUCTIONS_TITLE}** the responder reads and follows, shown below the title.`,
+    );
+    expect(AUTHORING).toContain(
+      `A checklist item for a person: its **${MANUAL_INSTRUCTIONS_TITLE}** say what to do or check.`,
+    );
+    expect(AUTHORING).toContain(
+      "A Manual step has no approval switch: it stops the run for a person already.",
+    );
+  });
+
+  it("shows an HTTP request's Body for the methods that send one", () => {
+    expect(AUTHORING).toContain(
+      `| **Body** | Shown for ${englishList(
+        HTTP_METHODS_WITH_BODY.map((method: string): string => {
+          return `\`${method}\``;
+        }),
+        "and",
+      )}.`,
+    );
+  });
+});
+
 describe("running a runbook", () => {
   it("draws the run's states with the execution page's own labels", () => {
     const labels: Array<[string, string]> = statusLabels(
@@ -1193,7 +1318,7 @@ describe("running a runbook", () => {
     );
   });
 
-  it("names the step badges the execution page draws, in its order", () => {
+  it("names the step badges the execution page draws, in its order, with the badge of a step that waits for approval after Waiting for you", () => {
     const labels: Array<string> = statusLabels(
       "RunbookStepExecutionStatus",
     ).map(([, label]: [string, string]): string => {
@@ -1201,8 +1326,31 @@ describe("running a runbook", () => {
     });
 
     expect(labels.length).toBe(Object.keys(RunbookStepExecutionStatus).length);
+
+    // The step the run waits on reads Waiting for you, or Waiting for approval.
+    const waiting: number = labels.indexOf(WAITING_FOR_YOU_LABEL);
+
+    expect(waiting).toBeGreaterThan(-1);
+    expect(EXECUTION_VIEW).toContain("label: getWaitingStepStatusLabel(wait),");
+    expect(getWaitingStepStatusLabel(RunbookStepWait.Manual)).toBe(
+      WAITING_FOR_YOU_LABEL,
+    );
+
+    for (const wait of [
+      RunbookStepWait.ApprovalToRun,
+      RunbookStepWait.ApprovalToContinue,
+    ]) {
+      expect(getWaitingStepStatusLabel(wait)).toBe(WAITING_FOR_APPROVAL_LABEL);
+    }
+
+    const badges: Array<string> = [
+      ...labels.slice(0, waiting + 1),
+      WAITING_FOR_APPROVAL_LABEL,
+      ...labels.slice(waiting + 1),
+    ];
+
     expect(RUNNING).toContain(
-      `- **Status pill** — ${englishList(labels, "or")}.`,
+      `- **Status pill** — ${englishList(badges, "or")}.`,
     );
   });
 
@@ -1223,18 +1371,26 @@ describe("running a runbook", () => {
       expect(RUNNING).toContain(`**${label}**`);
     }
 
-    for (const label of [
-      "Refresh",
-      "Cancel Execution",
-      "Run Again",
-      "Mark complete",
-      "Approve & continue",
-      "Skip",
-    ]) {
+    for (const label of ["Refresh", "Cancel Execution", "Run Again", "Skip"]) {
       expect({ label, drawn: EXECUTION_VIEW.includes(`"${label}"`) }).toEqual({
         label,
         drawn: true,
       });
+      expect(RUNNING).toContain(`**${label}**`);
+    }
+
+    // The waiting step's button, by why the run waits on it, and who approved it.
+    expect(EXECUTION_VIEW).toContain("getWaitingStepButtonTitle(wait");
+    expect(EXECUTION_VIEW).toContain(
+      "translator.translateText(APPROVED_BY_LABEL)",
+    );
+
+    for (const label of [
+      getWaitingStepButtonTitle(RunbookStepWait.Manual),
+      getWaitingStepButtonTitle(RunbookStepWait.ApprovalToRun),
+      getWaitingStepButtonTitle(RunbookStepWait.ApprovalToContinue),
+      APPROVED_BY_LABEL,
+    ]) {
       expect(RUNNING).toContain(`**${label}**`);
     }
   });

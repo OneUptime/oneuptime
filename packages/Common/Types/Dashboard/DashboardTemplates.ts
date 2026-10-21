@@ -706,6 +706,13 @@ function createTraceTableComponent(data: {
   };
 }
 
+/*
+ * The sort a template's list ships with (issue #5082): what a wall screen
+ * wants on top - the rows that need someone, worst first. A widget the
+ * template adds without one lists in its built-in order (by name).
+ */
+const WORST_STATUS_FIRST: string = "status:desc";
+
 function createKubernetesPodListComponent(data: {
   title: string;
   top: number;
@@ -714,6 +721,7 @@ function createKubernetesPodListComponent(data: {
   height: number;
   maxRows?: number;
   podPhases?: Array<string>;
+  sort?: string;
 }): DashboardBaseComponent {
   return {
     _type: ObjectType.DashboardComponent,
@@ -729,6 +737,7 @@ function createKubernetesPodListComponent(data: {
       title: data.title,
       maxRows: data.maxRows ?? 20,
       podPhases: data.podPhases,
+      ...(data.sort ? { sort: data.sort } : {}),
     },
   };
 }
@@ -741,6 +750,7 @@ function createKubernetesNodeListComponent(data: {
   height: number;
   maxRows?: number;
   readinessFilter?: string;
+  sort?: string;
 }): DashboardBaseComponent {
   return {
     _type: ObjectType.DashboardComponent,
@@ -756,6 +766,7 @@ function createKubernetesNodeListComponent(data: {
       title: data.title,
       maxRows: data.maxRows ?? 20,
       readinessFilter: data.readinessFilter,
+      ...(data.sort ? { sort: data.sort } : {}),
     },
   };
 }
@@ -794,6 +805,7 @@ function createHostListComponent(data: {
   maxRows?: number;
   statusFilter?: string;
   osTypeFilter?: string;
+  sort?: string;
 }): DashboardBaseComponent {
   return {
     _type: ObjectType.DashboardComponent,
@@ -810,6 +822,7 @@ function createHostListComponent(data: {
       maxRows: data.maxRows ?? 25,
       statusFilter: data.statusFilter,
       osTypeFilter: data.osTypeFilter,
+      ...(data.sort ? { sort: data.sort } : {}),
     },
   };
 }
@@ -822,6 +835,7 @@ function createProxmoxNodeListComponent(data: {
   height: number;
   maxRows?: number;
   statusFilter?: string;
+  sort?: string;
 }): DashboardBaseComponent {
   return {
     _type: ObjectType.DashboardComponent,
@@ -837,6 +851,7 @@ function createProxmoxNodeListComponent(data: {
       title: data.title,
       maxRows: data.maxRows ?? 20,
       statusFilter: data.statusFilter,
+      ...(data.sort ? { sort: data.sort } : {}),
     },
   };
 }
@@ -933,6 +948,7 @@ function createDockerSwarmNodeListComponent(data: {
   maxRows?: number;
   roleFilter?: string;
   statusFilter?: string;
+  sort?: string;
 }): DashboardBaseComponent {
   return {
     _type: ObjectType.DashboardComponent,
@@ -949,6 +965,7 @@ function createDockerSwarmNodeListComponent(data: {
       maxRows: data.maxRows ?? 20,
       roleFilter: data.roleFilter,
       statusFilter: data.statusFilter,
+      ...(data.sort ? { sort: data.sort } : {}),
     },
   };
 }
@@ -962,6 +979,7 @@ function createDockerSwarmServiceListComponent(data: {
   maxRows?: number;
   serviceModeFilter?: string;
   statusFilter?: string;
+  sort?: string;
 }): DashboardBaseComponent {
   return {
     _type: ObjectType.DashboardComponent,
@@ -978,6 +996,7 @@ function createDockerSwarmServiceListComponent(data: {
       maxRows: data.maxRows ?? 20,
       serviceModeFilter: data.serviceModeFilter,
       statusFilter: data.statusFilter,
+      ...(data.sort ? { sort: data.sort } : {}),
     },
   };
 }
@@ -1233,6 +1252,7 @@ function createMonitorListComponent(data: {
   maxRows?: number;
   monitorTypes?: Array<string>;
   statusFilter?: string;
+  sort?: string;
 }): DashboardBaseComponent {
   return {
     _type: ObjectType.DashboardComponent,
@@ -1250,6 +1270,7 @@ function createMonitorListComponent(data: {
       viewMode: "list",
       monitorTypes: data.monitorTypes,
       statusFilter: data.statusFilter,
+      ...(data.sort ? { sort: data.sort } : {}),
     },
   };
 }
@@ -2088,6 +2109,8 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
       width: 6,
       height: 4,
       maxRows: 25,
+      // Failed, unknown and pending pods on top.
+      sort: "phase:desc",
     }),
     createKubernetesNodeListComponent({
       title: "Nodes",
@@ -2096,6 +2119,8 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
       width: 6,
       height: 4,
       maxRows: 25,
+      // Not-ready nodes on top.
+      sort: WORST_STATUS_FIRST,
     }),
 
     // Row 10: Section header
@@ -3658,6 +3683,8 @@ function createHostDashboardConfig(): DashboardViewConfig {
       width: 12,
       height: 4,
       maxRows: 25,
+      // Disconnected hosts on top.
+      sort: WORST_STATUS_FIRST,
     }),
 
     // Row 10: Section header
@@ -3840,6 +3867,8 @@ function createProxmoxDashboardConfig(): DashboardViewConfig {
       width: 6,
       height: 4,
       maxRows: 25,
+      // Offline nodes on top.
+      sort: WORST_STATUS_FIRST,
     }),
     createProxmoxGuestListComponent({
       title: "Guests",
@@ -4234,6 +4263,8 @@ function createDockerSwarmDashboardConfig(): DashboardViewConfig {
       width: 6,
       height: 4,
       maxRows: 25,
+      // Nodes that are not ready on top.
+      sort: WORST_STATUS_FIRST,
     }),
     createDockerSwarmServiceListComponent({
       title: "Services",
@@ -4242,6 +4273,8 @@ function createDockerSwarmDashboardConfig(): DashboardViewConfig {
       width: 6,
       height: 4,
       maxRows: 25,
+      // Services short of their replicas on top.
+      sort: WORST_STATUS_FIRST,
     }),
 
     // Row 5: Section header
@@ -5043,6 +5076,8 @@ function createNetworkDashboardConfig(): DashboardViewConfig {
       height: 4,
       maxRows: 25,
       monitorTypes: [MonitorType.NetworkDevice],
+      // Devices that are down on top.
+      sort: WORST_STATUS_FIRST,
     }),
   ];
 

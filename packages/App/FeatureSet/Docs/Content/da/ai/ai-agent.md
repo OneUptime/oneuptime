@@ -1,6 +1,6 @@
 # Kode
 
-Kode er stedet, hvor du beder OneUptime AI om at arbejde i dine repositorier, sådan som du ville bede en kodeagent: rette en fejl, skrive tests, forklare koden, lave en ændring. Kode åbner på dine forbundne repositorier; et repositories side rummer dets opgaver og feltet, hvor du spørger; en opgaves side er en samtale, du kan svare i. OneUptime starter også selv opgaver, fra undtagelser, spor og undersøgelser. En [Runner](/docs/runbooks/agents) kloner repositoriet, skriver ændringen på en ny branch, bygger og tester den og åbner en pull request. En person gennemgår og merger hver eneste: Runneren kan pushe branches og åbne pull requests, intet andet.
+Kode er stedet, hvor du beder OneUptime AI om at arbejde i dine repositorier, sådan som du ville bede en kodeagent: rette en fejl, skrive tests, forklare koden, lave en ændring. Kode åbner på feltet, hvor du spørger, med repositoriet og branchen valgt i det og alle opgaver under det; en opgaves side er en samtale, du kan svare i. OneUptime starter også selv opgaver, fra undtagelser, spor og undersøgelser. En [Runner](/docs/runbooks/agents) kloner repositoriet, skriver ændringen på en ny branch, bygger og tester den og åbner en pull request. En person gennemgår og merger hver eneste: Runneren kan pushe branches og åbne pull requests, intet andet.
 
 :::cards
 - [Bed AI om noget i et repositorie](#bed-ai-om-noget-i-et-repositorie): En anmodning med dine egne ord og den kontekst, den har brug for.
@@ -18,13 +18,17 @@ Kode er stedet, hvor du beder OneUptime AI om at arbejde i dine repositorier, s�
 ## Bed AI om noget i et repositorie
 
 :::steps
-### Åbn et repositorie
+### Åbn Kode
 
-Åbn **Produkter → Kode**. Her står projektets repositorier, hvert med de opgaver, AI arbejder på, dem, der venter på dig, og dets åbne pull requests. Er der endnu ingen, tilbyder Kode **Forbind GitHub** (se [Før du begynder](#før-du-begynder)).
+Åbn **Produkter → Kode**. Kode åbner på **Hvad skal AI gøre?**: feltet, hvor du spørger, med alle opgaver under det, de nyeste først. Er der endnu intet repositorie, tilbyder Kode i stedet **Forbind GitHub** (se [Før du begynder](#før-du-begynder)). **Repositorier** i sidemenuen viser de forbundne repositorier, og hvert repositories side har det samme felt til det repositorie.
+
+### Vælg repositoriet og branchen
+
+Feltet starter på det repositorie, du valgte sidst. Vælg et andet i dets nederste række og ved siden af den branch, opgaven starter fra: repositoriets hovedbranch, markeret med **Standard**, indtil du vælger en anden. AI laver sin branch ud fra den, du vælger, og åbner sin pull request mod den.
 
 ### Sig, hvad du vil
 
-Skriv på repositoriets side ændringen, fejlen eller spørgsmålet med dine egne ord. Et repositorie uden opgaver foreslår et par stykker under **Prøv at spørge**.
+Skriv ændringen, fejlen eller spørgsmålet med dine egne ord. Indtil der er spurgt om noget, foreslår Kode et par stykker under **Prøv at spørge**.
 
 ### Tilføj kontekst
 
@@ -51,7 +55,7 @@ En anmodning bærer højst 10 stykker kontekst. Tokens, nøgler, adgangskoder og
 
 ## En opgaves samtale
 
-En opgaves side er en samtale: hvad der blev spurgt om, og den tilføjede kontekst, derefter AI's tur – de trin, den tager, mens den tager dem (filerne, den læste og redigerede, hvad den søgte efter, kommandoerne, den kørte), dens svar, filerne, den ændrede, med deres diff, og pull requesten. Øverst på siden står, hvordan det går med opgaven:
+En opgaves side er en samtale: hvad der blev spurgt om, og den tilføjede kontekst, derefter AI's tur – de trin, den tager, mens den tager dem (filerne, den læste og redigerede, hvad den søgte efter, kommandoerne, den kørte), dens svar, filerne, den ændrede, med deres diff, og pull requesten. Øverst på siden står, hvor opgaven arbejder (dens repositorie og den branch, den startede fra), hvor mange linjer den ændrede, med en knap til dens pull request, og hvordan det går med opgaven:
 
 | Tilstand | Hvad det betyder |
 | --- | --- |
@@ -62,7 +66,7 @@ En opgaves side er en samtale: hvad der blev spurgt om, og den tilføjede kontek
 | **Mislykkedes** | Turen kunne ikke gøres færdig og siger hvorfor. **Prøv igen** beder om det samme igen. |
 | **Stoppet** | Nogen stoppede den. **Prøv igen** beder om det samme igen. |
 
-For at følge op skriver du i feltet nederst: svar AI, tilføj kontekst, eller bed om ændringer. Hvert svar er den næste tur i samme opgave: den arbejder på samme branch og pusher til samme pull request, så længe den er åben. En opgave tager én tur ad gangen, så feltet venter, mens AI arbejder. Hver turs **Log** er den ordrette optegnelse af, hvad den gjorde.
+For at følge op skriver du i feltet nederst, som bliver synligt, mens samtalen ruller: svar AI, tilføj kontekst, eller bed om ændringer. Hvert svar er den næste tur i samme opgave: den arbejder på samme branch og pusher til samme pull request, så længe den er åben. En opgave tager én tur ad gangen, så feltet venter, mens AI arbejder. Hver turs **Log** er den ordrette optegnelse af, hvad den gjorde.
 
 Den, der kan læse et repositorie, læser dets opgaver. At bede AI om noget, svare og stoppe en opgave kræver tilladelse til at redigere repositoriet, og det samme gør det at se en ændrings diff: alle andre ser, hvilke filer der er ændret. Opgaverne, OneUptime selv starter (nedenfor), står også i deres repositorie, som samtaler, du kan svare i.
 
@@ -80,10 +84,10 @@ flowchart TB
     P --> H["En person gennemgår<br/>og merger den"]
 ```
 
-1. Du klikker på **Start opgave** i et repositorie, eller på **Ret med AI** på en uløst undtagelse, eller en anden knap eller udløser starter en opgave (se [Hvor rettelsesopgaver starter](#hvor-rettelsesopgaver-starter)).
+1. Du klikker på **Start opgave** i Kode, eller på **Ret med AI** på en uløst undtagelse, eller en anden knap eller udløser starter en opgave (se [Hvor rettelsesopgaver starter](#hvor-rettelsesopgaver-starter)).
 2. Opgaven sættes i kø på sit repositorie, og den Runner, som repositoriet vælger, tager den: en af dine Runnere, eller en global Runner, når det ikke vælger nogen (se [Vælg repositoriets Runner](#vælg-repositoriets-runner)).
 3. Runneren henter opgavens kontekst. For en anmodning er det dens ord, den tilføjede kontekst og samtalen indtil nu; for en undtagelse dens type, dens meddelelse og dens stack trace.
-4. Den kloner repositoriet til sit eget arbejdsområde og laver en branch. En rettelse af en undtagelse hedder `oneuptime-fix-exception-` efterfulgt af de første tegn i kørslens id. Et svar arbejder i stedet på branchen for opgavens åbne pull request.
+4. Den kloner repositoriet til sit eget arbejdsområde og laver en branch. En rettelse af en undtagelse hedder `oneuptime-fix-exception-` efterfulgt af de første tegn i kørslens id. En anmodning starter fra den branch, der blev valgt, da den blev stillet, og dens pull request åbnes mod den. Et svar arbejder i stedet på branchen for opgavens åbne pull request.
 5. En kodeagent, drevet af dit projekts LLM-udbyder, læser koden og skriver ændringen. OneUptime-serveren foretager LLM-kaldene, så Runneren aldrig har din udbyders API-nøgle, og hvert kald måles og vises i AI-loggene. En rettelse af en undtagelse, et langsomt spor eller en hændelse læser også fra produktionen, mens den arbejder: undtagelser, spor, logs og metrikker fra repositoriets tjenester (se [Produktionstelemetri i en rettelse](#produktionstelemetri-i-en-rettelse)).
 6. Hvis repositoriet har kontrolkommandoer, bygger og tester din egen Runner ændringen, før den committer noget, og giver en fejl tilbage til kodeagenten, så den kan rette den (se [Kontrol før pull requesten](#kontrol-før-pull-requesten)).
 7. Runneren committer, pusher branchen, åbner pull requesten (for en anmodning kun, når den ændrede kode) og sletter arbejdsområdet.
@@ -177,7 +181,7 @@ Indtil en udrulning leverer den, står der **Merget, venter på et deploy** ved 
 
 ## Før du begynder
 
-En opgave kræver tre ting. Et repositories side i Kode og undtagelsens side **AI Assistance** kontrollerer alle tre, før de tilbyder at starte, og fortæller, hvad der mangler.
+En opgave kræver tre ting. Kodes anmodningsfelt og undtagelsens side **AI Assistance** kontrollerer alle tre, før de tilbyder at starte, og fortæller, hvad der mangler.
 
 | Hvad | OneUptime Cloud | Selvhostet |
 | --- | --- | --- |
@@ -263,7 +267,7 @@ Alt andet svarer til knappen:
 ## Når en rettelse mislykkes
 
 :::details Kørslen fejler
-Rettelsen kunne ikke anvendes, repositoriet kunne ikke nås, eller LLM-kaldet mislykkedes. Opgavens samtale og siden, den blev startet fra, viser årsagen og tilbyder at prøve igen. Turens **Log** har hele kørselsloggen.
+Rettelsen kunne ikke anvendes, repositoriet eller den branch, en anmodning startede fra, kunne ikke nås, eller LLM-kaldet mislykkedes. Opgavens samtale og siden, den blev startet fra, viser årsagen og tilbyder at prøve igen. Turens **Log** har hele kørselsloggen.
 :::
 
 :::details Runneren stopper midt i en kørsel

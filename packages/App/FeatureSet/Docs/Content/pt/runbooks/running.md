@@ -33,7 +33,7 @@ stateDiagram-v2
     Cancelled --> [*]
 ```
 
-Uma nova execução fica **Agendado** até que um Worker a assuma e a marque como **Em execução**. Ela pausa como **Aguardando você** em uma etapa Manual, ou depois de uma etapa que precisa de aprovação, e volta para a fila assim que alguém age. Uma execução que espera por uma pessoa nunca expira. Ela termina como **Concluído**, **Falhou** ou **Cancelado**.
+Uma nova execução fica **Agendado** até que um Worker a assuma e a marque como **Em execução**. Ela pausa como **Aguardando você** em uma etapa Manual, ou antes de uma etapa que precisa de aprovação, e volta para a fila assim que alguém age. Uma execução que espera por uma pessoa nunca expira. Ela termina como **Concluído**, **Falhou** ou **Cancelado**.
 
 ## Iniciar uma execução
 
@@ -64,18 +64,19 @@ Iniciar uma execução exige Project Owner, Project Admin, Project Member, Runbo
 
 Abra qualquer execução para ver sua checklist. O topo da página mostra o **Status** da execução, seu **Progress** (etapas feitas do total), **Iniciada** (quando começou) e **Acionado por** (o que a iniciou). Cada etapa mostra:
 
-- **Indicador de status** — Pendente, Em execução, Aguardando você, Concluído, Ignorado, Falhou ou Cancelado.
+- **Indicador de status** — Pendente, Em execução, Aguardando você, Aguardando aprovação, Concluído, Ignorado, Falhou ou Cancelado.
 - **Título e descrição** — copiados do runbook no momento da execução.
 - **Output** (recolhível) — stdout, valores de retorno, respostas HTTP ou a resposta da IA.
 - **Mensagem de erro** se a etapa falhou.
-- Na etapa que a execução está esperando: **Mark complete** (uma etapa Manual) ou **Approve & continue** (uma etapa com **Exigir aprovação**), e **Pular**.
+- Na etapa que a execução está esperando: **Marcar como concluído** (uma etapa Manual) ou **Aprovar e executar** (uma etapa com **Exigir aprovação**, que ainda não rodou), e **Pular**.
+- **Aprovado por** em uma etapa que esperou uma aprovação, depois que ela rodou.
 - Enquanto a execução está pausada, **Pular** nas etapas automatizadas posteriores que não exigem aprovação.
 
 Enquanto a execução está em andamento, a página se atualiza sozinha a cada 30 segundos. Clique em **Atualizar** para ver o estado mais recente na hora.
 
 ## Concluir, aprovar e pular etapas
 
-Só a etapa que a execução está esperando pode ser marcada como concluída, aprovada ou pulada para que a execução continue. Uma etapa Manual ou uma etapa com **Exigir aprovação** não pode ser marcada nem pulada antes que a execução chegue a ela: sua função é parar a execução, então ela só aceita uma decisão quando a execução está lá (no caso de uma aprovação, depois que a etapa rodou e você pode ver a saída).
+Só a etapa que a execução está esperando pode ser marcada como concluída, aprovada ou pulada para que a execução continue. Uma etapa Manual ou uma etapa com **Exigir aprovação** não pode ser marcada nem pulada antes que a execução chegue a ela: sua função é parar a execução, então ela só aceita uma decisão quando a execução está lá. Uma etapa com **Exigir aprovação** espera antes de rodar, então leia primeiro o que as etapas anteriores encontraram: **Aprovar e executar** a executa, **Pular** impede que ela rode e, de um jeito ou de outro, a execução continua. Uma execução iniciada antes de as aprovações passarem para a etapa que protegem espera, em vez disso, depois dessa etapa, quando ela já rodou: **Aprovar e continuar** deixa essa execução seguir.
 
 Enquanto a execução está pausada, você também pode pular uma etapa automatizada posterior que não exige aprovação, para que ela não rode quando a execução continuar. A execução continua pausada na etapa que está esperando por você. Não é possível pular enquanto há etapas em execução: espere a execução pausar ou cancele-a. Cada etapa registra quem a concluiu ou pulou.
 
@@ -95,7 +96,7 @@ O fluxo clássico:
 | # | Etapa | O que acontece |
 | --- | --- | --- |
 | 1 | Bash: capturar o estado do sistema | Roda no seu Runner assim que a execução começa. |
-| 2 | Manual: "Avisar os clientes pelo banner da página de status." | A execução pausa até que alguém clique em **Mark complete**. |
+| 2 | Manual: "Avisar os clientes pelo banner da página de status." | A execução pausa até que alguém clique em **Marcar como concluído**. |
 | 3 | HTTP request: acionar o DBA pelo PagerDuty | Roda no Worker. |
 | 4 | Manual: "Confirmar que o banco de dados secundário agora é o primário." | A execução pausa de novo. |
 | 5 | HTTP request: publicar o aviso de normalidade em um webhook do Slack | Roda, e a execução fica **Concluído**. |
@@ -145,7 +146,7 @@ A mensagem diz "No runbook agent picked up this step before the wait window expi
 :::
 
 :::details A execução está esperando há horas
-Uma execução que espera por uma pessoa nunca expira. Abra-a e aja na etapa marcada como **Aguardando você**, ou clique em **Cancelar execução**.
+Uma execução que espera por uma pessoa nunca expira. Abra-a e aja na etapa marcada como **Aguardando você** ou **Aguardando aprovação**, ou clique em **Cancelar execução**.
 :::
 
 :::details Uma etapa diz que pode ter rodado em parte

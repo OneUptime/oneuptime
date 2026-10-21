@@ -8,6 +8,16 @@ import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecu
 import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import logger from "Common/Server/Utils/Logger";
+import {
+  RunbookStepAction,
+  applyRunbookStepAction,
+} from "Common/Types/Runbook/RunbookStepAction";
+import {
+  APPROVAL_AFTER_LAST_STEP_TITLE,
+  RunbookStepWait,
+  getRunbookStepWait,
+} from "Common/Types/Runbook/RunbookStepApproval";
+import { RunbookStarterClass } from "Common/Server/Utils/Runbook/RunbookStarter";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 
 /*
@@ -1025,5 +1035,521 @@ describe("RunRunbook: a run that ends while a step is in flight", () => {
     expect(runHttpStepMock).not.toHaveBeenCalled();
     expect(row.status).toBe(RunbookExecutionStatus.Cancelled);
     expect(updateSpy.mock.calls.length).toBe(writes);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A STEP ASKS FOR APPROVAL BEFORE IT RUNS.
+ *
+ * "Require approval before running this step" (requireApprovalBeforeRunning)
+ * stops the run before the step - nothing of it runs, no Runner is handed its
+ * job - until someone approves it (it then runs) or skips it (it never runs).
+ * The person's decision is written the way the step routes write it
+ * (applyRunbookStepAction) and the run queued again as Scheduled; the Worker
+ * then picks it up, here by running the loop again over the stored row.
+ *
+ * Runs started before approvals moved keep their copy of the steps, with the
+ * old requireApproval ("after this step"): they still stop after such a step
+ * - one waiting at the upgrade is approved as before and goes on to the next
+ * step without asking again. Runs started now from a runbook still saved the
+ * old way take its steps as RunbookStarter reads them, so they stop before
+ * the next step: the same point in the run.
+ * ---------------------------------------------------------------------------
+ */
+
+const APPROVER_ID: string = "30000000-0000-4000-8000-0000000000c1";
+
+// What the step routes write for a person's decision, and the run queued again.
+function decideStep(
+  row: StoredRow,
+  index: number,
+  action: RunbookStepAction,
+): void {
+  applyRunbookStepAction({
+    stepExecution: row.stepExecutions[index]!,
+    action,
+    at: new Date(),
+    userId: APPROVER_ID,
+  });
+  row.status = RunbookExecutionStatus.Scheduled;
+}
+
+function asks(
+  type: RunbookStepType,
+  overrides: Partial<RunbookStep> = {},
+): RunbookStep {
+  return makeStep(type, { requireApprovalBeforeRunning: true, ...overrides });
+}
+
+describe("RunRunbook: a step that asks for approval before it runs", () => {
+  beforeEach(() => {
+    jest.spyOn(logger, "warn").mockImplementation((): void => {
+      return undefined;
+    });
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    runHttpStepMock.mockReset();
+    runBashStepMock.mockReset();
+    runAiStepMock.mockReset();
+    runHttpStepMock.mockResolvedValue({ success: true, output: "HTTP 200" });
+    runBashStepMock.mockResolvedValue({ success: true, output: "done" });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the first step: the run stops before anything runs, and the step is not started", async () => {
+    const { row } = storeRow([
+      pending(asks(RunbookStepType.Bash)),
+      pending(makeStep(RunbookStepType.HttpRequest)),
+    ]);
+
+    await runStored();
+
+    expect(runBashStepMock).not.toHaveBeenCalled();
+    expect(runHttpStepMock).not.toHaveBeenCalled();
+    expect(row.status).toBe(RunbookExecutionStatus.WaitingForManualStep);
+    expect(statusesOf(row)).toEqual([
+      RunbookStepExecutionStatus.WaitingForUser,
+      RunbookStepExecutionStatus.Pending,
+    ]);
+    // Nothing of it ran: no start, no output.
+    expect(row.stepExecutions[0]!.startedAt).toBeUndefined();
+    expect(row.stepExecutions[0]!.output).toBeUndefined();
+    expect(getRunbookStepWait(row.stepExecutions[0])).toBe(
+      RunbookStepWait.ApprovalToRun,
+    );
+  });
+
+  test("a middle step: the steps before it run, then the run stops before it", async () => {
+    const { row } = storeRow([
+      pending(makeStep(RunbookStepType.HttpRequest)),
+      pending(asks(RunbookStepType.Bash)),
+      pending(makeStep(RunbookStepType.HttpRequest)),
+    ]);
+
+    await runStored();
+
+    expect(runHttpStepMock).toHaveBeenCalledTimes(1);
+    expect(runBashStepMock).not.toHaveBeenCalled();
+    expect(statusesOf(row)).toEqual([
+      RunbookStepExecutionStatus.Completed,
+      RunbookStepExecutionStatus.WaitingForUser,
+      RunbookStepExecutionStatus.Pending,
+    ]);
+    expect(row.status).toBe(RunbookExecutionStatus.WaitingForManualStep);
+  });
+
+  test("the last step: every step before it runs, and the run waits before it finishes", async () => {
+    const { row } = storeRow([
+      pending(makeStep(RunbookStepType.HttpRequest)),
+      pending(asks(RunbookStepType.Bash)),
+    ]);
+
+    await runStored();
+
+    expect(runHttpStepMock).toHaveBeenCalledTimes(1);
+    expect(runBashStepMock).not.toHaveBeenCalled();
+    expect(row.status).toBe(RunbookExecutionStatus.WaitingForManualStep);
+    expect(row.completedAt).toBeUndefined();
+  });
+
+  test("approved, it runs - its Runner gets the job only now - and the run goes on to the end", async () => {
+    const { row } = storeRow([
+      pending(makeStep(RunbookStepType.HttpRequest)),
+      pending(asks(RunbookStepType.Bash)),
+      pending(makeStep(RunbookStepType.HttpRequest)),
+    ]);
+
+    await runStored();
+    expect(runBashStepMock).not.toHaveBeenCalled();
+
+    decideStep(row, 1, RunbookStepAction.Complete);
+    expect(row.stepExecutions[1]!.status).toBe(
+      RunbookStepExecutionStatus.Pending,
+    );
+
+    await runStored();
+
+    expect(runBashStepMock).toHaveBeenCalledTimes(1);
+    expect(runHttpStepMock).toHaveBeenCalledTimes(2);
+    expect(row.status).toBe(RunbookExecutionStatus.Completed);
+    expect(statusesOf(row)).toEqual([
+      RunbookStepExecutionStatus.Completed,
+      RunbookStepExecutionStatus.Completed,
+      RunbookStepExecutionStatus.Completed,
+    ]);
+    // Who approved it, and when, stay on the step that ran.
+    expect(row.stepExecutions[1]!.approvedByUserId).toBe(APPROVER_ID);
+    expect(row.stepExecutions[1]!.approvedAt).toEqual(expect.any(String));
+    expect(row.stepExecutions[1]!.output).toBe("done");
+    expect(row.stepExecutions[1]!.completedByUserId).toBeUndefined();
+  });
+
+  test("skipped, it never runs, and the run goes on without it", async () => {
+    const { row } = storeRow([
+      pending(asks(RunbookStepType.Bash)),
+      pending(makeStep(RunbookStepType.HttpRequest)),
+    ]);
+
+    await runStored();
+    decideStep(row, 0, RunbookStepAction.Skip);
+    await runStored();
+
+    expect(runBashStepMock).not.toHaveBeenCalled();
+    expect(runHttpStepMock).toHaveBeenCalledTimes(1);
+    expect(statusesOf(row)).toEqual([
+      RunbookStepExecutionStatus.Skipped,
+      RunbookStepExecutionStatus.Completed,
+    ]);
+    expect(row.stepExecutions[0]!.completedByUserId).toBe(APPROVER_ID);
+    expect(row.status).toBe(RunbookExecutionStatus.Completed);
+  });
+
+  test("the last step skipped: the run completes with it never run", async () => {
+    const { row } = storeRow([
+      pending(makeStep(RunbookStepType.HttpRequest)),
+      pending(asks(RunbookStepType.Bash)),
+    ]);
+
+    await runStored();
+    decideStep(row, 1, RunbookStepAction.Skip);
+    await runStored();
+
+    expect(runBashStepMock).not.toHaveBeenCalled();
+    expect(row.status).toBe(RunbookExecutionStatus.Completed);
+  });
+
+  test("with Continue on failure on the step before: it fails, and the run still stops before the step that asks", async () => {
+    runHttpStepMock.mockResolvedValue({
+      success: false,
+      output: "",
+      errorMessage: "HTTP 503",
+    });
+    const { row } = storeRow([
+      pending(
+        makeStep(RunbookStepType.HttpRequest, { continueOnFailure: true }),
+      ),
+      pending(asks(RunbookStepType.Bash)),
+    ]);
+
+    await runStored();
+
+    expect(runBashStepMock).not.toHaveBeenCalled();
+    expect(statusesOf(row)).toEqual([
+      RunbookStepExecutionStatus.Failed,
+      RunbookStepExecutionStatus.WaitingForUser,
+    ]);
+    expect(row.status).toBe(RunbookExecutionStatus.WaitingForManualStep);
+  });
+
+  test("with Continue on failure on the step itself: approved, it fails, and the run goes on", async () => {
+    runBashStepMock.mockResolvedValue({
+      success: false,
+      output: "",
+      errorMessage: "exit 1",
+    });
+    const { row } = storeRow([
+      pending(asks(RunbookStepType.Bash, { continueOnFailure: true })),
+      pending(makeStep(RunbookStepType.HttpRequest)),
+    ]);
+
+    await runStored();
+    decideStep(row, 0, RunbookStepAction.Complete);
+    await runStored();
+
+    expect(runBashStepMock).toHaveBeenCalledTimes(1);
+    expect(runHttpStepMock).toHaveBeenCalledTimes(1);
+    expect(statusesOf(row)).toEqual([
+      RunbookStepExecutionStatus.Failed,
+      RunbookStepExecutionStatus.Completed,
+    ]);
+    expect(row.status).toBe(RunbookExecutionStatus.Completed);
+  });
+
+  test("approved without Continue on failure, it fails: the run fails with its reason", async () => {
+    runBashStepMock.mockResolvedValue({
+      success: false,
+      output: "",
+      errorMessage: "exit 1",
+    });
+    const { row } = storeRow([
+      pending(asks(RunbookStepType.Bash, { title: "Restart checkout" })),
+      pending(makeStep(RunbookStepType.HttpRequest)),
+    ]);
+
+    await runStored();
+    decideStep(row, 0, RunbookStepAction.Complete);
+    await runStored();
+
+    expect(runHttpStepMock).not.toHaveBeenCalled();
+    expect(row.status).toBe(RunbookExecutionStatus.Failed);
+    expect(row.failureReason).toBe('Step "Restart checkout" failed: exit 1');
+  });
+
+  test("with Manual steps: each stop in its turn - the Manual step, then the approval, then the next Manual step", async () => {
+    const { row } = storeRow([
+      pending(makeStep(RunbookStepType.Manual)),
+      pending(asks(RunbookStepType.Bash)),
+      pending(makeStep(RunbookStepType.Manual)),
+      pending(makeStep(RunbookStepType.HttpRequest)),
+    ]);
+
+    await runStored();
+    expect(statusesOf(row)[0]).toBe(RunbookStepExecutionStatus.WaitingForUser);
+    expect(getRunbookStepWait(row.stepExecutions[0])).toBe(
+      RunbookStepWait.Manual,
+    );
+
+    decideStep(row, 0, RunbookStepAction.Complete);
+    await runStored();
+    expect(runBashStepMock).not.toHaveBeenCalled();
+    expect(getRunbookStepWait(row.stepExecutions[1])).toBe(
+      RunbookStepWait.ApprovalToRun,
+    );
+
+    decideStep(row, 1, RunbookStepAction.Complete);
+    await runStored();
+    expect(runBashStepMock).toHaveBeenCalledTimes(1);
+    expect(getRunbookStepWait(row.stepExecutions[2])).toBe(
+      RunbookStepWait.Manual,
+    );
+    expect(runHttpStepMock).not.toHaveBeenCalled();
+
+    decideStep(row, 2, RunbookStepAction.Complete);
+    await runStored();
+    expect(runHttpStepMock).toHaveBeenCalledTimes(1);
+    expect(row.status).toBe(RunbookExecutionStatus.Completed);
+  });
+
+  test("two steps in a row that ask: the run stops before each", async () => {
+    const { row } = storeRow([
+      pending(asks(RunbookStepType.Bash)),
+      pending(asks(RunbookStepType.HttpRequest)),
+    ]);
+
+    await runStored();
+    decideStep(row, 0, RunbookStepAction.Complete);
+    await runStored();
+
+    expect(runBashStepMock).toHaveBeenCalledTimes(1);
+    expect(runHttpStepMock).not.toHaveBeenCalled();
+    expect(getRunbookStepWait(row.stepExecutions[1])).toBe(
+      RunbookStepWait.ApprovalToRun,
+    );
+
+    decideStep(row, 1, RunbookStepAction.Complete);
+    await runStored();
+
+    expect(runHttpStepMock).toHaveBeenCalledTimes(1);
+    expect(row.status).toBe(RunbookExecutionStatus.Completed);
+  });
+
+  test("the flag on a Manual step stops it once, as a Manual step", async () => {
+    const { row } = storeRow([
+      pending(asks(RunbookStepType.Manual)),
+      pending(makeStep(RunbookStepType.HttpRequest)),
+    ]);
+
+    await runStored();
+    expect(getRunbookStepWait(row.stepExecutions[0])).toBe(
+      RunbookStepWait.Manual,
+    );
+
+    decideStep(row, 0, RunbookStepAction.Complete);
+    expect(row.stepExecutions[0]!.status).toBe(
+      RunbookStepExecutionStatus.Completed,
+    );
+    await runStored();
+
+    expect(runHttpStepMock).toHaveBeenCalledTimes(1);
+    expect(row.status).toBe(RunbookExecutionStatus.Completed);
+  });
+
+  test("a redelivered run waiting for an approval stays waiting, and nothing runs", async () => {
+    const { row, updateSpy } = storeRow([
+      pending(asks(RunbookStepType.Bash)),
+      pending(makeStep(RunbookStepType.HttpRequest)),
+    ]);
+
+    await runStored();
+    const writes: number = updateSpy.mock.calls.length;
+
+    // The Worker is handed the same run again while it still waits.
+    await runStored();
+
+    expect(runBashStepMock).not.toHaveBeenCalled();
+    expect(row.status).toBe(RunbookExecutionStatus.WaitingForManualStep);
+    expect(statusesOf(row)[0]).toBe(RunbookStepExecutionStatus.WaitingForUser);
+    expect(updateSpy.mock.calls.length).toBeGreaterThan(writes);
+  });
+
+  test("a run cancelled while it waits for an approval is not touched when the Worker picks it up", async () => {
+    const { row, updateSpy } = storeRow([
+      pending(asks(RunbookStepType.Bash)),
+      pending(makeStep(RunbookStepType.HttpRequest)),
+    ]);
+
+    await runStored();
+    cancelRow(row);
+    const writes: number = updateSpy.mock.calls.length;
+
+    await runStored();
+
+    expect(runBashStepMock).not.toHaveBeenCalled();
+    expect(row.status).toBe(RunbookExecutionStatus.Cancelled);
+    expect(updateSpy.mock.calls.length).toBe(writes);
+  });
+
+  test("a step approved before a Worker crashed mid-step runs again on resume without asking again", async () => {
+    const approved: RunbookStepExecutionState = {
+      step: asks(RunbookStepType.Bash),
+      status: RunbookStepExecutionStatus.Running,
+      approvedAt: "2026-10-20T10:00:00.000Z",
+      approvedByUserId: APPROVER_ID,
+    };
+    const { row } = storeRow([approved]);
+
+    await runStored();
+
+    expect(runBashStepMock).toHaveBeenCalledTimes(1);
+    expect(row.status).toBe(RunbookExecutionStatus.Completed);
+  });
+});
+
+describe("RunRunbook: runs started before approvals moved, and runbooks still saved the old way", () => {
+  beforeEach(() => {
+    jest.spyOn(logger, "warn").mockImplementation((): void => {
+      return undefined;
+    });
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    runHttpStepMock.mockReset();
+    runBashStepMock.mockReset();
+    runAiStepMock.mockReset();
+    runHttpStepMock.mockResolvedValue({ success: true, output: "HTTP 200" });
+    runBashStepMock.mockResolvedValue({ success: true, output: "done" });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("a run started before: its old approval after a step still stops it after that step, and approving it goes on without asking again", async () => {
+    const { row } = storeRow([
+      pending(makeStep(RunbookStepType.HttpRequest, { requireApproval: true })),
+      pending(makeStep(RunbookStepType.Bash)),
+    ]);
+
+    await runStored();
+
+    // The step ran, then the run stopped - as it always did.
+    expect(runHttpStepMock).toHaveBeenCalledTimes(1);
+    expect(runBashStepMock).not.toHaveBeenCalled();
+    expect(row.stepExecutions[0]!.output).toBe("HTTP 200");
+    expect(getRunbookStepWait(row.stepExecutions[0])).toBe(
+      RunbookStepWait.ApprovalToContinue,
+    );
+
+    decideStep(row, 0, RunbookStepAction.Complete);
+    expect(row.stepExecutions[0]!.status).toBe(
+      RunbookStepExecutionStatus.Completed,
+    );
+    await runStored();
+
+    expect(runHttpStepMock).toHaveBeenCalledTimes(1);
+    expect(runBashStepMock).toHaveBeenCalledTimes(1);
+    expect(row.status).toBe(RunbookExecutionStatus.Completed);
+  });
+
+  test("a run waiting for the old approval at the upgrade: approved after it, it goes on to the next step and finishes", async () => {
+    // The row as the old loop left it: the step ran and waits for approval.
+    const { row } = storeRow([
+      {
+        step: makeStep(RunbookStepType.AI, { requireApproval: true }),
+        status: RunbookStepExecutionStatus.WaitingForUser,
+        startedAt: "2026-10-20T09:00:00.000Z",
+        completedAt: "2026-10-20T09:00:05.000Z",
+        output: "PROCEED: the replica is healthy.",
+      },
+      pending(makeStep(RunbookStepType.Bash)),
+      pending(makeStep(RunbookStepType.HttpRequest)),
+    ]);
+    row.status = RunbookExecutionStatus.WaitingForManualStep;
+
+    decideStep(row, 0, RunbookStepAction.Complete);
+    await runStored();
+
+    expect(runAiStepMock).not.toHaveBeenCalled();
+    expect(runBashStepMock).toHaveBeenCalledTimes(1);
+    expect(runHttpStepMock).toHaveBeenCalledTimes(1);
+    expect(statusesOf(row)).toEqual([
+      RunbookStepExecutionStatus.Completed,
+      RunbookStepExecutionStatus.Completed,
+      RunbookStepExecutionStatus.Completed,
+    ]);
+    expect(row.status).toBe(RunbookExecutionStatus.Completed);
+  });
+
+  test("a run started now from a runbook still saved the old way stops at the same point: before the step its approval held back", async () => {
+    const saved: Array<RunbookStep> = [
+      { ...makeStep(RunbookStepType.HttpRequest), requireApproval: true },
+      makeStep(RunbookStepType.Bash),
+    ];
+    saved[0]!.order = 0;
+    saved[1]!.order = 1;
+
+    const { row } = storeRow(RunbookStarterClass.getStepExecutions(saved));
+
+    // Nothing of the old flag is left in the run's copy of the steps.
+    expect(JSON.stringify(row.stepExecutions)).not.toContain(
+      '"requireApproval"',
+    );
+
+    await runStored();
+
+    expect(runHttpStepMock).toHaveBeenCalledTimes(1);
+    expect(runBashStepMock).not.toHaveBeenCalled();
+    expect(getRunbookStepWait(row.stepExecutions[1])).toBe(
+      RunbookStepWait.ApprovalToRun,
+    );
+
+    decideStep(row, 1, RunbookStepAction.Complete);
+    await runStored();
+
+    expect(runBashStepMock).toHaveBeenCalledTimes(1);
+    expect(row.status).toBe(RunbookExecutionStatus.Completed);
+  });
+
+  test("a runbook whose last step asked for approval after it: the run waits at the end on 'Approve the result', then completes", async () => {
+    const saved: Array<RunbookStep> = [
+      { ...makeStep(RunbookStepType.HttpRequest), requireApproval: true },
+    ];
+    saved[0]!.order = 0;
+
+    const { row } = storeRow(RunbookStarterClass.getStepExecutions(saved));
+
+    expect(row.stepExecutions).toHaveLength(2);
+    expect(row.stepExecutions[1]!.step.title).toBe(
+      APPROVAL_AFTER_LAST_STEP_TITLE,
+    );
+
+    await runStored();
+
+    expect(runHttpStepMock).toHaveBeenCalledTimes(1);
+    expect(row.status).toBe(RunbookExecutionStatus.WaitingForManualStep);
+    expect(row.completedAt).toBeUndefined();
+    expect(getRunbookStepWait(row.stepExecutions[1])).toBe(
+      RunbookStepWait.Manual,
+    );
+
+    decideStep(row, 1, RunbookStepAction.Complete);
+    await runStored();
+
+    expect(row.status).toBe(RunbookExecutionStatus.Completed);
   });
 });

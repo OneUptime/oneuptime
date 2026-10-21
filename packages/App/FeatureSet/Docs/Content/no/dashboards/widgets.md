@@ -6,6 +6,7 @@ En widget er én flis på et dashbord. Denne siden går gjennom hver widget i ka
 - [Hvilken widget bør jeg bruke?](#hvilken-widget-bør-jeg-bruke): Velg ut fra spørsmålet flisen svarer på.
 - [Diagrammer og tall](#diagrammer-og-tall): Diagram, Verdi, Måler og Tabell, fra en metrikkspørring.
 - [Logger, spor og sikkerhet](#logger-spor-og-sikkerhet): Volumdiagrammer, sanntidsstrømmer og lister.
+- [Sortere lister og tabeller](#sortere-lister-og-tabeller): Sorter etter en kolonne, og velg rekkefølgen alle ser.
 - [Når en widget ikke kan vises](#når-en-widget-ikke-kan-vises): Hva en ødelagt widget viser, og hvordan du fikser den.
 :::
 
@@ -198,6 +199,33 @@ En lokasjon vises bare hvis den har koordinater. Legg til breddegrad og lengdegr
 ## Eksterne datakilder
 
 Gruppen Eksterne datakilder tegner et **Diagram**, en **Verdi**, en **Måler** eller en **Tabell** fra et system som OneUptime ikke eier: Prometheus, PostgreSQL, MySQL, SQL Server, ClickHouse, Loki, Elasticsearch eller et hvilket som helst REST-API. Du kobler til systemet én gang og skriver deretter hver widgets spørring i systemets eget språk. [Eksterne datakilder](/docs/dashboards/data-sources) viser hvordan.
+
+## Sortere lister og tabeller
+
+Klikk på overskriften til en kolonne for å sortere en liste eller en tabell etter den: et første klikk sorterer slik tabellen nedenfor sier, neste klikk den andre veien, og klikket etter det setter widgeten tilbake i sin egen rekkefølge. På kolonnen widgeten allerede er sortert etter, snur et klikk rekkefølgen. En pil markerer kolonnen radene er sortert etter.
+
+| Kolonne | Første klikk | Neste klikk |
+| --- | --- | --- |
+| En status, en tilstand eller en alvorlighetsgrad | Verste først | Beste først |
+| Et tidspunkt | Nyeste først | Eldste først |
+| Et tall | Høyeste først | Laveste først |
+| Tekst | A til Å | Å til A |
+
+Verst følger prosjektets egen rekkefølge: en monitorstatus etter prioriteten, alvorlighetsgraden og tilstanden til en hendelse eller et varsel etter rekkefølgen du har dem i, og en ressurs som er nede, ikke klar eller slått av, før en sunn. Fasen til en pod sorteres Failed, så Unknown, så Pending, så Running og Succeeded. SLI-en og feilbudsjettet til et SLO, og VMID-en til en Proxmox-gjest, sorteres med de laveste først.
+
+Hele listen sorteres, ikke bare radene på skjermen: en liste som viser 25 rader, sortert med de verste først, viser de 25 verste av alle. Rader som står likt, beholder widgetens egen rekkefølge. En kolonne en liste ikke kan sorteres etter som helhet, som meldingen til en sikkerhetshendelse, sorterer ikke.
+
+### Din egen sortering
+
+Sorteringen din er bare din: nettleseren din husker den for den widgeten på det dashbordet, så en ny innlasting eller en omstart av en veggskjerm beholder den, og ingen andre ser den. Klikket som setter widgeten tilbake i sin egen rekkefølge, glemmer sorteringen din, og widgeten følger deretter sin egen rekkefølge, også når en redaktør endrer den senere.
+
+### Rekkefølgen alle ser
+
+For å velge rekkefølgen en widget åpnes i for alle, redigerer du den og velger rekkefølgen under **Sorter**, eller klikker på en kolonneoverskrift i **Live Preview** for den, og klikker så på **Lagre endringer**. Du ser den nye rekkefølgen med en gang; en seer som har sortert widgeten på sin egen måte, beholder sorteringen sin.
+
+Dashbordmalene åpner listene over verter, noder, pods, Swarm-tjenester og nettverksenheter med de verste først.
+
+Gjennom API-et og Terraform er rekkefølgen widgetens `arguments.sort`: en kolonne og en retning, for eksempel `status:desc`. En listewidget avviser en kolonne den ikke har, og feilen lister opp sorteringene den har.
 
 ## På et offentlig dashbord
 

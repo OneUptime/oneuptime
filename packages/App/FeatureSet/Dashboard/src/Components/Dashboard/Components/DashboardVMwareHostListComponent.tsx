@@ -10,7 +10,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import VMwareResource from "Common/Models/DatabaseModels/VMwareResource";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -48,11 +48,11 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Host", widthPct: "30%" },
-  { label: "CPU", widthPct: "14%" },
-  { label: "Memory", widthPct: "14%" },
-  { label: "Cluster", widthPct: "21%" },
-  { label: "vCenter", widthPct: "21%" },
+  { label: "Host", widthPct: "30%", sortKey: "name" },
+  { label: "CPU", widthPct: "14%", sortKey: "cpu" },
+  { label: "Memory", widthPct: "14%", sortKey: "memory" },
+  { label: "Cluster", widthPct: "21%", sortKey: "cluster" },
+  { label: "vCenter", widthPct: "21%", sortKey: "vcenter" },
 ];
 
 /*
@@ -365,7 +365,8 @@ const DashboardVMwareHostListComponentElement: FunctionComponent<
       maxRows={args.maxRows || 25}
       query={query}
       select={BASE_SELECT}
-      sort={{ name: SortOrder.Ascending }}
+      componentType={DashboardComponentType.VMwareHostList}
+      widgetProps={props}
       refreshTick={props.refreshTick}
       variables={props.variables}
       attributeToColumn={ATTRIBUTE_TO_COLUMN}

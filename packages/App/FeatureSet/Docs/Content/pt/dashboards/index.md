@@ -26,7 +26,7 @@ flowchart TB
 | Painel | Uma página: um nome, uma grade de widgets, um intervalo de tempo, variáveis e uma configuração de atualização automática. |
 | Widget | Um bloco da grade: um gráfico, um número, uma lista, um mapa, um relógio ou um bloco de texto. |
 | Variável | Um seletor na barra de ferramentas que restringe cada widget compatível a um serviço, host ou cliente. |
-| Intervalo de tempo | A janela que todos os gráficos e números leem. Começa na última hora toda vez que o painel é aberto. |
+| Intervalo de tempo | A janela que todos os gráficos e números leem. Um painel abre no seu padrão, a última hora a menos que quem o edita defina outro, e cada leitor pode escolher o seu. |
 | Atualização automática | Com que frequência os widgets leem seus dados de novo: desligada, ou em intervalos de 5 segundos a 15 minutos. |
 | Leitura e edição | Um painel abre para leitura. Editá-lo é uma etapa à parte, que termina salvando ou descartando suas alterações. |
 

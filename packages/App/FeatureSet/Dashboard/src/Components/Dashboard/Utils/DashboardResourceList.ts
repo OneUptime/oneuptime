@@ -6,6 +6,11 @@ import {
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
+import {
+  DASHBOARD_WIDGET_SORT_REQUEST_FIELD,
+  DashboardWidgetSortChoice,
+  formatDashboardWidgetSortChoice,
+} from "Common/Types/Dashboard/DashboardWidgetSort";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import type BaseAPI from "Common/UI/Utils/API/API";
 
@@ -55,6 +60,14 @@ export interface DashboardResourceRequestOptions {
 export interface DashboardWidgetContext {
   componentId: ObjectID;
   variables?: Array<DashboardVariable> | undefined;
+  /*
+   * The viewer's own sort for the widget, when they picked one by clicking
+   * a header (issue #5082). Only the pick travels: the server keeps the
+   * widget's own sort, and builds the list's order itself from the stored
+   * widget, taking a pick only when it names one of the widget's sortable
+   * columns.
+   */
+  viewerSort?: DashboardWidgetSortChoice | null | undefined;
 }
 
 export default class DashboardResourceList {
@@ -109,6 +122,12 @@ export default class DashboardResourceList {
         variables: DashboardResourceList.getVariableSelections(
           widgetContext.variables,
         ),
+        ...(widgetContext.viewerSort
+          ? {
+              [DASHBOARD_WIDGET_SORT_REQUEST_FIELD]:
+                formatDashboardWidgetSortChoice(widgetContext.viewerSort),
+            }
+          : {}),
       },
     };
   }

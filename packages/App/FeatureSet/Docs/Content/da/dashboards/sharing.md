@@ -46,7 +46,8 @@ Valget gemmes i tre kolonner, som API'et og Terraform læser og skriver som før
 Et offentligt dashboard:
 
 - Åbner altid til læsning. Besøgende kan ikke redigere det og ser aldrig dets redigeringskontroller.
-- Indeholder de variabler, du har tilføjet. Besøgende vælger i de samme vælgere, som dit team bruger, og kan ændre tidsintervallet, zoome, slå automatisk opdatering til og gå i fuld skærm.
+- Indeholder de variabler, du har tilføjet. Besøgende vælger i de samme vælgere, som dit team bruger, og kan ændre tidsintervallet, zoome, slå automatisk opdatering til og gå i fuld skærm. Det åbner med dashboardets standardtidsrum og automatiske standardopdatering, og hver besøgendes browser husker vedkommendes egne valg.
+- Lader besøgende [sortere dets lister og tabeller](/docs/dashboards/widgets#sortering-af-lister-og-tabeller) ved at klikke på en kolonneoverskrift, sådan som dit team gør. Hver besøgendes browser husker deres egen sortering, og OneUptime sorterer selv hele listen, altid kun efter en af widgettens egne kolonner.
 - Bruger den branding, du angiver på dashboardets side **Branding**: sidetitel, beskrivelse, logo, tema, favicon.
 - Lader hver besøgende skifte mellem det lyse og det mørke dashboard med en sol- eller måneknap i dets værktøjslinje; [Tema](#tema) forklarer hvordan.
 
@@ -197,7 +198,7 @@ For at give et indlejret dashboard dit websteds udseende tilføjer du `?theme=li
 
 ## Send et link
 
-Det offentlige link åbner dashboardet med dets gemte standardværdier. For at sende et link, der åbner på en bestemt værdi, føjer du variablen til det som `?var-<name>=<value>`, som adresselinjen gør, når en besøgende vælger en værdi; flere værdier adskilles af kommaer. Tidsintervallet er ikke en del af linket: hvert besøg starter ved den seneste time. For at åbne dashboardet i et tema tilføjer du `theme=light`, `theme=dark` eller `theme=system`, som [Indlejring](#indlejring) beskriver.
+Det offentlige link åbner dashboardet med dets gemte standardværdier. For at sende et link, der åbner på en bestemt værdi, føjer du variablen til det som `?var-<name>=<value>`, som adresselinjen gør, når en besøgende vælger en værdi; flere værdier adskilles af kommaer. For at åbne det med et eget tidsinterval eller en egen automatisk opdatering tilføjer du `range` og `refresh` på samme måde: `?range=1d&refresh=1m` åbner på det seneste døgn og opdaterer hvert minut, som en vægskærm måske skal. `range` tager `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` eller `3mo`, og `refresh` tager `off`, `5s`, `10s`, `30s`, `1m`, `5m` eller `15m`. De går forud for dashboardets standarder og den besøgendes egne valg, og besøgende kan stadig ændre dem. For at åbne dashboardet i et tema tilføjer du `theme=light`, `theme=dark` eller `theme=system`, som [Indlejring](#indlejring) beskriver.
 
 ## Næste trin
 

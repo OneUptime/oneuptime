@@ -5,9 +5,9 @@ import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement } from "react";
 
 /*
- * Two or more ways to see the same records, side by side: List | Calendar on
- * the scheduled maintenance events, and Month | Week | Day in a calendar's
- * toolbar (Calendar/CalendarToolbar). The control the status timelines'
+ * Two or more ways to see the same records, side by side: Month | Week | Day
+ * in a calendar's toolbar (Calendar/CalendarToolbar), and the source of an
+ * AI usage page's numbers. The control the status timelines'
  * Timeline | Table switch draws (StatusTimelineView), for any set of views: a
  * grey track, the chosen view raised in white with its icon, when it has
  * one, in the accent colour, the others plain until hovered.
