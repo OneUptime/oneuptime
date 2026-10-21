@@ -632,3 +632,55 @@ describe("pathological values", () => {
     expect(sms.text).toContain(`: ${"t".repeat(MIN_TITLE_CHARACTERS)}...`);
   });
 });
+
+describe("titles from monitoring and from other scripts", () => {
+  test("a latency in microseconds keeps the page one GSM-7 part", () => {
+    const sms: OnCallPageSms = page({ title: "API p99 above 500\u{00B5}s" });
+
+    expect(sms.text).toBe(
+      `OneUptime: Critical Incident INC-21033 in Acme Prod: API p99 above 500us.${tail(CLOUD_LINK)}`,
+    );
+    expect(sms.sent.encoding).toBe(SmsEncoding.Gsm7);
+    expect(sms.sent.segments).toBe(1);
+  });
+
+  test("a full-width exclamation mark is written plainly, and ends the sentence", () => {
+    const sms: OnCallPageSms = page({
+      title: "\u{652F}\u{4ED8}\u{5931}\u{8D25}\u{FF01}",
+    });
+
+    expect(sms.text).toContain(
+      `\u{652F}\u{4ED8}\u{5931}\u{8D25}!${tail(CLOUD_LINK)}`,
+    );
+  });
+
+  test("a temperature keeps its unit", () => {
+    expect(page({ title: "Rack 3 at 40\u{2103}" }).text).toContain(
+      ": Rack 3 at 40C.",
+    );
+  });
+
+  test.each([
+    [
+      "Japanese",
+      "\u{6C7A}\u{6E08}\u{304C}\u{505C}\u{6B62}\u{3057}\u{307E}\u{3057}\u{305F}\u{3002}",
+    ],
+    ["Chinese", "\u{652F}\u{4ED8}\u{5931}\u{8D25}\u{3002}"],
+    [
+      "Hindi",
+      "\u{092D}\u{0941}\u{0917}\u{0924}\u{093E}\u{0928} \u{0935}\u{093F}\u{092B}\u{0932}\u{0964}",
+    ],
+    [
+      "Arabic",
+      "\u{0647}\u{0644} \u{0627}\u{0644}\u{062F}\u{0641}\u{0639} \u{0645}\u{062A}\u{0648}\u{0642}\u{0641}\u{061F}",
+    ],
+  ])(
+    "a %s title that ends its own sentence gets no extra full stop",
+    (_name: string, title: string) => {
+      const sms: OnCallPageSms = page({ title: title });
+
+      expect(sms.text).toContain(`${title}${tail(CLOUD_LINK)}`);
+      expect(sms.text).not.toContain(`${title}.`);
+    },
+  );
+});

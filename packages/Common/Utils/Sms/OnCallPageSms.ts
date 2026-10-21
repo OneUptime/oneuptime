@@ -1,3 +1,4 @@
+import Text from "../../Types/Text";
 import { toGsm7Text, toOneLine } from "./Gsm7Text";
 import { countSmsSegments, SmsSegmentCount } from "./SmsSegments";
 
@@ -77,8 +78,27 @@ export const MIN_TITLE_CHARACTERS: number = 20;
  */
 export const MAX_PAGE_SMS_SEGMENTS: number = 10;
 
-// Characters that already end a sentence, so the title gets no full stop.
-const SENTENCE_ENDS: ReadonlySet<string> = new Set<string>([".", "!", "?"]);
+/*
+ * Characters that already end a sentence, so the title gets no full stop:
+ * the ones GSM-7 has, and those of the scripts a title is kept in -
+ * Chinese and Japanese (also half and full width), Devanagari, Arabic and
+ * Urdu.
+ */
+const SENTENCE_ENDS: ReadonlySet<string> = new Set<string>([
+  ".",
+  "!",
+  "?",
+  "\u{3002}",
+  "\u{FF61}",
+  "\u{FF0E}",
+  "\u{FF01}",
+  "\u{FF1F}",
+  "\u{FE12}",
+  "\u{0964}",
+  "\u{0965}",
+  "\u{061F}",
+  "\u{06D4}",
+]);
 
 /*
  * Characters a cut title does not end on before the cut mark: a space or a
@@ -152,18 +172,6 @@ const toSmsValue: (value: string | null | undefined) => string = (
   return toOneLine(toGsm7Text(value || ""));
 };
 
-const capitalize: (text: string) => string = (text: string): string => {
-  const characters: Array<string> = Array.from(text);
-
-  if (!characters.length) {
-    return text;
-  }
-
-  characters[0] = characters[0]!.toUpperCase();
-
-  return characters.join("");
-};
-
 // The letters of a word, lower case: "(Incident)" is "incident".
 const lettersOf: (word: string) => string = (word: string): string => {
   let letters: string = "";
@@ -193,7 +201,7 @@ export const describeWhatHappened: (data: {
     ON_CALL_PAGE_SMS_KIND_WORDS[data.kind];
 
   if (!data.severityName) {
-    return capitalize(kindWords.join(" "));
+    return Text.uppercaseFirstLetter(kindWords.join(" "));
   }
 
   const severityWords: Array<string> = data.severityName.split(" ");
@@ -363,6 +371,23 @@ export const buildOnCallPageSms: (
     });
   };
 
+  // 1. Everything, and 2. without the project: each measured once.
+  const everything: string = compose(parts, {
+    withProject: true,
+    title: wholeTitle,
+    isTitleCut: false,
+  });
+  const everythingSegments: number = measure(everything).segments;
+  const withoutProject: string | null = parts.projectName
+    ? compose(parts, {
+        withProject: false,
+        title: wholeTitle,
+        isTitleCut: false,
+      })
+    : null;
+  const withoutProjectSegments: number | null =
+    withoutProject === null ? null : measure(withoutProject).segments;
+
   for (
     let segments: number = 1;
     segments <= MAX_PAGE_SMS_SEGMENTS;
@@ -373,27 +398,17 @@ export const buildOnCallPageSms: (
     };
 
     // 1. Everything.
-    const everything: string = compose(parts, {
-      withProject: true,
-      title: wholeTitle,
-      isTitleCut: false,
-    });
-
-    if (fits(everything)) {
+    if (everythingSegments <= segments) {
       return fitted(everything, false, false);
     }
 
     // 2. Without the project.
-    if (parts.projectName) {
-      const withoutProject: string = compose(parts, {
-        withProject: false,
-        title: wholeTitle,
-        isTitleCut: false,
-      });
-
-      if (fits(withoutProject)) {
-        return fitted(withoutProject, true, false);
-      }
+    if (
+      withoutProject !== null &&
+      withoutProjectSegments !== null &&
+      withoutProjectSegments <= segments
+    ) {
+      return fitted(withoutProject, true, false);
     }
 
     // 3. The title cut, as long as at least MIN_TITLE_CHARACTERS are left.

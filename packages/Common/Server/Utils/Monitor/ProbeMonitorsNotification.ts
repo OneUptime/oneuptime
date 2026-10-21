@@ -365,7 +365,7 @@ export default class ProbeMonitorsNotification {
     });
 
     const smsMessage: SMSMessage = {
-      message: buildNotificationSms(`${summary}`),
+      message: buildNotificationSms(summary),
     };
 
     const callRequestMessage: CallRequestMessage = {

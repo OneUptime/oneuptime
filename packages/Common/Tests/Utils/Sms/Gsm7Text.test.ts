@@ -393,10 +393,75 @@ describe("toGsm7Message", () => {
     expect(toGsm7Message("a\nb\u{00A0}c\td")).toBe("a\nb c d");
   });
 
-  test("is toGsm7Text for a message without links", () => {
+  test("is toGsm7Text for a message without links, with no space left where a character went", () => {
     const text: string =
       "\u{201C}Caf\u{00E9}\u{201D} \u{2013} 40\u{00B0}C \u{1F525}";
 
-    expect(toGsm7Message(text)).toBe(toGsm7Text(text));
+    expect(toGsm7Text(text)).toBe('"Caf\u{00E9}" - 40C ');
+    expect(toGsm7Message(text)).toBe('"Caf\u{00E9}" - 40C');
+  });
+
+  test.each([
+    [
+      "an emoji between words",
+      "Monitor \u{1F525} API is down",
+      "Monitor API is down",
+    ],
+    ["an emoji first", "\u{1F525} API is down", "API is down"],
+    [
+      "an emoji last on a line",
+      "API is down \u{1F525}\nNext line",
+      "API is down\nNext line",
+    ],
+    ["a run of spaces", "API  is   down", "API is down"],
+    ["spaces at the ends", "  API is down  ", "API is down"],
+    ["spaces around a line break", "one \n two", "one\ntwo"],
+    ["a word written as words", "5 \u{2030} errors", "5 per mille errors"],
+  ])(
+    "leaves single spaces: %s",
+    (_name: string, text: string, written: string) => {
+      expect(toGsm7Message(text)).toBe(written);
+    },
+  );
+
+  test("400,000 characters of spaces, line breaks and emoji take well under two seconds", () => {
+    const worst: string = " \n \u{1F525} a".repeat(65000);
+    const started: number = Date.now();
+    const written: string = toGsm7Message(worst);
+
+    expect(written.length).toBeGreaterThan(0);
+    expect(written).not.toContain("  ");
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
+});
+
+describe("toGsm7Text: units", () => {
+  test.each([
+    ["a micro sign", "p99 above 500\u{00B5}s", "p99 above 500us"],
+    ["a Greek mu after a number", "p99 above 500\u{03BC}s", "p99 above 500us"],
+    [
+      "a Greek mu after a number and a space",
+      "a 5 \u{03BC}m gap",
+      "a 5 um gap",
+    ],
+    [
+      "degrees Celsius as one character",
+      "40\u{2103} on rack 3",
+      "40C on rack 3",
+    ],
+    ["degrees Fahrenheit as one character", "104\u{2109}", "104F"],
+    ["a cent sign", "5\u{00A2} a call", "5c a call"],
+    ["a per mille sign", "5\u{2030}", "5 per mille"],
+  ])("%s", (_name: string, text: string, written: string) => {
+    expect(toGsm7Text(text)).toBe(written);
+    expect(isGsm7Text(toGsm7Text(text))).toBe(true);
+  });
+
+  test("a Greek mu in a Greek word stays a letter", () => {
+    const word: string = "\u{03BC}\u{03AE}\u{03BD}\u{03C5}\u{03BC}\u{03B1}";
+
+    expect(toGsm7Text(word)).toBe(word);
+    expect(toGsm7Text(`\u{03BC}s`)).toBe("\u{03BC}s");
+    expect(toGsm7Text(`500\u{03BC}`)).toBe("500\u{03BC}");
   });
 });

@@ -143,3 +143,15 @@ describe("fitNotificationSmsForSending", () => {
     expect(isGsm7Text(sent)).toBe(false);
   });
 });
+
+describe("an emoji in the news", () => {
+  test("leaves no doubled space where it was", () => {
+    expect(
+      fitNotificationSmsForSending(
+        buildNotificationSms("Monitor \u{1F525} API is down."),
+      ),
+    ).toBe(
+      "OneUptime: Monitor API is down. Turn off in User Settings > Notification Settings.",
+    );
+  });
+});

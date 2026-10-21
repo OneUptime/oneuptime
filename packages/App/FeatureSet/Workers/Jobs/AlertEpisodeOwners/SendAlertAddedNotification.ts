@@ -370,7 +370,7 @@ RunCron(
               : `${alertCountInBatch} new alerts were added to alert episode ${episodeNumberStr} (${episode.title}).`;
 
           const sms: SMSMessage = {
-            message: buildNotificationSms(`${summaryLine}`),
+            message: buildNotificationSms(summaryLine),
           };
 
           const callMessage: CallRequestMessage = {

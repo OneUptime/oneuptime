@@ -12,12 +12,14 @@ import { getGsm7Length } from "./SmsSegments";
  *
  *   - quotes, apostrophes, dashes, bullets and spaces of every kind are
  *     written as ' " - and a space, … as ..., arrows and comparisons as
- *     -> <- >= <= !=, × ÷ ± as x / +/-, and © ® ™ as (c) (R) TM;
+ *     -> <- >= <= !=, × ÷ ± as x / +/-, © ® ™ as (c) (R) TM, ¢ as c, ‰ as
+ *     per mille, and the micro sign of 500µs (or a Greek mu used as one,
+ *     after a number) as u;
  *   - a letter with an accent or a mark GSM-7 does not have loses the mark
  *     (á ç ł ő ș become a c l o s), while one it has stays (é è à ñ ü ø å
  *     ß...); ligatures, full-width letters and the other compatibility
  *     forms are written as the letters and digits they stand for (ﬁ Ａ ² ½
- *     become fi A 2 1/2);
+ *     become fi A 2 1/2, and ℃ the C of °C);
  *   - emoji, invisible formatting characters and symbols with no look-alike
  *     (° and the like) are left out: they say nothing the words do not.
  *
@@ -119,6 +121,10 @@ export const GSM_7_LOOK_ALIKES: ReadonlyMap<string, string> = new Map<
   ["\u{2122}", "TM"],
   ["\u{203C}", "!!"],
   ["\u{2049}", "!?"],
+  ["\u{00A2}", "c"],
+  ["\u{2030}", " per mille"],
+  // The micro sign of a unit: 500µs is 500 microseconds.
+  ["\u{00B5}", "u"],
   // Letters Unicode does not decompose into a plain letter and a mark.
   ["\u{0131}", "i"],
   ["\u{0142}", "l"],
@@ -144,6 +150,11 @@ export const GSM_7_LOOK_ALIKES: ReadonlyMap<string, string> = new Map<
   ["\u{0289}", "u"],
   ["\u{1E9E}", "SS"],
 ]);
+
+// Greek small mu, which people type for the micro sign: 500μs.
+const GREEK_SMALL_MU: number = 0x03bc;
+const ASCII_LETTER: RegExp = /^[A-Za-z]$/;
+const ASCII_DIGIT: RegExp = /^[0-9]$/;
 
 // Joiners that shape the letters of some scripts (Persian, the Indic ones).
 const ZERO_WIDTH_NON_JOINER: number = 0x200c;
@@ -237,8 +248,9 @@ const getPlainCharacter: (character: string) => string | null = (
 
 /*
  * The character written with GSM-7's characters through its compatibility
- * decomposition, its marks left out - null when that still needs others
- * (a letter of another script).
+ * decomposition, its marks and the symbols with no look-alike left out (℃
+ * is °C, and is written C) - null when that still needs others (a letter
+ * of another script), or leaves nothing.
  */
 const getDecomposedPlainText: (character: string) => string | null = (
   character: string,
@@ -252,14 +264,47 @@ const getDecomposedPlainText: (character: string) => string | null = (
 
     const plainPart: string | null = getPlainCharacter(part);
 
-    if (plainPart === null) {
-      return null;
+    if (plainPart !== null) {
+      plain += plainPart;
+      continue;
     }
 
-    plain += plainPart;
+    if (SYMBOL.test(part)) {
+      continue;
+    }
+
+    return null;
   }
 
   return plain || null;
+};
+
+/*
+ * Whether a Greek mu stands for the micro sign: right after a number (or a
+ * number and a space) and right before a unit's letter, as in 500μs or
+ * 5 μm. In a Greek word it is a letter, and stays one.
+ */
+const isMuForMicro: (
+  characters: ReadonlyArray<string>,
+  index: number,
+) => boolean = (characters: ReadonlyArray<string>, index: number): boolean => {
+  const next: string | undefined = characters[index + 1];
+  const previous: string | undefined = characters[index - 1];
+  const beforePrevious: string | undefined = characters[index - 2];
+
+  if (next === undefined || !ASCII_LETTER.test(next)) {
+    return false;
+  }
+
+  if (previous !== undefined && ASCII_DIGIT.test(previous)) {
+    return true;
+  }
+
+  return (
+    previous === SPACE &&
+    beforePrevious !== undefined &&
+    ASCII_DIGIT.test(beforePrevious)
+  );
 };
 
 /*
@@ -287,6 +332,11 @@ export const toGsm7Text: (text: string) => string = (text: string): string => {
 
     if (plain !== null) {
       write(plain);
+      continue;
+    }
+
+    if (codePoint === GREEK_SMALL_MU && isMuForMicro(characters, index)) {
+      write("u");
       continue;
     }
 
@@ -397,9 +447,48 @@ const isLinkWord: (word: string) => boolean = (word: string): boolean => {
 };
 
 /*
+ * The text with every run of spaces one space, and no space at the start or
+ * end of a line: what is left where characters were left out (the emoji of
+ * "API 🔥 down") or written as a word (5 ‰).
+ */
+const collapseSpaces: (text: string) => string = (text: string): string => {
+  let collapsed: string = "";
+  // A space is written only once the next character shows it parts words.
+  let pendingSpace: boolean = false;
+
+  for (const character of text) {
+    if (character === SPACE) {
+      pendingSpace = true;
+      continue;
+    }
+
+    if (character === "\n" || character === "\r") {
+      pendingSpace = false;
+      collapsed += character;
+      continue;
+    }
+
+    if (pendingSpace) {
+      const last: string | undefined = collapsed[collapsed.length - 1];
+
+      if (last !== undefined && last !== "\n" && last !== "\r") {
+        collapsed += SPACE;
+      }
+
+      pendingSpace = false;
+    }
+
+    collapsed += character;
+  }
+
+  return collapsed;
+};
+
+/*
  * A whole message in GSM-7's characters (toGsm7Text), but for its links,
  * which go out exactly as written: a link is an address, and a look-alike
- * would lead somewhere else. Spacing and line breaks are kept.
+ * would lead somewhere else. Line breaks are kept; spaces are single, and
+ * none is left where a character was left out.
  */
 export const toGsm7Message: (text: string) => string = (
   text: string,
@@ -424,5 +513,5 @@ export const toGsm7Message: (text: string) => string = (
 
   flushWord();
 
-  return written;
+  return collapseSpaces(written);
 };
