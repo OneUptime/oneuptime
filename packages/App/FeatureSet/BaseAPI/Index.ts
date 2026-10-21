@@ -587,6 +587,7 @@ import DetectionRuleService, {
 } from "Common/Server/Services/DetectionRuleService";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
 import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityConnectionAPI";
+import CloudConnectionAPI from "Common/Server/API/CloudConnectionAPI";
 import ExternalMcpServerAPI from "Common/Server/API/ExternalMcpServerAPI";
 import SecurityEventDestinationAPI from "Common/Server/API/SecurityEventDestinationAPI";
 import SecurityLogSourceService, {
@@ -3293,6 +3294,12 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new LlmObservabilityConnectionAPI().getRouter(),
+    );
+
+    // Cloud connections: AWS, Azure and Google Cloud accounts read on a schedule.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CloudConnectionAPI().getRouter(),
     );
 
     // External MCP servers OneUptime AI may use, and their connection test.

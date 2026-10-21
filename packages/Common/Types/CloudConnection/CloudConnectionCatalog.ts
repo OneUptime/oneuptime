@@ -1,0 +1,476 @@
+import { CloudProvider } from "../Cloud/CloudPlatform";
+import IconProp from "../Icon/IconProp";
+
+/*
+ * EVERYTHING ABOUT A CLOUD CONNECTION THAT IS NOT CODE.
+ *
+ * A cloud connection is OneUptime reading one cloud account the way an
+ * OpenTelemetry Collector's cloud receivers would - Amazon CloudWatch,
+ * Azure Monitor, Google Cloud Monitoring - with no collector to run: the
+ * customer creates read-only access in their cloud's own browser shell
+ * with one command, pastes what it printed, and OneUptime lists the
+ * account's resources and reads their key metrics on a schedule.
+ *
+ * Shared by the dashboard (Cloud > Connect: the tiles, the guided form,
+ * the list), the server (validating what a form saves, the connector that
+ * reads the cloud) and the docs tests (every field the form asks for is
+ * named in the guide).
+ *
+ * Field keys are the keys stored in CloudConnection.config (readable) and
+ * CloudConnection.secrets (encrypted, never read back). Connectors read
+ * their settings by these keys.
+ *
+ * The words here are shown as written in the dashboard and translated
+ * there: this folder is one of the extractor's source roots
+ * (Dashboard/scripts/i18n/ExtractStrings.ts), which reads the title,
+ * description, summary, hint, label and placeholder of every entry.
+ */
+
+/*
+ * How OneUptime signs in to the cloud. One per connection, fixed by what
+ * the customer pasted.
+ */
+export enum CloudConnectionAuthMethod {
+  /*
+   * AWS: an IAM role in the customer's account that OneUptime's own AWS
+   * identity assumes, with an external id only this project's connections
+   * use. Nothing secret is stored. Offered only when this OneUptime has an
+   * AWS identity of its own (CLOUD_CONNECT_AWS_ACCESS_KEY_ID).
+   */
+  AwsRole = "aws-role",
+  // AWS: an access key of an IAM user that can only read.
+  AwsAccessKey = "aws-access-key",
+  // Azure: an app registration (service principal) and its client secret.
+  AzureClientSecret = "azure-client-secret",
+  // Google Cloud: a service account's JSON key.
+  GcpServiceAccountKey = "gcp-service-account-key",
+}
+
+export type CloudConnectionFieldType = "text" | "password" | "dropdown" | "json";
+
+export interface CloudConnectionFieldOption {
+  label: string;
+  value: string;
+}
+
+export interface CloudConnectionField {
+  key: string;
+  title: string;
+  description: string;
+  type: CloudConnectionFieldType;
+  required: boolean;
+  placeholder?: string | undefined;
+  options?: Array<CloudConnectionFieldOption> | undefined;
+  defaultValue?: string | undefined;
+  /*
+   * Folded under "More fields" on the form: a setting most people leave as
+   * it is (the regions, how often, the Azure cloud).
+   */
+  isAdvanced?: boolean | undefined;
+  /*
+   * The sign-in methods the field belongs to; every method when absent.
+   * A field of another method is neither asked for nor stored.
+   */
+  authMethods?: Array<CloudConnectionAuthMethod> | undefined;
+}
+
+export interface CloudConnectionAuthMethodDefinition {
+  method: CloudConnectionAuthMethod;
+  // How the choice is offered when a cloud has two: "IAM role".
+  title: string;
+  description: string;
+  // What the command does, said above it.
+  hint: string;
+  // What to copy once the command ran, said above the paste box.
+  pasteHint: string;
+}
+
+export interface CloudConnectionDefinition {
+  provider: CloudProvider;
+  title: string;
+  // One line on the tile: what connecting it brings in.
+  description: string;
+  // What arrives, in the reader's words: shown on the form and the list.
+  summary: string;
+  // What OneUptime may do with the access it is given.
+  readOnlyNote: string;
+  icon: IconProp;
+  /*
+   * The guide: a section of the cloud accounts page, e.g.
+   * "/docs/telemetry/cloud-accounts#amazon-web-services". The anchor is the
+   * English heading's (DocsLinksResolve holds it to the page).
+   */
+  docsPath: string;
+  // The cloud's own browser terminal the setup command is run in.
+  shellTitle: string;
+  shellUrl: string;
+  authMethods: Array<CloudConnectionAuthMethodDefinition>;
+  configFields: Array<CloudConnectionField>;
+  secretFields: Array<CloudConnectionField>;
+  // The telemetry service a new connection's metrics belong to.
+  defaultServiceName: string;
+  // How often metrics are read unless the connection says otherwise.
+  defaultReadIntervalInMinutes: number;
+}
+
+// The setting that says how often a connection's metrics are read.
+export const READ_INTERVAL_FIELD_KEY: string = "readIntervalInMinutes";
+
+// The intervals a connection may be read at, in minutes.
+export const CLOUD_CONNECTION_READ_INTERVALS: Array<number> = [
+  5, 10, 15, 30, 60,
+];
+
+function readIntervalField(defaultMinutes: number): CloudConnectionField {
+  return {
+    key: READ_INTERVAL_FIELD_KEY,
+    title: "Read metrics every",
+    description:
+      "Reading less often costs fewer calls to your cloud's monitoring API.",
+    type: "dropdown",
+    required: true,
+    options: [
+      { label: "5 minutes", value: "5" },
+      { label: "10 minutes", value: "10" },
+      { label: "15 minutes", value: "15" },
+      { label: "30 minutes", value: "30" },
+      { label: "1 hour", value: "60" },
+    ],
+    defaultValue: String(defaultMinutes),
+    isAdvanced: true,
+  };
+}
+
+export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
+  {
+    provider: CloudProvider.AWS,
+    title: "Amazon Web Services",
+    description:
+      "EC2, RDS, Lambda, load balancers and more, read from CloudWatch.",
+    summary:
+      "Every resource that reports to CloudWatch, in every region you use, with its key metrics.",
+    readOnlyNote: "OneUptime can only read metrics and tags.",
+    icon: IconProp.Cloud,
+    docsPath: "/docs/telemetry/cloud-accounts#amazon-web-services",
+    shellTitle: "AWS CloudShell",
+    shellUrl: "https://console.aws.amazon.com/cloudshell/home",
+    authMethods: [
+      {
+        method: CloudConnectionAuthMethod.AwsRole,
+        title: "IAM role",
+        description:
+          "Recommended. Nothing secret is stored: OneUptime signs in with a role you can delete at any time.",
+        hint: "Run this in AWS CloudShell. It creates a role that can only read metrics and tags, and prints the role's ARN.",
+        pasteHint: "Paste the role ARN the command printed.",
+      },
+      {
+        method: CloudConnectionAuthMethod.AwsAccessKey,
+        title: "Access key",
+        description:
+          "An IAM user's access key. Use it when a role is not possible.",
+        hint: "Run this in AWS CloudShell. It creates a user that can only read metrics and tags, and prints its access key.",
+        pasteHint: "Paste everything the last command printed.",
+      },
+    ],
+    configFields: [
+      {
+        key: "roleArn",
+        title: "Role ARN",
+        description: "The role the command created.",
+        type: "text",
+        required: true,
+        placeholder: "arn:aws:iam::123456789012:role/OneUptimeReadOnly",
+        authMethods: [CloudConnectionAuthMethod.AwsRole],
+      },
+      {
+        key: "accessKeyId",
+        title: "Access key ID",
+        description: "The access key ID the command printed.",
+        type: "text",
+        required: true,
+        placeholder: "AKIA...",
+        authMethods: [CloudConnectionAuthMethod.AwsAccessKey],
+      },
+      {
+        key: "regions",
+        title: "Regions",
+        description:
+          "Leave empty to read every region you use, or list regions separated by commas.",
+        type: "text",
+        required: false,
+        placeholder: "us-east-1, eu-west-1",
+        isAdvanced: true,
+      },
+      readIntervalField(10),
+    ],
+    secretFields: [
+      {
+        key: "secretAccessKey",
+        title: "Secret access key",
+        description:
+          "The secret the command printed. Stored encrypted and never shown again.",
+        type: "password",
+        required: true,
+        authMethods: [CloudConnectionAuthMethod.AwsAccessKey],
+      },
+    ],
+    defaultServiceName: "Amazon Web Services",
+    defaultReadIntervalInMinutes: 10,
+  },
+  {
+    provider: CloudProvider.Azure,
+    title: "Microsoft Azure",
+    description:
+      "Virtual machines, App Service, SQL, storage and more, read from Azure Monitor.",
+    summary:
+      "Every resource in the subscriptions the app can read, with its key metrics.",
+    readOnlyNote: "OneUptime can only read resources and metrics.",
+    icon: IconProp.Cloud,
+    docsPath: "/docs/telemetry/cloud-accounts#microsoft-azure",
+    shellTitle: "Azure Cloud Shell",
+    shellUrl: "https://shell.azure.com",
+    authMethods: [
+      {
+        method: CloudConnectionAuthMethod.AzureClientSecret,
+        title: "App registration",
+        description: "An app with the Monitoring Reader role.",
+        hint: "Run this in Azure Cloud Shell. It creates an app with the Monitoring Reader role on your subscription, and prints its details.",
+        pasteHint: "Paste everything the command printed.",
+      },
+    ],
+    configFields: [
+      {
+        key: "tenantId",
+        title: "Directory (tenant) ID",
+        description: "The tenant value the command printed.",
+        type: "text",
+        required: true,
+        placeholder: "00000000-0000-0000-0000-000000000000",
+      },
+      {
+        key: "clientId",
+        title: "Application (client) ID",
+        description: "The appId value the command printed.",
+        type: "text",
+        required: true,
+        placeholder: "00000000-0000-0000-0000-000000000000",
+      },
+      {
+        key: "subscriptionIds",
+        title: "Subscriptions",
+        description:
+          "Leave empty to read every subscription the app can read, or list subscription IDs separated by commas.",
+        type: "text",
+        required: false,
+        placeholder: "00000000-0000-0000-0000-000000000000",
+        isAdvanced: true,
+      },
+      {
+        key: "cloud",
+        title: "Cloud",
+        description: "Which Azure cloud the tenant is in.",
+        type: "dropdown",
+        required: true,
+        options: [
+          { label: "Azure public cloud", value: "public" },
+          { label: "Azure Government (US)", value: "usgov" },
+        ],
+        defaultValue: "public",
+        isAdvanced: true,
+      },
+      readIntervalField(5),
+    ],
+    secretFields: [
+      {
+        key: "clientSecret",
+        title: "Client secret",
+        description:
+          "The password value the command printed. Stored encrypted and never shown again.",
+        type: "password",
+        required: true,
+      },
+    ],
+    defaultServiceName: "Microsoft Azure",
+    defaultReadIntervalInMinutes: 5,
+  },
+  {
+    provider: CloudProvider.GCP,
+    title: "Google Cloud",
+    description:
+      "Compute Engine, Cloud SQL, Cloud Run, buckets and more, read from Cloud Monitoring.",
+    summary:
+      "Every resource that reports to Cloud Monitoring in your projects, with its key metrics.",
+    readOnlyNote: "OneUptime can only read metrics.",
+    icon: IconProp.Cloud,
+    docsPath: "/docs/telemetry/cloud-accounts#google-cloud",
+    shellTitle: "Google Cloud Shell",
+    shellUrl: "https://shell.cloud.google.com/?show=terminal",
+    authMethods: [
+      {
+        method: CloudConnectionAuthMethod.GcpServiceAccountKey,
+        title: "Service account",
+        description: "A service account with the Monitoring Viewer role.",
+        hint: "Run this in Cloud Shell, in the project to monitor. It creates a service account with the Monitoring Viewer role, and prints its key.",
+        pasteHint: "Paste everything the command printed.",
+      },
+    ],
+    configFields: [
+      {
+        key: "projectIds",
+        title: "Projects",
+        description:
+          "Leave empty to read the service account's own project, or list project IDs separated by commas.",
+        type: "text",
+        required: false,
+        placeholder: "my-project-123456",
+        isAdvanced: true,
+      },
+      readIntervalField(5),
+    ],
+    secretFields: [
+      {
+        key: "serviceAccountJson",
+        title: "Service account key (JSON)",
+        description:
+          "The key the command printed. Stored encrypted and never shown again.",
+        type: "json",
+        required: true,
+        placeholder: '{ "client_email": "...", "private_key": "..." }',
+      },
+    ],
+    defaultServiceName: "Google Cloud",
+    defaultReadIntervalInMinutes: 5,
+  },
+];
+
+/*
+ * Settings OneUptime writes on save from what was pasted, for the list to
+ * show (never secrets): the service account's email and its project.
+ */
+export const CLOUD_CONNECTION_DERIVED_CONFIG_KEYS: Array<string> = [
+  "authMethod",
+  "clientEmail",
+  "keyProjectId",
+];
+
+export function isCloudConnectionProvider(
+  value: unknown,
+): value is CloudProvider {
+  return (
+    typeof value === "string" &&
+    (Object.values(CloudProvider) as Array<string>).includes(value)
+  );
+}
+
+export function getCloudConnectionDefinition(
+  provider: string | undefined | null,
+): CloudConnectionDefinition | undefined {
+  return CloudConnectionCatalog.find(
+    (definition: CloudConnectionDefinition): boolean => {
+      return definition.provider === provider;
+    },
+  );
+}
+
+export function getCloudConnectionTitle(
+  provider: string | undefined | null,
+): string {
+  return getCloudConnectionDefinition(provider)?.title || provider || "";
+}
+
+export function isCloudConnectionAuthMethod(
+  value: unknown,
+): value is CloudConnectionAuthMethod {
+  return (
+    typeof value === "string" &&
+    (Object.values(CloudConnectionAuthMethod) as Array<string>).includes(value)
+  );
+}
+
+/*
+ * The sign-in method of a connection: the one its settings name when the
+ * cloud offers it, else the cloud's first.
+ */
+export function getCloudConnectionAuthMethod(
+  definition: CloudConnectionDefinition,
+  value: unknown,
+): CloudConnectionAuthMethod {
+  const offered: Array<CloudConnectionAuthMethod> = definition.authMethods.map(
+    (method: CloudConnectionAuthMethodDefinition): CloudConnectionAuthMethod => {
+      return method.method;
+    },
+  );
+
+  if (isCloudConnectionAuthMethod(value) && offered.includes(value)) {
+    return value;
+  }
+
+  return offered[0]!;
+}
+
+export function getCloudConnectionAuthMethodDefinition(
+  definition: CloudConnectionDefinition,
+  method: CloudConnectionAuthMethod,
+): CloudConnectionAuthMethodDefinition | undefined {
+  return definition.authMethods.find(
+    (candidate: CloudConnectionAuthMethodDefinition): boolean => {
+      return candidate.method === method;
+    },
+  );
+}
+
+// The fields of a list that belong to a sign-in method.
+export function getCloudConnectionFieldsForMethod(
+  fields: Array<CloudConnectionField>,
+  method: CloudConnectionAuthMethod,
+): Array<CloudConnectionField> {
+  return fields.filter((field: CloudConnectionField): boolean => {
+    return !field.authMethods || field.authMethods.includes(method);
+  });
+}
+
+/*
+ * How often a connection's metrics are read: its own setting when it is
+ * one of the offered intervals, else its cloud's default.
+ */
+export function getCloudConnectionReadIntervalInMinutes(
+  definition: CloudConnectionDefinition,
+  value: unknown,
+): number {
+  const minutes: number = Number(value);
+
+  if (CLOUD_CONNECTION_READ_INTERVALS.includes(minutes)) {
+    return minutes;
+  }
+
+  return definition.defaultReadIntervalInMinutes;
+}
+
+// Runs of whitespace: one class, one repeat, read in linear time.
+const WHITESPACE_RUN_REGEX: RegExp = /\s+/;
+
+/*
+ * A comma (or whitespace) separated list a form holds: trimmed, without
+ * empty or repeated entries, in the order written.
+ */
+export function splitCloudConnectionList(value: unknown): Array<string> {
+  if (typeof value !== "string") {
+    return [];
+  }
+
+  const seen: Set<string> = new Set<string>();
+  const items: Array<string> = [];
+
+  for (const part of value.split(",")) {
+    for (const piece of part.trim().split(WHITESPACE_RUN_REGEX)) {
+      const item: string = piece.trim();
+
+      if (item && !seen.has(item)) {
+        seen.add(item);
+        items.push(item);
+      }
+    }
+  }
+
+  return items;
+}
