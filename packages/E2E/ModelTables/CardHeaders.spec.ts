@@ -20,13 +20,19 @@ import path from "path";
  * under the title - where a card with no controls puts it 6px under. Now
  * the title is centred on the controls, the line ends at its foot, and the
  * description follows the title by 9px, 2px clear of the controls' foot.
+ * Where the controls do not fit beside the title (the Runbooks list beside
+ * its side menu below about 1100px, two buttons in a one-third column) they
+ * go to a line of their own, and the description followed them - 48px under
+ * "Runbooks" at 1024px, 98px at 768px. Now it stays 6px under the title and
+ * the controls follow it.
  *
  * Measured here:
  *
  *   - the Runbooks list of the screenshot, in its real layout (side menu,
  *     breadcrumbs, the card as wide as it is in the product), at 1280px in
- *     both themes, at a tablet's and a small laptop's width, on a phone,
- *     empty, and with its search opened;
+ *     both themes, at a tablet's and a small laptop's width, resized across
+ *     the width where its controls stop fitting beside its title, on a
+ *     phone, empty, and with its search opened;
  *   - the Incidents and Teams lists, whose controls differ;
  *   - a gallery (Fixture/CardHeaders.js) of every header shape: a table's
  *     toolbar header with a one-line, a wrapped or no description, with no
@@ -237,6 +243,39 @@ function expectDescriptionUnderTitle(label: string, boxes: HeaderBoxes): void {
   ).toBeGreaterThan(boxes.header.width - 2);
 }
 
+/*
+ * The rule for a stacked or toolbar header whose controls went to a line of
+ * their own under the title (they do not fit beside it), at md and up: the
+ * description stays in the title's block, 6px under the title as in a card
+ * with no controls - not a button row or two down - and the controls follow
+ * it, 8px under it, at the right edge.
+ */
+function expectControlsUnderDescription(
+  label: string,
+  boxes: HeaderBoxes,
+): void {
+  const description: Box = boxes.description!;
+  const actions: Box = boxes.actions!;
+
+  expect(
+    Math.abs(description.y - bottomOf(boxes.title) - 6),
+    `${label}: the description 6px under the title`,
+  ).toBeLessThanOrEqual(TOLERANCE);
+  expect(
+    Math.abs(actions.y - bottomOf(description) - 8),
+    `${label}: the controls 8px under the description`,
+  ).toBeLessThanOrEqual(TOLERANCE);
+  expect(
+    Math.abs(actions.x + actions.width - (boxes.header.x + boxes.header.width)),
+    `${label}: the controls at the right edge`,
+  ).toBeLessThanOrEqual(1);
+  // Across the card, as wide as the title's line.
+  expect(
+    description.width,
+    `${label}: the description runs across the header`,
+  ).toBeGreaterThan(boxes.header.width - 2);
+}
+
 // Each control's middle is the title's: the title is centred on the controls.
 function expectTitleCentredOnControls(label: string, boxes: HeaderBoxes): void {
   expect(boxes.controls.length, `${label}: controls`).toBeGreaterThan(0);
@@ -313,8 +352,12 @@ test.describe("the Runbooks list of the maintainer's screenshot", () => {
     });
   }
 
-  for (const width of [768, 1024, 1440]) {
-    test(`at ${width}px the description follows the title by 9px when the controls share its line, or follows them, 2px clear, when they go under it`, async ({
+  for (const [width, controlsFit] of [
+    [768, false],
+    [1024, false],
+    [1440, true],
+  ] as Array<[number, boolean]>) {
+    test(`at ${width}px the description follows the title by 9px when the controls share its line, or by 6px with the controls under it when they do not fit beside the title`, async ({
       page,
     }: {
       page: Page;
@@ -326,33 +369,96 @@ test.describe("the Runbooks list of the maintainer's screenshot", () => {
       );
 
       expect(boxes.description).not.toBeNull();
+      // Beside the side menu, the controls fit beside "Runbooks" from about 1100px.
+      expect(onTitleLine(boxes)).toBe(controlsFit);
 
-      if (onTitleLine(boxes)) {
+      if (controlsFit) {
         expectDescriptionUnderTitle(`Runbooks at ${width}px`, boxes);
         expect(
           Math.abs(centreOf(boxes.actions!) - centreOf(boxes.title)),
         ).toBeLessThanOrEqual(1);
       } else {
-        // The controls on a line of their own, 8px under the title, at the right.
-        expect(
-          Math.abs(boxes.actions!.y - bottomOf(boxes.title) - 8),
-        ).toBeLessThanOrEqual(TOLERANCE);
-        expect(
-          Math.abs(boxes.description!.y - bottomOf(boxes.actions!) - 2),
-        ).toBeLessThanOrEqual(TOLERANCE);
-        expect(
-          Math.abs(
-            boxes.actions!.x +
-              boxes.actions!.width -
-              (boxes.header.x + boxes.header.width),
-          ),
-        ).toBeLessThanOrEqual(1);
+        /*
+         * The controls on a line of their own: under the controls the
+         * description sat 48px under "Runbooks" at 1024px and 98px at 768px.
+         */
+        expectControlsUnderDescription(`Runbooks at ${width}px`, boxes);
+        // The filter chips follow the controls.
+        expect(boxes.body!.y).toBeGreaterThanOrEqual(
+          bottomOf(boxes.actions!) - TOLERANCE,
+        );
       }
 
       await expectNoSidewaysScroll(page);
       await screenshot(page, `card-headers-runbooks-${width}`);
     });
   }
+
+  test("a window resized across the point where the controls stop fitting beside the title moves the description with them, both ways, and back to exactly where it was", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, RUNBOOKS, 1280);
+    const card: Locator = page.getByTestId("card").first();
+    const wide: HeaderBoxes = await headerBoxesOf(card);
+
+    expect(onTitleLine(wide)).toBe(true);
+    expectDescriptionUnderTitle("Runbooks at 1280px", wide);
+
+    await page.setViewportSize({ width: 1024, height: 1000 });
+    await expect
+      .poll(async (): Promise<boolean> => {
+        return onTitleLine(await headerBoxesOf(card));
+      })
+      .toBe(false);
+    const narrow: HeaderBoxes = await headerBoxesOf(card);
+    expectControlsUnderDescription("Runbooks resized to 1024px", narrow);
+    // The description is in the title's block now, read in that order too.
+    await expect(
+      card
+        .getByTestId("card-header-title-block")
+        .getByTestId("card-description"),
+    ).toBeVisible();
+
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await expect
+      .poll(async (): Promise<boolean> => {
+        return onTitleLine(await headerBoxesOf(card));
+      })
+      .toBe(true);
+    const back: HeaderBoxes = await headerBoxesOf(card);
+
+    expect(back).toEqual(wide);
+    // Alone on its line, the title is at the card's padding.
+    expect(
+      Math.abs(narrow.title.y - narrow.frame.y - HEADER_INSET),
+    ).toBeLessThanOrEqual(TOLERANCE);
+  });
+
+  test("at 1024px, where the controls are under the description, opening the search moves nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, RUNBOOKS, 1024);
+    const card: Locator = page.getByTestId("card").first();
+    const before: HeaderBoxes = await headerBoxesOf(card);
+
+    expect(onTitleLine(before)).toBe(false);
+
+    await page.getByRole("button", { name: "Open search" }).click();
+    await page.keyboard.type("failover");
+    // The buttons beside the opened search fold away over 300ms.
+    await page.waitForTimeout(450);
+
+    const after: HeaderBoxes = await headerBoxesOf(card);
+
+    expect(after.title).toEqual(before.title);
+    expect(after.description).toEqual(before.description);
+    expect(after.actions!.y).toBe(before.actions!.y);
+    expectControlsUnderDescription("Runbooks at 1024px, searching", after);
+  });
 
   test("on a phone the description is not shown; the title, then the search filling the card, nothing past the screen's edge", async ({
     page,
@@ -600,12 +706,22 @@ test.describe("every header shape", () => {
           Math.max(boxes.body!.y, headerFoot),
         );
 
-        // Nothing under the controls' foot: the description starts below it.
+        /*
+         * Nothing runs into the controls: the description starts below
+         * their foot, or ends above their top when they went under it.
+         */
         if (boxes.actions && boxes.description && !isDefault) {
-          expect(
-            boxes.description.y - bottomOf(boxes.actions),
-            `${label}: the description below the controls`,
-          ).toBeGreaterThanOrEqual(2 - TOLERANCE);
+          if (onTitleLine(boxes)) {
+            expect(
+              boxes.description.y - bottomOf(boxes.actions),
+              `${label}: the description below the controls`,
+            ).toBeGreaterThanOrEqual(2 - TOLERANCE);
+          } else {
+            expect(
+              boxes.actions.y - bottomOf(boxes.description),
+              `${label}: the description above the controls`,
+            ).toBeGreaterThanOrEqual(8 - TOLERANCE);
+          }
         }
 
         // The actions at the header's right edge.
@@ -620,16 +736,18 @@ test.describe("every header shape", () => {
           ).toBeLessThanOrEqual(1);
         }
 
-        // A narrow column can send the controls under the title.
+        /*
+         * A narrow column can send the controls under the title: the
+         * description stays 6px under the title and the controls follow it
+         * (or the title, 8px down, when there is no description).
+         */
         if (boxes.actions && !onTitleLine(boxes)) {
-          expect(
-            Math.abs(boxes.actions.y - bottomOf(boxes.title) - 8),
-            `${label}: the controls 8px under the title`,
-          ).toBeLessThanOrEqual(TOLERANCE);
           if (boxes.description) {
+            expectControlsUnderDescription(label, boxes);
+          } else {
             expect(
-              Math.abs(boxes.description.y - bottomOf(boxes.actions) - 2),
-              `${label}: the description 2px clear of them`,
+              Math.abs(boxes.actions.y - bottomOf(boxes.title) - 8),
+              `${label}: the controls 8px under the title`,
             ).toBeLessThanOrEqual(TOLERANCE);
           }
           continue;
@@ -675,24 +793,28 @@ test.describe("every header shape", () => {
     });
   }
 
-  test("at 1280px a stacked card in the narrow column whose two buttons do not fit beside its title puts them under it, then the description", async ({
+  test("at 1280px a stacked card in the narrow column whose two buttons do not fit beside its title keeps its description right under the title, and the buttons follow it", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page, GALLERY, 1280);
 
-    const boxes: HeaderBoxes = await headerBoxesOf(
-      page.getByTestId("shape-stacked-actions-under").getByTestId("card"),
-    );
+    const card: Locator = page
+      .getByTestId("shape-stacked-actions-under")
+      .getByTestId("card");
+    const boxes: HeaderBoxes = await headerBoxesOf(card);
 
     expect(onTitleLine(boxes)).toBe(false);
-    expect(
-      Math.abs(boxes.actions!.y - bottomOf(boxes.title) - 8),
-    ).toBeLessThanOrEqual(TOLERANCE);
-    expect(
-      Math.abs(boxes.description!.y - bottomOf(boxes.actions!) - 2),
-    ).toBeLessThanOrEqual(TOLERANCE);
+    expectControlsUnderDescription("Incident Roles", boxes);
+    // And the card's body under the buttons.
+    expect(boxes.body!.y).toBeGreaterThanOrEqual(
+      bottomOf(boxes.actions!) - TOLERANCE,
+    );
+    // A screen reader meets the title, what it is, then the buttons.
+    await expect(card.getByTestId("card-header")).toHaveText(
+      /^Incident Roles\s*Who does what on this incident\.\s*Assign Role\s*Refresh$/,
+    );
   });
 
   test("at 1280px a title over two lines beside Edit keeps its first line level with Edit's top", async ({

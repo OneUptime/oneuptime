@@ -3,7 +3,14 @@ import ShortcutKey from "../ShortcutKey/ShortcutKey";
 import { useIsCardSection } from "./CardSurface";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  MutableRefObject,
+  ReactElement,
+  useCallback,
+  useRef,
+  useState,
+} from "react";
 
 export interface CardButtonSchema {
   title: string;
@@ -225,6 +232,16 @@ export const CARD_DESCRIPTION_CLEARANCE_IN_PX: number = 2;
  * the title is centred on them as it is with one (md:items-center). That
  * matters where a description comes and goes: a table drops its own while
  * its empty state says it, and its title and controls stay where they are.
+ *
+ * When the actions do not fit beside the title (a list with a side menu at
+ * 1024px, two buttons in an overview's one-third column) they go to a line
+ * of their own, and a description that followed them sat a button row or
+ * two under its title (48px on the Runbooks list at 1024px, 98px at 768px).
+ * There the description joins the title's block instead, 6px under the
+ * title as in a card with no actions, and the actions follow it, at the
+ * right edge (overActions; see cardHeaderActionsAreUnderTitle). Where they
+ * go is the browser's to say - it depends on the title, the controls and
+ * the language - so the card reads it from the drawn header.
  */
 export const CARD_HEADER_TITLE_LINE_CLASS_NAMES: {
   // The title and the actions over a description.
@@ -233,10 +250,45 @@ export const CARD_HEADER_TITLE_LINE_CLASS_NAMES: {
   alone: string;
   // The title with no actions beside it.
   titleOnly: string;
+  /*
+   * The title and its description as one block, over actions that went to
+   * a line of their own.
+   */
+  overActions: string;
 } = {
   overDescription: "md:items-end",
   alone: "md:items-center",
   titleOnly: "md:items-start",
+  overActions: "md:items-start",
+};
+
+/*
+ * Whether a stacked or toolbar header's actions went to a line of their own
+ * under the title's block: their top at or past its foot. Null while the
+ * header is not drawn (no size: a hidden card, or a test's DOM without
+ * layout), when it cannot say.
+ *
+ * Where the actions go does not depend on the description: from md up the
+ * title's block wraps by its flex-basis (half the line, or 12rem in the
+ * toolbar), never by its words, so moving the description into the block
+ * cannot change the answer.
+ */
+export const cardHeaderActionsAreUnderTitle: (
+  titleBlock: Element,
+  actions: Element,
+) => boolean | null = (
+  titleBlock: Element,
+  actions: Element,
+): boolean | null => {
+  const titleBox: DOMRect = titleBlock.getBoundingClientRect();
+  const actionsBox: DOMRect = actions.getBoundingClientRect();
+
+  if (titleBox.height === 0 || actionsBox.height === 0) {
+    return null;
+  }
+
+  // Beside the title the actions start above its block's foot.
+  return actionsBox.top >= titleBox.bottom - 1;
 };
 
 export const CARD_HEADER_STACKED_ACTIONS_CLASS_NAME: string = "md:self-start";
@@ -371,17 +423,89 @@ const Card: FunctionComponent<ComponentProps> = (
   const hasDescription: boolean = Boolean(translatedDescription);
 
   /*
+   * A stacked or toolbar header with a title, actions and a description
+   * reads where the browser put its actions: beside the title, or on a line
+   * of their own under it. In the second case the description joins the
+   * title's block, so it is not a button row or two under its title
+   * (CARD_HEADER_TITLE_LINE_CLASS_NAMES, overActions). The first line is
+   * read once it is drawn - before the browser paints it - and again
+   * whenever its size changes: the window, the language, a table's search
+   * opening or a button coming in.
+   */
+  const readsActionsLine: boolean =
+    isStacked && hasActions && hasDescription && Boolean(translatedTitle);
+  const [actionsUnderTitle, setActionsUnderTitle] = useState<boolean>(false);
+  const titleRowObserver: MutableRefObject<ResizeObserver | null> =
+    useRef<ResizeObserver | null>(null);
+
+  const watchTitleRow: (titleRow: HTMLDivElement | null) => void =
+    useCallback(
+      (titleRow: HTMLDivElement | null): void => {
+        titleRowObserver.current?.disconnect();
+        titleRowObserver.current = null;
+
+        if (!titleRow || !readsActionsLine) {
+          return;
+        }
+
+        const read: () => void = (): void => {
+          const parts: Array<Element> = Array.from(titleRow.children);
+          const titleBlock: Element | undefined = parts.find(
+            (part: Element): boolean => {
+              return (
+                part.getAttribute("data-testid") === "card-header-title-block"
+              );
+            },
+          );
+          const actions: Element | undefined = parts.find(
+            (part: Element): boolean => {
+              return part.getAttribute("data-testid") === "card-header-actions";
+            },
+          );
+
+          if (!titleBlock || !actions) {
+            return;
+          }
+
+          const isUnderTitle: boolean | null = cardHeaderActionsAreUnderTitle(
+            titleBlock,
+            actions,
+          );
+
+          if (isUnderTitle !== null) {
+            setActionsUnderTitle(isUnderTitle);
+          }
+        };
+
+        read();
+
+        if (typeof ResizeObserver === "undefined") {
+          return;
+        }
+
+        const observer: ResizeObserver = new ResizeObserver(read);
+        observer.observe(titleRow);
+        titleRowObserver.current = observer;
+      },
+      [readsActionsLine],
+    );
+
+  const isDescriptionInTitleBlock: boolean =
+    readsActionsLine && actionsUnderTitle;
+
+  /*
    * In the stacked and toolbar headers the description follows the line the
    * title shares with the actions; there it keeps clear of the controls'
-   * foot (CARD_HEADER_TITLE_LINE_CLASS_NAMES). In the default header it is
-   * beside them, under the title.
+   * foot (CARD_HEADER_TITLE_LINE_CLASS_NAMES). Over actions on a line of
+   * their own, and in the default header, it is in the title's block, 6px
+   * under the title.
    */
   const descriptionElement: ReactElement | false | "" | undefined =
     translatedDescription && (
       <p
         data-testid="card-description"
         className={
-          isStacked && hasActions
+          isStacked && hasActions && !isDescriptionInTitleBlock
             ? CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME
             : CARD_DESCRIPTION_CLASS_NAME
         }
@@ -390,9 +514,10 @@ const Card: FunctionComponent<ComponentProps> = (
       </p>
     );
 
-  const stackedActionsClassName: string = hasDescription
-    ? ` ${CARD_HEADER_STACKED_ACTIONS_CLASS_NAME} ${CARD_HEADER_ACTIONS_OVERHANG_CLASS_NAME}`
-    : ` ${CARD_HEADER_STACKED_ACTIONS_CLASS_NAME}`;
+  const stackedActionsClassName: string =
+    hasDescription && !isDescriptionInTitleBlock
+      ? ` ${CARD_HEADER_STACKED_ACTIONS_CLASS_NAME} ${CARD_HEADER_ACTIONS_OVERHANG_CLASS_NAME}`
+      : ` ${CARD_HEADER_STACKED_ACTIONS_CLASS_NAME}`;
 
   const actionsElement: ReactElement | null = hasActions ? (
     <div
@@ -417,13 +542,16 @@ const Card: FunctionComponent<ComponentProps> = (
    * follows the title, not the controls
    * (CARD_HEADER_TITLE_LINE_CLASS_NAMES). The description is not on that
    * line, so its length cannot push the actions off it: it runs under both,
-   * across the card's whole width.
+   * across the card's whole width - unless the actions went under the
+   * title, when it joins the title's block, before them.
    */
   const titleLineClassName: string = !hasActions
     ? CARD_HEADER_TITLE_LINE_CLASS_NAMES.titleOnly
-    : hasDescription
-      ? CARD_HEADER_TITLE_LINE_CLASS_NAMES.overDescription
-      : CARD_HEADER_TITLE_LINE_CLASS_NAMES.alone;
+    : isDescriptionInTitleBlock
+      ? CARD_HEADER_TITLE_LINE_CLASS_NAMES.overActions
+      : hasDescription
+        ? CARD_HEADER_TITLE_LINE_CLASS_NAMES.overDescription
+        : CARD_HEADER_TITLE_LINE_CLASS_NAMES.alone;
 
   const stackedHeader: ReactElement = (
     <div
@@ -433,6 +561,7 @@ const Card: FunctionComponent<ComponentProps> = (
       {(titleElement || actionsElement) && (
         <div
           data-testid="card-header-title-row"
+          ref={watchTitleRow}
           className={`${CARD_HEADER_TITLE_ROW_CLASS_NAME} ${titleLineClassName}`}
         >
           {titleElement && (
@@ -447,12 +576,13 @@ const Card: FunctionComponent<ComponentProps> = (
               }
             >
               {titleElement}
+              {isDescriptionInTitleBlock && descriptionElement}
             </div>
           )}
           {actionsElement}
         </div>
       )}
-      {descriptionElement}
+      {!isDescriptionInTitleBlock && descriptionElement}
     </div>
   );
 

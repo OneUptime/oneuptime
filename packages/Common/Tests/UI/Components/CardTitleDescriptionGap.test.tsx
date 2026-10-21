@@ -35,6 +35,11 @@ import {
   isVisibleAtWidth,
 } from "../../ResponsiveVisibility";
 import { WIDTHS_IN_PX, widthsBelow, widthsFrom } from "../../RenderedMarkup";
+import {
+  CardHeaderPlacement,
+  DrawnCardHeaders,
+  drawCardHeaders,
+} from "../../Helpers/CardHeaderDrawing";
 
 /*
  * "There's a lot of gap between the title of the card and the description
@@ -159,8 +164,27 @@ function propsFor(shape: Shape): ComponentProps {
   };
 }
 
+/*
+ * Card reads where the browser put the actions (beside the title, or under
+ * it) from the drawn header, which jsdom does not draw: each shape is drawn
+ * where it goes (CardHeaderDrawing).
+ */
+function placementOf(shape: Shape): CardHeaderPlacement {
+  if (shape.actions === "none") {
+    return "undrawn";
+  }
+
+  return shape.actions === "controls-under" ? "under" : "beside";
+}
+
 function classesOf(shape: Shape): HeaderClasses {
-  render(<Card {...propsFor(shape)} />);
+  const drawn: DrawnCardHeaders = drawCardHeaders(placementOf(shape));
+
+  try {
+    render(<Card {...propsFor(shape)} />);
+  } finally {
+    drawn.restore();
+  }
 
   const header: HTMLElement = screen.getByTestId("card-header");
   const actions: HTMLElement | null = screen.queryByTestId(
@@ -276,10 +300,43 @@ function layOut(
     actionAlignment === "auto" ? rowAlignment : actionAlignment;
 
   if (classes.descriptionInTitleBlock) {
-    // The default header: the description is in the title's block.
+    // The description is in the title's block.
     const block: number =
       titleHeight +
       (descriptionShown ? descriptionMargin + descriptionHeight(shape) : 0);
+
+    if (hasActions && shape.actions === "controls-under") {
+      /*
+       * A stacked header whose actions went under the title: the title's
+       * block (the title and its description) alone on the first line, the
+       * actions on the next.
+       */
+      const secondLine: number =
+        actionHeight + actionMargins.top + actionMargins.bottom;
+      const secondLineTop: number = block + rowGapInPx(classes.row);
+      const actionsTop: number =
+        secondLineTop +
+        placeAcross(
+          actionPlacement,
+          secondLine,
+          actionHeight,
+          actionMargins.top,
+          actionMargins.bottom,
+        );
+
+      return {
+        titleTop: 0,
+        titleBottom: titleHeight,
+        actionsTop: actionsTop,
+        actionsBottom: actionsTop + actionHeight,
+        descriptionTop: descriptionShown
+          ? titleHeight + descriptionMargin
+          : null,
+        headerBottom: secondLineTop + secondLine,
+      };
+    }
+
+    // The default header: the title's block beside the actions.
     const line: number = Math.max(
       block,
       hasActions ? actionHeight + actionMargins.top + actionMargins.bottom : 0,
@@ -570,17 +627,19 @@ describe("the numbers the header is built on", () => {
     }
   });
 
-  test("the first line's alignments: the title at the line's foot over a description, centred on the controls without one, at the top alone - each from md up; centred on a phone", () => {
+  test("the first line's alignments: the title at the line's foot over a description, centred on the controls without one, at the top alone or over actions that went under it - each from md up; centred on a phone", () => {
     expect(CARD_HEADER_TITLE_LINE_CLASS_NAMES).toEqual({
       overDescription: "md:items-end",
       alone: "md:items-center",
       titleOnly: "md:items-start",
+      overActions: "md:items-start",
     });
 
     const expected: Record<string, string> = {
       overDescription: "flex-end",
       alone: "center",
       titleOnly: "flex-start",
+      overActions: "flex-start",
     };
 
     for (const [name, className] of Object.entries(
@@ -852,7 +911,7 @@ describe.each(STACKED_LAYOUTS)(
         );
 
         test.each(DESKTOP_WIDTHS)(
-          "at %ipx controls that do not fit beside the title go under it, 8px down, and the description follows them, 2px clear",
+          "at %ipx controls that do not fit beside the title go under it - and the description stays 6px under the title, as in a card with no controls, the controls 8px under the description and the body under them",
           (width: number) => {
             const shape: Shape = {
               layout,
@@ -860,15 +919,24 @@ describe.each(STACKED_LAYOUTS)(
               actions: "controls-under",
               description,
             };
-            const laidOut: LaidOutHeader = layOut(
-              shape,
-              classesOf(shape),
-              width,
-            );
+            const classes: HeaderClasses = classesOf(shape);
+            const laidOut: LaidOutHeader = layOut(shape, classes, width);
 
+            /*
+             * Under the controls, the description sat a button row (or two)
+             * under its title: 48px on the Runbooks list at 1024px, 98px at
+             * 768px.
+             */
+            expect(classes.descriptionInTitleBlock).toBe(true);
+            expect(classes.description).toBe(CARD_DESCRIPTION_CLASS_NAME);
             expect(laidOut.titleTop).toBe(0);
-            expect(laidOut.actionsTop! - laidOut.titleBottom).toBe(8);
-            expect(laidOut.descriptionTop! - laidOut.actionsBottom!).toBe(2);
+            expect(laidOut.descriptionTop! - laidOut.titleBottom).toBe(6);
+            expect(
+              laidOut.actionsTop! -
+                (laidOut.descriptionTop! + descriptionHeight(shape)),
+            ).toBe(8);
+            // Nothing hangs past the header: the body starts under the controls.
+            expect(laidOut.headerBottom).toBe(laidOut.actionsBottom);
           },
         );
 
@@ -1007,14 +1075,16 @@ describe("the default header, laid out", () => {
 
 describe("every layout, at every width", () => {
   test.each(WIDTHS_IN_PX)(
-    "at %ipx no description is ever more than 9px under its title while the actions share the title's line, and never under the controls' foot",
+    "at %ipx no description is ever more than 9px under its title, wherever the actions go, and never runs into the controls",
     (width: number) => {
       for (const layout of CARD_HEADER_LAYOUTS) {
-        for (const actions of [
-          "controls",
-          "pill",
-          "none",
-        ] as Array<ActionsShape>) {
+        // The default header never sends its actions under the title from md up.
+        const actionShapes: Array<ActionsShape> =
+          layout === "default"
+            ? ["controls", "pill", "none"]
+            : ["controls", "pill", "none", "controls-under"];
+
+        for (const actions of actionShapes) {
           for (const titleLines of [1, 2] as Array<1 | 2>) {
             const shape: Shape = {
               layout,
@@ -1041,9 +1111,13 @@ describe("every layout, at every width", () => {
             ]).toEqual([label, true]);
 
             if (laidOut.actionsBottom !== null && layout !== "default") {
+              // Under the controls' foot, or - when they went under the title - over their top.
               expect([
                 label,
-                laidOut.descriptionTop >= laidOut.actionsBottom,
+                actions === "controls-under"
+                  ? laidOut.descriptionTop + descriptionHeight(shape) <=
+                      laidOut.actionsTop!
+                  : laidOut.descriptionTop >= laidOut.actionsBottom,
               ]).toEqual([label, true]);
             }
           }
