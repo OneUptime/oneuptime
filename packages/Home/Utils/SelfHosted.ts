@@ -139,7 +139,7 @@ export const DeploymentModels: Array<DeploymentModel> = [
     bestFor:
       "Production self-hosting, regulated environments, and anything that needs horizontal scale or high availability.",
     infrastructure: "Your cluster, your cloud or data centre",
-    upgrades: "You run `helm upgrade` on your own schedule",
+    upgrades: "You run helm upgrade on your own schedule",
     highlights: [
       "One chart deploys the whole platform — ingress, API, workers, probes, and databases",
       "Bundled PostgreSQL (CloudNativePG) and ClickHouse (Altinity) operators for replicated databases",
@@ -496,7 +496,7 @@ export const AirGapSteps: Array<AirGapStep> = [
  * OpenID Connect single sign-on are part of the Community Edition.
  */
 export const EnterpriseEditionFeatures: Array<string> = [
-  "Selected with `image.type: enterprise-edition` in the Helm chart, or `APP_TAG=enterprise-release` with Docker Compose",
+  "Selected with image.type: enterprise-edition in the Helm chart, or APP_TAG=enterprise-release with Docker Compose",
   "SCIM provisioning and deprovisioning for projects and status pages",
   "Audit logs and team compliance settings",
   "Instance health dashboards, PostgreSQL and Valkey health alerts, and a query console for administrators",
@@ -518,7 +518,7 @@ export const UpgradeResponsibilities: Array<ResponsibilityRow> = [
     oneuptime:
       "We ship releases frequently — often several times a day — and publish release notes and upgrade notes for each.",
     customer:
-      "You choose when to apply them. We recommend at least monthly, and pinning a specific tag rather than tracking `release`.",
+      "You choose when to apply them. We recommend at least monthly, and pinning a version tag rather than following the moving release tag.",
   },
   {
     area: "Breaking changes",
@@ -544,7 +544,7 @@ export const UpgradeResponsibilities: Array<ResponsibilityRow> = [
   {
     area: "Rollback",
     oneuptime:
-      "Chart releases are versioned and every image tag stays available, so `helm rollback` works.",
+      "Chart releases are versioned and every image tag stays available, so helm rollback works.",
     customer:
       "Keep the previous values.yaml and a restorable database backup — a schema migration is not always reversible by rollback alone.",
   },

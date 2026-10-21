@@ -487,18 +487,39 @@ describe("SelfHosted content model", () => {
     expect(updateCheck.description).not.toContain("oneuptime.com");
   });
 
-  test("every air-gap step is written as plain text, as the page draws it", () => {
+  test("every string of the page's content is plain text, as the page draws it", () => {
     /*
-     * self-hosted.ejs prints each description as text, so a Markdown code
-     * span would show its backticks; the setting under each step is the
-     * page's code.
+     * self-hosted.ejs prints each string as text, so a Markdown code span
+     * would show its backticks (the air-gap upgrade step, the Kubernetes
+     * upgrades line, two upgrade responsibilities and the Enterprise
+     * Edition's first line did). The page's code is its setting chips.
      */
-    for (const step of AirGapSteps) {
-      expect([step.title, step.description.includes("`")]).toEqual([
-        step.title,
-        false,
-      ]);
-    }
+    const withBackticks: Array<string> = [];
+    let read: number = 0;
+    const walk: (value: unknown, at: string) => void = (
+      value: unknown,
+      at: string,
+    ): void => {
+      if (typeof value === "string") {
+        read++;
+        if (value.includes("`")) {
+          withBackticks.push(`${at}: ${value}`);
+        }
+      } else if (Array.isArray(value)) {
+        value.forEach((item: unknown, index: number) => {
+          walk(item, `${at}[${index}]`);
+        });
+      } else if (value && typeof value === "object") {
+        for (const [key, item] of Object.entries(value)) {
+          walk(item, `${at}.${key}`);
+        }
+      }
+    };
+
+    walk(getSelfHostedContent(), "selfHosted");
+
+    expect(read).toBeGreaterThan(200);
+    expect(withBackticks).toEqual([]);
   });
 
   test("the DNS air-gap step names the chart-wide list the air-gapped values empty", () => {
