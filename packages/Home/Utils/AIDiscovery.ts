@@ -12,6 +12,11 @@
 import PageSEOConfig, { PageSEOData } from "./PageSEO";
 import Pricing, { PricingPlans } from "./Pricing";
 import { ResellersPageContent } from "./Resellers";
+import {
+  CloudMarketplaceLink,
+  CloudMarketplacesContent,
+  getCloudMarketplacesContent,
+} from "./CloudMarketplaces";
 import ProductCompare, {
   Product,
   PricingTier,
@@ -292,7 +297,23 @@ export function generateLlmsFullTxt(
   return lines.join("\n");
 }
 
-export function generatePricingMarkdown(homeUrl: string): string {
+/*
+ * Links named in a sentence, as the pages write them: "[A](a) or [B](b)".
+ */
+function marketplaceLinksSentence(
+  links: ReadonlyArray<CloudMarketplaceLink>,
+): string {
+  return links
+    .map((link: CloudMarketplaceLink): string => {
+      return `${link.separator}[${link.name}](${link.url})`;
+    })
+    .join("");
+}
+
+export function generatePricingMarkdown(
+  homeUrl: string,
+  cloudMarketplaces: CloudMarketplacesContent = getCloudMarketplacesContent(),
+): string {
   const baseUrl: string = normalizeBaseUrl(homeUrl);
   const lines: Array<string> = [];
 
@@ -311,6 +332,14 @@ export function generatePricingMarkdown(homeUrl: string): string {
   }
   lines.push("");
   lines.push(`Canonical page: ${baseUrl}/pricing`);
+
+  // The line under the plans: OneUptime Cloud's public marketplace listings.
+  if (cloudMarketplaces.publicListings.cloud.length > 0) {
+    lines.push("");
+    lines.push(
+      `Prefer to pay on your cloud bill? Buy OneUptime Cloud on ${marketplaceLinksSentence(cloudMarketplaces.publicListings.cloud)}, at these prices. Every marketplace: ${baseUrl}${cloudMarketplaces.sectionPath}`,
+    );
+  }
 
   for (const category of Pricing) {
     lines.push("");
@@ -376,8 +405,57 @@ export function generatePageMarkdown(
 }
 
 /*
+ * The Resellers page's cloud marketplaces section, as markdown: each
+ * marketplace with its listings as the page shows them (a link where the
+ * listing is public, "coming soon" where it is not, one line for a
+ * marketplace with none), and nothing while no listing is public.
+ */
+function cloudMarketplacesMarkdown(
+  baseUrl: string,
+  marketplaces: CloudMarketplacesContent,
+): Array<string> {
+  if (!marketplaces.hasPublicListing) {
+    return [];
+  }
+
+  const lines: Array<string> = [];
+
+  lines.push("");
+  lines.push("## Buy through your cloud marketplace");
+  lines.push("");
+  lines.push(
+    `Buy OneUptime with the cloud account you already have, and pay for it on your cloud bill. OneUptime Cloud is run by OneUptime, at the prices on ${baseUrl}/pricing. OneUptime Enterprise runs in your own Kubernetes cluster, for ${marketplaces.enterprisePricePerUserHour} per user per hour, with no license key to activate: ${baseUrl}${marketplaces.enterpriseGuidePath}`,
+  );
+  lines.push("");
+
+  for (const card of marketplaces.marketplaces) {
+    if (!card.hasPublicListing) {
+      lines.push(`- ${card.name}: coming soon`);
+      continue;
+    }
+
+    lines.push(`- ${card.name}`);
+    for (const listing of card.listings) {
+      lines.push(
+        listing.listingUrl
+          ? `  - [${listing.productName}](${listing.listingUrl}): ${listing.detail}`
+          : `  - ${listing.productName}: ${listing.detail}, coming soon`,
+      );
+    }
+  }
+
+  lines.push("");
+  lines.push(
+    `For annual pricing or a volume discount, ask for a private offer, which you accept on your marketplace: ${baseUrl}${marketplaces.privateOfferPath}`,
+  );
+
+  return lines;
+}
+
+/*
  * /resellers.md: the resellers by region, from the same content the page
- * renders (Utils/Resellers.ts), and how to become one.
+ * renders (Utils/Resellers.ts), the cloud marketplaces, and how to become a
+ * reseller.
  */
 export function generateResellersMarkdown(
   homeUrl: string,
@@ -418,6 +496,8 @@ export function generateResellersMarkdown(
       );
     }
   }
+
+  lines.push(...cloudMarketplacesMarkdown(baseUrl, content.cloudMarketplaces));
 
   lines.push("");
   lines.push("## Become a reseller");

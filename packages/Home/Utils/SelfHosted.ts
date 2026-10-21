@@ -11,6 +11,11 @@
  * customer cannot switch on from values.yaml or a signed order form.
  */
 
+import {
+  CloudMarketplacesContent,
+  getCloudMarketplacesContent,
+} from "./CloudMarketplaces";
+
 export type DeploymentModelKey =
   | "kubernetes"
   | "docker-compose"
@@ -673,6 +678,12 @@ export interface SelfHostedContent {
   supportBoundaries: Array<SupportTierRow>;
   faqs: Array<SelfHostedFaq>;
   helmDocs: HelmDocLinks;
+  /*
+   * Where the Enterprise Edition can be bought by the hour, its marketplace
+   * subscription its license: the line under the Enterprise Edition section's
+   * call to action names the public listings (Utils/CloudMarketplaces.ts).
+   */
+  cloudMarketplaces: CloudMarketplacesContent;
 }
 
 export function getSelfHostedContent(): SelfHostedContent {
@@ -691,6 +702,7 @@ export function getSelfHostedContent(): SelfHostedContent {
     supportBoundaries: SupportBoundaries,
     faqs: SelfHostedFaqs,
     helmDocs: HelmDocs,
+    cloudMarketplaces: getCloudMarketplacesContent(),
   };
 }
 
