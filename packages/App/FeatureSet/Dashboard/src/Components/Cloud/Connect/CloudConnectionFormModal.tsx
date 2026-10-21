@@ -61,6 +61,11 @@ import {
   secretFieldName,
 } from "./CloudConnectionForm";
 import CloudConnectionTestPanel from "./CloudConnectionTestPanel";
+import {
+  PASTE_HOLDS_NOTHING,
+  PASTE_NOTHING_YET,
+  PASTE_STILL_MISSING,
+} from "./CloudConnectionWords";
 import CloudSetupCommand from "./CloudSetupCommand";
 
 /*
@@ -71,10 +76,13 @@ import CloudSetupCommand from "./CloudSetupCommand";
  *                cloud's own browser terminal (AWS CloudShell, Azure Cloud
  *                Shell, Google Cloud Shell) - and for AWS, a role (nothing
  *                secret stored) or an access key;
- *   Credentials  what the command printed, pasted once: the values are read
- *                out of it. The name and the settings most people leave
- *                alone (regions, subscriptions, projects, how often) are
- *                folded under More fields;
+ *   Credentials  what the command printed, pasted once, for every cloud and
+ *                every way in: the values are read out of it - a role's
+ *                ARN, a key and its secret, a Google Cloud key out of
+ *                gcloud's progress lines - and folded under it, to check or
+ *                to enter by hand. The name and the settings most people
+ *                leave alone (regions, subscriptions, projects, how often)
+ *                are folded under More fields;
  *   Test         a sign-in and a count of what there is to monitor, with
  *                what reading it costs in the cloud's own bill.
  *
@@ -132,16 +140,24 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | undefined>(undefined);
+  // The step on screen: the test runs by itself when it is the Test step.
+  const [stepId, setStepId] = useState<string | undefined>(undefined);
 
   // The test reads the form as it is when the button is pressed.
   const latestValues: MutableRefObject<JSONObject> = useRef<JSONObject>({});
   const moreFields: FormFieldCollapsibleSection<JSONObject> = useRef(
     getAdvancedFormSection<JSONObject>(),
   ).current;
+  /*
+   * The values the paste filled in, folded under it: folded they say what
+   * was found, opened they can be checked or entered by hand. A paste that
+   * fills them in does not open them.
+   */
   const valuesFold: FormFieldCollapsibleSection<JSONObject> = useRef({
     id: "cloud-connection-values",
     title: "Enter the values yourself",
-    description: "Filled in from what you pasted.",
+    description: "Filled in from what you paste above.",
+    openWhenConfigured: false,
   }).current;
 
   const definition: CloudConnectionDefinition | undefined =
@@ -241,9 +257,10 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
   });
 
   /*
-   * Step 2: what the command printed. Where a method has several values,
-   * one paste fills them all in (folded below it); a single value is its
-   * own field to paste into.
+   * Step 2: what the command printed. Every cloud and every way in asks
+   * for the same one paste, which fills in the values folded below it - a
+   * single value too: a role's ARN, or a Google Cloud key, which gcloud
+   * prints after lines of its own that a key field would refuse.
    */
   const methodFields: (
     method: CloudConnectionAuthMethod,
@@ -264,97 +281,147 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
     return definition.secretFields.includes(field);
   };
 
-  const anyMethodPastes: boolean = offered.some(
-    (method: CloudConnectionAuthMethodDefinition): boolean => {
-      return methodFields(method.method).length > 1;
-    },
-  );
+  // Whether any value of the method picked holds something, pasted or typed.
+  const hasAnyValue: (values: JSONObject) => boolean = (
+    values: JSONObject,
+  ): boolean => {
+    return methodFields(methodOf(values)).some(
+      (field: CloudConnectionField): boolean => {
+        const name: string = isSecret(field)
+          ? secretFieldName(field.key)
+          : configFieldName(field.key);
 
-  if (anyMethodPastes) {
-    fields.push({
-      field: { [PASTED_FIELD]: true },
-      title: "What the command printed",
-      description: "Paste all of it: OneUptime picks out the values it needs.",
-      stepId: CREDENTIALS_STEP_ID,
-      fieldType: FormFieldSchemaType.LongText,
-      required: false,
-      disableSpellCheck: true,
-      placeholder: "{ ... }",
-      showIf: (values: FormValues<JSONObject>): boolean => {
-        return methodFields(methodOf(values as JSONObject)).length > 1;
+        return Boolean(
+          readFormText(values[name] as JSONValue | undefined).trim(),
+        );
       },
-      onChange: (
-        value: JSONValue,
-        currentValues: FormValues<JSONObject>,
-        setNewFormValues: (values: FormValues<JSONObject>) => void,
-      ): void => {
-        const next: JSONObject | undefined = applyCloudConnectionPaste({
+    );
+  };
+
+  fields.push({
+    field: { [PASTED_FIELD]: true },
+    title: "What the command printed",
+    description: "Paste all of it: OneUptime picks out the values it needs.",
+    stepId: CREDENTIALS_STEP_ID,
+    fieldType: FormFieldSchemaType.LongText,
+    // The way in, not an option: the values can be typed instead.
+    required: false,
+    hideOptionalLabel: true,
+    disableSpellCheck: true,
+    placeholder: "{ ... }",
+    /*
+     * One message, on the paste, when the step cannot go on: nothing
+     * pasted yet, or a value still missing - rather than every empty
+     * value in the fold below asking on its own.
+     */
+    customValidation: (values: FormValues<JSONObject>): string | null => {
+      const missing: Array<CloudConnectionField> =
+        getMissingCloudConnectionFields({
           definition,
-          method: methodOf(currentValues as JSONObject),
-          values: currentValues as JSONObject,
-          pasted: readFormText(value),
+          values: values as JSONObject,
+          isEditing,
+          fallbackMethod: defaultMethod,
         });
 
-        if (next) {
-          // After the field stores what was typed (it cannot be rewritten in its own onChange).
-          queueMicrotask(() => {
-            setNewFormValues(next as FormValues<JSONObject>);
-          });
-        }
-      },
-      getFooterElement: (values: FormValues<JSONObject>): ReactElement => {
-        const pasted: string = readFormText(
+      if (missing.length === 0) {
+        return null;
+      }
+
+      if (!hasAnyValue(values as JSONObject)) {
+        // Something pasted that holds none of the values, or nothing yet.
+        const message: string = readFormText(
           (values as JSONObject)[PASTED_FIELD] as JSONValue | undefined,
-        );
+        ).trim()
+          ? PASTE_HOLDS_NOTHING
+          : PASTE_NOTHING_YET;
 
-        if (!pasted.trim()) {
-          return <></>;
-        }
+        return translator.translateText(message) || message;
+      }
 
-        const found: Array<string> = getPastedFieldTitles({
-          definition,
-          method: methodOf(values as JSONObject),
-          pasted,
+      return translator.translateTemplate(PASTE_STILL_MISSING, {
+        fields: composedValue((inSentence: Translator): string => {
+          return missing
+            .map((field: CloudConnectionField): string => {
+              return inSentence.translateText(field.title) || field.title;
+            })
+            .join(", ");
+        }),
+      });
+    },
+    onChange: (
+      value: JSONValue,
+      currentValues: FormValues<JSONObject>,
+      setNewFormValues: (values: FormValues<JSONObject>) => void,
+    ): void => {
+      const next: JSONObject | undefined = applyCloudConnectionPaste({
+        definition,
+        method: methodOf(currentValues as JSONObject),
+        values: currentValues as JSONObject,
+        pasted: readFormText(value),
+      });
+
+      if (next) {
+        // After the field stores what was typed (it cannot be rewritten in its own onChange).
+        queueMicrotask(() => {
+          setNewFormValues(next as FormValues<JSONObject>);
         });
+      }
+    },
+    getFooterElement: (
+      values: FormValues<JSONObject>,
+      error?: string,
+    ): ReactElement => {
+      const pasted: string = readFormText(
+        (values as JSONObject)[PASTED_FIELD] as JSONValue | undefined,
+      );
 
-        return found.length > 0 ? (
-          <div
-            className="mt-2 flex items-start gap-1.5 text-sm text-emerald-700"
-            data-testid="cloud-connection-paste-found"
-          >
-            <Icon icon={IconProp.Check} className="mt-0.5 h-4 w-4" />
-            <span>
-              {translator.translateTemplate("Found: {{fields}}", {
-                fields: composedValue((inSentence: Translator): string => {
-                  return found
-                    .map((fieldTitle: string): string => {
-                      return inSentence.translateText(fieldTitle) || fieldTitle;
-                    })
-                    .join(", ");
-                }),
-              })}
-            </span>
-          </div>
-        ) : (
-          <div
-            className="mt-2 text-sm text-amber-700"
-            data-testid="cloud-connection-paste-nothing"
-          >
-            {translator.translateText(
-              "Nothing OneUptime needs is in this yet. Copy everything the command printed.",
-            )}
-          </div>
-        );
-      },
-    });
-  }
+      if (!pasted.trim()) {
+        return <></>;
+      }
+
+      const found: Array<string> = getPastedFieldTitles({
+        definition,
+        method: methodOf(values as JSONObject),
+        pasted,
+      });
+
+      return found.length > 0 ? (
+        <div
+          className="mt-2 flex items-start gap-1.5 text-sm text-emerald-700"
+          data-testid="cloud-connection-paste-found"
+        >
+          <Icon icon={IconProp.Check} className="mt-0.5 h-4 w-4" />
+          <span>
+            {translator.translateTemplate("Found: {{fields}}", {
+              fields: composedValue((inSentence: Translator): string => {
+                return found
+                  .map((fieldTitle: string): string => {
+                    return inSentence.translateText(fieldTitle) || fieldTitle;
+                  })
+                  .join(", ");
+              }),
+            })}
+          </span>
+        </div>
+      ) : error ? (
+        // The field's own error already says what to do.
+        <></>
+      ) : (
+        <div
+          className="mt-2 text-sm text-amber-700"
+          data-testid="cloud-connection-paste-nothing"
+        >
+          {translator.translateText(PASTE_HOLDS_NOTHING)}
+        </div>
+      );
+    },
+  });
 
   // Every method's own fields, each shown only while its method is picked.
   const seen: Set<string> = new Set<string>();
 
   for (const method of offered) {
     const own: Array<CloudConnectionField> = methodFields(method.method);
-    const folded: boolean = own.length > 1;
 
     for (const field of own) {
       const name: string = isSecret(field)
@@ -388,8 +455,13 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
             : field.description,
         stepId: CREDENTIALS_STEP_ID,
         fieldType: fieldTypeFor(field),
-        // Stored secrets can never be read back, so an edit never needs them.
-        required: isEditing && isSecret(field) ? false : field.required,
+        /*
+         * What is still missing is said once, on the paste above
+         * (getMissingCloudConnectionFields: a stored secret is never
+         * missing on edit); the server checks every value again.
+         */
+        required: false,
+        hideOptionalLabel: true,
         disableSpellCheck: true,
         showIf: (values: FormValues<JSONObject>): boolean => {
           return methodOf(values as JSONObject) === method.method;
@@ -399,7 +471,7 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
           : field.placeholder
             ? { placeholder: field.placeholder }
             : {}),
-        ...(folded ? { collapsibleSection: valuesFold } : {}),
+        collapsibleSection: valuesFold,
       });
     }
   }
@@ -492,6 +564,7 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
                 })
               : undefined
           }
+          autoStart={stepId === TEST_STEP_ID}
           runTest={(): Promise<CloudConnectionTestResult> => {
             return runCloudConnectionTest(
               cloudConnectionTestBody({
@@ -509,6 +582,12 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
 
   const initialValues: JSONObject = {
     [AUTH_METHOD_FIELD]: defaultMethod,
+    /*
+     * Empty, not absent: a field the form holds no value for is only asked
+     * whether it is required, and the paste's own check (what is still
+     * missing) would never run.
+     */
+    [PASTED_FIELD]: "",
   };
 
   if (isEditing && props.connection) {
@@ -608,6 +687,9 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
         initialValues,
         steps,
         fields,
+        onFormStepChange: (id: string): void => {
+          setStepId(id);
+        },
         ...(isEditing ? { allowAnyStepNavigation: true } : {}),
       }}
     />

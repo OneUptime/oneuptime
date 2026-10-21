@@ -9,6 +9,7 @@ import {
 import {
   CloudConnectionFailureKind,
   CloudConnectionReadSummary,
+  CloudConnectionRegionCount,
   CloudConnectionTestResult,
   CloudConnectionTypeCount,
   readCloudConnectionReadSummary,
@@ -71,11 +72,6 @@ export function drawCloudTemplate(
 const RESOURCE_COUNT: PluralTemplate = {
   one: "{{count}} resource",
   other: "{{count}} resources",
-};
-
-const RESOURCE_COUNT_IN_REGIONS: PluralTemplate = {
-  one: "{{count}} resource in {{regions}} regions",
-  other: "{{count}} resources in {{regions}} regions",
 };
 
 function pluralOf(
@@ -301,6 +297,118 @@ export function getResourceCountWords(count: number): CloudTemplate {
   return pluralOf(RESOURCE_COUNT, count);
 }
 
+/*
+ * What a connection reads, in its cloud's own word for it: an AWS account,
+ * an Azure subscription, a Google Cloud project.
+ */
+const ACCOUNTS_WORDS: Record<CloudProvider, PluralTemplate> = {
+  [CloudProvider.AWS]: {
+    one: "Account: {{accounts}}",
+    other: "Accounts: {{accounts}}",
+  },
+  [CloudProvider.Azure]: {
+    one: "Subscription: {{accounts}}",
+    other: "Subscriptions: {{accounts}}",
+  },
+  [CloudProvider.GCP]: {
+    one: "Project: {{accounts}}",
+    other: "Projects: {{accounts}}",
+  },
+};
+
+/*
+ * "Subscription: 7c4a1f2e-…", "Accounts: 123456789012, 210987654321".
+ * Undefined when nothing names one.
+ */
+export function getCloudAccountsWords(data: {
+  provider: CloudProvider | string;
+  accounts: Array<string>;
+}): CloudTemplate | undefined {
+  const accounts: Array<string> = data.accounts.filter(
+    (account: string): boolean => {
+      return Boolean(account && account.trim());
+    },
+  );
+
+  if (accounts.length === 0) {
+    return undefined;
+  }
+
+  return pluralOf(
+    ACCOUNTS_WORDS[data.provider as CloudProvider] ||
+      ACCOUNTS_WORDS[CloudProvider.AWS],
+    accounts.length,
+    { accounts: accounts.join(", ") },
+  );
+}
+
+/*
+ * The accounts a row of the list names under its cloud: those its name
+ * does not already say ("AWS 123456789012" says its account).
+ */
+export function getAccountsNotInName(data: {
+  name: string | undefined;
+  accounts: Array<string>;
+}): Array<string> {
+  const name: string = (data.name || "").toLowerCase();
+
+  return data.accounts.filter((account: string): boolean => {
+    return Boolean(account) && !name.includes(account.toLowerCase());
+  });
+}
+
+/*
+ * Why the Credentials step cannot go on yet, said on the box the command's
+ * output is pasted into: nothing there, or a value still missing from what
+ * was pasted or typed.
+ */
+export const PASTE_NOTHING_YET: string = translationKey(
+  "Paste everything the command printed.",
+);
+export const PASTE_HOLDS_NOTHING: string = translationKey(
+  "Nothing OneUptime needs is in this yet. Copy everything the command printed.",
+);
+export const PASTE_STILL_MISSING: string = translationKey(
+  "Still missing: {{fields}}. Paste everything the command printed, or enter the values below.",
+);
+
+// "+3 more": what a short list leaves out.
+export const MORE_COUNT: PluralTemplate = {
+  one: "+{{count}} more",
+  other: "+{{count}} more",
+};
+
+// How many regions a list's row names before it says how many more.
+export const LISTED_REGION_COUNT: number = 2;
+
+/*
+ * The regions a connection's last read found resources in, most first, as
+ * a row of the list names them: the first two, and how many more.
+ */
+export function getCloudRegionNames(
+  regions: Array<CloudConnectionRegionCount>,
+): { names: Array<string>; more: number } {
+  const named: Array<string> = regions
+    .filter((entry: CloudConnectionRegionCount): boolean => {
+      return Boolean(entry.region);
+    })
+    .map((entry: CloudConnectionRegionCount): string => {
+      return entry.region;
+    });
+
+  return {
+    names: named.slice(0, LISTED_REGION_COUNT),
+    more: Math.max(named.length - LISTED_REGION_COUNT, 0),
+  };
+}
+
+/*
+ * When a connection was last read, under how it is doing: "Last read Oct
+ * 21, 09:50" (the time is drawn by the caller), or never.
+ */
+export const LAST_READ_AT: string = translationKey("Last read {{time}}");
+export const NOT_READ_YET: string = translationKey("Not read yet");
+
 // How often a connection is read: "Every 10 minutes", "Every hour".
 export function getCloudReadIntervalWords(minutes: number): CloudTemplate {
   if (minutes === 60) {
@@ -377,37 +485,4 @@ export function getCloudCostWords(data: {
       cost: numberIn(Math.round(estimate.monthlyCostUsd * 100) / 100, 2),
     },
   };
-}
-
-/*
- * What a connection's last read left it holding: "214 resources in 3
- * regions". Undefined before the first read.
- */
-export function getCloudLastReadWords(
-  connection: Pick<CloudConnection, "lastPullResult">,
-): CloudTemplate | undefined {
-  const summary: CloudConnectionReadSummary | undefined =
-    readCloudConnectionReadSummary(connection.lastPullResult);
-
-  if (!summary) {
-    return undefined;
-  }
-
-  if (summary.resourceCount === 0) {
-    return { template: translationKey("No resources yet"), values: {} };
-  }
-
-  const regions: number = summary.regions.filter(
-    (entry: { region: string }): boolean => {
-      return Boolean(entry.region);
-    },
-  ).length;
-
-  if (regions <= 1) {
-    return getResourceCountWords(summary.resourceCount);
-  }
-
-  return pluralOf(RESOURCE_COUNT_IN_REGIONS, summary.resourceCount, {
-    regions: numberIn(regions),
-  });
 }

@@ -31,8 +31,10 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -90,6 +92,12 @@ const CloudConnectPage: FunctionComponent<PageComponentProps> = (
   const [known, setKnown] = useState<Array<CloudConnection> | undefined>(
     undefined,
   );
+  /*
+   * Bumped when the list loads again after a change made there - a
+   * connection deleted - so the tiles count it at once.
+   */
+  const [knownVersion, setKnownVersion] = useState<number>(0);
+  const listHasLoaded: MutableRefObject<boolean> = useRef<boolean>(false);
   const [listHasRows, setListHasRows] = useState<boolean>(false);
   const [awsRoleSetup, setAwsRoleSetup] = useState<
     CloudConnectionAwsRoleSetup | undefined
@@ -130,7 +138,7 @@ const CloudConnectPage: FunctionComponent<PageComponentProps> = (
     return () => {
       isCurrent = false;
     };
-  }, [refreshCounter, disableTelemetryForThisProject]);
+  }, [refreshCounter, knownVersion, disableTelemetryForThisProject]);
 
   /*
    * Whether this OneUptime can sign in to an AWS role, asked once: the AWS
@@ -202,7 +210,7 @@ const CloudConnectPage: FunctionComponent<PageComponentProps> = (
       <div className="space-y-6" data-testid="cloud-connect-page">
         <Card
           title="Connect a cloud account"
-          description="See every resource in your AWS, Azure and Google Cloud accounts with its key metrics. Run one command in your cloud's terminal, paste what it prints, and OneUptime does the rest."
+          description="See every resource in your AWS, Azure and Google Cloud accounts, with its key metrics. One command in your cloud's terminal connects an account."
         >
           <div>
             <CloudConnectionTiles
@@ -230,8 +238,9 @@ const CloudConnectPage: FunctionComponent<PageComponentProps> = (
               <></>
             )}
 
+            {/* Side by side from xl, as the tiles above: narrower, they stack. */}
             <ul
-              className="mt-5 grid grid-cols-1 gap-3 border-t border-gray-200 pt-4 text-sm text-gray-600 md:grid-cols-3"
+              className="mt-5 grid grid-cols-1 gap-3 border-t border-gray-200 pt-4 text-sm text-gray-600 xl:grid-cols-3"
               data-testid="cloud-connect-promises"
             >
               <li className="flex items-start gap-2">
@@ -258,7 +267,7 @@ const CloudConnectPage: FunctionComponent<PageComponentProps> = (
               </li>
               <li className="flex items-start gap-2">
                 <Icon
-                  icon={IconProp.Alert}
+                  icon={IconProp.Bell}
                   className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
                 />
                 <span>
@@ -299,6 +308,15 @@ const CloudConnectPage: FunctionComponent<PageComponentProps> = (
               if (totalCount > 0) {
                 setListHasRows(true);
               }
+
+              // A later load follows a change in the list: count again.
+              if (listHasLoaded.current) {
+                setKnownVersion((value: number): number => {
+                  return value + 1;
+                });
+              }
+
+              listHasLoaded.current = true;
             }}
           />
         </div>

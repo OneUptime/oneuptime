@@ -7,10 +7,11 @@ import path from "path";
  * Google Cloud to OneUptime hard - it took an OpenTelemetry Collector
  * configuration - and asked for a button. What is pinned here is what a
  * person sees and what is sent: a tile per cloud, the one command in the
- * cloud's own browser terminal, one paste of what it printed, a test that
- * says what it found and what reading it costs, an AWS role or an access
- * key, and the list's status and actions - at desktop and phone width, in
- * the dark theme and in Japanese.
+ * cloud's own browser terminal, one paste of what it printed - for every
+ * cloud and every way in, a Google Cloud key printed after gcloud's own
+ * lines included - a test that says what it found and what reading it
+ * costs, an AWS role or an access key, and the list's status and actions -
+ * at desktop and phone width, in the dark theme and in Japanese.
  *
  * The screenshots under output/playwright/cloud-connect-ui are for the
  * people who review the page.
@@ -41,6 +42,35 @@ const AZURE_OUTPUT: string = [
   "}",
 ].join("\n");
 
+// The paste's label as a field the form calls optional would draw it.
+const PASTE_LABEL_MARKED_OPTIONAL: RegExp =
+  /What the command printed\s*\(Optional\)/;
+
+// The role the AWS command prints the ARN of.
+const ROLE_ARN: string =
+  "arn:aws:iam::123456789012:role/OneUptimeReadOnly-6c2b8f0e";
+
+// A Google Cloud key, as `gcloud iam service-accounts keys create` writes it.
+const GCP_KEY: Record<string, string> = {
+  type: "service_account",
+  project_id: "acme-prod",
+  private_key_id: "3f2a9c",
+  private_key:
+    "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASC\n-----END PRIVATE KEY-----\n",
+  client_email: "oneuptime-read-only@acme-prod.iam.gserviceaccount.com",
+  client_id: "1234567890",
+};
+
+// Everything Google Cloud Shell prints for the setup command: gcloud's lines, then the key.
+const GCP_OUTPUT: string = [
+  "Your active configuration is: [cloudshell-12345]",
+  'Operation "operations/acat.p2-1234567890-abcd" finished successfully.',
+  "Created service account [oneuptime-read-only].",
+  "Updated IAM policy for project [acme-prod].",
+  "created key [3f2a9c] of type [json] as [oneuptime-key.json] for [oneuptime-read-only@acme-prod.iam.gserviceaccount.com]",
+  JSON.stringify(GCP_KEY, null, 2),
+].join("\n");
+
 interface FixtureState {
   creates: Array<{
     name: string;
@@ -55,9 +85,13 @@ interface FixtureState {
   roleSetupAsks: number;
 }
 
+// The fixture's project, and the page's own address in the real Cloud layout.
+const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
+const CONNECT_PATH: string = `/dashboard/${PROJECT_ID}/cloud/connect`;
+
 async function open(page: Page, query: string = ""): Promise<void> {
-  await page.goto(`/?${query}`);
-  await expect(page.getByTestId("fixture-page")).toBeVisible();
+  await page.goto(`${CONNECT_PATH}?${query}`);
+  await expect(page.getByTestId("cloud-connect-page")).toBeVisible();
   await page.evaluate(async () => {
     await document.fonts.ready;
   });
@@ -106,6 +140,10 @@ async function expectNoSidewaysScroll(page: Page): Promise<void> {
   expect(overflow).toBeLessThanOrEqual(1);
 }
 
+function pasteBox(page: Page): Locator {
+  return dialog(page).getByPlaceholder("{ ... }");
+}
+
 async function pasteAzureOutput(page: Page): Promise<void> {
   await dialog(page).getByPlaceholder("{ ... }").fill(AZURE_OUTPUT);
   await expect(
@@ -124,6 +162,16 @@ test.describe("the Connect page", () => {
     await open(page);
 
     await expect(page.getByText("Connect a cloud account")).toBeVisible();
+
+    // In the real Cloud layout: the trail and, on a desktop, the side menu say where this is.
+    await expect(
+      page.getByRole("navigation", { name: "Breadcrumb" }),
+    ).toContainText("Connect");
+    if (test.info().project.name === "desktop") {
+      await expect(
+        page.getByRole("link", { name: "Connect", exact: true }),
+      ).toHaveClass(/bg-indigo-50/);
+    }
 
     for (const [provider, title] of [
       ["aws", "Amazon Web Services"],
@@ -266,6 +314,120 @@ test.describe("connecting Azure", () => {
   });
 });
 
+test.describe("one paste, whatever the cloud", () => {
+  test("Google Cloud: everything Cloud Shell printed - gcloud's lines, then the key - connects", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "cloud=gcp");
+
+    await expect(dialog(page)).toContainText("Connect Google Cloud");
+    await next(page).click();
+
+    await pasteBox(page).fill(GCP_OUTPUT);
+    await expect(
+      dialog(page).getByTestId("cloud-connection-paste-found"),
+    ).toContainText("Found: Service account key (JSON)");
+    // The key stays folded: its name is said, never what it holds.
+    const fold: Locator = dialog(page).getByRole("button", {
+      name: "Enter the values yourself",
+    });
+    await expect(fold).toHaveAttribute("aria-expanded", "false");
+    await expect(fold).toContainText("Service account key (JSON)");
+    await expect(dialog(page)).not.toContainText("not valid JSON");
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "gcp-paste");
+
+    // gcloud's own lines do not stop the step.
+    await next(page).click();
+    await dialog(page).getByTestId("cloud-connection-test-button").click();
+
+    const answer: Locator = dialog(page).getByTestId(
+      "cloud-connection-test-pass",
+    );
+    await expect(answer).toContainText("12 resources");
+    await expect(answer).toContainText("Compute Engine VM Instance");
+    await expect(
+      answer.getByTestId("cloud-resource-groups-accounts"),
+    ).toHaveText("Project: acme-prod");
+    await shoot(page, "gcp-test-pass");
+
+    await submit(page).click();
+    await expect(dialog(page)).toHaveCount(0);
+
+    const state: FixtureState = await fixture(page);
+    expect(state.tests[0]!.body["provider"]).toBe("gcp");
+    expect(state.creates).toHaveLength(1);
+    // What is stored is the key alone, as Google Cloud wrote it.
+    expect(
+      JSON.parse(
+        JSON.parse(state.creates[0]!.secrets)["serviceAccountJson"] as string,
+      ),
+    ).toEqual(GCP_KEY);
+  });
+
+  test("AWS with a role: the ARN the command printed is pasted like any other output", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "cloud=aws");
+
+    await next(page).click();
+    await pasteBox(page).fill(`${ROLE_ARN}\n`);
+    await expect(
+      dialog(page).getByTestId("cloud-connection-paste-found"),
+    ).toContainText("Found: Role ARN");
+
+    await next(page).click();
+    await dialog(page).getByTestId("cloud-connection-test-button").click();
+    await expect(
+      dialog(page)
+        .getByTestId("cloud-connection-test-pass")
+        .getByTestId("cloud-resource-groups-accounts"),
+    ).toHaveText("Account: 123456789012");
+
+    const state: FixtureState = await fixture(page);
+    expect(state.tests[0]!.body).toEqual({
+      provider: "aws",
+      config: {
+        authMethod: "aws-role",
+        roleArn: ROLE_ARN,
+        readIntervalInMinutes: "10",
+      },
+      secrets: {},
+    });
+  });
+
+  test("Next with nothing pasted says one thing, on the paste, and stays", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "cloud=azure");
+
+    await next(page).click();
+    await next(page).click();
+
+    // Still the paste: the step did not go on.
+    await expect(pasteBox(page)).toBeVisible();
+    await expect(dialog(page).getByTestId("error-message")).toHaveText([
+      "Paste everything the command printed.",
+    ]);
+    await expect(
+      dialog(page).getByRole("button", { name: "Enter the values yourself" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    await expect(dialog(page)).not.toContainText("is required");
+    // The paste is the step's question, not an option.
+    await expect(
+      dialog(page).getByText(PASTE_LABEL_MARKED_OPTIONAL),
+    ).toHaveCount(0);
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "azure-paste-missing");
+  });
+});
+
 test.describe("connecting AWS", () => {
   test("a role first, its command written for this project; an access key the other way", async ({
     page,
@@ -333,7 +495,13 @@ test.describe("the connected accounts", () => {
       page.getByText("46 resources in 2 regions").first(),
     ).toBeVisible();
     await expect(page.getByText("Every 10 minutes").first()).toBeVisible();
-    await expect(page.getByText("Every hour").first()).toBeVisible();
+    // The Google Cloud connection is off: it is not said to be read hourly.
+    await expect(page.getByText("Every hour")).toHaveCount(0);
+    // A name that says its account is not followed by it again.
+    await expect(
+      page.getByText("Amazon Web Services", { exact: true }).last(),
+    ).toBeVisible();
+    await expect(page.getByTestId("cloud-connection-accounts")).toHaveCount(0);
     await expect(
       page.getByTestId("cloud-connection-tile-connected-aws"),
     ).toContainText("Connected");
@@ -378,6 +546,73 @@ test.describe("the connected accounts", () => {
     expect(state.readNows[0]).toMatch(
       /^(\/api)?\/cloud-connection\/20000000-0000-4000-8000-000000000001\/read-now$/,
     );
+  });
+});
+
+test.describe("a connection's own actions", () => {
+  test("Test from a row opens on its answer, in its cloud's words, with Test again beside Close", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=connected");
+
+    await page.getByTestId("row-actions-more-button").first().click();
+    await page.getByRole("menuitem", { name: "Test" }).click();
+
+    await expect(dialog(page)).toContainText("Test AWS 123456789012");
+    const answer: Locator = dialog(page).getByTestId(
+      "cloud-connection-test-pass",
+    );
+    await expect(answer).toContainText("46 resources");
+    await expect(answer).toContainText("EC2 Instance");
+    await expect(answer.getByTestId("cloud-resource-groups-accounts")).toHaveText(
+      "Account: 123456789012",
+    );
+    const footer: Locator = dialog(page).getByTestId("modal-footer");
+    await expect(
+      footer.getByTestId("cloud-connection-test-button"),
+    ).toHaveText("Test again");
+    await expect(footer.getByRole("button", { name: "Close" })).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "connect-row-test");
+
+    await footer.getByTestId("cloud-connection-test-button").click();
+    await expect(answer).toContainText("46 resources");
+
+    const state: FixtureState = await fixture(page);
+    expect(state.tests).toHaveLength(2);
+    expect(state.tests[0]!.body).toEqual({
+      connectionId: "20000000-0000-4000-8000-000000000001",
+    });
+  });
+
+  test("a connection deleted from the list is counted at once: its cloud's tile no longer says Connected", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=connected");
+
+    await expect(
+      page.getByTestId("cloud-connection-tile-connected-azure"),
+    ).toBeVisible();
+
+    // Contoso production, the one Azure connection, is the second row.
+    await page.getByTestId("row-actions-more-button").nth(1).click();
+    await page.getByRole("menuitem", { name: "Delete" }).click();
+    await dialog(page).getByTestId("modal-footer-submit-button").click();
+
+    await expect(
+      page.getByTestId("cloud-connection-tile-connected-azure"),
+    ).toHaveCount(0);
+    await expect(page.getByTestId("cloud-connection-tile-azure")).toContainText(
+      "Connect",
+    );
+    await expect(
+      page.getByTestId("cloud-connection-tile-connected-aws"),
+    ).toBeVisible();
+    await expect(page.getByText("Contoso production")).toHaveCount(0);
   });
 });
 

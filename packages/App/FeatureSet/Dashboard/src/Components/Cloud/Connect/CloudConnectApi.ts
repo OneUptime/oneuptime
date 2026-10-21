@@ -1,3 +1,4 @@
+import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
@@ -161,6 +162,52 @@ export async function readCloudConnectionNow(
   if (response instanceof HTTPErrorResponse) {
     throw response;
   }
+}
+
+/*
+ * After Read now, the list watches the read itself: it asks every
+ * READ_NOW_POLL_MS whether the connection's last read time has moved, and
+ * gives up after READ_NOW_GIVE_UP_MS - a read stops at 6 minutes.
+ */
+export const READ_NOW_POLL_MS: number = 5 * 1000;
+export const READ_NOW_GIVE_UP_MS: number = 7 * 60 * 1000;
+
+// When a connection was last read, as a key that changes when a read ends.
+export function getLastReadKey(
+  value: Date | string | undefined | null,
+): string {
+  if (!value) {
+    return "";
+  }
+
+  const time: number = new Date(value).getTime();
+
+  return Number.isFinite(time) ? String(time) : String(value);
+}
+
+/*
+ * Whether a read started when the connection's last read was `before`
+ * (getLastReadKey) has ended. A connection that is gone has nothing left
+ * to read.
+ */
+export async function hasCloudConnectionReadEnded(data: {
+  connectionId: ObjectID;
+  before: string;
+}): Promise<boolean> {
+  const connection: CloudConnection | null =
+    await ModelAPI.getItem<CloudConnection>({
+      modelType: CloudConnection,
+      id: data.connectionId,
+      select: { lastPulledAt: true },
+    });
+
+  if (!connection) {
+    return true;
+  }
+
+  const now: string = getLastReadKey(connection.lastPulledAt);
+
+  return Boolean(now) && now !== data.before;
 }
 
 // The answer read as the setup it is; unavailable when it says nothing.

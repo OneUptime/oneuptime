@@ -9,12 +9,12 @@ import {
 } from "Common/Types/CloudConnection/CloudConnectionCatalog";
 import {
   CloudConnectionReadSummary,
-  CloudConnectionTestResult,
   readCloudConnectionReadSummary,
 } from "Common/Types/CloudConnection/CloudConnectionTest";
 import OneUptimeDate from "Common/Types/Date";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
+import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
@@ -33,35 +33,49 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
   useState,
 } from "react";
 import AppLink from "../../AppLink/AppLink";
 import {
+  READ_NOW_GIVE_UP_MS,
+  READ_NOW_POLL_MS,
   cloudConnectionDocsUrl,
+  getLastReadKey,
+  hasCloudConnectionReadEnded,
   readCloudConnectionNow,
-  runCloudConnectionTest,
 } from "./CloudConnectApi";
 import CloudConnectionLogo from "./CloudConnectionLogo";
-import CloudConnectionTestPanel from "./CloudConnectionTestPanel";
+import CloudConnectionTestDialog from "./CloudConnectionTestDialog";
 import {
   CloudConnectionHealth,
-  CloudTemplate,
   CloudWords,
+  LAST_READ_AT,
+  MORE_COUNT,
+  NOT_READ_YET,
   drawCloudTemplate,
+  getAccountsNotInName,
   getCloudConnectionHealth,
-  getCloudLastReadWords,
   getCloudReadFailureWords,
   getCloudReadIntervalWords,
+  getCloudRegionNames,
+  getResourceCountWords,
 } from "./CloudConnectionWords";
-import CloudResourceGroups from "./CloudResourceGroups";
 
 /*
- * The project's cloud connections: how each is doing, what it holds - its
- * resources by service, the accounts it reads - when it was last read,
- * and what can be done with it: read it now, test it, turn it off or on,
- * edit or remove it. Create and edit go through CloudConnectionFormModal
- * (opened by the page): its fields depend on the cloud and its secrets are
- * write-only, which ModelTable's own form cannot express.
+ * The project's cloud connections, a row each, in three columns: the
+ * account (its cloud and what it reads); how it is doing, when it was last
+ * read and how often it is; and what its last read found - how many
+ * resources, a way to them, and where. Kept to what fits beside the side
+ * menu at 1280px in every language: what a read found by service is the
+ * test's to say, and All Resources lists the resources themselves.
+ *
+ * What can be done with a connection: read it now (the row then says it
+ * is reading, and the list catches up by itself when the read ends), test
+ * it, see why it failed, turn it off or on, edit or remove it. Create and
+ * edit go through CloudConnectionFormModal (opened by the page): its
+ * fields depend on the cloud and its secrets are write-only, which
+ * ModelTable's own form cannot express.
  */
 
 export interface ComponentProps {
@@ -72,6 +86,12 @@ export interface ComponentProps {
   onEdit: (connection: CloudConnection) => void;
   // Each time the list loads: how many connections it found.
   onConnectionsLoaded: (totalCount: number) => void;
+}
+
+// A read started from the list: when the connection was last read before it.
+interface ReadInProgress {
+  before: string;
+  startedAt: number;
 }
 
 const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
@@ -85,11 +105,86 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
     { type: AlertType; text: string } | undefined
   >(undefined);
   const [refreshCounter, setRefreshCounter] = useState<number>(0);
+  // The reads Read now started that have not ended yet, by connection id.
+  const [reading, setReading] = useState<Record<string, ReadInProgress>>({});
 
   const refresh: () => void = (): void => {
     setRefreshCounter((value: number): number => {
       return value + 1;
     });
+  };
+
+  /*
+   * While a read started here runs, ask now and then whether it has ended,
+   * and load the list again once one has: the row then says how it went.
+   * Asked of the one connection, so the list itself does not flicker.
+   */
+  useEffect(() => {
+    const ids: Array<string> = Object.keys(reading);
+
+    if (ids.length === 0) {
+      return;
+    }
+
+    let isCurrent: boolean = true;
+
+    const timer: ReturnType<typeof setInterval> = setInterval(() => {
+      void (async (): Promise<void> => {
+        const ended: Array<string> = [];
+
+        for (const id of ids) {
+          const read: ReadInProgress | undefined = reading[id];
+
+          if (!read || Date.now() - read.startedAt > READ_NOW_GIVE_UP_MS) {
+            ended.push(id);
+            continue;
+          }
+
+          try {
+            if (
+              await hasCloudConnectionReadEnded({
+                connectionId: new ObjectID(id),
+                before: read.before,
+              })
+            ) {
+              ended.push(id);
+            }
+          } catch {
+            // Asked again at the next tick.
+          }
+        }
+
+        if (!isCurrent || ended.length === 0) {
+          return;
+        }
+
+        setReading(
+          (
+            current: Record<string, ReadInProgress>,
+          ): Record<string, ReadInProgress> => {
+            const next: Record<string, ReadInProgress> = { ...current };
+
+            for (const id of ended) {
+              delete next[id];
+            }
+
+            return next;
+          },
+        );
+        refresh();
+      })();
+    }, READ_NOW_POLL_MS);
+
+    return () => {
+      isCurrent = false;
+      clearInterval(timer);
+    };
+  }, [reading]);
+
+  const isReading: (item: CloudConnection) => boolean = (
+    item: CloudConnection,
+  ): boolean => {
+    return Boolean(item.id && reading[item.id.toString()]);
   };
 
   const setEnabled: (
@@ -186,366 +281,399 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
 
   return (
     <Fragment>
-      {notice ? (
-        <Alert
-          type={notice.type}
-          title={notice.text}
-          dataTestId="cloud-connections-notice"
-          onClose={() => {
-            setNotice(undefined);
+      <div className="space-y-6">
+        {notice ? (
+          <Alert
+            type={notice.type}
+            title={notice.text}
+            dataTestId="cloud-connections-notice"
+            onClose={() => {
+              setNotice(undefined);
+            }}
+          />
+        ) : (
+          <></>
+        )}
+
+        <ModelTable<CloudConnection>
+          modelType={CloudConnection}
+          refreshToggle={`${props.refreshToggle}-${refreshCounter}`}
+          id="cloud-connections-table"
+          name="Cloud > Connect > Connected accounts"
+          userPreferencesKey="cloud-connections-table"
+          query={{
+            projectId: ProjectUtil.getCurrentProjectId()!,
           }}
-        />
-      ) : (
-        <></>
-      )}
-
-      <ModelTable<CloudConnection>
-        modelType={CloudConnection}
-        refreshToggle={`${props.refreshToggle}-${refreshCounter}`}
-        id="cloud-connections-table"
-        name="Cloud > Connect > Connected accounts"
-        userPreferencesKey="cloud-connections-table"
-        query={{
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        }}
-        selectMoreFields={{
-          provider: true,
-          config: true,
-          isEnabled: true,
-          lastPulledAt: true,
-          lastSuccessfulPullAt: true,
-          lastPullResult: true,
-          lastError: true,
-        }}
-        onFetchSuccess={(_data: Array<CloudConnection>, totalCount: number) => {
-          props.onConnectionsLoaded(totalCount);
-        }}
-        isDeleteable={true}
-        isEditable={false}
-        isCreateable={false}
-        isViewable={false}
-        sortBy="name"
-        sortOrder={SortOrder.Ascending}
-        showRefreshButton={true}
-        cardProps={{
-          title: "Connected accounts",
-          description:
-            "Each is read on a schedule: its resources appear under All Resources, with their key metrics.",
-        }}
-        noItemsMessage="No cloud account connected yet. Pick one above."
-        filters={[
-          {
-            field: { name: true },
-            type: FieldType.Text,
-            title: "Name",
-          },
-        ]}
-        actionButtons={[
-          {
-            title: "View error",
-            buttonStyleType: ButtonStyleType.OUTLINE,
-            icon: IconProp.Error,
-            isVisible: (item: CloudConnection): boolean => {
-              return getCloudConnectionHealth(item).key === "failing";
+          selectMoreFields={{
+            provider: true,
+            config: true,
+            isEnabled: true,
+            lastPulledAt: true,
+            lastSuccessfulPullAt: true,
+            lastPullResult: true,
+            lastError: true,
+          }}
+          onFetchSuccess={(
+            _data: Array<CloudConnection>,
+            totalCount: number,
+          ) => {
+            props.onConnectionsLoaded(totalCount);
+          }}
+          isDeleteable={true}
+          isEditable={false}
+          isCreateable={false}
+          isViewable={false}
+          sortBy="name"
+          sortOrder={SortOrder.Ascending}
+          showRefreshButton={true}
+          cardProps={{
+            title: "Connected accounts",
+            description:
+              "Each is read on a schedule: its resources appear under All Resources, with their key metrics.",
+          }}
+          noItemsMessage="No cloud account connected yet. Pick one above."
+          filters={[
+            {
+              field: { name: true },
+              type: FieldType.Text,
+              title: "Name",
             },
-            onClick: (
-              item: CloudConnection,
-              onCompleteAction: VoidFunction,
-            ): void => {
-              setErrorItem(item);
-              onCompleteAction();
+          ]}
+          actionButtons={[
+            {
+              title: "View error",
+              buttonStyleType: ButtonStyleType.OUTLINE,
+              icon: IconProp.Error,
+              isVisible: (item: CloudConnection): boolean => {
+                return getCloudConnectionHealth(item).key === "failing";
+              },
+              onClick: (
+                item: CloudConnection,
+                onCompleteAction: VoidFunction,
+              ): void => {
+                setErrorItem(item);
+                onCompleteAction();
+              },
             },
-          },
-          {
-            title: "Read now",
-            icon: IconProp.Refresh,
-            buttonStyleType: ButtonStyleType.OUTLINE,
-            isVisible: (item: CloudConnection): boolean => {
-              return item.isEnabled !== false;
+            {
+              title: "Read now",
+              icon: IconProp.Refresh,
+              buttonStyleType: ButtonStyleType.OUTLINE,
+              // Not again while the row says it is reading.
+              isVisible: (item: CloudConnection): boolean => {
+                return item.isEnabled !== false && !isReading(item);
+              },
+              disabled: !props.updateGate.isAllowed,
+              tooltip: props.updateGate.isAllowed
+                ? "Read it now instead of at its next scheduled read."
+                : props.updateGate.disabledReason,
+              onClick: async (
+                item: CloudConnection,
+                onCompleteAction: VoidFunction,
+              ): Promise<void> => {
+                try {
+                  await readCloudConnectionNow(item.id!);
+                  setNotice(undefined);
+                  // The row says it is reading until the read ends.
+                  setReading(
+                    (
+                      current: Record<string, ReadInProgress>,
+                    ): Record<string, ReadInProgress> => {
+                      return {
+                        ...current,
+                        [item.id!.toString()]: {
+                          before: getLastReadKey(item.lastPulledAt),
+                          startedAt: Date.now(),
+                        },
+                      };
+                    },
+                  );
+                } catch (err) {
+                  setNotice({
+                    type: AlertType.DANGER,
+                    text: API.getFriendlyErrorMessage(err as Error),
+                  });
+                }
+                onCompleteAction();
+              },
             },
-            disabled: !props.updateGate.isAllowed,
-            tooltip: props.updateGate.isAllowed
-              ? "Read it now instead of at its next scheduled read."
-              : props.updateGate.disabledReason,
-            onClick: async (
-              item: CloudConnection,
-              onCompleteAction: VoidFunction,
-            ): Promise<void> => {
-              try {
-                await readCloudConnectionNow(item.id!);
-                // The list does not watch the read: say how to see it end.
-                setNotice({
-                  type: AlertType.SUCCESS,
-                  text: translator.translateTemplate(
-                    "Reading {{name}} now. Refresh the list in a minute to see how it went.",
-                    { name: item.name || "" },
-                  ),
+            /*
+             * Before Test: the first action a row shows is its button, and a
+             * connection that is off is turned on before anything else.
+             */
+            {
+              title: "Turn on",
+              icon: IconProp.Play,
+              buttonStyleType: ButtonStyleType.OUTLINE,
+              isVisible: (item: CloudConnection): boolean => {
+                return item.isEnabled === false;
+              },
+              disabled: !props.updateGate.isAllowed,
+              tooltip: props.updateGate.isAllowed
+                ? "Read it again"
+                : props.updateGate.disabledReason,
+              onClick: (
+                item: CloudConnection,
+                onCompleteAction: VoidFunction,
+              ): Promise<void> => {
+                return setEnabled(item, true, onCompleteAction);
+              },
+            },
+            {
+              title: "Test",
+              icon: IconProp.Play,
+              buttonStyleType: ButtonStyleType.OUTLINE,
+              disabled: !props.updateGate.isAllowed,
+              tooltip: props.updateGate.isAllowed
+                ? "Check its saved settings with a small read. Nothing is imported."
+                : props.updateGate.disabledReason,
+              onClick: (
+                item: CloudConnection,
+                onCompleteAction: VoidFunction,
+              ): void => {
+                setTestRun((value: number): number => {
+                  return value + 1;
                 });
-              } catch (err) {
-                setNotice({
-                  type: AlertType.DANGER,
-                  text: API.getFriendlyErrorMessage(err as Error),
+                setTestItem(item);
+                onCompleteAction();
+              },
+            },
+            {
+              title: "Turn off",
+              icon: IconProp.Stop,
+              buttonStyleType: ButtonStyleType.OUTLINE,
+              isVisible: (item: CloudConnection): boolean => {
+                return item.isEnabled !== false;
+              },
+              disabled: !props.updateGate.isAllowed,
+              tooltip: props.updateGate.isAllowed
+                ? "Stop reading it. What it brought in stays."
+                : props.updateGate.disabledReason,
+              onClick: (
+                item: CloudConnection,
+                onCompleteAction: VoidFunction,
+              ): Promise<void> => {
+                return setEnabled(item, false, onCompleteAction);
+              },
+            },
+            {
+              title: "Edit",
+              icon: IconProp.Edit,
+              buttonStyleType: ButtonStyleType.OUTLINE,
+              disabled: !props.updateGate.isAllowed,
+              tooltip: props.updateGate.isAllowed
+                ? "Change its settings. Credentials stay unless you enter new ones."
+                : props.updateGate.disabledReason,
+              onClick: (
+                item: CloudConnection,
+                onCompleteAction: VoidFunction,
+              ): void => {
+                props.onEdit(item);
+                onCompleteAction();
+              },
+            },
+          ]}
+          columns={[
+            {
+              field: { name: true },
+              title: "Account",
+              type: FieldType.Element,
+              getElement: (item: CloudConnection): ReactElement => {
+                const definition: CloudConnectionDefinition | undefined =
+                  getCloudConnectionDefinition(item.provider);
+                const summary: CloudConnectionReadSummary | undefined =
+                  readCloudConnectionReadSummary(item.lastPullResult);
+                // What the name does not already say ("AWS 123456789012" does).
+                const accounts: Array<string> = getAccountsNotInName({
+                  name: item.name,
+                  accounts: summary?.accounts || [],
                 });
-              }
-              onCompleteAction();
-            },
-          },
-          /*
-           * Before Test: the first action a row shows is its button, and a
-           * connection that is off is turned on before anything else.
-           */
-          {
-            title: "Turn on",
-            icon: IconProp.Play,
-            buttonStyleType: ButtonStyleType.OUTLINE,
-            isVisible: (item: CloudConnection): boolean => {
-              return item.isEnabled === false;
-            },
-            disabled: !props.updateGate.isAllowed,
-            tooltip: props.updateGate.isAllowed
-              ? "Read it again"
-              : props.updateGate.disabledReason,
-            onClick: (
-              item: CloudConnection,
-              onCompleteAction: VoidFunction,
-            ): Promise<void> => {
-              return setEnabled(item, true, onCompleteAction);
-            },
-          },
-          {
-            title: "Test",
-            icon: IconProp.Play,
-            buttonStyleType: ButtonStyleType.OUTLINE,
-            disabled: !props.updateGate.isAllowed,
-            tooltip: props.updateGate.isAllowed
-              ? "Check its saved settings with a small read. Nothing is imported."
-              : props.updateGate.disabledReason,
-            onClick: (
-              item: CloudConnection,
-              onCompleteAction: VoidFunction,
-            ): void => {
-              setTestRun((value: number): number => {
-                return value + 1;
-              });
-              setTestItem(item);
-              onCompleteAction();
-            },
-          },
-          {
-            title: "Turn off",
-            icon: IconProp.Stop,
-            buttonStyleType: ButtonStyleType.OUTLINE,
-            isVisible: (item: CloudConnection): boolean => {
-              return item.isEnabled !== false;
-            },
-            disabled: !props.updateGate.isAllowed,
-            tooltip: props.updateGate.isAllowed
-              ? "Stop reading it. What it brought in stays."
-              : props.updateGate.disabledReason,
-            onClick: (
-              item: CloudConnection,
-              onCompleteAction: VoidFunction,
-            ): Promise<void> => {
-              return setEnabled(item, false, onCompleteAction);
-            },
-          },
-          {
-            title: "Edit",
-            icon: IconProp.Edit,
-            buttonStyleType: ButtonStyleType.OUTLINE,
-            disabled: !props.updateGate.isAllowed,
-            tooltip: props.updateGate.isAllowed
-              ? "Change its settings. Credentials stay unless you enter new ones."
-              : props.updateGate.disabledReason,
-            onClick: (
-              item: CloudConnection,
-              onCompleteAction: VoidFunction,
-            ): void => {
-              props.onEdit(item);
-              onCompleteAction();
-            },
-          },
-        ]}
-        columns={[
-          {
-            field: { name: true },
-            title: "Account",
-            type: FieldType.Element,
-            getElement: (item: CloudConnection): ReactElement => {
-              const definition: CloudConnectionDefinition | undefined =
-                getCloudConnectionDefinition(item.provider);
-              const summary: CloudConnectionReadSummary | undefined =
-                readCloudConnectionReadSummary(item.lastPullResult);
-              const accounts: Array<string> = summary?.accounts || [];
 
-              return (
-                <div className="flex items-center gap-3">
-                  <CloudConnectionLogo provider={item.provider} size="md" />
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium text-gray-900">
-                      {item.name}
-                    </div>
-                    <div className="truncate text-xs text-gray-500">
-                      {definition
-                        ? translator.translateText(definition.title)
-                        : item.provider}
-                    </div>
-                    {accounts.length > 0 ? (
+                return (
+                  <div className="flex items-center gap-3">
+                    <CloudConnectionLogo provider={item.provider} size="md" />
+                    {/* A long name or account list is cut, not the table widened. */}
+                    <div className="min-w-0 max-w-[15rem]">
                       <div
-                        className="truncate font-mono text-xs text-gray-500"
-                        data-testid="cloud-connection-accounts"
+                        className="truncate text-sm font-medium text-gray-900"
+                        title={item.name || ""}
                       >
-                        {accounts.join(", ")}
+                        {item.name}
+                      </div>
+                      {/* Its cloud, then what it reads: one quiet line. */}
+                      <div className="truncate text-xs text-gray-500">
+                        {definition
+                          ? translator.translateText(definition.title)
+                          : item.provider}
+                        {accounts.length > 0 ? (
+                          <span data-testid="cloud-connection-accounts">
+                            {" · "}
+                            {accounts.join(", ")}
+                          </span>
+                        ) : (
+                          <></>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              },
+            },
+            /*
+             * How it is doing, then when it was last read and how often it
+             * is: one column, so the row fits beside the side menu.
+             */
+            {
+              field: { lastError: true },
+              title: "Status",
+              type: FieldType.Element,
+              getElement: (item: CloudConnection): ReactElement => {
+                const health: CloudConnectionHealth =
+                  getCloudConnectionHealth(item);
+                const definition: CloudConnectionDefinition | undefined =
+                  getCloudConnectionDefinition(item.provider);
+
+                let lastRead: ReactElement = <></>;
+
+                if (isReading(item)) {
+                  lastRead = (
+                    <div
+                      className="flex items-center gap-1.5 text-xs text-gray-700"
+                      data-testid="cloud-connection-reading"
+                    >
+                      <Icon
+                        icon={IconProp.Spinner}
+                        className="h-3 w-3 flex-shrink-0 animate-spin text-gray-400"
+                      />
+                      <span>{translator.translateText("Reading now…")}</span>
+                    </div>
+                  );
+                } else if (item.lastSuccessfulPullAt) {
+                  lastRead = (
+                    <div
+                      className="text-xs text-gray-500"
+                      data-testid="cloud-connection-last-read"
+                      title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                        item.lastSuccessfulPullAt,
+                      )}
+                    >
+                      {translator.translateTemplate(LAST_READ_AT, {
+                        time: OneUptimeDate.getDateAsLocalShortDateTimeString(
+                          item.lastSuccessfulPullAt,
+                        ),
+                      })}
+                    </div>
+                  );
+                } else if (health.key !== "waiting") {
+                  // Waiting says it already.
+                  lastRead = (
+                    <div
+                      className="text-xs text-gray-500"
+                      data-testid="cloud-connection-last-read"
+                    >
+                      {translator.translateText(NOT_READ_YET)}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="min-w-0 space-y-1">
+                    <Pill
+                      color={health.color}
+                      text={health.label}
+                      tooltip={
+                        health.tooltipIsError
+                          ? health.tooltip
+                          : translator.translateText(health.tooltip)
+                      }
+                    />
+                    {lastRead}
+                    {/* How often it is read - not while it is turned off. */}
+                    {definition && item.isEnabled !== false ? (
+                      <div
+                        className="text-xs text-gray-500"
+                        data-testid="cloud-connection-read-interval"
+                      >
+                        {drawCloudTemplate(
+                          translator,
+                          getCloudReadIntervalWords(
+                            getCloudConnectionReadIntervalInMinutes(
+                              definition,
+                              item.config?.[READ_INTERVAL_FIELD_KEY],
+                            ),
+                          ),
+                        )}
                       </div>
                     ) : (
                       <></>
                     )}
                   </div>
-                </div>
-              );
-            },
-          },
-          {
-            field: { lastError: true },
-            title: "Status",
-            type: FieldType.Element,
-            getElement: (item: CloudConnection): ReactElement => {
-              const health: CloudConnectionHealth =
-                getCloudConnectionHealth(item);
-
-              return (
-                <Pill
-                  color={health.color}
-                  text={health.label}
-                  tooltip={
-                    health.tooltipIsError
-                      ? health.tooltip
-                      : translator.translateText(health.tooltip)
-                  }
-                />
-              );
-            },
-          },
-          {
-            field: { lastPullResult: true },
-            title: "Resources",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: CloudConnection): ReactElement => {
-              const summary: CloudConnectionReadSummary | undefined =
-                readCloudConnectionReadSummary(item.lastPullResult);
-
-              if (!summary || summary.resourceCount === 0) {
-                return (
-                  <span className="text-sm text-gray-500">
-                    {translator.translateText("None yet")}
-                  </span>
                 );
-              }
-
-              return (
-                <div className="min-w-0 space-y-1">
-                  <CloudResourceGroups
-                    provider={item.provider || ""}
-                    resourceTypes={summary.resourceTypes}
-                    regions={summary.regions}
-                    compact={true}
-                  />
-                  <AppLink
-                    to={props.resourcesRoute}
-                    className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
-                  >
-                    <span>{translator.translateText("See all resources")}</span>
-                  </AppLink>
-                </div>
-              );
+              },
             },
-          },
-          {
-            field: { lastSuccessfulPullAt: true },
-            title: "Last read",
-            type: FieldType.Element,
-            getElement: (item: CloudConnection): ReactElement => {
-              const words: CloudTemplate | undefined =
-                getCloudLastReadWords(item);
-              const definition: CloudConnectionDefinition | undefined =
-                getCloudConnectionDefinition(item.provider);
+            {
+              field: { lastPullResult: true },
+              title: "Resources",
+              type: FieldType.Element,
+              // Two short lines: a phone's card has room for them too.
+              getElement: (item: CloudConnection): ReactElement => {
+                const summary: CloudConnectionReadSummary | undefined =
+                  readCloudConnectionReadSummary(item.lastPullResult);
 
-              if (!item.lastSuccessfulPullAt) {
+                if (!summary || summary.resourceCount === 0) {
+                  return (
+                    <span className="text-sm text-gray-500">
+                      {translator.translateText("None yet")}
+                    </span>
+                  );
+                }
+
+                const regions: { names: Array<string>; more: number } =
+                  getCloudRegionNames(summary.regions);
+
+                // How many, as the way to them; where, under it.
                 return (
-                  <span className="text-sm text-gray-500">
-                    {translator.translateText("Not yet")}
-                  </span>
-                );
-              }
-
-              return (
-                <div className="min-w-0">
-                  <div className="text-sm text-gray-900">
-                    {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                      item.lastSuccessfulPullAt,
+                  <div className="min-w-0">
+                    <AppLink
+                      to={props.resourcesRoute}
+                      className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+                    >
+                      <span data-testid="cloud-connection-resource-count">
+                        {drawCloudTemplate(
+                          translator,
+                          getResourceCountWords(summary.resourceCount),
+                        )}
+                      </span>
+                    </AppLink>
+                    {regions.names.length > 0 ? (
+                      <div
+                        className="text-xs text-gray-500"
+                        data-testid="cloud-connection-regions"
+                      >
+                        {regions.names.join(", ")}
+                        {regions.more > 0
+                          ? ` ${translator.translatePlural(MORE_COUNT, regions.more)}`
+                          : ""}
+                      </div>
+                    ) : (
+                      <></>
                     )}
                   </div>
-                  {words ? (
-                    <div className="text-xs text-gray-500">
-                      {drawCloudTemplate(translator, words)}
-                    </div>
-                  ) : (
-                    <></>
-                  )}
-                  {definition ? (
-                    <div className="text-xs text-gray-500">
-                      {drawCloudTemplate(
-                        translator,
-                        getCloudReadIntervalWords(
-                          getCloudConnectionReadIntervalInMinutes(
-                            definition,
-                            item.config?.[READ_INTERVAL_FIELD_KEY],
-                          ),
-                        ),
-                      )}
-                    </div>
-                  ) : (
-                    <></>
-                  )}
-                </div>
-              );
+                );
+              },
             },
-          },
-        ]}
-      />
+          ]}
+        />
+      </div>
 
       {testItem && (
-        <Modal
-          title={translator.translateTemplate("Test {{name}}", {
-            name: testItem.name || "",
-          })}
-          description="A small read with the saved settings. Nothing is imported or stored."
-          modalWidth={ModalWidth.Medium}
-          closeButtonText="Close"
+        <CloudConnectionTestDialog
+          key={`${testItem.id?.toString()}-${testRun}`}
+          connection={testItem}
           onClose={(): void => {
             setTestItem(null);
           }}
-        >
-          {getCloudConnectionDefinition(testItem.provider) ? (
-            <CloudConnectionTestPanel
-              key={`${testItem.id?.toString()}-${testRun}`}
-              definition={getCloudConnectionDefinition(testItem.provider)!}
-              readIntervalInMinutes={getCloudConnectionReadIntervalInMinutes(
-                getCloudConnectionDefinition(testItem.provider)!,
-                testItem.config?.[READ_INTERVAL_FIELD_KEY],
-              )}
-              startImmediately={true}
-              runTest={(): Promise<CloudConnectionTestResult> => {
-                return runCloudConnectionTest({
-                  connectionId: testItem.id!.toString(),
-                });
-              }}
-            />
-          ) : (
-            <></>
-          )}
-        </Modal>
+        />
       )}
 
       {errorItem && (

@@ -20,13 +20,22 @@ import {
   CloudConnectionHealth,
   CloudTemplate,
   CloudWords,
+  LAST_READ_AT,
+  LISTED_REGION_COUNT,
+  MORE_COUNT,
+  NOT_READ_YET,
+  PASTE_HOLDS_NOTHING,
+  PASTE_NOTHING_YET,
+  PASTE_STILL_MISSING,
   drawCloudTemplate,
+  getAccountsNotInName,
+  getCloudAccountsWords,
   getCloudConnectionHealth,
   getCloudCostWords,
   getCloudFailureWords,
-  getCloudLastReadWords,
   getCloudReadFailureWords,
   getCloudReadIntervalWords,
+  getCloudRegionNames,
   getCloudTestWords,
   getResourceCountWords,
   getResourceTypeEntries,
@@ -42,7 +51,13 @@ import {
  *     working - and "not working" carries the stored error itself;
  *   - counts are plurals in the reader's language, numbers are written
  *     their way, and how often a connection is read reads naturally;
- *   - what reading the resources costs comes from the cloud's own prices.
+ *   - a row of the list names the first two regions a read found
+ *     resources in, and how many more, and when it was last read;
+ *   - what reading the resources costs comes from the cloud's own prices;
+ *   - what a connection reads is named in its cloud's own word (an AWS
+ *     account, an Azure subscription, a Google Cloud project), and a row
+ *     of the list does not repeat what its name already says;
+ *   - the Credentials step says once, on the paste, why it cannot go on.
  */
 
 const ENGLISH: Translator = createTranslator(undefined, "en");
@@ -52,11 +67,14 @@ const GERMAN: Translator = createTranslator((text: string) => {
   const words: Record<string, string> = {
     "{{count}} resources": "{{count}} Ressourcen",
     "{{count}} resources_one": "{{count}} Ressource",
-    "{{count}} resources in {{regions}} regions":
-      "{{count}} Ressourcen in {{regions}} Regionen",
+    "+{{count}} more": "+{{count}} weitere",
+    "+{{count}} more_one": "+{{count}} weitere",
+    "Last read {{time}}": "Zuletzt gelesen {{time}}",
     "Reading these every {{minutes}} minutes costs about ${{cost}} a month in your cloud's monitoring charges.":
       "Diese alle {{minutes}} Minuten zu lesen, kostet etwa {{cost}} USD pro Monat.",
     "Every {{minutes}} minutes": "Alle {{minutes}} Minuten",
+    "Subscriptions: {{accounts}}": "Abonnements: {{accounts}}",
+    "Subscriptions: {{accounts}}_one": "Abonnement: {{accounts}}",
   };
   return words[text];
 }, "de");
@@ -287,22 +305,8 @@ describe("counts in the reader's language", () => {
   });
 
   test("a sentence the reader's language does not word stays English; its count is still written their way", () => {
-    const words: CloudTemplate = getCloudLastReadWords(
-      summary({
-        resourceCount: 1500,
-        regions: [
-          { region: "us-east-1", count: 1000 },
-          { region: "eu-west-1", count: 500 },
-        ],
-      }),
-    )!;
+    const words: CloudTemplate = getResourceCountWords(1500);
 
-    expect(drawCloudTemplate(ENGLISH, words)).toBe(
-      "1,500 resources in 2 regions",
-    );
-    expect(drawCloudTemplate(GERMAN, words)).toBe(
-      "1.500 Ressourcen in 2 Regionen",
-    );
     // No Russian words: the sentence is English, its count Russian-written.
     expect(
       drawCloudTemplate(
@@ -311,33 +315,46 @@ describe("counts in the reader's language", () => {
         }, "ru"),
         words,
       ),
-    ).toBe(`${(1500).toLocaleString("ru")} resources in 2 regions`);
+    ).toBe(`${(1500).toLocaleString("ru")} resources`);
+  });
+
+  test("when it was last read, and never, in the reader's language", () => {
+    expect(ENGLISH.translateTemplate(LAST_READ_AT, { time: "Oct 21, 09:50" })).toBe(
+      "Last read Oct 21, 09:50",
+    );
+    expect(GERMAN.translateTemplate(LAST_READ_AT, { time: "Oct 21, 09:50" })).toBe(
+      "Zuletzt gelesen Oct 21, 09:50",
+    );
+    expect(ENGLISH.translateText(NOT_READ_YET)).toBe("Not read yet");
   });
 });
 
-describe("what the last read left a connection holding", () => {
-  test("nothing before the first read", () => {
-    expect(getCloudLastReadWords(new CloudConnection())).toBeUndefined();
+describe("where a read found resources, as a row of the list names it", () => {
+  test("the first two regions, most first, and how many more", () => {
+    expect(LISTED_REGION_COUNT).toBe(2);
+    expect(
+      getCloudRegionNames([
+        { region: "us-east-1", count: 31 },
+        { region: "eu-west-1", count: 15 },
+        { region: "ap-south-1", count: 4 },
+        { region: "sa-east-1", count: 1 },
+      ]),
+    ).toEqual({ names: ["us-east-1", "eu-west-1"], more: 2 });
+    expect(ENGLISH.translatePlural(MORE_COUNT, 2)).toBe("+2 more");
+    expect(GERMAN.translatePlural(MORE_COUNT, 2)).toBe("+2 weitere");
   });
 
-  test("no resources yet", () => {
+  test("one or two regions are all named; a resource with no region names none", () => {
     expect(
-      drawCloudTemplate(ENGLISH, getCloudLastReadWords(summary({}))!),
-    ).toBe("No resources yet");
-  });
-
-  test("in one region, the count alone", () => {
+      getCloudRegionNames([{ region: "westeurope", count: 12 }]),
+    ).toEqual({ names: ["westeurope"], more: 0 });
     expect(
-      drawCloudTemplate(
-        ENGLISH,
-        getCloudLastReadWords(
-          summary({
-            resourceCount: 12,
-            regions: [{ region: "westeurope", count: 12 }],
-          }),
-        )!,
-      ),
-    ).toBe("12 resources");
+      getCloudRegionNames([
+        { region: "", count: 3 },
+        { region: "europe-west1", count: 9 },
+      ]),
+    ).toEqual({ names: ["europe-west1"], more: 0 });
+    expect(getCloudRegionNames([])).toEqual({ names: [], more: 0 });
   });
 });
 
@@ -427,5 +444,113 @@ describe("what reading them costs", () => {
         "Reading these fits in your cloud's free monthly allowance for monitoring reads.",
       );
     }
+  });
+});
+
+describe("what a connection reads, in its cloud's word", () => {
+  test.each([
+    [CloudProvider.AWS, ["123456789012"], "Account: 123456789012"],
+    [
+      CloudProvider.AWS,
+      ["123456789012", "210987654321"],
+      "Accounts: 123456789012, 210987654321",
+    ],
+    [
+      CloudProvider.Azure,
+      ["7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b"],
+      "Subscription: 7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b",
+    ],
+    [CloudProvider.Azure, ["sub-1", "sub-2"], "Subscriptions: sub-1, sub-2"],
+    [CloudProvider.GCP, ["acme-prod"], "Project: acme-prod"],
+    [CloudProvider.GCP, ["acme-prod", "acme-dev"], "Projects: acme-prod, acme-dev"],
+  ] as Array<[CloudProvider, Array<string>, string]>)(
+    "%s reading %j says %s",
+    (provider: CloudProvider, accounts: Array<string>, said: string) => {
+      const words: CloudTemplate | undefined = getCloudAccountsWords({
+        provider,
+        accounts,
+      });
+
+      expect(drawCloudTemplate(ENGLISH, words!)).toBe(said);
+    },
+  );
+
+  test("nothing read names nothing - an empty account is not one", () => {
+    expect(
+      getCloudAccountsWords({ provider: CloudProvider.AWS, accounts: [] }),
+    ).toBeUndefined();
+    expect(
+      getCloudAccountsWords({ provider: CloudProvider.GCP, accounts: ["", " "] }),
+    ).toBeUndefined();
+  });
+
+  test("a cloud the catalog does not know is read as accounts", () => {
+    expect(
+      drawCloudTemplate(
+        ENGLISH,
+        getCloudAccountsWords({ provider: "oracle", accounts: ["a", "b"] })!,
+      ),
+    ).toBe("Accounts: a, b");
+  });
+
+  test("in the reader's language, one and many", () => {
+    expect(
+      drawCloudTemplate(
+        GERMAN,
+        getCloudAccountsWords({
+          provider: CloudProvider.Azure,
+          accounts: ["sub-1"],
+        })!,
+      ),
+    ).toBe("Abonnement: sub-1");
+    expect(
+      drawCloudTemplate(
+        GERMAN,
+        getCloudAccountsWords({
+          provider: CloudProvider.Azure,
+          accounts: ["sub-1", "sub-2"],
+        })!,
+      ),
+    ).toBe("Abonnements: sub-1, sub-2");
+  });
+
+  test("a row names only the accounts its name does not already say", () => {
+    expect(
+      getAccountsNotInName({
+        name: "AWS 123456789012",
+        accounts: ["123456789012"],
+      }),
+    ).toEqual([]);
+    expect(
+      getAccountsNotInName({
+        name: "Google Cloud ACME-PROD",
+        accounts: ["acme-prod", "acme-dev"],
+      }),
+    ).toEqual(["acme-dev"]);
+    expect(
+      getAccountsNotInName({
+        name: "Contoso production",
+        accounts: ["7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b"],
+      }),
+    ).toEqual(["7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b"]);
+    expect(
+      getAccountsNotInName({ name: undefined, accounts: ["", "acme-prod"] }),
+    ).toEqual(["acme-prod"]);
+  });
+});
+
+describe("why the Credentials step cannot go on", () => {
+  test("nothing pasted, a paste that holds nothing, and a value still missing are three sentences", () => {
+    expect(PASTE_NOTHING_YET).toBe("Paste everything the command printed.");
+    expect(PASTE_HOLDS_NOTHING).toBe(
+      "Nothing OneUptime needs is in this yet. Copy everything the command printed.",
+    );
+    expect(
+      ENGLISH.translateTemplate(PASTE_STILL_MISSING, {
+        fields: "Client secret",
+      }),
+    ).toBe(
+      "Still missing: Client secret. Paste everything the command printed, or enter the values below.",
+    );
   });
 });

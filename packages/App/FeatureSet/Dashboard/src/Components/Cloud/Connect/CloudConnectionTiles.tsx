@@ -16,7 +16,13 @@ import CloudConnectionLogo from "./CloudConnectionLogo";
  * whether the project has connected it already. A click opens that cloud's
  * guided form. A cloud can be connected more than once (two AWS accounts,
  * two Azure tenants).
+ *
+ * Side by side only from xl: beside the side menu, a 768-1279px window
+ * leaves each of three tiles a column too narrow for its words (one word a
+ * line at 768), so they stack until the card is wide enough.
  */
+export const CLOUD_TILES_GRID_CLASS: string =
+  "grid grid-cols-1 gap-3 xl:grid-cols-3";
 
 export interface ComponentProps {
   connectionCounts: Partial<Record<CloudProvider, number>>;
@@ -31,10 +37,7 @@ const CloudConnectionTiles: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
 
   return (
-    <ul
-      className="grid grid-cols-1 gap-3 md:grid-cols-3"
-      data-testid="cloud-connection-tiles"
-    >
+    <ul className={CLOUD_TILES_GRID_CLASS} data-testid="cloud-connection-tiles">
       {CloudConnectionCatalog.map(
         (definition: CloudConnectionDefinition): ReactElement => {
           const count: number =

@@ -60,12 +60,16 @@ const CloudSetupCommand: FunctionComponent<ComponentProps> = (
       )}
 
       {command ? (
+        /*
+         * Tall enough for every cloud's whole command: what someone runs in
+         * their cloud they read first.
+         */
         <div data-testid="cloud-setup-command-code">
           <CodeBlock
             code={command}
             language="bash"
             wrapLongLines={true}
-            maxHeight="220px"
+            maxHeight="340px"
           />
         </div>
       ) : (
@@ -78,13 +82,18 @@ const CloudSetupCommand: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      {/*
+       * The shell's button keeps its name on one line (it wrapped beside
+       * the guide in German and for Azure); the guide moves under it when
+       * both do not fit.
+       */}
+      <div className="flex flex-col gap-x-4 gap-y-2 sm:flex-row sm:flex-wrap sm:items-center">
         <a
           href={props.definition.shellUrl}
           target="_blank"
           rel="noopener noreferrer"
           data-testid="cloud-setup-open-shell"
-          className="inline-flex items-center justify-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+          className="inline-flex flex-shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
         >
           <Icon icon={IconProp.Terminal} className="h-4 w-4" />
           <span>

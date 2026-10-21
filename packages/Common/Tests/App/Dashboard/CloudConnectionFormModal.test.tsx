@@ -44,9 +44,14 @@ import CloudConnectionFormModal, {
  *     terminal; for AWS a role (nothing secret stored) when this OneUptime
  *     can sign in to one, else an access key - and nothing until it knows;
  *   - one paste of what the command printed fills in every value, and says
- *     which it found;
- *   - the test sends what the form holds; Connect saves it for the server
- *     to name, and says it is new;
+ *     which it found - for every cloud and every way in, a role's ARN and a
+ *     Google Cloud key printed after gcloud's own lines included; the
+ *     values stay folded under it, and the step says once, on the paste,
+ *     why it cannot go on;
+ *   - the Test step tests what the form holds by itself as it opens -
+ *     never before, though a form draws every step's fields before it
+ *     opens its first - and Test again tests again; Connect saves it for
+ *     the server to name, and says it is new;
  *   - an edit keeps the stored secret unless a new one is typed.
  */
 
@@ -66,6 +71,30 @@ const AZURE_OUTPUT: string = [
   `  "password": "${PASSWORD}",`,
   `  "tenant": "${TENANT}"`,
   "}",
+].join("\n");
+
+const ROLE_ARN: string =
+  "arn:aws:iam::123456789012:role/OneUptimeReadOnly-01234567";
+
+// A Google Cloud key, as `gcloud iam service-accounts keys create` writes it.
+const GCP_KEY: JSONObject = {
+  type: "service_account",
+  project_id: "acme-prod",
+  private_key_id: "3f2a9c",
+  private_key:
+    "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASC\n-----END PRIVATE KEY-----\n",
+  client_email: "oneuptime-read-only@acme-prod.iam.gserviceaccount.com",
+  client_id: "1234567890",
+};
+
+// Everything Google Cloud Shell prints for the setup command: gcloud's lines, then the key.
+const GCP_OUTPUT: string = [
+  "Your active configuration is: [cloudshell-12345]",
+  'Operation "operations/acat.p2-1234567890-abcd" finished successfully.',
+  "Created service account [oneuptime-read-only].",
+  "Updated IAM policy for project [acme-prod].",
+  "created key [3f2a9c] of type [json] as [oneuptime-key.json] for [oneuptime-read-only@acme-prod.iam.gserviceaccount.com]",
+  JSON.stringify(GCP_KEY, null, 2),
 ].join("\n");
 
 const ROLE_SETUP: CloudConnectionAwsRoleSetup = {
@@ -282,8 +311,189 @@ describe("one paste", () => {
   });
 });
 
+describe("every cloud, one paste", () => {
+  // The Test step tests by itself as it opens.
+  async function pressTest(): Promise<void> {
+    await within(modal()).findByTestId("cloud-connection-test-pass");
+    expect(postSpy).toHaveBeenCalledTimes(1);
+  }
+
+  test("the paste is the step's question: no (Optional) on it", async () => {
+    await openForm({ provider: CloudProvider.Azure });
+    await stepTitles();
+    await next();
+
+    const label: HTMLElement = within(modal()).getByText(
+      "What the command printed",
+    );
+
+    expect(label.closest("label") || label.parentElement).not.toHaveTextContent(
+      "(Optional)",
+    );
+  });
+
+  test("AWS with a role: the role's ARN is pasted like any other output, and tested", async () => {
+    await openForm({ provider: CloudProvider.AWS, awsRoleSetup: ROLE_SETUP });
+    await stepTitles();
+    await next();
+
+    await paste(`${ROLE_ARN}\n`);
+
+    expect(
+      await within(modal()).findByTestId("cloud-connection-paste-found"),
+    ).toHaveTextContent("Found: Role ARN");
+
+    await next();
+    await pressTest();
+
+    const request: { data: JSONObject } = postSpy.mock.calls[0]![0];
+
+    expect(request.data).toEqual({
+      provider: CloudProvider.AWS,
+      config: {
+        authMethod: CloudConnectionAuthMethod.AwsRole,
+        roleArn: ROLE_ARN,
+        readIntervalInMinutes: "10",
+      },
+      secrets: {},
+    });
+  });
+
+  test("Google Cloud: everything Cloud Shell printed - gcloud's lines and the key - is one paste, and the key is sent clean", async () => {
+    await openForm({ provider: CloudProvider.GCP });
+    await stepTitles();
+    await next();
+
+    await paste(GCP_OUTPUT);
+
+    expect(
+      await within(modal()).findByTestId("cloud-connection-paste-found"),
+    ).toHaveTextContent("Found: Service account key (JSON)");
+
+    // gcloud's own lines do not stop the step.
+    await next();
+    await pressTest();
+
+    const request: { data: JSONObject } = postSpy.mock.calls[0]![0];
+    const secrets: JSONObject = request.data["secrets"] as JSONObject;
+
+    expect(request.data["provider"]).toBe(CloudProvider.GCP);
+    expect(
+      JSON.parse(secrets["serviceAccountJson"] as string) as JSONObject,
+    ).toEqual(GCP_KEY);
+  });
+
+  test("a paste fills the values in without opening them: their names say what was found", async () => {
+    await openForm({ provider: CloudProvider.Azure });
+    await stepTitles();
+    await next();
+
+    const fold: HTMLElement = within(modal()).getByRole("button", {
+      name: "Enter the values yourself",
+    });
+
+    expect(fold).toHaveAttribute("aria-expanded", "false");
+
+    await paste(AZURE_OUTPUT);
+
+    await within(modal()).findByTestId("cloud-connection-paste-found");
+    expect(fold).toHaveAttribute("aria-expanded", "false");
+
+    const items: Array<string> = within(modal())
+      .getAllByTestId("folded-section-item")
+      .map((item: HTMLElement): string => {
+        return item.textContent || "";
+      });
+
+    expect(items.join(" | ")).toContain("Directory (tenant) ID");
+    expect(items.join(" | ")).toContain("Client secret");
+    // A secret is named, never shown.
+    expect(items.join(" | ")).not.toContain(PASSWORD);
+  });
+});
+
+describe("why the step cannot go on, said once", () => {
+  async function errorsOnTheStep(): Promise<Array<string>> {
+    return within(modal())
+      .queryAllByTestId("error-message")
+      .map((element: HTMLElement): string => {
+        return (element.textContent || "").trim();
+      })
+      .filter((text: string): boolean => {
+        return Boolean(text);
+      });
+  }
+
+  test("nothing pasted: one sentence on the paste, the values stay folded", async () => {
+    await openForm({ provider: CloudProvider.Azure });
+    await stepTitles();
+    await next();
+    await next();
+
+    // Still on Credentials: the step did not go on.
+    expect(
+      within(modal()).getByText("What the command printed"),
+    ).toBeInTheDocument();
+    expect(await errorsOnTheStep()).toEqual([
+      "Paste everything the command printed.",
+    ]);
+    expect(
+      within(modal()).getByRole("button", { name: "Enter the values yourself" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    expect(modal()).not.toHaveTextContent("is required");
+  });
+
+  test("a paste that holds none of the values says so once - not twice", async () => {
+    await openForm({ provider: CloudProvider.Azure });
+    await stepTitles();
+    await next();
+    await paste("az: command not found");
+    await next();
+
+    expect(await errorsOnTheStep()).toEqual([
+      "Nothing OneUptime needs is in this yet. Copy everything the command printed.",
+    ]);
+    // The amber line under the paste gives way to the error.
+    expect(
+      within(modal()).queryByTestId("cloud-connection-paste-nothing"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a value still missing is named", async () => {
+    await openForm({ provider: CloudProvider.Azure });
+    await stepTitles();
+    await next();
+    await paste(
+      [
+        "{",
+        `  "appId": "${APP}",`,
+        `  "tenant": "${TENANT}"`,
+        "}",
+      ].join("\n"),
+    );
+    await next();
+
+    expect(await errorsOnTheStep()).toEqual([
+      "Still missing: Client secret. Paste everything the command printed, or enter the values below.",
+    ]);
+    // What it did find is still said.
+    expect(
+      within(modal()).getByTestId("cloud-connection-paste-found"),
+    ).toHaveTextContent("Found: Directory (tenant) ID, Application (client) ID");
+  });
+});
+
 describe("testing and connecting", () => {
-  test("the test sends what was pasted; Connect saves it for the server to name", async () => {
+  test("nothing is tested before the Test step opens", async () => {
+    await openForm({ provider: CloudProvider.Azure });
+    await stepTitles();
+    await next();
+    await paste(AZURE_OUTPUT);
+
+    expect(postSpy).not.toHaveBeenCalled();
+  });
+
+  test("the Test step tests what was pasted by itself; Test again tests again; Connect saves it for the server to name", async () => {
     const onSaved: MockFunction = getJestMockFunction();
 
     await openForm({ provider: CloudProvider.Azure, onSaved });
@@ -292,22 +502,14 @@ describe("testing and connecting", () => {
     await paste(AZURE_OUTPUT);
     await next();
 
-    await waitFor(() => {
-      expect(
-        within(modal()).getByTestId("cloud-connection-test-button"),
-      ).toBeEnabled();
-    });
-
-    await act(async () => {
-      fireEvent.click(
-        within(modal()).getByTestId("cloud-connection-test-button"),
-      );
-    });
-
+    // Nothing to press: the step tests as it opens.
     expect(
       await within(modal()).findByTestId("cloud-connection-test-pass"),
     ).toBeInTheDocument();
     expect(postSpy).toHaveBeenCalledTimes(1);
+    expect(
+      within(modal()).getByTestId("cloud-connection-test-button"),
+    ).toHaveTextContent("Test again");
 
     const request: { url: { toString: () => string }; data: JSONObject } =
       postSpy.mock.calls[0]![0];
@@ -324,6 +526,17 @@ describe("testing and connecting", () => {
       },
       secrets: { clientSecret: PASSWORD },
     });
+
+    await act(async () => {
+      fireEvent.click(
+        within(modal()).getByTestId("cloud-connection-test-button"),
+      );
+    });
+
+    await waitFor(() => {
+      expect(postSpy).toHaveBeenCalledTimes(2);
+    });
+    expect(postSpy.mock.calls[1]![0].data).toEqual(request.data);
 
     await act(async () => {
       fireEvent.click(
@@ -384,6 +597,15 @@ describe("editing a connection", () => {
     ).toBeInTheDocument();
 
     await next();
+
+    // The Test step tests the saved connection, with what the form changed, by itself.
+    await within(modal()).findByTestId("cloud-connection-test-pass");
+    expect(postSpy).toHaveBeenCalledTimes(1);
+    expect(postSpy.mock.calls[0]![0].data).toMatchObject({
+      connectionId: connection._id,
+      config: { tenantId: TENANT, clientId: APP },
+      secrets: {},
+    });
 
     await act(async () => {
       fireEvent.click(

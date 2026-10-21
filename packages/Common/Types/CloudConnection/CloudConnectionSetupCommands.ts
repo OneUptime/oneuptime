@@ -110,6 +110,12 @@ export function getAwsTrustPolicyDocument(data: {
   });
 }
 
+/*
+ * The role and what it trusts are set first, once each, so the command
+ * reads top to bottom - who may sign in, under which external id - and the
+ * trust policy is written out once rather than in both of the calls that
+ * use it.
+ */
 export function getAwsRoleSetupCommand(data: {
   trustedPrincipalArn: string;
   externalId: string;
@@ -118,9 +124,11 @@ export function getAwsRoleSetupCommand(data: {
   const trust: string = getAwsTrustPolicyDocument(data);
 
   return [
-    `aws iam create-role --role-name ${role} --assume-role-policy-document '${trust}' > /dev/null 2>&1 || aws iam update-assume-role-policy --role-name ${role} --policy-document '${trust}'`,
-    `aws iam put-role-policy --role-name ${role} --policy-name ${CLOUD_CONNECTION_READ_ONLY_NAME} --policy-document '${getAwsReadOnlyPolicyDocument()}'`,
-    `aws iam get-role --role-name ${role} --query Role.Arn --output text`,
+    `ROLE=${role}`,
+    `TRUST='${trust}'`,
+    `aws iam create-role --role-name "$ROLE" --assume-role-policy-document "$TRUST" > /dev/null 2>&1 || aws iam update-assume-role-policy --role-name "$ROLE" --policy-document "$TRUST"`,
+    `aws iam put-role-policy --role-name "$ROLE" --policy-name ${CLOUD_CONNECTION_READ_ONLY_NAME} --policy-document '${getAwsReadOnlyPolicyDocument()}'`,
+    `aws iam get-role --role-name "$ROLE" --query Role.Arn --output text`,
   ].join("\n");
 }
 

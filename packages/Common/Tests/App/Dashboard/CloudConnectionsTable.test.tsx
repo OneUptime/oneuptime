@@ -25,15 +25,21 @@ import { MemoryRouter } from "react-router-dom";
  *
  *   - it reads the connections of this project with what the list shows,
  *     never their credentials or what a read keeps for the next one;
- *   - each row: the account (cloud, name, what it reads), how it is doing,
- *     its resources by service with a way to all of them, and when it was
- *     last read, what it then held and how often it is read;
+ *   - each row, in three columns that fit beside the side menu: the
+ *     account (its name, then its cloud and what it reads on one quiet
+ *     line, without repeating what the name says); how it is doing, when it
+ *     was last read and how often it is read - not while it is turned off;
+ *     and how many resources its last read found, as the way to them, with
+ *     the first two regions and how many more;
  *   - its actions: View error only while it is not working, Read now and
  *     Turn off while it is on, Turn on while it is off, Test, Edit - each
  *     greyed, with why, without the right to change connections;
- *   - Read now queues a read and says how to see it end; Test opens a test
- *     of the saved connection; View error says what went wrong in a test's
- *     words, the stored error under them.
+ *   - Read now queues a read, and the row says it is reading - Read now
+ *     put away - until the connection's last read time moves, asked of the
+ *     one connection now and then, when the list loads again by itself; it
+ *     gives up after a read's longest time. Test opens a test of the saved
+ *     connection; View error says what went wrong in a test's words, the
+ *     stored error under them.
  */
 
 const mockCapturedTableProps: Array<Record<string, unknown>> = [];
@@ -49,10 +55,15 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 });
 
 import CloudConnectionsTable from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectionsTable";
+import {
+  READ_NOW_GIVE_UP_MS,
+  READ_NOW_POLL_MS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectApi";
 import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
 import Route from "../../../Types/API/Route";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudConnectionFailureKind } from "../../../Types/CloudConnection/CloudConnectionTest";
+import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import API from "../../../UI/Utils/API/API";
@@ -83,6 +94,10 @@ const RESOURCES_ROUTE: Route = new Route(
 
 let postSpy: jest.SpyInstance<any, any>;
 let updateSpy: jest.SpyInstance<any, any>;
+let getItemSpy: jest.SpyInstance<any, any>;
+
+const READ_AT: Date = new Date("2026-10-21T10:00:00.000Z");
+const READ_AGAIN_AT: Date = new Date("2026-10-21T10:04:00.000Z");
 
 function connection(fields: Partial<CloudConnection> = {}): CloudConnection {
   const item: CloudConnection = new CloudConnection();
@@ -123,12 +138,35 @@ beforeEach(() => {
     data: { queued: true },
   });
   updateSpy = getJestSpyOn(ModelAPI, "updateById").mockResolvedValue({});
+  // The connection as the list asks after a read it started: not read again yet.
+  getItemSpy = getJestSpyOn(ModelAPI, "getItem").mockImplementation(
+    async (): Promise<CloudConnection> => {
+      return connection({ lastPulledAt: READ_AT });
+    },
+  );
 });
 
 afterEach(() => {
   cleanup();
+  jest.useRealTimers();
   jest.restoreAllMocks();
 });
+
+// The promises a tick of the read watch awaits.
+async function settle(): Promise<void> {
+  for (let index: number = 0; index < 5; index++) {
+    await act(async () => {
+      await Promise.resolve();
+    });
+  }
+}
+
+async function tick(milliseconds: number): Promise<void> {
+  await act(async () => {
+    jest.advanceTimersByTime(milliseconds);
+  });
+  await settle();
+}
 
 function renderTable(
   updateGate: PermissionGateResult = { isAllowed: true },
@@ -212,7 +250,7 @@ describe("what the list reads", () => {
           return item.title;
         },
       ),
-    ).toEqual(["Account", "Status", "Resources", "Last read"]);
+    ).toEqual(["Account", "Status", "Resources"]);
   });
 });
 
@@ -226,13 +264,33 @@ describe("a row", () => {
     );
 
     expect(cell).toHaveTextContent("Production AWS");
-    expect(cell).toHaveTextContent("Amazon Web Services");
+    expect(cell).toHaveTextContent("Amazon Web Services · 123456789012");
     expect(
       within(cell).getByTestId("cloud-connection-accounts"),
     ).toHaveTextContent("123456789012");
   });
 
-  test("its resources: none yet before a read; by service, with a way to all of them, after", () => {
+  test("the account says once what its name already says", () => {
+    renderTable();
+
+    const cell: HTMLElement = drawCell(
+      "Account",
+      connection({
+        name: "AWS 123456789012",
+        lastPullResult: readResult({}),
+      }),
+    );
+
+    expect(cell).toHaveTextContent("AWS 123456789012");
+    expect(cell).toHaveTextContent("Amazon Web Services");
+    // The account is in the name: no second line repeats it.
+    expect(
+      within(cell).queryByTestId("cloud-connection-accounts"),
+    ).not.toBeInTheDocument();
+    expect(cell.textContent?.split("123456789012")).toHaveLength(2);
+  });
+
+  test("its resources: none yet before a read; after, how many as the way to them, and where", () => {
     renderTable();
 
     expect(drawCell("Resources", connection())).toHaveTextContent("None yet");
@@ -252,34 +310,115 @@ describe("a row", () => {
     );
 
     expect(
-      within(cell).getByTestId("cloud-resource-groups-types"),
-    ).toBeInTheDocument();
+      within(cell).getByTestId("cloud-connection-resource-count"),
+    ).toHaveTextContent("14 resources");
     expect(
-      within(cell).getByText("See all resources").closest("a"),
+      within(cell).getByTestId("cloud-connection-resource-count").closest("a"),
     ).toHaveAttribute("href", RESOURCES_ROUTE.toString());
+    expect(
+      within(cell).getByTestId("cloud-connection-regions"),
+    ).toHaveTextContent("us-east-1");
+    // By service is the test's to say: the row stays two short lines.
+    expect(
+      within(cell).queryByTestId("cloud-resource-groups-types"),
+    ).not.toBeInTheDocument();
   });
 
-  test("when it was last read, what it then held, and how often it is read", () => {
+  test("its regions: the first two, and how many more", () => {
     renderTable();
 
-    expect(drawCell("Last read", connection())).toHaveTextContent("Not yet");
-
     const cell: HTMLElement = drawCell(
-      "Last read",
+      "Resources",
       connection({
-        lastSuccessfulPullAt: new Date("2026-10-21T10:00:00.000Z"),
         lastPullResult: readResult({
-          resourceCount: 14,
+          resourceCount: 1,
           regions: [
-            { region: "us-east-1", count: 10 },
-            { region: "eu-west-1", count: 4 },
+            { region: "us-east-1", count: 20 },
+            { region: "eu-west-1", count: 10 },
+            { region: "ap-south-1", count: 5 },
+            { region: "sa-east-1", count: 1 },
           ],
         }),
       }),
     );
 
-    expect(cell).toHaveTextContent("14 resources in 2 regions");
-    expect(cell).toHaveTextContent("Every 10 minutes");
+    expect(cell).toHaveTextContent("1 resource");
+    expect(
+      within(cell).getByTestId("cloud-connection-regions"),
+    ).toHaveTextContent("us-east-1, eu-west-1 +2 more");
+  });
+
+  test("its status: how it is doing, when it was last read and how often it is", () => {
+    renderTable();
+
+    const cell: HTMLElement = drawCell(
+      "Status",
+      connection({
+        lastPulledAt: READ_AT,
+        lastSuccessfulPullAt: READ_AT,
+      }),
+    );
+
+    expect(cell).toHaveTextContent("Working");
+    expect(
+      within(cell).getByTestId("cloud-connection-last-read"),
+    ).toHaveTextContent(
+      `Last read ${OneUptimeDate.getDateAsLocalShortDateTimeString(READ_AT)}`,
+    );
+    // The whole date and time zone on hover.
+    expect(
+      within(cell).getByTestId("cloud-connection-last-read"),
+    ).toHaveAttribute(
+      "title",
+      OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(READ_AT),
+    );
+    expect(
+      within(cell).getByTestId("cloud-connection-read-interval"),
+    ).toHaveTextContent("Every 10 minutes");
+  });
+
+  test("never read: waiting says so alone; a first read that failed says it was never read", () => {
+    renderTable();
+
+    const waiting: HTMLElement = drawCell("Status", connection());
+
+    expect(waiting).toHaveTextContent("Waiting for the first read");
+    expect(
+      within(waiting).queryByTestId("cloud-connection-last-read"),
+    ).not.toBeInTheDocument();
+
+    const failing: HTMLElement = drawCell(
+      "Status",
+      connection({
+        lastError: "AccessDenied",
+        lastPulledAt: READ_AT,
+      }),
+    );
+
+    expect(failing).toHaveTextContent("Not working");
+    expect(
+      within(failing).getByTestId("cloud-connection-last-read"),
+    ).toHaveTextContent("Not read yet");
+  });
+
+  test("a connection turned off is not read: no 'every 10 minutes' under it", () => {
+    renderTable();
+
+    const cell: HTMLElement = drawCell(
+      "Status",
+      connection({
+        isEnabled: false,
+        lastSuccessfulPullAt: new Date("2026-10-19T12:00:00.000Z"),
+        lastPullResult: readResult({ resourceCount: 3 }),
+      }),
+    );
+
+    expect(cell).toHaveTextContent("Off");
+    expect(cell).toHaveTextContent("Last read");
+    expect(
+      within(cell).queryByTestId("cloud-connection-read-interval"),
+    ).not.toBeInTheDocument();
+    expect(cell).not.toHaveTextContent("Every 10 minutes");
   });
 
   test("a connection read hourly says so", () => {
@@ -287,24 +426,13 @@ describe("a row", () => {
 
     expect(
       drawCell(
-        "Last read",
+        "Status",
         connection({
           config: { readIntervalInMinutes: "60" },
-          lastSuccessfulPullAt: new Date("2026-10-21T10:00:00.000Z"),
+          lastSuccessfulPullAt: READ_AT,
         }),
       ),
     ).toHaveTextContent("Every hour");
-  });
-
-  test("its status, as a pill", () => {
-    renderTable();
-
-    expect(
-      drawCell("Status", connection({ isEnabled: false })),
-    ).toHaveTextContent("Off");
-    expect(drawCell("Status", connection())).toHaveTextContent(
-      "Waiting for the first read",
-    );
   });
 });
 
@@ -338,22 +466,126 @@ describe("its actions", () => {
     }
   });
 
-  test("Read now queues a read and says how to see it end", async () => {
+  test("Read now queues a read, and the row says it is reading - nothing to refresh by hand", async () => {
     renderTable();
     const done: MockFunction = getJestMockFunction();
+    const item: CloudConnection = connection({
+      lastPulledAt: READ_AT,
+      lastSuccessfulPullAt: READ_AT,
+    });
 
     await act(async () => {
-      await action("Read now").onClick(connection(), done);
+      await action("Read now").onClick(item, done);
     });
 
     expect(postSpy).toHaveBeenCalledTimes(1);
     expect(postSpy.mock.calls[0]![0].url.toString()).toMatch(
       new RegExp(`/cloud-connection/${CONNECTION_ID}/read-now$`),
     );
-    expect(screen.getByTestId("cloud-connections-notice")).toHaveTextContent(
-      "Reading Production AWS now. Refresh the list in a minute to see how it went.",
-    );
     expect(done).toHaveBeenCalledTimes(1);
+    // No notice to read: the row says it.
+    expect(
+      screen.queryByTestId("cloud-connections-notice"),
+    ).not.toBeInTheDocument();
+
+    const cell: HTMLElement = drawCell("Status", item);
+
+    expect(
+      within(cell).getByTestId("cloud-connection-reading"),
+    ).toHaveTextContent("Reading now…");
+    expect(
+      within(cell).queryByTestId("cloud-connection-last-read"),
+    ).not.toBeInTheDocument();
+    // Not twice: Read now is put away while it reads - on that row only.
+    expect(action("Read now").isVisible!(item)).toBe(false);
+    expect(
+      action("Read now").isVisible!(
+        connection({ _id: "20000000-0000-4000-8000-000000000009" }),
+      ),
+    ).toBe(true);
+  });
+
+  test("the list loads again by itself once the read ends, asked of the one connection", async () => {
+    jest.useFakeTimers();
+    renderTable();
+    const item: CloudConnection = connection({
+      lastPulledAt: READ_AT,
+      lastSuccessfulPullAt: READ_AT,
+    });
+
+    await act(async () => {
+      await action("Read now").onClick(item, getJestMockFunction());
+    });
+
+    const toggleBefore: unknown = tableProps()["refreshToggle"];
+
+    // Not read again yet: still reading, the list left as it is.
+    await tick(READ_NOW_POLL_MS);
+
+    expect(getItemSpy).toHaveBeenCalledTimes(1);
+    expect(getItemSpy.mock.calls[0]![0]).toMatchObject({
+      modelType: CloudConnection,
+      select: { lastPulledAt: true },
+    });
+    expect(getItemSpy.mock.calls[0]![0].id.toString()).toBe(CONNECTION_ID);
+    expect(tableProps()["refreshToggle"]).toBe(toggleBefore);
+    expect(action("Read now").isVisible!(item)).toBe(false);
+
+    // The read ends: its last read time moves.
+    getItemSpy.mockImplementation(async (): Promise<CloudConnection> => {
+      return connection({ lastPulledAt: READ_AGAIN_AT });
+    });
+
+    await tick(READ_NOW_POLL_MS);
+
+    expect(tableProps()["refreshToggle"]).not.toBe(toggleBefore);
+    expect(action("Read now").isVisible!(item)).toBe(true);
+    expect(
+      within(drawCell("Status", item)).queryByTestId(
+        "cloud-connection-reading",
+      ),
+    ).not.toBeInTheDocument();
+
+    // Nothing more to ask.
+    const asked: number = getItemSpy.mock.calls.length;
+    await tick(READ_NOW_POLL_MS * 3);
+    expect(getItemSpy.mock.calls.length).toBe(asked);
+  });
+
+  test("a read that never ends is given up on after a read's longest time", async () => {
+    jest.useFakeTimers();
+    renderTable();
+    const item: CloudConnection = connection({ lastPulledAt: READ_AT });
+
+    await act(async () => {
+      await action("Read now").onClick(item, getJestMockFunction());
+    });
+
+    const toggleBefore: unknown = tableProps()["refreshToggle"];
+
+    await tick(READ_NOW_GIVE_UP_MS - READ_NOW_POLL_MS);
+    expect(action("Read now").isVisible!(item)).toBe(false);
+
+    await tick(READ_NOW_POLL_MS * 2);
+
+    expect(action("Read now").isVisible!(item)).toBe(true);
+    // The list loads again: whatever it now holds is what is shown.
+    expect(tableProps()["refreshToggle"]).not.toBe(toggleBefore);
+  });
+
+  test("a connection deleted while it reads ends the watch", async () => {
+    jest.useFakeTimers();
+    getItemSpy.mockResolvedValue(null);
+    renderTable();
+    const item: CloudConnection = connection({ lastPulledAt: READ_AT });
+
+    await act(async () => {
+      await action("Read now").onClick(item, getJestMockFunction());
+    });
+
+    await tick(READ_NOW_POLL_MS);
+
+    expect(action("Read now").isVisible!(item)).toBe(true);
   });
 
   test("Read now that is refused says why", async () => {
@@ -419,6 +651,12 @@ describe("its actions", () => {
     expect(postSpy.mock.calls[0]![0].data).toEqual({
       connectionId: CONNECTION_ID,
     });
+    // Test again beside Close, in the dialog's footer.
+    expect(
+      within(screen.getByTestId("modal-footer")).getByTestId(
+        "cloud-connection-test-button",
+      ),
+    ).toHaveTextContent("Test again");
   });
 
   test("View error says what went wrong in a test's words, the stored error under them", async () => {

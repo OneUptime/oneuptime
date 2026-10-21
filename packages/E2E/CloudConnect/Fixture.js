@@ -2,6 +2,8 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import {
   BrowserRouter,
+  Route,
+  Routes,
   useLocation,
   useNavigate,
   useParams,
@@ -10,6 +12,9 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import "Common/UI/Styles/Theme.css";
 import CloudConnectPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Connect";
+import CloudLayout from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Layout";
+import PageMap from "../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import RouteMap from "../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import JA from "../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import DE from "../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
@@ -25,10 +30,13 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 
 /*
- * The fixture page: the real Cloud > Connect page, with the API answered
- * from an in-page store (window.__cloudConnectFixture) the specs read -
- * every connection saved or changed, every test and read-now request - and
- * drive - what a test answers next.
+ * The fixture page: the real Cloud > Connect page in the real Cloud layout
+ * (its side menu, breadcrumbs and widths), at its own address
+ * (/dashboard/<project>/cloud/connect), with the API answered from an
+ * in-page store (window.__cloudConnectFixture) the specs read - every
+ * connection saved or changed, every test and read-now request - and
+ * drive - what a test answers next. An address the page links to that is
+ * not modelled draws its path.
  *
  *   ?state=     empty (default: nothing connected)
  *               | connected (an AWS account that works, an Azure
@@ -234,16 +242,35 @@ const state = {
   // Every test request body, and every read-now path.
   tests: [],
   readNows: [],
+  // How often the page asked for one connection: a read it watches.
+  itemAsks: 0,
   roleSetupAsks: 0,
   verdict: params.get("verdict") || "pass",
   held: [],
 };
 
-const VERDICTS = {
-  pass: {
-    provider: "azure",
-    status: "pass",
-    message: "Signed in to 1 subscription and found 37 resources.",
+/*
+ * What a test answers, for the cloud it tests - the form's own cloud, or a
+ * saved connection's - as the server answers: what it found reads in that
+ * cloud's words.
+ */
+const FOUND = {
+  aws: {
+    accounts: ["123456789012"],
+    resourceCount: 46,
+    resourceTypes: [
+      { type: "AWS::EC2::Instance", count: 24 },
+      { type: "AWS::RDS::DBInstance", count: 9 },
+      { type: "AWS::Lambda::Function", count: 7 },
+      { type: "AWS::ElasticLoadBalancingV2::LoadBalancer", count: 4 },
+      { type: "AWS::S3::Bucket", count: 2 },
+    ],
+    regions: [
+      { region: "us-east-1", count: 31 },
+      { region: "eu-west-1", count: 15 },
+    ],
+  },
+  azure: {
     accounts: ["7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b"],
     resourceCount: 37,
     resourceTypes: [
@@ -258,31 +285,78 @@ const VERDICTS = {
       { region: "westeurope", count: 29 },
       { region: "northeurope", count: 8 },
     ],
-    isSample: true,
-    durationMs: 1300,
   },
-  warn: {
-    provider: "azure",
-    status: "warn",
-    message: "Signed in to 1 subscription; it has no resources yet.",
-    accounts: ["7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b"],
-    resourceCount: 0,
-    resourceTypes: [],
-    regions: [],
-    durationMs: 700,
-  },
-  auth: {
-    provider: "azure",
-    status: "fail",
-    message:
-      "AADSTS7000215: Invalid client secret provided. Ensure the secret being sent in the request is the client secret value, not the client secret ID.",
-    failureKind: "authentication",
-    durationMs: 300,
+  gcp: {
+    accounts: ["acme-prod"],
+    resourceCount: 12,
+    resourceTypes: [
+      { type: "gce_instance", count: 8 },
+      { type: "cloudsql_database", count: 3 },
+      { type: "cloud_run_revision", count: 1 },
+    ],
+    regions: [{ region: "europe-west1", count: 12 }],
   },
 };
 
-function answer(name) {
-  return new HTTPResponse(200, VERDICTS[name] || VERDICTS.pass, {});
+// What each cloud says when it refuses a key.
+const REFUSED = {
+  aws: "The security token included in the request is invalid.",
+  azure:
+    "AADSTS7000215: Invalid client secret provided. Ensure the secret being sent in the request is the client secret value, not the client secret ID.",
+  gcp: "invalid_grant: Invalid JWT Signature.",
+};
+
+function verdict(name, provider) {
+  const cloud = FOUND[provider] ? provider : "azure";
+
+  if (name === "warn") {
+    return {
+      provider: cloud,
+      status: "warn",
+      message: "Signed in; nothing reports metrics yet.",
+      accounts: FOUND[cloud].accounts,
+      resourceCount: 0,
+      resourceTypes: [],
+      regions: [],
+      durationMs: 700,
+    };
+  }
+
+  if (name === "auth") {
+    return {
+      provider: cloud,
+      status: "fail",
+      message: REFUSED[cloud],
+      failureKind: "authentication",
+      durationMs: 300,
+    };
+  }
+
+  return {
+    provider: cloud,
+    status: "pass",
+    message: "Signed in and counted what there is to monitor.",
+    ...FOUND[cloud],
+    isSample: true,
+    durationMs: 1300,
+  };
+}
+
+// The cloud a test is for: the form's, or the saved connection's.
+function providerOf(body) {
+  if (body && body.provider) {
+    return body.provider;
+  }
+
+  const saved = connections.find((item) => {
+    return Boolean(body) && item.id.toString() === String(body.connectionId);
+  });
+
+  return saved ? saved.provider : "azure";
+}
+
+function answer(name, provider) {
+  return new HTTPResponse(200, verdict(name, provider), {});
 }
 
 window.__cloudConnectFixture = {
@@ -292,8 +366,20 @@ window.__cloudConnectFixture = {
   },
   release: (name) => {
     const held = state.held.splice(0);
-    for (const resolve of held) {
-      resolve(answer(name));
+    for (const entry of held) {
+      entry.resolve(answer(name, entry.provider));
+    }
+  },
+  // A read the page started (Read now) ends: the connection was read now.
+  finishRead: (id) => {
+    const found = connections.find((item) => {
+      return item.id.toString() === id;
+    });
+    if (found) {
+      const now = new Date();
+      found.lastPulledAt = now;
+      found.lastSuccessfulPullAt = now;
+      found.lastError = undefined;
     }
   },
 };
@@ -308,6 +394,18 @@ ModelAPI.getList = async (args) => {
     return { data: data, count: data.length, skip: 0, limit: args.limit };
   }
   return { data: [], count: 0, skip: 0, limit: args.limit };
+};
+
+// One connection, as the list asks after a read it started (Read now).
+ModelAPI.getItem = async (args) => {
+  state.itemAsks++;
+  if (args.modelType === CloudConnection) {
+    const found = connections.find((item) => {
+      return item.id.toString() === args.id.toString();
+    });
+    return found ? copy(found) : null;
+  }
+  return null;
 };
 
 ModelAPI.count = async (args) => {
@@ -381,13 +479,15 @@ API.post = async (options) => {
   if (url.endsWith("/cloud-connection/test")) {
     state.tests.push({ body: options.data });
 
+    const provider = providerOf(options.data);
+
     if (state.verdict === "slow") {
       return await new Promise((resolve) => {
-        state.held.push(resolve);
+        state.held.push({ resolve, provider });
       });
     }
 
-    return answer(state.verdict);
+    return answer(state.verdict, provider);
   }
 
   if (url.endsWith("/read-now")) {
@@ -398,22 +498,79 @@ API.post = async (options) => {
   return new HTTPResponse(200, {}, {});
 };
 
-function Shell() {
+// What App.tsx does for every page: the router's hooks, handed to Navigation.
+function useNavigationHooks() {
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(useLocation());
   Navigation.setParams(useParams());
+}
+
+const CONNECT_ROUTE = RouteMap[PageMap.CLOUD_CONNECT];
+
+function FixtureLayout() {
+  useNavigationHooks();
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-6 sm:px-8">
-      <div className="mx-auto max-w-6xl space-y-6" data-testid="fixture-page">
-        <CloudConnectPage currentProject={project} />
-      </div>
+    <CloudLayout
+      currentProject={project}
+      pageRoute={CONNECT_ROUTE}
+      hasPaymentMethod={true}
+    />
+  );
+}
+
+function FixtureConnect() {
+  useNavigationHooks();
+
+  return (
+    <CloudConnectPage
+      currentProject={project}
+      pageRoute={CONNECT_ROUTE}
+      hasPaymentMethod={true}
+    />
+  );
+}
+
+// A page the Connect page links to that is not modelled: says where it is.
+function StubPage() {
+  useNavigationHooks();
+  const location = useLocation();
+
+  return (
+    <main className="mx-auto max-w-3xl px-8 py-16">
+      <h1 className="text-xl font-semibold text-gray-900">Not modelled</h1>
+      <p
+        data-testid="stub-page"
+        className="mt-2 break-all font-mono text-sm text-gray-600"
+      >
+        {location.pathname}
+        {location.search}
+      </p>
+    </main>
+  );
+}
+
+/*
+ * App.tsx reads the location itself, so the whole Dashboard is drawn again
+ * on every navigation, and with it the side menu, which marks the page.
+ */
+function FixtureApp() {
+  useLocation();
+
+  return (
+    <div className="min-h-screen bg-gray-50 pb-10" data-testid="fixture-page">
+      <Routes>
+        <Route element={<FixtureLayout />}>
+          <Route path={CONNECT_ROUTE.toString()} element={<FixtureConnect />} />
+        </Route>
+        <Route path="*" element={<StubPage />} />
+      </Routes>
     </div>
   );
 }
 
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
-    <Shell />
+    <FixtureApp />
   </BrowserRouter>,
 );

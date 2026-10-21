@@ -124,7 +124,7 @@ describe("AWS", () => {
     });
   });
 
-  test("the role command creates or updates the role, puts the read policy on it and prints its ARN last", () => {
+  test("the role command names the role and what it trusts once, creates or updates it, puts the read policy on it and prints its ARN last", () => {
     const externalId: string = getAwsExternalIdForProject(PROJECT);
     const role: string = getAwsRoleNameForExternalId(externalId);
     const command: string = getAwsRoleSetupCommand({
@@ -133,26 +133,42 @@ describe("AWS", () => {
     });
     const lines: Array<string> = command.split("\n");
 
-    expect(lines).toHaveLength(3);
-    expect(lines[0]).toContain(`aws iam create-role --role-name ${role} `);
-    // Run again: the trust policy is updated rather than failing.
-    expect(lines[0]).toContain(
-      `|| aws iam update-assume-role-policy --role-name ${role} `,
-    );
-    expect(
-      JSON.parse(quotedAfter(lines[0]!, "--assume-role-policy-document")),
-    ).toEqual(
+    expect(lines).toHaveLength(5);
+    // Who may sign in, under which external id: said first, and once.
+    expect(lines[0]).toBe(`ROLE=${role}`);
+    expect(lines[1]!.startsWith("TRUST='")).toBe(true);
+    expect(JSON.parse(quotedAfter(lines[1]!, "TRUST="))).toEqual(
       JSON.parse(
         getAwsTrustPolicyDocument({ trustedPrincipalArn: TRUSTED, externalId }),
       ),
     );
-    expect(lines[1]).toContain(`aws iam put-role-policy --role-name ${role}`);
-    expect(JSON.parse(quotedAfter(lines[1]!, "--policy-document"))).toEqual(
+    expect(command.split(TRUSTED)).toHaveLength(2);
+    expect(command.split(externalId)).toHaveLength(2);
+    // Run again: the trust policy is updated rather than failing.
+    expect(lines[2]).toBe(
+      'aws iam create-role --role-name "$ROLE" --assume-role-policy-document "$TRUST" > /dev/null 2>&1 || aws iam update-assume-role-policy --role-name "$ROLE" --policy-document "$TRUST"',
+    );
+    expect(lines[3]).toContain(
+      `aws iam put-role-policy --role-name "$ROLE" --policy-name ${CLOUD_CONNECTION_READ_ONLY_NAME} `,
+    );
+    expect(JSON.parse(quotedAfter(lines[3]!, "--policy-document"))).toEqual(
       JSON.parse(getAwsReadOnlyPolicyDocument()),
     );
-    expect(lines[2]).toBe(
-      `aws iam get-role --role-name ${role} --query Role.Arn --output text`,
+    expect(lines[4]).toBe(
+      'aws iam get-role --role-name "$ROLE" --query Role.Arn --output text',
     );
+  });
+
+  test("the role command's quoting holds: the trust policy has no single quote to end its own", () => {
+    const command: string = getAwsRoleSetupCommand({
+      trustedPrincipalArn: TRUSTED,
+      externalId: getAwsExternalIdForProject(PROJECT),
+    });
+    const trustLine: string = command.split("\n")[1]!;
+
+    // Exactly the two quotes around the policy.
+    expect(trustLine.split("'")).toHaveLength(3);
+    expect(trustLine.endsWith("'")).toBe(true);
   });
 
   test("the access key command creates the user once, puts the read policy on it and prints a key", () => {

@@ -6,13 +6,19 @@ import {
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
-import { getResourceTypeEntries } from "./CloudConnectionWords";
+import {
+  CloudTemplate,
+  drawCloudTemplate,
+  getCloudAccountsWords,
+  getResourceTypeEntries,
+} from "./CloudConnectionWords";
 
 /*
  * A cloud account's resources at a glance, grouped the way people think
  * of them: by service ("Virtual Machine 12", "SQL Database 3") and by
- * region, most first - the resources themselves are under Cloud > All
- * Resources. Compact, it shows the first few of each and how many more.
+ * region, most first, then the accounts read - what a test found. The
+ * resources themselves are under Cloud > All Resources, and the list of
+ * connections says less: how many, and where.
  */
 
 export interface ComponentProps {
@@ -20,10 +26,7 @@ export interface ComponentProps {
   resourceTypes: Array<CloudConnectionTypeCount>;
   regions: Array<CloudConnectionRegionCount>;
   accounts?: Array<string> | undefined;
-  compact?: boolean | undefined;
 }
-
-const COMPACT_COUNT: number = 3;
 
 const CloudResourceGroups: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -40,12 +43,11 @@ const CloudResourceGroups: FunctionComponent<ComponentProps> = (
       return Boolean(entry.region);
     },
   );
-  const shownTypes: Array<{ label: string; count: number }> = props.compact
-    ? types.slice(0, COMPACT_COUNT)
-    : types;
-  const shownRegions: Array<CloudConnectionRegionCount> = props.compact
-    ? regions.slice(0, COMPACT_COUNT)
-    : regions;
+  // "Subscription: 7c4a…": what was read, in the cloud's own word for it.
+  const accounts: CloudTemplate | undefined = getCloudAccountsWords({
+    provider: props.provider,
+    accounts: props.accounts || [],
+  });
 
   const chip: (label: string, count: number, key: string) => ReactElement = (
     label: string,
@@ -65,50 +67,30 @@ const CloudResourceGroups: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const more: (hidden: number) => ReactElement = (
-    hidden: number,
-  ): ReactElement => {
-    return hidden > 0 ? (
-      <li className="inline-flex items-center px-1 text-xs text-gray-500">
-        {translator.translatePlural(
-          { one: "+{{count}} more", other: "+{{count}} more" },
-          hidden,
-        )}
-      </li>
-    ) : (
-      <></>
-    );
-  };
-
   return (
     <div className="space-y-2" data-testid="cloud-resource-groups">
-      {shownTypes.length > 0 ? (
+      {types.length > 0 ? (
         <div>
-          {props.compact ? (
-            <></>
-          ) : (
-            <div className="mb-1 text-xs font-medium text-gray-500">
-              {translator.translateText("By service")}
-            </div>
-          )}
+          <div className="mb-1 text-xs font-medium text-gray-500">
+            {translator.translateText("By service")}
+          </div>
           <ul
             className="flex flex-wrap gap-1.5"
             data-testid="cloud-resource-groups-types"
           >
-            {shownTypes.map(
+            {types.map(
               (entry: { label: string; count: number }): ReactElement => {
                 // The cloud's own names for its services, as All Resources shows them.
                 return chip(entry.label, entry.count, `type-${entry.label}`);
               },
             )}
-            {more(types.length - shownTypes.length)}
           </ul>
         </div>
       ) : (
         <></>
       )}
 
-      {!props.compact && shownRegions.length > 0 ? (
+      {regions.length > 0 ? (
         <div>
           <div className="mb-1 text-xs font-medium text-gray-500">
             {translator.translateText("By region")}
@@ -117,29 +99,21 @@ const CloudResourceGroups: FunctionComponent<ComponentProps> = (
             className="flex flex-wrap gap-1.5"
             data-testid="cloud-resource-groups-regions"
           >
-            {shownRegions.map(
-              (entry: CloudConnectionRegionCount): ReactElement => {
-                return chip(
-                  entry.region,
-                  entry.count,
-                  `region-${entry.region}`,
-                );
-              },
-            )}
+            {regions.map((entry: CloudConnectionRegionCount): ReactElement => {
+              return chip(entry.region, entry.count, `region-${entry.region}`);
+            })}
           </ul>
         </div>
       ) : (
         <></>
       )}
 
-      {!props.compact && props.accounts && props.accounts.length > 0 ? (
+      {accounts ? (
         <div
-          className="text-xs text-gray-500"
+          className="break-words text-xs text-gray-500"
           data-testid="cloud-resource-groups-accounts"
         >
-          {translator.translateTemplate("Reads {{accounts}}", {
-            accounts: props.accounts.join(", "),
-          })}
+          {drawCloudTemplate(translator, accounts)}
         </div>
       ) : (
         <></>

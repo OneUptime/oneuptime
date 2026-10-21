@@ -40,7 +40,9 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
  *
  *   - a tile per cloud, counted from the project's connections, and three
  *     promises: read-only, read every few minutes, chart and alert;
- *   - the list shows only once something is connected, and stays;
+ *   - the list shows only once something is connected, and stays; when
+ *     it loads again after a change made in it (a connection deleted),
+ *     the tiles count the connections again;
  *   - a tile, or an address naming a cloud, opens that cloud's form, with
  *     what this OneUptime can offer for an AWS role (asked once; a failed
  *     ask is "no role");
@@ -103,6 +105,17 @@ jest.mock(
               },
             },
             "Edit a connection",
+          ),
+          // The list loading again, as it does after a row is deleted.
+          ReactActual.createElement(
+            "button",
+            {
+              type: "button",
+              onClick: () => {
+                props.onConnectionsLoaded(listedForTest || 0);
+              },
+            },
+            "Reload the list",
           ),
         );
       },
@@ -303,6 +316,63 @@ describe("the page", () => {
       _id: true,
       provider: true,
     });
+  });
+});
+
+describe("a change made in the list", () => {
+  test("a connection deleted there is counted at once: the tile no longer says Connected", async () => {
+    connectionsForTest = [
+      connection(CloudProvider.AWS),
+      connection(CloudProvider.Azure),
+    ];
+    listedForTest = 2;
+
+    await openPage();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("cloud-connection-tile-connected-azure"),
+      ).toBeInTheDocument();
+    });
+
+    const readsBefore: number = getListSpy.mock.calls.length;
+
+    // The Azure connection is deleted from the list, which loads again.
+    connectionsForTest = [connection(CloudProvider.AWS)];
+    listedForTest = 1;
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Reload the list"));
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("cloud-connection-tile-connected-azure"),
+      ).not.toBeInTheDocument();
+    });
+    expect(getListSpy.mock.calls.length).toBeGreaterThan(readsBefore);
+    expect(
+      screen.getByTestId("cloud-connection-tile-azure"),
+    ).toHaveTextContent("Connect");
+    expect(
+      screen.getByTestId("cloud-connection-tile-connected-aws"),
+    ).toHaveTextContent("Connected");
+    // The list stays, so a search that finds nothing can still be cleared.
+    expect(listIsShown()).toBe(true);
+  });
+
+  test("the list's first load is not a change: the connections are read once", async () => {
+    connectionsForTest = [connection(CloudProvider.GCP)];
+    listedForTest = 1;
+
+    await openPage();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("cloud-connection-tile-connected-gcp"),
+      ).toBeInTheDocument();
+    });
+    expect(getListSpy).toHaveBeenCalledTimes(1);
   });
 });
 
