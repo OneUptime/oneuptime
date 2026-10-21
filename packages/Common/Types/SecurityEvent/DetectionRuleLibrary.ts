@@ -4,10 +4,11 @@
  *
  * Every rule is written against the fields OneUptime stores - the typed
  * columns every source is normalized into (className, statusName,
- * principalUser, principalProcess, ...) or the source's own attribute keys
- * where only one product says it (Okta's `eventType`, CloudTrail's
- * `eventName`, Kubernetes audit's `objectRef.resource`) - so a rule added
- * here matches the events the project already has, with no field mapping.
+ * principalUser, and CommandLine, which reads the command line of the
+ * process an event is about, ...) or the source's own attribute keys where
+ * only one product says it (Okta's `eventType`, CloudTrail's `eventName`,
+ * Kubernetes audit's `objectRef.resource`) - so a rule added here matches
+ * the events the project already has, with no field mapping.
  * Each one parses and compiles in the engine's own tests.
  *
  * A rule's Sigma `id` is its identity: a project's detection rule whose

@@ -16,6 +16,7 @@ import {
 } from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import {
   buildObservables,
+  buildProcessFields,
   contentHashEventUid,
   flattenPayload,
   parseEventTime,
@@ -419,6 +420,27 @@ export default class SplunkNormalizer {
       principalHost: source.host,
       principalIp: source.ip,
       principalProcess,
+      /*
+       * The CIM Endpoint Processes fields: `process` is the full command
+       * line of the process, `process_name` / `process_exec` its file name,
+       * `process_path` its executable, and `parent_process*` the same of
+       * the process that started it.
+       */
+      ...buildProcessFields({
+        process: {
+          name: firstField(payload, ["process_name", "process_exec"]),
+          path: field(payload, "process_path"),
+          commandLine: field(payload, "process"),
+        },
+        parent: {
+          name: firstField(payload, [
+            "parent_process_name",
+            "parent_process_exec",
+          ]),
+          path: field(payload, "parent_process_path"),
+          commandLine: field(payload, "parent_process"),
+        },
+      }),
       targetUser,
       targetHost: destination.host,
       targetIp: destination.ip,

@@ -135,6 +135,12 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `className` | `event_type`、`category`、`type`、`action` |
 | `ruleName` | `rule`、`rule_name`、`signature`、`detection` |
 | `productName` | `product`、`product_name`、`source`、`log_source` |
+| `processName` | `process_name`、`process.name`、`proc.name`、`comm` |
+| `processPath` | `process_path`、`Image`、`NewProcessName`、`exe`、`process.executable` |
+| `processCommandLine` | `command_line`、`CommandLine`、`cmdline`、`process.command_line`、`proc.cmdline`、`process` |
+| `parentProcessName` | `parent_process_name`、`process.parent.name`、`proc.pname` |
+| `parentProcessPath` | `parent_process_path`、`ParentImage`、`ParentProcessName`、`process.parent.executable` |
+| `parentProcessCommandLine` | `parent_command_line`、`ParentCommandLine`、`process.parent.command_line`、`proc.pcmdline` |
 
 重大度を表す語は OCSF のレベルに変換されます。 `info` は Informational、 `warning` は Low、 `error` は Medium、 `alert` は Critical、 `emergency` は Fatal として読み取られます。
 
@@ -194,6 +200,7 @@ auditd、syslog、Falco など、すでに収集しているセキュリティ�
 | 重大度 | `severityName` (Unknown、Informational、Low、Medium、High、Critical、Fatal、Other のいずれか) と `severityId` |
 | 誰が行ったか | `principalUser`、`principalHost`、`principalIp`、`principalProcess` |
 | 何に触れたか | `targetUser`、`targetHost`、`targetIp`、`targetPort`、`targetResource` |
+| プロセス | `processName`、`processPath`、`processCommandLine`: プロセスの起動では起動したプロセス、それ以外では動作したプロセス。`parentProcessName`、`parentProcessPath`、`parentProcessCommandLine`: それを起動したプロセス |
 | ソース | `productName`、`vendorName`、`ruleId`、`ruleName`、`eventUid` |
 | 内容 | `message`、`mitreTactics`、`mitreTechniques`、`observables`: イベントから取り出したすべてのユーザー、ホスト、IP アドレス、ドメイン、ハッシュ |
 | 属性 | ソースのペイロード全体を、ドット区切りのキーに平坦化したもの |
@@ -218,11 +225,11 @@ auditd、syslog、Falco など、すでに収集しているセキュリティ�
 | `@<attribute>:*` | 属性が存在する | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | 属性がテキストを含む | `@finding_info.title:~ransom` |
 
-項目は、短い名前 (`severity`、`class`、`category`、`activity`、`status`、`vendor`、`product`、`rule`、`user`、`host`、`ip`、`targetuser`、`targethost`、`targetip`、`observable`、`tactic`、`technique`) か、 `severityName` や `principalHost` のような項目自体の名前です。それ以外の名前はソースの属性として読み取られます。 `observable:<value>` は、アクティビティのどちら側にあったかにかかわらず、その値に触れているすべてのイベントを見つけます。
+項目は、短い名前 (`severity`、`class`、`category`、`activity`、`status`、`vendor`、`product`、`rule`、`user`、`host`、`ip`、`targetuser`、`targethost`、`targetip`、`processname`、`commandline`、`parentprocessname`、`observable`、`tactic`、`technique`) か、 `severityName` や `principalHost` のような項目自体の名前です。それ以外の名前はソースの属性として読み取られます。 `observable:<value>` は、アクティビティのどちら側にあったかにかかわらず、その値に触れているすべてのイベントを見つけます。
 
 ### ファセット
 
-サイドバーは、ウィンドウ内のイベントを **ソース**、 **重大度**、 **イベントクラス**、 **カテゴリ**、 **アクティビティ**、 **ステータス**、 **ベンダー**、 **製品**、 **検出ルール**、 **送信元ユーザー**、 **送信元ホスト** ごとに数えます。値をクリックするとそのイベントだけを残し、横のマイナスをクリックすると除外します。もう一度クリックすると元に戻ります。グラフとすべての件数は、一覧にあるイベントをそのまま表します。
+サイドバーは、ウィンドウ内のイベントを **ソース**、 **重大度**、 **イベントクラス**、 **カテゴリ**、 **アクティビティ**、 **ステータス**、 **ベンダー**、 **製品**、 **検出ルール**、 **送信元ユーザー**、 **送信元ホスト**、 **プロセス**、 **親プロセス** ごとに数えます。値をクリックするとそのイベントだけを残し、横のマイナスをクリックすると除外します。もう一度クリックすると元に戻ります。グラフとすべての件数は、一覧にあるイベントをそのまま表します。
 
 ### 相関分析
 
@@ -278,6 +285,7 @@ OneUptime は Sigma のブール演算の中核部分を実行します。
 - 条件は、 `and`、 `or`、 `not` と括弧、または `1 of selection_*`、 `all of selection_*`、 `any of them`、 `all of them` でセレクションを組み合わせます。
 - 項目の修飾子: `contains`、 `startswith`、 `endswith`、 `all`、 `re`、 `cased`、 `gt`、 `gte`、 `lt`、 `lte`、 `cidr`、 `exists`、 `windash`。テキストは、 `cased` を付けない限り大文字と小文字を区別せずに比較されます。
 - 項目は、型付きの項目 (`principalUser`)、その一般的な Sigma の綴り (`CommandLine`、`src_ip`、`Hostname`)、またはイベントにあるとおりに綴った任意の属性キー (`threat.matched`) です。
+- `Image` と `CommandLine` はイベントの対象のプロセス、つまりプロセスの起動では起動したプロセス (`processPath`、`processCommandLine`) を読み、`ParentImage` と `ParentCommandLine` はそれを起動したプロセス (`parentProcessPath`、`parentProcessCommandLine`) を読みます。`principalProcess` は動作したプロセスで、起動では親プロセスにあたります。
 - `level` は重大度を設定します。 `informational`、 `low`、 `medium`、 `high`、 `critical` のいずれかで、ない場合は `medium` です。 `tags` 内の ATT&CK ID (`attack.t1110`、`attack.ta0006`) は、検出結果の MITRE 項目に入ります。
 
 `| count() by principalIp > 5` のような集計は保存時に拒否されます。代わりに **グループ化のフィールド** と **一致件数のしきい値** を使ってください。 `logsource` は情報としてのみ扱われ、何も絞り込みません。その絞り込みは `className: Authentication` のようにセレクションに入れてください。 `timeframe` は無視されます。ウィンドウはルールの間隔で決まるからです。

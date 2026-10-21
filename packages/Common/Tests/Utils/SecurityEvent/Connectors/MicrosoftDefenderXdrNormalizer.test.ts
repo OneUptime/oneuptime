@@ -684,3 +684,75 @@ describe("MicrosoftDefenderXdrNormalizer", () => {
     });
   });
 });
+
+/*
+ * A process evidence names the process (imageFile: its folder and file
+ * name), its command line and its parent's image (parentProcessImageFile).
+ * Graph's fileDetails.filePath is the folder, so the path is the folder and
+ * the file name joined. The evidence the alert is about is the one with an
+ * actor's role, else the first, as for the principal columns.
+ */
+describe("MicrosoftDefenderXdrNormalizer: the process the alert is about", () => {
+  test("the vendor sample's process evidence, and its parent", () => {
+    const event: NormalizedSecurityEvent =
+      MicrosoftDefenderXdrNormalizer.normalize(vendorSampleAlert());
+
+    expect(event.processName).toBe("MsSense.exe");
+    expect(event.processPath).toBe("C:\\Program Files\\temp\\MsSense.exe");
+    expect(event.processCommandLine).toBe('"MsSense.exe"');
+    expect(event.parentProcessName).toBe("services.exe");
+    expect(event.parentProcessPath).toBe("C:\\Windows\\System32\\services.exe");
+    // Graph's processEvidence has no parent command line.
+    expect(event.parentProcessCommandLine).toBe("");
+  });
+
+  test("the process evidence with an actor's role is the one the alert is about", () => {
+    const event: NormalizedSecurityEvent =
+      MicrosoftDefenderXdrNormalizer.normalize({
+        id: "da1",
+        createdDateTime: "2026-10-21T09:15:00Z",
+        title: "Suspicious PowerShell",
+        evidence: [
+          {
+            "@odata.type": "#microsoft.graph.security.processEvidence",
+            roles: [],
+            processCommandLine: "C:\\Windows\\Explorer.EXE",
+            imageFile: { fileName: "explorer.exe", filePath: "C:\\Windows" },
+          },
+          {
+            "@odata.type": "#microsoft.graph.security.processEvidence",
+            roles: ["attacker"],
+            processCommandLine: "powershell.exe -nop -enc JABzAD0A",
+            imageFile: {
+              fileName: "powershell.exe",
+              filePath: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0",
+            },
+            parentProcessImageFile: {
+              fileName: "explorer.exe",
+              filePath: "C:\\Windows",
+            },
+          },
+        ],
+      });
+
+    expect(event.processCommandLine).toBe("powershell.exe -nop -enc JABzAD0A");
+    expect(event.processPath).toBe(
+      "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    );
+    expect(event.parentProcessPath).toBe("C:\\Windows\\explorer.exe");
+  });
+
+  test("an alert with no process evidence names no process", () => {
+    const event: NormalizedSecurityEvent =
+      MicrosoftDefenderXdrNormalizer.normalize(identityAlert());
+
+    expect([
+      event.processName,
+      event.processPath,
+      event.processCommandLine,
+      event.parentProcessName,
+      event.parentProcessPath,
+      event.parentProcessCommandLine,
+    ]).toEqual(["", "", "", "", "", ""]);
+  });
+});

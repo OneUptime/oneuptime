@@ -32737,5 +32737,11 @@
   "Handed Back Count": "Handed Back Count",
   "Every {{interval}}": "Hver {{interval}}",
   "Last reported {{time}}": "Senest rapporteret {{time}}",
-  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter har ikke rapporteret den i mere end 15 minutter, så den er ude af inventaret, indtil en indsamling rapporterer den igen. Dens tidligere metrikker bevares: vælg et længere tidsinterval for at se dem."
+  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter har ikke rapporteret den i mere end 15 minutter, så den er ude af inventaret, indtil en indsamling rapporterer den igen. Dens tidligere metrikker bevares: vælg et længere tidsinterval for at se dem.",
+  "Command Line": "Kommandolinje",
+  "Command lines that contain this text": "Kommandolinjer, der indeholder denne tekst",
+  "Parent Command Line": "Kommandolinje for overordnet proces",
+  "Parent Process": "Overordnet proces",
+  "Parent Process Path": "Sti til overordnet proces",
+  "Process Path": "Processti"
 }

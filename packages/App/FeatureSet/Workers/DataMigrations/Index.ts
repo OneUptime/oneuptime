@@ -147,6 +147,7 @@ import RemoveProjectAccessOfFormerMembers from "./RemoveProjectAccessOfFormerMem
 import AddMissingIdsToMonitorSteps from "./AddMissingIdsToMonitorSteps";
 import MoveRunbookApprovalsBeforeTheirSteps from "./MoveRunbookApprovalsBeforeTheirSteps";
 import AddSecurityCaseNotificationSettingsForUsers from "./AddSecurityCaseNotificationSettingsForUsers";
+import AddProcessColumnsToSecurityEvent from "./AddProcessColumnsToSecurityEvent";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -794,6 +795,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * Idempotent, no ordering requirement.
    */
   new AddSecurityCaseNotificationSettingsForUsers(),
+  /*
+   * Security events gained the process an event is about and its parent
+   * (SecurityEvent.processName, processPath, processCommandLine,
+   * parentProcessName, parentProcessPath, parentProcessCommandLine), which
+   * Sigma's Image, CommandLine, ParentImage and ParentCommandLine read.
+   * Metadata-only and idempotent; rows written before it read ''. No
+   * ordering requirement, so it sits above the runbook moves, which keep
+   * their places before the last slot AddAuditLogMcpClientColumns asserts
+   * for itself.
+   */
+  new AddProcessColumnsToSecurityEvent(),
   /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step

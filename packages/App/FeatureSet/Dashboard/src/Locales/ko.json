@@ -32737,5 +32737,11 @@
   "Handed Back Count": "Handed Back Count",
   "Every {{interval}}": "{{interval}}마다",
   "Last reported {{time}}": "마지막 보고 {{time}}",
-  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter가 15분 넘게 보고하지 않아, 다음 수집에서 다시 보고될 때까지 인벤토리에서 빠졌습니다. 이전 메트릭은 그대로 남아 있으니, 더 긴 기간을 선택해 확인하세요."
+  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter가 15분 넘게 보고하지 않아, 다음 수집에서 다시 보고될 때까지 인벤토리에서 빠졌습니다. 이전 메트릭은 그대로 남아 있으니, 더 긴 기간을 선택해 확인하세요.",
+  "Command Line": "명령줄",
+  "Command lines that contain this text": "이 텍스트가 포함된 명령줄",
+  "Parent Command Line": "부모 프로세스 명령줄",
+  "Parent Process": "부모 프로세스",
+  "Parent Process Path": "부모 프로세스 경로",
+  "Process Path": "프로세스 경로"
 }

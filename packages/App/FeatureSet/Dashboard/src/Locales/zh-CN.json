@@ -32737,5 +32737,11 @@
   "Handed Back Count": "Handed Back Count",
   "Every {{interval}}": "每 {{interval}}",
   "Last reported {{time}}": "上次报告于 {{time}}",
-  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter 已超过 15 分钟未报告它，因此它已移出清单，直到某次采集再次报告它。它之前的指标仍会保留：选择更长的时间范围即可查看。"
+  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter 已超过 15 分钟未报告它，因此它已移出清单，直到某次采集再次报告它。它之前的指标仍会保留：选择更长的时间范围即可查看。",
+  "Command Line": "命令行",
+  "Command lines that contain this text": "包含此文本的命令行",
+  "Parent Command Line": "父进程命令行",
+  "Parent Process": "父进程",
+  "Parent Process Path": "父进程路径",
+  "Process Path": "进程路径"
 }

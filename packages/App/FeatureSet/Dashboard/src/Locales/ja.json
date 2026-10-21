@@ -32737,5 +32737,11 @@
   "Handed Back Count": "Handed Back Count",
   "Every {{interval}}": "{{interval}}ごと",
   "Last reported {{time}}": "最終報告 {{time}}",
-  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter が 15 分以上報告していないため、次に報告されるまでインベントリから外れています。以前のメトリクスは残っています。表示するには、より長い期間を選んでください。"
+  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter が 15 分以上報告していないため、次に報告されるまでインベントリから外れています。以前のメトリクスは残っています。表示するには、より長い期間を選んでください。",
+  "Command Line": "コマンドライン",
+  "Command lines that contain this text": "このテキストを含むコマンドライン",
+  "Parent Command Line": "親プロセスのコマンドライン",
+  "Parent Process": "親プロセス",
+  "Parent Process Path": "親プロセスのパス",
+  "Process Path": "プロセスのパス"
 }

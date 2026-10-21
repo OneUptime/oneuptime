@@ -10,9 +10,13 @@ import {
   ocsfEventClassByUid,
 } from "../../Types/SecurityEvent/OcsfEventClass";
 import {
+  ProcessFields,
+  ProcessReading,
   buildObservables,
+  buildProcessFields,
   contentHashEventUid,
   flattenPayload,
+  mergeProcessReadings,
   parseEventTime,
   readString,
   readStringArray,
@@ -173,6 +177,72 @@ function readAnyArray(
   }
 
   return [];
+}
+
+const PROCESS_ACTIVITY_CLASS_UID: number = 1007;
+
+// A UDM Process noun at any of `at` (both spellings of a parent's key).
+function readUdmProcess(
+  payload: JSONObject,
+  at: Array<string>,
+): ProcessReading {
+  const paths: (leaves: Array<string>) => Array<string> = (
+    leaves: Array<string>,
+  ): Array<string> => {
+    return at.flatMap((base: string): Array<string> => {
+      return leaves.map((leaf: string): string => {
+        return `${base}.${leaf}`;
+      });
+    });
+  };
+
+  return {
+    name: readAny(payload, paths(["file.names"])),
+    path: readAny(payload, paths(["file.full_path", "file.fullPath"])),
+    commandLine: readAny(payload, paths(["command_line", "commandLine"])),
+  };
+}
+
+/*
+ * The process an event is about, and its parent. A PROCESS_* event is about
+ * its target process; in a PROCESS_LAUNCH the principal's process is the one
+ * that started it, its parent, read together with the target's own
+ * parent_process, and in any other (an open, an injection) it is some other
+ * process, so only the target's parent_process names the parent. Every
+ * other event (a connection, a file written, a module loaded) is about the
+ * principal's process.
+ */
+function readUdmProcesses(
+  payload: JSONObject,
+  eventType: string,
+  classUid: number,
+): ProcessFields {
+  const principal: ProcessReading = readUdmProcess(payload, [
+    "principal.process",
+  ]);
+
+  if (classUid !== PROCESS_ACTIVITY_CLASS_UID) {
+    return buildProcessFields({
+      process: principal,
+      parent: readUdmProcess(payload, [
+        "principal.process.parent_process",
+        "principal.process.parentProcess",
+      ]),
+    });
+  }
+
+  const ownParent: ProcessReading = readUdmProcess(payload, [
+    "target.process.parent_process",
+    "target.process.parentProcess",
+  ]);
+
+  return buildProcessFields({
+    process: readUdmProcess(payload, ["target.process"]),
+    parent:
+      eventType === "PROCESS_LAUNCH"
+        ? mergeProcessReadings(ownParent, principal)
+        : ownParent,
+  });
 }
 
 interface SecurityResultSummary {
@@ -422,6 +492,7 @@ export default class UdmNormalizer {
       principalHost,
       principalIp: principalIps[0] || "",
       principalProcess,
+      ...readUdmProcesses(payload, eventType, classUid),
       targetUser,
       targetHost,
       targetIp: targetIps[0] || "",

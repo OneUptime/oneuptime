@@ -472,3 +472,19 @@ describe("MicrosoftSentinelNormalizer", () => {
     });
   });
 });
+
+describe("MicrosoftSentinelNormalizer: processes", () => {
+  test("an incident names no process of its own", () => {
+    const event: NormalizedSecurityEvent =
+      MicrosoftSentinelNormalizer.normalize(richIncident());
+
+    expect([
+      event.processName,
+      event.processPath,
+      event.processCommandLine,
+      event.parentProcessName,
+      event.parentProcessPath,
+      event.parentProcessCommandLine,
+    ]).toEqual(["", "", "", "", "", ""]);
+  });
+});

@@ -32737,5 +32737,11 @@
   "Handed Back Count": "Handed Back Count",
   "Every {{interval}}": "Alle {{interval}}",
   "Last reported {{time}}": "Zuletzt gemeldet {{time}}",
-  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter hat ihn seit mehr als 15 Minuten nicht gemeldet, daher hat er das Inventar verlassen, bis eine Erfassung ihn wieder meldet. Seine früheren Metriken bleiben erhalten: Wählen Sie einen längeren Zeitraum, um sie zu sehen."
+  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter hat ihn seit mehr als 15 Minuten nicht gemeldet, daher hat er das Inventar verlassen, bis eine Erfassung ihn wieder meldet. Seine früheren Metriken bleiben erhalten: Wählen Sie einen längeren Zeitraum, um sie zu sehen.",
+  "Command Line": "Befehlszeile",
+  "Command lines that contain this text": "Befehlszeilen, die diesen Text enthalten",
+  "Parent Command Line": "Befehlszeile des übergeordneten Prozesses",
+  "Parent Process": "Übergeordneter Prozess",
+  "Parent Process Path": "Pfad des übergeordneten Prozesses",
+  "Process Path": "Prozesspfad"
 }

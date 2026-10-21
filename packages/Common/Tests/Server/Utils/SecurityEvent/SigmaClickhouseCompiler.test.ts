@@ -1,4 +1,5 @@
 import SigmaClickhouseCompiler, {
+  FIELD_ALIASES,
   buildSigmaDistinctCountExpression,
   buildSigmaFieldExpression,
   resolveSigmaField,
@@ -88,7 +89,7 @@ describe("resolveSigmaField", () => {
   test("aliases resolve to canonical columns", () => {
     expect(resolveSigmaField("CommandLine")).toEqual({
       kind: "textColumn",
-      column: "principalProcess",
+      column: "processCommandLine",
     });
     expect(resolveSigmaField("src_ip")).toEqual({
       kind: "textColumn",
@@ -112,6 +113,88 @@ describe("resolveSigmaField", () => {
       kind: "attribute",
       attributeKey: "principal.hostname",
     });
+  });
+});
+
+/*
+ * Sigma's process fields read the process an event is about - the one that
+ * was started, in a process creation event - and its parent. They used to
+ * read principalProcess, which in a process creation event holds the
+ * PARENT (OCSF's actor), so a rule on CommandLine tested the parent's name
+ * and the endpoint rules missed the attacks they were written for.
+ */
+describe("Sigma's process fields", () => {
+  test.each([
+    ["CommandLine", "processCommandLine"],
+    ["commandline", "processCommandLine"],
+    ["command_line", "processCommandLine"],
+    ["cmdline", "processCommandLine"],
+    ["ProcessCommandLine", "processCommandLine"],
+    ["process.command_line", "processCommandLine"],
+    ["Image", "processPath"],
+    ["process.executable", "processPath"],
+    ["ProcessName", "processName"],
+    ["ParentImage", "parentProcessPath"],
+    ["process.parent.executable", "parentProcessPath"],
+    ["ParentCommandLine", "parentProcessCommandLine"],
+    ["process.parent.command_line", "parentProcessCommandLine"],
+    ["ParentProcessName", "parentProcessName"],
+  ])("%s reads %s", (field: string, column: string) => {
+    expect(resolveSigmaField(field)).toEqual({ kind: "textColumn", column });
+  });
+
+  test("principalProcess is still a column of its own, for the rules and searches written against it", () => {
+    expect(resolveSigmaField("principalProcess")).toEqual({
+      kind: "textColumn",
+      column: "principalProcess",
+    });
+  });
+
+  test("no Sigma spelling of a process field reads principalProcess", () => {
+    const processSpelling: RegExp = /command|cmd|image|executable|process/;
+    const processSpellings: Array<string> = Object.keys(FIELD_ALIASES).filter(
+      (alias: string): boolean => {
+        return processSpelling.test(alias);
+      },
+    );
+
+    expect(processSpellings.length).toBeGreaterThanOrEqual(10);
+
+    for (const alias of processSpellings) {
+      expect({ alias, column: FIELD_ALIASES[alias] }).not.toEqual({
+        alias,
+        column: "principalProcess",
+      });
+    }
+  });
+
+  test("CommandLine|contains compiles to a substring match on the process's command line", () => {
+    const statement: Statement = compile(
+      singleFieldRule("CommandLine|contains: ' -enc '"),
+    );
+
+    expect(statement.query).toContain("processCommandLine ILIKE {p0:String}");
+    expect(statement.query).not.toContain("principalProcess");
+    expect(statement.query_params["p0"]).toBe("% -enc %");
+  });
+
+  test("ParentImage|endswith compiles to a suffix match on the parent's executable", () => {
+    const statement: Statement = compile(
+      singleFieldRule("ParentImage|endswith: winword.exe"),
+    );
+
+    expect(statement.query).toContain("parentProcessPath ILIKE {p0:String}");
+    expect(statement.query_params["p0"]).toBe("%winword.exe");
+  });
+
+  test("the process fields group and count as plain columns", () => {
+    expect(buildSigmaFieldExpression("Image").query).toBe("processPath");
+    expect(buildSigmaFieldExpression("ParentCommandLine").query).toBe(
+      "parentProcessCommandLine",
+    );
+    expect(buildSigmaDistinctCountExpression("processName").query).toBe(
+      "processName",
+    );
   });
 });
 

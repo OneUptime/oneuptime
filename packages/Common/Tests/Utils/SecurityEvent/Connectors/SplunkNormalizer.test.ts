@@ -405,3 +405,62 @@ describe("SplunkNormalizer", () => {
     });
   });
 });
+
+/*
+ * Splunk's CIM Endpoint fields: `process` is the full command line of the
+ * process, `process_name` / `process_exec` its file name, `process_path` its
+ * executable, and `parent_process*` the same of the one that started it.
+ */
+describe("SplunkNormalizer: the process the notable is about", () => {
+  test("the CIM process fields", () => {
+    const event: NormalizedSecurityEvent = SplunkNormalizer.normalize({
+      _time: "1789209600",
+      rule_name: "Encoded PowerShell",
+      process: "powershell.exe -nop -enc JABzAD0A",
+      process_name: "powershell.exe",
+      process_path:
+        "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      parent_process:
+        '"C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE" /n',
+      parent_process_name: "WINWORD.EXE",
+      parent_process_path:
+        "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE",
+    });
+
+    expect(event.processName).toBe("powershell.exe");
+    expect(event.processPath).toBe(
+      "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    );
+    expect(event.processCommandLine).toBe("powershell.exe -nop -enc JABzAD0A");
+    expect(event.parentProcessName).toBe("WINWORD.EXE");
+    expect(event.parentProcessPath).toBe(
+      "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE",
+    );
+    expect(event.parentProcessCommandLine).toBe(
+      '"C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE" /n',
+    );
+    // principalProcess reads as it always has: `process` first.
+    expect(event.principalProcess).toBe("powershell.exe -nop -enc JABzAD0A");
+  });
+
+  test("process_exec names the process when process_name does not", () => {
+    const event: NormalizedSecurityEvent = SplunkNormalizer.normalize({
+      _time: "1789209600",
+      process_exec: "certutil.exe",
+      parent_process_exec: "cmd.exe",
+    });
+
+    expect(event.processName).toBe("certutil.exe");
+    expect(event.parentProcessName).toBe("cmd.exe");
+  });
+
+  test("a parent_process alone is the parent, never the process", () => {
+    const event: NormalizedSecurityEvent = SplunkNormalizer.normalize({
+      _time: "1789209600",
+      parent_process: "cmd.exe /c whoami",
+    });
+
+    expect(event.processCommandLine).toBe("");
+    expect(event.parentProcessCommandLine).toBe("cmd.exe /c whoami");
+  });
+});
