@@ -32903,5 +32903,16 @@
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "{{shown}} von {{total}} Teilen werden angezeigt, so viele, wie diese Karte auf einmal liest.",
   "Some open incidents or alerts could not be read, so the map may not show them all.": "Einige offene Vorfälle oder Alarme konnten nicht gelesen werden, daher zeigt die Karte möglicherweise nicht alle.",
   "See {{count}} more related parts": "{{count}} weitere zugehörige Teile ansehen",
-  "See {{count}} more related parts_one": "{{count}} weiteres zugehöriges Teil ansehen"
+  "See {{count}} more related parts_one": "{{count}} weiteres zugehöriges Teil ansehen",
+  "A new feed is polled within a minute.": "Ein neuer Feed wird innerhalb einer Minute abgefragt.",
+  "A new rule runs within a minute.": "Eine neue Regel wird innerhalb einer Minute ausgeführt.",
+  "Matching failed": "Abgleich fehlgeschlagen",
+  "Poll failed": "Abfrage fehlgeschlagen",
+  "The last check against your security events failed. Open View Error for the full message.": "Der letzte Abgleich mit Ihren Sicherheitsereignissen ist fehlgeschlagen. Öffnen Sie „Fehler anzeigen“ für die vollständige Meldung.",
+  "The last check left a message. Open View Error to read it.": "Der letzte Abgleich hat eine Meldung hinterlassen. Öffnen Sie „Fehler anzeigen“, um sie zu lesen.",
+  "The last poll failed. Open View Error for the full message.": "Die letzte Abfrage ist fehlgeschlagen. Öffnen Sie „Fehler anzeigen“ für die vollständige Meldung.",
+  "The last run failed. Open View Error for the full message.": "Die letzte Ausführung ist fehlgeschlagen. Öffnen Sie „Fehler anzeigen“ für die vollständige Meldung.",
+  "The last run left a message. Open View Error to read it.": "Die letzte Ausführung hat eine Meldung hinterlassen. Öffnen Sie „Fehler anzeigen“, um sie zu lesen.",
+  "Waiting for first poll": "Wartet auf erste Abfrage",
+  "Waiting for first run": "Wartet auf erste Ausführung"
 }

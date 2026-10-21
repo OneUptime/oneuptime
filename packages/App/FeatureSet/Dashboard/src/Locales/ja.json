@@ -32903,5 +32903,16 @@
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "{{total}} 件中 {{shown}} 件を表示しています。このマップが一度に読み込める上限です。",
   "Some open incidents or alerts could not be read, so the map may not show them all.": "未解決のインシデントまたはアラートの一部を読み込めなかったため、マップにすべてが表示されていない可能性があります。",
   "See {{count}} more related parts": "ほかの関連する {{count}} 件を見る",
-  "See {{count}} more related parts_one": "ほかの関連する {{count}} 件を見る"
+  "See {{count}} more related parts_one": "ほかの関連する {{count}} 件を見る",
+  "A new feed is polled within a minute.": "新しいフィードは1分以内にポーリングされます。",
+  "A new rule runs within a minute.": "新しいルールは1分以内に実行されます。",
+  "Matching failed": "照合に失敗しました",
+  "Poll failed": "ポーリングに失敗しました",
+  "The last check against your security events failed. Open View Error for the full message.": "セキュリティイベントとの前回の照合に失敗しました。エラーを表示を開くと、メッセージ全文を確認できます。",
+  "The last check left a message. Open View Error to read it.": "前回の照合でメッセージが残されました。エラーを表示を開いて確認してください。",
+  "The last poll failed. Open View Error for the full message.": "前回のポーリングに失敗しました。エラーを表示を開くと、メッセージ全文を確認できます。",
+  "The last run failed. Open View Error for the full message.": "前回の実行に失敗しました。エラーを表示を開くと、メッセージ全文を確認できます。",
+  "The last run left a message. Open View Error to read it.": "前回の実行でメッセージが残されました。エラーを表示を開いて確認してください。",
+  "Waiting for first poll": "最初のポーリング待ち",
+  "Waiting for first run": "最初の実行待ち"
 }

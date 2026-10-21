@@ -32903,5 +32903,16 @@
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "Se muestran {{shown}} de {{total}} partes, lo máximo que este mapa lee a la vez.",
   "Some open incidents or alerts could not be read, so the map may not show them all.": "No se pudieron leer algunos incidentes o alertas abiertos, así que es posible que el mapa no los muestre todos.",
   "See {{count}} more related parts": "Ver {{count}} partes relacionadas más",
-  "See {{count}} more related parts_one": "Ver {{count}} parte relacionada más"
+  "See {{count}} more related parts_one": "Ver {{count}} parte relacionada más",
+  "A new feed is polled within a minute.": "Un feed nuevo se sondea en menos de un minuto.",
+  "A new rule runs within a minute.": "Una regla nueva se ejecuta en menos de un minuto.",
+  "Matching failed": "La comparación falló",
+  "Poll failed": "El sondeo falló",
+  "The last check against your security events failed. Open View Error for the full message.": "La última comparación con tus eventos de seguridad falló. Abre Ver error para leer el mensaje completo.",
+  "The last check left a message. Open View Error to read it.": "La última comparación dejó un mensaje. Abre Ver error para leerlo.",
+  "The last poll failed. Open View Error for the full message.": "El último sondeo falló. Abre Ver error para leer el mensaje completo.",
+  "The last run failed. Open View Error for the full message.": "La última ejecución falló. Abre Ver error para leer el mensaje completo.",
+  "The last run left a message. Open View Error to read it.": "La última ejecución dejó un mensaje. Abre Ver error para leerlo.",
+  "Waiting for first poll": "Esperando el primer sondeo",
+  "Waiting for first run": "Esperando la primera ejecución"
 }

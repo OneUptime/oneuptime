@@ -5,7 +5,6 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import {
   DETECTION_MATCH_COUNT_THRESHOLD_MAX,
@@ -23,6 +22,16 @@ import {
   DETECTION_RULE_NAME_DESCRIPTION,
   getDetectionRuleNameAfterYamlChange,
 } from "../../Components/SecurityEvents/SecurityMatchRaises";
+import {
+  SecurityDetectionStatus,
+  getDetectionRuleMessages,
+  getDetectionRuleStatus,
+} from "../../Components/SecurityEvents/SecurityDetectionStatus";
+import {
+  SecurityDetectionErrors,
+  getViewErrorActionButton,
+  useSecurityDetectionErrors,
+} from "../../Components/SecurityEvents/SecurityDetectionErrorModal";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
@@ -60,6 +69,13 @@ const advancedSection: FormFieldCollapsibleSection<DetectionRule> =
 const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  /*
+   * A rule's last message in full, from its row's View Error. A hook: it
+   * runs before the reseller gate below can return early.
+   */
+  const ruleErrors: SecurityDetectionErrors<DetectionRule> =
+    useSecurityDetectionErrors<DetectionRule>(getDetectionRuleMessages);
+
   /*
    * Same reseller-telemetry gate as every other Security Events page —
    * detection rules run over telemetry-billed security events, so a plan
@@ -316,6 +332,11 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
         searchableFields={["name", "description"]}
         showViewIdButton={true}
         actionButtons={[
+          // On a rule whose last run left a message, the row's button.
+          getViewErrorActionButton<DetectionRule>({
+            getMessages: getDetectionRuleMessages,
+            show: ruleErrors.show,
+          }),
           {
             title: "Create Monitor",
             buttonStyleType: ButtonStyleType.NORMAL,
@@ -376,29 +397,26 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             },
             title: "Status",
             type: FieldType.Boolean,
+            /*
+             * Whether the rule works, not only whether it is on: a failed
+             * run reads red here, a run's note about its own work yellow,
+             * with View Error on its row (SecurityDetectionStatus). It reads
+             * Last Error, which the table selects even while it is hidden.
+             */
             getElement: (item: DetectionRule): ReactElement => {
-              if (item.isEnabled) {
-                return <Pill color={Green} text="Enabled" />;
-              }
-              return <Pill color={Red} text="Disabled" />;
+              const status: SecurityDetectionStatus =
+                getDetectionRuleStatus(item);
+
+              return (
+                <Pill
+                  color={status.color}
+                  text={status.text}
+                  tooltip={status.tooltip}
+                />
+              );
             },
           },
-          {
-            field: {
-              evaluationIntervalInMinutes: true,
-            },
-            title: "Interval (Minutes)",
-            type: FieldType.Number,
-            noValueMessage: "-",
-          },
-          {
-            field: {
-              lastEvaluatedAt: true,
-            },
-            title: "Last Evaluated",
-            type: FieldType.DateTime,
-            noValueMessage: "Never",
-          },
+          // When it last fired comes first; that it runs, the Status says.
           {
             field: {
               lastMatchAt: true,
@@ -409,14 +427,40 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
+              lastEvaluatedAt: true,
+            },
+            title: "Last Evaluated",
+            type: FieldType.DateTime,
+            noValueMessage: "Never",
+          },
+          /*
+           * Hidden at first (Customize Columns brings them back): the
+           * interval is the rule's setting, and Last Error, empty while the
+           * rule works, shows through the Status and View Error.
+           */
+          {
+            field: {
+              evaluationIntervalInMinutes: true,
+            },
+            title: "Interval (Minutes)",
+            type: FieldType.Number,
+            noValueMessage: "-",
+            isHiddenByDefault: true,
+          },
+          {
+            field: {
               lastError: true,
             },
             title: "Last Error",
             type: FieldType.LongText,
             noValueMessage: "-",
+            wrapContent: true,
+            isHiddenByDefault: true,
           },
         ]}
       />
+
+      {ruleErrors.element}
     </div>
   );
 };

@@ -15548,7 +15548,7 @@
   "Run a sidecar collector": "Run a sidecar collector",
   "Run again": "Run again",
   "Run details": "Run details",
-  "Run failed": "Run failed",
+  "Run failed": "Échec de l'exécution",
   "Run finished successfully.": "Run finished successfully.",
   "Run history": "Run history",
   "Run it as a Deployment next to the database, or with Docker on any machine that can reach it. One agent monitors one database server.": "Run it as a Deployment next to the database, or with Docker on any machine that can reach it. One agent monitors one database server.",
@@ -32903,5 +32903,16 @@
   "Showing {{shown}} of {{total}} parts, the most this map reads at once.": "{{shown}} éléments affichés sur {{total}}, le maximum que cette carte lit en une fois.",
   "Some open incidents or alerts could not be read, so the map may not show them all.": "Certains incidents ou alertes ouverts n'ont pas pu être lus, la carte ne les affiche donc peut-être pas tous.",
   "See {{count}} more related parts": "Voir {{count}} autres éléments liés",
-  "See {{count}} more related parts_one": "Voir {{count}} autre élément lié"
+  "See {{count}} more related parts_one": "Voir {{count}} autre élément lié",
+  "A new feed is polled within a minute.": "Un nouveau flux est interrogé en moins d'une minute.",
+  "A new rule runs within a minute.": "Une nouvelle règle s'exécute en moins d'une minute.",
+  "Matching failed": "Échec de la comparaison",
+  "Poll failed": "Échec de l'interrogation",
+  "The last check against your security events failed. Open View Error for the full message.": "La dernière comparaison avec vos événements de sécurité a échoué. Ouvrez Voir l'erreur pour lire le message complet.",
+  "The last check left a message. Open View Error to read it.": "La dernière comparaison a laissé un message. Ouvrez Voir l'erreur pour le lire.",
+  "The last poll failed. Open View Error for the full message.": "La dernière interrogation a échoué. Ouvrez Voir l'erreur pour lire le message complet.",
+  "The last run failed. Open View Error for the full message.": "La dernière exécution a échoué. Ouvrez Voir l'erreur pour lire le message complet.",
+  "The last run left a message. Open View Error to read it.": "La dernière exécution a laissé un message. Ouvrez Voir l'erreur pour le lire.",
+  "Waiting for first poll": "En attente de la première interrogation",
+  "Waiting for first run": "En attente de la première exécution"
 }
