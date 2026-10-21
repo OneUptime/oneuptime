@@ -1,4 +1,10 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { Handle, NodeProps, Position } from "reactflow";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -27,6 +33,7 @@ import {
   RESOURCE_TOPOLOGY_SELECTED_COLOR,
 } from "./ResourceTopologyLook";
 import { ResourceTopologyMoreItem } from "./ResourceTopologyView";
+import { truncateTopologyNameMiddle } from "./ResourceTopologyFormat";
 
 /*
  * The map's pieces. An open part is a box: its heading, then one group per
@@ -117,6 +124,130 @@ const SideHandles: FunctionComponent<{ sideY?: number | undefined }> = (props: {
 export function tx(text: string, translator: Translator): string {
   return translator.translateText(text) || text;
 }
+
+let measuringContext: CanvasRenderingContext2D | null | undefined;
+
+/* The drawn width of a string in a font, or 0 where nothing can measure it. */
+function measureTextWidth(text: string, font: string): number {
+  if (measuringContext === undefined) {
+    try {
+      measuringContext =
+        typeof document === "undefined"
+          ? null
+          : document.createElement("canvas").getContext("2d");
+    } catch {
+      measuringContext = null;
+    }
+  }
+
+  if (!measuringContext) {
+    return 0;
+  }
+
+  measuringContext.font = font;
+
+  return measuringContext.measureText(text).width;
+}
+
+/*
+ * A part's name on one line, cut in its middle when it is longer than the
+ * room it has (truncateTopologyNameMiddle), so the pods of one workload or
+ * the nodes of one cluster stay told apart. Its full name is its title.
+ * The room is read once the name is drawn in full - the line shrinks to it,
+ * its overflow hidden - and read again when the name, `refitKey` (what else
+ * shares the line) or the font changes.
+ */
+export const TopologyName: FunctionComponent<{
+  name: string;
+  className?: string | undefined;
+  style?: React.CSSProperties | undefined;
+  refitKey?: string | number | undefined;
+}> = (props: {
+  name: string;
+  className?: string | undefined;
+  style?: React.CSSProperties | undefined;
+  refitKey?: string | number | undefined;
+}): ReactElement => {
+  const ref: React.RefObject<HTMLSpanElement> = useRef<HTMLSpanElement>(null);
+  const [fontsLoaded, setFontsLoaded] = useState<number>(0);
+  const fitKey: string = JSON.stringify([
+    props.name,
+    props.refitKey ?? null,
+    fontsLoaded,
+  ]);
+  const [fitted, setFitted] = useState<{ key: string; text: string } | null>(
+    null,
+  );
+  const text: string =
+    fitted && fitted.key === fitKey ? fitted.text : props.name;
+
+  useLayoutEffect(() => {
+    const element: HTMLSpanElement | null = ref.current;
+
+    if (!element || (fitted && fitted.key === fitKey)) {
+      return;
+    }
+
+    // Measured with the whole name on the line (see `text` above).
+    if (element.scrollWidth <= element.clientWidth + 1) {
+      setFitted({ key: fitKey, text: props.name });
+      return;
+    }
+
+    const style: CSSStyleDeclaration = window.getComputedStyle(element);
+    const font: string = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+
+    setFitted({
+      key: fitKey,
+      text: truncateTopologyNameMiddle(
+        props.name,
+        element.clientWidth,
+        (value: string): number => {
+          return measureTextWidth(value, font);
+        },
+      ),
+    });
+  }, [fitKey, fitted]);
+
+  // The page's font may arrive after the first measure: measure again.
+  useLayoutEffect(() => {
+    const fonts: FontFaceSet | undefined =
+      typeof document !== "undefined" ? document.fonts : undefined;
+
+    if (!fonts || fonts.status === "loaded") {
+      return undefined;
+    }
+
+    let current: boolean = true;
+
+    fonts.ready
+      .then(() => {
+        if (current) {
+          setFontsLoaded((value: number) => {
+            return value + 1;
+          });
+        }
+      })
+      .catch(() => {
+        // The fallback font's measure stands.
+      });
+
+    return () => {
+      current = false;
+    };
+  }, []);
+
+  return (
+    <span
+      ref={ref}
+      title={props.name}
+      className={props.className}
+      style={props.style}
+    >
+      {text}
+    </span>
+  );
+};
 
 export function renderTopologyText(
   translator: Translator,
@@ -484,6 +615,16 @@ const IconTile: FunctionComponent<{
   );
 };
 
+/*
+ * Keyboard focus, drawn the way the product's other maps draw it. React
+ * Flow's own node focus is off, so this ring is the only one a part shows.
+ */
+const FOCUS_RING: string =
+  "nodrag focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500";
+// Inside a card that clips what overflows it: drawn just inside its edge.
+const FOCUS_RING_INSET: string =
+  "nodrag focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-500";
+
 const LINE: React.CSSProperties = {
   display: "block",
   overflow: "hidden",
@@ -592,7 +733,9 @@ const PartSummary: FunctionComponent<{
         <span
           style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}
         >
-          <span
+          <TopologyName
+            name={topologyNodeName(translator, props.node)}
+            refitKey={props.node.issues.length}
             style={{
               ...LINE,
               flex: "0 1 auto",
@@ -601,9 +744,7 @@ const PartSummary: FunctionComponent<{
               lineHeight: "18px",
               color: "var(--ou-text-primary, #111827)",
             }}
-          >
-            {topologyNodeName(translator, props.node)}
-          </span>
+          />
           <IssueBadges node={props.node} />
         </span>
         {props.node.isSection ? null : (
@@ -712,7 +853,7 @@ export const ResourceTopologyCardNode: FunctionComponent<
       <SideHandles />
       <button
         type="button"
-        className="nodrag"
+        className={FOCUS_RING_INSET}
         aria-label={describeTopologyPart(translator, node)}
         aria-pressed={data.isSelected}
         onClick={() => {
@@ -731,13 +872,15 @@ export const ResourceTopologyCardNode: FunctionComponent<
       {canOpen ? (
         <button
           type="button"
-          className="nodrag"
+          className={FOCUS_RING_INSET}
           data-testid={`resource-topology-open-${node.id}`}
           aria-expanded={false}
           aria-label={[
             translator.translateTemplate("Open {{name}}", {
               name: topologyNodeName(translator, node),
             }),
+            // What it holds, as the line says it, which a narrow card may cut.
+            contents,
             attention > 0
               ? describeTopologyAttentionSplit(
                   translator,
@@ -768,7 +911,9 @@ export const ResourceTopologyCardNode: FunctionComponent<
           }}
         >
           <Icon icon={IconProp.ChevronRight} className="h-3 w-3" />
-          <span style={{ ...LINE, flex: 1 }}>{contents}</span>
+          <span title={contents} style={{ ...LINE, flex: 1 }}>
+            {contents}
+          </span>
           {attention > 0 ? (
             <AttentionCounts
               critical={node.criticalBelow}
@@ -803,7 +948,7 @@ export const ResourceTopologyChipNode: FunctionComponent<
       <SideHandles />
       <button
         type="button"
-        className="nodrag"
+        className={FOCUS_RING}
         data-testid={`resource-topology-chip-${node.id}`}
         data-health={node.effectiveHealth}
         aria-label={describeTopologyPart(translator, node)}
@@ -834,7 +979,9 @@ export const ResourceTopologyChipNode: FunctionComponent<
           style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}
         >
           <HealthDot node={node} />
-          <span
+          <TopologyName
+            name={topologyNodeName(translator, node)}
+            refitKey={node.issues.length}
             style={{
               ...LINE,
               flex: 1,
@@ -843,9 +990,7 @@ export const ResourceTopologyChipNode: FunctionComponent<
               lineHeight: "16px",
               color: "var(--ou-text-primary, #111827)",
             }}
-          >
-            {topologyNodeName(translator, node)}
-          </span>
+          />
           <IssueBadges node={node} compact={true} />
         </span>
         <span
@@ -879,7 +1024,7 @@ export const ResourceTopologyMoreNode: FunctionComponent<
   return (
     <button
       type="button"
-      className="nodrag"
+      className={FOCUS_RING}
       data-testid={`resource-topology-more-${more.groupKey}`}
       disabled={!more.canShowAll}
       aria-label={translator.translateTemplate("Show {{count}} more {{kind}}", {
@@ -1001,7 +1146,7 @@ const CaptionBand: FunctionComponent<{
       {canFold || canShowAll ? (
         <button
           type="button"
-          className="nodrag"
+          className={FOCUS_RING}
           data-testid={`resource-topology-group-toggle-${group.groupKey}`}
           onClick={() => {
             props.onToggleGroup(group.groupKey);
@@ -1075,7 +1220,7 @@ export const ResourceTopologyContainerNode: FunctionComponent<
       >
         <button
           type="button"
-          className="nodrag"
+          className={FOCUS_RING}
           data-testid={`resource-topology-select-${node.id}`}
           aria-label={describeTopologyPart(translator, node)}
           aria-pressed={data.isSelected}
@@ -1095,7 +1240,7 @@ export const ResourceTopologyContainerNode: FunctionComponent<
         {!isRoot ? (
           <button
             type="button"
-            className="nodrag"
+            className={FOCUS_RING}
             data-testid={`resource-topology-close-${node.id}`}
             aria-expanded={true}
             aria-label={translator.translateTemplate("Close {{name}}", {
@@ -1156,7 +1301,7 @@ export const ResourceTopologyRelatedNode: FunctionComponent<
       <SideHandles />
       <button
         type="button"
-        className="nodrag"
+        className={FOCUS_RING}
         data-testid={`resource-topology-related-${node.id}`}
         data-health={node.effectiveHealth}
         aria-label={`${tx(placed.related?.label || "", translator)}: ${describeTopologyPart(translator, node)}`}

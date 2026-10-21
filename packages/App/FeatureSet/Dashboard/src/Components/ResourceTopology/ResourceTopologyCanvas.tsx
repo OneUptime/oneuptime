@@ -46,7 +46,10 @@ import {
   getRelationSides,
 } from "./ResourceTopologyLayout";
 import { ResourceTopologyVisible } from "./ResourceTopologyView";
-import { RESOURCE_TOPOLOGY_FIT_PADDING } from "./ResourceTopologyFit";
+import {
+  RESOURCE_TOPOLOGY_FIT_PADDING,
+  holdsResourceTopologyDrawing,
+} from "./ResourceTopologyFit";
 import {
   RESOURCE_TOPOLOGY_NODE_TYPES,
   ResourceTopologyNodeCallbacks,
@@ -167,13 +170,11 @@ const NODE_TYPE_BY_KIND: Record<ResourceTopologyPlaced["kind"], string> = {
  */
 const ViewportController: FunctionComponent<{
   fitRequest: ResourceTopologyFitRequest;
-  /* The ids of the drawing the map handed React Flow, joined by "|". */
-  drawingKey: string;
-  drawingSize: number;
+  /* The ids of the drawing the map handed React Flow. */
+  drawingIds: ReadonlyArray<string>;
 }> = (props: {
   fitRequest: ResourceTopologyFitRequest;
-  drawingKey: string;
-  drawingSize: number;
+  drawingIds: ReadonlyArray<string>;
 }): ReactElement => {
   const instance: ReactFlowInstance = useReactFlow();
   const store: ReturnType<typeof useStoreApi> = useStoreApi();
@@ -201,11 +202,10 @@ const ViewportController: FunctionComponent<{
        */
       const internals: ReturnType<typeof store.getState>["nodeInternals"] =
         store.getState().nodeInternals;
-      const holdsDrawing: boolean =
-        internals.size === props.drawingSize &&
-        props.drawingKey.split("|").every((id: string): boolean => {
-          return internals.has(id);
-        });
+      const holdsDrawing: boolean = holdsResourceTopologyDrawing(
+        internals,
+        props.drawingIds,
+      );
       const fitted: boolean =
         holdsDrawing &&
         instance.fitView({
@@ -239,7 +239,7 @@ const ViewportController: FunctionComponent<{
     return () => {
       cancelAnimationFrame(frame);
     };
-  }, [props.fitRequest.token, nodesInitialized, props.drawingKey]);
+  }, [props.fitRequest.token, nodesInitialized, props.drawingIds]);
 
   /*
    * Keyboard focus is followed: a card reached with Tab is panned into
@@ -368,11 +368,6 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
     );
   }, [props.layout, props.graph, props.selectedId, callbacks]);
 
-  /*
-   * Lines for what crosses the tree: from a focused part to each related
-   * part beside it, and from the selected part to every related part that
-   * is on the map.
-   */
   /*
    * Lines for what crosses the tree: from a focused part to each related
    * part beside it, from the selected part to every related part on the
@@ -531,12 +526,10 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
     translator.language,
   ]);
 
-  const drawingKey: string = useMemo((): string => {
-    return nodes
-      .map((node: Node<ResourceTopologyNodeData>): string => {
-        return node.id;
-      })
-      .join("|");
+  const drawingIds: ReadonlyArray<string> = useMemo((): Array<string> => {
+    return nodes.map((node: Node<ResourceTopologyNodeData>): string => {
+      return node.id;
+    });
   }, [nodes]);
 
   const extent: FlowExtent = useMemo((): FlowExtent => {
@@ -597,8 +590,7 @@ const ResourceTopologyCanvas: FunctionComponent<ComponentProps> = (
         />
         <ViewportController
           fitRequest={props.fitRequest}
-          drawingKey={drawingKey}
-          drawingSize={nodes.length}
+          drawingIds={drawingIds}
         />
       </ReactFlow>
     </div>

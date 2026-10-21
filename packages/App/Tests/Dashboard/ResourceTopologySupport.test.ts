@@ -13,11 +13,13 @@ import {
   sameName,
 } from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyIssues";
 import {
+  MIDDLE_ELLIPSIS,
   formatTopologyBytes,
   formatTopologyPercent,
   isRecent,
   toFiniteNumber,
   toTopologyDate,
+  truncateTopologyNameMiddle,
 } from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyFormat";
 import {
   formatStatusWord,
@@ -203,6 +205,76 @@ describe("numbers on the cards", () => {
     expect(isRecent("2026-10-21T11:59:59Z", NOW, 5000)).toBe(true);
     expect(isRecent(null, NOW, 5000)).toBe(false);
     expect(toTopologyDate("not a date")).toBeNull();
+  });
+});
+
+describe("names too long for their card", () => {
+  // A monospaced measure: every character 7 wide, as a test can reason.
+  const measure: (text: string) => number = (text: string): number => {
+    return Array.from(text).length * 7;
+  };
+
+  test("are cut in the middle, so the pods of one workload stay told apart", () => {
+    const pods: Array<string> = [
+      "payments-api-7d9f8c6b5-xx63z",
+      "payments-api-7d9f8c6b5-xxc7y",
+      "payments-api-7d9f8c6b5-xxibx",
+    ];
+    // Room for 20 characters.
+    const shown: Array<string> = pods.map((pod: string): string => {
+      return truncateTopologyNameMiddle(pod, 140, measure);
+    });
+
+    // Cut at their end they would all read "payments-api-7d9f8c…".
+    expect(new Set<string>(shown).size).toBe(3);
+
+    for (const [index, name] of shown.entries()) {
+      expect(measure(name)).toBeLessThanOrEqual(140);
+      expect(name).toContain(MIDDLE_ELLIPSIS);
+      // The workload's start and the pod's own end both stay.
+      expect(name.startsWith("payments-api")).toBe(true);
+      expect(pods[index]!.endsWith(name.split(MIDDLE_ELLIPSIS)[1]!)).toBe(true);
+    }
+
+    // As much as fits is kept: one character more would not fit.
+    expect(Array.from(shown[0]!).length).toBe(20);
+  });
+
+  test("the nodes of one cluster keep the start that tells them apart", () => {
+    const name: string = truncateTopologyNameMiddle(
+      "ip-10-0-4-24.eu-west-1.compute.internal",
+      154,
+      measure,
+    );
+
+    expect(name.startsWith("ip-10-0-4-24")).toBe(true);
+    expect(name.endsWith("internal")).toBe(true);
+  });
+
+  test("a name that fits, or a width that cannot be read, is left as it is", () => {
+    expect(truncateTopologyNameMiddle("esx-01", 140, measure)).toBe("esx-01");
+    expect(
+      truncateTopologyNameMiddle("payments-api-7d9f8c6b5-xx63z", 0, measure),
+    ).toBe("payments-api-7d9f8c6b5-xx63z");
+    expect(
+      truncateTopologyNameMiddle(
+        "payments-api-7d9f8c6b5-xx63z",
+        Number.NaN,
+        measure,
+      ),
+    ).toBe("payments-api-7d9f8c6b5-xx63z");
+  });
+
+  test("never splits a character, and keeps at least the ellipsis", () => {
+    // Characters outside the basic plane are one character each.
+    const emoji: string = "\u{1F680}".repeat(12);
+    const cut: string = truncateTopologyNameMiddle(emoji, 70, measure);
+
+    expect(Array.from(cut).length).toBe(10);
+    expect(cut).not.toContain("\uFFFD");
+    expect(truncateTopologyNameMiddle("abcdef", 3, measure)).toBe(
+      MIDDLE_ELLIPSIS,
+    );
   });
 });
 

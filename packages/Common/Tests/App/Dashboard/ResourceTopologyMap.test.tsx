@@ -15,7 +15,10 @@ import ResourceTopologyMap, {
   ResourceTopologyArrangement,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyMap";
 import { OpenIssueRecord } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyIssues";
-import { ResourceTopologyGraph } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyModel";
+import {
+  ResourceTopologyGraph,
+  buildResourceTopologyGraph,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyModel";
 import { buildVMwareTopology } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceTopology/Builders/VMwareTopology";
 
 /*
@@ -253,6 +256,145 @@ describe("a picked part's panel", () => {
 
     fireEvent.click(screen.getByTestId("resource-topology-focus-clear"));
     expect(screen.queryByTestId("resource-topology-focus")).toBeNull();
+  });
+});
+
+describe("the panel reads at a glance", () => {
+  test("what is inside a part is counted under each kind, as Details are", () => {
+    renderMap();
+    pick("vmware.cluster:cluster/ams-prod");
+
+    const inside: HTMLElement = screen.getByTestId(
+      "resource-topology-panel-inside",
+    );
+    const terms: Array<string> = within(inside)
+      .getAllByRole("term")
+      .map((term: HTMLElement): string => {
+        return term.textContent || "";
+      });
+    const counts: Array<string> = within(inside)
+      .getAllByRole("definition")
+      .map((count: HTMLElement): string => {
+        return count.textContent || "";
+      });
+
+    // One ESXi host and the virtual machine on it, each count under its kind.
+    expect(terms).toEqual(["ESXi Host", "Virtual Machine"]);
+    expect(counts).toEqual(["1", "1"]);
+  });
+
+  test("related parts are grouped under what they are to it, each label said once", () => {
+    const graph: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "host",
+      nodes: [
+        {
+          id: "host",
+          parentId: null,
+          kind: "entity:host",
+          name: "web-01",
+          health: "healthy",
+        },
+        {
+          id: "checkout",
+          parentId: "host",
+          kind: "entity:service",
+          name: "checkout",
+          health: "healthy",
+        },
+        {
+          id: "mobile",
+          parentId: "host",
+          kind: "entity:service",
+          name: "mobile-bff",
+          health: "healthy",
+        },
+        {
+          id: "storefront",
+          parentId: "host",
+          kind: "entity:service",
+          name: "storefront",
+          health: "healthy",
+        },
+        {
+          id: "payments",
+          parentId: "host",
+          kind: "entity:service",
+          name: "payments",
+          health: "critical",
+        },
+        {
+          id: "orders",
+          parentId: "host",
+          kind: "entity:database",
+          name: "postgres orders",
+          health: "healthy",
+        },
+      ],
+      relations: [
+        {
+          from: "mobile",
+          to: "checkout",
+          label: "Calls",
+          inverseLabel: "Called by",
+        },
+        {
+          from: "storefront",
+          to: "checkout",
+          label: "Calls",
+          inverseLabel: "Called by",
+        },
+        {
+          from: "checkout",
+          to: "payments",
+          label: "Calls",
+          inverseLabel: "Called by",
+        },
+        {
+          from: "checkout",
+          to: "orders",
+          label: "Calls",
+          inverseLabel: "Called by",
+        },
+      ],
+    });
+
+    renderMap([{ id: "host", label: "Calls", graph: graph }]);
+    pick("checkout");
+
+    const related: HTMLElement = screen.getByTestId(
+      "resource-topology-panel-related",
+    );
+
+    // Each label once, over the parts it names.
+    expect(within(related).getAllByText("Called by")).toHaveLength(1);
+    expect(within(related).getAllByText("Calls")).toHaveLength(1);
+    const names: Array<string> = within(related)
+      .getAllByRole("button")
+      .map((button: HTMLElement): string => {
+        return button.getAttribute("title") || "";
+      });
+
+    expect(names).toEqual([
+      "mobile-bff",
+      "storefront",
+      "payments",
+      "postgres orders",
+    ]);
+    // A group of one kind does not repeat it on every row; a mixed one does.
+    const calledBy: HTMLElement = within(related).getByTestId(
+      "resource-topology-related-group-Called by",
+    );
+    const calls: HTMLElement = within(related).getByTestId(
+      "resource-topology-related-group-Calls",
+    );
+
+    expect(calledBy).not.toHaveTextContent("Service");
+    expect(calls).toHaveTextContent("payments" + "Service");
+    expect(calls).toHaveTextContent("postgres orders" + "Database");
+
+    // Picking a related part opens its panel.
+    fireEvent.click(within(related).getByTitle("payments"));
+    expect(screen.getByTestId("side-over-title")).toHaveTextContent("payments");
   });
 });
 

@@ -23,6 +23,7 @@ import {
 import {
   IssueBadges,
   ResourceTopologyNodeCallbacks,
+  TopologyName,
   describeTopologyAttention,
   describeTopologyContents,
   describeTopologyPart,
@@ -49,6 +50,12 @@ export interface ComponentProps {
 }
 
 const INDENT_PX: number = 18;
+/*
+ * A phone indents less, and leaves the kind's icon to the words under the
+ * name: a pod three levels down keeps room for its name.
+ */
+const PHONE_INDENT_PX: number = 12;
+const PHONE_WIDTH_PX: number = 640;
 
 const ResourceTopologyOutline: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -57,6 +64,10 @@ const ResourceTopologyOutline: FunctionComponent<ComponentProps> = (
   const rows: Array<ResourceTopologyOutlineRow> = flattenResourceTopologyView(
     props.visible,
   );
+  const indent: number =
+    typeof window !== "undefined" && window.innerWidth < PHONE_WIDTH_PX
+      ? PHONE_INDENT_PX
+      : INDENT_PX;
 
   const renderPart: (
     item: ResourceTopologyCardItem | ResourceTopologyChipItem,
@@ -90,7 +101,7 @@ const ResourceTopologyOutline: FunctionComponent<ComponentProps> = (
         data-testid={`resource-topology-row-${node.id}`}
         data-health={node.effectiveHealth}
         className={`flex items-center gap-1 border-b border-gray-100 py-1.5 pr-3 ${selected ? "bg-indigo-50" : ""}`}
-        style={{ paddingLeft: 8 + level * INDENT_PX }}
+        style={{ paddingLeft: 8 + level * indent }}
       >
         {card && card.canOpen ? (
           <button
@@ -133,16 +144,18 @@ const ResourceTopologyOutline: FunctionComponent<ComponentProps> = (
           />
           <span
             aria-hidden={true}
-            className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md"
+            className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md max-sm:hidden"
             style={{ color: kind.color, backgroundColor: `${kind.color}1f` }}
           >
             <Icon icon={kind.icon} className="h-3.5 w-3.5" />
           </span>
           <span className="min-w-0 flex-1">
             <span className="flex min-w-0 items-center gap-2">
-              <span className="truncate text-sm font-medium text-gray-900">
-                {topologyNodeName(translator, node)}
-              </span>
+              <TopologyName
+                name={topologyNodeName(translator, node)}
+                refitKey={node.issues.length}
+                className="truncate text-sm font-medium text-gray-900"
+              />
               <IssueBadges node={node} compact={true} />
             </span>
             <span className="block truncate text-xs text-gray-500">
@@ -177,7 +190,7 @@ const ResourceTopologyOutline: FunctionComponent<ComponentProps> = (
         role="listitem"
         key={group.id}
         className="flex items-center gap-2 border-b border-gray-100 bg-gray-50 py-1 pr-3 text-xs text-gray-500"
-        style={{ paddingLeft: 8 + level * INDENT_PX + 24 }}
+        style={{ paddingLeft: 8 + level * indent + 24 }}
       >
         <span className="font-semibold uppercase tracking-wide text-gray-600">
           {tx(kind.plural, translator)}
@@ -219,7 +232,7 @@ const ResourceTopologyOutline: FunctionComponent<ComponentProps> = (
         role="listitem"
         key={more.id}
         className="border-b border-gray-100 py-1.5 pr-3"
-        style={{ paddingLeft: 8 + level * INDENT_PX + 24 }}
+        style={{ paddingLeft: 8 + level * indent + 24 }}
       >
         <button
           type="button"

@@ -173,22 +173,26 @@ const ResourceTopologyPage: FunctionComponent<ComponentProps> = (
     }
 
     if (state === "error" || !data) {
+      // The way forward sits centred under the message, as on every list.
       return (
-        <div role="alert" className="py-6">
+        <div role="alert" data-testid="resource-topology-error">
           <ErrorMessage
             message={error || tx("Could not load the topology.", translator)}
+            action={
+              <button
+                type="button"
+                data-testid="resource-topology-retry"
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                onClick={() => {
+                  load(false).catch(() => {
+                    // load reports its own errors
+                  });
+                }}
+              >
+                {tx("Try again", translator)}
+              </button>
+            }
           />
-          <button
-            type="button"
-            className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-            onClick={() => {
-              load(false).catch(() => {
-                // load reports its own errors
-              });
-            }}
-          >
-            {tx("Try again", translator)}
-          </button>
         </div>
       );
     }

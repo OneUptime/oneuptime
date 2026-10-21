@@ -168,6 +168,22 @@ async function boxOf(locator: Locator): Promise<{
   return box!;
 }
 
+// Whether a part is drawn wholly inside the map's canvas.
+async function isInsideCanvas(page: Page, locator: Locator): Promise<boolean> {
+  const canvas: { x: number; y: number; width: number; height: number } =
+    await boxOf(byTestId(page, "resource-topology-canvas"));
+  const part: { x: number; y: number; width: number; height: number } | null =
+    await locator.boundingBox();
+
+  return Boolean(
+    part &&
+      part.x >= canvas.x - 1 &&
+      part.y >= canvas.y - 1 &&
+      part.x + part.width <= canvas.x + canvas.width + 1 &&
+      part.y + part.height <= canvas.y + canvas.height + 1,
+  );
+}
+
 // A part drawn as a card or as a chip, by its name.
 function partNamed(page: Page, name: string): Locator {
   return page
@@ -375,6 +391,22 @@ test.describe("a vCenter's Topology page", () => {
     const more: Locator = byTestId(page, `resource-topology-more-${key}`);
     await expect(more).toBeVisible();
     await expect(more).toContainText("+ 12 more");
+    /*
+     * Opening it frames it: the datacenter, "+ 12 more" and all, fills the
+     * canvas. A drawing with a folded group was never framed: the view
+     * stayed where it was, the datacenter running off the canvas.
+     */
+    await expect
+      .poll(async (): Promise<boolean> => {
+        return await isInsideCanvas(
+          page,
+          byTestId(
+            page,
+            "resource-topology-box-vmware.datacenter:datacenter/Amsterdam",
+          ),
+        );
+      })
+      .toBe(true);
     await screenshot(page, "vmware-large");
 
     await more.click();

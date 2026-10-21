@@ -682,6 +682,52 @@ describe("search", () => {
     expect(groupOf(opened, "vmware.vm").total).toBe(30);
   });
 
+  test("a host found by its name is the one match; what runs on it is drawn inside it", () => {
+    // Each virtual machine's line names the host it runs on.
+    const named: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "vcenter",
+      nodes: [
+        part("vcenter", null, { kind: "vmware.vcenter" }),
+        part("esx", "vcenter", {
+          kind: "vmware.host",
+          name: "esx101.ams.acme.example",
+        }),
+        part("esx-2", "vcenter", {
+          kind: "vmware.host",
+          name: "esx102.ams.acme.example",
+        }),
+        ...Array.from({ length: 9 }, (_value: unknown, index: number) => {
+          return part(`vm-${index}`, "esx", {
+            name: `guest-${index}`,
+            context: "esx101.ams.acme.example",
+          });
+        }),
+      ],
+    });
+    const visible: ResourceTopologyVisible = view(named, {
+      search: "esx101",
+    });
+    const host: ResourceTopologyCardItem = findCard(visible.top, "esx")!;
+
+    // "1 part matches your search", and only the host is marked as a match.
+    expect(visible.matchCount).toBe(1);
+    expect(host.isMatch).toBe(true);
+    // Its machines are drawn inside it, open, but not marked one by one.
+    expect(host.isOpen).toBe(true);
+    const guests: ResourceTopologyGroupItem = groupOf(host, "vmware.vm");
+
+    expect(guests.total).toBe(9);
+    expect(
+      guests.items.some(
+        (item: ResourceTopologyCardItem | ResourceTopologyChipItem) => {
+          return item.isMatch;
+        },
+      ),
+    ).toBe(false);
+    // The other host is not drawn.
+    expect(visible.visibleNodeIds.has("esx-2")).toBe(false);
+  });
+
   test("a search with no match leaves only the resource", () => {
     const visible: ResourceTopologyVisible = view(graph, {
       search: "nothing-like-this",

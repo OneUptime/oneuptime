@@ -2,6 +2,7 @@ import {
   ResourceTopologyGraph,
   ResourceTopologyNeighbour,
   ResourceTopologyNode,
+  getOwnTopologySearchMatches,
   getTopologyAncestors,
   getTopologyNeighbours,
   searchTopology,
@@ -488,8 +489,13 @@ function narrow(
     return null;
   }
 
-  const matches: Set<string> = searching
+  // Everything the search found is drawn, with the path to it ...
+  const found: Set<string> = searching
     ? searchTopology(graph, state.search, options.kindLabel)
+    : new Set<string>();
+  // ... and what it found for itself is what it counts and marks.
+  const matches: Set<string> = searching
+    ? getOwnTopologySearchMatches(graph, found, state.search, options.kindLabel)
     : new Set<string>();
 
   const targets: Set<string> = new Set<string>();
@@ -499,7 +505,7 @@ function narrow(
       continue;
     }
 
-    if (searching && !matches.has(node.id)) {
+    if (searching && !found.has(node.id)) {
       continue;
     }
 

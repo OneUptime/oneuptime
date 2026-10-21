@@ -6,10 +6,12 @@ import {
   ResourceTopologyNodeInput,
   buildResourceTopologyGraph,
   compareTopologyNames,
+  getOwnTopologySearchMatches,
   getTopologyAncestors,
   getTopologyDescendantIds,
   getTopologyNeighbours,
   getTopologySearchTerms,
+  groupTopologyNeighbours,
   isAttentionHealth,
   searchTopology,
   worseHealth,
@@ -429,6 +431,67 @@ describe("walking the graph", () => {
       { nodeId: "vm-1", label: "Used by", direction: "in" },
     ]);
   });
+
+  test("a part's relations group by what they are, each label said once", () => {
+    const graph: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "host",
+      nodes: [
+        part("host", null, { kind: "host" }),
+        part("checkout", "host", { name: "checkout" }),
+        part("mobile", "host", { name: "mobile-bff" }),
+        part("storefront", "host", { name: "storefront" }),
+        part("payments", "host", { name: "payments" }),
+        part("postgres", "host", { name: "postgres orders" }),
+      ],
+      relations: [
+        {
+          from: "mobile",
+          to: "checkout",
+          label: "Calls",
+          inverseLabel: "Called by",
+        },
+        {
+          from: "checkout",
+          to: "postgres",
+          label: "Calls",
+          inverseLabel: "Called by",
+        },
+        {
+          from: "storefront",
+          to: "checkout",
+          label: "Calls",
+          inverseLabel: "Called by",
+        },
+        {
+          from: "checkout",
+          to: "payments",
+          label: "Calls",
+          inverseLabel: "Called by",
+        },
+      ],
+    });
+    const groups: Array<{ label: string; ids: Array<string> }> =
+      groupTopologyNeighbours(getTopologyNeighbours(graph, "checkout")).map(
+        (group: {
+          label: string;
+          neighbours: Array<{ nodeId: string }>;
+        }): { label: string; ids: Array<string> } => {
+          return {
+            label: group.label,
+            ids: group.neighbours.map((neighbour: { nodeId: string }) => {
+              return neighbour.nodeId;
+            }),
+          };
+        },
+      );
+
+    // The panel says "Called by" over two services and "Calls" over two.
+    expect(groups).toEqual([
+      { label: "Called by", ids: ["mobile", "storefront"] },
+      { label: "Calls", ids: ["payments", "postgres"] },
+    ]);
+    expect(groupTopologyNeighbours([])).toEqual([]);
+  });
 });
 
 describe("search", () => {
@@ -466,6 +529,57 @@ describe("search", () => {
 
     expect(Array.from(searchTopology(graph, "payments"))).toEqual(["pod"]);
     expect(Array.from(searchTopology(graph, "10.0.3"))).toEqual(["pod"]);
+  });
+
+  test("what a search counts is what it found for itself, not what sits inside it", () => {
+    /*
+     * A virtual machine's line names its host. A search for the host found
+     * the host and every virtual machine on it; it counts and marks the
+     * host alone ("1 part matches"), while the machines are still drawn.
+     */
+    const graph: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "vcenter",
+      nodes: [
+        part("vcenter", null, { kind: "vmware.vcenter" }),
+        part("esx", "vcenter", { name: "esx101.ams.acme.example" }),
+        part("vm-db", "esx", {
+          kind: "vmware.vm",
+          name: "db-primary-01",
+          context: "esx101.ams.acme.example",
+        }),
+        part("vm-web", "esx", {
+          kind: "vmware.vm",
+          name: "web-esx101-proxy",
+          context: "esx101.ams.acme.example",
+        }),
+        part("elsewhere", "vcenter", {
+          kind: "vmware.vm",
+          name: "orphan-01",
+          context: "esx101.ams.acme.example",
+        }),
+      ],
+    });
+    const found: Set<string> = searchTopology(graph, "esx101");
+
+    expect(Array.from(found).sort()).toEqual(
+      ["elsewhere", "esx", "vm-db", "vm-web"].sort(),
+    );
+    expect(
+      Array.from(getOwnTopologySearchMatches(graph, found, "esx101")).sort(),
+    ).toEqual(
+      // Its own name says esx101; the orphan's host is not on the map.
+      ["elsewhere", "esx", "vm-web"].sort(),
+    );
+    // A search that names a machine and its host finds the machine.
+    const both: Set<string> = searchTopology(graph, "esx101 db-primary");
+
+    expect(
+      Array.from(getOwnTopologySearchMatches(graph, both, "esx101 db-primary")),
+    ).toEqual(["vm-db"]);
+    // Nothing found, nothing counted.
+    expect(
+      getOwnTopologySearchMatches(graph, new Set<string>(), "esx101").size,
+    ).toBe(0);
   });
 
   test("never matches the resource itself or a section", () => {

@@ -10,7 +10,11 @@ import {
   createResourceTopologyViewState,
   getAutomaticDepth,
 } from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyView";
-import { layoutResourceTopology } from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyLayout";
+import {
+  ResourceTopologyLayout,
+  ResourceTopologyPlaced,
+  layoutResourceTopology,
+} from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyLayout";
 import {
   MAX_VIEW_BUDGET,
   MIN_VIEW_BUDGET,
@@ -22,6 +26,7 @@ import {
   fitResourceTopology,
   getFitZoom,
   getViewBudgetFor,
+  holdsResourceTopologyDrawing,
 } from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyFit";
 
 /*
@@ -199,5 +204,61 @@ describe("how deep the first view opens", () => {
     expect(fitResourceTopology(graph, "gone", LAPTOP)).toEqual(
       fitResourceTopology(graph, null, LAPTOP),
     );
+  });
+});
+
+describe("a fit waits for React Flow to hold the drawing", () => {
+  /*
+   * The map frames a drawing only once React Flow holds every node of it.
+   * A "+ N more" item's id holds its group's key, "parent|kind": when the
+   * ids were compared as one "|"-joined string, a drawing with a folded
+   * group never matched, so opening a large datacenter, a filter, a search
+   * or a focus left the view where it was (found in the UI review).
+   */
+  function drawingIds(layout: ResourceTopologyLayout): Array<string> {
+    return layout.placed.map((placed: ResourceTopologyPlaced): string => {
+      return placed.id;
+    });
+  }
+
+  test("a drawing with a folded group is held once every id is", () => {
+    // One host with forty virtual machines: a dozen drawn, the rest "+ N more".
+    const graph: ResourceTopologyGraph = vcenter(1, 1, 1, 40);
+    const layout: ResourceTopologyLayout = layoutResourceTopology(
+      computeResourceTopologyView(graph, createResourceTopologyViewState(), {
+        budget: MAX_VIEW_BUDGET,
+      }),
+    );
+    const ids: Array<string> = drawingIds(layout);
+    const more: Array<string> = ids.filter((id: string): boolean => {
+      return id.startsWith("more:");
+    });
+
+    expect(more).toHaveLength(1);
+    expect(more[0]).toContain("|");
+    expect(holdsResourceTopologyDrawing(new Set<string>(ids), ids)).toBe(true);
+  });
+
+  test("the previous drawing, or one with parts left over, is not held", () => {
+    const ids: Array<string> = ["vc", "dc-0", "more:dc-0|vmware.cluster"];
+
+    // React Flow still holds the drawing before the part was opened.
+    expect(
+      holdsResourceTopologyDrawing(new Set<string>(["vc", "dc-0"]), ids),
+    ).toBe(false);
+    // Or a drawing as large with another part in it.
+    expect(
+      holdsResourceTopologyDrawing(
+        new Set<string>(["vc", "dc-0", "dc-1"]),
+        ids,
+      ),
+    ).toBe(false);
+    expect(
+      holdsResourceTopologyDrawing(
+        new Set<string>(["vc", "dc-0", "more:dc-0|vmware.cluster", "dc-1"]),
+        ids,
+      ),
+    ).toBe(false);
+    expect(holdsResourceTopologyDrawing(new Set<string>(ids), ids)).toBe(true);
   });
 });

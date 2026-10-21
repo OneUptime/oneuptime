@@ -15,10 +15,12 @@ import {
   ResourceTopologyIssue,
   ResourceTopologyLinkTarget,
   ResourceTopologyNeighbour,
+  ResourceTopologyNeighbourGroup,
   ResourceTopologyNode,
   ResourceTopologyText,
   getTopologyAncestors,
   getTopologyNeighbours,
+  groupTopologyNeighbours,
 } from "./ResourceTopologyModel";
 import {
   ResourceTopologyKindInfo,
@@ -70,6 +72,9 @@ export function openPageLabel(
     kind: tx(kind.label, translator),
   });
 }
+
+/* Most related parts listed; the rest are counted. */
+export const RELATED_LIST_LIMIT: number = 50;
 
 const SectionTitle: FunctionComponent<{ children: string }> = (props: {
   children: string;
@@ -179,7 +184,11 @@ const ResourceTopologyDetailPanel: FunctionComponent<ComponentProps> = (
       onClose={props.onClose}
       size={SideOverSize.Small}
     >
-      <div className="space-y-6" data-testid="resource-topology-panel">
+      {/*
+       * The panel brings its own top spacing from sm up, where the side-over
+       * leaves it to its content; without it the buttons sat on the header.
+       */}
+      <div className="space-y-6 sm:pt-6" data-testid="resource-topology-panel">
         <div className="flex flex-wrap gap-2">
           {node.link ? (
             <Link
@@ -291,29 +300,33 @@ const ResourceTopologyDetailPanel: FunctionComponent<ComponentProps> = (
         ) : null}
 
         {inside.length > 0 ? (
-          <div>
+          <div data-testid="resource-topology-panel-inside">
             <SectionTitle>{tx("Inside", translator)}</SectionTitle>
-            <ul className="mt-2 space-y-1 text-sm text-gray-700">
+            {/*
+             * Laid out as Details is: each count under its kind, never at
+             * the far side of a wide panel.
+             */}
+            <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
               {inside.map((entry: [string, number]): ReactElement => {
                 const kind: ResourceTopologyKindInfo = getResourceTopologyKind(
                   entry[0],
                 );
 
                 return (
-                  <li key={entry[0]} className="flex justify-between gap-4">
-                    <span>
+                  <div key={entry[0]}>
+                    <dt className="text-xs text-gray-500">
                       {tx(
                         entry[1] === 1 ? kind.label : kind.plural,
                         translator,
                       )}
-                    </span>
-                    <span className="font-medium text-gray-900">
+                    </dt>
+                    <dd className="font-medium text-gray-900">
                       {translator.formatNumber(entry[1])}
-                    </span>
-                  </li>
+                    </dd>
+                  </div>
                 );
               })}
-            </ul>
+            </dl>
             {node.attentionBelow > 0 ? (
               <p className="mt-2 text-sm font-medium text-amber-700">
                 {describeTopologyAttention(translator, node.attentionBelow)}
@@ -323,57 +336,88 @@ const ResourceTopologyDetailPanel: FunctionComponent<ComponentProps> = (
         ) : null}
 
         {neighbours.length > 0 ? (
-          <div>
+          <div data-testid="resource-topology-panel-related">
             <SectionTitle>{tx("Related", translator)}</SectionTitle>
-            <ul className="mt-2 space-y-1">
-              {neighbours
-                .slice(0, 50)
-                .map(
-                  (
-                    neighbour: ResourceTopologyNeighbour,
-                  ): ReactElement | null => {
-                    const other: ResourceTopologyNode | undefined =
-                      props.graph.nodes.get(neighbour.nodeId);
+            <div className="mt-2 space-y-3">
+              {groupTopologyNeighbours(
+                neighbours.slice(0, RELATED_LIST_LIMIT),
+              ).map((group: ResourceTopologyNeighbourGroup): ReactElement => {
+                // What each part is, only where the group mixes kinds.
+                const mixesKinds: boolean =
+                  new Set<string>(
+                    group.neighbours.map(
+                      (neighbour: ResourceTopologyNeighbour): string => {
+                        return (
+                          props.graph.nodes.get(neighbour.nodeId)?.kind || ""
+                        );
+                      },
+                    ),
+                  ).size > 1;
 
-                    if (!other) {
-                      return null;
-                    }
+                return (
+                  <div
+                    key={group.label}
+                    data-testid={`resource-topology-related-group-${group.label}`}
+                  >
+                    <p className="text-xs font-medium text-gray-500">
+                      {tx(group.label, translator)}
+                    </p>
+                    <ul className="-mx-2 mt-1">
+                      {group.neighbours.map(
+                        (
+                          neighbour: ResourceTopologyNeighbour,
+                        ): ReactElement | null => {
+                          const other: ResourceTopologyNode | undefined =
+                            props.graph.nodes.get(neighbour.nodeId);
 
-                    return (
-                      <li key={`${neighbour.label}-${neighbour.nodeId}`}>
-                        <button
-                          type="button"
-                          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-gray-50"
-                          onClick={() => {
-                            props.onSelect(other.id);
-                          }}
-                        >
-                          <span
-                            aria-hidden={true}
-                            className="h-2 w-2 flex-shrink-0 rounded-full"
-                            style={{
-                              backgroundColor:
-                                RESOURCE_TOPOLOGY_HEALTH_COLORS[
-                                  other.effectiveHealth
-                                ],
-                            }}
-                          />
-                          <span className="text-xs text-gray-500">
-                            {tx(neighbour.label, translator)}
-                          </span>
-                          <span className="min-w-0 flex-1 truncate font-medium text-gray-900">
-                            {topologyNodeName(translator, other)}
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  },
-                )}
-            </ul>
-            {neighbours.length > 50 ? (
+                          if (!other) {
+                            return null;
+                          }
+
+                          return (
+                            <li key={`${neighbour.label}-${neighbour.nodeId}`}>
+                              <button
+                                type="button"
+                                title={topologyNodeName(translator, other)}
+                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                                onClick={() => {
+                                  props.onSelect(other.id);
+                                }}
+                              >
+                                <span
+                                  aria-hidden={true}
+                                  className="h-2 w-2 flex-shrink-0 rounded-full"
+                                  style={{
+                                    backgroundColor:
+                                      RESOURCE_TOPOLOGY_HEALTH_COLORS[
+                                        other.effectiveHealth
+                                      ],
+                                  }}
+                                />
+                                <span className="min-w-0 truncate font-medium text-gray-900">
+                                  {topologyNodeName(translator, other)}
+                                </span>
+                                {mixesKinds ? (
+                                  <span className="flex-shrink-0 text-xs text-gray-500">
+                                    {topologyKindLabel(translator, other)}
+                                  </span>
+                                ) : null}
+                              </button>
+                            </li>
+                          );
+                        },
+                      )}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+            {neighbours.length > RELATED_LIST_LIMIT ? (
               <p className="mt-1 text-xs text-gray-500">
                 {translator.translateTemplate("And {{count}} more", {
-                  count: translator.formatNumber(neighbours.length - 50),
+                  count: translator.formatNumber(
+                    neighbours.length - RELATED_LIST_LIMIT,
+                  ),
                 })}
               </p>
             ) : null}

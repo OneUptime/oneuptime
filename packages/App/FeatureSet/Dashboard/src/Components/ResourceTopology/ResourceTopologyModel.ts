@@ -616,6 +616,42 @@ export function getTopologyNeighbours(
   );
 }
 
+/* A part's relations of one kind: "Called by" mobile-bff and storefront. */
+export interface ResourceTopologyNeighbourGroup {
+  /* English: "Runs here", "Calls". */
+  label: string;
+  neighbours: Array<ResourceTopologyNeighbour>;
+}
+
+/*
+ * A part's relations, one group per kind of relation, in the order the
+ * relations come: a label is said once, over the parts it names, rather
+ * than on every row of the panel.
+ */
+export function groupTopologyNeighbours(
+  neighbours: Array<ResourceTopologyNeighbour>,
+): Array<ResourceTopologyNeighbourGroup> {
+  const groups: Map<string, ResourceTopologyNeighbourGroup> = new Map<
+    string,
+    ResourceTopologyNeighbourGroup
+  >();
+
+  for (const neighbour of neighbours) {
+    let group: ResourceTopologyNeighbourGroup | undefined = groups.get(
+      neighbour.label,
+    );
+
+    if (!group) {
+      group = { label: neighbour.label, neighbours: [] };
+      groups.set(neighbour.label, group);
+    }
+
+    group.neighbours.push(neighbour);
+  }
+
+  return Array.from(groups.values());
+}
+
 /*
  * The words a search reads for a part: its name, what it is (in English and
  * in the reader's language, from `kindLabel`), its status, where it sits and
@@ -696,4 +732,64 @@ export function searchTopology(
   }
 
   return matches;
+}
+
+/*
+ * Of the parts a search found, the ones it found for themselves: what the
+ * search counts and marks. A part found only by where it sits - the host
+ * named on a virtual machine's line - is left out when the part it sits in
+ * was found too, so a search for a host says "1 part matches" and marks the
+ * host, not each of its virtual machines (they are still drawn, inside it).
+ * A part found by where it sits whose place was not found - the pods of a
+ * namespace, read by node - is a match of its own.
+ */
+export function getOwnTopologySearchMatches(
+  graph: ResourceTopologyGraph,
+  found: ReadonlySet<string>,
+  search: string,
+  kindLabel?: ((kind: string) => Array<string>) | undefined,
+): Set<string> {
+  const terms: Array<string> = getTopologySearchTerms(search);
+  const own: Set<string> = new Set<string>();
+
+  for (const id of found) {
+    const node: ResourceTopologyNode | undefined = graph.nodes.get(id);
+
+    if (!node) {
+      continue;
+    }
+
+    const ownText: string = getTopologySearchText(
+      { ...node, context: undefined },
+      kindLabel,
+    );
+    const foundForItself: boolean =
+      !node.context ||
+      terms.every((term: string): boolean => {
+        return ownText.includes(term);
+      });
+
+    if (foundForItself) {
+      own.add(id);
+      continue;
+    }
+
+    let cursor: string | null = node.parentId;
+    let insideFound: boolean = false;
+
+    while (cursor) {
+      if (found.has(cursor)) {
+        insideFound = true;
+        break;
+      }
+
+      cursor = graph.nodes.get(cursor)?.parentId || null;
+    }
+
+    if (!insideFound) {
+      own.add(id);
+    }
+  }
+
+  return own;
 }

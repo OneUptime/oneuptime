@@ -572,8 +572,17 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
         ) : null}
       </div>
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div className="relative w-full lg:max-w-sm">
+      {/*
+       * The search takes the room the controls leave it. When the controls
+       * do not fit beside a usable search box (a Kubernetes cluster's Group
+       * by, a long language, a phone), they move to a line of their own as
+       * one group, instead of dropping one control under the others.
+       */}
+      <div
+        data-testid="resource-topology-toolbar"
+        className="flex flex-wrap items-center gap-x-3 gap-y-2"
+      >
+        <div className="relative min-w-[15rem] flex-1">
           <Icon
             icon={IconProp.Search}
             className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-400"
@@ -590,7 +599,10 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
             className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
+        <div
+          data-testid="resource-topology-controls"
+          className="flex flex-wrap items-center gap-2"
+        >
           <StatusChipGroup
             options={healthOptions}
             value={viewState.filter}

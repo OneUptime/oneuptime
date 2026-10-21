@@ -76,6 +76,25 @@ export interface ResourceTopologyFitOptions {
   aspect?: number | undefined;
 }
 
+/*
+ * Whether React Flow holds the drawing the map handed it: every id of it,
+ * and nothing else. Until it does it still holds the previous drawing, and
+ * a fit would frame what is gone. The ids are compared one by one, never as
+ * one joined string: a "+ N more" item's id holds its group's key, which
+ * holds a "|" of its own.
+ */
+export function holdsResourceTopologyDrawing(
+  held: { size: number; has: (id: string) => boolean },
+  drawingIds: ReadonlyArray<string>,
+): boolean {
+  return (
+    held.size === drawingIds.length &&
+    drawingIds.every((id: string): boolean => {
+      return held.has(id);
+    })
+  );
+}
+
 export function fitResourceTopology(
   graph: ResourceTopologyGraph,
   focusId: string | null,
