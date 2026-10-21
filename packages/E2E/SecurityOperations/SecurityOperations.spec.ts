@@ -65,7 +65,8 @@ interface FixtureState {
 interface OpenOptions {
   width?: number;
   height?: number;
-  theme?: "dark";
+  // Light unless "dark"; undefined reads as light, for loops over both.
+  theme?: "dark" | undefined;
   empty?: boolean;
   quiet?: boolean;
   role?: "viewer";

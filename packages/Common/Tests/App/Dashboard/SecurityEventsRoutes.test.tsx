@@ -29,9 +29,12 @@ import {
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Layout",
   () => {
-    const ReactModule: typeof import("react") = jest.requireActual("react");
-    const RouterModule: typeof import("react-router-dom") =
-      jest.requireActual("react-router-dom");
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
+    const RouterModule: typeof import("react-router-dom") = jest.requireActual(
+      "react-router-dom",
+    ) as typeof import("react-router-dom");
 
     return {
       __esModule: true,
@@ -49,7 +52,9 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Index",
   () => {
-    const ReactModule: typeof import("react") = jest.requireActual("react");
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
 
     return {
       __esModule: true,
@@ -77,7 +82,9 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Overview",
   () => {
-    const ReactModule: typeof import("react") = jest.requireActual("react");
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
 
     return {
       __esModule: true,
@@ -105,7 +112,9 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Cases",
   () => {
-    const ReactModule: typeof import("react") = jest.requireActual("react");
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
 
     return {
       __esModule: true,
@@ -133,7 +142,9 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView",
   () => {
-    const ReactModule: typeof import("react") = jest.requireActual("react");
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
 
     return {
       __esModule: true,
@@ -161,7 +172,9 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Entities",
   () => {
-    const ReactModule: typeof import("react") = jest.requireActual("react");
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
 
     return {
       __esModule: true,
@@ -189,7 +202,9 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Correlate",
   () => {
-    const ReactModule: typeof import("react") = jest.requireActual("react");
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
 
     return {
       __esModule: true,
@@ -217,7 +232,9 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/DetectionRules",
   () => {
-    const ReactModule: typeof import("react") = jest.requireActual("react");
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
 
     return {
       __esModule: true,
@@ -245,7 +262,9 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/RuleLibrary",
   () => {
-    const ReactModule: typeof import("react") = jest.requireActual("react");
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
 
     return {
       __esModule: true,
@@ -273,7 +292,9 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/AttackCoverage",
   () => {
-    const ReactModule: typeof import("react") = jest.requireActual("react");
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
 
     return {
       __esModule: true,
@@ -301,7 +322,9 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/ThreatIntel",
   () => {
-    const ReactModule: typeof import("react") = jest.requireActual("react");
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
 
     return {
       __esModule: true,
@@ -329,7 +352,9 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Playbooks",
   () => {
-    const ReactModule: typeof import("react") = jest.requireActual("react");
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
 
     return {
       __esModule: true,
@@ -357,7 +382,9 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/PlaybookView",
   () => {
-    const ReactModule: typeof import("react") = jest.requireActual("react");
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
 
     return {
       __esModule: true,
@@ -385,7 +412,9 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/PlaybookRuns",
   () => {
-    const ReactModule: typeof import("react") = jest.requireActual("react");
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
 
     return {
       __esModule: true,
@@ -413,7 +442,9 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Connections",
   () => {
-    const ReactModule: typeof import("react") = jest.requireActual("react");
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
 
     return {
       __esModule: true,
@@ -441,7 +472,9 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Documentation",
   () => {
-    const ReactModule: typeof import("react") = jest.requireActual("react");
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
 
     return {
       __esModule: true,
