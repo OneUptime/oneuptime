@@ -1531,12 +1531,18 @@ describe("Home Page & Shortcuts", () => {
         COMMON_DIR,
         "UI/Components/ModelTable/BaseModelTable.tsx",
       );
-
-      expect(table).toContain(
-        'if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) {',
+      // Every table's header owns the shortcut (TableHeaderControls, #5135).
+      const header: string = readSource(
+        COMMON_DIR,
+        "UI/Components/Table/TableHeaderControls.tsx",
       );
-      expect(table).toContain('target.tagName === "INPUT"');
-      expect(table).toContain('target.tagName === "TEXTAREA"');
+
+      expect(table).toContain("useTableHeaderSearchShortcut(");
+      expect(header).toContain(
+        'if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) {',
+      );
+      expect(header).toContain('target.tagName === "INPUT"');
+      expect(header).toContain('target.tagName === "TEXTAREA"');
     });
   });
 });
