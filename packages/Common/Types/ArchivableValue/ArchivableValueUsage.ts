@@ -35,6 +35,8 @@ export interface ArchivableValueUsageItem {
   tableName: string;
   // How they are named: the model's plural name, "Incidents".
   title: string;
+  // And one of them: "Incident".
+  singularTitle: string;
   count: number;
   // The count stopped at the cap: there are more.
   isCountCapped: boolean;
@@ -51,6 +53,7 @@ export default class ArchivableValueUsage {
       return {
         tableName: item.tableName,
         title: item.title,
+        singularTitle: item.singularTitle,
         count: item.count,
         isCountCapped: item.isCountCapped,
         effect: item.effect,
@@ -89,6 +92,11 @@ export default class ArchivableValueUsage {
       items.push({
         tableName: record["tableName"] as string,
         title: record["title"] as string,
+        singularTitle:
+          typeof record["singularTitle"] === "string" &&
+          record["singularTitle"]
+            ? (record["singularTitle"] as string)
+            : (record["title"] as string),
         count: count,
         isCountCapped: record["isCountCapped"] === true,
         effect: record["effect"] as ArchivableValueDeleteEffect,

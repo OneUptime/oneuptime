@@ -15,6 +15,10 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelListCache from "Common/UI/Utils/ModelListCache";
 import Navigation from "Common/UI/Utils/Navigation";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import useArchivableValues, {
+  ArchivableValues,
+} from "../../../Components/ArchivableValue/UseArchivableValues";
+import { ArchivableValueType } from "Common/Utils/ArchivableValues";
 import React, {
   Fragment,
   FunctionComponent,
@@ -36,6 +40,12 @@ const DEFINITION: StateListDefinition =
 const ScheduledMaintenanceStatesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  // Archive and Unarchive, and the folded Archived section. See the hook.
+  const archive: ArchivableValues<ScheduledMaintenanceState> = useArchivableValues<ScheduledMaintenanceState>({
+    modelType: ScheduledMaintenanceState,
+    type: ArchivableValueType.ScheduledMaintenanceState,
+  });
+
   // The rows on the page, which "Counts as" is worked out from.
   const [rows, setRows] = useState<Array<ScheduledMaintenanceState>>([]);
 
@@ -43,6 +53,10 @@ const ScheduledMaintenanceStatesPage: FunctionComponent<
     <Fragment>
       <ModelTable<ScheduledMaintenanceState>
         modelType={ScheduledMaintenanceState}
+        query={archive.query}
+        actionButtons={archive.actionButtons}
+        getDeleteConfirmation={archive.getDeleteConfirmation}
+        refreshToggle={archive.refreshToggle}
         id="scheduled-maintenance-state-table"
         userPreferencesKey="scheduled-maintenance-state-table"
         name="Settings > Scheduled Maintenance State"
@@ -94,6 +108,7 @@ const ScheduledMaintenanceStatesPage: FunctionComponent<
         )}
         showRefreshButton={true}
       />
+      {archive.element}
     </Fragment>
   );
 };

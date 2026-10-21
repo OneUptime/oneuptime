@@ -6,15 +6,29 @@ import LabelElement from "Common/UI/Components/Label/Label";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
+import useArchivableValues, {
+  ArchivableValues,
+} from "../../Components/ArchivableValue/UseArchivableValues";
+import { ArchivableValueType } from "Common/Utils/ArchivableValues";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  // Archive and Unarchive, and the folded Archived section. See the hook.
+  const archive: ArchivableValues<Label> = useArchivableValues<Label>({
+    modelType: Label,
+    type: ArchivableValueType.Label,
+  });
+
   return (
     <Fragment>
       <ModelTable<Label>
         modelType={Label}
+        actionButtons={archive.actionButtons}
+        getDeleteConfirmation={archive.getDeleteConfirmation}
+        refreshToggle={archive.refreshToggle}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
+          ...archive.query,
         }}
         id="labels-table"
         name="Settings > Labels"
@@ -111,6 +125,7 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         ]}
       />
+      {archive.element}
     </Fragment>
   );
 };

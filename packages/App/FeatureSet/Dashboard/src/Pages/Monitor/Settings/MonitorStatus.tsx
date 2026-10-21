@@ -15,6 +15,10 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelListCache from "Common/UI/Utils/ModelListCache";
 import Navigation from "Common/UI/Utils/Navigation";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import useArchivableValues, {
+  ArchivableValues,
+} from "../../../Components/ArchivableValue/UseArchivableValues";
+import { ArchivableValueType } from "Common/Utils/ArchivableValues";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const DEFINITION: StateListDefinition =
@@ -29,10 +33,20 @@ const DEFINITION: StateListDefinition =
 const MonitorStatusesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  // Archive and Unarchive, and the folded Archived section. See the hook.
+  const archive: ArchivableValues<MonitorStatus> = useArchivableValues<MonitorStatus>({
+    modelType: MonitorStatus,
+    type: ArchivableValueType.MonitorStatus,
+  });
+
   return (
     <Fragment>
       <ModelTable<MonitorStatus>
         modelType={MonitorStatus}
+        query={archive.query}
+        actionButtons={archive.actionButtons}
+        getDeleteConfirmation={archive.getDeleteConfirmation}
+        refreshToggle={archive.refreshToggle}
         id="monitor-status-table"
         userPreferencesKey="monitor-status-table"
         name="Settings > Monitor Status"
@@ -77,6 +91,7 @@ const MonitorStatusesPage: FunctionComponent<
         )}
         showRefreshButton={true}
       />
+      {archive.element}
     </Fragment>
   );
 };

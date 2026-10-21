@@ -184,6 +184,9 @@ import UserPreferences, {
 } from "../../../Utils/UserPreferences";
 import RequestOptions from "../../Utils/API/RequestOptions";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
+import ArchivedValuePicker, {
+  ARCHIVED_VALUE_TAG,
+} from "../../Utils/ArchivedValuePicker";
 
 /*
  * How many rows a drag-ordered table shows at once unless told otherwise.
@@ -334,6 +337,24 @@ export interface DeleteConfirmation {
   title?: string | undefined;
   description: string | ReactElement;
   submitButtonText?: string | undefined;
+  /*
+   * A gentler way to the same end, offered in the dialog: "Archive instead"
+   * beside Delete, for a value that records still use. It runs instead of
+   * the delete, and the dialog closes once it is done.
+   */
+  alternative?: DeleteConfirmationAlternative | undefined;
+  /*
+   * The record cannot be deleted now - records still point at it and the
+   * server would refuse - so the dialog says why and offers only the
+   * alternative (as its one action) and Cancel.
+   */
+  isDeleteBlocked?: boolean | undefined;
+}
+
+export interface DeleteConfirmationAlternative {
+  // English, looked up when drawn: "Archive instead".
+  title: string;
+  onClick: () => Promise<void>;
 }
 
 export interface BaseTableProps<
@@ -1557,6 +1578,36 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [currentDeleteableItem, setCurrentDeleteableItem] =
     useState<TBaseModel | null>(null);
   // The caller's wording for the open Delete dialog; null means the default.
+  /*
+   * The Delete dialog's alternative ("Archive instead") while it runs, and
+   * why it failed: the dialog stays open on a failure, with the reason.
+   */
+  const [isDeleteAlternativeRunning, setIsDeleteAlternativeRunning] =
+    useState<boolean>(false);
+  const [deleteAlternativeError, setDeleteAlternativeError] =
+    useState<string>("");
+
+  type RunDeleteAlternativeFunction = (
+    alternative: DeleteConfirmationAlternative,
+  ) => Promise<void>;
+
+  const runDeleteAlternative: RunDeleteAlternativeFunction = async (
+    alternative: DeleteConfirmationAlternative,
+  ): Promise<void> => {
+    setDeleteAlternativeError("");
+    setIsDeleteAlternativeRunning(true);
+
+    try {
+      await alternative.onClick();
+      setShowDeleteConfirmModal(false);
+      await fetchItems({ quiet: true });
+    } catch (err) {
+      setDeleteAlternativeError(API.getFriendlyMessage(err));
+    } finally {
+      setIsDeleteAlternativeRunning(false);
+    }
+  };
+
   const [deleteConfirmation, setDeleteConfirmation] =
     useState<DeleteConfirmation | null>(null);
 
@@ -1899,6 +1950,20 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             (select as Dictionary<boolean>)[colorColumnName] = true;
           }
 
+          /*
+           * A filter lists archived values too - the records that have one
+           * stay findable by it - and marks them, so a reader can tell why
+           * a value is offered here and not in the forms.
+           */
+          const isArchivableFilter: boolean =
+            ArchivedValuePicker.isArchivableValueModel(
+              filter.filterEntityType as DatabaseBaseModelType,
+            );
+
+          if (isArchivableFilter) {
+            (select as Dictionary<boolean>)["isArchived"] = true;
+          }
+
           if (accessControlColumnName) {
             (select as Dictionary<JSONObject>)[accessControlColumnName] = {
               _id: true,
@@ -1928,6 +1993,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 filter.filterDropdownField.label,
               ) as string,
             };
+
+            if (
+              isArchivableFilter &&
+              item.getColumnValue("isArchived") === true
+            ) {
+              option.isArchived = true;
+              option.description = ARCHIVED_VALUE_TAG;
+            }
 
             if (colorColumnName) {
               const colorValue: Color | string | null = item.getColumnValue(
@@ -5373,6 +5446,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
       {showDeleteConfirmModal && (
         <ConfirmModal
+          isLoading={isDeleteAlternativeRunning}
+          error={deleteAlternativeError || undefined}
           title={
             deleteConfirmation?.title ||
             translateNamedAction(translator, {
@@ -5397,17 +5472,64 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               />
             )
           }
-          onClose={() => {
-            setShowDeleteConfirmModal(false);
-          }}
-          submitButtonText={deleteConfirmation?.submitButtonText || "Delete"}
+          /*
+           * A delete that cannot go through, with nothing to offer instead,
+           * is a notice: its one button closes it.
+           */
+          onClose={
+            deleteConfirmation?.isDeleteBlocked &&
+            !deleteConfirmation.alternative
+              ? undefined
+              : () => {
+                  setShowDeleteConfirmModal(false);
+                  setDeleteAlternativeError("");
+                }
+          }
+          submitButtonText={
+            deleteConfirmation?.isDeleteBlocked
+              ? deleteConfirmation.alternative?.title || "Close"
+              : deleteConfirmation?.submitButtonText || "Delete"
+          }
           onSubmit={async () => {
+            if (deleteConfirmation?.isDeleteBlocked) {
+              if (deleteConfirmation.alternative) {
+                await runDeleteAlternative(deleteConfirmation.alternative);
+              } else {
+                setShowDeleteConfirmModal(false);
+              }
+
+              return;
+            }
+
             if (currentDeleteableItem && currentDeleteableItem["_id"]) {
               await deleteItem(currentDeleteableItem);
               setShowDeleteConfirmModal(false);
             }
           }}
-          submitButtonType={ButtonStyleType.DANGER}
+          submitButtonType={
+            deleteConfirmation?.isDeleteBlocked
+              ? deleteConfirmation.alternative
+                ? ButtonStyleType.PRIMARY
+                : ButtonStyleType.NORMAL
+              : ButtonStyleType.DANGER
+          }
+          secondaryButton={
+            deleteConfirmation?.alternative &&
+            !deleteConfirmation.isDeleteBlocked
+              ? {
+                  title: deleteConfirmation.alternative.title,
+                  dataTestId: "delete-confirmation-alternative",
+                  disabled: isDeleteAlternativeRunning,
+                  onClick: () => {
+                    if (deleteConfirmation.alternative) {
+                      void runDeleteAlternative(
+                        deleteConfirmation.alternative,
+                      );
+                    }
+                  },
+                }
+              : undefined
+          }
         />
       )}
 

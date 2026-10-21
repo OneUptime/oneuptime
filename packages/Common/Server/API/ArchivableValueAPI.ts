@@ -18,7 +18,6 @@ import ArchivableValueUsageItems, {
   ArchivableValueUsageItem,
 } from "../../Types/ArchivableValue/ArchivableValueUsage";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import ServerException from "../../Types/Exception/ServerException";
 import ObjectID from "../../Types/ObjectID";
@@ -31,17 +30,20 @@ import { DataSource } from "typeorm";
  * request BaseAPI answers, and one more, asked by the dashboard's Archive
  * and Delete dialogs before they open:
  *
- *   POST /api/<value>/:id/usage
+ *   POST (or GET) /<route>/:id/usage
+ *     -> { usage: [{ tableName, title, singularTitle, count, isCountCapped,
+ *                    effect, kind }] }
  *
- * answers how many of the project's records use the value, by the way they
- * reach it, and what deleting it would do to each (ArchivableValueUsage):
- * `{ usage: [{ tableName, title, count, isCountCapped, effect, kind }] }`.
+ * how many of the project's records use the value, by the way they reach
+ * it, and what deleting it would do to each (ArchivableValueUsage).
  *
- * Only someone who may archive or delete the value is answered - its editors
- * and deleters - and only about a value of the project they ask in that they
- * may read. The counts are read as OneUptime, and nothing but counts comes
- * back: no record is named.
+ * It takes what archiving or deleting the value takes - its editors and
+ * deleters - and only a value of the project asked about that the caller may
+ * read. The counts are read as OneUptime, and nothing but counts comes back:
+ * no record is named.
  */
+export const ARCHIVABLE_VALUE_USAGE_ROUTE: string = "/usage";
+
 export default class ArchivableValueAPI<
   TBaseModel extends BaseModel,
   TBaseService extends DatabaseService<BaseModel>,
@@ -55,17 +57,28 @@ export default class ArchivableValueAPI<
       );
     }
 
-    this.router.post(
-      `${new this.entityType().getCrudApiPath()?.toString()}/:id/usage`,
-      UserMiddleware.getUserMiddleware,
-      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-        try {
-          await this.getUsage(req, res);
-        } catch (err) {
-          next(err);
-        }
-      },
-    );
+    const route: string = `${new this.entityType()
+      .getCrudApiPath()
+      ?.toString()}/:id${ARCHIVABLE_VALUE_USAGE_ROUTE}`;
+
+    const handler: (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ) => Promise<void> = async (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ): Promise<void> => {
+      try {
+        await this.getUsage(req, res);
+      } catch (error) {
+        next(error);
+      }
+    };
+
+    this.router.post(route, UserMiddleware.getUserMiddleware, handler);
+    this.router.get(route, UserMiddleware.getUserMiddleware, handler);
   }
 
   @CaptureSpan()
@@ -73,24 +86,13 @@ export default class ArchivableValueAPI<
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
+    const idParam: string = req.params["id"] as string;
+    ObjectID.validateUUID(idParam);
+
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-    const idText: string = (req.params["id"] || "").toString().trim();
-
-    if (!ObjectID.isValidUUID(idText)) {
-      throw new BadDataException(
-        `Invalid ID for ${new this.entityType().singularName || "this value"}.`,
-      );
-    }
-
-    const projectId: ObjectID | null = this.getTenantId(req);
-
-    if (!projectId) {
-      throw new BadDataException(
-        "Project ID is required. Send it in the projectid header.",
-      );
-    }
+    const projectId: ObjectID = CommonAPI.assertTenantScoped(props);
 
     // Someone who may archive the value (an update), or delete it.
     try {
@@ -114,7 +116,7 @@ export default class ArchivableValueAPI<
 
     // A value of this project the caller may read.
     const value: BaseModel | null = await this.service.findOneById({
-      id: new ObjectID(idText),
+      id: new ObjectID(idParam),
       select: {
         _id: true,
       },
@@ -137,10 +139,11 @@ export default class ArchivableValueAPI<
       await ArchivableValueUsage.countUses({
         dataSource: dataSource,
         valueTable: new this.entityType().tableName || "",
-        valueId: new ObjectID(idText),
+        valueId: new ObjectID(idParam),
         projectId: projectId,
       });
 
+    Response.setNoCacheHeaders(res);
     return Response.sendJsonObjectResponse(req, res, {
       usage: ArchivableValueUsageItems.toJSONArray(usage),
     });

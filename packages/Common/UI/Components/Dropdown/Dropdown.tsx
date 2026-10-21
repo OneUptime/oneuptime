@@ -56,6 +56,12 @@ export interface DropdownOption {
    */
   isUserContent?: boolean | undefined;
   /*
+   * An archived value a record still has (Common/Utils/ArchivableValues):
+   * a picker never lists one, but shows the one already picked, marked
+   * Archived, so it can be kept or changed.
+   */
+  isArchived?: boolean | undefined;
+  /*
    * Shown in the menu but never picked: a choice that is not open here,
    * with its description saying why ("Runs JavaScript steps only."). The
    * menu draws it muted and passes over it, mouse and keyboard alike, and

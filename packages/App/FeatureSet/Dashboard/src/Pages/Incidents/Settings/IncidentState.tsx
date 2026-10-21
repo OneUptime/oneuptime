@@ -15,6 +15,10 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelListCache from "Common/UI/Utils/ModelListCache";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import useArchivableValues, {
+  ArchivableValues,
+} from "../../../Components/ArchivableValue/UseArchivableValues";
+import { ArchivableValueType } from "Common/Utils/ArchivableValues";
 import React, {
   Fragment,
   FunctionComponent,
@@ -35,6 +39,12 @@ const DEFINITION: StateListDefinition =
 const IncidentStatesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  // Archive and Unarchive, and the folded Archived section. See the hook.
+  const archive: ArchivableValues<IncidentState> = useArchivableValues<IncidentState>({
+    modelType: IncidentState,
+    type: ArchivableValueType.IncidentState,
+  });
+
   // The rows on the page, which "Counts as" is worked out from.
   const [rows, setRows] = useState<Array<IncidentState>>([]);
 
@@ -42,6 +52,10 @@ const IncidentStatesPage: FunctionComponent<
     <Fragment>
       <ModelTable<IncidentState>
         modelType={IncidentState}
+        query={archive.query}
+        actionButtons={archive.actionButtons}
+        getDeleteConfirmation={archive.getDeleteConfirmation}
+        refreshToggle={archive.refreshToggle}
         id="incident-state-table"
         userPreferencesKey="incident-state-table"
         name="Settings > Incident State"
@@ -88,6 +102,7 @@ const IncidentStatesPage: FunctionComponent<
         )}
         showRefreshButton={true}
       />
+      {archive.element}
     </Fragment>
   );
 };

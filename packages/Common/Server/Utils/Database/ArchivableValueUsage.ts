@@ -75,6 +75,7 @@ export interface JsonUsageColumn {
   // The value tables whose ids it may hold.
   valueTables: Array<string>;
   title: string;
+  singularTitle: string;
 }
 
 export const JSON_USAGE_COLUMNS: Array<JsonUsageColumn> = [
@@ -89,6 +90,7 @@ export const JSON_USAGE_COLUMNS: Array<JsonUsageColumn> = [
       "IncidentRole",
     ],
     title: "Monitors",
+    singularTitle: "Monitor",
   },
   {
     tableName: "MonitorTemplate",
@@ -101,12 +103,14 @@ export const JSON_USAGE_COLUMNS: Array<JsonUsageColumn> = [
       "IncidentRole",
     ],
     title: "Monitor Templates",
+    singularTitle: "Monitor Template",
   },
   {
     tableName: "IncidentGroupingRule",
     column: "episodeMemberRoleAssignments",
     valueTables: ["IncidentRole"],
     title: "Incident Grouping Rules",
+    singularTitle: "Incident Grouping Rule",
   },
   {
     tableName: "Workflow",
@@ -122,6 +126,7 @@ export const JSON_USAGE_COLUMNS: Array<JsonUsageColumn> = [
       "IncidentRole",
     ],
     title: "Workflows",
+    singularTitle: "Workflow",
   },
 ];
 
@@ -143,6 +148,7 @@ export interface ValueReference {
   recordProperty: string;
   // How the records are named: the model's plural name, "Incidents".
   title: string;
+  singularTitle: string;
   isList: boolean;
   // What deleting the value does to the records, by the foreign key.
   effect: ArchivableValueDeleteEffect;
@@ -177,26 +183,37 @@ const getEffect: (onDelete: string | undefined) => ArchivableValueDeleteEffect =
     }
   };
 
-const getTitle: (metadata: EntityMetadata) => string = (
-  metadata: EntityMetadata,
-): string => {
+// How a model names its records: "Incidents", and one of them, "Incident".
+const getTitles: (metadata: EntityMetadata) => {
+  title: string;
+  singularTitle: string;
+} = (metadata: EntityMetadata): { title: string; singularTitle: string } => {
   const target: unknown = metadata.target;
 
   if (typeof target === "function") {
     try {
-      const model: { pluralName?: string | null } = new (target as {
-        new (): { pluralName?: string | null };
+      const model: {
+        pluralName?: string | null;
+        singularName?: string | null;
+      } = new (target as {
+        new (): {
+          pluralName?: string | null;
+          singularName?: string | null;
+        };
       })();
 
       if (model.pluralName) {
-        return model.pluralName;
+        return {
+          title: model.pluralName,
+          singularTitle: model.singularName || model.pluralName,
+        };
       }
     } catch {
       // A class that cannot be built without arguments: its table name.
     }
   }
 
-  return metadata.tableName;
+  return { title: metadata.tableName, singularTitle: metadata.tableName };
 };
 
 const hasColumn: (metadata: EntityMetadata, databaseName: string) => boolean = (
@@ -282,7 +299,7 @@ export default class ArchivableValueUsage {
       return null;
     }
 
-    const title: string = getTitle(metadata);
+    const { title, singularTitle } = getTitles(metadata);
     const kind: ArchivableValueUsageKind = isSettingsReference(
       metadata.tableName,
       relation.propertyName,
@@ -306,6 +323,7 @@ export default class ArchivableValueUsage {
         recordTable: metadata.tableName,
         recordProperty: relation.propertyName,
         title: title,
+        singularTitle: singularTitle,
         isList: false,
         effect: getEffect(relation.onDelete),
         kind: kind,
@@ -330,6 +348,7 @@ export default class ArchivableValueUsage {
         recordTable: metadata.tableName,
         recordProperty: relation.propertyName,
         title: title,
+        singularTitle: singularTitle,
         isList: true,
         // Deleting the value deletes its rows of the join table.
         effect: ArchivableValueDeleteEffect.RemovedFromList,
@@ -376,6 +395,7 @@ export default class ArchivableValueUsage {
         items.push({
           tableName: reference.recordTable,
           title: reference.title,
+          singularTitle: reference.singularTitle,
           count: Math.min(count, USAGE_COUNT_CAP),
           isCountCapped: count > USAGE_COUNT_CAP,
           effect: reference.effect,
@@ -417,6 +437,7 @@ export default class ArchivableValueUsage {
         items.push({
           tableName: jsonColumn.tableName,
           title: jsonColumn.title,
+          singularTitle: jsonColumn.singularTitle,
           count: Math.min(count, USAGE_COUNT_CAP),
           isCountCapped: count > USAGE_COUNT_CAP,
           effect: ArchivableValueDeleteEffect.LeftDangling,
