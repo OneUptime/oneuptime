@@ -12,6 +12,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import ColumnWriteRefusedException from "../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
 import LlmType from "../../../Types/LLM/LlmType";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
@@ -484,5 +485,125 @@ describe.each(SERVICE_CASES)("$label", (serviceCase: ServiceCase) => {
         OTHER_PROJECT_DEFAULT_ID,
       ]);
     });
+  });
+});
+
+/*
+ * Who creates a Runner, and who creates one as the project's default
+ * (Runner.isProjectDefault). Every creator of a Runner may give the column
+ * a value: the Terraform provider sends what the API publishes, false,
+ * with every create, and was refused the whole Runner for it unless it
+ * could also edit Runners. Only someone who may make a Runner the default -
+ * those who edit Runners - creates one AS the default
+ * (RunnerService.assertMayCreateAsProjectDefault): Create Runner alone,
+ * like a Project Member, never makes the Runner it creates the one every
+ * runbook step that picks no Runner runs on.
+ */
+describe("RunnerService: who creates a Runner as the project's default", () => {
+  const RUNNER_DEFAULT_COLUMN: string = "isProjectDefault";
+  let table: InMemoryTable;
+
+  function runnerCase(): ServiceCase {
+    const found: ServiceCase | undefined = SERVICE_CASES.find(
+      (serviceCase: ServiceCase): boolean => {
+        return serviceCase.label === "RunnerService";
+      },
+    );
+
+    if (!found) {
+      throw new Error("RunnerService is one of the cases above.");
+    }
+
+    return found;
+  }
+
+  beforeEach(() => {
+    table = useInMemoryTable(
+      RunnerService as unknown as DatabaseService<BaseModel>,
+      startingRows(RUNNER_DEFAULT_COLUMN),
+    );
+  });
+
+  test.each([
+    ["Project Owner", [Permission.ProjectOwner]],
+    ["Project Admin", [Permission.ProjectAdmin]],
+    ["Runbook Admin", [Permission.RunbookAdmin]],
+    [
+      "Create and Edit Runner",
+      [Permission.CreateRunner, Permission.EditRunner],
+    ],
+  ] as Array<[string, Array<Permission>]>)(
+    "%s creates one as the default",
+    async (_label: string, permissions: Array<Permission>) => {
+      const created: BaseModel = await RunnerService.create({
+        data: newRow(runnerCase(), true) as never,
+        props: memberProps(permissions),
+      });
+
+      expect(defaultsOf(table, PROJECT_ID, RUNNER_DEFAULT_COLUMN)).toEqual([
+        created.id!.toString(),
+      ]);
+    },
+  );
+
+  test.each([
+    ["Create Runner", [Permission.CreateRunner]],
+    ["a Project Member", [Permission.ProjectMember]],
+  ] as Array<[string, Array<Permission>]>)(
+    "%s creates one with the default it is sent, false - what the Terraform provider sends",
+    async (_label: string, permissions: Array<Permission>) => {
+      const created: BaseModel = await RunnerService.create({
+        data: newRow(runnerCase(), false) as never,
+        props: memberProps(permissions),
+      });
+
+      expect(table.inserts).toHaveLength(1);
+      expect(table.inserts[0]![RUNNER_DEFAULT_COLUMN]).toBe(false);
+      expect(String(table.inserts[0]!["_id"])).toBe(created.id!.toString());
+      // Not the default: the project's stays where it was.
+      expect(defaultsOf(table, PROJECT_ID, RUNNER_DEFAULT_COLUMN)).toEqual([
+        CURRENT_DEFAULT_ID,
+      ]);
+      expect(table.updates).toEqual([]);
+    },
+  );
+
+  test.each([
+    ["Create Runner", [Permission.CreateRunner]],
+    ["a Project Member", [Permission.ProjectMember]],
+  ] as Array<[string, Array<Permission>]>)(
+    "%s does not create one as the default: refused in the column check's words, and the default stays",
+    async (_label: string, permissions: Array<Permission>) => {
+      const error: unknown = await rejectionOf(
+        RunnerService.create({
+          data: newRow(runnerCase(), true) as never,
+          props: memberProps(permissions),
+        }),
+      );
+
+      expect(error).toBeInstanceOf(ColumnWriteRefusedException);
+      expect((error as Error).message).toBe(
+        "User is not allowed to create on isProjectDefault column of Runner. You need one of these permissions: Project Owner, Project Admin, Runbook Admin, Edit Runbook Agent.",
+      );
+      expect(table.inserts).toEqual([]);
+      expect(table.updates).toEqual([]);
+      expect(defaultsOf(table, PROJECT_ID, RUNNER_DEFAULT_COLUMN)).toEqual([
+        CURRENT_DEFAULT_ID,
+      ]);
+    },
+  );
+
+  test("OneUptime creates one as the default, whoever asked", async () => {
+    const row: BaseModel = newRow(runnerCase(), true);
+    (row as unknown as StoredRow)["projectId"] = PROJECT_ID;
+
+    const created: BaseModel = await RunnerService.create({
+      data: row as never,
+      props: { isRoot: true },
+    });
+
+    expect(defaultsOf(table, PROJECT_ID, RUNNER_DEFAULT_COLUMN)).toEqual([
+      created.id!.toString(),
+    ]);
   });
 });

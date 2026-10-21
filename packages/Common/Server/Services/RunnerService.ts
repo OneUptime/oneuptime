@@ -36,6 +36,10 @@ import Select from "../Types/Database/Select";
 import PositiveNumber from "../../Types/PositiveNumber";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import ProjectDefaultRow from "../Utils/Database/ProjectDefaultRow";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import ColumnWriteRefusedException from "../Types/Database/Permissions/ColumnWriteRefusedException";
+import CallerPermission from "../Utils/Permission/CallerPermission";
+import Permission from "../../Types/Permission";
 import {
   ProjectDefaultRunnerRefusal,
   canBeProjectDefaultRunner,
@@ -260,6 +264,9 @@ export class Service extends ProjectReferencesService<Model> {
     // Created as the project's default Runner: only one that may be it.
     Service.assertMayBeProjectDefault(createBy.data);
 
+    // And only by someone who may make a Runner the default.
+    Service.assertMayCreateAsProjectDefault(createBy.data, createBy.props);
+
     if (!createBy.data.key) {
       createBy.data.key = ObjectID.generate().toString();
     }
@@ -327,6 +334,46 @@ export class Service extends ProjectReferencesService<Model> {
         }),
       );
     }
+  }
+
+  /*
+   * A Runner created as its project's default is created by someone who may
+   * make a Runner the default: the column's update list, those who edit
+   * Runners. Every creator of a Runner may give the column a value - a
+   * client that sends what the API publishes sends false with every
+   * create - so its create list is the table's (Runner.isProjectDefault),
+   * and this refuses the one value that makes the new Runner the default,
+   * in the words the column check uses. Create Runner alone, like a Project
+   * Member, never makes the Runner it creates the one every runbook step
+   * that picks no Runner runs on. OneUptime and a master admin may.
+   */
+  public static assertMayCreateAsProjectDefault(
+    data: { isProjectDefault?: boolean | undefined },
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (data.isProjectDefault !== true || props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    const model: Model = new Model();
+
+    const mayMakeDefault: Array<Permission> =
+      model.getColumnAccessControlFor("isProjectDefault")?.update || [];
+
+    if (
+      CallerPermission.holdsAnyOf(props, mayMakeDefault, {
+        projectId: props.tenantId,
+      })
+    ) {
+      return;
+    }
+
+    throw new ColumnWriteRefusedException({
+      requestType: DatabaseRequestType.Create,
+      columnName: "isProjectDefault",
+      modelName: model.singularName,
+      permissions: mayMakeDefault,
+    });
   }
 
   /*
