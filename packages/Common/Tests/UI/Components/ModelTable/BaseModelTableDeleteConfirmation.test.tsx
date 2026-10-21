@@ -522,3 +522,148 @@ describe("a blank singularName", () => {
     );
   });
 });
+
+/*
+ * A value records still use (Common/Utils/ArchivableValues): the dialog
+ * says what a delete would do and offers Archive instead - beside Delete
+ * when the delete can go through, as the dialog's one action when records
+ * still have the value and the server would refuse it, and nothing but a
+ * notice when there is nothing to offer either.
+ */
+describe("a delete with another way to the same end", () => {
+  test("the alternative is offered beside Delete, and runs instead of it", async () => {
+    const deleteItem: MockFunction = getJestMockFunction();
+    const archive: MockFunction = getJestMockFunction();
+    deleteItem.mockResolvedValue(undefined);
+    archive.mockResolvedValue(undefined);
+
+    renderTable({
+      deleteItem: deleteItem,
+      getDeleteConfirmation: async (): Promise<DeleteConfirmation> => {
+        return {
+          description: "Deleting it also changes these.",
+          alternative: {
+            title: "Archive instead",
+            onClick: archive as unknown as () => Promise<void>,
+          },
+        };
+      },
+    });
+
+    await clickRemove(0);
+    await waitForDialog();
+
+    expect(findButtons("Delete")).toHaveLength(1);
+    expect(
+      screen.getByTestId("delete-confirmation-alternative"),
+    ).toHaveTextContent("Archive instead");
+
+    fireEvent.click(screen.getByTestId("delete-confirmation-alternative"));
+
+    await waitFor(() => {
+      expect(archive).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("confirm-modal-description"),
+      ).not.toBeInTheDocument();
+    });
+    expect(deleteItem).not.toHaveBeenCalled();
+  });
+
+  test("an alternative that fails keeps the dialog open, with why", async () => {
+    renderTable({
+      getDeleteConfirmation: async (): Promise<DeleteConfirmation> => {
+        return {
+          description: "Deleting it also changes these.",
+          alternative: {
+            title: "Archive instead",
+            onClick: async (): Promise<void> => {
+              throw new Error("Every new incident needs a severity.");
+            },
+          },
+        };
+      },
+    });
+
+    await clickRemove(0);
+    await waitForDialog();
+
+    fireEvent.click(screen.getByTestId("delete-confirmation-alternative"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Every new incident needs a severity."),
+      ).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("confirm-modal-description")).toBeInTheDocument();
+  });
+
+  test("a delete records still block offers only the alternative, as the dialog's action", async () => {
+    const deleteItem: MockFunction = getJestMockFunction();
+    const archive: MockFunction = getJestMockFunction();
+    deleteItem.mockResolvedValue(undefined);
+    archive.mockResolvedValue(undefined);
+
+    renderTable({
+      deleteItem: deleteItem,
+      getDeleteConfirmation: async (): Promise<DeleteConfirmation> => {
+        return {
+          description: "It can't be deleted while these have it.",
+          isDeleteBlocked: true,
+          alternative: {
+            title: "Archive instead",
+            onClick: archive as unknown as () => Promise<void>,
+          },
+        };
+      },
+    });
+
+    await clickRemove(0);
+    await waitForDialog();
+
+    // No Delete to press: the server would refuse it.
+    expect(findButtons("Delete")).toHaveLength(0);
+    expect(screen.queryByTestId("delete-confirmation-alternative")).toBeNull();
+    expect(findButtons("Cancel")).toHaveLength(1);
+    expect(findButtons("Archive instead")).toHaveLength(1);
+
+    fireEvent.click(findButtons("Archive instead")[0]!);
+
+    await waitFor(() => {
+      expect(archive).toHaveBeenCalledTimes(1);
+    });
+    expect(deleteItem).not.toHaveBeenCalled();
+  });
+
+  test("a blocked delete with nothing to offer is a notice: one Close", async () => {
+    const deleteItem: MockFunction = getJestMockFunction();
+    deleteItem.mockResolvedValue(undefined);
+
+    renderTable({
+      deleteItem: deleteItem,
+      getDeleteConfirmation: async (): Promise<DeleteConfirmation> => {
+        return {
+          description: "It can't be deleted while these have it.",
+          isDeleteBlocked: true,
+        };
+      },
+    });
+
+    await clickRemove(0);
+    await waitForDialog();
+
+    expect(findButtons("Delete")).toHaveLength(0);
+    expect(findButtons("Cancel")).toHaveLength(0);
+    expect(findButtons("Close")).toHaveLength(1);
+
+    fireEvent.click(findButtons("Close")[0]!);
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("confirm-modal-description"),
+      ).not.toBeInTheDocument();
+    });
+    expect(deleteItem).not.toHaveBeenCalled();
+  });
+});

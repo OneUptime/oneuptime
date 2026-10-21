@@ -107,20 +107,20 @@ describe.each(MODELS)("$name", ({ modelType }: { modelType: ModelType }) => {
   });
 
   test("whoever may edit a value may archive it: the switch is gated like its name", () => {
-    const name: ColumnAccessControl | undefined =
+    const name: ColumnAccessControl | null =
       model.getColumnAccessControlFor("name");
-    const archived: ColumnAccessControl | undefined =
+    const archived: ColumnAccessControl | null =
       model.getColumnAccessControlFor(ARCHIVED_COLUMN);
 
-    expect(name).toBeDefined();
-    expect(archived).toBeDefined();
+    expect(name).toBeTruthy();
+    expect(archived).toBeTruthy();
     expect(sorted(archived!.create)).toEqual(sorted(name!.create));
     expect(sorted(archived!.read)).toEqual(sorted(name!.read));
     expect(sorted(archived!.update)).toEqual(sorted(name!.update));
   });
 
   test("who archived it and when are read like the switch, and written by OneUptime alone", () => {
-    const archived: ColumnAccessControl | undefined =
+    const archived: ColumnAccessControl | null =
       model.getColumnAccessControlFor(ARCHIVED_COLUMN);
 
     for (const column of [
@@ -128,7 +128,7 @@ describe.each(MODELS)("$name", ({ modelType }: { modelType: ModelType }) => {
       "archivedByUser",
       ARCHIVED_BY_USER_ID_COLUMN,
     ]) {
-      const access: ColumnAccessControl | undefined =
+      const access: ColumnAccessControl | null =
         model.getColumnAccessControlFor(column);
 
       expect(sorted(access?.read)).toEqual(sorted(archived!.read));

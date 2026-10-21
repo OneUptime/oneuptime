@@ -268,12 +268,12 @@ const refusalOf: (run: Promise<void>) => Promise<string | null> = async (
 
 const save: (data: {
   monitorSteps: JSONObject;
-  alreadyStoredMonitorSteps?: JSONObject;
-  props?: DatabaseCommonInteractionProps;
+  alreadyStoredMonitorSteps?: JSONObject | undefined;
+  props?: DatabaseCommonInteractionProps | undefined;
 }) => Promise<void> = (data: {
   monitorSteps: JSONObject;
-  alreadyStoredMonitorSteps?: JSONObject;
-  props?: DatabaseCommonInteractionProps;
+  alreadyStoredMonitorSteps?: JSONObject | undefined;
+  props?: DatabaseCommonInteractionProps | undefined;
 }): Promise<void> => {
   return MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
     monitorSteps: data.monitorSteps,
