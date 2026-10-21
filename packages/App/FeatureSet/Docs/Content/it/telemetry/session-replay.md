@@ -584,7 +584,7 @@ Ogni riga mostra:
 
 | Colonna | Cosa mostra |
 | --- | --- |
-| **Session** | Il percorso di ingresso, fino a tre pillole di route («/cart → /checkout → /pay (3 pages)»), l'id breve della sessione e quando è iniziata. Un punto pulsante segna una sessione che è ancora in registrazione. |
+| **Session** | Il percorso di ingresso e, sotto, fino a tre delle pagine visitate dopo («→ /cart → /checkout → /pay +2»), poi quando è iniziata e, dove c'è spazio, l'id breve della sessione. Un punto pulsante segna una sessione che è ancora in registrazione. |
 | **User & device** | Un avatar e un nome: il riferimento dell'utente identificato; _Visitor a1b2c3_ (i primi sei caratteri dell'[id visitatore anonimo](#visitatori-anonimi)) per una sessione non identificata di un registratore attuale; _Anonymous_ quando la sessione non porta nessuno dei due; oppure _Hidden_ quando il tuo ruolo non può leggere l'identità. Poi il browser, il sistema operativo, il tipo di dispositivo e il paese. Fai clic sul nome per ridurre l'elenco a quella persona: un token `user:` per un utente identificato (compare nella casella di ricerca), un token `visitor:` per un visitatore, e un filtro per chiave pseudonima quando l'etichetta è nascosta per te. |
 | **Attività** | Durata, pagine, clic e la quota di inattività («idle 40%»). I conteggi vengono mostrati solo una volta misurati; una sessione non ancora finalizzata dice «counting». |
 | **Signals** | Errori, rage click / dead click / error click, rage reload, tracce, gruppi di eccezioni e _Slow_ (è scattato un budget di prestazioni). Ogni badge apre il lettore sulla scheda corrispondente del pannello eventi. Una sessione finalizzata senza nulla da segnalare dice _Clean_; una non ancora finalizzata, _Not counted yet_. |

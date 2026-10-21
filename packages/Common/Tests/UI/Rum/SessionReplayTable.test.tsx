@@ -73,7 +73,12 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 import SessionReplayTable, {
   fetchSessionReplayList,
   getSessionReplayFirstErrorRoute,
+  getSessionReplayRouteTrail,
+  isSessionReplayHandheldDevice,
+  MAX_ROUTE_TRAIL_PAGES,
   parseSessionReplaySummary,
+  SESSION_REPLAY_CELL_LINE_CLASS_NAME,
+  SESSION_REPLAY_WHEN_LINE_CLASS_NAME,
   SESSION_REPLAY_FRUSTRATION_COUNTERS,
   SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS,
   SESSION_REPLAY_LIST_AUTO_REFRESH_MS,
@@ -538,16 +543,28 @@ describe("SessionReplayTable rendering", () => {
     const [row] = await waitForRows(1);
 
     expect(row).toHaveTextContent("/checkout/payment");
-    expect(screen.getByTestId("session-row-routes")).toHaveTextContent("/cart");
+    /*
+     * The pages after the entry, three written out and the rest counted;
+     * the page count is the Duration column's, never repeated here.
+     */
     expect(screen.getByTestId("session-row-routes")).toHaveTextContent(
-      "(4 pages)",
+      "→ /cart → /checkout → /checkout/payment+1",
+    );
+    expect(screen.getByTestId("session-row-routes-more")).toHaveTextContent(
+      "+1",
+    );
+    expect(screen.getByTestId("session-row-routes")).not.toHaveTextContent(
+      "pages",
     );
     expect(row).toHaveTextContent("3 traces");
     expect(row).toHaveTextContent("1 exception group");
     expect(row).toHaveTextContent("2 errors");
     expect(row).toHaveTextContent("1 rage");
     expect(screen.getByTestId("session-row-activity")).toHaveTextContent(
-      "4 pages · 41 clicks · idle 40%",
+      /^4 pages · 41 clicks$/,
+    );
+    expect(screen.getByTestId("session-row-idle")).toHaveTextContent(
+      /^idle 40%$/,
     );
     expect(row).toHaveTextContent("1h 30m");
     expect(row).toHaveTextContent("expires in 6d");
@@ -650,9 +667,18 @@ describe("SessionReplayTable rendering", () => {
     expect(badge).toHaveAttribute("data-kind", "ended");
     expect(badge.getAttribute("aria-label")).toContain("Recording ended:");
     expect(row).toHaveTextContent("Recording ended");
-    expect(row).toHaveTextContent("finalizing · Always-on");
+    /* Under the badge, a line each: its fact, then why it was uploaded. */
+    expect(
+      within(row as HTMLElement)
+        .getAllByTestId("session-row-playability-detail")
+        .map((line: HTMLElement): string | null => {
+          return line.textContent;
+        }),
+    ).toEqual(["finalizing"]);
+    expect(
+      within(row as HTMLElement).getByTestId("session-row-trigger"),
+    ).toHaveTextContent(/^Always-on$/);
     expect(row).not.toHaveTextContent("Recording now");
-    expect(row).not.toHaveTextContent("live ·");
     expect(screen.queryByTestId("session-row-live")).toBeNull();
     /* Not counted yet is still true: the finalizer has not run. */
     expect(row).toHaveTextContent("Not counted yet");
@@ -689,7 +715,14 @@ describe("SessionReplayTable rendering", () => {
     expect(kinds).toEqual(["recording", "ended", "playable"]);
     expect(screen.getAllByTestId("session-row-live")).toHaveLength(1);
     expect(rows[0]).toContainElement(screen.getByTestId("session-row-live"));
-    expect(rows[0]).toHaveTextContent("live · Always-on");
+    expect(
+      within(rows[0] as HTMLElement).getByTestId(
+        "session-row-playability-detail",
+      ),
+    ).toHaveTextContent(/^live$/);
+    expect(
+      within(rows[0] as HTMLElement).getByTestId("session-row-trigger"),
+    ).toHaveTextContent(/^Always-on$/);
   });
 
   it("an unplayable row never offers Watch and keeps the reason reachable by keyboard", async () => {
@@ -2564,6 +2597,16 @@ describe("SessionReplayTable honesty", () => {
     );
     expect(screen.queryByTestId("list-empty")).toBeNull();
     expect(screen.getByTestId("list-error-retry")).toBeInTheDocument();
+    /*
+     * Retry starts where the error's words do: Button's own left margin
+     * (md:ml-3, a dialog footer's) drew it 12px to their right.
+     */
+    expect(screen.getByTestId("list-error-retry").parentElement).toHaveClass(
+      "[&>button]:ml-0",
+      "[&>button]:md:ml-0",
+      "[&>*>button]:ml-0",
+      "[&>*>button]:md:ml-0",
+    );
   });
 
   it("an empty page under a filter is filters-match-nothing with chips", async () => {
@@ -3522,21 +3565,265 @@ describe("SessionReplayTable fits a laptop's card", () => {
     const [row] = await waitForRows(1);
     const wrappers: Array<HTMLElement> = wrappersOf(row as HTMLElement);
 
-    /* A minmax(0, 1fr) track adds nothing to the column's minimum width. */
-    expect(wrappers[0]?.firstElementChild).toHaveClass("grid", "grid-cols-1");
-    expect(wrappers[1]?.firstElementChild).toHaveClass("grid", "grid-cols-1");
+    /*
+     * A minmax(0, 1fr) track adds nothing to the column's minimum width:
+     * Session, User & device, Duration and Recording.
+     */
+    for (const index of [0, 1, 2, 4]) {
+      expect(wrappers[index]?.firstElementChild).toHaveClass(
+        "grid",
+        "grid-cols-1",
+      );
+    }
 
-    const start: HTMLElement = within(row as HTMLElement).getByTestId(
-      "session-row-start",
+    expect(SESSION_REPLAY_CELL_LINE_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["min-w-0", "truncate", "whitespace-nowrap"]),
     );
 
-    expect(start).toHaveClass("min-w-0", "truncate");
-    expect(start).toHaveAttribute("title");
+    /* The journey, the activity and the trigger: one line each. */
+    const scope: ReturnType<typeof within> = within(row as HTMLElement);
+
+    expect(
+      scope.getByTestId("session-row-routes").firstElementChild,
+    ).toHaveClass(...SESSION_REPLAY_CELL_LINE_CLASS_NAME.split(" "));
+    expect(scope.getByTestId("session-row-routes")).toHaveAttribute(
+      "title",
+      "/checkout/payment → /cart → /checkout → /checkout/payment → /thanks",
+    );
+    expect(scope.getByTestId("session-row-activity")).toHaveClass(
+      ...SESSION_REPLAY_CELL_LINE_CLASS_NAME.split(" "),
+    );
+    expect(scope.getByTestId("session-row-activity")).toHaveAttribute(
+      "title",
+      "4 pages · 41 clicks",
+    );
+    expect(scope.getByTestId("session-row-trigger")).toHaveClass(
+      ...SESSION_REPLAY_CELL_LINE_CLASS_NAME.split(" "),
+    );
+
+    const start: HTMLElement = scope.getByTestId("session-row-start");
+
     /*
-     * The id and the start wrap as whole pieces where the column is narrow:
-     * never "7 minute...", never a date broken mid-phrase.
+     * The start is kept whole - never "7 minute..." - with the exact time
+     * on its title, and the id beside it is shown whole or not at all: the
+     * line is one line tall and clips what wraps under it.
      */
-    expect(start.parentElement).toHaveClass("flex-wrap", "whitespace-nowrap");
-    expect(start.previousElementSibling).toHaveClass("flex-none");
+    expect(start).toHaveClass("flex-none");
+    expect(start).not.toHaveClass("truncate");
+    expect(start).toHaveAttribute("title");
+    expect(start.parentElement).toHaveAttribute(
+      "data-testid",
+      "session-row-when",
+    );
+    expect(start.parentElement).toHaveClass(
+      ...SESSION_REPLAY_WHEN_LINE_CLASS_NAME.split(" "),
+    );
+    expect(SESSION_REPLAY_WHEN_LINE_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["h-4", "flex-wrap", "overflow-hidden"]),
+    );
+
+    const id: HTMLElement = scope.getByTestId("session-row-id");
+
+    expect(id).toHaveClass("flex-none");
+    expect(id).not.toHaveClass("truncate");
+    expect(id).toHaveTextContent("a1b2c3d4");
+    expect(within(id).getByTitle(SESSION_A)).toHaveTextContent(/^a1b2c3d4$/);
+  });
+});
+
+describe("isSessionReplayHandheldDevice", () => {
+  it("is a browser's mobile or tablet, and the mobile SDK's ios or android", () => {
+    for (const deviceType of ["mobile", "tablet", "ios", "android", "iOS"]) {
+      expect(isSessionReplayHandheldDevice(deviceType)).toBe(true);
+    }
+
+    for (const deviceType of ["desktop", "", "tv"]) {
+      expect(isSessionReplayHandheldDevice(deviceType)).toBe(false);
+    }
+  });
+
+  /*
+   * The mobile SDK writes the platform as the device type, and its
+   * recordings were drawn with a desktop's monitor beside the device line.
+   */
+  it("draws a phone beside a mobile app's recording, as beside a phone browser's", async () => {
+    mockApi(() => {
+      return listResponse([
+        wireRow({ deviceType: "mobile" }),
+        wireRow({ sessionId: SESSION_B, deviceType: "ios" }),
+        wireRow({ sessionId: SESSION_C, deviceType: "desktop" }),
+      ]);
+    });
+
+    renderTable();
+
+    const rows: Array<HTMLElement> = await waitForRows(3);
+    const iconOf: (row: HTMLElement) => string = (
+      row: HTMLElement,
+    ): string => {
+      const device: HTMLElement = within(row)
+        .getByTestId("session-row-user")
+        .closest("td") as HTMLElement;
+
+      return (device.querySelectorAll("svg")[0] as SVGElement).innerHTML;
+    };
+
+    expect(iconOf(rows[1] as HTMLElement)).toBe(iconOf(rows[0] as HTMLElement));
+    expect(iconOf(rows[2] as HTMLElement)).not.toBe(
+      iconOf(rows[0] as HTMLElement),
+    );
+  });
+});
+
+describe("getSessionReplayRouteTrail", () => {
+  it("leaves out the entry page the row's title already names", () => {
+    expect(
+      getSessionReplayRouteTrail("/collections", [
+        "/collections",
+        "/cart",
+        "/checkout",
+      ]),
+    ).toEqual({ shown: ["/cart", "/checkout"], hiddenCount: 0 });
+  });
+
+  it("writes out three pages and counts the rest", () => {
+    expect(MAX_ROUTE_TRAIL_PAGES).toBe(3);
+    expect(
+      getSessionReplayRouteTrail("/", ["/", "/a", "/b", "/c", "/d", "/e"]),
+    ).toEqual({ shown: ["/a", "/b", "/c"], hiddenCount: 2 });
+  });
+
+  it("keeps every page of a list that does not start at the entry page", () => {
+    expect(getSessionReplayRouteTrail("/", ["/checkout"])).toEqual({
+      shown: ["/checkout"],
+      hiddenCount: 0,
+    });
+  });
+
+  it("has nothing to show for a session that never left its entry page", () => {
+    expect(getSessionReplayRouteTrail("/cart", ["/cart"])).toEqual({
+      shown: [],
+      hiddenCount: 0,
+    });
+    expect(getSessionReplayRouteTrail("/cart", [])).toEqual({
+      shown: [],
+      hiddenCount: 0,
+    });
+  });
+});
+
+describe("SessionReplayTable rows read one fact per line", () => {
+  it("draws no trail for a session that stayed on its entry page", async () => {
+    mockApi(() => {
+      return listResponse([
+        wireRow({
+          entryUrl: "https://app.acme.com/cart",
+          routes: ["https://app.acme.com/cart"],
+        }),
+      ]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    expect(screen.queryByTestId("session-row-routes")).toBeNull();
+  });
+
+  it("writes the pages after the entry once, with no count when all fit", async () => {
+    mockApi(() => {
+      return listResponse([
+        wireRow({
+          entryUrl: "https://app.acme.com/collections",
+          routes: [
+            "https://app.acme.com/collections",
+            "https://app.acme.com/cart",
+            "https://app.acme.com/checkout",
+          ],
+        }),
+      ]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    const trail: HTMLElement = screen.getByTestId("session-row-routes");
+
+    expect(trail).toHaveTextContent(/^→ \/cart → \/checkout$/);
+    expect(screen.queryByTestId("session-row-routes-more")).toBeNull();
+    expect(trail).toHaveAttribute("title", "/collections → /cart → /checkout");
+  });
+
+  it("puts each fact of a Partial recording on its own line", async () => {
+    mockApi(() => {
+      return listResponse([wireRow({ missingChunkCount: 1 })]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+
+    expect(screen.getByTestId("session-row-playability")).toHaveAttribute(
+      "data-kind",
+      "partial",
+    );
+
+    const lines: Array<HTMLElement> = within(row as HTMLElement).getAllByTestId(
+      "session-row-playability-detail",
+    );
+
+    expect(
+      lines.map((line: HTMLElement): string | null => {
+        return line.textContent;
+      }),
+    ).toEqual([expect.stringMatching(/^about \d+s missing$/), "expires in 6d"]);
+
+    for (const line of lines) {
+      expect(line).toHaveClass(
+        ...SESSION_REPLAY_CELL_LINE_CLASS_NAME.split(" "),
+      );
+      expect(line).toHaveAttribute("title", line.textContent as string);
+    }
+
+    expect(
+      within(row as HTMLElement).getByTestId("session-row-trigger"),
+    ).toHaveTextContent(/^Always-on$/);
+  });
+
+  it("puts the idle share beside the activity bar, not after the counts", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    const bar: HTMLElement = screen.getByTestId("session-row-activity-bar");
+    const idle: HTMLElement = screen.getByTestId("session-row-idle");
+
+    expect(bar.parentElement).toBe(idle.parentElement);
+    expect(bar).toHaveClass("flex-none");
+    expect(idle).toHaveTextContent(/^idle 40%$/);
+    expect(screen.getByTestId("session-row-activity")).not.toHaveTextContent(
+      "idle",
+    );
+  });
+
+  it("says nothing about idle time it has not measured", async () => {
+    mockApi(() => {
+      return listResponse([wireRow({ activeMs: undefined })]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    expect(screen.queryByTestId("session-row-activity-bar")).toBeNull();
+    expect(screen.queryByTestId("session-row-idle")).toBeNull();
+    expect(screen.getByTestId("session-row-activity")).toHaveTextContent(
+      /^4 pages · 41 clicks$/,
+    );
   });
 });

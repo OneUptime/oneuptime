@@ -70,6 +70,7 @@ import SessionReplayUsersTable, {
   getWatchLatestMenuRoute,
   SESSION_REPLAY_USERS_PAGE_SIZE,
   SESSION_REPLAY_USERS_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME,
+  SESSION_REPLAY_USERS_SUBLINE_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayUsersTable";
 import { parseSessionReplayUserRollup } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayUsersApi";
 import { SessionReplayUserSessionsHandoff } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayListFilters";
@@ -1036,6 +1037,29 @@ describe("SessionReplayUsersTable paging, reload, empty and error", () => {
 
     expect(screen.queryByTestId("session-users-error")).toBeNull();
   });
+
+  /*
+   * Button's own left margin (md:ml-3, a dialog footer's) drew Retry 12px
+   * right of the words above it.
+   */
+  it("Retry starts where the error's words do", async () => {
+    mockUsers(() => {
+      return new HTTPErrorResponse(503, { message: "Unavailable." }, {});
+    });
+
+    renderTable();
+
+    const retry: HTMLElement = await screen.findByTestId(
+      "session-users-error-retry",
+    );
+
+    expect(retry.parentElement).toHaveClass(
+      "[&>button]:ml-0",
+      "[&>button]:md:ml-0",
+      "[&>*>button]:ml-0",
+      "[&>*>button]:md:ml-0",
+    );
+  });
 });
 
 /*
@@ -1078,5 +1102,37 @@ describe("SessionReplayUsersTable fits a laptop's card", () => {
     expect(
       within(row as HTMLElement).getByTestId("session-user-name"),
     ).toHaveClass("truncate");
+  });
+
+  /*
+   * The short columns' second lines wrap in a laptop's card, and wrapped
+   * one word onto a line of their own: "first seen 12 minutes / ago",
+   * "Oct 21 2026, 09:34 / GMT". They break evenly now.
+   */
+  it("breaks a short column's second line evenly, never one word on a line", async () => {
+    mockUsers(() => {
+      return usersResponse([wireRollup()]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForUserRows(1);
+
+    expect(SESSION_REPLAY_USERS_SUBLINE_CLASS_NAME).toBe("text-balance");
+
+    const firstSeen: HTMLElement = within(row as HTMLElement).getByTestId(
+      "session-user-first-seen",
+    );
+
+    expect(firstSeen).toHaveClass(SESSION_REPLAY_USERS_SUBLINE_CLASS_NAME);
+    expect(firstSeen.textContent).not.toBe("");
+
+    const lastSeen: HTMLElement = within(row as HTMLElement).getByTestId(
+      "session-user-last-seen",
+    );
+    const date: HTMLElement = lastSeen.querySelector("span") as HTMLElement;
+
+    expect(date).not.toBeNull();
+    expect(date).toHaveClass(SESSION_REPLAY_USERS_SUBLINE_CLASS_NAME);
   });
 });

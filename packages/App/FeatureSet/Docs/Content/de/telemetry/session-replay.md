@@ -584,7 +584,7 @@ Jede Zeile zeigt:
 
 | Spalte | Was sie zeigt |
 | --- | --- |
-| **Sitzung** | Den Einstiegspfad, bis zu drei Routen-Pillen („/cart → /checkout → /pay (3 pages)“), die kurze Sitzungs-ID und wann sie begann. Ein pulsierender Punkt markiert eine Sitzung, die noch aufzeichnet. |
+| **Sitzung** | Den Einstiegspfad und darunter bis zu drei der danach besuchten Seiten („→ /cart → /checkout → /pay +2“), dann wann sie begann und, wo Platz ist, die kurze Sitzungs-ID. Ein pulsierender Punkt markiert eine Sitzung, die noch aufzeichnet. |
 | **Benutzer & Gerät** | Einen Avatar und einen Namen: die Referenz des identifizierten Benutzers; _Visitor a1b2c3_ (die ersten sechs Zeichen der [anonymen Besucher-ID](#anonyme-besucher)) für eine nicht identifizierte Sitzung eines aktuellen Recorders; _Anonymous_, wenn die Sitzung keines von beiden trägt; oder _Hidden_, wenn Ihre Rolle die Identität nicht lesen darf. Dann Browser, Betriebssystem, Gerätetyp und Land. Klicken Sie auf den Namen, um die Liste auf diese Person einzuschränken: ein Token `user:` für einen identifizierten Benutzer (es erscheint im Suchfeld), ein Token `visitor:` für einen Besucher und ein Filter auf den pseudonymen Schlüssel, wenn das Label für Sie ausgeblendet ist. |
 | **Aktivität** | Dauer, Seiten, Klicks und der Leerlaufanteil („idle 40%“). Zahlen erscheinen erst, wenn sie gemessen wurden; eine noch nicht finalisierte Sitzung zeigt „counting“. |
 | **Signale** | Fehler, Wut-, tote und Fehlerklicks, Wut-Neuladen, Traces, Ausnahmegruppen und _Slow_ (ein Leistungsbudget hat ausgelöst). Jedes Abzeichen öffnet den Player auf dem passenden Tab der Leiste. Eine finalisierte Sitzung ohne Befund zeigt _Clean_; eine noch nicht finalisierte _Not counted yet_. |

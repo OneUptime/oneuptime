@@ -584,7 +584,7 @@ Elke rij toont:
 
 | Kolom | Wat ze toont |
 | --- | --- |
-| **Session** | Het instappad, tot drie routepillen («/cart → /checkout → /pay (3 pages)»), de korte sessie-id en wanneer de sessie begon. Een pulserende stip markeert een sessie die nog wordt opgenomen. |
+| **Session** | Het instappad en daaronder tot drie van de pagina's die daarna werden bezocht («→ /cart → /checkout → /pay +2»), dan wanneer de sessie begon en, waar er ruimte is, de korte sessie-id. Een pulserende stip markeert een sessie die nog wordt opgenomen. |
 | **User & device** | Een avatar en een naam: de referentie van de geïdentificeerde gebruiker; _Visitor a1b2c3_ (de eerste zes tekens van de [anonieme bezoekers-id](#anonieme-bezoekers)) voor een niet-geïdentificeerde sessie van een actuele recorder; _Anonymous_ als de sessie geen van beide draagt; of _Hidden_ als je rol de identiteit niet mag lezen. Daarna browser, besturingssysteem, apparaattype en land. Klik op de naam om de lijst tot die persoon te beperken: een `user:`-token voor een geïdentificeerde gebruiker (die in het zoekvak verschijnt), een `visitor:`-token voor een bezoeker, en een filter op pseudonieme sleutel als het label voor jou verborgen is. |
 | **Activiteit** | Duur, pagina's, klikken en het inactieve aandeel («idle 40%»). Aantallen verschijnen pas als ze gemeten zijn; een sessie die nog niet is afgerond zegt «counting». |
 | **Signals** | Fouten, rage-, dead- en error-klikken, rage-herladen, traces, uitzonderingsgroepen en _Slow_ (een prestatiebudget ging af). Elke badge opent de speler op het bijbehorende tabblad van het gebeurtenissenpaneel. Een afgeronde sessie zonder iets te melden zegt _Clean_; een sessie die nog niet is afgerond, _Not counted yet_. |

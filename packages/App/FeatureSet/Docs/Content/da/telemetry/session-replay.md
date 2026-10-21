@@ -584,7 +584,7 @@ Hver række viser:
 
 | Kolonne | Hvad den viser |
 | --- | --- |
-| **Session** | Indgangsstien, op til tre rutepiller («/cart → /checkout → /pay (3 pages)»), det korte sessions-id, og hvornår sessionen startede. En pulserende prik markerer en session, der stadig optages. |
+| **Session** | Indgangsstien og under den op til tre af de sider, der blev besøgt bagefter («→ /cart → /checkout → /pay +2»), derefter hvornår sessionen startede og, hvor der er plads, det korte sessions-id. En pulserende prik markerer en session, der stadig optages. |
 | **User & device** | En avatar og et navn: den identificerede brugers reference; _Visitor a1b2c3_ (de første seks tegn af det [anonyme besøgs-id](#anonyme-besøgende)) for en uidentificeret session fra en aktuel optager; _Anonymous_, når sessionen ikke bærer nogen af dem; eller _Hidden_, når din rolle ikke må læse identiteten. Derefter browser, styresystem, enhedstype og land. Klik på navnet for at indsnævre listen til den person: et `user:`-token for en identificeret bruger (vises i søgefeltet), et `visitor:`-token for en besøgende og et filter på pseudonym nøgle, når etiketten er skjult for dig. |
 | **Aktivitet** | Varighed, sider, klik og den inaktive andel («idle 40%»). Tal vises først, når de er målt; en session, der endnu ikke er afsluttet, siger «counting». |
 | **Signals** | Fejl, raseri-, døde og fejlklik, raseri-genindlæsninger, spor, undtagelsesgrupper og _Slow_ (et ydelsesbudget gik af). Hvert mærke åbner afspilleren på den tilsvarende fane i hændelsespanelet. En afsluttet session uden noget at rapportere siger _Clean_; en, der endnu ikke er afsluttet, _Not counted yet_. |

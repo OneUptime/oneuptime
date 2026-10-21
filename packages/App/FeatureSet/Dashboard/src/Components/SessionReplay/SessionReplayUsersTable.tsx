@@ -207,6 +207,9 @@ const SESSION_REPLAY_USER_ROW_ACTIONS: Array<
   },
 ];
 
+// A short column's second line: broken evenly where it must break.
+export const SESSION_REPLAY_USERS_SUBLINE_CLASS_NAME: string = "text-balance";
+
 function getUserRollupCells(
   row: SessionReplayUserRollup,
   context: UserRowContext,
@@ -319,7 +322,15 @@ function getUserRollupCells(
       >
         {row.sessionCount}
       </div>
-      <div className="text-xs text-gray-500">
+      {/*
+       * The short columns' second lines break evenly where they must ("first
+       * seen 12 / minutes ago"), never leaving one word on a line of its own
+       * ("first seen 12 minutes / ago").
+       */}
+      <div
+        className={`text-xs text-gray-500 ${SESSION_REPLAY_USERS_SUBLINE_CLASS_NAME}`}
+        data-testid="session-user-first-seen"
+      >
         {row.liveSessionCount > 0
           ? `${row.liveSessionCount} live`
           : firstSeen
@@ -335,7 +346,9 @@ function getUserRollupCells(
           data-testid="session-user-last-seen"
         >
           {OneUptimeDate.fromNow(lastSeen)}
-          <span className="mt-0.5 block text-xs text-gray-500">
+          <span
+            className={`mt-0.5 block text-xs text-gray-500 ${SESSION_REPLAY_USERS_SUBLINE_CLASS_NAME}`}
+          >
             {OneUptimeDate.getDateAsLocalFormattedString(lastSeen)}
           </span>
         </time>
@@ -681,7 +694,11 @@ const SessionReplayUsersTable: FunctionComponent<
       >
         <p className="text-sm font-semibold text-red-800">{error.title}</p>
         <p className="mt-1 text-sm text-red-700">{error.detail}</p>
-        <div className="mt-3 flex gap-2">
+        {/*
+         * Button's own left margin (md:ml-3, a dialog footer's) put Retry
+         * 12px right of the words above it.
+         */}
+        <div className="mt-3 flex flex-wrap gap-2 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
           <Button
             title="Retry"
             icon={IconProp.Refresh}

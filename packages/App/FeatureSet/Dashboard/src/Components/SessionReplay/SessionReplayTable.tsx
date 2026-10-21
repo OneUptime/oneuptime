@@ -294,7 +294,75 @@ export const SESSION_REPLAY_LIST_URL_STORAGE_KEY: string =
 export const SESSION_REPLAY_LIST_CURSOR_STORAGE_KEY_PREFIX: string =
   "oneuptime.replay.listCursors:";
 
-const MAX_ROUTE_PILLS: number = 3;
+/*
+ * The pages a row writes out after the one the session entered on; the rest
+ * are counted ("+2").
+ */
+export const MAX_ROUTE_TRAIL_PAGES: number = 3;
+
+export interface SessionReplayRouteTrail {
+  shown: Array<string>;
+  // The pages after the shown ones, counted rather than written out.
+  hiddenCount: number;
+}
+
+/*
+ * The pages a session went to after the page it entered on, for the line
+ * under the row's title ("→ /cart → /checkout"). The entry page IS the
+ * title, so a trail that starts with it does not say it again - the row
+ * used to: "/collections" over "/collections > /cart > /checkout".
+ */
+export function getSessionReplayRouteTrail(
+  entryPath: string,
+  routePaths: Array<string>,
+): SessionReplayRouteTrail {
+  const afterEntry: Array<string> =
+    routePaths.length > 0 && routePaths[0] === entryPath
+      ? routePaths.slice(1)
+      : routePaths;
+
+  return {
+    shown: afterEntry.slice(0, MAX_ROUTE_TRAIL_PAGES),
+    hiddenCount: Math.max(0, afterEntry.length - MAX_ROUTE_TRAIL_PAGES),
+  };
+}
+
+/*
+ * A line of a cell that says one thing: it stays on one line and ends in
+ * "..." where its column does, the whole of it under the pointer. A cell is
+ * a stack of these - the way every table's rows read, one fact per line -
+ * so a narrow column never breaks a phrase in two ("On / error",
+ * "Always- / on") or wraps a row of pills over three lines.
+ */
+export const SESSION_REPLAY_CELL_LINE_CLASS_NAME: string =
+  "min-w-0 truncate whitespace-nowrap";
+
+/*
+ * The Session cell's last line: when the session started, then its short
+ * id. One line tall (h-4, the text's own line) and clipped below it, and
+ * its pieces wrap whole: a piece that does not fit beside the start goes to
+ * the clipped second line - out of sight rather than cut to "aaa...".
+ */
+export const SESSION_REPLAY_WHEN_LINE_CLASS_NAME: string =
+  "mt-0.5 flex h-4 min-w-0 flex-wrap items-center gap-x-1.5 overflow-hidden whitespace-nowrap text-xs text-gray-500";
+
+/*
+ * The device types a row draws a phone for: a browser's mobile and tablet,
+ * and the mobile SDK's own - it writes the platform, "ios" or "android" -
+ * whose recordings were drawn with a desktop's monitor.
+ */
+export const SESSION_REPLAY_HANDHELD_DEVICE_TYPES: ReadonlyArray<string> = [
+  "mobile",
+  "tablet",
+  "ios",
+  "android",
+];
+
+export function isSessionReplayHandheldDevice(deviceType: string): boolean {
+  return SESSION_REPLAY_HANDHELD_DEVICE_TYPES.includes(
+    (deviceType || "").toLowerCase(),
+  );
+}
 
 /*
  * The floors of the list's columns (see SESSION_REPLAY_COLUMNS), below the
@@ -785,10 +853,9 @@ function getSessionReplayCells(
     return Boolean(part);
   });
 
-  const deviceIcon: IconProp =
-    row.deviceType === "mobile" || row.deviceType === "tablet"
-      ? IconProp.DevicePhoneMobile
-      : IconProp.ComputerDesktop;
+  const deviceIcon: IconProp = isSessionReplayHandheldDevice(row.deviceType)
+    ? IconProp.DevicePhoneMobile
+    : IconProp.ComputerDesktop;
 
   const signalEntries: Array<{ text: string; element: ReactElement }> =
     SESSION_REPLAY_SIGNAL_BADGES.flatMap(
@@ -892,6 +959,14 @@ function getSessionReplayCells(
     activityParts.push(`${row.clickCount} ${plural(row.clickCount, "click")}`);
   }
 
+  // "3 pages · 9 clicks", or why there is nothing to count yet.
+  const activityText: string =
+    activityParts.length > 0
+      ? activityParts.join(" · ")
+      : row.isFinalized
+        ? "no pages counted"
+        : "counting";
+
   /*
    * Who this session belongs to, ranked the one way every cell ranks it
    * (SessionReplayUserIdentity): a readable label, a withheld one, a
@@ -974,17 +1049,32 @@ function getSessionReplayCells(
   );
 
   /*
-   * The Session and User & device cells are one-column grids (a
-   * minmax(0, 1fr) track adds nothing to the column's minimum width), so a
-   * line that keeps to one line - the session's id and start, a device -
-   * ends in "..." where the column does rather than widening it: those
-   * lines set the table's width, and the Recording column went under the
-   * sticky Actions column from a laptop up to 1600px.
+   * Every cell is a one-column grid (a minmax(0, 1fr) track adds nothing to
+   * the column's minimum width) holding a stack of one-line facts
+   * (SESSION_REPLAY_CELL_LINE_CLASS_NAME): a line ends in "..." where its
+   * column does rather than widening the table - the Recording column went
+   * under the sticky Actions column from a laptop up to 1600px - or
+   * wrapping onto the next. A row reads in three short lines, as a table's
+   * rows do, where it used to run to six at 1280.
    */
+  const trail: SessionReplayRouteTrail = getSessionReplayRouteTrail(
+    entryPath,
+    routePaths,
+  );
+  // The whole journey, entry page first, for the trail's title.
+  const journeyTitle: string = (
+    routePaths[0] === entryPath ? routePaths : [entryPath, ...routePaths]
+  )
+    .filter((path: string): boolean => {
+      return path.length > 0;
+    })
+    .join(" → ");
+  const sessionIdText: string = row.sessionId.slice(0, 8) || "—";
+
   return [
     <div key="0" className="grid grid-cols-1">
       <div className="min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           {/*
            * Only a session that may still receive footage pulses. An
            * ended one is waiting on the finalizer, not on the end user.
@@ -1012,60 +1102,77 @@ function getSessionReplayCells(
             </span>
           )}
         </div>
-        {routePaths.length > 1 && (
+        {/*
+         * Where the session went next, on one line under the page it
+         * entered on: "→ /cart → /checkout", then "+2" for the pages not
+         * written out. The whole journey is on the line's title.
+         */}
+        {trail.shown.length > 0 && (
           <div
-            className="mt-1 flex flex-wrap items-center gap-1 text-xs text-gray-500"
+            className="mt-0.5 flex min-w-0 items-center text-xs text-gray-500"
             data-testid="session-row-routes"
+            title={journeyTitle}
           >
-            {routePaths
-              .slice(0, MAX_ROUTE_PILLS)
-              .map((path: string, index: number): ReactElement => {
+            <span className={SESSION_REPLAY_CELL_LINE_CLASS_NAME}>
+              {trail.shown.map((path: string, index: number): ReactElement => {
                 return (
                   <Fragment key={`${path}-${index}`}>
-                    {index > 0 && <span aria-hidden="true">&gt;</span>}
-                    <span
-                      className="max-w-[10rem] truncate rounded-md bg-gray-100 px-1.5 py-0.5 font-medium text-gray-600"
-                      title={row.routes?.[index]}
-                    >
-                      {path}
+                    <span aria-hidden="true" className="text-gray-400">
+                      {index > 0 ? " → " : "→ "}
                     </span>
+                    <span className="font-medium text-gray-600">{path}</span>
                   </Fragment>
                 );
               })}
-            {row.pageCount > MAX_ROUTE_PILLS && (
-              <span>({row.pageCount} pages)</span>
+            </span>
+            {trail.hiddenCount > 0 && (
+              <span
+                className="ml-1 flex-none text-gray-400"
+                data-testid="session-row-routes-more"
+              >
+                +{trail.hiddenCount}
+              </span>
             )}
           </div>
         )}
         {/*
-         * The id and the start, each kept whole - never a date broken
-         * mid-phrase: side by side where the column has room, the start
-         * under the id where it does not (a laptop's narrower column). The
-         * absolute timestamp appears only from 2xl up, ends in "..." where
-         * the column does rather than widening it, and is on the element's
-         * title at every width.
+         * When it started, then the short id, on one line. The start is
+         * kept whole - never "7 minute..." - and the id is shown whole or
+         * not at all: where the column is too narrow for both, it wraps
+         * onto a second line the row clips (SESSION_REPLAY_WHEN_LINE_CLASS_NAME)
+         * rather than reading "aaa...". The whole id is on its title and in
+         * the row's ⋯ (Show ID), and the exact start on the start's title.
          */}
-        <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 whitespace-nowrap text-xs text-gray-500">
-          <span
-            className="flex-none rounded bg-gray-100 px-1 font-mono text-[11px] text-gray-500"
-            title={row.sessionId}
-          >
-            {row.sessionId.slice(0, 8) || "—"}
-          </span>
+        <div
+          className={SESSION_REPLAY_WHEN_LINE_CLASS_NAME}
+          data-testid="session-row-when"
+        >
           {hasStart && (
             <time
-              className="min-w-0 truncate"
+              className="flex-none"
               dateTime={(startedAt as Date).toISOString()}
               title={absoluteStart}
               data-testid="session-row-start"
             >
               {OneUptimeDate.fromNow(startedAt as Date)}
-              <span className="max-2xl:hidden text-gray-400 2xl:inline">
-                {" "}
-                · {absoluteStart}
-              </span>
             </time>
           )}
+          <span
+            className="inline-flex flex-none items-center gap-1.5"
+            data-testid="session-row-id"
+          >
+            {hasStart && (
+              <span aria-hidden="true" className="text-gray-400">
+                ·
+              </span>
+            )}
+            <span
+              className="font-mono text-[11px] text-gray-500"
+              title={row.sessionId}
+            >
+              {sessionIdText}
+            </span>
+          </span>
         </div>
       </div>
     </div>,
@@ -1092,28 +1199,43 @@ function getSessionReplayCells(
         </div>
       </div>
     </div>,
-    <div key="2">
+    <div key="2" className="grid grid-cols-1">
       <div className="font-mono text-sm font-medium tabular-nums text-gray-900">
         {formatSessionDuration(row.durationMs)}
       </div>
-      <div className="text-xs text-gray-500" data-testid="session-row-activity">
-        {activityParts.length > 0
-          ? activityParts.join(" · ")
-          : row.isFinalized
-            ? "no pages counted"
-            : "counting"}
-        {idleShare ? ` · ${idleShare}` : ""}
+      <div
+        className={`mt-0.5 text-xs text-gray-500 ${SESSION_REPLAY_CELL_LINE_CLASS_NAME}`}
+        title={activityText}
+        data-testid="session-row-activity"
+      >
+        {activityText}
       </div>
-      {activePercent !== null && (
-        <div
-          className="mt-1 h-1 w-20 overflow-hidden rounded-full bg-gray-100"
-          title={`active ${activePercent}% · idle ${100 - activePercent}%`}
-          data-testid="session-row-activity-bar"
-        >
-          <div
-            className="h-full rounded-full bg-indigo-400"
-            style={{ width: `${activePercent}%` }}
-          />
+      {/*
+       * How much of it somebody was doing something: the active share as a
+       * bar, and the idle share beside it in words.
+       */}
+      {(activePercent !== null || idleShare) && (
+        <div className="mt-1 flex min-w-0 items-center gap-2">
+          {activePercent !== null && (
+            <div
+              className="h-1 w-12 flex-none overflow-hidden rounded-full bg-gray-100"
+              title={`active ${activePercent}% · idle ${100 - activePercent}%`}
+              data-testid="session-row-activity-bar"
+            >
+              <div
+                className="h-full rounded-full bg-indigo-400"
+                style={{ width: `${activePercent}%` }}
+              />
+            </div>
+          )}
+          {idleShare && (
+            <span
+              className={`text-xs text-gray-500 ${SESSION_REPLAY_CELL_LINE_CLASS_NAME}`}
+              data-testid="session-row-idle"
+            >
+              {idleShare}
+            </span>
+          )}
         </div>
       )}
     </div>,
@@ -1131,7 +1253,7 @@ function getSessionReplayCells(
         <span className="text-sm text-gray-400">Not counted yet</span>
       )}
     </div>,
-    <div key="4">
+    <div key="4" className="grid grid-cols-1">
       <div className="flex items-center gap-1.5">
         <Tooltip text={playability.tooltip}>
           <span
@@ -1148,14 +1270,34 @@ function getSessionReplayCells(
           </span>
         </Tooltip>
       </div>
-      <div className="mt-0.5 text-xs text-gray-500">
-        {playability.detail ? `${playability.detail} · ` : ""}
-        <span title={`Why this session was uploaded: ${triggerLabel}`}>
-          {triggerLabel}
-        </span>
+      {/*
+       * Under the badge, a line each: its facts ("about 15s missing",
+       * "expires in 28d", "live") and why the session was uploaded ("On
+       * error", "Always-on").
+       */}
+      {playability.detailLines.map((line: string): ReactElement => {
+        return (
+          <div
+            key={line}
+            className={`mt-0.5 text-xs text-gray-500 ${SESSION_REPLAY_CELL_LINE_CLASS_NAME}`}
+            title={line}
+            data-testid="session-row-playability-detail"
+          >
+            {line}
+          </div>
+        );
+      })}
+      <div
+        className={`mt-0.5 text-xs text-gray-500 ${SESSION_REPLAY_CELL_LINE_CLASS_NAME}`}
+        title={`Why this session was uploaded: ${triggerLabel}`}
+        data-testid="session-row-trigger"
+      >
+        {triggerLabel}
       </div>
       {row.fidelityNotices.length > 0 && (
-        <div className="mt-0.5 text-xs text-amber-700">
+        <div
+          className={`mt-0.5 text-xs text-amber-700 ${SESSION_REPLAY_CELL_LINE_CLASS_NAME}`}
+        >
           {row.fidelityNotices.length} fidelity{" "}
           {plural(row.fidelityNotices.length, "notice")}
         </div>
@@ -2334,7 +2476,11 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
                 {error.title}
               </p>
               <p className="mt-1 text-sm text-red-700">{error.detail}</p>
-              <div className="mt-3 flex gap-2">
+              {/*
+               * Button's own left margin (md:ml-3, a dialog footer's) put
+               * Retry 12px right of the words above it.
+               */}
+              <div className="mt-3 flex flex-wrap gap-2 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
                 <Button
                   title="Retry"
                   icon={IconProp.Refresh}

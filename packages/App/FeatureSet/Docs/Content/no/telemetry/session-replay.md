@@ -584,7 +584,7 @@ Hver rad viser:
 
 | Kolonne | Hva den viser |
 | --- | --- |
-| **Session** | Inngangsbanen, opptil tre rutepiller («/cart → /checkout → /pay (3 pages)»), den korte økt-ID-en og når økten startet. En pulserende prikk markerer en økt som fortsatt tas opp. |
+| **Session** | Inngangsbanen og under den opptil tre av sidene som ble besøkt etterpå («→ /cart → /checkout → /pay +2»), deretter når økten startet og, der det er plass, den korte økt-ID-en. En pulserende prikk markerer en økt som fortsatt tas opp. |
 | **User & device** | En avatar og et navn: den identifiserte brukerens referanse; _Visitor a1b2c3_ (de seks første tegnene i den [anonyme besøks-ID-en](#anonyme-besøkende)) for en uidentifisert økt fra en gjeldende opptaker; _Anonymous_ når økten ikke bærer noen av dem; eller _Hidden_ når rollen din ikke kan lese identiteten. Deretter nettleser, operativsystem, enhetstype og land. Klikk på navnet for å snevre listen inn til den personen: et `user:`-token for en identifisert bruker (vises i søkefeltet), et `visitor:`-token for en besøkende og et filter på pseudonym nøkkel når etiketten er skjult for deg. |
 | **Aktivitet** | Varighet, sider, klikk og den inaktive andelen («idle 40%»). Tall vises først når de er målt; en økt som ennå ikke er ferdigstilt, sier «counting». |
 | **Signals** | Feil, raseri-, døde og feilklikk, raseri-innlastinger, spor, unntaksgrupper og _Slow_ (et ytelsesbudsjett gikk av). Hvert merke åpner avspilleren på den tilsvarende fanen i hendelsespanelet. En ferdigstilt økt uten noe å rapportere sier _Clean_; en som ennå ikke er ferdigstilt, _Not counted yet_. |

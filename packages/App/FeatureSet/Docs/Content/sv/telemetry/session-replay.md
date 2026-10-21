@@ -584,7 +584,7 @@ Varje rad visar:
 
 | Kolumn | Vad den visar |
 | --- | --- |
-| **Session** | Ingångssökvägen, upp till tre ruttpiller («/cart → /checkout → /pay (3 pages)»), det korta sessions-ID:t och när sessionen startade. En pulserande prick markerar en session som fortfarande spelas in. |
+| **Session** | Ingångssökvägen och under den upp till tre av sidorna som besöktes därefter («→ /cart → /checkout → /pay +2»), sedan när sessionen startade och, där det finns plats, det korta sessions-ID:t. En pulserande prick markerar en session som fortfarande spelas in. |
 | **User & device** | En avatar och ett namn: den identifierade användarens referens; _Visitor a1b2c3_ (de sex första tecknen i det [anonyma besöks-ID:t](#anonyma-besökare)) för en oidentifierad session från en aktuell inspelare; _Anonymous_ när sessionen inte bär något av dem; eller _Hidden_ när din roll inte kan läsa identiteten. Därefter webbläsare, operativsystem, enhetstyp och land. Klicka på namnet för att begränsa listan till den personen: en `user:`-token för en identifierad användare (visas i sökfältet), en `visitor:`-token för en besökare och ett filter på pseudonym nyckel när etiketten är dold för dig. |
 | **Aktivitet** | Varaktighet, sidor, klick och den inaktiva andelen («idle 40%»). Siffror visas först när de har mätts; en session som ännu inte är slutförd säger «counting». |
 | **Signals** | Fel, ilske-, döda och felklick, ilskeomladdningar, spår, undantagsgrupper och _Slow_ (en prestandabudget överskreds). Varje märke öppnar spelaren på motsvarande flik i händelsepanelen. En slutförd session utan något att rapportera säger _Clean_; en som ännu inte är slutförd, _Not counted yet_. |

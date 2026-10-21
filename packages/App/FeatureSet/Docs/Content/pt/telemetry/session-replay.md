@@ -584,7 +584,7 @@ Cada linha mostra:
 
 | Coluna | O que mostra |
 | --- | --- |
-| **Session** | O caminho de entrada, até três pílulas de rota («/cart → /checkout → /pay (3 pages)»), o id curto da sessão e quando ela começou. Um ponto pulsante marca uma sessão que ainda está gravando. |
+| **Session** | O caminho de entrada e, abaixo dele, até três das páginas visitadas depois («→ /cart → /checkout → /pay +2»), depois quando ela começou e, onde houver espaço, o id curto da sessão. Um ponto pulsante marca uma sessão que ainda está gravando. |
 | **User & device** | Um avatar e um nome: a referência do usuário identificado; _Visitor a1b2c3_ (os seis primeiros caracteres do [id de visitante anônimo](#visitantes-anônimos)) para uma sessão não identificada de um gravador atual; _Anonymous_ quando a sessão não carrega nenhum dos dois; ou _Hidden_ quando a sua função não pode ver a identidade. Depois o navegador, o sistema operacional, o tipo de dispositivo e o país. Clique no nome para reduzir a lista a essa pessoa: um token `user:` para um usuário identificado (aparece na caixa de busca), um token `visitor:` para um visitante, e um filtro por chave pseudônima quando o rótulo está oculto para você. |
 | **Atividade** | Duração, páginas, cliques e a parcela ociosa («idle 40%»). As contagens só aparecem depois de medidas; uma sessão ainda não finalizada diz «counting». |
 | **Signals** | Erros, cliques de raiva / mortos / de erro, recargas de raiva, traços, grupos de exceções e _Slow_ (um orçamento de desempenho disparou). Cada selo abre o reprodutor na aba correspondente do painel de eventos. Uma sessão finalizada sem nada a relatar diz _Clean_; uma ainda não finalizada, _Not counted yet_. |

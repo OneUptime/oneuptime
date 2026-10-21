@@ -584,7 +584,7 @@ Cada fila muestra:
 
 | Columna | Qué muestra |
 | --- | --- |
-| **Sesión** | La ruta de entrada, hasta tres píldoras de ruta («/cart → /checkout → /pay (3 pages)»), el id corto de la sesión y cuándo empezó. Un punto que late marca una sesión que todavía se está grabando. |
+| **Sesión** | La ruta de entrada y, debajo, hasta tres de las páginas visitadas después («→ /cart → /checkout → /pay +2»), luego cuándo empezó y, donde hay espacio, el id corto de la sesión. Un punto que late marca una sesión que todavía se está grabando. |
 | **Usuario y dispositivo** | Un avatar y un nombre: la referencia del usuario identificado; _Visitor a1b2c3_ (los seis primeros caracteres del [id de visitante anónimo](#visitantes-anónimos)) para una sesión no identificada de un grabador actual; _Anonymous_ cuando la sesión no lleva ninguno de los dos; o _Hidden_ cuando tu rol no puede leer la identidad. Después el navegador, el sistema operativo, el tipo de dispositivo y el país. Haz clic en el nombre para reducir la lista a esa persona: un token `user:` para un usuario identificado (aparece en el cuadro de búsqueda), un token `visitor:` para un visitante, y un filtro por clave seudónima cuando la etiqueta está oculta para ti. |
 | **Actividad** | Duración, páginas, clics y la proporción de inactividad («idle 40%»). Los recuentos solo se muestran una vez medidos; una sesión que aún no está finalizada dice «counting». |
 | **Señales** | Errores, clics de rabia / muertos / de error, rabia de recarga, trazas, grupos de excepciones y _Slow_ (saltó un presupuesto de rendimiento). Cada distintivo abre el reproductor en la pestaña correspondiente del carril. Una sesión finalizada sin nada que informar dice _Clean_; una que aún no está finalizada, _Not counted yet_. |
