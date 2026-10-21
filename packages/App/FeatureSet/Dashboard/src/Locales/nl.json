@@ -32265,5 +32265,7 @@
   "Runs held before a step that needs approval. Approving carries the run on from that step; rejecting ends it.": "Uitvoeringen die wachten vóór een stap die goedkeuring nodig heeft. Goedkeuren zet de uitvoering vanaf die stap voort; afwijzen beëindigt haar.",
   "The open cases assigned to you, the latest detection first.": "De open zaken die aan u zijn toegewezen, de nieuwste detectie eerst.",
   "View Playbooks": "Playbooks bekijken",
-  "View Unassigned Cases": "Niet-toegewezen zaken bekijken"
+  "View Unassigned Cases": "Niet-toegewezen zaken bekijken",
+  "All categories": "Alle categorieën",
+  "Rule categories": "Regelcategorieën"
 }

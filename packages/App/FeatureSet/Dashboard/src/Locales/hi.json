@@ -32265,5 +32265,7 @@
   "Runs held before a step that needs approval. Approving carries the run on from that step; rejecting ends it.": "ऐसे चरण से पहले रुके हुए रन जिसे स्वीकृति चाहिए। स्वीकार करने पर रन उसी चरण से आगे बढ़ता है; अस्वीकार करने पर रन खत्म हो जाता है।",
   "The open cases assigned to you, the latest detection first.": "आपको सौंपे गए खुले केस, सबसे नए डिटेक्शन वाले पहले।",
   "View Playbooks": "प्लेबुक देखें",
-  "View Unassigned Cases": "बिना सौंपे केस देखें"
+  "View Unassigned Cases": "बिना सौंपे केस देखें",
+  "All categories": "सभी श्रेणियाँ",
+  "Rule categories": "नियम श्रेणियाँ"
 }

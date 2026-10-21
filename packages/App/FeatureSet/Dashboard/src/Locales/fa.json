@@ -32265,5 +32265,7 @@
   "Runs held before a step that needs approval. Approving carries the run on from that step; rejecting ends it.": "اجراهایی که پیش از گامی نیازمند تأیید نگه داشته شده‌اند. تأیید، اجرا را از همان گام ادامه می‌دهد و رد کردن آن را پایان می‌دهد.",
   "The open cases assigned to you, the latest detection first.": "پرونده‌های بازی که به شما سپرده شده، تازه‌ترین شناسایی اول.",
   "View Playbooks": "دیدن پلی‌بوک‌ها",
-  "View Unassigned Cases": "دیدن پرونده‌های بی‌مسئول"
+  "View Unassigned Cases": "دیدن پرونده‌های بی‌مسئول",
+  "All categories": "همه دسته‌بندی‌ها",
+  "Rule categories": "دسته‌بندی‌های قاعده"
 }

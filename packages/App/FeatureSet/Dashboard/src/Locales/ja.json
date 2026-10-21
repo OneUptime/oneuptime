@@ -32265,5 +32265,7 @@
   "Runs held before a step that needs approval. Approving carries the run on from that step; rejecting ends it.": "承認が必要なステップの前で止まっている実行。承認するとそのステップから実行が続き、却下すると実行が終わります。",
   "The open cases assigned to you, the latest detection first.": "あなたに割り当てられた未解決のケース（最新の検出から表示）。",
   "View Playbooks": "プレイブックを表示",
-  "View Unassigned Cases": "未担当のケースを表示"
+  "View Unassigned Cases": "未担当のケースを表示",
+  "All categories": "すべてのカテゴリ",
+  "Rule categories": "ルールのカテゴリ"
 }

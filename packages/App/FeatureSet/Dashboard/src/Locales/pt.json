@@ -32265,5 +32265,7 @@
   "Runs held before a step that needs approval. Approving carries the run on from that step; rejecting ends it.": "Execuções paradas antes de uma etapa que precisa de aprovação. Aprovar continua a execução a partir dessa etapa; rejeitar a encerra.",
   "The open cases assigned to you, the latest detection first.": "Os casos abertos atribuídos a você, a detecção mais recente primeiro.",
   "View Playbooks": "Ver playbooks",
-  "View Unassigned Cases": "Ver casos não atribuídos"
+  "View Unassigned Cases": "Ver casos não atribuídos",
+  "All categories": "Todas as categorias",
+  "Rule categories": "Categorias de regras"
 }

@@ -32265,5 +32265,7 @@
   "Runs held before a step that needs approval. Approving carries the run on from that step; rejecting ends it.": "Körningar som hålls före ett steg som kräver godkännande. Godkännande för körningen vidare från det steget; avvisning avslutar den.",
   "The open cases assigned to you, the latest detection first.": "De öppna ärenden som är tilldelade dig, den senaste detektionen först.",
   "View Playbooks": "Visa playbooks",
-  "View Unassigned Cases": "Visa ej tilldelade ärenden"
+  "View Unassigned Cases": "Visa ej tilldelade ärenden",
+  "All categories": "Alla kategorier",
+  "Rule categories": "Regelkategorier"
 }

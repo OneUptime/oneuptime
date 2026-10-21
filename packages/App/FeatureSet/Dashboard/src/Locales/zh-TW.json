@@ -32265,5 +32265,7 @@
   "Runs held before a step that needs approval. Approving carries the run on from that step; rejecting ends it.": "停在需要核准的步驟之前的執行。核准後執行會從該步驟繼續；拒絕則結束執行。",
   "The open cases assigned to you, the latest detection first.": "指派給你的未結案例，最新偵測排在最前。",
   "View Playbooks": "檢視劇本",
-  "View Unassigned Cases": "檢視無人認領的案例"
+  "View Unassigned Cases": "檢視無人認領的案例",
+  "All categories": "全部分類",
+  "Rule categories": "規則分類"
 }

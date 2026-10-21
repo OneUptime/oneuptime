@@ -32265,5 +32265,7 @@
   "Runs held before a step that needs approval. Approving carries the run on from that step; rejecting ends it.": "Runs held before a step that needs approval. Approving carries the run on from that step; rejecting ends it.",
   "The open cases assigned to you, the latest detection first.": "The open cases assigned to you, the latest detection first.",
   "View Playbooks": "View Playbooks",
-  "View Unassigned Cases": "View Unassigned Cases"
+  "View Unassigned Cases": "View Unassigned Cases",
+  "All categories": "All categories",
+  "Rule categories": "Rule categories"
 }

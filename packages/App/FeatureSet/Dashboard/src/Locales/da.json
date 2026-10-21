@@ -32265,5 +32265,7 @@
   "Runs held before a step that needs approval. Approving carries the run on from that step; rejecting ends it.": "Kørsler, der holdes før et trin, der kræver godkendelse. Godkendelse fortsætter kørslen fra det trin; afvisning afslutter den.",
   "The open cases assigned to you, the latest detection first.": "De åbne sager, der er tildelt dig, den nyeste detektion først.",
   "View Playbooks": "Se playbooks",
-  "View Unassigned Cases": "Se ikke-tildelte sager"
+  "View Unassigned Cases": "Se ikke-tildelte sager",
+  "All categories": "Alle kategorier",
+  "Rule categories": "Regelkategorier"
 }

@@ -397,7 +397,11 @@ test.describe("the overview", () => {
     await expect(page.getByTestId("security-all-quiet")).toHaveCount(0);
 
     await stage(page, "detections").getByRole("link").click();
-    await expect.poll(() => pathnameOf(page)).toBe(DETECTION_RULES_PATH);
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(DETECTION_RULES_PATH);
     // Its folded section opened by itself, on the entry of the page.
     await expect(menuSection(page, "Detections")).toHaveAttribute(
       "aria-expanded",
@@ -433,7 +437,11 @@ test.describe("the overview", () => {
     ]) {
       await open(page, OVERVIEW_PATH);
       await page.getByRole("link", { name: count! }).click();
-      await expect.poll(() => pathnameOf(page)).toBe(pathname);
+      await expect
+        .poll(() => {
+          return pathnameOf(page);
+        })
+        .toBe(pathname);
       await expect(page.getByText(proof!).first()).toBeVisible({
         timeout: 30000,
       });
@@ -677,9 +685,9 @@ test.describe("the case queue", () => {
       "Open Cases",
     ]);
     // No row of views above the list: each is a page of its own.
-    await expect(page.locator('[data-testid^="security-case-view-"]')).toHaveCount(
-      0,
-    );
+    await expect(
+      page.locator('[data-testid^="security-case-view-"]'),
+    ).toHaveCount(0);
     await expect(page.locator("button[aria-pressed]")).toHaveCount(0);
   });
 
@@ -697,7 +705,11 @@ test.describe("the case queue", () => {
 
     // Unassigned: the open cases nobody is on, each saying so.
     await menuEntry(page, "Unassigned").click();
-    await expect.poll(() => pathnameOf(page)).toBe(UNASSIGNED_CASES_PATH);
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(UNASSIGNED_CASES_PATH);
     await expect(
       page.getByText("Showing 1-2 of 2 security cases"),
     ).toBeVisible();
@@ -708,7 +720,11 @@ test.describe("the case queue", () => {
 
     // Assigned to Me: Maya's open cases, with no Assignee column saying so.
     await menuEntry(page, "Assigned to Me").click();
-    await expect.poll(() => pathnameOf(page)).toBe(MY_CASES_PATH);
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(MY_CASES_PATH);
     await expect(
       page.getByText("Showing 1-2 of 2 security cases"),
     ).toBeVisible();
@@ -725,16 +741,20 @@ test.describe("the case queue", () => {
 
     // Closed Cases: by verdict and when each closed, the latest first.
     await menuEntry(page, "Closed Cases").click();
-    await expect.poll(() => pathnameOf(page)).toBe(CLOSED_CASES_PATH);
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(CLOSED_CASES_PATH);
     await expect(
       page.getByText("Showing 1-10 of 37 security cases"),
     ).toBeVisible();
     await expect(
       page.getByRole("columnheader", { name: "Verdict" }),
     ).toBeVisible();
-    await expect(page.getByRole("columnheader", { name: "Status" })).toHaveCount(
-      0,
-    );
+    await expect(
+      page.getByRole("columnheader", { name: "Status" }),
+    ).toHaveCount(0);
     // Nothing is opened from the record of what was decided.
     await expect(
       page.getByRole("button", { name: "Open Security Case" }),
@@ -742,7 +762,11 @@ test.describe("the case queue", () => {
 
     // All Cases: every case, open and closed.
     await menuEntry(page, "All Cases").click();
-    await expect.poll(() => pathnameOf(page)).toBe(ALL_CASES_PATH);
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(ALL_CASES_PATH);
     await expect(
       page.getByText("Showing 1-10 of 43 security cases"),
     ).toBeVisible();
@@ -1104,7 +1128,11 @@ test.describe("playbooks", () => {
     );
 
     await menuEntry(page, "Playbook Runs").click();
-    await expect.poll(() => pathnameOf(page)).toBe(ALL_RUNS_PATH);
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(ALL_RUNS_PATH);
     await expect(page.getByTestId("security-playbook-run-card")).toHaveCount(5);
     await expect(
       page.getByTestId("security-playbook-run-card").filter({
@@ -1158,7 +1186,11 @@ test.describe("playbooks", () => {
     await screenshot(page, "playbook-runs-empty");
 
     await page.getByTestId("security-playbook-runs-view-playbooks").click();
-    await expect.poll(() => pathnameOf(page)).toBe(PLAYBOOKS_PATH);
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(PLAYBOOKS_PATH);
   });
 });
 
@@ -1250,7 +1282,7 @@ test.describe("detections", () => {
       page.locator('[data-testid^="rule-library-recommended-"]'),
     ).toHaveCount(19);
 
-    await page.getByTestId("rule-library-category-recommended").click();
+    await page.getByTestId("rule-library-category").selectOption("recommended");
     await expect(
       page.locator('[data-testid^="rule-library-entry-"]'),
     ).toHaveCount(19);
@@ -1263,6 +1295,67 @@ test.describe("detections", () => {
     await expect(
       page.getByRole("button", { name: /Recommended Rules?$/ }),
     ).toHaveCount(0);
+  });
+
+  test("the rule library narrows by one select beside its search, which a phone puts under it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [width, theme] of [
+      [1280, undefined],
+      [1280, "dark"],
+      [390, undefined],
+    ] as Array<[number, "dark" | undefined]>) {
+      await open(page, RULE_LIBRARY_PATH, { width, height: 900, theme });
+      await expect(page.getByText("Added").first()).toBeVisible({
+        timeout: 30000,
+      });
+
+      const filters: Locator = page.getByTestId("rule-library-filters");
+      const search: Box = await boxOf(filters.getByPlaceholder("Search rules"));
+      const select: Locator = filters.getByRole("combobox", {
+        name: "Rule categories",
+      });
+      const selectBox: Box = await boxOf(select);
+
+      // No row of buttons across the card to read as tabs.
+      await expect(filters.getByRole("button")).toHaveCount(0);
+      await expect(select).toHaveValue("");
+
+      if (width === 1280) {
+        // Beside the search, the same height, on its line.
+        expect(selectBox.x).toBeGreaterThan(search.x + search.width);
+        expect(Math.abs(selectBox.y - search.y)).toBeLessThanOrEqual(2);
+        expect(Math.abs(selectBox.height - search.height)).toBeLessThanOrEqual(
+          2,
+        );
+      } else {
+        // Under it, as wide as it.
+        expect(selectBox.y).toBeGreaterThanOrEqual(search.y + search.height);
+        expect(Math.abs(selectBox.width - search.width)).toBeLessThanOrEqual(1);
+      }
+
+      // A category narrows the cards to its own rules.
+      const cards: Locator = page.locator(
+        '[data-testid^="rule-library-entry-"]',
+      );
+      const everyRule: number = await cards.count();
+      await select.selectOption("Kubernetes");
+      await expect(select).toHaveValue("Kubernetes");
+      await expect
+        .poll(async (): Promise<number> => {
+          return cards.count();
+        })
+        .toBeLessThan(everyRule);
+      expect(await cards.count()).toBeGreaterThan(0);
+      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await screenshot(
+        page,
+        `rule-library-category-${width}-${theme || "light"}`,
+        { fullPage: false },
+      );
+    }
   });
 
   test("Detections is a section of pages, each its own address, its entry lit on each, no row of tabs", async ({
@@ -1288,7 +1381,11 @@ test.describe("detections", () => {
     ]);
 
     await menuEntry(page, "ATT&CK Coverage").click();
-    await expect.poll(() => pathnameOf(page)).toBe(ATTACK_COVERAGE_PATH);
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(ATTACK_COVERAGE_PATH);
     await expect(page.getByText("2 / 227")).toBeVisible({ timeout: 30000 });
     expect(await litEntries(page)).toEqual(["ATT&CK Coverage"]);
 
@@ -1297,7 +1394,11 @@ test.describe("detections", () => {
       .getByRole("navigation", { name: "Breadcrumb" })
       .getByRole("link", { name: "Detections" })
       .click();
-    await expect.poll(() => pathnameOf(page)).toBe(DETECTION_RULES_PATH);
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(DETECTION_RULES_PATH);
   });
 
   test("the side menu is six sections of pages; the ones set up once are folded", async ({
@@ -1396,7 +1497,11 @@ test.describe("detections", () => {
     await screenshot(page, "side-menu-mobile", { fullPage: false });
 
     await menu.getByRole("link", { name: "Open Cases" }).click();
-    await expect.poll(() => pathnameOf(page)).toBe(CASES_PATH);
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(CASES_PATH);
     await expect(toggle).toContainText("Security Cases / Open Cases");
   });
 

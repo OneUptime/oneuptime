@@ -32265,5 +32265,7 @@
   "Runs held before a step that needs approval. Approving carries the run on from that step; rejecting ends it.": "Запуски, остановленные перед шагом, которому нужно одобрение. Одобрение продолжает запуск с этого шага, отклонение завершает его.",
   "The open cases assigned to you, the latest detection first.": "Открытые кейсы, назначенные вам, сначала с самым свежим срабатыванием.",
   "View Playbooks": "Показать плейбуки",
-  "View Unassigned Cases": "Показать неназначенные кейсы"
+  "View Unassigned Cases": "Показать неназначенные кейсы",
+  "All categories": "Все категории",
+  "Rule categories": "Категории правил"
 }
