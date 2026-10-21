@@ -1,6 +1,7 @@
 import ComponentProps from "../Pages/PageComponentProps";
 import StorageArrayLayout from "../Pages/StorageArray/Layout";
 import StorageArrayViewLayout from "../Pages/StorageArray/View/Layout";
+import StorageArrayTopology from "../Pages/StorageArray/View/Topology";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, StorageArrayRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -166,6 +167,16 @@ const StorageArrayRoutes: FunctionComponent<ComponentProps> = (
             <StorageArrayOverview
               {...props}
               pageRoute={RouteMap[PageMap.STORAGE_ARRAY_VIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.STORAGE_ARRAY_VIEW_TOPOLOGY)}
+          element={
+            <StorageArrayTopology
+              {...props}
+              pageRoute={RouteMap[PageMap.STORAGE_ARRAY_VIEW_TOPOLOGY] as Route}
             />
           }
         />

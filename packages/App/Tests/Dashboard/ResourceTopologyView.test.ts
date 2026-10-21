@@ -1,0 +1,761 @@
+import { describe, expect, test } from "@jest/globals";
+import {
+  ResourceTopologyGraph,
+  ResourceTopologyNodeInput,
+  buildResourceTopologyGraph,
+} from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyModel";
+import {
+  CARD_PREVIEW,
+  CARD_PREVIEW_NARROWED,
+  CHIP_MINIMUM,
+  CHIP_PREVIEW,
+  RELATED_LIMIT,
+  ResourceTopologyCardItem,
+  ResourceTopologyChipItem,
+  ResourceTopologyGroupItem,
+  ResourceTopologyOutlineRow,
+  ResourceTopologyViewState,
+  ResourceTopologyVisible,
+  VIEW_BUDGET,
+  closeTopologyPart,
+  computeResourceTopologyView,
+  createResourceTopologyViewState,
+  flattenResourceTopologyView,
+  getAutomaticDepth,
+  getPartsOpenedWith,
+  groupKey,
+  openTopologyPart,
+  revealTopologyPart,
+  toggleTopologyGroup,
+} from "../../FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyView";
+
+/*
+ * What a resource topology shows: how deep it opens by itself, how a large
+ * group folds into "+ N more" without ever folding away a problem, and how
+ * "Needs attention", a search, a focus and a pinned part narrow the drawing.
+ * The estates are shaped like the ones the view was designed for: a vCenter
+ * of several datacenters and hundreds of virtual machines, a cluster with
+ * thousands of pods.
+ */
+
+function part(
+  id: string,
+  parentId: string | null,
+  overrides: Partial<ResourceTopologyNodeInput> = {},
+): ResourceTopologyNodeInput {
+  return {
+    id: id,
+    parentId: parentId,
+    kind: overrides.kind || "vmware.vm",
+    name: overrides.name || id,
+    health: overrides.health || "healthy",
+    ...overrides,
+  };
+}
+
+interface EstateShape {
+  datacenters: number;
+  clustersPerDatacenter: number;
+  hostsPerCluster: number;
+  vmsPerHost: number;
+  datastoresPerDatacenter: number;
+  /* VM ids that are critical. */
+  criticalVms?: Array<string> | undefined;
+}
+
+function vcenterEstate(shape: EstateShape): ResourceTopologyGraph {
+  const nodes: Array<ResourceTopologyNodeInput> = [
+    part("vcenter", null, { kind: "vmware.vcenter", name: "Prod" }),
+  ];
+  const critical: Set<string> = new Set<string>(shape.criticalVms || []);
+
+  for (let dc: number = 0; dc < shape.datacenters; dc++) {
+    const dcId: string = `dc-${dc}`;
+    nodes.push(part(dcId, "vcenter", { kind: "vmware.datacenter" }));
+
+    for (let ds: number = 0; ds < shape.datastoresPerDatacenter; ds++) {
+      nodes.push(
+        part(`${dcId}-ds-${ds}`, dcId, { kind: "vmware.datastore" }),
+      );
+    }
+
+    for (let cl: number = 0; cl < shape.clustersPerDatacenter; cl++) {
+      const clusterId: string = `${dcId}-cl-${cl}`;
+      nodes.push(part(clusterId, dcId, { kind: "vmware.cluster" }));
+
+      for (let h: number = 0; h < shape.hostsPerCluster; h++) {
+        const hostId: string = `${clusterId}-h-${h}`;
+        nodes.push(part(hostId, clusterId, { kind: "vmware.host" }));
+
+        for (let v: number = 0; v < shape.vmsPerHost; v++) {
+          const vmId: string = `${hostId}-vm-${v}`;
+          nodes.push(
+            part(vmId, hostId, {
+              kind: "vmware.vm",
+              health: critical.has(vmId) ? "critical" : "healthy",
+            }),
+          );
+        }
+      }
+    }
+  }
+
+  return buildResourceTopologyGraph({ rootId: "vcenter", nodes: nodes });
+}
+
+function findCard(
+  card: ResourceTopologyCardItem,
+  id: string,
+): ResourceTopologyCardItem | null {
+  if (card.id === id) {
+    return card;
+  }
+
+  for (const group of card.groups) {
+    for (const item of group.items) {
+      if (item.type === "card") {
+        const found: ResourceTopologyCardItem | null = findCard(item, id);
+
+        if (found) {
+          return found;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+function groupOf(
+  card: ResourceTopologyCardItem,
+  kind: string,
+): ResourceTopologyGroupItem {
+  const group: ResourceTopologyGroupItem | undefined = card.groups.find(
+    (candidate: ResourceTopologyGroupItem): boolean => {
+      return candidate.kind === kind;
+    },
+  );
+
+  if (!group) {
+    throw new Error(`${card.id} has no ${kind} group`);
+  }
+
+  return group;
+}
+
+function itemIds(group: ResourceTopologyGroupItem): Array<string> {
+  return group.items.map(
+    (item: ResourceTopologyCardItem | ResourceTopologyChipItem): string => {
+      return item.id;
+    },
+  );
+}
+
+function view(
+  graph: ResourceTopologyGraph,
+  overrides?: Partial<ResourceTopologyViewState>,
+): ResourceTopologyVisible {
+  return computeResourceTopologyView(
+    graph,
+    createResourceTopologyViewState(overrides),
+  );
+}
+
+describe("how deep a resource opens by itself", () => {
+  test("a small resource opens all the way down", () => {
+    const graph: ResourceTopologyGraph = vcenterEstate({
+      datacenters: 1,
+      clustersPerDatacenter: 1,
+      hostsPerCluster: 2,
+      vmsPerHost: 3,
+      datastoresPerDatacenter: 2,
+    });
+    const visible: ResourceTopologyVisible = view(graph);
+
+    expect(findCard(visible.top, "dc-0-cl-0-h-1")!.isOpen).toBe(true);
+    expect(visible.chipCount).toBe(6);
+    expect(visible.visibleNodeIds.size).toBe(graph.nodes.size);
+  });
+
+  test("a large resource stops opening before the drawing gets unreadable", () => {
+    const graph: ResourceTopologyGraph = vcenterEstate({
+      datacenters: 2,
+      clustersPerDatacenter: 6,
+      hostsPerCluster: 12,
+      vmsPerHost: 20,
+      datastoresPerDatacenter: 30,
+    });
+    const visible: ResourceTopologyVisible = view(graph);
+    const weight: number = visible.cardCount + visible.chipCount / 2;
+
+    expect(graph.nodes.size).toBeGreaterThan(3000);
+    expect(weight).toBeLessThanOrEqual(VIEW_BUDGET + 2 * CARD_PREVIEW);
+    // The datacenters are open, the clusters say what they hold instead.
+    expect(findCard(visible.top, "dc-0")!.isOpen).toBe(true);
+    expect(findCard(visible.top, "dc-0-cl-0")!.isOpen).toBe(false);
+    expect(findCard(visible.top, "dc-0-cl-0")!.canOpen).toBe(true);
+  });
+
+  test("the top always opens, even when its first level alone is large", () => {
+    const nodes: Array<ResourceTopologyNodeInput> = [
+      part("root", null, { kind: "k8s.cluster" }),
+    ];
+
+    for (let index: number = 0; index < 500; index++) {
+      nodes.push(part(`ns-${index}`, "root", { kind: "k8s.namespace" }));
+
+      for (let pod: number = 0; pod < 20; pod++) {
+        nodes.push(
+          part(`pod-${index}-${pod}`, `ns-${index}`, { kind: "k8s.pod" }),
+        );
+      }
+    }
+
+    const graph: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "root",
+      nodes: nodes,
+    });
+
+    expect(getAutomaticDepth(graph, "root")).toBe(1);
+    const visible: ResourceTopologyVisible = view(graph);
+    const namespaces: ResourceTopologyGroupItem = groupOf(
+      visible.top,
+      "k8s.namespace",
+    );
+
+    expect(namespaces.items).toHaveLength(CARD_PREVIEW);
+    expect(namespaces.more?.hiddenCount).toBe(500 - CARD_PREVIEW);
+  });
+
+  test("a resource with nothing inside it opens no level", () => {
+    const graph: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "root",
+      nodes: [part("root", null)],
+    });
+
+    expect(getAutomaticDepth(graph, "root")).toBe(0);
+    expect(view(graph).top.canOpen).toBe(false);
+  });
+});
+
+describe("groups fold, but never a problem", () => {
+  const graph: ResourceTopologyGraph = vcenterEstate({
+    datacenters: 1,
+    clustersPerDatacenter: 1,
+    hostsPerCluster: 1,
+    vmsPerHost: 40,
+    datastoresPerDatacenter: 0,
+    criticalVms: ["dc-0-cl-0-h-0-vm-37", "dc-0-cl-0-h-0-vm-38"],
+  });
+
+  test("parts that hold nothing are chips, the rest folded into one '+ N more'", () => {
+    const visible: ResourceTopologyVisible = view(graph);
+    const vms: ResourceTopologyGroupItem = groupOf(
+      findCard(visible.top, "dc-0-cl-0-h-0")!,
+      "vmware.vm",
+    );
+
+    expect(vms.asChips).toBe(true);
+    expect(vms.items).toHaveLength(CHIP_PREVIEW);
+    expect(vms.total).toBe(40);
+    expect(vms.more).toMatchObject({
+      hiddenCount: 40 - CHIP_PREVIEW,
+      asChip: true,
+      canShowAll: true,
+    });
+  });
+
+  test("the troubled ones come first, so they are never the ones folded away", () => {
+    const visible: ResourceTopologyVisible = view(graph);
+    const vms: ResourceTopologyGroupItem = groupOf(
+      findCard(visible.top, "dc-0-cl-0-h-0")!,
+      "vmware.vm",
+    );
+
+    expect(itemIds(vms).slice(0, 2)).toEqual([
+      "dc-0-cl-0-h-0-vm-37",
+      "dc-0-cl-0-h-0-vm-38",
+    ]);
+    expect(vms.attention).toBe(2);
+    expect(vms.more?.hiddenAttention).toBe(0);
+  });
+
+  test("showing a group in full draws all of it, and folds back", () => {
+    const key: string = groupKey("dc-0-cl-0-h-0", "vmware.vm");
+    const full: ResourceTopologyViewState = toggleTopologyGroup(
+      createResourceTopologyViewState(),
+      key,
+    );
+    const vms: ResourceTopologyGroupItem = groupOf(
+      findCard(computeResourceTopologyView(graph, full).top, "dc-0-cl-0-h-0")!,
+      "vmware.vm",
+    );
+
+    expect(vms.items).toHaveLength(40);
+    expect(vms.more).toBeNull();
+    expect(vms.isShownInFull).toBe(true);
+    expect(toggleTopologyGroup(full, key).shownInFull.has(key)).toBe(false);
+  });
+
+  test("a few parts that hold nothing stay cards, many become chips", () => {
+    const few: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "root",
+      nodes: [
+        part("root", null),
+        part("a", "root", { kind: "vmware.datastore" }),
+        part("b", "root", { kind: "vmware.datastore" }),
+      ],
+    });
+
+    expect(CHIP_MINIMUM).toBe(3);
+    expect(groupOf(view(few).top, "vmware.datastore").asChips).toBe(false);
+    expect(
+      groupOf(view(few).top, "vmware.datastore").items[0]!.type,
+    ).toBe("card");
+  });
+
+  test("kinds keep the catalog's order: clusters before datastores", () => {
+    const visible: ResourceTopologyVisible = view(
+      vcenterEstate({
+        datacenters: 1,
+        clustersPerDatacenter: 2,
+        hostsPerCluster: 1,
+        vmsPerHost: 1,
+        datastoresPerDatacenter: 4,
+      }),
+    );
+
+    expect(
+      findCard(visible.top, "dc-0")!.groups.map(
+        (group: ResourceTopologyGroupItem): string => {
+          return group.kind;
+        },
+      ),
+    ).toEqual(["vmware.cluster", "vmware.datastore"]);
+  });
+
+  test("cards only drawn because a group was shown in full wait to be opened", () => {
+    const wide: ResourceTopologyGraph = vcenterEstate({
+      datacenters: 1,
+      clustersPerDatacenter: 1,
+      hostsPerCluster: 12,
+      vmsPerHost: 2,
+      datastoresPerDatacenter: 0,
+    });
+    const key: string = groupKey("dc-0-cl-0", "vmware.host");
+    const visible: ResourceTopologyVisible = computeResourceTopologyView(
+      wide,
+      toggleTopologyGroup(createResourceTopologyViewState(), key),
+    );
+    const hosts: ResourceTopologyGroupItem = groupOf(
+      findCard(visible.top, "dc-0-cl-0")!,
+      "vmware.host",
+    );
+
+    expect(hosts.items).toHaveLength(12);
+    const opened: Array<boolean> = hosts.items.map(
+      (item: ResourceTopologyCardItem | ResourceTopologyChipItem): boolean => {
+        return item.type === "card" && item.isOpen;
+      },
+    );
+    // The previewed ones follow the automatic depth; the rest are closed.
+    expect(opened.slice(CARD_PREVIEW).every(Boolean)).toBe(false);
+  });
+});
+
+describe("opening and closing", () => {
+  const graph: ResourceTopologyGraph = vcenterEstate({
+    datacenters: 2,
+    clustersPerDatacenter: 6,
+    hostsPerCluster: 12,
+    vmsPerHost: 20,
+    datastoresPerDatacenter: 30,
+  });
+
+  test("opening a part opens what fits inside it, by the same rule", () => {
+    const opened: ResourceTopologyViewState = openTopologyPart(
+      graph,
+      createResourceTopologyViewState(),
+      "dc-0-cl-0",
+    );
+    const cluster: ResourceTopologyCardItem = findCard(
+      computeResourceTopologyView(graph, opened).top,
+      "dc-0-cl-0",
+    )!;
+
+    expect(cluster.isOpen).toBe(true);
+    expect(groupOf(cluster, "vmware.host").items).toHaveLength(CARD_PREVIEW);
+    expect(getPartsOpenedWith(graph, "dc-0-cl-0")).toContain("dc-0-cl-0");
+  });
+
+  test("closing a part keeps it closed whatever the automatic depth says", () => {
+    const closed: ResourceTopologyViewState = closeTopologyPart(
+      createResourceTopologyViewState(),
+      "dc-0",
+    );
+    const dc: ResourceTopologyCardItem = findCard(
+      computeResourceTopologyView(graph, closed).top,
+      "dc-0",
+    )!;
+
+    expect(dc.isOpen).toBe(false);
+    expect(dc.groups).toEqual([]);
+  });
+
+  test("reopening a closed part forgets that it was closed", () => {
+    const state: ResourceTopologyViewState = openTopologyPart(
+      graph,
+      closeTopologyPart(createResourceTopologyViewState(), "dc-0"),
+      "dc-0",
+    );
+
+    expect(state.closed.has("dc-0")).toBe(false);
+    expect(findCard(computeResourceTopologyView(graph, state).top, "dc-0")!.isOpen).toBe(true);
+  });
+});
+
+describe("going to a part pins it", () => {
+  const graph: ResourceTopologyGraph = vcenterEstate({
+    datacenters: 1,
+    clustersPerDatacenter: 12,
+    hostsPerCluster: 12,
+    vmsPerHost: 30,
+    datastoresPerDatacenter: 0,
+  });
+
+  test("every part above it opens and it is drawn even inside a folded group", () => {
+    const target: string = "dc-0-cl-11-h-11-vm-29";
+    const state: ResourceTopologyViewState = revealTopologyPart(
+      graph,
+      createResourceTopologyViewState(),
+      target,
+    );
+    const visible: ResourceTopologyVisible = computeResourceTopologyView(
+      graph,
+      state,
+    );
+
+    expect(visible.visibleNodeIds.has(target)).toBe(true);
+    expect(findCard(visible.top, "dc-0-cl-11")!.isOpen).toBe(true);
+    expect(findCard(visible.top, "dc-0-cl-11-h-11")!.isOpen).toBe(true);
+
+    const vms: ResourceTopologyGroupItem = groupOf(
+      findCard(visible.top, "dc-0-cl-11-h-11")!,
+      "vmware.vm",
+    );
+
+    // The pinned VM joins the preview; it pushes none of the others out.
+    expect(vms.items).toHaveLength(CHIP_PREVIEW + 1);
+    expect(itemIds(vms)).toContain(target);
+  });
+
+  test("a part that is not there pins nothing", () => {
+    const state: ResourceTopologyViewState = createResourceTopologyViewState();
+
+    expect(revealTopologyPart(graph, state, "gone")).toBe(state);
+  });
+});
+
+describe("Needs attention", () => {
+  const graph: ResourceTopologyGraph = vcenterEstate({
+    datacenters: 2,
+    clustersPerDatacenter: 4,
+    hostsPerCluster: 8,
+    vmsPerHost: 20,
+    datastoresPerDatacenter: 10,
+    criticalVms: ["dc-1-cl-3-h-7-vm-19", "dc-0-cl-0-h-0-vm-0"],
+  });
+
+  test("keeps only the troubled parts and the path to each, opened", () => {
+    const visible: ResourceTopologyVisible = view(graph, {
+      filter: "attention",
+    });
+
+    expect(visible.isNarrowed).toBe(true);
+    expect(Array.from(visible.visibleNodeIds).sort()).toEqual(
+      [
+        "vcenter",
+        "dc-0",
+        "dc-0-cl-0",
+        "dc-0-cl-0-h-0",
+        "dc-0-cl-0-h-0-vm-0",
+        "dc-1",
+        "dc-1-cl-3",
+        "dc-1-cl-3-h-7",
+        "dc-1-cl-3-h-7-vm-19",
+      ].sort(),
+    );
+    expect(visible.attentionShown).toBe(2);
+  });
+
+  test("with nothing troubled, only the resource is left", () => {
+    const quiet: ResourceTopologyGraph = vcenterEstate({
+      datacenters: 1,
+      clustersPerDatacenter: 1,
+      hostsPerCluster: 1,
+      vmsPerHost: 3,
+      datastoresPerDatacenter: 1,
+    });
+    const visible: ResourceTopologyVisible = view(quiet, {
+      filter: "attention",
+    });
+
+    expect(Array.from(visible.visibleNodeIds)).toEqual(["vcenter"]);
+    expect(visible.top.canOpen).toBe(false);
+  });
+});
+
+describe("search", () => {
+  const graph: ResourceTopologyGraph = vcenterEstate({
+    datacenters: 1,
+    clustersPerDatacenter: 3,
+    hostsPerCluster: 4,
+    vmsPerHost: 40,
+    datastoresPerDatacenter: 2,
+  });
+
+  test("keeps the matches and the path to them, everything else out", () => {
+    const visible: ResourceTopologyVisible = view(graph, {
+      search: "cl-2-h-3-vm-17",
+    });
+
+    expect(visible.matchCount).toBe(1);
+    expect(visible.visibleNodeIds.has("dc-0-cl-2-h-3-vm-17")).toBe(true);
+    expect(visible.visibleNodeIds.has("dc-0-cl-1")).toBe(false);
+    expect(visible.visibleNodeIds.has("dc-0-ds-0")).toBe(false);
+    const vm: ResourceTopologyChipItem = groupOf(
+      findCard(visible.top, "dc-0-cl-2-h-3")!,
+      "vmware.vm",
+    ).items[0] as ResourceTopologyChipItem;
+
+    expect(vm.isMatch).toBe(true);
+  });
+
+  test("shows more matches per group than an unfiltered view does", () => {
+    const visible: ResourceTopologyVisible = view(graph, { search: "vm-1" });
+    const vms: ResourceTopologyGroupItem = groupOf(
+      findCard(visible.top, "dc-0-cl-0-h-0")!,
+      "vmware.vm",
+    );
+
+    // vm-1 and vm-10 ... vm-19
+    expect(vms.total).toBe(11);
+    expect(vms.items).toHaveLength(11);
+    expect(CARD_PREVIEW_NARROWED).toBeGreaterThan(CARD_PREVIEW);
+  });
+
+  test("a matched part can be opened to see what is inside it", () => {
+    const named: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "vcenter",
+      nodes: [
+        part("vcenter", null, { kind: "vmware.vcenter" }),
+        part("esx", "vcenter", { kind: "vmware.host", name: "esx-payments" }),
+        ...Array.from({ length: 30 }, (_value: unknown, index: number) => {
+          return part(`vm-${index}`, "esx", { name: `guest-${index}` });
+        }),
+      ],
+    });
+    const state: ResourceTopologyViewState = createResourceTopologyViewState({
+      search: "payments",
+    });
+    const closedMatch: ResourceTopologyCardItem = findCard(
+      computeResourceTopologyView(named, state).top,
+      "esx",
+    )!;
+
+    expect(closedMatch.isMatch).toBe(true);
+    // The VMs inside it do not match, but the host can still open.
+    expect(closedMatch.canOpen).toBe(true);
+    expect(closedMatch.isOpen).toBe(false);
+
+    const opened: ResourceTopologyCardItem = findCard(
+      computeResourceTopologyView(
+        named,
+        openTopologyPart(named, state, "esx"),
+      ).top,
+      "esx",
+    )!;
+
+    expect(opened.isOpen).toBe(true);
+    expect(groupOf(opened, "vmware.vm").total).toBe(30);
+  });
+
+  test("a search with no match leaves only the resource", () => {
+    const visible: ResourceTopologyVisible = view(graph, {
+      search: "nothing-like-this",
+    });
+
+    expect(visible.matchCount).toBe(0);
+    expect(Array.from(visible.visibleNodeIds)).toEqual(["vcenter"]);
+  });
+
+  test("search and Needs attention together keep troubled matches only", () => {
+    const troubled: ResourceTopologyGraph = vcenterEstate({
+      datacenters: 1,
+      clustersPerDatacenter: 1,
+      hostsPerCluster: 1,
+      vmsPerHost: 30,
+      datastoresPerDatacenter: 0,
+      criticalVms: ["dc-0-cl-0-h-0-vm-12"],
+    });
+    const visible: ResourceTopologyVisible = view(troubled, {
+      search: "vm-1",
+      filter: "attention",
+    });
+
+    expect(visible.visibleNodeIds.has("dc-0-cl-0-h-0-vm-12")).toBe(true);
+    expect(visible.visibleNodeIds.has("dc-0-cl-0-h-0-vm-13")).toBe(false);
+  });
+});
+
+describe("focus", () => {
+  function relatedEstate(relatedCount: number): ResourceTopologyGraph {
+    const nodes: Array<ResourceTopologyNodeInput> = [
+      part("cluster", null, { kind: "k8s.cluster" }),
+      part("nodes", "cluster", {
+        kind: "section",
+        isSection: true,
+        name: "Nodes",
+      }),
+      part("ns", "cluster", { kind: "k8s.namespace" }),
+      part("deploy", "ns", { kind: "k8s.deployment" }),
+      part("other-deploy", "ns", { kind: "k8s.deployment" }),
+      part("other-pod", "other-deploy", { kind: "k8s.pod" }),
+    ];
+    const relations: Array<{
+      from: string;
+      to: string;
+      label: string;
+      inverseLabel: string;
+    }> = [];
+
+    for (let index: number = 0; index < relatedCount; index++) {
+      nodes.push(part(`node-${index}`, "nodes", { kind: "k8s.node" }));
+      nodes.push(part(`pod-${index}`, "deploy", { kind: "k8s.pod" }));
+      relations.push({
+        from: `pod-${index}`,
+        to: `node-${index}`,
+        label: "Runs on",
+        inverseLabel: "Runs here",
+      });
+    }
+
+    relations.push({
+      from: "deploy",
+      to: "node-0",
+      label: "Runs on",
+      inverseLabel: "Runs here",
+    });
+
+    return buildResourceTopologyGraph({
+      rootId: "cluster",
+      nodes: nodes,
+      relations: relations,
+    });
+  }
+
+  test("draws the lineage, the part and everything inside it — nothing else", () => {
+    const graph: ResourceTopologyGraph = relatedEstate(3);
+    const visible: ResourceTopologyVisible = view(graph, {
+      focusId: "deploy",
+    });
+
+    expect(visible.focusId).toBe("deploy");
+    expect(visible.visibleNodeIds.has("other-deploy")).toBe(false);
+    expect(visible.visibleNodeIds.has("other-pod")).toBe(false);
+    expect(visible.visibleNodeIds.has("pod-2")).toBe(true);
+    expect(findCard(visible.top, "deploy")!.isFocus).toBe(true);
+    // The lineage shows one part per level: the path only.
+    expect(visible.top.groups).toHaveLength(1);
+    expect(groupOf(visible.top, "k8s.namespace").items).toHaveLength(1);
+  });
+
+  test("draws what the focused part is related to beside it", () => {
+    const graph: ResourceTopologyGraph = relatedEstate(1);
+    const visible: ResourceTopologyVisible = view(graph, {
+      focusId: "deploy",
+    });
+
+    expect(visible.related).toEqual([
+      { nodeId: "node-0", label: "Runs on", direction: "out" },
+    ]);
+    expect(visible.visibleNodeIds.has("node-0")).toBe(true);
+  });
+
+  test("draws at most RELATED_LIMIT related parts and counts the rest", () => {
+    const graph: ResourceTopologyGraph = relatedEstate(RELATED_LIMIT + 5);
+    const visible: ResourceTopologyVisible = view(graph, {
+      focusId: "node-0",
+    });
+
+    expect(visible.related.length).toBeLessThanOrEqual(RELATED_LIMIT);
+    // node-0 runs pod-0 and the deployment: both related, both shown.
+    expect(
+      visible.related.map((item: { nodeId: string }): string => {
+        return item.nodeId;
+      }),
+    ).toEqual(expect.arrayContaining(["pod-0", "deploy"]));
+  });
+
+  test("a focus on the resource itself, or on a part that is gone, is no focus", () => {
+    const graph: ResourceTopologyGraph = relatedEstate(2);
+
+    expect(view(graph, { focusId: "cluster" }).focusId).toBeNull();
+    expect(view(graph, { focusId: "gone" }).focusId).toBeNull();
+  });
+
+  test("filters narrow inside the focused part only", () => {
+    const graph: ResourceTopologyGraph = buildResourceTopologyGraph({
+      rootId: "root",
+      nodes: [
+        part("root", null),
+        part("a", "root", { kind: "vmware.host" }),
+        part("a-bad", "a", { health: "critical" }),
+        part("b", "root", { kind: "vmware.host" }),
+        part("b-bad", "b", { health: "critical" }),
+      ],
+    });
+    const visible: ResourceTopologyVisible = view(graph, {
+      focusId: "a",
+      filter: "attention",
+    });
+
+    expect(visible.visibleNodeIds.has("a-bad")).toBe(true);
+    expect(visible.visibleNodeIds.has("b-bad")).toBe(false);
+  });
+});
+
+describe("the list reads the same view top down", () => {
+  test("every card, group heading, chip and '+ N more', each one level deeper", () => {
+    const graph: ResourceTopologyGraph = vcenterEstate({
+      datacenters: 1,
+      clustersPerDatacenter: 1,
+      hostsPerCluster: 1,
+      vmsPerHost: 14,
+      datastoresPerDatacenter: 0,
+    });
+    const rows: Array<ResourceTopologyOutlineRow> = flattenResourceTopologyView(
+      view(graph),
+    );
+
+    expect(rows[0]!.item.id).toBe("vcenter");
+    expect(rows[0]!.level).toBe(0);
+    expect(rows[1]!.item.type).toBe("group");
+    expect(rows[1]!.level).toBe(1);
+    expect(rows[2]!.item.id).toBe("dc-0");
+    expect(rows[2]!.level).toBe(2);
+
+    const more: ResourceTopologyOutlineRow | undefined = rows.find(
+      (row: ResourceTopologyOutlineRow): boolean => {
+        return row.item.type === "more";
+      },
+    );
+
+    expect(more).toBeDefined();
+    expect(
+      rows.filter((row: ResourceTopologyOutlineRow): boolean => {
+        return row.item.type === "chip";
+      }),
+    ).toHaveLength(CHIP_PREVIEW);
+  });
+});
