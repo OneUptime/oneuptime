@@ -11,6 +11,7 @@ import {
   AirGappedCompliancePoint,
   AirGappedConnection,
   AirGappedConnections,
+  AirGappedDocs,
   AirGappedFaq,
   AirGappedFaqs,
   AirGappedSteps,
@@ -297,6 +298,29 @@ describe("step 1: mirror the images", () => {
       "image.tag",
       "imagePullSecrets",
     ]);
+  });
+
+  test("what the step says to mirror later is off in a stock install, so the values above move every image it runs", () => {
+    // PgBouncer, vLLM and the database operators: each off until turned on.
+    expectFileToSay(CHART_VALUES, "pgbouncer:\n  enabled: false\n");
+    expectFileToSay(CHART_VALUES, "vllm:\n  enabled: false\n");
+    expectFileToSay(CHART_VALUES, "keda:\n  enabled: false\n");
+    expectFileToSay(
+      CHART_VALUES,
+      "postgresOperator:\n  cnpg:\n    enabled: false\n",
+    );
+    expectFileToSay(
+      CHART_VALUES,
+      "clickhouseOperator:\n  altinity:\n    enabled: false\n",
+    );
+    // Once one is on, its image is named like any other: image.overrides.
+    expectFileToSay(
+      CHART_VALUES,
+      "## clickhouseKeeper, valkey, pgbouncer, vllm, kubectl. Each is either a full",
+    );
+    expect(AirGappedSteps[0]!.description).toContain(
+      "Anything you turn on later, such as PgBouncer or a database operator, needs its images mirrored too.",
+    );
   });
 
   test("imagePullSecrets is documented as reaching every pod the chart defines", () => {
@@ -680,6 +704,26 @@ describe("what reaches out, and how it is stopped", () => {
     );
   });
 
+  test("a license activated online syncs once a day after that", () => {
+    expect(connection("enterprise-license").when).toBe(
+      "Activating a license key online, and a license sync once a day after that.",
+    );
+    expectFileToSay(
+      docsPagePath("self-hosted/enterprise"),
+      "From then on it keeps the license current with a daily sync.",
+    );
+
+    if (!HAS_EE) {
+      // Core runs without ee/ (Common Test and App Test remove it).
+      return;
+    }
+
+    expectFileToSay(
+      "ee/Server/License/Jobs/ReportUserCount.ts",
+      "schedule: IsDevelopment ? EVERY_FIVE_MINUTE : EVERY_DAY,",
+    );
+  });
+
   test("certificates come from Let's Encrypt only when the install orders them", () => {
     expectFileToSay(
       CHART_VALUES,
@@ -708,6 +752,50 @@ describe("what reaches out, and how it is stopped", () => {
   test("the hosted AI providers the page names are provider types", () => {
     expect(LlmType.OpenAI).toBe("OpenAI");
     expect(LlmType.Anthropic).toBe("Anthropic");
+  });
+
+  test("the docs the page links for connections out name the same three, with the same settings", () => {
+    /*
+     * The note under the table sends readers to this docs section, which the
+     * install serves too. It says what the page says: three connections
+     * unless a setting stops them, and everything else only once set up.
+     */
+    const architecture: string = docsPagePath("self-hosted/architecture");
+
+    expect(AirGappedDocs.connectionsOut).toBe(
+      "/docs/self-hosted/architecture#connections-out-of-your-network",
+    );
+    expectFileToSay(architecture, "## Connections out of your network");
+    expectFileToSay(
+      architecture,
+      "Three connections are made unless you change a setting:",
+    );
+    // The update check, and the two settings that turn it off.
+    expectFileToSay(architecture, "GitHub's API (`api.github.com`)");
+    expectFileToSay(
+      architecture,
+      "`updateCheck.disabled: true` in the Helm chart",
+    );
+    expectFileToSay(
+      architecture,
+      "`DISABLE_UPDATE_CHECK=true` in `config.env` on Docker Compose",
+    );
+    // The release emails a sign-up asks for.
+    expectFileToSay(
+      architecture,
+      "to `oneuptime.com`. Untick it on a network without internet access.",
+    );
+    // The probes' fallback resolvers.
+    expectFileToSay(architecture, "`8.8.8.8` and `1.1.1.1`");
+    expectFileToSay(architecture, "Set `dnsConfig.nameservers` to `[]`");
+    expectFileToSay(
+      architecture,
+      "Everything else reaches out only when you turn it on",
+    );
+    expectFileNotToSay(
+      architecture,
+      "The app reaches out only for what you turn on.",
+    );
   });
 
   test("exactly three connections are marked as made by default", () => {

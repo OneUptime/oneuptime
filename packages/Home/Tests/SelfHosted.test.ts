@@ -487,6 +487,22 @@ describe("SelfHosted content model", () => {
     expect(updateCheck.description).not.toContain("oneuptime.com");
   });
 
+  test("the DNS air-gap step names the chart-wide list the air-gapped values empty", () => {
+    const dns: AirGapStep = AirGapSteps.find((step: AirGapStep) => {
+      return step.title === "Keep DNS internal";
+    })!;
+
+    /*
+     * Every probe takes the chart-wide dnsConfig unless it sets its own, and
+     * the air-gapped page's values (rendered by the chart's air-gapped suite)
+     * empty exactly this list. A probe's own dnsConfig: {} would not do it:
+     * an empty map falls back to the chart-wide one, public nameservers and all.
+     */
+    expect(dns.setting).toBe("dnsConfig.nameservers");
+    expect(dns.description).toContain("set the list to []");
+    expect(dns.setting).not.toContain("probes.<key>");
+  });
+
   test("the notifications air-gap step names no SMS gateway OneUptime cannot use", () => {
     const notifications: AirGapStep = AirGapSteps.find((step: AirGapStep) => {
       return step.title === "Bring your own notification transports";

@@ -285,7 +285,7 @@ export const AirGappedSteps: Array<AirGappedStep> = [
     key: "mirror-images",
     title: "Mirror the images",
     description:
-      "Copy OneUptime's images, from Docker Hub or the GitHub Container Registry, into your own registry, with the PostgreSQL, ClickHouse and Valkey images the chart runs. Keep their names and tags, and pin image.tag to the release you mirrored.",
+      "Copy OneUptime's images, from Docker Hub or the GitHub Container Registry, into your own registry, with the PostgreSQL, ClickHouse and Valkey images the chart runs. Keep their names and tags, and pin image.tag to the release you mirrored. Anything you turn on later, such as PgBouncer or a database operator, needs its images mirrored too.",
     settings: ["image.registry", "image.tag", "imagePullSecrets"],
   },
   {

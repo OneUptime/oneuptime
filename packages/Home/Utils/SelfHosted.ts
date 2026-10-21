@@ -464,8 +464,8 @@ export const AirGapSteps: Array<AirGapStep> = [
   {
     title: "Keep DNS internal",
     description:
-      "Probes ship with public fallback nameservers for external monitoring. On an air-gapped cluster, drop them so resolution stays inside your network.",
-    setting: "probes.<key>.dnsConfig",
+      "Probes ship with public fallback nameservers for external monitoring. On an air-gapped cluster, set the list to [] so resolution stays inside your network.",
+    setting: "dnsConfig.nameservers",
   },
   {
     title: "Bring your own notification transports",
