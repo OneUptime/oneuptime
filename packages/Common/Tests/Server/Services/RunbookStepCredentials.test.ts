@@ -1,5 +1,6 @@
 import ProjectReferencesService from "../../../Server/Services/ProjectReferencesService";
 import RunbookService, {
+  STEP_NAMES_REMOVED_CREDENTIAL_MESSAGE,
   Service as RunbookServiceType,
 } from "../../../Server/Services/RunbookService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
@@ -9,19 +10,16 @@ import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import ProjectReferenceCheck, {
   JsonReferenceColumn,
 } from "../../../Server/Utils/Database/ProjectReferenceCheck";
-import { UnreadableReferenceException } from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
 import Runbook from "../../../Models/DatabaseModels/Runbook";
-import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONArray } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import UserType from "../../../Types/UserType";
-import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
-import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
-import RunbookCredentialReaders from "../../../Server/Utils/AutoRemediation/RunbookCredentialReaders";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import { getJestSpyOn } from "../../Spy";
 import {
@@ -41,16 +39,24 @@ import {
 jest.mock("../../../Server/Utils/Logger");
 
 /*
- * THE CREDENTIALS A RUNBOOK RUNS WITH ARE ONES ITS AUTHOR MAY READ.
+ * A RUNBOOK'S STEPS NAME NO RUNBOOK CREDENTIAL.
  *
- * A runbook's SSH and Kubernetes steps name the credential they run with in
- * its steps. A create or an update names one only when its caller may read
- * credentials (Project Owner, Project Admin or Read Runbook Credential, and
- * no block with no labels taking that away), asked before the project
- * check; an update asks only about the credentials some runbook it may
- * write does not name already; each credential named is held to the
- * project with every other reference the runbook names (the steps are a
- * JSON reference column of the project check).
+ * A runbook's SSH and Kubernetes steps named the runbook credential they ran
+ * with until runbook variables, and runbook credentials are gone now
+ * (Runbooks > Runners > AI Access): the data migrations moved every stored
+ * step that named one to the secret variables its key, password or
+ * kubeconfig went into. So, whoever asks - a person, OneUptime itself, a
+ * workflow's step:
+ *
+ *   - a create whose steps name one is refused, saying what a step signs in
+ *     with instead and how to turn the step into one;
+ *   - an update whose steps name one some runbook it writes does not name
+ *     already is refused the same way, before the project check;
+ *   - an update that keeps a step a runbook holds as it is (written through
+ *     the API and never moved) still saves - that step fails when it runs,
+ *     saying to turn it into a script step;
+ *   - a credential is no reference of the runbook any more: the project
+ *     check looks none up.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -61,15 +67,14 @@ const CREDENTIAL_A: string = "0193c0de-dddd-4aaa-8bbb-0000000000c1";
 const CREDENTIAL_B: string = "0193c0de-dddd-4aaa-8bbb-0000000000c2";
 const RUNNER: string = "0193c0de-dddd-4aaa-8bbb-0000000000e1";
 
-const row: (permission: Permission, isBlock?: boolean) => UserPermission = (
+const row: (permission: Permission) => UserPermission = (
   permission: Permission,
-  isBlock?: boolean,
 ): UserPermission => {
   return {
     _type: "UserPermission",
     permission: permission,
     labelIds: [],
-    isBlockPermission: Boolean(isBlock),
+    isBlockPermission: false,
     scope: PermissionScope.All,
   };
 };
@@ -94,10 +99,41 @@ const member: (
   };
 };
 
-// Runbook Admins write runbooks, and read no credentials.
 const RUNBOOK_ADMIN: DatabaseCommonInteractionProps = member([
   row(Permission.RunbookAdmin),
 ]);
+
+const PROJECT_OWNER: DatabaseCommonInteractionProps = member([
+  row(Permission.ProjectOwner),
+]);
+
+function workflowStep(): DatabaseCommonInteractionProps {
+  return {
+    ...WorkflowPrincipal.getPropsWithoutPlan({
+      projectId: PROJECT_ID,
+      workflowId: new ObjectID("0193c0de-dddd-4aaa-8bbb-0000000000ff"),
+      workflowName: "Write the restart runbook",
+    }),
+    ...ON_HIGHEST_PLAN,
+  };
+}
+
+// Everyone who may write a runbook, OneUptime and a workflow's step included.
+function everyCaller(): Array<[string, DatabaseCommonInteractionProps]> {
+  return [
+    ["a Runbook Admin", RUNBOOK_ADMIN],
+    ["a Project Owner", PROJECT_OWNER],
+    ["OneUptime itself", { isRoot: true } as DatabaseCommonInteractionProps],
+    [
+      "a master admin",
+      {
+        isMasterAdmin: true,
+        userId: ObjectID.generate(),
+      } as DatabaseCommonInteractionProps,
+    ],
+    ["a workflow's step", workflowStep()],
+  ];
+}
 
 const sshStep: (credentialId: unknown) => Record<string, unknown> = (
   credentialId: unknown,
@@ -126,6 +162,26 @@ const kubernetesStep: (credentialId: unknown) => Record<string, unknown> = (
       namespace: "default",
       workloadName: "api",
       replicas: 2,
+      agentId: RUNNER,
+    },
+  };
+};
+
+// What a step signs in with now: a script and a secret variable.
+const sshScriptStep: () => Record<string, unknown> = (): Record<
+  string,
+  unknown
+> => {
+  return {
+    id: ObjectID.generate().toString(),
+    order: 1,
+    type: RunbookStepType.SSH,
+    title: "Restart",
+    config: {
+      host: "10.0.4.21",
+      username: "deploy",
+      signIn: "{{global.variables.prod_hosts-ssh-key}}",
+      script: "uptime",
       agentId: RUNNER,
     },
   };
@@ -243,9 +299,10 @@ describe("the credentials a runbook's steps name", () => {
     expect(RunbookServiceType.getStepCredentialIds([bashStep()])).toEqual([]);
   });
 
-  test("a step whose picker is still empty names none", () => {
+  test("a step that signs in with a variable, or whose picker is empty, names none", () => {
     expect(
       RunbookServiceType.getStepCredentialIds([
+        sshScriptStep(),
         sshStep(""),
         sshStep("   "),
         sshStep(undefined),
@@ -269,175 +326,128 @@ describe("the credentials a runbook's steps name", () => {
     }
   });
 
-  test("are held to the project with every other reference the runbook names", () => {
-    const columns: Array<JsonReferenceColumn> =
-      internals.getJsonReferenceColumns.call(RunbookService);
-
-    expect(
-      columns.map((column: JsonReferenceColumn): string => {
-        return column.column;
-      }),
-    ).toEqual(["steps"]);
-
-    const references: ReturnType<JsonReferenceColumn["getReferences"]> =
-      columns[0]!.getReferences([
-        sshStep(CREDENTIAL_A),
-        kubernetesStep(CREDENTIAL_B),
-      ]);
-
-    expect(
-      references.map((reference: { id: unknown }) => {
-        return reference.id;
-      }),
-    ).toEqual([CREDENTIAL_A, CREDENTIAL_B]);
-    expect(references[0]!.modelName).toBe("Credential");
-    expect(references[0]!.service.modelType).toBe(RunbookCredential);
+  // There is no credential to look up: the project check asks for none.
+  test("are no reference of the runbook: the project check looks none up", () => {
+    expect(internals.getJsonReferenceColumns.call(RunbookService)).toEqual([]);
   });
 });
 
 describe("creating a runbook", () => {
-  test("whose steps name a credential is refused to a caller who may not read credentials", async () => {
-    const refusal: unknown = await createRunbook(
-      [sshStep(CREDENTIAL_A)],
-      RUNBOOK_ADMIN,
-    );
+  test.each(everyCaller())(
+    "whose steps name a credential is refused to %s, saying what a step signs in with instead",
+    async (_who: string, props: DatabaseCommonInteractionProps) => {
+      const refusal: unknown = await createRunbook(
+        [bashStep(), sshStep(CREDENTIAL_A)],
+        props,
+      );
 
-    expect(refusal).toBeInstanceOf(UnreadableReferenceException);
-    expect((refusal as Error).message).toContain(
-      `This runbook references records that are not in this project: Credential "${CREDENTIAL_A}"`,
-    );
-  });
+      expect(refusal).toBeInstanceOf(BadDataException);
+      expect((refusal as Error).message).toBe(
+        `The step "Restart" ${STEP_NAMES_REMOVED_CREDENTIAL_MESSAGE}`,
+      );
+    },
+  );
 
-  test("names every credential refused", async () => {
-    const refusal: unknown = await createRunbook(
-      [sshStep(CREDENTIAL_A), kubernetesStep(CREDENTIAL_B)],
-      RUNBOOK_ADMIN,
-    );
-
-    expect((refusal as Error).message).toContain(
-      `Credential "${CREDENTIAL_A}", Credential "${CREDENTIAL_B}"`,
-    );
-  });
-
-  test("is refused to a reader whose team blocks reading credentials", async () => {
+  test("a Kubernetes step that names one is refused the same way", async () => {
     expect(
-      await createRunbook(
-        [kubernetesStep(CREDENTIAL_A)],
-        member([
-          row(Permission.ProjectAdmin),
-          row(Permission.ReadRunbookCredential, true),
-        ]),
-      ),
-    ).toBeInstanceOf(UnreadableReferenceException);
+      (
+        (await createRunbook(
+          [kubernetesStep(CREDENTIAL_B)],
+          PROJECT_OWNER,
+        )) as Error
+      ).message,
+    ).toBe(`The step "Scale" ${STEP_NAMES_REMOVED_CREDENTIAL_MESSAGE}`);
   });
 
-  test("is allowed to a caller who may read credentials", async () => {
-    for (const props of [
-      member([row(Permission.ProjectOwner)]),
-      member([row(Permission.ProjectAdmin)]),
-      member([
-        row(Permission.RunbookAdmin),
-        row(Permission.ReadRunbookCredential),
-      ]),
-    ]) {
+  test("the refusal says how a step signs in now, and where to turn one into it", () => {
+    expect(STEP_NAMES_REMOVED_CREDENTIAL_MESSAGE).toContain(
+      "runbook credentials were removed",
+    );
+    expect(STEP_NAMES_REMOVED_CREDENTIAL_MESSAGE).toContain(
+      "secret runbook variable",
+    );
+    expect(STEP_NAMES_REMOVED_CREDENTIAL_MESSAGE).toContain(
+      "Turn into a script step",
+    );
+  });
+
+  test("whose steps sign in with variables, or name no credential, is allowed", async () => {
+    for (const [, props] of everyCaller()) {
       expect(
-        await createRunbook([sshStep(CREDENTIAL_A)], props),
+        await createRunbook([sshScriptStep(), bashStep(), sshStep("")], props),
       ).toBeUndefined();
     }
   });
 
-  test("whose steps name no credential is allowed to anyone who may create runbooks", async () => {
-    expect(
-      await createRunbook([bashStep(), sshStep("")], RUNBOOK_ADMIN),
-    ).toBeUndefined();
-  });
-
-  test("is not asked of OneUptime or a master admin", async () => {
-    for (const props of [
-      { isRoot: true },
-      { isMasterAdmin: true, userId: ObjectID.generate() },
-    ] as Array<DatabaseCommonInteractionProps>) {
-      expect(
-        await createRunbook([sshStep(CREDENTIAL_A)], props),
-      ).toBeUndefined();
-    }
-  });
-
-  test("is refused before the project check, the same for a credential that is not the project's", async () => {
-    // Were it asked, the project check would know only CREDENTIAL_A.
-    getJestSpyOn(ProjectReferenceCheck, "validateCreate").mockImplementation(
-      (async () => {
-        throw new UnreadableReferenceException(
-          `This runbook references records that are not in this project: Credential "${CREDENTIAL_B}"`,
-        );
-      }) as never,
-    );
-
-    const refusal: unknown = await createRunbook(
-      [sshStep(CREDENTIAL_A), kubernetesStep(CREDENTIAL_B)],
-      RUNBOOK_ADMIN,
-    );
+  test("is refused before the project check", async () => {
+    await createRunbook([sshStep(CREDENTIAL_A)], PROJECT_OWNER);
 
     expect(ProjectReferenceCheck.validateCreate).not.toHaveBeenCalled();
-    expect(refusal).toBeInstanceOf(UnreadableReferenceException);
-    expect((refusal as Error).message).toContain(
-      `Credential "${CREDENTIAL_A}", Credential "${CREDENTIAL_B}"`,
-    );
   });
 
-  test("asks the project check for a caller who may read credentials", async () => {
+  test("hands on what the hook it extends returns", async () => {
+    const runbook: Runbook = new Runbook();
+    runbook.projectId = PROJECT_ID;
+    runbook.steps = [sshScriptStep()] as unknown as JSONArray;
+
+    const handedOn: OnCreate<Runbook> = {
+      createBy: { data: runbook, props: RUNBOOK_ADMIN },
+      carryForward: { from: "the hook it extends" },
+    };
+
+    getJestSpyOn(
+      ProjectReferencesService.prototype as unknown as RunbookInternals,
+      "onBeforeCreate",
+    ).mockResolvedValue(handedOn as never);
+
     expect(
-      await createRunbook(
-        [sshStep(CREDENTIAL_A)],
-        member([row(Permission.ProjectAdmin)]),
-      ),
-    ).toBeUndefined();
-    expect(ProjectReferenceCheck.validateCreate).toHaveBeenCalledTimes(1);
+      await internals.onBeforeCreate({
+        data: runbook,
+        props: PROJECT_OWNER,
+      }),
+    ).toBe(handedOn);
   });
 });
 
 describe("changing a runbook's steps", () => {
-  test("that keep the credentials it names asks nothing of the caller", async () => {
+  /*
+   * A step written through the API and never moved: kept as it is, it
+   * still saves (it fails when it runs, saying to turn it into a script
+   * step), so an edit of the rest of the runbook is never held up by it.
+   */
+  test("that keep a step naming a credential the runbook holds already saves", async () => {
+    storedSteps = [sshStep(CREDENTIAL_A)];
+
+    for (const [, props] of everyCaller()) {
+      expect(
+        await updateRunbook([sshStep(CREDENTIAL_A), bashStep()], props),
+      ).toBeUndefined();
+    }
+  });
+
+  test.each(everyCaller())(
+    "to a credential the runbook does not hold is refused to %s",
+    async (_who: string, props: DatabaseCommonInteractionProps) => {
+      storedSteps = [sshStep(CREDENTIAL_A)];
+
+      const refusal: unknown = await updateRunbook(
+        [sshStep(CREDENTIAL_A), kubernetesStep(CREDENTIAL_B)],
+        props,
+      );
+
+      expect(refusal).toBeInstanceOf(BadDataException);
+      expect((refusal as Error).message).toBe(
+        `The step "Scale" ${STEP_NAMES_REMOVED_CREDENTIAL_MESSAGE}`,
+      );
+    },
+  );
+
+  test("that move every step to variables asks nothing and reads nothing", async () => {
     storedSteps = [sshStep(CREDENTIAL_A)];
 
     expect(
-      await updateRunbook([sshStep(CREDENTIAL_A), bashStep()], RUNBOOK_ADMIN),
+      await updateRunbook([sshScriptStep(), bashStep()], RUNBOOK_ADMIN),
     ).toBeUndefined();
-  });
-
-  test("to a credential it does not name is refused to a caller who may not read credentials", async () => {
-    storedSteps = [sshStep(CREDENTIAL_A)];
-
-    const refusal: unknown = await updateRunbook(
-      [sshStep(CREDENTIAL_A), kubernetesStep(CREDENTIAL_B)],
-      RUNBOOK_ADMIN,
-    );
-
-    expect(refusal).toBeInstanceOf(UnreadableReferenceException);
-    expect((refusal as Error).message).toContain(
-      `Credential "${CREDENTIAL_B}"`,
-    );
-    expect((refusal as Error).message).not.toContain(
-      `Credential "${CREDENTIAL_A}"`,
-    );
-  });
-
-  test("to a new credential is allowed to a caller who may read credentials, without reading the runbook", async () => {
-    storedSteps = [sshStep(CREDENTIAL_A)];
-
-    expect(
-      await updateRunbook(
-        [kubernetesStep(CREDENTIAL_B)],
-        member([row(Permission.ProjectAdmin)]),
-      ),
-    ).toBeUndefined();
-    expect(RunbookService.findBy).not.toHaveBeenCalled();
-  });
-
-  test("that remove every credential asks nothing", async () => {
-    storedSteps = [sshStep(CREDENTIAL_A)];
-
-    expect(await updateRunbook([bashStep()], RUNBOOK_ADMIN)).toBeUndefined();
     expect(RunbookService.findBy).not.toHaveBeenCalled();
   });
 
@@ -461,7 +471,7 @@ describe("changing a runbook's steps", () => {
   });
 
   test("reads, as OneUptime, only the runbooks the caller may update, as the update itself is narrowed", async () => {
-    storedSteps = [];
+    storedSteps = [sshStep(CREDENTIAL_A)];
 
     await updateRunbook([sshStep(CREDENTIAL_A)], RUNBOOK_ADMIN);
 
@@ -483,12 +493,30 @@ describe("changing a runbook's steps", () => {
     );
   });
 
-  test("that writes no runbook names no credential, whatever runbooks it may not write hold", async () => {
-    getJestSpyOn(RunbookService, "findBy").mockResolvedValue([] as never);
-
+  /*
+   * Held to every runbook it writes: a credential one of them does not
+   * hold is refused even when another holds it.
+   */
+  test("over several runbooks, keeps a credential only when every one of them holds it", () => {
     expect(
-      await updateRunbook([sshStep(CREDENTIAL_B)], RUNBOOK_ADMIN),
-    ).toBeUndefined();
+      RunbookServiceType.getRemovedCredentialRefusal({
+        steps: [sshStep(CREDENTIAL_A)],
+        heldIds: [new Set([CREDENTIAL_A]), new Set([CREDENTIAL_A])],
+      }),
+    ).toBeNull();
+    expect(
+      RunbookServiceType.getRemovedCredentialRefusal({
+        steps: [sshStep(CREDENTIAL_A)],
+        heldIds: [new Set([CREDENTIAL_A]), new Set<string>()],
+      }),
+    ).toBe(`The step "Restart" ${STEP_NAMES_REMOVED_CREDENTIAL_MESSAGE}`);
+    // A create holds nothing yet.
+    expect(
+      RunbookServiceType.getRemovedCredentialRefusal({
+        steps: [sshStep(CREDENTIAL_A)],
+        heldIds: [],
+      }),
+    ).not.toBeNull();
   });
 
   test("is refused before the project check", async () => {
@@ -499,7 +527,7 @@ describe("changing a runbook's steps", () => {
       RUNBOOK_ADMIN,
     );
 
-    expect(refusal).toBeInstanceOf(UnreadableReferenceException);
+    expect(refusal).toBeInstanceOf(BadDataException);
     expect(ProjectReferenceCheck.validateUpdate).not.toHaveBeenCalled();
   });
 
@@ -525,98 +553,5 @@ describe("changing a runbook's steps", () => {
     ).mockResolvedValue(handedOn as never);
 
     expect(await internals.onBeforeUpdate(updateBy)).toBe(handedOn);
-  });
-});
-
-describe("creating a runbook hands on", () => {
-  test("what the hook it extends returns", async () => {
-    const runbook: Runbook = new Runbook();
-    runbook.projectId = PROJECT_ID;
-    runbook.steps = [sshStep(CREDENTIAL_A)] as unknown as JSONArray;
-
-    const handedOn: OnCreate<Runbook> = {
-      createBy: { data: runbook, props: RUNBOOK_ADMIN },
-      carryForward: { from: "the hook it extends" },
-    };
-
-    getJestSpyOn(
-      ProjectReferencesService.prototype as unknown as RunbookInternals,
-      "onBeforeCreate",
-    ).mockResolvedValue(handedOn as never);
-
-    expect(
-      await internals.onBeforeCreate({
-        data: runbook,
-        props: member([row(Permission.ProjectOwner)]),
-      }),
-    ).toBe(handedOn);
-  });
-});
-
-/*
- * A WORKFLOW'S STEP NAMES NO CREDENTIAL IN A RUNBOOK'S STEPS. It acts as a
- * Project Admin, who may read credentials, but that read is never lent to
- * it (RunbookCredentialReaders): naming one is refused, plainly, as a
- * change a person who may read credentials has to make. No workflow step
- * writes a runbook today; the rule holds for any that ever does.
- */
-describe("a workflow's step", () => {
-  const step: () => DatabaseCommonInteractionProps =
-    (): DatabaseCommonInteractionProps => {
-      return {
-        ...WorkflowPrincipal.getPropsWithoutPlan({
-          projectId: PROJECT_ID,
-          workflowId: new ObjectID("0193c0de-dddd-4aaa-8bbb-0000000000ff"),
-          workflowName: "Write the restart runbook",
-        }),
-        ...ON_HIGHEST_PLAN,
-      };
-    };
-
-  test("may not name credentials, though it acts as a Project Admin", () => {
-    expect(RunbookServiceType.mayNameCredentials(step())).toBe(false);
-    expect(
-      RunbookServiceType.mayNameCredentials(
-        member([row(Permission.ProjectAdmin)]),
-      ),
-    ).toBe(true);
-  });
-
-  test("creating a runbook whose steps name a credential is refused, saying a person has to name it", async () => {
-    const refusal: unknown = await createRunbook(
-      [sshStep(CREDENTIAL_A)],
-      step(),
-    );
-
-    expect(refusal).toBeInstanceOf(NotAuthorizedException);
-    expect((refusal as Error).message).toBe(
-      `Naming a runbook credential in a runbook's steps takes permission to read runbook credentials: ${RunbookCredentialReaders.getTitles()}. Workflow steps never have this permission, so a person who has it has to make this change.`,
-    );
-  });
-
-  test("changing a runbook's steps to a credential it does not name is refused", async () => {
-    storedSteps = [sshStep(CREDENTIAL_A)];
-
-    expect(
-      await updateRunbook(
-        [sshStep(CREDENTIAL_A), kubernetesStep(CREDENTIAL_B)],
-        step(),
-      ),
-    ).toBeInstanceOf(NotAuthorizedException);
-  });
-
-  test("keeping the credentials a runbook names, or naming none, asks nothing", async () => {
-    storedSteps = [sshStep(CREDENTIAL_A)];
-
-    expect(
-      await updateRunbook([sshStep(CREDENTIAL_A), bashStep()], step()),
-    ).toBeUndefined();
-    expect(await createRunbook([bashStep()], step())).toBeUndefined();
-  });
-
-  test("a person who may not read credentials is still answered as if the credential were not there", async () => {
-    expect(
-      await createRunbook([sshStep(CREDENTIAL_A)], RUNBOOK_ADMIN),
-    ).toBeInstanceOf(UnreadableReferenceException);
   });
 });
