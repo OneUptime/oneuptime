@@ -673,8 +673,12 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
 
   for (const definition of definitions) {
     if (!credentialsOnly) {
-      definition.configFields.forEach(
-        (field: ConnectorField, index: number): void => {
+      // The product's settings; its options are asked with the connection's other options.
+      definition.configFields
+        .filter((field: ConnectorField): boolean => {
+          return !field.isOption;
+        })
+        .forEach((field: ConnectorField, index: number): void => {
           fields.push({
             field: { [configFieldName(definition.provider, field.key)]: true },
             title: field.title,
@@ -709,8 +713,7 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
                 }
               : {}),
           });
-        },
-      );
+        });
     }
 
     definition.secretFields.forEach(
@@ -867,6 +870,28 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
         required: true,
       },
     );
+
+    /*
+     * Each provider's own options (ConnectorField.isOption), after the
+     * connection's: "Close alerts when their case closes" for Google SecOps.
+     */
+    for (const definition of definitions) {
+      for (const field of definition.configFields) {
+        if (!field.isOption) {
+          continue;
+        }
+
+        fields.push({
+          field: { [configFieldName(definition.provider, field.key)]: true },
+          title: field.title,
+          description: field.description,
+          stepId: POLLING_STEP_ID,
+          fieldType: fieldTypeFor(field),
+          required: field.required,
+          showIf: isSelected(definition),
+        });
+      }
+    }
 
     /*
      * A provider with its own presentation of alertingOnly gets that instead

@@ -98,3 +98,21 @@ export const SECURITY_EVENT_DESTINATION_FIELD_TEXTS: Record<
     ),
   },
 };
+
+/*
+ * The connection form's provider options (ConnectorField.isOption), by the
+ * catalog's field key: asked on the form's last step with the connection's
+ * other options. The form draws the catalog's own words; these only put
+ * them in the locale files.
+ */
+export const SECURITY_EVENT_CONNECTION_OPTION_TEXTS: Record<
+  string,
+  SecurityConnectionsText
+> = {
+  closeAlertsWhenCaseCloses: {
+    title: translationKey("Close alerts when their case closes"),
+    description: translationKey(
+      "Closing a security case closes its Google SecOps alerts too, with the verdict and closing note. The key needs the Chronicle API Editor role.",
+    ),
+  },
+};
