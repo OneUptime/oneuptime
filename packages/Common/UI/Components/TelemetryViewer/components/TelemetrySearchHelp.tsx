@@ -8,14 +8,36 @@ export interface TelemetrySearchHelpProps {
   rows: Array<SearchHelpRow>;
   combinedExample?: string | undefined;
   onExampleClick?: ((example: string) => void) | undefined;
+  /*
+   * Where the panel hangs from its search box. An explorer's search is the
+   * first control of its toolbar, so the panel opens from its left edge
+   * (the default); a search at the right of a table's header opens it from
+   * its right edge, and never wider than the screen.
+   */
+  align?: "left" | "right" | undefined;
+  dataTestId?: string | undefined;
 }
+
+export const TELEMETRY_SEARCH_HELP_PLACEMENT_CLASS_NAMES: Record<
+  "left" | "right",
+  string
+> = {
+  left: "absolute left-0 top-full z-50 mt-1 w-[36rem]",
+  right:
+    "absolute right-0 top-full z-50 mt-1 w-[36rem] max-w-[calc(100vw-2rem)]",
+};
 
 const TelemetrySearchHelp: FunctionComponent<TelemetrySearchHelpProps> = (
   props: TelemetrySearchHelpProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   return (
-    <div className="absolute left-0 top-full z-50 mt-1 w-[36rem] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
+    <div
+      data-testid={props.dataTestId}
+      className={`${
+        TELEMETRY_SEARCH_HELP_PLACEMENT_CLASS_NAMES[props.align || "left"]
+      } overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg`}
+    >
       <div className="border-b border-gray-100 px-3 py-2">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
           {translator.translateText("Search syntax")}

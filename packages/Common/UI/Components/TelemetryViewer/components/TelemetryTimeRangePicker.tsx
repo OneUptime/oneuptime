@@ -1,6 +1,8 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import RangeStartAndEndDateTime from "../../../../Types/Time/RangeStartAndEndDateTime";
-import TimeRangePickerDropdown from "../../Date/TimeRangePickerDropdown";
+import TimeRangePickerDropdown, {
+  TimeRangePickerSize,
+} from "../../Date/TimeRangePickerDropdown";
 import ResetTimeRangeZoomButton from "../../Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 
 export interface TelemetryTimeRangePickerProps {
@@ -12,6 +14,11 @@ export interface TelemetryTimeRangePickerProps {
    * its "Reset zoom", and a second one here would only repeat it.
    */
   showResetZoom?: boolean | undefined;
+  /*
+   * Compact (the explorer toolbar's chip) unless said otherwise; Header in a
+   * table's card header, beside its search and its ⋯.
+   */
+  size?: TimeRangePickerSize | undefined;
 }
 
 // Matches the Tailwind `w-72` on the rendered dropdown (18rem).
@@ -43,6 +50,7 @@ const TelemetryTimeRangePicker: FunctionComponent<
         onChange={props.onChange}
         dataTestIdPrefix={TELEMETRY_TIME_RANGE_PICKER_TEST_ID_PREFIX}
         dropdownWidthInPx={TIME_RANGE_DROPDOWN_WIDTH_IN_PX}
+        size={props.size}
       />
       {props.showResetZoom === false ? null : (
         <ResetTimeRangeZoomButton forTimeRange={props.value} />

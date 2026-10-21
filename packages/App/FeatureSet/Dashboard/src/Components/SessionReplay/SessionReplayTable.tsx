@@ -39,16 +39,31 @@ import {
 import ActionButtonSchema, {
   ActionButtonPlacement,
 } from "Common/UI/Components/ActionButton/ActionButtonSchema";
-import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
+import Card from "Common/UI/Components/Card/Card";
+import { TimeRangePickerSize } from "Common/UI/Components/Date/TimeRangePickerDropdown";
+import AppliedFilters from "Common/UI/Components/Filters/AppliedFilters";
+import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
+import MoreMenuSection from "Common/UI/Components/MoreMenu/MoreMenuSection";
+import RecordIdModal from "Common/UI/Components/ObjectID/RecordIdModal";
 import Table from "Common/UI/Components/Table/Table";
+import {
+  TABLE_HEADER_OPEN_SEARCH_BESIDE_BUTTONS_CLASS_NAME,
+  TableHeaderSearchSlot,
+  TableHeaderToolbar,
+  renderTableHeaderMoreMenu,
+  useTableHeaderSearchShortcut,
+} from "Common/UI/Components/Table/TableHeaderControls";
+import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import Columns from "Common/UI/Components/Table/Types/Columns";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import SessionReplayFacets, {
-  SESSION_REPLAY_FACETS,
-  SessionReplayFacet,
-} from "./SessionReplayFacets";
+import SessionReplayFacets from "./SessionReplayFacets";
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
@@ -65,7 +80,6 @@ import SessionReplayFilterModal from "./SessionReplayFilterModal";
 import SessionReplaySearchBar from "./SessionReplaySearchBar";
 import SessionReplayEmptyState, {
   describeSessionReplayListError,
-  SessionReplayFilterChipList,
   SessionReplayListErrorCopy,
 } from "./SessionReplayEmptyState";
 import {
@@ -87,10 +101,16 @@ import {
   resolveHandedOffUserFilter,
   serializeCursorMemory,
   SESSION_REPLAY_ITEMS_ON_PAGE_OPTIONS,
+  SESSION_REPLAY_SORT_OPTIONS,
   SessionReplayAdvancedFilters,
   SessionReplayCursorMemory,
   SessionReplayListUrlState,
+  SessionReplaySortOption,
 } from "./SessionReplayListFilters";
+import {
+  SEARCH_BOX_CHIP_FIELDS,
+  stringifySessionReplaySearchBox,
+} from "./SessionReplaySearchQuery";
 import {
   describeTriggerReason,
   formatIdleShare,
@@ -275,6 +295,18 @@ export const SESSION_REPLAY_LIST_CURSOR_STORAGE_KEY_PREFIX: string =
   "oneuptime.replay.listCursors:";
 
 const MAX_ROUTE_PILLS: number = 3;
+
+/*
+ * The applied filters neither the search box nor the chips can show: an
+ * exact page (set in the filter form) and the pseudonymous user key (set by
+ * clicking a person whose name your role cannot read). They are listed in
+ * the box every table shows over a filtered list (AppliedFilters). Every
+ * other filter is shown once, where it is changed: free text, user:,
+ * visitor:, url: and tag: in the search box, the rest in the chips.
+ */
+export const SESSION_REPLAY_APPLIED_BOX_FIELDS: ReadonlyArray<
+  keyof SessionReplayAdvancedFilters
+> = ["route", "identifiedUserKey"];
 
 /*
  * Signal badges shown on a row before the rest fold into "+N". Three is
@@ -1251,8 +1283,10 @@ interface SessionReplayTableRow extends SessionReplaySummary {
  * first thing to reach for - Watch is - and with no other action beside it
  * the split would otherwise promote it to a second button.
  *
- * A row with no first error to jump to has nothing in the menu, so it
- * shows no ⋯ at all.
+ * Every row's menu also has Show ID - the session's whole ID, to copy into a
+ * ticket or the search box's id: - as every model table's rows have. So every
+ * row carries a ⋯, and the rows' Watch buttons line up in one column: a row
+ * without one used to draw its Watch where the others' ⋯ was.
  *
  * The one thing given up: menu items are buttons, and a row action never sees
  * the click event, so Cmd/Ctrl-click and middle-click cannot open this jump in
@@ -1261,6 +1295,7 @@ interface SessionReplayTableRow extends SessionReplaySummary {
  */
 function getSessionReplayRowActions(
   openSession: (route: Route, openInNewTab: boolean) => void,
+  showSessionId: (sessionId: string) => void,
 ): Array<ActionButtonSchema<SessionReplayTableRow>> {
   return [
     {
@@ -1284,6 +1319,24 @@ function getSessionReplayRowActions(
           openSession(row.firstErrorRoute, false);
         }
 
+        onCompleteAction();
+      },
+    },
+    {
+      title: "Show ID",
+      // The ID card "Show ID" wears in every menu.
+      icon: IconProp.Identification,
+      buttonStyleType: ButtonStyleType.OUTLINE,
+      placement: ActionButtonPlacement.MoreMenu,
+      // Never offered on a row with no ID to show.
+      isVisible: (row: SessionReplayTableRow): boolean => {
+        return Boolean(row.sessionId);
+      },
+      onClick: (
+        row: SessionReplayTableRow,
+        onCompleteAction: VoidFunction,
+      ): void => {
+        showSessionId(row.sessionId);
         onCompleteAction();
       },
     },
@@ -1388,6 +1441,16 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
     DEFAULT_SESSION_REPLAY_ITEMS_ON_PAGE,
   );
   const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
+  // The session whose whole ID a row's Show ID put on screen.
+  const [shownSessionId, setShownSessionId] = useState<string | null>(null);
+  /*
+   * Whether the reader opened the header's search (its pill, "/", or the
+   * box taking focus). It also stays open while it holds text.
+   */
+  const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
+  const searchInputRef: React.RefObject<HTMLInputElement> =
+    useRef<HTMLInputElement>(null);
+  const translator: Translator = useTranslator();
   const [isIdentityFilterIgnored, setIsIdentityFilterIgnored] =
     useState<boolean>(false);
   const [nowUnixMs, setNowUnixMs] = useState<number>((): number => {
@@ -1941,6 +2004,50 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
     setAdvancedFilters(EMPTY_ADVANCED_FILTERS);
   }, []);
 
+  /*
+   * The chip row's "Clear all": the Signal chip and every facet chip, and
+   * nothing the search box or the filter form holds.
+   */
+  const clearChipFilters: VoidFunction = useCallback((): void => {
+    setPageNumber(1);
+    setSignal("all");
+    setAdvancedFilters(
+      (existing: SessionReplayAdvancedFilters): SessionReplayAdvancedFilters => {
+        const next: SessionReplayAdvancedFilters = { ...existing };
+
+        for (const field of SEARCH_BOX_CHIP_FIELDS) {
+          next[field] = "";
+        }
+
+        return next;
+      },
+    );
+  }, []);
+
+  // A sort is one of the ⋯'s ticked choices; a new one starts at page one.
+  const changeSort: (value: SessionReplaySortBy) => void = useCallback(
+    (value: SessionReplaySortBy): void => {
+      if (value === sortBy) {
+        return;
+      }
+
+      setPageNumber(1);
+      setSortBy(value);
+    },
+    [sortBy],
+  );
+
+  const openSearch: VoidFunction = useCallback((): void => {
+    setIsSearchOpen(true);
+    // Wait one frame so the box is shown before it takes the focus.
+    requestAnimationFrame((): void => {
+      searchInputRef.current?.focus();
+    });
+  }, []);
+
+  // "/" opens the search, as it does on every table.
+  useTableHeaderSearchShortcut(true, openSearch);
+
   const tableRows: Array<SessionReplayTableRow> =
     useMemo((): Array<SessionReplayTableRow> => {
       return rows.map((row: SessionReplaySummary): SessionReplayTableRow => {
@@ -1964,29 +2071,119 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
 
   const rowActions: Array<ActionButtonSchema<SessionReplayTableRow>> =
     useMemo((): Array<ActionButtonSchema<SessionReplayTableRow>> => {
-      return getSessionReplayRowActions(openSession);
+      return getSessionReplayRowActions(openSession, setShownSessionId);
     }, [openSession]);
 
   const showIdentityNudge: boolean =
     !error && shouldShowIdentityNudge(rows, isLoading, advancedFilters);
-  const additionalChips: Array<SessionReplayFilterChip> = chips.filter(
+  const appliedBoxChips: Array<SessionReplayFilterChip> = chips.filter(
     (chip: SessionReplayFilterChip): boolean => {
-      return !SESSION_REPLAY_FACETS.some(
-        (facet: SessionReplayFacet): boolean => {
-          return facet.field === chip.field;
-        },
-      );
+      return SESSION_REPLAY_APPLIED_BOX_FIELDS.includes(chip.field);
     },
   );
 
-  const cardButtons: Array<CardButtonSchema> = [
-    {
-      ...getRefreshButton(),
-      tooltip: "Refresh sessions",
-      className: "py-0 pr-0 pl-1 mt-1",
-      onClick: reload,
-    },
-  ];
+  /*
+   * Open while the reader has it open, and while it holds anything: a list
+   * narrowed by the box says so in the box.
+   */
+  const isSearchShown: boolean =
+    isSearchOpen ||
+    stringifySessionReplaySearchBox(advancedFilters).trim().length > 0;
+
+  /*
+   * The ⋯: the order of the rows (a ticked choice, as a feed's sort order
+   * is), the filter form, and Refresh - what every table keeps behind it.
+   */
+  const moreMenu: ReactElement | null = renderTableHeaderMoreMenu([], {
+    dataTestId: "session-replay-more",
+    sections: [
+      <MoreMenuSection key="sort" title="Sort">
+        {SESSION_REPLAY_SORT_OPTIONS.map(
+          (option: SessionReplaySortOption): ReactElement => {
+            const isSelected: boolean = option.value === sortBy;
+
+            return (
+              <MoreMenuItem
+                key={option.value}
+                text={option.label}
+                icon={isSelected ? IconProp.Check : undefined}
+                isIconSpaceReserved={true}
+                isChecked={isSelected}
+                dataTestId={`session-sort-${option.value}`}
+                onClick={(): void => {
+                  changeSort(option.value);
+                }}
+              />
+            );
+          },
+        )}
+      </MoreMenuSection>,
+      <MoreMenuItem
+        key="filter"
+        text="Filter"
+        icon={IconProp.Filter}
+        dataTestId="session-open-filters"
+        onClick={(): void => {
+          setIsFilterModalOpen(true);
+        }}
+      />,
+      <MoreMenuItem
+        key="refresh"
+        text="Refresh"
+        icon={IconProp.Refresh}
+        dataTestId="session-refresh"
+        onClick={reload}
+      />,
+    ],
+  });
+
+  /*
+   * The header's controls, as every table's: the search, then - because a
+   * recording list is read over a window - the time range, then the ⋯. All
+   * one height. They stay beside an opened search: the window is what a
+   * search for one person's sessions is most often widened by.
+   */
+  const headerToolbar: ReactElement = (
+    <TableHeaderToolbar
+      key="session-replay-header"
+      dataTestId="session-replay-header-toolbar"
+      isSearchOpen={isSearchShown}
+      keepButtonsWhileSearching={true}
+      search={
+        <TableHeaderSearchSlot
+          isOpen={isSearchShown}
+          onOpen={openSearch}
+          openClassName={TABLE_HEADER_OPEN_SEARCH_BESIDE_BUTTONS_CLASS_NAME}
+          dataTestId="session-search-slot"
+        >
+          <SessionReplaySearchBar
+            filters={advancedFilters}
+            onFiltersChange={applyFilters}
+            onNavigateToSession={navigateToSessionId}
+            isIdentityFilterIgnored={isIdentityFilterIgnored}
+            isOpen={isSearchShown}
+            inputRef={searchInputRef}
+            onFocus={(): void => {
+              setIsSearchOpen(true);
+            }}
+            onClose={(): void => {
+              setIsSearchOpen(false);
+            }}
+          />
+        </TableHeaderSearchSlot>
+      }
+    >
+      <TelemetryTimeRangePicker
+        value={timeRange}
+        size={TimeRangePickerSize.Header}
+        onChange={(value: RangeStartAndEndDateTime): void => {
+          setPageNumber(1);
+          setTimeRange(value);
+        }}
+      />
+      {moreMenu}
+    </TableHeaderToolbar>
+  );
 
   return (
     <Fragment>
@@ -1996,29 +2193,14 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
           props.description ||
           "Explore recorded sessions, understand user journeys, and investigate errors."
         }
-        buttons={cardButtons}
+        /*
+         * The header every table has: the title and its controls share the
+         * first line, and the description runs under both.
+         */
+        headerLayout="toolbar"
+        buttons={[headerToolbar]}
       >
         <div>
-          <SessionReplaySearchBar
-            filters={advancedFilters}
-            onFiltersChange={applyFilters}
-            onNavigateToSession={navigateToSessionId}
-            sortBy={sortBy}
-            onSortChange={(value: SessionReplaySortBy): void => {
-              setPageNumber(1);
-              setSortBy(value);
-            }}
-            timeRange={timeRange}
-            onTimeRangeChange={(value: RangeStartAndEndDateTime): void => {
-              setPageNumber(1);
-              setTimeRange(value);
-            }}
-            onOpenAdvancedFilters={(): void => {
-              setIsFilterModalOpen(true);
-            }}
-            isIdentityFilterIgnored={isIdentityFilterIgnored}
-          />
-
           <SessionReplayFacets
             rows={rows}
             filters={advancedFilters}
@@ -2028,6 +2210,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
               setPageNumber(1);
               setSignal(value);
             }}
+            onClearAll={clearChipFilters}
           />
 
           {showIdentityNudge && (
@@ -2049,26 +2232,61 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
               />
             )}
 
-          {(chips.length > 0 || signal !== "all") && (
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <SessionReplayFilterChipList
-                chips={additionalChips}
-                onRemoveChip={removeChip}
-              />
-              <Button
-                title="Edit filters"
-                buttonStyle={ButtonStyleType.SECONDARY_LINK}
-                onClick={(): void => {
-                  setIsFilterModalOpen(true);
-                }}
-              />
-              <Button
-                title="Clear filters"
-                buttonStyle={ButtonStyleType.SECONDARY_LINK}
-                dataTestId="session-clear-filters"
-                onClick={clearFilters}
-              />
-            </div>
+          {appliedBoxChips.length > 0 && (
+            <AppliedFilters
+              dataTestId="session-applied-filters"
+              title={translator.translateTemplate(
+                "Showing {{itemsName}} that match",
+                { itemsName: translatableTerm("Sessions") },
+              )}
+              chips={appliedBoxChips.map(
+                (chip: SessionReplayFilterChip): ReactElement => {
+                  return (
+                    <span
+                      key={chip.field}
+                      data-testid="session-filter-chip"
+                      data-field={chip.field}
+                    >
+                      <TranslatedSentence
+                        template="{{field}} is {{value}}"
+                        slots={{
+                          field: (
+                            <span className="font-medium">
+                              {translator.translateText(chip.label)}
+                            </span>
+                          ),
+                          /*
+                           * A page's address as it was given; the key's
+                           * stand-in is a phrase of ours.
+                           */
+                          value: (
+                            <span className="font-medium">
+                              {chip.field === "identifiedUserKey"
+                                ? translator.translateText(chip.text)
+                                : chip.text}
+                            </span>
+                          ),
+                        }}
+                      />
+                    </span>
+                  );
+                },
+              )}
+              onEditFilters={(): void => {
+                setIsFilterModalOpen(true);
+              }}
+              onClearFilters={(): void => {
+                const next: SessionReplayAdvancedFilters = {
+                  ...advancedFilters,
+                };
+
+                for (const field of SESSION_REPLAY_APPLIED_BOX_FIELDS) {
+                  next[field] = "";
+                }
+
+                applyFilters(next);
+              }}
+            />
           )}
 
           {error ? (
@@ -2187,6 +2405,16 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
           )}
         </div>
       </Card>
+
+      {shownSessionId !== null && (
+        <RecordIdModal
+          recordId={shownSessionId}
+          itemName="Session"
+          onClose={(): void => {
+            setShownSessionId(null);
+          }}
+        />
+      )}
 
       {isFilterModalOpen && (
         <SessionReplayFilterModal
