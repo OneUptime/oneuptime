@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "../../Utils/Sms/NotificationSms";
 import User from "../../Models/DatabaseModels/User";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
@@ -447,7 +448,9 @@ export class Service extends ProjectReferencesService<Model> {
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. AI Agent ${aiAgent.name} is ${connectionStatus}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: buildNotificationSms(
+            `AI Agent ${aiAgent.name} is ${connectionStatus}.`,
+          ),
         };
 
         const callMessage: CallRequestMessage = {

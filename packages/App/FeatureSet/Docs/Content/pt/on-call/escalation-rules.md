@@ -118,6 +118,26 @@ Toda mensagem é uma que o provedor aceita, então um acionamento sempre sai. Is
 
 Uma mensagem mais longa, com um título longo ou uma descrição longa que um modelo colocou nela, é cortada e termina com um aviso de que o texto completo está no OneUptime: "… (truncated — see OneUptime for the full text)". O texto de uma mensagem de WhatsApp é um modelo fixo, então ali são cortados os valores mais longos, cada um terminando com "…". Os links de uma mensagem nunca são cortados.
 
+### O que diz o SMS de um acionamento
+
+Um SMS é enviado, e cobrado, em partes de 160 caracteres. Um acionamento por SMS é escrito para caber em uma só parte sempre que possível, e diz só o que você precisa em um telefone bloqueado: quem envia, o que aconteceu e o único link para confirmar o acionamento ou repassá-lo. No telefone, ele aparece assim:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+```
+
+Ele informa a severidade e o que aconteceu (um incidente, um alerta ou um episódio de qualquer um deles), o número, o projeto e o título, nessa ordem. Quando nem tudo cabe em uma parte:
+
+1. Primeiro o projeto é omitido.
+2. Depois o título é cortado e termina com `...`.
+
+A severidade, o número e o link nunca são cortados. Um título mantém pelo menos 20 caracteres: se nem isso couber, por exemplo com um endereço ou um nome de produto muito longo, o SMS ocupa uma segunda parte e diz tudo.
+
+Um único caractere fora do alfabeto simples do SMS faz a mensagem inteira sair em partes de 70 caracteres. Por isso aspas e travessões tipográficos são escritos como `"`, `'` e `-`, `…` como `...`, e letras como `ç` e `ł` perdem seus diacríticos; emojis são omitidos. Um título em outra escrita, como japonês ou russo, é enviado como foi escrito e ocupa duas partes ou mais.
+
+Os outros SMS que o OneUptime envia para você, por exemplo sobre uma mudança em um incidente do qual você é dono ou o início do seu turno de plantão, também começam com `OneUptime:` e terminam com `Turn off in User Settings > Notification Settings.`, uma frase que é omitida quando é isso que faz o SMS caber em uma parte.
+
 ### Quando um acionamento não é enviado
 
 Um acionamento não enviado diz o motivo nos **Registros de plantão** da pessoa (Configurações do usuário): a linha mostra **Erro**, e a mensagem de status dá a razão. Ele não fica mais parado em **Enviando**. A mensagem diz uma destas coisas:

@@ -48,6 +48,10 @@ const MONITORS_LIST_LINK: string = `${DASHBOARD}/monitors`;
 const UNSUBSCRIBE_LINE: string =
   "To unsubscribe from this notification go to User Settings in OneUptime Dashboard.";
 
+// Where an SMS says these are turned off (NotificationSms).
+const SMS_TURN_OFF_LINE: string =
+  "Turn off in User Settings > Notification Settings.";
+
 const ANY_BRACE: RegExp = /[{}]/;
 
 /*
@@ -872,7 +876,7 @@ describe("ProbeMonitorsNotification", () => {
         "Probe Edge {EU} is disconnected. 1 monitor in project Acme Production is not being monitored.";
 
       expect(content.smsMessage.message).toBe(
-        `This is a message from OneUptime. ${summary} ${UNSUBSCRIBE_LINE}`,
+        `OneUptime: ${summary} ${SMS_TURN_OFF_LINE}`,
       );
       expect(content.callRequestMessage.data).toEqual([
         {
@@ -956,7 +960,7 @@ describe("ProbeMonitorsNotification", () => {
         "Probe eu-west-1 is disconnected. 2 monitors in project Acme Production are not being monitored.";
 
       expect(content.smsMessage.message).toBe(
-        `This is a message from OneUptime. ${summary} ${UNSUBSCRIBE_LINE}`,
+        `OneUptime: ${summary} ${SMS_TURN_OFF_LINE}`,
       );
       expect(content.smsMessage.message).not.toContain("Checkout API");
 
@@ -976,7 +980,7 @@ describe("ProbeMonitorsNotification", () => {
         "Probe eu-west-1 is connected again. 1 monitor in project Acme Production is being monitored again.";
 
       expect(content.smsMessage.message).toBe(
-        `This is a message from OneUptime. ${summary} ${UNSUBSCRIBE_LINE}`,
+        `OneUptime: ${summary} ${SMS_TURN_OFF_LINE}`,
       );
       expect(content.callRequestMessage.data).toEqual([
         {

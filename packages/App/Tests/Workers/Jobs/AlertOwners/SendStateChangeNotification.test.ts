@@ -660,7 +660,7 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
         "[Acknowledged Alert AL-42] - CPU is high",
       );
       expect(call.smsMessage.message).toBe(
-        "This is a message from OneUptime. Alert AL-42 (CPU is high) - state changed from Identified to Acknowledged. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.",
+        "OneUptime: Alert AL-42 (CPU is high) - state changed from Identified to Acknowledged. Turn off in User Settings > Notification Settings.",
       );
       expect(call.callRequestMessage.data[0]!.sayMessage).toBe(
         "This is a message from OneUptime. Alert AL-42 (CPU is high) state changed from Identified to Acknowledged. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.",

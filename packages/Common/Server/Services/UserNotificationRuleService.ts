@@ -135,6 +135,11 @@ import {
 } from "../../Types/Workspace/WorkspaceMessagePayload";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import ProductBrandingText from "../Utils/ProductBrandingText";
+import { ONEUPTIME_PRODUCT_NAME } from "../../Types/Branding/ProductBranding";
+import {
+  buildOnCallPageSms,
+  OnCallPageSmsKind,
+} from "../../Utils/Sms/OnCallPageSms";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
@@ -4015,21 +4020,22 @@ export class Service extends ProjectReferencesService<Model> {
     alert: Alert,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<SMS> {
-    const url: URL = await this.buildOnCallAcknowledgeShortUrl(
-      userOnCallLogTimelineId,
-    );
-
-    const alertIdentifier: string =
-      alert.alertNumber !== undefined
-        ? `${alert.alertNumberWithPrefix || "#" + alert.alertNumber} (${alert.title || "Alert"})`
-        : alert.title || "Alert";
-
-    const sms: SMS = {
+    return {
       to,
-      message: `This is a message from OneUptime. A new alert has been created: ${alertIdentifier}. To acknowledge this alert, or pass it on if you can't take it, please click on the following link ${url.toString()}`,
+      message: this.buildOnCallPageSmsText({
+        kind: OnCallPageSmsKind.Alert,
+        severityName: alert.alertSeverity?.name,
+        number: this.getRecordNumberText(
+          alert.alertNumberWithPrefix,
+          alert.alertNumber,
+        ),
+        projectName: alert.project?.name,
+        title: alert.title,
+        link: await this.buildOnCallAcknowledgeShortUrl(
+          userOnCallLogTimelineId,
+        ),
+      }),
     };
-
-    return sms;
   }
 
   @CaptureSpan()
@@ -4038,21 +4044,22 @@ export class Service extends ProjectReferencesService<Model> {
     incident: Incident,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<SMS> {
-    const url: URL = await this.buildOnCallAcknowledgeShortUrl(
-      userOnCallLogTimelineId,
-    );
-
-    const incidentIdentifier: string =
-      incident.incidentNumber !== undefined
-        ? `${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber} (${incident.title || "Incident"})`
-        : incident.title || "Incident";
-
-    const sms: SMS = {
+    return {
       to,
-      message: `This is a message from OneUptime. A new incident has been created: ${incidentIdentifier}. To acknowledge this incident, or pass it on if you can't take it, please click on the following link ${url.toString()}`,
+      message: this.buildOnCallPageSmsText({
+        kind: OnCallPageSmsKind.Incident,
+        severityName: incident.incidentSeverity?.name,
+        number: this.getRecordNumberText(
+          incident.incidentNumberWithPrefix,
+          incident.incidentNumber,
+        ),
+        projectName: incident.project?.name,
+        title: incident.title,
+        link: await this.buildOnCallAcknowledgeShortUrl(
+          userOnCallLogTimelineId,
+        ),
+      }),
     };
-
-    return sms;
   }
 
   @CaptureSpan()
@@ -4061,22 +4068,22 @@ export class Service extends ProjectReferencesService<Model> {
     alertEpisode: AlertEpisode,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<SMS> {
-    const url: URL = await this.buildOnCallAcknowledgeShortUrl(
-      userOnCallLogTimelineId,
-    );
-
-    const episodeIdentifier: string = alertEpisode.episodeNumberWithPrefix
-      ? `${alertEpisode.episodeNumberWithPrefix} (${alertEpisode.title || "Alert Episode"})`
-      : alertEpisode.episodeNumber !== undefined
-        ? `#${alertEpisode.episodeNumber} (${alertEpisode.title || "Alert Episode"})`
-        : alertEpisode.title || "Alert Episode";
-
-    const sms: SMS = {
+    return {
       to,
-      message: `This is a message from OneUptime. A new alert episode has been created: ${episodeIdentifier}. To acknowledge this alert episode, or pass it on if you can't take it, please click on the following link ${url.toString()}`,
+      message: this.buildOnCallPageSmsText({
+        kind: OnCallPageSmsKind.AlertEpisode,
+        severityName: alertEpisode.alertSeverity?.name,
+        number: this.getRecordNumberText(
+          alertEpisode.episodeNumberWithPrefix,
+          alertEpisode.episodeNumber,
+        ),
+        projectName: alertEpisode.project?.name,
+        title: alertEpisode.title,
+        link: await this.buildOnCallAcknowledgeShortUrl(
+          userOnCallLogTimelineId,
+        ),
+      }),
     };
-
-    return sms;
   }
 
   @CaptureSpan()
@@ -4085,22 +4092,68 @@ export class Service extends ProjectReferencesService<Model> {
     incidentEpisode: IncidentEpisode,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<SMS> {
-    const url: URL = await this.buildOnCallAcknowledgeShortUrl(
-      userOnCallLogTimelineId,
-    );
-
-    const episodeIdentifier: string = incidentEpisode.episodeNumberWithPrefix
-      ? `${incidentEpisode.episodeNumberWithPrefix} (${incidentEpisode.title || "Incident Episode"})`
-      : incidentEpisode.episodeNumber !== undefined
-        ? `#${incidentEpisode.episodeNumber} (${incidentEpisode.title || "Incident Episode"})`
-        : incidentEpisode.title || "Incident Episode";
-
-    const sms: SMS = {
+    return {
       to,
-      message: `This is a message from OneUptime. A new incident episode has been created: ${episodeIdentifier}. To acknowledge this incident episode, or pass it on if you can't take it, please click on the following link ${url.toString()}`,
+      message: this.buildOnCallPageSmsText({
+        kind: OnCallPageSmsKind.IncidentEpisode,
+        severityName: incidentEpisode.incidentSeverity?.name,
+        number: this.getRecordNumberText(
+          incidentEpisode.episodeNumberWithPrefix,
+          incidentEpisode.episodeNumber,
+        ),
+        projectName: incidentEpisode.project?.name,
+        title: incidentEpisode.title,
+        link: await this.buildOnCallAcknowledgeShortUrl(
+          userOnCallLogTimelineId,
+        ),
+      }),
     };
+  }
 
-    return sms;
+  /*
+   * A page's text message: who sends it, the severity and what happened,
+   * its number, the project, the title and the one link - fitted to one
+   * 160-character part wherever it can be (Utils/Sms/OnCallPageSms says
+   * how, and what gives way first).
+   *
+   * It is written with OneUptime as the sender, as every SMS is: the
+   * Notification service puts the installation's own name in place of
+   * OneUptime when it goes by one (ProductBrandingText.brandText), once, on
+   * the whole text. The text is fitted as it will be sent, after that
+   * renaming, so a longer name never pushes it into a second part.
+   */
+  private buildOnCallPageSmsText(data: {
+    kind: OnCallPageSmsKind;
+    severityName: string | undefined;
+    number: string | undefined;
+    projectName: string | undefined;
+    title: string | undefined;
+    link: URL;
+  }): string {
+    return buildOnCallPageSms({
+      kind: data.kind,
+      productName: ONEUPTIME_PRODUCT_NAME,
+      severityName: data.severityName,
+      number: data.number,
+      projectName: data.projectName,
+      title: data.title,
+      link: data.link.toString(),
+      sentAs: (text: string): string => {
+        return ProductBrandingText.brandText(text);
+      },
+    }).text;
+  }
+
+  // INC-42 with the project's prefix, #42 without one, none without a number.
+  private getRecordNumberText(
+    numberWithPrefix: string | null | undefined,
+    number: number | null | undefined,
+  ): string | undefined {
+    if (numberWithPrefix) {
+      return numberWithPrefix;
+    }
+
+    return number !== undefined && number !== null ? `#${number}` : undefined;
   }
 
   /*

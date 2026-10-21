@@ -27,6 +27,7 @@ import SliType from "Common/Types/ServiceLevelObjective/SliType";
 import SloMultiMonitorMode from "Common/Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 
 /*
  * End-to-end regression tests for the SLO evaluation worker.
@@ -2377,6 +2378,35 @@ describe("Slo:EvaluateSlos worker", () => {
           "statusChangeNotificationSentAt",
         ),
       ).toHaveLength(1);
+    });
+
+    test("the owners' SMS says the news in the words of every notification SMS, and WhatsApp the news alone", async () => {
+      sloService.getDueSlos.mockResolvedValue([
+        makeSlo({ sloStatus: SloStatus.AtRisk }),
+      ]);
+      stubExhausted();
+      stubOneOwner();
+
+      await runWorkerTick();
+
+      expect(notificationService.sendUserNotification).toHaveBeenCalledTimes(1);
+
+      const sent: {
+        smsMessage: { message: string };
+        whatsAppMessage: { body: string };
+      } = notificationService.sendUserNotification.mock.calls[0]![0] as {
+        smsMessage: { message: string };
+        whatsAppMessage: { body: string };
+      };
+      const news: string = sent.whatsAppMessage.body;
+      const [said, link] = news.split(" View: ");
+
+      expect(said).toContain(
+        'SLO Budget Exhausted: "Checkout availability" in Acme. Error budget remaining: ',
+      );
+      expect(link).toBe("https://oneuptime.com/dashboard/slo/slo-1");
+      // "OneUptime: <news> Turn off in User Settings > Notification Settings."
+      expect(sent.smsMessage.message).toBe(buildNotificationSms(news));
     });
 
     test("staying BudgetExhausted tick after tick notifies nobody", async () => {

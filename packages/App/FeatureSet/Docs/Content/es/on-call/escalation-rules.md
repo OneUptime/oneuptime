@@ -118,6 +118,26 @@ Cada mensaje es uno que su proveedor acepta, así que un aviso siempre sale. Est
 
 Un mensaje más largo, con un título largo o una descripción larga que puso una plantilla, se corta y termina con una nota de que el texto completo está en OneUptime: «… (truncated — see OneUptime for the full text)». El texto de un mensaje de WhatsApp es una plantilla fija, así que allí se cortan los valores más largos, cada uno terminado en «…». Los enlaces de un mensaje nunca se cortan.
 
+### Qué dice el SMS de un aviso
+
+Un SMS se envía, y se cobra, en partes de 160 caracteres. Un aviso por SMS se escribe para que quepa en una sola parte siempre que se pueda, y dice solo lo que necesitas en un teléfono bloqueado: quién lo envía, qué ha pasado y el único enlace para reconocer el aviso o pasarlo. En un teléfono se lee así:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+```
+
+Indica la severidad y qué ha pasado (un incidente, una alerta o un episodio de cualquiera de ellos), su número, el proyecto y el título, en ese orden. Cuando no cabe todo en una parte:
+
+1. Primero se omite el proyecto.
+2. Después se corta el título, que termina en `...`.
+
+La severidad, el número y el enlace nunca se cortan. Un título conserva al menos 20 caracteres: si ni eso cabe, por ejemplo con una dirección o un nombre de producto muy largos, el SMS ocupa una segunda parte y lo dice todo.
+
+Un solo carácter fuera del alfabeto sencillo de los SMS hace que todo el mensaje salga en partes de 70 caracteres. Por eso las comillas tipográficas y las rayas se escriben como `"`, `'` y `-`, `…` como `...`, y letras como `ç` y `ł` pierden sus acentos; los emojis se omiten. Un título en otra escritura, como japonés o ruso, se envía tal como está escrito y ocupa dos partes o más.
+
+Los demás SMS que te envía OneUptime, por ejemplo sobre un cambio en un incidente del que eres propietario o el inicio de tu turno de guardia, también empiezan con `OneUptime:` y terminan con `Turn off in User Settings > Notification Settings.`, una frase que se omite cuando así el mensaje cabe en una parte.
+
 ### Cuando un aviso no se envía
 
 Un aviso que no se envía indica el motivo en los **Registros de guardia** de la persona (Ajustes de usuario): su fila muestra **Error**, y su mensaje de estado da la razón. Ya no se queda en **Enviando**. El mensaje dice una de estas cosas:

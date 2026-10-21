@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "../../Utils/Sms/NotificationSms";
 import DatabaseConfig from "../DatabaseConfig";
 import { InboundEmailDomain, IsBillingEnabled } from "../EnvironmentConfig";
 import { UpdateResult } from "typeorm";
@@ -3213,7 +3214,9 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
       };
 
       const sms: SMSMessage = {
-        message: `This is a message from OneUptime. Probes for monitor ${monitor.name} is ${enabledStatus}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+        message: buildNotificationSms(
+          `Probes for monitor ${monitor.name} is ${enabledStatus}.`,
+        ),
       };
 
       const callMessage: CallRequestMessage = {
@@ -3344,7 +3347,9 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
       };
 
       const sms: SMSMessage = {
-        message: `This is a message from OneUptime. Probes for monitor ${monitor.name} are ${status}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+        message: buildNotificationSms(
+          `Probes for monitor ${monitor.name} are ${status}.`,
+        ),
       };
 
       const callMessage: CallRequestMessage = {

@@ -53,8 +53,8 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *
  *   call       "If you can't take it, press 2 to pass it on.", and the
  *              address the key press goes to carries the page's token;
- *   text       "or pass it on if you can't take it", with the one link,
- *              which opens a page that offers both;
+ *   text       "Ack or pass it on:", then the one link, which opens a
+ *              page that offers both;
  *   WhatsApp   the approved template as it is: its acknowledge link opens
  *              that same page, so it carries the token;
  *   Telegram,  a "Can't take it? Pass it on" link under Acknowledge;
@@ -461,9 +461,12 @@ describe.each(KINDS)("the messages that page about $name", (kind: Kind) => {
   test("a text says it can be passed on, behind its one link, which carries the token", async () => {
     const sms: SMS = await kind.sms();
 
-    expect(sms.message).toContain(
-      `To acknowledge this ${kind.noun}, or pass it on if you can't take it, please click on the following link https://oneuptime.example.com/l/1`,
-    );
+    expect(
+      sms.message.endsWith(
+        " Ack or pass it on: https://oneuptime.example.com/l/1",
+      ),
+    ).toBe(true);
+    expect(sms.message).toContain(` ${kind.noun} `);
     expect(shortened.map(readLink)).toEqual([
       { path: ACKNOWLEDGE_PAGE, hasToken: true },
     ]);

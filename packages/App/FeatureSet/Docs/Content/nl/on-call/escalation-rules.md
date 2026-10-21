@@ -118,6 +118,26 @@ Elk bericht is er een dat de provider aanneemt, dus een oproep gaat altijd de de
 
 Een langer bericht, met een lange titel of een lange beschrijving die een sjabloon erin heeft gezet, wordt ingekort en eindigt met een opmerking dat de volledige tekst in OneUptime staat: "… (truncated — see OneUptime for the full text)". De tekst van een WhatsApp-bericht is een vast sjabloon, dus daar worden in plaats daarvan de langste waarden ingekort, elk eindigend op "…". De links in een bericht worden nooit ingekort.
 
+### Wat de sms van een oproep zegt
+
+Een sms wordt verstuurd, en betaald, in delen van 160 tekens. Een oproep per sms is zo geschreven dat hij waar het kan in één deel past, en zegt alleen wat u nodig hebt op een vergrendelde telefoon: wie hem stuurt, wat er is gebeurd en de ene link om de oproep te bevestigen of door te geven. Op een telefoon ziet hij er zo uit:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+```
+
+Hij noemt de ernst en wat er is gebeurd (een incident, een waarschuwing of een episode van een van beide), het nummer, het project en de titel, in die volgorde. Als niet alles in één deel past:
+
+1. Eerst wordt het project weggelaten.
+2. Daarna wordt de titel ingekort, en eindigt hij op `...`.
+
+De ernst, het nummer en de link worden nooit ingekort. Een titel houdt minstens 20 tekens: past zelfs dat niet, bijvoorbeeld bij een heel lang adres of een heel lange productnaam, dan neemt de sms een tweede deel en zegt hij alles.
+
+Eén teken buiten het eenvoudige alfabet van sms'jes laat het hele bericht in delen van 70 tekens vertrekken. Daarom worden gekrulde aanhalingstekens en gedachtestreepjes geschreven als `"`, `'` en `-`, `…` als `...`, en verliezen letters als `ç` en `ł` hun accenten; emoji worden weggelaten. Een titel in een ander schrift, zoals Japans of Russisch, wordt verstuurd zoals hij is geschreven, en neemt twee delen of meer.
+
+De andere sms'jes die OneUptime u stuurt, bijvoorbeeld over een wijziging in een incident waarvan u eigenaar bent of het begin van uw dienst, beginnen ook met `OneUptime:` en eindigen met `Turn off in User Settings > Notification Settings.`, een zin die wordt weggelaten als de sms juist daardoor in één deel past.
+
 ### Wanneer een oproep niet wordt verstuurd
 
 Een oproep die niet wordt verstuurd, zegt waarom in de **Bereikbaarheidslogboeken** van de persoon (Gebruikersinstellingen): de rij toont **Fout**, en het statusbericht geeft de reden. Hij blijft niet meer op **Bezig met verzenden** staan. Het bericht zegt een van deze dingen:
