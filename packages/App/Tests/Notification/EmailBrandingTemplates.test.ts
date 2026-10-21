@@ -3,6 +3,7 @@ import fs from "fs";
 import Path from "path";
 import { beforeAll, describe, expect, test } from "@jest/globals";
 import { markupAsSpacesWithOutlookContent } from "Common/Tests/Helpers/HtmlText";
+import EmailLogo from "Common/Server/Utils/Mail/EmailLogo";
 import "../../FeatureSet/Notification/Utils/Handlebars";
 import {
   registerEmailBrandHelpers,
@@ -21,6 +22,8 @@ import {
  *   isBrandRenamed    "true" when it goes by another name
  *   brandWebsiteUrl   where "Powered by" links when renamed
  *   brandLogoUrl      the logo, when it has one a mail client can draw
+ *   oneUptimeLogoUrl  OneUptime's own logo, the image itself (a data: URL
+ *                     sent inside the email), where the header shows it
  *
  * Pinned: an installation that is not renamed gets exactly the email it got
  * before (the partials do not even need the brand helpers for it); a renamed
@@ -418,11 +421,51 @@ describe("the partials every email is built from", () => {
   });
 
   describe("Logo", () => {
-    test("by default: OneUptime's logo and name", () => {
+    // OneUptime's logo, as MailService.render hands it to every email.
+    const ONEUPTIME_LOGO: string = EmailLogo.getDataUrl() as string;
+
+    test("by default: OneUptime's logo - the image itself, from no host - and name", () => {
+      const html: string = renderPartial("Logo", {
+        oneUptimeLogoUrl: ONEUPTIME_LOGO,
+      });
+
+      expect(html).toContain(
+        `<img src="${ONEUPTIME_LOGO}" width="32" height="32" alt="OneUptime"`,
+      );
+      expect(textOf(html)).toContain("OneUptime");
+      // The only image is that one.
+      expect(html.split("<img ")).toHaveLength(2);
+    });
+
+    test("by default, when OneUptime's logo could not be read: its name alone, never a broken image", () => {
       const html: string = renderPartial("Logo", {});
 
-      expect(html).toContain('alt="OneUptime"');
-      expect(textOf(html)).toContain("OneUptime");
+      expect(html).not.toContain("<img");
+      expect(textOf(html).trim()).toBe("OneUptime");
+    });
+
+    test("a logo of its own wins over OneUptime's", () => {
+      const html: string = renderPartial("Logo", {
+        brandLogoUrl: "https://status.acme.example/api/branding/logo?v=1",
+        oneUptimeLogoUrl: ONEUPTIME_LOGO,
+      });
+
+      expect(html).toContain(
+        `src="${Handlebars.escapeExpression(
+          "https://status.acme.example/api/branding/logo?v=1",
+        )}"`,
+      );
+      expect(html).not.toContain("data:");
+    });
+
+    test("renamed: never OneUptime's logo, even when handed it", () => {
+      const html: string = renderPartial("Logo", {
+        ...RENAMED,
+        oneUptimeLogoUrl: ONEUPTIME_LOGO,
+      });
+
+      expect(html).not.toContain("<img");
+      expect(textOf(html).trim()).toBe(NAME_IN_HTML);
     });
 
     test("with a logo of its own: that image, named after the installation", () => {

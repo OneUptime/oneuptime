@@ -77,6 +77,8 @@ The app reaches out only for what you turn on. Each of these is optional, and ea
 
 Connections the other way - SendGrid delivering inbound email, Slack and Microsoft Teams calling back - need the ingress to be reachable from the internet. Which private addresses the app and the probes may reach is up to you: see [Private Network Access](/docs/self-hosted/private-network-access).
 
+OneUptime's logo travels inside every email it sends, so it shows even on a network without internet access, and opening an email asks no other host for it. Images you upload yourself, such as your own logo or a status page's, are shown from your OneUptime URL, which the people who read those emails need to be able to reach.
+
 ## Next steps
 
 :::cards

@@ -20,6 +20,7 @@ import EmailServer from "Common/Types/Email/EmailServer";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import Port from "Common/Types/Port";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
+import { EMAIL_LOGO_PATH } from "Common/Server/Utils/Mail/EmailLogo";
 import MailService from "../../FeatureSet/Notification/Services/MailService";
 import "../../FeatureSet/Notification/Utils/Handlebars";
 
@@ -32,9 +33,10 @@ import "../../FeatureSet/Notification/Utils/Handlebars";
  * MailServiceEmailDesign.test.ts.
  *
  * Pinned: an installation that is not renamed sends the email it always
- * did; a renamed one names itself in the email and in a subject template's
- * own words, never touching a literal subject; the brand variables are
- * MailService's alone, whatever a sender put in them.
+ * did, its logo carried inside the email (issue #5124); a renamed one names
+ * itself in the email and in a subject template's own words, never touching
+ * a literal subject, and never carries OneUptime's logo; the brand
+ * variables are MailService's alone, whatever a sender put in them.
  */
 jest.mock("../../FeatureSet/Notification/Config", () => {
   return {
@@ -121,7 +123,34 @@ interface CapturedMail {
   to: string;
   subject: string;
   html: string;
+  attachments?: Array<Record<string, unknown>>;
 }
+
+const CID_SOURCE: string = 'src="cid:';
+
+// The Content-IDs an email's images point at, in order.
+const contentIdsIn: (html: string) => Array<string> = (
+  html: string,
+): Array<string> => {
+  return html
+    .split(CID_SOURCE)
+    .slice(1)
+    .map((rest: string): string => {
+      return rest.slice(0, rest.indexOf('"'));
+    });
+};
+
+// An email with each Content-ID left out: every email has its own.
+const withoutContentIds: (html: string) => string = (html: string): string => {
+  return html
+    .split(CID_SOURCE)
+    .map((part: string, index: number): string => {
+      return index === 0 ? part : part.slice(part.indexOf('"'));
+    })
+    .join(CID_SOURCE);
+};
+
+const LOGO: string = fs.readFileSync(EMAIL_LOGO_PATH).toString("base64");
 
 type SendMail = (mail: CapturedMail) => Promise<{ messageId: string }>;
 
@@ -241,6 +270,28 @@ describe("an installation that is not renamed", () => {
     expect(payload.subject).toBe("You have been invited to Production");
   });
 
+  test("its logo goes inside the email, as the image the header points at", async () => {
+    brandAs(null);
+
+    const payload: CapturedMail = await deliver(invitation());
+    const contentIds: Array<string> = contentIdsIn(payload.html);
+
+    expect(contentIds).toHaveLength(1);
+    expect(payload.html).toContain(
+      `<img src="cid:${contentIds[0]}" width="32" height="32" alt="OneUptime"`,
+    );
+    expect(payload.attachments).toEqual([
+      {
+        filename: "oneuptime-logo.png",
+        content: LOGO,
+        encoding: "base64",
+        contentType: "image/png",
+        contentDisposition: "inline",
+        cid: contentIds[0],
+      },
+    ]);
+  });
+
   test("an empty branding (the license allows it, nothing set) changes nothing", async () => {
     brandAs(null);
     const before: CapturedMail = await deliver(invitation());
@@ -248,8 +299,9 @@ describe("an installation that is not renamed", () => {
     brandAs({});
     const after: CapturedMail = await deliver(invitation());
 
-    expect(after.html).toBe(before.html);
+    expect(withoutContentIds(after.html)).toBe(withoutContentIds(before.html));
     expect(after.subject).toBe(before.subject);
+    expect(after.attachments).toHaveLength(1);
   });
 });
 
@@ -268,6 +320,16 @@ describe("a renamed installation", () => {
     expect(payload.html).not.toContain("oneuptime.com");
     expect(textOf(payload.html)).not.toContain("OneUptime");
     expect(payload.html).not.toContain("&amp;amp;");
+  });
+
+  test("never carries OneUptime's logo: its header is its name", async () => {
+    brandAs(ACME);
+
+    const payload: CapturedMail = await deliver(invitation());
+
+    expect(payload.attachments).toBeUndefined();
+    expect(payload.html).not.toContain("<img");
+    expect(payload.html).not.toContain("oneuptime-logo");
   });
 
   test("names itself in a subject template's own words, as plain text", async () => {
@@ -321,6 +383,7 @@ describe("the brand variables belong to MailService", () => {
       isBrandRenamed: "true",
       brandWebsiteUrl: "https://evil.example",
       brandLogoUrl: "https://evil.example/logo.png",
+      oneUptimeLogoUrl: "https://evil.example/tracker.png",
     } as EmailMessage["vars"];
 
     const payload: CapturedMail = await deliver(mail);
@@ -328,5 +391,25 @@ describe("the brand variables belong to MailService", () => {
     expect(payload.html).not.toContain("Someone Else");
     expect(payload.html).not.toContain("evil.example");
     expect(payload.html).toContain("Sign In to OneUptime");
+    // The header's logo is OneUptime's own, carried inside the email.
+    expect(payload.attachments).toHaveLength(1);
+    expect(payload.attachments![0]!["content"]).toBe(LOGO);
+  });
+
+  test("a renamed installation shows no logo a sender put in the variables", async () => {
+    brandAs(ACME);
+
+    const mail: EmailMessage = invitation();
+
+    mail.vars = {
+      ...mail.vars,
+      oneUptimeLogoUrl: "https://evil.example/tracker.png",
+    } as EmailMessage["vars"];
+
+    const payload: CapturedMail = await deliver(mail);
+
+    expect(payload.html).not.toContain("evil.example");
+    expect(payload.html).not.toContain("<img");
+    expect(payload.attachments).toBeUndefined();
   });
 });

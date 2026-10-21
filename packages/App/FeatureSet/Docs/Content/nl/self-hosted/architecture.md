@@ -77,6 +77,8 @@ De app maakt alleen verbinding naar buiten voor wat u inschakelt. Elk van deze v
 
 Verbindingen in de andere richting – SendGrid dat inkomende e-mail aflevert, Slack en Microsoft Teams die terugbellen – vereisen dat de ingress vanaf internet bereikbaar is. Welke privéadressen de app en de probes mogen bereiken, bepaalt u zelf: zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access).
 
+Het logo van OneUptime zit in elke e-mail die OneUptime verstuurt, dus het verschijnt ook op een netwerk zonder internettoegang, en bij het openen van een e-mail wordt geen andere host om iets gevraagd. Afbeeldingen die u zelf uploadt, zoals uw eigen logo of dat van een statuspagina, worden getoond vanaf uw OneUptime-URL, die de lezers van die e-mails moeten kunnen bereiken.
+
 ## Volgende stappen
 
 :::cards
