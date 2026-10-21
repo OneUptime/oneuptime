@@ -5,6 +5,7 @@ import LlmProviderService from "../../../Server/Services/LlmProviderService";
 import LogSavedViewService from "../../../Server/Services/LogSavedViewService";
 import MetricSavedViewService from "../../../Server/Services/MetricSavedViewService";
 import ProjectCallSMSConfigService from "../../../Server/Services/ProjectCallSMSConfigService";
+import RunnerService from "../../../Server/Services/RunnerService";
 import TraceSavedViewService from "../../../Server/Services/TraceSavedViewService";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -41,7 +42,7 @@ jest.mock("../../../Server/Utils/Logger");
  * EXACTLY ONE DEFAULT PER PROJECT, AND ONLY AFTER THE WRITE SUCCEEDED.
  *
  * A project uses one LLM provider, one AI agent, one saved log, trace and
- * metric view and one Twilio config by default. Making a row the default
+ * metric view, one Twilio config and one Runner by default. Making a row the default
  * takes the default from the project's other rows of that kind. That used to
  * happen in onBeforeCreate / onBeforeUpdate - before DatabaseService's
  * permission check, and before anything else could refuse the write - so a
@@ -137,6 +138,18 @@ const SERVICE_CASES: Array<ServiceCase> = [
         twilioAuthToken: "00000000000000000000000000000009",
         twilioPrimaryPhoneNumber: new Phone("+15551230009"),
       };
+    },
+  },
+  /*
+   * The project's default Runner: the steps that pick no Runner run on it.
+   * Created and made the default by those who edit Runners.
+   */
+  {
+    label: "RunnerService",
+    service: RunnerService as unknown as DatabaseService<BaseModel>,
+    defaultColumn: "isProjectDefault",
+    newRowData: (): StoredRow => {
+      return { name: "office-runner", canRunRunbooks: true };
     },
   },
 ];

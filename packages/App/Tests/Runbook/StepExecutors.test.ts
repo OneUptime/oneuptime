@@ -65,11 +65,12 @@ const AGENT_ID: string = "a9e10000-0000-4000-8000-000000000001";
 
 /*
  * Where a step runs is decided by GlobalRunnerChoice, which reads, as
- * OneUptime, the Runner the step picked, the project's "Use global Runners"
- * switch and whether the server has a global Runner. Here the Runner a step
- * picked is always one of its project's own, the project uses global
- * Runners, and the server has none - so a step that picked no Runner is
- * refused as it always was. StepExecutorsGlobalRunner covers the rest.
+ * OneUptime, the Runner the step picked, the project's default Runner, the
+ * project's "Use global Runners" switch and whether the server has a global
+ * Runner. Here the Runner a step picked is always one of its project's own,
+ * the project has no default Runner and uses global Runners, and the server
+ * has none - so a step that picked no Runner is refused as it always was.
+ * StepExecutorsGlobalRunner covers the rest.
  */
 function stubRunnerChoiceFacts(): void {
   jest
@@ -91,6 +92,9 @@ function stubRunnerChoiceFacts(): void {
   jest
     .spyOn(RunnerService, "hasGlobalRunnerForRunbooks")
     .mockResolvedValue(false);
+  jest
+    .spyOn(RunnerService, "findProjectDefaultRunner")
+    .mockResolvedValue(null);
 }
 
 beforeEach(stubRunnerChoiceFacts);
@@ -305,7 +309,7 @@ describe("agent-dispatched steps (Bash / JavaScript)", () => {
 
     expect(result.success).toBe(false);
     expect(result.errorMessage).toBe(
-      "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.",
+      "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners.",
     );
   });
 
@@ -317,7 +321,7 @@ describe("agent-dispatched steps (Bash / JavaScript)", () => {
 
     expect(result.success).toBe(false);
     expect(result.errorMessage).toBe(
-      "This JavaScript step has no Runner of its own, and there is no global Runner to run it. Pick one of your Runners for the step, or add one under Runbooks → Runners.",
+      "This JavaScript step has no Runner of its own, and there is no global Runner to run it. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners.",
     );
   });
 
