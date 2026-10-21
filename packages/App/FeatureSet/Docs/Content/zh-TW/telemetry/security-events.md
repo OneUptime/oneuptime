@@ -135,6 +135,12 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `className` | `event_type`、`category`、`type`、`action` |
 | `ruleName` | `rule`、`rule_name`、`signature`、`detection` |
 | `productName` | `product`、`product_name`、`source`、`log_source` |
+| `processName` | `process_name`、`process.name`、`proc.name`、`comm` |
+| `processPath` | `process_path`、`Image`、`NewProcessName`、`exe`、`process.executable` |
+| `processCommandLine` | `command_line`、`CommandLine`、`cmdline`、`process.command_line`、`proc.cmdline`、`process` |
+| `parentProcessName` | `parent_process_name`、`process.parent.name`、`proc.pname` |
+| `parentProcessPath` | `parent_process_path`、`ParentImage`、`ParentProcessName`、`process.parent.executable` |
+| `parentProcessCommandLine` | `parent_command_line`、`ParentCommandLine`、`process.parent.command_line`、`proc.pcmdline` |
 
 表示嚴重程度的字詞會變成 OCSF 等級：`info` 讀作 Informational，`warning` 讀作 Low，`error` 讀作 Medium，`alert` 讀作 Critical，`emergency` 讀作 Fatal。
 
@@ -194,6 +200,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | 嚴重程度 | `severityName`，值為 Unknown、Informational、Low、Medium、High、Critical、Fatal 或 Other 之一，以及 `severityId` |
 | 誰做的 | `principalUser`、`principalHost`、`principalIp`、`principalProcess` |
 | 涉及了什麼 | `targetUser`、`targetHost`、`targetIp`、`targetPort`、`targetResource` |
+| 處理程序 | `processName`、`processPath` 和 `processCommandLine`：在處理程序啟動事件中是被啟動的處理程序，其他事件中是執行動作的處理程序。`parentProcessName`、`parentProcessPath` 和 `parentProcessCommandLine`：啟動它的處理程序 |
 | 來源 | `productName`、`vendorName`、`ruleId`、`ruleName`、`eventUid` |
 | 內容 | `message`、`mitreTactics`、`mitreTechniques` 和 `observables`：從事件中擷取出的每個使用者、主機、IP 位址、網域和雜湊 |
 | 屬性 | 完整的來源承載資料，展平為以點分隔的鍵 |
@@ -218,11 +225,11 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `@<attribute>:*` | 存在該屬性 | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | 屬性包含該文字 | `@finding_info.title:~ransom` |
 
-欄位要麼是簡稱（`severity`、`class`、`category`、`activity`、`status`、`vendor`、`product`、`rule`、`user`、`host`、`ip`、`targetuser`、`targethost`、`targetip`、`observable`、`tactic`、`technique`），要麼是欄位本身的名稱，例如 `severityName` 或 `principalHost`。任何其他名稱都會被讀作來源屬性。`observable:<value>` 會找出提到某個值的每個事件，無論該值出現在活動的哪一方。
+欄位要麼是簡稱（`severity`、`class`、`category`、`activity`、`status`、`vendor`、`product`、`rule`、`user`、`host`、`ip`、`targetuser`、`targethost`、`targetip`、`processname`、`commandline`、`parentprocessname`、`observable`、`tactic`、`technique`），要麼是欄位本身的名稱，例如 `severityName` 或 `principalHost`。任何其他名稱都會被讀作來源屬性。`observable:<value>` 會找出提到某個值的每個事件，無論該值出現在活動的哪一方。
 
 ### 面向
 
-側邊欄依 **來源**、**嚴重程度**、**事件類別**、**Category**、**活動**、**狀態**、**供應商**、**產品**、**Detection Rule**、**來源使用者** 和 **來源主機** 統計時間窗內的事件。按一下某個值只保留它的事件，按一下旁邊的減號則排除它們。再按一下即可復原。圖表和每個計數描述的正是清單中的事件。
+側邊欄依 **來源**、**嚴重程度**、**事件類別**、**Category**、**活動**、**狀態**、**供應商**、**產品**、**Detection Rule**、**來源使用者**、**來源主機**、**處理程序** 和 **父處理程序** 統計時間窗內的事件。按一下某個值只保留它的事件，按一下旁邊的減號則排除它們。再按一下即可復原。圖表和每個計數描述的正是清單中的事件。
 
 ### 關聯分析
 
@@ -278,6 +285,7 @@ OneUptime 會執行 Sigma 的布林核心：
 - 條件用 `and`、`or`、`not` 和括號，或用 `1 of selection_*`、`all of selection_*`、`any of them` 和 `all of them` 組合選取項目。
 - 欄位修飾詞：`contains`、`startswith`、`endswith`、`all`、`re`、`cased`、`gt`、`gte`、`lt`、`lte`、`cidr`、`exists` 和 `windash`。除非你加上 `cased`，否則文字比較不區分大小寫。
 - 欄位可以是型別化欄位（`principalUser`）、它在 Sigma 中的常見寫法（`CommandLine`、`src_ip`、`Hostname`），或任何屬性鍵，依它在事件中的寫法拼寫（`threat.matched`）。
+- `Image` 和 `CommandLine` 讀取事件所涉及的處理程序，在處理程序啟動事件中即被啟動的處理程序（`processPath`、`processCommandLine`），`ParentImage` 和 `ParentCommandLine` 讀取啟動它的處理程序（`parentProcessPath`、`parentProcessCommandLine`）。`principalProcess` 是執行動作的處理程序，在處理程序啟動中即父處理程序。
 - `level` 設定嚴重程度：`informational`、`low`、`medium`、`high` 或 `critical`，缺少時為 `medium`。`tags` 中的 ATT&CK ID（`attack.t1110`、`attack.ta0006`）會填入偵測結果的 MITRE 欄位。
 
 像 `| count() by principalIp > 5` 這樣的彙總會在儲存時遭到拒絕：請改用 **Group By Field** 和 **Match Count Threshold** 。`logsource` 只有說明作用，不會縮小任何範圍：請把這種篩選放進選取項目，例如 `className: Authentication`。`timeframe` 會被忽略，因為規則的間隔決定了它的時間窗。

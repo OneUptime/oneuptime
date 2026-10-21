@@ -14,8 +14,9 @@ import { mediaPrecedenceOf, splitVariants } from "./ResponsiveVisibility";
  * edit buttons not on the right?"). These helpers read the class attribute
  * and resolve it the way the cascade would.
  *
- * Scope: flex-direction, flex-wrap, justify-content and align-items, with no
- * variant or behind media-query variants (sm:, max-md:, min-[900px]: ...).
+ * Scope: flex-direction, flex-wrap, justify-content and align-items - and an
+ * item's own align-self - with no variant or behind media-query variants
+ * (sm:, max-md:, min-[900px]: ...).
  * State and arbitrary variants (hover:, dark:, [&>button]: ...) are ignored,
  * as they are in the other two resolvers: they cannot answer a layout
  * question. Screens order as in ResponsiveVisibility.ts (mediaPrecedenceOf);
@@ -27,7 +28,8 @@ export type FlexProperty =
   | "flex-direction"
   | "flex-wrap"
   | "justify-content"
-  | "align-items";
+  | "align-items"
+  | "align-self";
 
 interface FlexFamily {
   // Utility -> CSS value, in Tailwind's emit order (later wins).
@@ -76,6 +78,18 @@ const FLEX_FAMILIES: Record<FlexProperty, FlexFamily> = {
       ["items-stretch", "stretch"],
     ],
     initial: "stretch",
+  },
+  // An item's own place across its line; "auto" follows the container's.
+  "align-self": {
+    utilities: [
+      ["self-auto", "auto"],
+      ["self-start", "flex-start"],
+      ["self-end", "flex-end"],
+      ["self-center", "center"],
+      ["self-stretch", "stretch"],
+      ["self-baseline", "baseline"],
+    ],
+    initial: "auto",
   },
 };
 

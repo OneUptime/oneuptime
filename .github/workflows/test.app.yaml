@@ -234,6 +234,12 @@ jobs:
           # and a half with its bundle, Chromium only) beside it. Rules Menu
           # Section (about half a minute with its bundle, Chromium only: the
           # status page's and an SLO's side menus) joined it on 2026-10-20.
+          # Model Tables (about 4 minutes with its bundle locally, Chromium
+          # only: every table's look and, in CardHeaders.spec.ts, where every
+          # card header puts its description - about a minute of it) moved
+          # here from group 6 on 2026-10-21, when group 6 took 21.9 minutes
+          # and this group 17.3, the lightest that holds several suites once
+          # group 8 took three of group 5's: about 21.5 for the twelve.
           - group: 3
             browsers: chromium firefox
             suites: >-
@@ -248,6 +254,7 @@ jobs:
               test-global-runners-ui
               test-runbook-variables-ui
               test-rules-menu-section-ui
+              test-model-tables-ui
           # The Workflow Builder suite on its own: it sat in group 2 near the
           # job's 30 minutes, and its On Create or Update spec would take that
           # group past them. Its two projects, a laptop and a phone, are both
@@ -296,7 +303,9 @@ jobs:
           # Calendar grew by 22 specs on 2026-10-20 (the calendar's own page,
           # its external calendars and Calendar Settings): about 45 seconds
           # more locally, 2 minutes 10 with its bundle, after Custom Roles
-          # (about 3 minutes) had left for group 7 the same day.
+          # (about 3 minutes) had left for group 7 the same day. Model Tables
+          # left for group 3 on 2026-10-21, when this group took 21.9 minutes
+          # and its card header specs would have taken it past 22.
           - group: 6
             browsers: chromium
             suites: >-
@@ -306,7 +315,6 @@ jobs:
               test-sign-in-options-ui
               test-maintenance-calendar-ui
               test-detail-cards-ui
-              test-model-tables-ui
               test-infrastructure-first-run-ui
               test-postmortem-rules-ui
           # The Profiler (about 2 minutes with its bundle: a laptop and a

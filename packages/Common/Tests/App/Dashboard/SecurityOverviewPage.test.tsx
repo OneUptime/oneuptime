@@ -49,6 +49,8 @@ import PermissionGate, {
 } from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 import type { SpyInstance } from "jest-mock";
+import { resolveSpacing } from "../../ResponsiveSpacing";
+import { WIDTHS_IN_PX } from "../../RenderedMarkup";
 
 /*
  * The Security Overview as a new project meets it and as a working one
@@ -482,6 +484,54 @@ describe("a project that has not set Security up", () => {
 
     expect(screen.queryByTestId(SECURITY_GETTING_STARTED_ID)).toBeNull();
     expect(screen.getByTestId(SECURITY_PIPELINE_ID)).toBeInTheDocument();
+  });
+
+  test("Dismiss hangs over the title's line, so the description keeps its 4px under the title", async () => {
+    await renderPage();
+
+    const card: HTMLElement = screen.getByTestId(SECURITY_GETTING_STARTED_ID);
+    const title: HTMLElement = within(card).getByRole("heading", {
+      name: "Set up Security in a minute",
+    });
+    const dismiss: HTMLElement = screen.getByTestId(
+      "security-getting-started-dismiss",
+    );
+    const row: HTMLElement = title.parentElement!;
+    const description: HTMLElement = row.nextElementSibling as HTMLElement;
+
+    // The title, Dismiss beside it, then the description after their row.
+    expect(row).toContainElement(dismiss);
+    expect(description.tagName).toBe("P");
+    expect(description).toHaveClass("mt-1");
+
+    /*
+     * Dismiss is 28px: a 20px line (text-sm) between 4px paddings (Small).
+     * Its box hangs 2px over the title's 24px line (text-base) above and
+     * below, so the row is the title's line and the description follows
+     * the title by its own 4px - not 8px.
+     */
+    expect(dismiss).toHaveClass("text-sm", "py-1");
+    expect(title).toHaveClass("text-base");
+    const box: HTMLElement = dismiss.parentElement!;
+    expect(box.parentElement).toBe(row);
+
+    for (const width of WIDTHS_IN_PX) {
+      const margin: { top: number; bottom: number } = resolveSpacing(
+        box.getAttribute("class"),
+        width,
+        "margin",
+      );
+      const padding: { top: number; bottom: number } = resolveSpacing(
+        dismiss.getAttribute("class"),
+        width,
+        "padding",
+      );
+
+      expect(margin).toMatchObject({ top: -2, bottom: -2 });
+      expect(
+        20 + padding.top + padding.bottom + margin.top + margin.bottom,
+      ).toBe(24);
+    }
   });
 });
 

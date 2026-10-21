@@ -94,7 +94,7 @@ flowchart TB
 | 컬렉터 구성 | `Collector Config` |
 | vCenter 서버 | `vCenter` |
 | 패킷 캡처와 그 다운로드 | `Packet Capture` |
-| 보안 케이스와 플레이북 | `Security Case`, `Security Playbook` |
+| 보안 케이스, 플레이북과 그 실행, 보호 대상 엔터티 | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 
 관리자가 다른 사람의 계정에서 알림 방법이나 개인 온콜 규칙을 추가하거나 제거한 경우에도 기록되며, 주소나 번호 자체는 기록되지 않습니다.
 

@@ -1,12 +1,14 @@
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import SecurityLogFormat from "../../../Types/SecurityEvent/SecurityLogFormat";
+import { ProcessReading } from "../NormalizerHelpers";
 import {
   MAX_TEXT_LINE_LENGTH,
   SecurityLogLine,
   buildLogSecurityEvent,
   cutText,
   readLogHost,
+  readWord,
 } from "./SecurityLogLine";
 
 /*
@@ -16,11 +18,13 @@ import {
  *   alice : 3 incorrect password attempts ; TTY=pts/0 ; ... ; COMMAND=/bin/bash
  *   bob : user NOT in sudoers ; TTY=pts/1 ; ... ; USER=root ; COMMAND=/bin/ls
  *
- * A command run becomes an OCSF Process Activity event (the command is the
- * principal process, so the rule library's Linux rules - password hashes
- * read, history cleared, a download piped into a shell - see it); wrong
- * passwords an Authentication failure; a person sudo refused an Authorize
- * Session failure.
+ * A command run becomes an OCSF Process Activity launch: the command is the
+ * process that started, with sudo its parent, so the rule library's Linux
+ * rules - password hashes read, history cleared, a download piped into a
+ * shell - read its command line (it stays the principal process too, for
+ * the rules and searches written against that). Wrong passwords become an
+ * Authentication failure and a person sudo refused an Authorize Session
+ * failure: their command never ran, so they name no process.
  */
 
 export const SUDO_PROCESS_ACTIVITY_CLASS_UID: number = 1007;
@@ -130,6 +134,19 @@ export function readSudoCommand(body: string): SudoCommand | null {
   };
 }
 
+/*
+ * The process a command sudo ran is: sudo logs the command with the full
+ * path of its executable first.
+ */
+export function sudoCommandProcess(command: string): ProcessReading {
+  const executable: string = readWord(command, 0);
+
+  return {
+    path: executable.startsWith("/") ? executable : "",
+    commandLine: command,
+  };
+}
+
 export default class SudoLogParser {
   public static parse(line: SecurityLogLine): Array<NormalizedSecurityEvent> {
     const sudo: SudoCommand | null = readSudoCommand(line.body || "");
@@ -197,6 +214,8 @@ export default class SudoLogParser {
         principalUser: sudo.user,
         principalHost: host,
         principalProcess: sudo.command,
+        process: sudoCommandProcess(sudo.command),
+        parentProcess: { name: "sudo" },
         targetUser: runAs,
         attributes,
       }),

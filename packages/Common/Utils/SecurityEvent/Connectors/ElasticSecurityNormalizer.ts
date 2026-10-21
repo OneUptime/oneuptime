@@ -16,6 +16,7 @@ import {
 import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import {
   buildObservables,
+  buildProcessFields,
   contentHashEventUid,
   flattenPayload,
   parseEventTime,
@@ -434,6 +435,19 @@ export default class ElasticSecurityNormalizer {
       principalHost: hostName,
       principalIp: sourceIp || hostIps[0] || "",
       principalProcess: processName,
+      // ECS: the process the source event is about, and process.parent.
+      ...buildProcessFields({
+        process: {
+          name: readFieldString(source, "process.name"),
+          path: readFieldString(source, "process.executable"),
+          commandLine: readFieldString(source, "process.command_line"),
+        },
+        parent: {
+          name: readFieldString(source, "process.parent.name"),
+          path: readFieldString(source, "process.parent.executable"),
+          commandLine: readFieldString(source, "process.parent.command_line"),
+        },
+      }),
       targetUser: targetUserName,
       targetHost: destinationDomain,
       targetIp: destinationIp,
