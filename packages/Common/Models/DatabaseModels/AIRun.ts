@@ -677,7 +677,7 @@ export default class AIRun extends BaseModel {
     type: TableColumnType.Number,
     title: "Attempt Count",
     description:
-      "How many times a worker has claimed this run for execution. Incremented on each claim; the queue stops retrying after the maximum.",
+      "How many times a worker has claimed this run for execution. Incremented on each claim; the queue stops retrying after the maximum, not counting the claims a server shutting down handed back (Handed Back Count).",
     isDefaultValueColumn: true,
     defaultValue: 0,
   })
@@ -687,6 +687,32 @@ export default class AIRun extends BaseModel {
     type: ColumnType.Number,
   })
   public attemptCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Number,
+    title: "Handed Back Count",
+    description:
+      "How many times a server shutting down handed this run back to the queue for another server to run. Those claims are not counted as failed attempts.",
+    isDefaultValueColumn: true,
+    defaultValue: 0,
+  })
+  @Column({
+    nullable: false,
+    default: 0,
+    type: ColumnType.Number,
+  })
+  public handedBackCount?: number = undefined;
 
   @ColumnAccessControl({
     create: [],

@@ -431,6 +431,9 @@ services:
       DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_APP}
       ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_APP}
       WORKER_CONCURRENCY: ${WORKER_CONCURRENCY}
+      # AI investigations this container runs at once — see config.example.env.
+      # Empty falls back to the code default (10).
+      AI_INVESTIGATION_CONCURRENCY: ${AI_INVESTIGATION_CONCURRENCY:-}
       # Telemetry ingestion settings (merged from telemetry service)
       TELEMETRY_CONCURRENCY: ${TELEMETRY_CONCURRENCY}
       # Network device polling throughput — see config.example.env for docs.

@@ -52,13 +52,6 @@ function mockBudgetOk(): void {
   });
 }
 
-function flushDetachedKick(): Promise<unknown> {
-  // The inline kick is detached; give the microtask a beat.
-  return new Promise((resolve: (value: unknown) => void) => {
-    setTimeout(resolve, 0);
-  });
-}
-
 describe("AIInvestigationQueue — RemediationExecution runs", () => {
   beforeEach(() => {
     mockBudgetOk();
@@ -80,8 +73,8 @@ describe("AIInvestigationQueue — RemediationExecution runs", () => {
     const create: jest.SpyInstance = jest
       .spyOn(AIRunService, "create")
       .mockResolvedValue({ id: RUN_ID } as unknown as AIRun);
-    const processRun: jest.SpyInstance = jest
-      .spyOn(AIInvestigationQueue, "processRun")
+    const sendToWorkers: jest.SpyInstance = jest
+      .spyOn(AIInvestigationQueue, "sendToWorkers")
       .mockResolvedValue(undefined);
 
     const aiRunId: ObjectID | null = await AIInvestigationQueue.enqueue({
@@ -106,8 +99,7 @@ describe("AIInvestigationQueue — RemediationExecution runs", () => {
       }),
     );
 
-    await flushDetachedKick();
-    expect(processRun).toHaveBeenCalledWith(
+    expect(sendToWorkers).toHaveBeenCalledWith(
       expect.objectContaining({
         id: RUN_ID,
         attemptCount: 0,
@@ -121,7 +113,9 @@ describe("AIInvestigationQueue — RemediationExecution runs", () => {
     const create: jest.SpyInstance = jest
       .spyOn(AIRunService, "create")
       .mockResolvedValue({ id: RUN_ID } as unknown as AIRun);
-    jest.spyOn(AIInvestigationQueue, "processRun").mockResolvedValue(undefined);
+    jest
+      .spyOn(AIInvestigationQueue, "sendToWorkers")
+      .mockResolvedValue(undefined);
 
     await AIInvestigationQueue.enqueue({
       projectId: PROJECT_ID,
