@@ -1086,7 +1086,6 @@ const NAMES_A_KIND_AS_IT_IS: Record<string, string> = {
   "NetworkSite.probe": PICKS_A_PROBE,
   "PacketCapture.probe": PICKS_A_PROBE,
   "PushNotificationLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
-  "RunbookCredential.runners": PICKS_RUNNERS,
   "RunbookVariable.runners": PICKS_RUNNERS,
   "RunnerJob.targetAgent":
     "work handed to a Runner, read with the runbook run or the AI run it is for",

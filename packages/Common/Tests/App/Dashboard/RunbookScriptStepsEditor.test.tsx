@@ -64,8 +64,9 @@ import { goTo, PROJECT_ID } from "./SideMenuHarness";
  *     say when the step's Runner may not use the one picked, and where to
  *     fix it;
  *   - a script that names a variable that is not there says so;
- *   - a step written with a runbook credential still runs, and one button
- *     turns it into a script step;
+ *   - a step written with a runbook credential says it no longer runs
+ *     (runbook credentials were removed), and one button turns it into a
+ *     script step;
  *   - a kubectl step moved from a Kubernetes action is saved back with the
  *     action it kept for older Runners, until its script or kubeconfig
  *     changes;
@@ -831,12 +832,12 @@ describe("a kubectl step", () => {
 });
 
 describe("a step written with a runbook credential", () => {
-  test("an SSH step still shows as it is, and turns into a script step that runs its command", async () => {
+  test("an SSH step says it no longer runs, and turns into a script step that runs its command", async () => {
     await renderSteps();
     open("Old SSH step");
 
     expect(screen.getByTestId("runbook-step-4-legacy")).toHaveTextContent(
-      "This step signs in with a runbook credential and runs one command. It still runs as it is. Turn it into a script step to sign in with a variable instead.",
+      "This step signs in with a runbook credential and runs one command. Runbook credentials were removed, so it no longer runs. Turn it into a script step to sign in with a variable instead.",
     );
 
     fireEvent.click(screen.getByTestId("runbook-step-4-legacy-convert"));
@@ -889,7 +890,7 @@ describe("a step written with a runbook credential", () => {
     open("Old Kubernetes step");
 
     expect(screen.getByTestId("runbook-step-5-legacy")).toHaveTextContent(
-      "This step restarts or scales one workload with a runbook credential.",
+      "This step restarts or scales one workload with a runbook credential. Runbook credentials were removed, so it no longer runs. Turn it into a kubectl script that does the same, then pick its kubeconfig.",
     );
 
     fireEvent.click(screen.getByTestId("runbook-step-5-legacy-convert"));

@@ -1615,8 +1615,11 @@ export class Service extends ProjectReferencesService<Model> {
       }
 
       /*
-       * Clearing the Runner binding hands the cluster to its agent: what
-       * the agent reports applies now, not at its next check.
+       * Clearing the Runner binding applies what the cluster's agent
+       * reports now, not at its next check: a cluster that was bound to a
+       * Runner outside it (which ran AI's kubectl with a Kubernetes runbook
+       * credential, until those were removed) may still hold the settings
+       * an operator chose then.
        */
       if (this.clearsRunnerBinding(writeData)) {
         for (const clusterId of updatedItemIds) {

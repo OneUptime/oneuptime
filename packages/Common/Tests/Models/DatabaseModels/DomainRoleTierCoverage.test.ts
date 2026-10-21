@@ -104,10 +104,10 @@ const NOT_READABLE_BY_THEIR_DOMAIN_ROLES: Array<string> = [
   /*
    * Secrets and credentials. These hold the values a monitor or runbook step
    * authenticates with; the whole point of them is that the people who
-   * configure the resource cannot read them back.
+   * configure the resource cannot read them back. (Runbook credentials were
+   * one, until they were removed.)
    */
   "MonitorSecret",
-  "RunbookCredential",
   /*
    * Runbook variables hold the secrets runbook steps sign in with (runbook
    * secrets became variables). A Runbook Admin reads them, to name them in

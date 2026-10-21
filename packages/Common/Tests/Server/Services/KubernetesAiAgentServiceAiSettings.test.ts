@@ -43,8 +43,10 @@ import {
  *    operator chose on the AI agent page before;
  *  - the agent's defaults (its configuration names neither) decide only on
  *    a cluster nobody configured, in one conditional statement;
- *  - a cluster bound to a Runner an operator chose keeps OneUptime's
- *    settings (AI does not reach it through the agent);
+ *  - a cluster still bound to a Runner outside it follows the agent like
+ *    any other: such a Runner reached the cluster with a Kubernetes runbook
+ *    credential, and kept OneUptime's settings, until runbook credentials
+ *    were removed - AI reaches it through the agent, and no Runner is read;
  *  - an agent too old to report settings changes nothing here: the
  *    first-connection defaults behave as before;
  *  - every change is a root write that never marks the cluster configured,
@@ -142,6 +144,7 @@ function storedPosture(
   } as unknown as JSONObject;
 }
 
+// A Runner outside every cluster, still bound to one (before the removal).
 function advancedRunner(): Runner {
   const runner: Runner = new Runner();
   runner.id = RUNNER_ID;
@@ -535,7 +538,7 @@ describe("register: the agent's defaults", () => {
 });
 
 describe("register: where the agent does not decide", () => {
-  test("a cluster bound to a Runner an operator chose keeps OneUptime's settings", async () => {
+  test("a cluster still bound to a Runner outside it follows the agent, reading no Runner", async () => {
     const harness: Harness = setUp({
       cluster: makeCluster({
         aiAccessRunnerId: RUNNER_ID,
@@ -548,18 +551,20 @@ describe("register: where the agent does not decide", () => {
 
     await register(CONFIGURED_READ_ONLY);
 
-    expect(clusterWrites(harness)).toHaveLength(0);
+    // The configuration decides, over what an operator chose before.
+    expect(clusterWrites(harness)[0]!.data).toEqual({
+      isAiInvestigationEnabled: false,
+      aiRemediationMode: KubernetesAiRemediationMode.Disabled,
+    });
 
-    // The bound Runner is read in the cluster's project, as root.
-    expect(harness.runnerFindOneBy.mock.calls).toHaveLength(1);
-    const read: { query: Record<string, unknown>; props: JSONObject } = harness
-      .runnerFindOneBy.mock.calls[0]![0] as {
-      query: Record<string, unknown>;
-      props: JSONObject;
-    };
-    expect(read.query["_id"]).toBe(RUNNER_ID.toString());
-    expect(read.query["projectId"]).toBe(PROJECT_ID);
-    expect(read.props["isRoot"]).toBe(true);
+    // Whatever the binding names is no part of the decision.
+    expect(harness.runnerFindOneBy.mock.calls).toHaveLength(0);
+  });
+
+  test("the service asks no longer whether a cluster is bound to an advanced Runner", () => {
+    expect(KubernetesAiAgentService).not.toHaveProperty(
+      "isBoundToAdvancedRunner",
+    );
   });
 
   test("a cluster bound to the chart's own previous Runner still follows the agent", async () => {
@@ -804,7 +809,7 @@ describe("heartbeat: keeping the cluster in step with the agent", () => {
   });
 });
 
-describe("applyStoredAiSettingsToCluster: a cluster handed back to its agent", () => {
+describe("applyStoredAiSettingsToCluster: a cluster whose Runner binding was cleared", () => {
   test("applies what the agent last reported, with a feed item", async () => {
     const harness: Harness = setUp({
       cluster: makeCluster({
@@ -947,7 +952,14 @@ describe("getAiSettingsSourcesForClusters", () => {
     ]);
   }
 
-  test("each cluster's source, from one read of the agents and of the Runners that matter", async () => {
+  /*
+   * A cluster bound to a Runner outside it read "oneuptime" (that Runner,
+   * not the agent, ran AI's kubectl), so the bound Runners were read too.
+   * Such a Runner reached the cluster with a runbook credential, and those
+   * were removed: whatever a cluster is bound to, its agent decides, and
+   * only the agents are read.
+   */
+  test("each cluster's source, from one read of the agents, whatever the clusters are bound to", async () => {
     const agentLookup: SpyCalls = jest
       .spyOn(KubernetesAiAgentService, "findForClusters")
       .mockResolvedValue(agents()) as unknown as SpyCalls;
@@ -962,7 +974,7 @@ describe("getAiSettingsSourcesForClusters", () => {
       });
 
     expect(Object.fromEntries(sources)).toEqual({
-      [CONFIGURED_BOUND.toString()]: "oneuptime",
+      [CONFIGURED_BOUND.toString()]: "agent_configuration",
       [CONFIGURED_FREE.toString()]: "agent_configuration",
       [OLD_AGENT_BOUND.toString()]: "oneuptime",
       [NO_AGENT.toString()]: "oneuptime",
@@ -971,21 +983,7 @@ describe("getAiSettingsSourcesForClusters", () => {
     });
 
     expect(agentLookup.mock.calls).toHaveLength(1);
-    expect(runnerLookup.mock.calls).toHaveLength(1);
-
-    /*
-     * Only the Runner bound to a cluster whose agent reports settings: an
-     * older agent's cluster reads "oneuptime" whatever it is bound to.
-     */
-    const runnerQuery: { query: Record<string, unknown> } = runnerLookup.mock
-      .calls[0]![0] as { query: Record<string, unknown> };
-    expect(JSON.stringify(runnerQuery.query["_id"])).toContain(
-      RUNNER_ID.toString(),
-    );
-    expect(JSON.stringify(runnerQuery.query["_id"])).not.toContain(
-      OTHER_RUNNER_ID.toString(),
-    );
-    expect(runnerQuery.query["projectId"]).toBe(PROJECT_ID);
+    expect(runnerLookup.mock.calls).toHaveLength(0);
   });
 
   test("a bound Runner that is the chart's own leaves the agent deciding", async () => {
@@ -1007,7 +1005,7 @@ describe("getAiSettingsSourcesForClusters", () => {
     );
   });
 
-  test("uses the agent rows the caller already read, and reads no Runner when no bound cluster's agent reports settings", async () => {
+  test("uses the agent rows the caller already read, and reads no Runner", async () => {
     const agentLookup: SpyCalls = jest
       .spyOn(KubernetesAiAgentService, "findForClusters")
       .mockResolvedValue(new Map()) as unknown as SpyCalls;

@@ -347,14 +347,14 @@ const REFERENCES_LEFT_OUT: Array<string> = [];
  * (RelationListPermission.isHeldToTableRead): a caller who may not read the
  * project's SMTP servers does not choose the one a status page sends with.
  * Each with the credentials it holds and the records that name it.
+ * (Runbook credentials - SSH keys and Kubernetes service account tokens a
+ * cluster named - were one, until they were removed.)
  */
 const CREDENTIAL_SETTINGS: Record<string, string> = {
   ProjectSMTPConfig:
     "An SMTP server's login: a status page that names one sends its subscribers' email through it.",
   ProjectCallSMSConfig:
     "A call and SMS provider's account token: a status page or an incoming call policy that names one calls and texts through it.",
-  RunbookCredential:
-    "SSH keys and Kubernetes service account tokens: a cluster that names one lets OneUptime AI reach the cluster with it.",
   NetworkSnmpCredentialProfile:
     "SNMP community strings and keys: a network device or site that names one is polled with them.",
   VideoCallConnection:
@@ -370,7 +370,6 @@ const CREDENTIAL_REFERENCES: Array<[string, string, string]> = [
   ["StatusPage", "smtpConfig", "ProjectSMTPConfig"],
   ["StatusPage", "callSmsConfig", "ProjectCallSMSConfig"],
   ["IncomingCallPolicy", "projectCallSMSConfig", "ProjectCallSMSConfig"],
-  ["KubernetesCluster", "aiAccessCredential", "RunbookCredential"],
   ["NetworkDevice", "snmpCredentialProfile", "NetworkSnmpCredentialProfile"],
   ["NetworkSite", "snmpCredentialProfile", "NetworkSnmpCredentialProfile"],
   ["IncidentVideoCall", "videoCallConnection", "VideoCallConnection"],

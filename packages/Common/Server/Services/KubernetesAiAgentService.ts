@@ -1003,7 +1003,8 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * Apply the settings a cluster's agent last reported, now — for a cluster
-   * whose Runner binding was just cleared, which hands it back to its agent.
+   * whose Runner binding was just cleared, which may still hold the
+   * settings an operator chose while a Runner outside it ran AI's kubectl.
    * Never throws.
    */
   @CaptureSpan()
