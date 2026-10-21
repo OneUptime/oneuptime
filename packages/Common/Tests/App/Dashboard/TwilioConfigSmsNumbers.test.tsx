@@ -52,7 +52,8 @@ import {
  *     secondary numbers;
  *   - the primary number says that SMS go out from it too unless SMS
  *     numbers are added, and the SMS numbers say when to add them and what
- *     they change;
+ *     they change - naming no country, as OneUptime is used worldwide - and
+ *     show, while empty, an example list that is no one country's numbers;
  *   - a Singapore config - a national primary number and a mobile SMS
  *     number - is saved with both;
  *   - a list of numbers holding something that is not one is refused under
@@ -293,7 +294,10 @@ import TwilioConfigDefaultCopy from "../../../../App/FeatureSet/Dashboard/src/Co
 import API from "../../../UI/Utils/API/API";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
-import { TEST_SEND_FROM_PHONE_NUMBER_FIELD } from "../../../Types/CallAndSMS/TwilioPhoneNumbers";
+import {
+  PHONE_NUMBER_LIST_EXAMPLE,
+  TEST_SEND_FROM_PHONE_NUMBER_FIELD,
+} from "../../../Types/CallAndSMS/TwilioPhoneNumbers";
 import TwilioConfigPhoneNumbers from "../../../../App/FeatureSet/Dashboard/src/Components/CallSMS/TwilioConfigPhoneNumbers";
 import ProjectCallSMSConfig from "../../../Models/DatabaseModels/ProjectCallSMSConfig";
 import Phone from "../../../Types/Phone";
@@ -497,13 +501,35 @@ describe("the Twilio step of a Twilio config's form", () => {
       expect(within(dialog()).getByText(help)).toBeVisible();
     }
 
-    // The SMS numbers' help names the case they are for, and what they change.
-    expect(TwilioConfigNumbersCopy.smsPhoneNumbersDescription).toContain(
-      "Singapore",
+    /*
+     * The SMS numbers' help names the case they are for, and what they
+     * change - naming no country: OneUptime is used worldwide.
+     */
+    expect(TwilioConfigNumbersCopy.smsPhoneNumbersDescription).toBe(
+      "Numbers to send SMS from if yours can only make calls. Each SMS uses the one in the recipient's country, or the first.",
     );
-    expect(TwilioConfigNumbersCopy.smsPhoneNumbersDescription).toContain(
-      "Each SMS uses the one in the recipient's country, or the first.",
+  });
+
+  test("an empty list of SMS numbers shows the server's example list, no one country's numbers", async () => {
+    await renderCard();
+    await openForm("create");
+    await walkToTwilioStep();
+    await openMoreFields();
+
+    const field: HTMLElement = within(dialog()).getByLabelText(SMS_NUMBERS, {
+      exact: false,
+    });
+
+    expect(field).toHaveAttribute("placeholder", PHONE_NUMBER_LIST_EXAMPLE);
+    expect(field.getAttribute("placeholder")).toBe(
+      "+14155550123, +447700900123",
     );
+    // The primary number keeps its own example.
+    expect(
+      within(dialog()).getByLabelText("Twilio Primary Phone Number", {
+        exact: false,
+      }),
+    ).toHaveAttribute("placeholder", "+14155550100");
   });
 
   test("a Singapore config is saved with its national number for calls and its mobile number for SMS", async () => {
@@ -557,7 +583,7 @@ describe("the Twilio step of a Twilio config's form", () => {
       await waitFor(() => {
         expect(
           within(dialog()).getByText(
-            '"+44 7700 900124" is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.',
+            '"+44 7700 900124" is not a phone number. Write each number with its country code and separate them with commas, like +14155550123, +447700900123.',
           ),
         ).toBeVisible();
       });

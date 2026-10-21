@@ -1,4 +1,4 @@
-import { readPage } from "./DocsContentSupport";
+import { DOCS_LANGUAGES, readPage } from "./DocsContentSupport";
 import { boldSpans, escapeRegExp } from "./DocsTranslationChecks";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
@@ -214,6 +214,61 @@ const JSX_MENU_SECTION: RegExp = /<SideMenuSection\b([^>]*)>/g;
 const JSX_TITLE: RegExp = /title=\{t\("([^"]+)"\)\}/;
 
 const JSX_ITEM: RegExp = /title: t\("([^"]+)"\)/g;
+
+/*
+ * A country's number range written into prose, such as "+65 3": a country
+ * code, a space and the digit its numbers start with. Bounded, so linear.
+ */
+const COUNTRY_NUMBER_RANGE: RegExp = /\+\d{1,3} \d\b/g;
+
+/*
+ * A markdown link to an https address: "](https://...)". The address can
+ * hold no bracket or space, so a match cannot run on past the next link.
+ */
+const MARKDOWN_HTTPS_LINK: RegExp = /\]\((https:\/\/[^()[\]\s]+)\)/g;
+
+/*
+ * Singapore in each docs language's own words: the country the Twilio page
+ * once took its example from, before it explained the case for every
+ * country.
+ */
+const SINGAPORE_BY_LANGUAGE: Readonly<Record<string, string>> = {
+  en: "Singapore",
+  de: "Singapur",
+  fr: "Singapour",
+  es: "Singapur",
+  it: "Singapore",
+  pt: "Singapura",
+  nl: "Singapore",
+  da: "Singapore",
+  no: "Singapore",
+  sv: "Singapore",
+  ru: "Сингапур",
+  ja: "シンガポール",
+  ko: "싱가포르",
+  "zh-CN": "新加坡",
+  "zh-TW": "新加坡",
+  hi: "सिंगापुर",
+  fa: "سنگاپور",
+};
+
+const SINGAPORE_IN_EVERY_LANGUAGE: ReadonlyArray<string> = [
+  ...new Set(Object.values(SINGAPORE_BY_LANGUAGE)),
+];
+
+// A page's links to Twilio's guidelines, as parsed addresses.
+function twilioGuidelineLinks(markdown: string): Array<URL> {
+  return [...markdown.matchAll(MARKDOWN_HTTPS_LINK)]
+    .map((match: RegExpExecArray): URL => {
+      return new URL(match[1] as string);
+    })
+    .filter((url: URL): boolean => {
+      return (
+        url.origin === "https://www.twilio.com" &&
+        url.pathname.split("/").includes("guidelines")
+      );
+    });
+}
 
 function readSource(key: string): string {
   const relativePath: string | undefined = SOURCES[key];
@@ -2584,11 +2639,14 @@ describe("Twilio Integration, against the notification server and the forms", ()
   });
 
   /*
-   * Separate numbers for calls and SMS: Twilio lists Singapore's national
-   * numbers as voice-only, so a configuration - a project's and the
-   * installation's - lists numbers for SMS. The section's table and its
-   * sentences are held to the forms that draw the fields and to the rule
-   * every sender picks a number by (Types/CallAndSMS/TwilioPhoneNumbers).
+   * Separate numbers for calls and SMS: in some countries national numbers
+   * are voice-only (Twilio lists Singapore's, for one), so a configuration -
+   * a project's and the installation's - lists numbers for SMS. The
+   * section's table and its sentences are held to the forms that draw the
+   * fields and to the rule every sender picks a number by
+   * (Types/CallAndSMS/TwilioPhoneNumbers). It explains the case without
+   * naming a country, in every language: OneUptime is used worldwide, and
+   * Twilio's guidelines say what each country allows.
    */
   describe("Separate numbers for calls and SMS", () => {
     const section: string = sectionOf(
@@ -2661,14 +2719,64 @@ describe("Twilio Integration, against the notification server and the forms", ()
       expect(section).toContain("under **More fields**");
     });
 
-    it("says what Twilio documents of Singapore, with Twilio's number ranges", () => {
+    it("says when separate numbers are needed, and what to do, without naming a country", () => {
       expect(section).toContain(
-        "national numbers (+65 3 or +65 6) are voice-only, and SMS need a mobile number (+65 8)",
+        "in some countries no one number does both: national numbers can be voice-only, while SMS need a mobile number.",
       );
       expect(section).toContain(
-        "enter the national number as **Twilio Primary Phone Number** and the mobile number in **Twilio SMS Phone Numbers**",
+        "If your number can only make calls, keep it as **Twilio Primary Phone Number** and enter a number that can send SMS, such as a mobile number, in **Twilio SMS Phone Numbers**.",
+      );
+      // The case the Notification service's refusal names, in the same words.
+      expect(SMS_NUMBER_HINT).toContain("can only make calls");
+      expect(SMS_NUMBER_HINT).toContain("a number that can send SMS");
+    });
+
+    it("says that some countries ask senders to register, without naming one", () => {
+      expect(section).toContain(
+        "Which numbers can send SMS, and whether a sender must be registered first, differs from country to country: where registration is required, an SMS from an unregistered number can be blocked or flagged as spam.",
       );
     });
+
+    it("checks every docs language for the country's name in that language", () => {
+      expect(Object.keys(SINGAPORE_BY_LANGUAGE).sort()).toEqual(
+        [...DOCS_LANGUAGES].sort(),
+      );
+    });
+
+    it.each(DOCS_LANGUAGES)(
+      "names no one country's numbers or rules, in %s",
+      (language: string) => {
+        const translated: string = readPage(language, TWILIO);
+
+        for (const word of [
+          ...SINGAPORE_IN_EVERY_LANGUAGE,
+          "SGNIC",
+          "Likely-SCAM",
+        ]) {
+          expect({ language, word, named: translated.includes(word) }).toEqual({
+            language,
+            word,
+            named: false,
+          });
+        }
+
+        // No country's number ranges ("+65 3") anywhere on the page.
+        expect({
+          language,
+          ranges: translated.match(COUNTRY_NUMBER_RANGE),
+        }).toEqual({ language, ranges: null });
+
+        // Twilio's guidelines for every country, not one country's page.
+        expect({
+          language,
+          guidelines: twilioGuidelineLinks(translated).map(
+            (url: URL): string => {
+              return url.pathname;
+            },
+          ),
+        }).toEqual({ language, guidelines: ["/en-us/guidelines/sms"] });
+      },
+    );
 
     it("the SMS row is the rule the senders pick by: the recipient's country, or else the first", () => {
       expect(rowOf(section, "**Twilio SMS Phone Numbers**")[1]).toBe(
@@ -2722,7 +2830,7 @@ describe("Twilio Integration, against the notification server and the forms", ()
       );
     });
 
-    it("links Twilio's own Singapore SMS guidelines by their address", () => {
+    it("links Twilio's SMS guidelines, which cover every country, by their address", () => {
       const at: number = section.indexOf("](https://");
 
       expect(at).toBeGreaterThan(-1);
@@ -2730,7 +2838,9 @@ describe("Twilio Integration, against the notification server and the forms", ()
       const url: URL = new URL(section.slice(at + 2, section.indexOf(")", at)));
 
       expect(url.origin).toBe("https://www.twilio.com");
-      expect(url.pathname).toBe("/en-us/guidelines/sg/sms");
+      expect(url.pathname).toBe("/en-us/guidelines/sms");
+      expect(section).toContain("check [Twilio's SMS guidelines](");
+      expect(section).toContain(") for each country you send to.");
     });
   });
 });

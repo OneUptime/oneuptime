@@ -56,7 +56,7 @@ Pour une configuration par défaut à l'échelle de l'installation, un administr
 
 ### Des numéros distincts pour les appels et les SMS
 
-Un numéro Twilio peut passer des appels et envoyer des SMS, ou seulement l'un des deux, et dans certains pays aucun numéro ne fait les deux. À Singapour, par exemple, les numéros nationaux (+65 3 ou +65 6) sont réservés à la voix, et les SMS nécessitent un numéro mobile (+65 8). Une configuration, celle d'un projet ou celle de l'installation, peut lister des numéros pour les SMS sous **Plus de champs** :
+Un numéro Twilio peut passer des appels et envoyer des SMS, ou seulement l'un des deux, et dans certains pays aucun numéro ne fait les deux : les numéros nationaux peuvent être réservés à la voix, tandis que les SMS nécessitent un numéro mobile. Une configuration, celle d'un projet ou celle de l'installation, peut lister des numéros pour les SMS sous **Plus de champs** :
 
 | Champ | Ce qui part de ce numéro |
 | --- | --- |
@@ -64,12 +64,12 @@ Un numéro Twilio peut passer des appels et envoyer des SMS, ou seulement l'un d
 | **Numéros de téléphone secondaires Twilio** | Les appels, et les SMS tant qu'aucun numéro SMS n'est listé, vers les destinataires du pays de chaque numéro |
 | **Numéros de téléphone SMS Twilio** | Chaque SMS, une fois listés : depuis le numéro du pays du destinataire, sinon depuis le premier |
 
-Pour Singapour, saisissez le numéro national comme **Numéro de téléphone principal Twilio** et le numéro mobile dans **Numéros de téléphone SMS Twilio**. Dès qu'une configuration liste des numéros SMS, aucun SMS ne part plus de ses autres numéros : listez donc chaque numéro qui doit envoyer des SMS.
+Si votre numéro ne peut que passer des appels, gardez-le comme **Numéro de téléphone principal Twilio** et saisissez un numéro qui peut envoyer des SMS, comme un numéro mobile, dans **Numéros de téléphone SMS Twilio**. Dès qu'une configuration liste des numéros SMS, aucun SMS ne part plus de ses autres numéros : listez donc chaque numéro qui doit envoyer des SMS.
 
 Une configuration sans numéros SMS envoie les SMS depuis les mêmes numéros que les appels, comme avant. **Envoyer un SMS de test** et **Envoyer un appel de test** partent du numéro qu'utiliserait un vrai SMS ou un vrai appel vers le même destinataire. Si Twilio refuse un SMS avec l'erreur 21606, le numéro ne peut pas envoyer de SMS : ajoutez-en un qui le peut dans **Numéros de téléphone SMS Twilio**.
 
 > [!NOTE]
-> À Singapour, un SMS envoyé depuis un numéro qui n'est pas enregistré auprès du SGNIC, ou depuis un numéro hors de Singapour, arrive avec l'expéditeur `Likely-SCAM`. Enregistrez le numéro mobile auprès du SGNIC et de Twilio avant de compter dessus ; voir [les directives SMS de Twilio pour Singapour](https://www.twilio.com/en-us/guidelines/sg/sms).
+> Les numéros qui peuvent envoyer des SMS, et l'obligation d'enregistrer d'abord un expéditeur, varient d'un pays à l'autre : là où l'enregistrement est obligatoire, un SMS envoyé depuis un numéro non enregistré peut être bloqué ou signalé comme spam. Avant de compter sur un numéro, consultez [les directives SMS de Twilio](https://www.twilio.com/en-us/guidelines/sms) pour chaque pays vers lequel vous envoyez.
 
 ## 3. Configurer l'accès réseau
 
