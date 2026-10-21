@@ -32267,5 +32267,7 @@
   "View Playbooks": "플레이북 보기",
   "View Unassigned Cases": "할당되지 않은 케이스 보기",
   "All categories": "모든 카테고리",
-  "Rule categories": "규칙 카테고리"
+  "Rule categories": "규칙 카테고리",
+  "Catching up on a busy stretch of logs: the next check goes on where this one stopped.": "Catching up on a busy stretch of logs: the next check goes on where this one stopped.",
+  "The checks fell more than a day behind and skipped the logs that arrived between {{from}} and {{to}}.": "The checks fell more than a day behind and skipped the logs that arrived between {{from}} and {{to}}."
 }

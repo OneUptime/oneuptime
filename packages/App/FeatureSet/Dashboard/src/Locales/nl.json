@@ -32267,5 +32267,7 @@
   "View Playbooks": "Playbooks bekijken",
   "View Unassigned Cases": "Niet-toegewezen zaken bekijken",
   "All categories": "Alle categorieën",
-  "Rule categories": "Regelcategorieën"
+  "Rule categories": "Regelcategorieën",
+  "Catching up on a busy stretch of logs: the next check goes on where this one stopped.": "Catching up on a busy stretch of logs: the next check goes on where this one stopped.",
+  "The checks fell more than a day behind and skipped the logs that arrived between {{from}} and {{to}}.": "The checks fell more than a day behind and skipped the logs that arrived between {{from}} and {{to}}."
 }

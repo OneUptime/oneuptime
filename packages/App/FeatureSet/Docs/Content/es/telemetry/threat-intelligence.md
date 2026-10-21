@@ -138,7 +138,7 @@ Cada minuto, los indicadores activos de cada feed habilitado se cotejan con los 
 - La primera comprobación cubre los últimos 15 minutos. Tras una caída, la siguiente comprobación recupera como mucho las últimas 24 horas.
 - Cada ventana se comprueba una vez. La inteligencia que llega después de comprobarse su ventana solo se aplica a eventos posteriores.
 - Un evento que llega tarde, con una hora anterior a la comprobación anterior, se sigue marcando al llegar, pero no se coteja.
-- Cada comprobación coteja como mucho 100 valores de indicador por feed: los vistos en más eventos.
+- Cada comprobación registra cada valor de indicador coincidente como un Detection Finding, hasta 10.000 por feed. Se abren alertas, incidentes y casos para los 100 valores vistos en más eventos; el resto comparte un caso sobre el feed, y el **Error de la última coincidencia** del feed dice cuántos coincidieron.
 
 ### Qué hace una coincidencia
 

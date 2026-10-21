@@ -307,7 +307,7 @@ OneUptime controlla ogni minuto quali regole abilitate hanno superato il loro in
 - Le finestre sono una dopo l'altra, non scorrono. Con un intervallo di 10 minuti, errori alle 09:58 e alle 10:01 possono cadere in esecuzioni diverse e vengono contati separatamente, quindi lascia margine quando scegli una soglia.
 - Dopo un'interruzione, come un worker fermo o una regola riattivata, l'esecuzione successiva copre l'intera interruzione, fino alle ultime 24 ore.
 - Un evento che arriva con più di due minuti di ritardo, quando un'esecuzione ha già coperto il suo orario, viene salvato ed è ricercabile, ma quella regola non lo legge mai.
-- Al massimo 100 gruppi scattano per esecuzione: quelli con i conteggi più alti.
+- Ogni gruppo che raggiunge la soglia diventa un Detection Finding, fino a 10.000 per esecuzione. Avvisi, incidenti e casi si aprono per i 100 con i conteggi più alti; gli altri condividono un caso sulla regola, e l'**Ultimo errore** della regola dice quanti gruppi hanno corrisposto.
 
 ### Gravità
 

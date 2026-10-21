@@ -32267,5 +32267,7 @@
   "View Playbooks": "プレイブックを表示",
   "View Unassigned Cases": "未担当のケースを表示",
   "All categories": "すべてのカテゴリ",
-  "Rule categories": "ルールのカテゴリ"
+  "Rule categories": "ルールのカテゴリ",
+  "Catching up on a busy stretch of logs: the next check goes on where this one stopped.": "Catching up on a busy stretch of logs: the next check goes on where this one stopped.",
+  "The checks fell more than a day behind and skipped the logs that arrived between {{from}} and {{to}}.": "The checks fell more than a day behind and skipped the logs that arrived between {{from}} and {{to}}."
 }

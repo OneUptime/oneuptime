@@ -1,5 +1,5 @@
 import ThreatIntelFeed from "../../../../Models/DatabaseModels/ThreatIntelFeed";
-import LIMIT_MAX from "../../../../Types/Database/LimitMax";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -17,6 +17,12 @@ import ThreatIntelIndicatorService, {
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import ConnectorErrorMessage from "../ConnectorErrorMessage";
+import Select from "../../../Types/Database/Select";
+import SecurityProjectWork, {
+  SecurityProjectWorkDefinition,
+  SecurityProjectWorkLease,
+  UNLIMITED_SECURITY_PROJECT_WORK_LEASE,
+} from "../SecurityProjectWork";
 import TaxiiClient, { TaxiiObjectsPage } from "./TaxiiClient";
 import ThreatIntelEnricher from "./ThreatIntelEnricher";
 
@@ -115,90 +121,183 @@ interface PageObjectInfo {
   values: Set<string>;
 }
 
+/*
+ * The work is spread by project (SecurityProjectWork): the cron queues one
+ * turn for each project with a feed due, and a turn polls that project's
+ * due feeds, the longest overdue first.
+ */
+export const THREAT_INTEL_POLL_PROJECT_WORK: SecurityProjectWorkDefinition = {
+  jobName: "ThreatIntel:PollProjectFeeds",
+  key: "threat-intel-poll",
+  maxConcurrentProjects: 8,
+};
+
+// What a turn reads of each feed: everything pollFeed needs.
+const THREAT_INTEL_POLL_FEED_SELECT: Select<ThreatIntelFeed> = {
+  _id: true,
+  projectId: true,
+  name: true,
+  apiRootUrl: true,
+  collectionId: true,
+  apiToken: true,
+  basicAuthUsername: true,
+  basicAuthPassword: true,
+  minimumConfidence: true,
+  pollIntervalInMinutes: true,
+  lastPolledAt: true,
+  cursor: true,
+  nextPageToken: true,
+};
+
 export default class ThreatIntelFeedPoller {
-  @CaptureSpan()
-  public static async pollAllDueFeeds(): Promise<void> {
-    const feeds: Array<ThreatIntelFeed> = await ThreatIntelFeedService.findBy({
-      query: {
-        isEnabled: true,
-      },
-      select: {
-        _id: true,
-        projectId: true,
-        name: true,
-        apiRootUrl: true,
-        collectionId: true,
-        apiToken: true,
-        basicAuthUsername: true,
-        basicAuthPassword: true,
-        minimumConfidence: true,
-        pollIntervalInMinutes: true,
-        lastPolledAt: true,
-        cursor: true,
-        nextPageToken: true,
-      },
-      skip: 0,
-      limit: LIMIT_MAX,
-      props: {
-        isRoot: true,
-      },
-    });
+  // When a feed is next due: one poll interval after its last poll; 0 for a feed never polled.
+  private static dueTime(feed: ThreatIntelFeed): number {
+    if (!feed.lastPolledAt) {
+      return 0;
+    }
 
-    const now: Date = OneUptimeDate.getCurrentDate();
-
-    for (const feed of feeds) {
-      const intervalInMinutes: number = Math.max(
+    return OneUptimeDate.addRemoveMinutes(
+      feed.lastPolledAt,
+      Math.max(
         1,
         feed.pollIntervalInMinutes ||
           THREAT_INTEL_DEFAULT_POLL_INTERVAL_IN_MINUTES,
-      );
+      ),
+    ).getTime();
+  }
 
-      if (feed.lastPolledAt) {
-        const dueAt: Date = OneUptimeDate.addRemoveMinutes(
-          feed.lastPolledAt,
-          intervalInMinutes,
-        );
+  private static isDue(feed: ThreatIntelFeed, now: Date): boolean {
+    return this.dueTime(feed) <= now.getTime();
+  }
 
-        if (OneUptimeDate.isAfter(dueAt, now)) {
-          continue;
-        }
+  /*
+   * The cron's half: every enabled feed in the instance, page by page, and
+   * one turn queued for each project with a feed due. Returns how many
+   * projects were queued.
+   */
+  @CaptureSpan()
+  public static async enqueueProjectsWithDueFeeds(): Promise<number> {
+    const feeds: Array<ThreatIntelFeed> = await ThreatIntelFeedService.findAllBy(
+      {
+        query: {
+          isEnabled: true,
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          pollIntervalInMinutes: true,
+          lastPolledAt: true,
+        },
+        sort: {
+          _id: SortOrder.Ascending,
+        },
+        props: {
+          isRoot: true,
+        },
+      },
+    );
+
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    return SecurityProjectWork.enqueueProjects(
+      THREAT_INTEL_POLL_PROJECT_WORK,
+      feeds
+        .filter((feed: ThreatIntelFeed): boolean => {
+          return this.isDue(feed, now);
+        })
+        .map((feed: ThreatIntelFeed): ObjectID | undefined => {
+          return feed.projectId;
+        }),
+    );
+  }
+
+  /*
+   * One project's turn: its due feeds, the longest overdue first, for as
+   * long as the turn has time and keeps its lease. A feed left over is
+   * still due next minute and goes on from its own cursor.
+   */
+  @CaptureSpan()
+  public static async pollDueFeedsForProject(
+    projectId: ObjectID,
+    lease: SecurityProjectWorkLease = UNLIMITED_SECURITY_PROJECT_WORK_LEASE,
+  ): Promise<void> {
+    const feeds: Array<ThreatIntelFeed> = await ThreatIntelFeedService.findAllBy(
+      {
+        query: {
+          projectId,
+          isEnabled: true,
+        },
+        select: THREAT_INTEL_POLL_FEED_SELECT,
+        sort: {
+          _id: SortOrder.Ascending,
+        },
+        props: {
+          isRoot: true,
+        },
+      },
+    );
+
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    const dueFeeds: Array<ThreatIntelFeed> = feeds
+      .filter((feed: ThreatIntelFeed): boolean => {
+        return this.isDue(feed, now);
+      })
+      .sort((a: ThreatIntelFeed, b: ThreatIntelFeed): number => {
+        return this.dueTime(a) - this.dueTime(b);
+      });
+
+    for (const feed of dueFeeds) {
+      if (!lease.hasTimeLeft()) {
+        return;
       }
 
-      try {
-        await this.pollFeed(feed);
-      } catch (error) {
-        logger.error(
-          `ThreatIntelFeedPoller: error polling feed ${feed.id?.toString()}:`,
-        );
-        logger.error(error);
+      await this.pollFeedRecordingFailure(feed);
 
-        /*
-         * Best-effort bookkeeping that must never take the loop down
-         * with it — the ConnectorErrorMessage discipline shared with the
-         * connection poller and the detection engine. The saved page token is
-         * cleared too: a failing fetch is how an expired token surfaces,
-         * and the added_after cursor restarts the window cleanly.
-         */
-        if (feed.id) {
-          const feedId: ObjectID = feed.id;
+      if (!(await lease.keep())) {
+        return;
+      }
+    }
+  }
 
-          await ConnectorErrorMessage.recordFailure({
-            label: `ThreatIntelFeedPoller: feed ${feedId.toString()}`,
-            write: async (): Promise<void> => {
-              await ThreatIntelFeedService.updateOneById({
-                id: feedId,
-                data: {
-                  lastPolledAt: OneUptimeDate.getCurrentDate(),
-                  lastError: ConnectorErrorMessage.toMessage(error),
-                  nextPageToken: null as unknown as string,
-                },
-                props: {
-                  isRoot: true,
-                },
-              });
-            },
-          });
-        }
+  // pollFeed, with a failure recorded on the feed rather than thrown.
+  private static async pollFeedRecordingFailure(
+    feed: ThreatIntelFeed,
+  ): Promise<void> {
+    try {
+      await this.pollFeed(feed);
+    } catch (error) {
+      logger.error(
+        `ThreatIntelFeedPoller: error polling feed ${feed.id?.toString()}:`,
+      );
+      logger.error(error);
+
+      /*
+       * Best-effort bookkeeping that must never take the turn down
+       * with it — the ConnectorErrorMessage discipline shared with the
+       * connection poller and the detection engine. The saved page token is
+       * cleared too: a failing fetch is how an expired token surfaces,
+       * and the added_after cursor restarts the window cleanly.
+       */
+      if (feed.id) {
+        const feedId: ObjectID = feed.id;
+
+        await ConnectorErrorMessage.recordFailure({
+          label: `ThreatIntelFeedPoller: feed ${feedId.toString()}`,
+          write: async (): Promise<void> => {
+            await ThreatIntelFeedService.updateOneById({
+              id: feedId,
+              data: {
+                lastPolledAt: OneUptimeDate.getCurrentDate(),
+                lastError: ConnectorErrorMessage.toMessage(error),
+                nextPageToken: null as unknown as string,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+          },
+        });
       }
     }
   }
