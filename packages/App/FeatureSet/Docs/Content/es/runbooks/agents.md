@@ -1,10 +1,11 @@
 # Agentes de runbook
 
-Un **agente de runbook**, llamado **Runner** en el panel, es un pequeño proceso autoalojado que ejecuta los pasos JavaScript, Bash, SSH y kubectl de tus runbooks **dentro de tu propia infraestructura**. El Worker de OneUptime nunca ejecuta tus scripts: los pone en cola, y el Runner que eligió quien escribió el paso reclama cada uno, lo ejecuta y devuelve el resultado. Esta página es para quien instala y opera Runners. Un paso JavaScript que no elige ningún Runner se ejecuta en cambio en un [Runner global](#runners-globales), uno de los que OneUptime ejecuta para todos los proyectos.
+Un **agente de runbook**, llamado **Runner** en el panel, es un pequeño proceso autoalojado que ejecuta los pasos JavaScript, Bash, SSH y kubectl de tus runbooks **dentro de tu propia infraestructura**. El Worker de OneUptime nunca ejecuta tus scripts: los pone en cola, y el Runner que eligió quien escribió el paso reclama cada uno, lo ejecuta y devuelve el resultado. Esta página es para quien instala y opera Runners. Un paso que no elige ningún Runner se ejecuta en el [Runner predeterminado del proyecto](#el-runner-predeterminado-del-proyecto), si has definido uno; si no, un paso JavaScript se ejecuta en un [Runner global](#runners-globales), uno de los que OneUptime ejecuta para todos los proyectos.
 
 :::cards
 - [Instalar un Runner](#instalar-un-runner): Del panel a un contenedor conectado, en cinco pasos.
 - [Apuntar un paso a un Runner](#apuntar-un-paso-a-un-runner): Vincular un paso al Runner que debe ejecutarlo.
+- [El Runner predeterminado del proyecto](#el-runner-predeterminado-del-proyecto): El Runner en el que se ejecuta un paso que no elige ninguno.
 - [Runners globales](#runners-globales): Los Runners que OneUptime ejecuta para todos los proyectos, y lo que ejecutan.
 - [Tiempos de espera](#tiempos-de-espera): Tiempos de espera de reclamación y de ejecución, y cómo interactúan.
 - [Variables de entorno](#variables-de-entorno): Lo que lee el contenedor al arrancar.
@@ -33,7 +34,7 @@ flowchart TB
 1. Creas un Runner en OneUptime. OneUptime genera un ID y una clave secreta para él.
 2. Ejecutas el contenedor del Runner en un host de tu infraestructura, con ese ID, esa clave y la URL de tu OneUptime.
 3. El Runner pide trabajo a OneUptime cada 5 segundos e informa de que está vivo cada 60 segundos.
-4. Cuando escribes un paso JavaScript, Bash, SSH o kubectl, eliges el Runner en una lista desplegable. El paso queda vinculado a ese Runner. Un paso JavaScript puede quedarse con **Runner global**, que la lista desplegable elige para él.
+4. Cuando escribes un paso JavaScript, Bash, SSH o kubectl, eliges el Runner en una lista desplegable, en **Más campos** del paso. El paso queda vinculado a ese Runner. Un paso que no elige ninguno se ejecuta en el Runner predeterminado del proyecto, si has definido uno, y si no, un paso JavaScript se ejecuta en **Runner global**.
 5. Cuando el paso se ejecuta, el Worker pone en cola un trabajo con `targetAgentId` apuntando a ese Runner. Solo ese Runner puede reclamarlo.
 6. El Runner ejecuta el trabajo localmente (`bash -c <script>` para Bash y kubectl, un sandbox `isolated-vm` para JavaScript, una conexión SSH que ejecuta el script con bash en la máquina), captura el resultado, oculta en él los secretos del paso y lo devuelve. El Worker reanuda el runbook con el resultado.
 
@@ -52,7 +53,7 @@ Con los Runners, esos pasos se ejecutan en un host que tú controlas, y tú deci
 
 ## Runners globales
 
-Los Runners globales son los Runners que OneUptime ejecuta para todos los proyectos. Un paso JavaScript que no elige un Runner propio se ejecuta en uno de ellos, así que puedes escribirlo antes de instalar nada. **Runbooks → Agentes de runbook** los muestra en **Runners globales**, encima de tus propios Runners, y la lista desplegable **Runner** de un paso JavaScript ofrece **Runner global** primero.
+Los Runners globales son los Runners que OneUptime ejecuta para todos los proyectos. Un paso JavaScript que no elige un Runner propio se ejecuta en uno de ellos, salvo que el proyecto tenga un [Runner predeterminado](#el-runner-predeterminado-del-proyecto), así que puedes escribirlo antes de instalar nada. **Runbooks → Agentes de runbook** los muestra en **Runners globales**, encima de tus propios Runners, y la lista desplegable **Runner** de un paso JavaScript ofrece **Runner global** primero, o justo después del Runner predeterminado del proyecto. La lista desplegable de un paso Bash, SSH o kubectl lo muestra al final, en gris, con **Solo ejecuta pasos de JavaScript.** Esos pasos se ejecutan en un Runner tuyo, dentro de tu red, nunca en uno que comparten todos los proyectos.
 
 | | Runner global | Tu propio Runner |
 | --- | --- | --- |
@@ -69,7 +70,7 @@ Un Runner global ejecuta los pasos de muchos proyectos, así que cada paso se ma
 - Recibe una variable secreta solo cuando su interruptor **Los Runners globales pueden usarlo** está activado, y solo para un paso del propio proyecto de la variable. Nunca recibe una credencial.
 - Un proyecto ejecuta como mucho tres pasos a la vez en los Runners globales, así que ningún proyecto los acapara.
 
-Elige uno de tus propios Runners para un paso que deba alcanzar tu red, o para mantener el paso en hosts que controlas. Para mantener todos los pasos en tus propios Runners, desactiva **Usar Runners globales** al final de **Runbooks → Agentes de runbook**. Un paso JavaScript que no elige ningún Runner falla entonces, indicándolo, hasta que elija uno de los tuyos; un paso que elige uno de tus Runners lo conserva en cualquier caso. Un repositorio de código que no elige ningún Runner en sus ajustes en Código también trabaja en un Runner global, y necesita uno de los tuyos mientras el interruptor está desactivado; consulta [Código](/docs/ai/ai-agent#elige-el-runner-del-repositorio).
+Elige uno de tus propios Runners para un paso que deba alcanzar tu red, o para mantener el paso en hosts que controlas. Para mantener todos los pasos en tus propios Runners, desactiva **Usar Runners globales** al final de **Runbooks → Agentes de runbook**. Un paso JavaScript que no elige ningún Runner se ejecuta entonces en el Runner predeterminado del proyecto o, si no hay ninguno, falla, indicándolo, hasta que elija uno de los tuyos; un paso que elige uno de tus Runners lo conserva en cualquier caso. Un repositorio de código que no elige ningún Runner en sus ajustes en Código también trabaja en un Runner global, y necesita uno de los tuyos mientras el interruptor está desactivado; consulta [Código](/docs/ai/ai-agent#elige-el-runner-del-repositorio).
 
 ### De dónde vienen los Runners globales
 
@@ -142,7 +143,7 @@ En los **Pasos** de tu runbook, añade un paso JavaScript, Bash, SSH o kubectl.
 
 ### Elegir el Runner
 
-La lista desplegable **Runner** del paso muestra cada Runner del proyecto y si está conectado. Si el proyecto aún no tiene ninguno, el paso lo indica y te lleva a **Runbooks › Runners**. La lista desplegable de un paso JavaScript también ofrece **Runner global**, primero, y lo elige hasta que elijas uno de los tuyos.
+Abre **Más campos** del paso: su lista desplegable **Runner** muestra cada Runner del proyecto y si está conectado, y la línea plegada nombra el Runner en el que se ejecuta el paso. Si el proyecto aún no tiene ninguno, el paso lo indica y te lleva a **Runbooks › Runners**. La primera opción es aquello en lo que se ejecuta un paso que no elige ningún Runner: el [Runner predeterminado del proyecto](#el-runner-predeterminado-del-proyecto), marcado como **Predeterminado del proyecto**, o si no, para un paso JavaScript, **Runner global**.
 
 ### Guardar los pasos
 
@@ -152,6 +153,26 @@ Haz clic en **Guardar pasos**. Cuando una ejecución llega al paso, el Worker po
 Bash se ejecuta con `bash -c`. JavaScript se ejecuta en un sandbox `isolated-vm` en el Runner, sin acceso al sistema de archivos ni a los procesos; puede llamar a API HTTP públicas con `axios`, pero no a direcciones de una red privada. Un paso SSH o kubectl inicia sesión con una [variable de runbook](/docs/runbooks/variables) secreta, que debe incluir el Runner del paso en **Tus Runners que pueden usarlo**.
 
 ¿Necesitas más de un Runner? Créalos y apunta cada paso al que corresponda. Para tener redundancia, ejecuta un segundo Runner y reparte los pasos entre ambos, o mantén un runbook de respaldo cuyos pasos apunten al otro Runner.
+
+## El Runner predeterminado del proyecto
+
+Un proyecto puede hacer de uno de sus propios Runners su predeterminado, igual que hace de una configuración de Twilio su predeterminada. Cada paso de runbook que no elige ningún Runner se ejecuta entonces en él: los pasos Bash, SSH y kubectl, y los pasos JavaScript, que si no se ejecutarían en un Runner global.
+
+Para hacer de un Runner el predeterminado, ve a **Runbooks → Agentes de runbook**, abre el menú **⋯** en la fila del Runner, haz clic en **Establecer como predeterminado del proyecto** y confirma con **Hacer predeterminado del proyecto**. O abre el Runner y, en su tarjeta **Predeterminado del proyecto**, activa **Usar como predeterminado del proyecto**. La lista marca el predeterminado como **Predeterminado del proyecto**, junto a su nombre, y también lo hace la lista desplegable **Runner** de un paso, en su primera opción. Un proyecto tiene un solo Runner predeterminado: hacer predeterminado a otro Runner lo reemplaza. **Dejar de usar como predeterminado del proyecto**, en el mismo menú, o el interruptor en la página del Runner, deja de usarlo.
+
+Dónde se ejecuta un paso que no elige ningún Runner:
+
+| El proyecto | Un paso JavaScript | Un paso Bash, SSH o kubectl |
+| --- | --- | --- |
+| Tiene un Runner predeterminado | El Runner predeterminado | El Runner predeterminado |
+| No tiene, y usa Runners globales | Un Runner global | En ninguno: el paso falla, indicando que no tiene Runner |
+| No tiene, y no usa Runners globales | En ninguno: el paso falla, indicándolo | En ninguno: el paso falla, indicando que no tiene Runner |
+
+Un paso que eligió un Runner lo conserva, sea cual sea el predeterminado, y un paso JavaScript todavía puede elegir **Runner global** por sí mismo. Definir un predeterminado no cambia ningún paso guardado.
+
+El predeterminado es uno de los Runners propios del proyecto que ejecuta pasos de runbook: no un Runner global, no el Runner dentro del clúster que instaló el agente de Kubernetes, y no uno con **Ejecuta runbooks** desactivado. Mientras un Runner es el predeterminado, su **Ejecuta runbooks** sigue activado. Cuando el predeterminado no está conectado, la lista desplegable de un paso lo indica, y un paso en él lo espera, como a cualquier Runner, hasta que vence su tiempo de reclamación.
+
+Solo los pasos de runbook usan el predeterminado. Un repositorio de código elige su Runner en sus ajustes en Código, y una regla de remediación automática elige el suyo.
 
 ## Notas de operación
 

@@ -134,7 +134,7 @@ L'interrupteur **Exécuter ce runbook** du runbook est désactivé, sur sa page 
 :::
 
 :::details Une étape a échoué parce qu'il lui manque un agent Runbook
-Le message indique par exemple "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." L'étape a été enregistrée sans **Agent Runbook**. Une étape JavaScript n'a besoin d'un agent à elle que si aucun [agent Runbook global](/docs/runbooks/agents#agents-runbook-globaux) ne peut l'exécuter. Ouvrez les **Étapes** du runbook, choisissez l'agent Runbook de l'étape, cliquez sur **Save Steps** et relancez le runbook.
+Le message indique par exemple "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." L'étape a été enregistrée sans **Agent Runbook**, et le projet n'a pas d'[agent Runbook par défaut](/docs/runbooks/agents#lagent-runbook-par-défaut-du-projet). Une étape JavaScript n'a besoin d'un agent à elle que si aucun [agent Runbook global](/docs/runbooks/agents#agents-runbook-globaux) ne peut l'exécuter. Ouvrez les **Étapes** du runbook, choisissez l'agent Runbook de l'étape sous **Plus de champs**, cliquez sur **Save Steps** et relancez le runbook.
 :::
 
 :::details Une étape a échoué parce qu'elle nomme des variables qu'elle ne peut pas utiliser

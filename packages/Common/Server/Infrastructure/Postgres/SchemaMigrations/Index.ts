@@ -153,6 +153,7 @@ import { AddHostCollectorManagementIndexesAndKeys1805550000000 } from "./1805550
 import { AddSecurityProtectedEntity1805600000000 } from "./1805600000000-AddSecurityProtectedEntity";
 import { AddAIRunHandedBackCount1805650000000 } from "./1805650000000-AddAIRunHandedBackCount";
 import { AddSecurityCaseNotifications1805700000000 } from "./1805700000000-AddSecurityCaseNotifications";
+import { AddRunnerProjectDefault1805720000000 } from "./1805720000000-AddRunnerProjectDefault";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1508,4 +1509,5 @@ export default [
   AddSecurityProtectedEntity1805600000000,
   AddAIRunHandedBackCount1805650000000,
   AddSecurityCaseNotifications1805700000000,
+  AddRunnerProjectDefault1805720000000,
 ];

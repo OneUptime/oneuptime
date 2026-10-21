@@ -40,12 +40,12 @@ flowchart TB
 
 ## Så skickas Runner-steg ut
 
-JavaScript-, Bash-, SSH- och kubectl-steg **körs aldrig på OneUptime Worker**. De skickas som jobb till en viss [runbook-agent](/docs/runbooks/agents): en liten process som du installerar på en värd i din egen infrastruktur. Ett JavaScript-steg som inte väljer någon går till de [globala Runners](/docs/runbooks/agents#globala-runners) som OneUptime kör för alla projekt.
+JavaScript-, Bash-, SSH- och kubectl-steg **körs aldrig på OneUptime Worker**. De skickas som jobb till en viss [runbook-agent](/docs/runbooks/agents): en liten process som du installerar på en värd i din egen infrastruktur. Ett steg som inte väljer någon går till [projektets standard-Runner](/docs/runbooks/agents#projektets-standard-runner), om det har en; annars går ett JavaScript-steg till de [globala Runners](/docs/runbooks/agents#globala-runners) som OneUptime kör för alla projekt.
 
 Utskicksmodellen:
 
 1. Den som skriver runbook-steget väljer en Runner i listrutan.
-2. När steget körs infogar Workern en rad i `RunnerJob` med `targetAgentId` satt till den Runnerns ID och statusen `Pending`. Ett JavaScript-steg som inte valde någon får i ett projekt som använder globala Runners i stället `runsOnGlobalRunner`.
+2. När steget körs infogar Workern en rad i `RunnerJob` med `targetAgentId` satt till den Runnerns ID, eller till projektets standard-Runners för ett steg som inte valde någon, och statusen `Pending`. Ett JavaScript-steg som inte valde någon får i ett projekt utan standard-Runner som använder globala Runners i stället `runsOnGlobalRunner`.
 3. Just den Runnern (och bara den) tar jobbet atomiskt, kör det lokalt — Bash och kubectl via `bash -c <script>`, JavaScript i en `isolated-vm`-sandlåda, SSH genom en anslutning till maskinen, var och en med de variabler den nämner ifyllda — och skickar tillbaka resultatet. Vilken global Runner som helst får ta ett jobb med `runsOnGlobalRunner`.
 4. Workern fortsätter runbooket med resultatet.
 
@@ -92,7 +92,7 @@ När ett manuellt steg bockas av via API:et köas körningen igen för att forts
 
 ## Härdningsanteckningar
 
-- **JavaScript, Bash, SSH och kubectl** körs på en Runner-värd som du styr, inte på OneUptime Worker. JavaScript körs i ett eget `isolated-vm`-isolat med 128 MB minne och utan åtkomst till Runnerns filsystem eller processer; det kan göra HTTP-begäranden med `axios`, men begäranden till privata nätverk, loopback- och link-local-adresser avvisas. Bash körs via `bash -c`, med en tidsgräns som upprätthålls på Runnern. Ett JavaScript-steg som inte väljer någon körs i stället på en global Runner.
+- **JavaScript, Bash, SSH och kubectl** körs på en Runner-värd som du styr, inte på OneUptime Worker. JavaScript körs i ett eget `isolated-vm`-isolat med 128 MB minne och utan åtkomst till Runnerns filsystem eller processer; det kan göra HTTP-begäranden med `axios`, men begäranden till privata nätverk, loopback- och link-local-adresser avvisas. Bash körs via `bash -c`, med en tidsgräns som upprätthålls på Runnern. Ett JavaScript-steg som inte väljer någon körs på projektets standard-Runner eller, om ingen är angiven, på en global Runner.
 - **HTTP-steg** använder en tillåtande statusvalidering, så att ett 4xx- eller 5xx-svar registreras som ett misslyckat steg i stället för att kastas som ett undantag, och den registrerade outputen visar vad motparten faktiskt returnerade. Omdirigeringar följs inte. Workern anropar aldrig loopback- eller link-local-adresser, till exempel en metadataslutpunkt i molnet; på OneUptime Cloud avvisar den även privata nätverksadresser, och en självhostad OneUptime avvisar dem med `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`.
 - **AI-steg** ser aldrig privata incidentanteckningar eller meddelanden från Slack och Microsoft Teams, och tidigare stegs output genomsöks efter hemligheter, som maskeras innan den når modellen. Inbäddade bilder och långa kodade data utelämnas från prompten. Se [AI](/docs/runbooks/authoring#ai).
 - **Globala Runners** kör bara JavaScript-steg, vart och ett i en sandlåda som skapas för steget och slängs efteråt, som bara når offentliga internetadresser, i högst 5 minuter och med högst tre steg från ett och samma projekt åt gången. De får bara de hemliga variabler från stegets eget projekt som är påslagna för globala Runners, och aldrig autentiseringsuppgifter; den medföljande har sin egen nyckel och inget annat från servern. Se [Globala Runners](/docs/runbooks/agents#globala-runners).
@@ -106,7 +106,7 @@ När ett manuellt steg bockas av via API:et köas körningen igen för att forts
 | `Runbook` | Mallen: namn, slug, beskrivning, `isEnabled`, etiketter och stegen som JSON. |
 | `RunbookExecution` | En rad per körning, med de valfria främmande nycklarna `incidentId`, `alertId` och `scheduledMaintenanceId` och en JSON-array `stepExecutions` som fryser stegen och varje stegs tillstånd. |
 | `RunbookRule` | Regler för automatisk start, med en diskriminator `triggerEntityType` (Incident, Alert, ScheduledMaintenance), en många-till-många-relation till de runbooks som ska startas, och det de matchar på: en JSON-kolumn `criteria` (villkoren) plus många-till-många-länkar till monitorer, incidentallvarlighetsgrader, larmallvarlighetsgrader, etiketter och monitoretiketter samt mönster för titel, beskrivning, monitornamn och monitorbeskrivning. |
-| `Runner` | En rad per installerad Runner: namn, hemlig nyckel, `lastAlive`, `connectionStatus`, värdinformation och funktioner. En global Runner har `isGlobalRunner` satt och inget projekt. |
+| `Runner` | En rad per installerad Runner: namn, hemlig nyckel, `lastAlive`, `connectionStatus`, värdinformation och funktioner. En global Runner har `isGlobalRunner` satt och inget projekt; projektets standard-Runner har `isProjectDefault` satt. |
 | `RunnerJob` | En rad per steg som skickats till en Runner: `targetAgentId` (den Runner som stegets författare valde), stegtyp, skript eller nyttolast, status (`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` eller `Cancelled`), tidsfrist för övertagande, lease, output och slutkod. `runsOnGlobalRunner` markerar ett steg som vilken global Runner som helst får ta. |
 | `RunbookCredential` | De SSH- och Kubernetes-autentiseringsuppgifter som OneUptime AI:s kommandon använder, med krypterade hemliga fält, och de Runners de är tilldelade. |
 | `RunbookVariable` | Runbook-variabler: projektets globala och en runbooks egna, som nämner den i `runbookId`; en hemlighets värde krypterat, och de Runners som får ta emot en hemlighet. |

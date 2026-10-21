@@ -134,7 +134,7 @@ Runbook का **इस Runbook को चलाएं** स्विच उस�
 :::
 
 :::details कोई चरण Runner न होने से विफल हुआ
-संदेश कुछ ऐसा होता है: "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." चरण बिना **Runner** के सहेजा गया था। JavaScript चरण को अपने Runner की ज़रूरत केवल तब होती है जब कोई [ग्लोबल Runner](/docs/runbooks/agents#ग्लोबल-runner) उसे नहीं चला सकता। Runbook के **चरण** खोलें, चरण का Runner चुनें, **Save Steps** पर क्लिक करें, और Runbook फिर से चलाएँ।
+संदेश कुछ ऐसा होता है: "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." चरण बिना **Runner** के सहेजा गया था, और प्रोजेक्ट का कोई [डिफ़ॉल्ट Runner](/docs/runbooks/agents#प्रोजेक्ट-का-डिफ़ॉल्ट-runner) नहीं है। JavaScript चरण को अपने Runner की ज़रूरत केवल तब होती है जब कोई [ग्लोबल Runner](/docs/runbooks/agents#ग्लोबल-runner) उसे नहीं चला सकता। Runbook के **चरण** खोलें, चरण के **और फ़ील्ड** में उसका Runner चुनें, **Save Steps** पर क्लिक करें, और Runbook फिर से चलाएँ।
 :::
 
 :::details कोई चरण विफल हुआ क्योंकि वह ऐसे वेरिएबल का नाम लेता है जिन्हें वह इस्तेमाल नहीं कर सकता

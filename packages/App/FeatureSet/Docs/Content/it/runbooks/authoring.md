@@ -12,7 +12,7 @@ Un runbook si scrive come elenco ordinato di passaggi nella sua pagina **Passagg
 ## Prima di iniziare
 
 - **Un ruolo che scrive runbook.** Project Owner, Project Admin e Runbook Admin creano runbook e ne salvano i passaggi. Con autorizzazioni granulari ti servono **Create Runbook** e **Edit Runbook**. Vedi [Autorizzazioni](/docs/runbooks/configuration#autorizzazioni).
-- **Un Runner, per i passaggi Bash, SSH e kubectl.** Questi passaggi vengono eseguiti su un [Runner](/docs/runbooks/agents) nella tua infrastruttura, mai sul Worker di OneUptime. Installane uno prima. Un passaggio JavaScript viene eseguito su un [Runner globale](/docs/runbooks/agents#runner-globali), a meno che tu non scelga uno dei tuoi.
+- **Un Runner, per i passaggi Bash, SSH e kubectl.** Questi passaggi vengono eseguiti su un [Runner](/docs/runbooks/agents) nella tua infrastruttura, mai sul Worker di OneUptime. Installane uno prima. Un passaggio che non sceglie alcun Runner viene eseguito sul [Runner predefinito del progetto](/docs/runbooks/agents#il-runner-predefinito-del-progetto), se ne hai impostato uno; altrimenti un passaggio JavaScript viene eseguito su un [Runner globale](/docs/runbooks/agents#runner-globali).
 - **Una variabile segreta, per i passaggi SSH e kubectl.** La chiave, la password o il kubeconfig con cui un passaggio accede è una [variabile di runbook](/docs/runbooks/variables) segreta. Project Owner e Project Admin creano le variabili, e Runbook Admin le sceglie nei passaggi che scrive. Un passaggio kubectl può usare invece l'accesso proprio del Runner.
 - **Un provider LLM, per i passaggi IA.** Vedi [Provider LLM](/docs/ai/llm-provider).
 
@@ -64,7 +64,7 @@ Ogni passaggio ha questi campi. Un passaggio automatico mostra il suo **Titolo**
 | [kubectl](#kubectl) | Un Runner | Un Runner, e una variabile kubeconfig o l'accesso proprio del Runner |
 | [AI](#ai) | Il Worker di OneUptime | Un provider LLM |
 
-In ogni passaggio automatico qui sotto, **Altri campi** del passaggio contiene prima **Richiedi approvazione** e **Continua in caso di errore**, poi le impostazioni proprie del passaggio - gli header di una chiamata HTTP, la porta e la passphrase della chiave di un passaggio SSH, il provider e gli interruttori di contesto di un passaggio di IA - e infine la **Descrizione** e i timeout.
+In ogni passaggio automatico qui sotto, **Altri campi** del passaggio contiene prima il suo **Runner**, per un passaggio che viene eseguito su uno, poi **Richiedi approvazione** e **Continua in caso di errore**, poi le impostazioni proprie del passaggio - gli header di una chiamata HTTP, la porta e la passphrase della chiave di un passaggio SSH, il provider e gli interruttori di contesto di un passaggio di IA - e infine la **Descrizione** e i timeout. Chiuso, indica il Runner del passaggio, così vedi dove viene eseguito un passaggio senza aprirlo.
 
 ### Manual
 
@@ -78,7 +78,7 @@ Un frammento di JavaScript, eseguito in una sandbox `isolated-vm` su un [agente 
 
 | Campo | Cosa fa | Predefinito |
 | --- | --- | --- |
-| **Runner** | Il Runner che esegue il passaggio: **Runner globale**, oppure uno dei tuoi. Solo il Runner che scegli può prendere in carico il lavoro; qualsiasi Runner globale può prendere in carico un passaggio su **Runner globale**. | **Runner globale**, se ce n'è uno |
+| **Runner** | Sotto **Altri campi**. Il Runner che esegue il passaggio: **Runner globale**, oppure uno dei tuoi. Solo il Runner che scegli può prendere in carico il lavoro; qualsiasi Runner globale può prendere in carico un passaggio su **Runner globale**. | Il [Runner predefinito del progetto](/docs/runbooks/agents#il-runner-predefinito-del-progetto), se ne hai impostato uno; altrimenti **Runner globale**, se ce n'è uno |
 | **Script** | Il JavaScript da eseguire. Restituisci un valore con `return` per acquisirlo; anche ogni riga di `console.log` viene acquisita. Lanciare un errore fa fallire il passaggio. | — |
 | **Timeout di esecuzione** | Quanto tempo il Runner lascia girare il frammento prima di distruggere la sandbox. Un Runner globale lo lascia girare al massimo 5 minuti. | 30 secondi |
 | **Timeout di presa in carico** | Quanto tempo il Worker attende che il Runner prenda in carico il lavoro. | 2 minuti |
@@ -117,7 +117,7 @@ Uno script bash, eseguito con `bash -c <script>` su un [agente di runbook](/docs
 
 | Campo | Cosa fa | Predefinito |
 | --- | --- | --- |
-| **Runner** | Il Runner che esegue il passaggio. Solo quel Runner può prendere in carico il lavoro. | — |
+| **Runner** | Sotto **Altri campi**. Il Runner che esegue il passaggio. Solo quel Runner può prendere in carico il lavoro. I Runner globali eseguono solo passaggi JavaScript. | Il Runner predefinito del progetto, se ne hai impostato uno |
 | **Script Bash** | Lo script. L'output (stdout e stderr) viene acquisito fino a 50 KB, e un codice di uscita diverso da zero fa fallire il passaggio. | — |
 | **Timeout di esecuzione** | Quanto tempo il Runner lascia girare lo script prima di terminarlo con `SIGKILL`. Aumentalo per i passaggi che richiedono legittimamente minuti. | 30 secondi |
 | **Timeout di presa in carico** | Quanto tempo il Worker attende che il Runner prenda in carico il lavoro. | 2 minuti |
@@ -146,7 +146,7 @@ Accedere a una macchina via SSH ed eseguirvi uno script bash. Il Runner apre la 
 
 | Campo | Cosa fa |
 | --- | --- |
-| **Runner** | Il Runner che apre la connessione. Deve poter raggiungere la macchina sulla rete. |
+| **Runner** | Sotto **Altri campi**. Il Runner che apre la connessione. Deve poter raggiungere la macchina sulla rete. Un passaggio che non ne sceglie nessuno viene eseguito sul Runner predefinito del progetto. |
 | **SSH verso** | L'utente e la macchina, come li scriveresti dopo `ssh`: `deploy@10.0.4.21`. |
 | **Accedi con** | La variabile segreta che contiene la chiave privata o la password; il valore indica quale delle due. Vengono offerte solo variabili segrete, e il passaggio segnala quando il suo Runner non può usare quella scelta. |
 | **Script Bash** | Viene eseguito con `bash` sulla macchina, come l'utente con cui accede. L'output viene acquisito fino a 50 KB, e un codice di uscita diverso da zero fa fallire il passaggio. |
@@ -168,7 +168,7 @@ Eseguire comandi kubectl su un cluster. Lo script viene eseguito con bash sul Ru
 
 | Campo | Cosa fa |
 | --- | --- |
-| **Runner** | Il Runner che esegue kubectl. Deve poter raggiungere il server API del cluster. |
+| **Runner** | Sotto **Altri campi**. Il Runner che esegue kubectl. Deve poter raggiungere il server API del cluster. Un passaggio che non ne sceglie nessuno viene eseguito sul Runner predefinito del progetto. |
 | **Kubeconfig** | La variabile segreta che contiene il kubeconfig del cluster, oppure **L'accesso proprio del Runner**: il kubeconfig del Runner, o il suo service account quando gira nel cluster. Il Runner scrive un kubeconfig in un file che solo lui può leggere, e lo rimuove quando lo script termina. |
 | **Script** | I comandi kubectl. L'output viene acquisito fino a 50 KB, e un codice di uscita diverso da zero fa fallire il passaggio. |
 | **Timeout di esecuzione** | Per quanto tempo il Runner lascia girare lo script prima di fermarlo con `SIGKILL`. Predefinito 30 secondi. |
@@ -190,7 +190,7 @@ Chiedi all'IA di analizzare, riassumere o decidere qualcosa durante l'esecuzione
 | Campo | Cosa fa |
 | --- | --- |
 | **Prompt** | Cosa deve fare l'IA. Ad esempio: «Esamina l'output dei passaggi precedenti e di' se è sicuro procedere con il rimedio.» |
-| **LLM provider** | Facoltativo. **Project default** usa il provider predefinito del progetto. Fissa un provider quando il passaggio ha bisogno di un modello specifico, ad esempio uno self-hosted per dati che non devono lasciare la tua rete. Vedi [Provider LLM](/docs/ai/llm-provider). |
+| **LLM provider** | Facoltativo. **Predefinito del progetto** usa il provider predefinito del progetto. Fissa un provider quando il passaggio ha bisogno di un modello specifico, ad esempio uno self-hosted per dati che non devono lasciare la tua rete. Vedi [Provider LLM](/docs/ai/llm-provider). |
 | **Include previous step context** | Se attivo, l'IA vede tutto dei passaggi eseguiti prima di questo: titolo, tipo, stato, output e messaggi di errore. Riceve fino a 4.000 caratteri dell'output di ogni passaggio. |
 | **Include trigger context** | Se attivo, l'IA vede cosa ha avviato l'esecuzione: l'incidente, l'avviso o l'evento di manutenzione programmata collegato (descrizione, gravità, stato attuale, monitor coinvolti, causa principale, cronologia degli stati e note pubbliche), oppure chi ha avviato il runbook a mano. |
 
