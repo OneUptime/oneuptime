@@ -67,6 +67,8 @@ import {
 import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import { resolveSpacing } from "../../ResponsiveSpacing";
+import { WIDTHS_IN_PX } from "../../RenderedMarkup";
 
 /*
  * The diagnostics modal, run details and their util, driven by a Google
@@ -637,6 +639,54 @@ describe("SecurityEventConnectionDiagnostics for a Google SecOps connection", ()
     fireEvent.click(screen.getByRole("button", { name: "View run" }));
     expect(screen.getByRole("region", { name: "Run details" })).toBeVisible();
     expect(API.post).not.toHaveBeenCalled();
+  });
+
+  test("Recent runs keeps its sentence right under its heading, and Refresh history beside them on the heading's line", async (): Promise<void> => {
+    renderDiagnostics();
+
+    const header: HTMLElement = await screen.findByTestId(
+      "security-connection-run-history-header",
+    );
+    const heading: HTMLElement = within(header).getByRole("heading", {
+      name: "Recent runs",
+    });
+    const sentence: HTMLElement = within(header).getByText(
+      /^The 20 most recent runs/,
+    );
+    const refresh: HTMLElement = within(header).getByRole("button", {
+      name: "Refresh history",
+    });
+
+    /*
+     * The heading and its sentence are one block, the sentence 4px under
+     * the heading as Scheduled polling's is; under a row as tall as the
+     * link, it sat 20px below.
+     */
+    expect(heading.parentElement).toBe(sentence.parentElement);
+    expect(heading.nextElementSibling).toBe(sentence);
+    expect(sentence).toHaveClass("mt-1");
+    expect(Array.from(header.children)).toEqual([
+      heading.parentElement,
+      refresh.parentElement,
+    ]);
+
+    // The link's text on the heading's 24px line, its padding hanging over it.
+    expect(refresh.parentElement).toHaveClass("h-6", "items-center");
+    for (const width of WIDTHS_IN_PX) {
+      const margin: { top: number; bottom: number } = resolveSpacing(
+        refresh.getAttribute("class"),
+        width,
+        "margin",
+      );
+      const padding: { top: number; bottom: number } = resolveSpacing(
+        refresh.getAttribute("class"),
+        width,
+        "padding",
+      );
+
+      expect(padding.top + margin.top).toBe(0);
+      expect(padding.bottom + margin.bottom).toBe(0);
+    }
   });
 
   test("a selected run leaving the recent history does not disable actions", async (): Promise<void> => {

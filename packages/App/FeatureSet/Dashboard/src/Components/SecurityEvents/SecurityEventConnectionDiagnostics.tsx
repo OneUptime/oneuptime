@@ -680,23 +680,39 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
         </section>
 
         <section aria-label="Run history" className="space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-base font-semibold text-gray-900">
-              Recent runs
-            </h3>
-            <Button
-              title="Refresh history"
-              buttonStyle={ButtonStyleType.LINK}
-              onClick={(): void => {
-                setError(null);
-                void refreshHistory();
-              }}
-            />
+          {/*
+           * The heading and what it lists are one block, as Scheduled
+           * polling's are, with Refresh history beside it on the heading's
+           * line. Under a row as tall as the link (40px with its padding)
+           * the sentence sat 20px below its heading.
+           */}
+          <div
+            className="flex items-start justify-between gap-2"
+            data-testid="security-connection-run-history-header"
+          >
+            <div className="min-w-0">
+              <h3 className="text-base font-semibold text-gray-900">
+                Recent runs
+              </h3>
+              <p className="mt-1 text-xs text-gray-500">
+                The 20 most recent runs, including connection tests and
+                previews. Times are shown in UTC; hover a time for your local
+                clock.
+              </p>
+            </div>
+            {/* Its text on the heading's 24px line, its padding over it. */}
+            <div className="flex h-6 flex-shrink-0 items-center">
+              <Button
+                title="Refresh history"
+                buttonStyle={ButtonStyleType.LINK}
+                className="-my-2"
+                onClick={(): void => {
+                  setError(null);
+                  void refreshHistory();
+                }}
+              />
+            </div>
           </div>
-          <p className="text-xs text-gray-500">
-            The 20 most recent runs, including connection tests and previews.
-            Times are shown in UTC; hover a time for your local clock.
-          </p>
           {isLoading && <p role="status">Loading run history…</p>}
           {!isLoading && runs.length === 0 && (
             <p className="text-sm text-gray-500">
