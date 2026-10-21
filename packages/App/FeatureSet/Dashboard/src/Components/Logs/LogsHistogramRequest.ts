@@ -459,11 +459,12 @@ type PickTypedLogFilterFunction = (
 /**
  * The slice of the list query the histogram / facets requests depend on.
  *
- * The viewer rebuilds its whole list query on every base-scope pass (and a
- * fresh object is a new identity even when nothing in it changed), so the
- * aggregate fetchers must not key on the query object itself: they would
- * refetch twice per mount and, worse, once with the PREVIOUS scope in the
- * render before the query catches up with new props. Keying them on this
+ * The viewer rebuilds its whole list query whenever anything in it changes
+ * (and a fresh object is a new identity even when this slice did not), so
+ * the aggregate fetchers must not key on the query object itself: they
+ * would refetch for changes they do not send and, worse, once with the
+ * PREVIOUS scope in the render before the query catches up with new props.
+ * Keying them on this
  * slice — compared by value through {@link serializeTypedLogFilter} — means
  * they refetch exactly when what they send changes.
  */
