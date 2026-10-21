@@ -8,15 +8,34 @@ import {
 import { SecurityPlaybookStepStatus } from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import {
   SecurityPlaybookStep,
+  doesStepNeedApproval,
   parseSecurityPlaybookSteps,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
 import {
   SecurityPlaybookStepResult,
+  SecurityPlaybookTarget,
+  SecurityPlaybookTargetState,
   readStepResults,
+  readStepTargets,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStepResult";
+import ObjectID from "Common/Types/ObjectID";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+
+// The one-click undo's button on a contained target, by the action it runs.
+export const UNDO_BUTTON_TITLES: Partial<
+  Record<SecurityPlaybookActionType, string>
+> = {
+  [SecurityPlaybookActionType.UnsuspendOktaUser]: translationKey("Unsuspend"),
+  [SecurityPlaybookActionType.LiftCrowdStrikeContainment]:
+    translationKey("Lift Containment"),
+  [SecurityPlaybookActionType.ReleaseDefenderDevice]: translationKey("Release"),
+};
 
 export interface RunStepRow {
   index: number;
+  // The step's id in the run, which its undo names.
+  stepId: string;
+  action: string;
   title: string;
   icon: IconProp;
   result: SecurityPlaybookStepResult | undefined;
@@ -55,6 +74,7 @@ function readStoredResults(
         : SecurityPlaybookStepStatus.Pending,
       message: readText(record["message"]),
       error: readText(record["error"]),
+      targets: readStepTargets(record["targets"]),
     });
   }
 
@@ -96,12 +116,57 @@ export function getRunStepRows(data: {
 
     rows.push({
       index,
+      stepId: step?.id || result?.stepId || "",
+      action,
       title: definition?.title || action,
       icon: definition?.icon || IconProp.Circle,
       result,
-      requiresApproval: Boolean(step?.requiresApproval),
+      requiresApproval: step ? doesStepNeedApproval(step) : false,
     });
   }
 
   return rows;
+}
+
+/*
+ * The targets the step a run waits on asks the approver about, the way the
+ * approval shows them: the ones to tick or untick, and the protected ones
+ * it never acts on.
+ */
+export function getApprovalTargets(run: {
+  steps?: JSONArray | undefined;
+  stepResults?: JSONArray | undefined;
+  currentStepIndex?: number | undefined;
+}): {
+  proposed: Array<SecurityPlaybookTarget>;
+  protectedTargets: Array<SecurityPlaybookTarget>;
+} {
+  const row: RunStepRow | undefined = getRunStepRows({
+    steps: run.steps,
+    stepResults: run.stepResults,
+  })[run.currentStepIndex || 0];
+  const targets: Array<SecurityPlaybookTarget> = row?.result?.targets || [];
+
+  return {
+    proposed: targets.filter((target: SecurityPlaybookTarget): boolean => {
+      return target.state === SecurityPlaybookTargetState.Proposed;
+    }),
+    protectedTargets: targets.filter(
+      (target: SecurityPlaybookTarget): boolean => {
+        return target.state === SecurityPlaybookTargetState.Protected;
+      },
+    ),
+  };
+}
+
+// Whether this person started the run: they cannot approve its steps.
+export function didStartRun(
+  triggeredByUserId: ObjectID | undefined | null,
+  userId: ObjectID | undefined | null,
+): boolean {
+  return Boolean(
+    triggeredByUserId &&
+      userId &&
+      triggeredByUserId.toString() === userId.toString(),
+  );
 }

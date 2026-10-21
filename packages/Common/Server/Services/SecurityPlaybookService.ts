@@ -15,10 +15,13 @@ import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import { JsonReferenceColumn } from "../Utils/Database/ProjectReferenceCheck";
+import CallerPermission from "../Utils/Permission/CallerPermission";
 import ProjectScopedReferenceValidator, {
   ProjectScopedReference,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../Types/BaseDatabase/Includes";
+import OneUptimeDate from "../../Types/Date";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONArray, JSONObject, JSONValue } from "../../Types/JSON";
@@ -30,7 +33,9 @@ import {
   getSecurityPlaybookAction,
 } from "../../Types/SecurityPlaybook/SecurityPlaybookAction";
 import {
+  SecurityPlaybookApprovalTurnedOff,
   SecurityPlaybookStep,
+  TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS,
   parseSecurityPlaybookSteps,
 } from "../../Types/SecurityPlaybook/SecurityPlaybookStep";
 import { isSecurityPlaybookTrigger } from "../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
@@ -284,6 +289,84 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
+  public static mayTurnOffContainmentApproval(
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    return (
+      Boolean(props.isRoot || props.isMasterAdmin) ||
+      CallerPermission.holdsAnyOf(
+        props,
+        TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS,
+      )
+    );
+  }
+
+  /*
+   * THE APPROVAL RULE: a containment step waits for a person's approval
+   * unless a Security Admin (or a Project Owner or Admin) saved it with
+   * Needs Approval off. Such a step is stamped with who did, and when
+   * (approvalTurnedOff); a stamp a write sends is never taken as it is.
+   * Anyone else may save a playbook whose containment step a Security Admin
+   * let run without approval, as long as that step is as it was - the same
+   * action through the same connection - and is refused when they turn
+   * approval off themselves, or change a step that has it off.
+   */
+  public static applyContainmentApprovalRule(data: {
+    steps: Array<SecurityPlaybookStep>;
+    // The playbook's steps before the write: none for a new playbook.
+    storedSteps: Array<SecurityPlaybookStep>;
+    props: DatabaseCommonInteractionProps;
+  }): Array<SecurityPlaybookStep> {
+    const mayTurnOff: boolean = Service.mayTurnOffContainmentApproval(
+      data.props,
+    );
+    const now: string = OneUptimeDate.getCurrentDate().toISOString();
+
+    return data.steps.map(
+      (step: SecurityPlaybookStep, index: number): SecurityPlaybookStep => {
+        const definition: SecurityPlaybookActionDefinition | undefined =
+          getSecurityPlaybookAction(step.action);
+        const unstamped: SecurityPlaybookStep = { ...step };
+        delete unstamped.approvalTurnedOff;
+
+        if (!definition?.isDisruptive || step.requiresApproval) {
+          return unstamped;
+        }
+
+        const stored: SecurityPlaybookStep | undefined = data.storedSteps.find(
+          (candidate: SecurityPlaybookStep): boolean => {
+            return candidate.id === step.id;
+          },
+        );
+
+        if (
+          stored &&
+          stored.approvalTurnedOff &&
+          !stored.requiresApproval &&
+          stored.action === step.action &&
+          JSON.stringify(stored.config) === JSON.stringify(step.config)
+        ) {
+          return { ...unstamped, approvalTurnedOff: stored.approvalTurnedOff };
+        }
+
+        if (!mayTurnOff) {
+          throw new BadDataException(
+            `Step ${index + 1} (${definition.title}): a containment step waits for approval. Only a Security Admin can let it run without one.`,
+          );
+        }
+
+        const approvalTurnedOff: SecurityPlaybookApprovalTurnedOff = {
+          ...(data.props.userId
+            ? { byUserId: data.props.userId.toString() }
+            : {}),
+          at: now,
+        };
+
+        return { ...unstamped, approvalTurnedOff };
+      },
+    );
+  }
+
   /*
    * A containment step acts through a connection of one product: a step
    * that suspends Okta users cannot be pointed at a CrowdStrike connection.
@@ -353,6 +436,15 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
+  // A row's stored steps; a snapshot that no longer reads counts as none.
+  private static readStoredSteps(value: unknown): Array<SecurityPlaybookStep> {
+    try {
+      return parseSecurityPlaybookSteps(value);
+    } catch {
+      return [];
+    }
+  }
+
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
@@ -366,6 +458,14 @@ export class Service extends ProjectReferencesService<Model> {
       projectId: createBy.data.projectId,
       steps: createBy.data.steps,
     });
+
+    if (createBy.data.steps !== undefined && createBy.data.steps !== null) {
+      createBy.data.steps = Service.applyContainmentApprovalRule({
+        steps: parseSecurityPlaybookSteps(createBy.data.steps),
+        storedSteps: [],
+        props: createBy.props,
+      }) as unknown as JSONArray;
+    }
 
     return { createBy: createBy, carryForward: undefined };
   }
@@ -381,6 +481,7 @@ export class Service extends ProjectReferencesService<Model> {
         {
           _id: true,
           projectId: true,
+          steps: true,
         },
       );
 
@@ -392,6 +493,24 @@ export class Service extends ProjectReferencesService<Model> {
           });
         }
       }
+
+      const steps: Array<SecurityPlaybookStep> = parseSecurityPlaybookSteps(
+        updateBy.data.steps,
+      );
+
+      // Every row is asked, against its own stored steps.
+      const ruledByRow: Array<Array<SecurityPlaybookStep>> = (
+        rows.length > 0 ? rows : [new Model()]
+      ).map((row: Model): Array<SecurityPlaybookStep> => {
+        return Service.applyContainmentApprovalRule({
+          steps,
+          storedSteps: Service.readStoredSteps(row.steps),
+          props: updateBy.props,
+        });
+      });
+
+      (updateBy.data as unknown as JSONObject)["steps"] =
+        ruledByRow[0] as unknown as JSONArray;
     }
 
     return { updateBy: updateBy, carryForward: null };

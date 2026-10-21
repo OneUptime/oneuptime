@@ -315,12 +315,28 @@ export function playbookStepMarkdown(data: {
   return mdText`⚙️ **${data.playbookName}**, step ${String(data.stepNumber)} (${data.stepTitle}): ${data.summary}`;
 }
 
+// Entity values as code, one after another.
+function valueList(values: Array<string>): MarkdownText {
+  return FeedMarkdown.join(
+    values.map((value: string): MarkdownText => {
+      return FeedMarkdown.code(value);
+    }),
+  );
+}
+
 export function approvalRequestedMarkdown(data: {
   playbookName: string;
   stepNumber: number;
   stepTitle: string;
+  // For a step that acts on users or hosts: the ones it would act on.
+  targets?: Array<string> | undefined;
 }): MarkdownText {
-  return mdText`⏸️ Playbook **${data.playbookName}** is waiting for approval to run step ${String(data.stepNumber)} (${data.stepTitle}).`;
+  const on: MarkdownText =
+    data.targets && data.targets.length > 0
+      ? mdText` on ${valueList(data.targets)}`
+      : FeedMarkdown.empty();
+
+  return mdText`⏸️ Playbook **${data.playbookName}** is waiting for approval to run step ${String(data.stepNumber)} (${data.stepTitle})${on}.`;
 }
 
 export function approvalDecidedMarkdown(data: {
@@ -328,10 +344,35 @@ export function approvalDecidedMarkdown(data: {
   stepNumber: number;
   stepTitle: string;
   isApproved: boolean;
+  // For a step that acts on users or hosts: what the approver kept, and left out.
+  targets?: Array<string> | undefined;
+  leftOut?: Array<string> | undefined;
 }): MarkdownText {
-  return data.isApproved
-    ? mdText`👍 Approved step ${String(data.stepNumber)} (${data.stepTitle}) of playbook **${data.playbookName}**.`
-    : mdText`👎 Rejected step ${String(data.stepNumber)} (${data.stepTitle}) of playbook **${data.playbookName}**, which ends the run.`;
+  if (!data.isApproved) {
+    return mdText`👎 Rejected step ${String(data.stepNumber)} (${data.stepTitle}) of playbook **${data.playbookName}**, which ends the run.`;
+  }
+
+  const forTargets: MarkdownText =
+    data.targets && data.targets.length > 0
+      ? mdText` for ${valueList(data.targets)}`
+      : FeedMarkdown.empty();
+  const leftOut: MarkdownText =
+    data.leftOut && data.leftOut.length > 0
+      ? mdText`, leaving out ${valueList(data.leftOut)}`
+      : FeedMarkdown.empty();
+
+  return mdText`👍 Approved step ${String(data.stepNumber)} (${data.stepTitle}) of playbook **${data.playbookName}**${forTargets}${leftOut}.`;
+}
+
+export function targetUndoneMarkdown(data: {
+  playbookName: string;
+  stepNumber: number;
+  stepTitle: string;
+  undoTitle: string;
+  value: string;
+  detail: string;
+}): MarkdownText {
+  return mdText`↩️ ${data.undoTitle}: ${FeedMarkdown.code(data.value)} ${data.detail}, undoing step ${String(data.stepNumber)} (${data.stepTitle}) of playbook **${data.playbookName}**.`;
 }
 
 export function playbookInterruptedMarkdown(data: {
@@ -425,6 +466,43 @@ export function threatIntelMatchMarkdown(data: {
 
   if (data.sampleMessage) {
     parts.push(mdText`Sample event: ${FeedMarkdown.code(data.sampleMessage)}`);
+  }
+
+  return FeedMarkdown.join(parts, "\n\n");
+}
+
+/*
+ * What the case about a run's overflow says (DetectionOverflow): the source
+ * matched more groups than one run opens cases for. The source's name comes
+ * from a person, the group values from events, so each is escaped or code.
+ */
+export function detectionOverflowMarkdown(data: {
+  // "rule": a detection rule's run. "feed": a threat-intel feed's check.
+  kind: "rule" | "feed";
+  // A detection rule's name, or a threat-intel feed's.
+  sourceName: string;
+  // The plain sentence the source's last error carries (describeDetectionOverflow).
+  summary: string;
+  windowStart: string;
+  windowEnd: string;
+  // A few of the groups past the limit, highest count first.
+  examples: Array<string>;
+}): MarkdownText {
+  const parts: Array<MarkdownValue> = [
+    mdText`**${data.sourceName}** matched more than one ${
+      data.kind === "rule" ? "run" : "check"
+    } opens cases for, between ${data.windowStart} and ${data.windowEnd}.`,
+    mdText`${data.summary}`,
+  ];
+
+  if (data.examples.length > 0) {
+    parts.push(
+      mdText`Among the rest: ${FeedMarkdown.join(
+        data.examples.slice(0, 20).map((value: string): MarkdownText => {
+          return FeedMarkdown.code(value);
+        }),
+      )}`,
+    );
   }
 
   return FeedMarkdown.join(parts, "\n\n");

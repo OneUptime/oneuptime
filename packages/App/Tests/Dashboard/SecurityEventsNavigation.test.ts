@@ -154,7 +154,15 @@ describe("the Security Events menu", () => {
         "Detections",
         ["Detection Rules", "Rule Library", "Threat Intel", "ATT&CK Coverage"],
       ],
-      ["Playbooks", ["Playbooks", "Waiting for Approval", "Playbook Runs"]],
+      [
+        "Playbooks",
+        [
+          "Playbooks",
+          "Waiting for Approval",
+          "Playbook Runs",
+          "Protected Entities",
+        ],
+      ],
       ["Connections", ["Connections", "Setup Guide"]],
     ]);
   });
@@ -183,6 +191,7 @@ describe("the Security Events menu", () => {
       ["Playbooks", "SECURITY_PLAYBOOKS"],
       ["Waiting for Approval", "SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL"],
       ["Playbook Runs", "SECURITY_PLAYBOOK_RUNS"],
+      ["Protected Entities", "SECURITY_PROTECTED_ENTITIES"],
       ["Connections", "SECURITY_EVENTS_CONNECTIONS"],
       ["Setup Guide", "SECURITY_EVENTS_DOCUMENTATION"],
     ]);
@@ -281,10 +290,13 @@ describe("the case queue's pages are the queue's views", () => {
     );
   });
 
-  test("Playbooks lists the two runs pages after the playbooks, with their names and icons", () => {
+  test("Playbooks lists the two runs pages after the playbooks, with their names and icons, then the protected entities", () => {
+    const items: Array<SecurityEventsMenuItem> =
+      sectionTitled("Playbooks").items;
+
     expect(
-      sectionTitled("Playbooks")
-        .items.slice(1)
+      items
+        .slice(1, 1 + SECURITY_PLAYBOOK_RUN_VIEWS.length)
         .map((item: SecurityEventsMenuItem): [string, string, string] => {
           return [item.title, item.page, String(item.icon)];
         }),
@@ -295,6 +307,13 @@ describe("the case queue's pages are the queue's views", () => {
         },
       ),
     );
+    expect(
+      items
+        .slice(1 + SECURITY_PLAYBOOK_RUN_VIEWS.length)
+        .map((item: SecurityEventsMenuItem): string => {
+          return item.title;
+        }),
+    ).toEqual(["Protected Entities"]);
   });
 });
 
@@ -407,6 +426,7 @@ describe("where each page says it is", () => {
       ["Security Events", "Playbooks"],
       ["Security Events", "Playbooks", "Waiting for Approval"],
       ["Security Events", "Playbooks", "Playbook Runs"],
+      ["Security Events", "Playbooks", "Protected Entities"],
       ["Security Events", "Connections"],
       ["Security Events", "Connections", "Setup Guide"],
     ]);

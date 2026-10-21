@@ -184,7 +184,10 @@ export function summarizeSecurityPlaybookStep(
     case SecurityPlaybookActionType.SuspendOktaUser:
     case SecurityPlaybookActionType.EndOktaSessions:
     case SecurityPlaybookActionType.ContainCrowdStrikeHost:
-    case SecurityPlaybookActionType.IsolateDefenderDevice: {
+    case SecurityPlaybookActionType.IsolateDefenderDevice:
+    case SecurityPlaybookActionType.UnsuspendOktaUser:
+    case SecurityPlaybookActionType.LiftCrowdStrikeContainment:
+    case SecurityPlaybookActionType.ReleaseDefenderDevice: {
       const connection: string = named(
         lookup.connections,
         text(config, "connectionId"),

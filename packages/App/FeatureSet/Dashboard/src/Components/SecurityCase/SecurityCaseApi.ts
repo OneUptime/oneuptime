@@ -143,12 +143,29 @@ export default class SecurityCaseApi {
     runId: ObjectID;
     isApproved: boolean;
     comment?: string | undefined;
+    // For a step that acts on users or hosts: the ones the approver kept ticked.
+    targets?: Array<string> | undefined;
   }): Promise<void> {
     await post(
       `/security-playbook-run/${data.runId.toString()}/${
         data.isApproved ? "approve" : "reject"
       }`,
-      data.comment ? { comment: data.comment } : {},
+      {
+        ...(data.comment ? { comment: data.comment } : {}),
+        ...(data.isApproved && data.targets ? { targets: data.targets } : {}),
+      },
     );
+  }
+
+  // Releases one target a containment step contained, with the step's undo.
+  public static async undoTarget(data: {
+    runId: ObjectID;
+    stepId: string;
+    value: string;
+  }): Promise<void> {
+    await post(`/security-playbook-run/${data.runId.toString()}/undo`, {
+      stepId: data.stepId,
+      value: data.value,
+    });
   }
 }

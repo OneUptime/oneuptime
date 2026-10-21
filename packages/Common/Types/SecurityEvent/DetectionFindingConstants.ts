@@ -45,8 +45,19 @@ export const DETECTION_EVALUATION_INTERVAL_MAX_IN_MINUTES: number = 1440;
  */
 export const DETECTION_MAX_LOOKBACK_IN_MINUTES: number = 24 * 60;
 
-// One alert per distinct group value per cycle, at most.
+/*
+ * The groups one run opens alerts, incidents and cases for, at most: the
+ * ones with the highest counts. A run that matches more records every group
+ * as a Detection Finding (up to DETECTION_MAX_FINDINGS_PER_EVALUATION) and
+ * opens one case about the rest, so none goes unseen.
+ */
 export const DETECTION_MAX_GROUPS_PER_EVALUATION: number = 100;
+
+/*
+ * The groups one run records as Detection Findings, at most. Past it the
+ * rule's lastError and its overflow case say there were more.
+ */
+export const DETECTION_MAX_FINDINGS_PER_EVALUATION: number = 10000;
 
 /*
  * How far behind the clock a rule reads. An event reaches the table a

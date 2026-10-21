@@ -138,7 +138,7 @@ Hvert minutt sammenlignes de aktive indikatorene til hver aktiverte feed med hen
 - Den første sjekken dekker de siste 15 minuttene. Etter et avbrudd tar neste sjekk igjen høyst de siste 24 timene.
 - Hvert vindu sjekkes én gang. Etterretning som kommer etter at vinduet er sjekket, gjelder bare for senere hendelser.
 - En hendelse som kommer sent, med et tidspunkt fra før forrige sjekk, merkes fortsatt når den kommer inn, men sammenlignes ikke.
-- Hver sjekk sammenligner høyst 100 indikatorverdier per feed: de som finnes i flest hendelser.
+- Hver sjekk registrerer hver indikatorverdi som traff, som et Detection Finding, opptil 10 000 per feed. Varsler, hendelser og saker åpnes for de 100 verdiene som finnes i flest hendelser; resten deler én sak om feeden, og feedens **Last Match Error** sier hvor mange som traff.
 
 ### Hva et treff gjør
 
