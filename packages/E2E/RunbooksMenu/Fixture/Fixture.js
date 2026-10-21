@@ -10,8 +10,8 @@
  *     Runbooks, Executions, Runners, Global Variables - and the forwarding
  *     of the old AI Access address (runner-credentials) to the Runners;
  *   - Routes/SettingsRoutes at /dashboard/:projectId/settings/*, for the
- *     oldest address of the same page (Project Settings > Runner
- *     Credentials), which forwards to the Runners too.
+ *     oldest address of the same page - the one it had in Project
+ *     Settings, as Runner Credentials - which forwards to the Runners too.
  *
  * Only the ModelAPI / API data boundary and the signed-in user are
  * replaced: the project, and no runbooks, executions, Runners or

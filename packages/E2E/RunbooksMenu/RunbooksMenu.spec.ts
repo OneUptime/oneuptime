@@ -40,7 +40,8 @@ const OWNER_RULES: string = `${RUNBOOKS}/settings/owner-rules`;
 const LABEL_RULES: string = `${RUNBOOKS}/settings/label-rules`;
 // The pages' old addresses: AI Access, and Runner Credentials before it.
 const AI_ACCESS: string = `${RUNBOOKS}/runner-credentials`;
-const RUNNER_CREDENTIALS: string = `/dashboard/${PROJECT_ID}/settings/runner-credentials`;
+const PROJECT_SETTINGS: string = `/dashboard/${PROJECT_ID}/settings`;
+const RUNNER_CREDENTIALS: string = `${PROJECT_SETTINGS}/runner-credentials`;
 
 // The menu's sections, in order: no Runners section any more.
 const SECTIONS: ReadonlyArray<string> = ["Runbooks", "Settings", "Developer"];

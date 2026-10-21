@@ -34,8 +34,8 @@ in packages/App read the menu and the routes in code):
   Runbooks › Runners breadcrumb;
 - AI Access's old address (`…/runbooks/runner-credentials`) opens the
   Runners in one hop, keeping its query string, and Back does not bounce
-  through it; Project Settings' Runner Credentials (`…/settings/runner-credentials`)
-  opens them too;
+  through it; the address the page had in Project Settings, as Runner
+  Credentials, opens them too;
 - the keyboard goes from Executions to Runners to the Settings section, with
   no fold in between, and Enter on Runners opens its page;
 - at a phone's 390 pixels the menu opens to the same three entries, with no
