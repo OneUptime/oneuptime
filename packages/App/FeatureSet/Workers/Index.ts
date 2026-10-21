@@ -336,6 +336,7 @@ import "./Jobs/IoT/CleanupStaleResources";
 
 // Cloud environment disconnection sweeper + instance inventory cleanup.
 import "./Jobs/Cloud/CleanupStaleResources";
+import "./Jobs/Cloud/ReadCloudConnections";
 
 // Serverless function disconnection sweeper + instance inventory cleanup.
 import "./Jobs/Serverless/CleanupStaleResources";
@@ -433,6 +434,7 @@ import runWorkerJob from "./Utils/RunWorkerJob";
 import Queue, { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import MarketingEventWebhook from "Common/Server/Utils/Marketing/MarketingEventWebhook";
+import AIInvestigationQueue from "Common/Server/Utils/AI/SRE/InvestigationQueue";
 import { MarketingEvent } from "Common/Types/Marketing/MarketingEvent";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import logger from "Common/Server/Utils/Logger";
@@ -442,7 +444,7 @@ import {
   QueueDashboardSecret,
   RunDatabaseMigrationsOnBoot,
 } from "Common/Server/EnvironmentConfig";
-import { WORKER_CONCURRENCY } from "./Config";
+import { AI_INVESTIGATION_CONCURRENCY, WORKER_CONCURRENCY } from "./Config";
 import MetricsAPI from "./API/Metrics";
 import EnterpriseLoader from "../../Utils/EnterpriseLoader";
 
@@ -597,6 +599,16 @@ const WorkersFeatureSet: FeatureSet = {
           },
           { concurrency: 10 },
         );
+
+        /*
+         * AI investigations. Worker-role servers run them, a few at a time
+         * each, and hand the ones still running back to the queue when they
+         * shut down — so an API server never runs one, and a storm queues
+         * instead of piling onto one server.
+         */
+        AIInvestigationQueue.startWorker({
+          concurrency: AI_INVESTIGATION_CONCURRENCY,
+        });
       }
     } catch (err) {
       logger.error("App Init Failed:", { service: "workers" });

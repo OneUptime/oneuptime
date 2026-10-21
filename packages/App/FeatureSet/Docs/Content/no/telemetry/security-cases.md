@@ -190,16 +190,19 @@ En deaktivert playbook kjører verken av seg selv eller manuelt.
 | Notify | Post to Microsoft Teams | Legger ut en oppsummering av saken i en Microsoft Teams-kanal |
 | Escalate | Page on-call | Kjører en vaktpolicy |
 | Escalate | Declare an incident | Åpner en OneUptime-hendelse (incident) som er koblet til saken |
-| Contain | Suspend the user in Okta | Suspenderer hver bruker i saken i Okta |
-| Contain | End the user's Okta sessions | Logger hver bruker i saken ut av Okta og tilbakekaller tokenene deres |
-| Contain | Contain the host in CrowdStrike | Isolerer hver vert i saken fra nettverket med CrowdStrike Falcon |
-| Contain | Isolate the device in Microsoft Defender | Isolerer hver vert i saken med Microsoft Defender for Endpoint |
+| Contain | Suspend the user in Okta | Suspenderer brukeren saken gjelder, i Okta |
+| Contain | End the user's Okta sessions | Logger brukeren saken gjelder, ut av Okta og tilbakekaller tokenene deres |
+| Contain | Contain the host in CrowdStrike | Isolerer verten saken gjelder, fra nettverket med CrowdStrike Falcon |
+| Contain | Isolate the device in Microsoft Defender | Isolerer verten saken gjelder, med Microsoft Defender for Endpoint |
+| Contain | Unsuspend the user in Okta | Opphever suspenderingen av brukeren saken gjelder, i Okta |
+| Contain | Lift containment in CrowdStrike | Opphever nettverksisoleringen i CrowdStrike Falcon for verten saken gjelder |
+| Contain | Release the device in Microsoft Defender | Frigir verten saken gjelder, fra isoleringen i Microsoft Defender for Endpoint |
 | Automate | Send a webhook | Sender saken som JSON til en URL |
 | Automate | Run a workflow | Starter en OneUptime-arbeidsflyt med saken som input |
 
 En playbook har høyst 25 steg. De kjører i rekkefølge, hvert steg når det forrige er ferdig. Hvert steg kan også:
 
-- **Needs Approval**: stoppe kjøringen før steget til noen godkjenner det på saken. Det er på som standard for de fire Contain-stegene, som handler utenfor OneUptime.
+- **Needs Approval**: stoppe kjøringen før steget til noen godkjenner det på saken. De fire stegene som stenger noen ute, stopper alltid kjøringen, med mindre en Security Admin slår det av.
 - **Only If Threat Intel Matched**: hoppe over steget med mindre et tidligere steg **Check entities against threat intel** i kjøringen fant en kjent indikator.
 - **Carry On If It Fails**: kjøre neste steg selv om dette feiler. Er det av, stopper et mislykket steg kjøringen.
 
@@ -209,11 +212,28 @@ Contain-stegene handler gjennom en [tilkobling for sikkerhetshendelser](/docs/te
 
 | Steg | Tilkobling | Trenger |
 | --- | --- | --- |
-| Suspend the user in Okta, End the user's Okta sessions | Okta System Log | Et API-token som har lov til å administrere brukere |
-| Contain the host in CrowdStrike | CrowdStrike Falcon | En API-klient med skrivetilgang til scopet Hosts |
-| Isolate the device in Microsoft Defender | Microsoft Defender XDR | En app med tillatelsen Machine.Isolate |
+| Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Et API-token som har lov til å administrere brukere |
+| Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | En API-klient med skrivetilgang til scopet Hosts |
+| Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | En app med tillatelsen Machine.Isolate |
 
-Et Contain-steg handler på høyst 10 av brukerne eller vertene i saken. Det finner hver av dem i produktet etter navn, og skriver på saken hva det gjorde med hver enkelt: inndemmet, allerede inndemmet, ikke funnet eller avvist.
+Et Contain-steg handler bare på brukerne eller vertene saken gjelder, aldri på alle som den nevner:
+
+- Verdien en deteksjon i saken er gruppert etter, for eksempel kontoen en regel for umulige reiser grupperer etter, eller verten som et varsel fra et tilkoblet produkt nevner.
+- En bruker eller vert i saken som trusseletterretningen din kjenner som en indikator.
+
+En sak som er gruppert etter en adresse, for eksempel et brute force-angrep mot VPN-en din, gjelder ingen av delene: Contain-stegene i den hoppes over, og den forsøkte kontoen og den rammede gatewayen får være i fred. Et steg handler på høyst 10 brukere eller verter. Det finner hver av dem i produktet etter navn, og skriver på kjøringen hva det gjorde med hver enkelt: utført, allerede utført, ikke funnet, avvist eller beskyttet.
+
+#### Beskyttede entiteter
+
+**Protected Entities**, under **Playbooks** i menyen, viser brukerne og vertene som ingen playbook demmer inn, for eksempel nødtilgangskontoer, domenekontrollere og VPN-gatewayer. En verdi treffer uten forskjell på store og små bokstaver, og `*` står for en hvilken som helst rekke tegn: `svc-*` beskytter alle tjenestekontoer. Et steg melder en beskyttet bruker eller vert som beskyttet og lar den være i fred. Security Admins vedlikeholder listen.
+
+#### Godkjenning
+
+De fire stegene som stenger noen ute, venter på godkjenning. Bare en Security Admin kan slå av **Needs Approval** for ett av dem, og OneUptime registrerer hvem som gjorde det. Godkjenningen viser under **Act On** brukerne eller vertene steget ville handlet på, alle avkrysset: fjern krysset for dem det skal la være i fred. Beskyttede brukere og verter tilbys ikke. Den som startet en kjøring, kan ikke godkjenne stegene i den: det gjør noen andre, men vedkommende kan fortsatt avvise det.
+
+#### Angre
+
+Angrestegene handler på brukerne eller vertene saken gjelder, akkurat som stegene de angrer. Når kjøringen har stoppet, har en inndemmet bruker eller vert også en egen knapp på steget sitt: **Unsuspend**, **Lift Containment** eller **Frigi**. En avsluttet Okta-økt kan ikke angres. Alt som angres, lagres på tidslinjen til saken og i revisjonsloggen til prosjektet.
 
 ### Meldinger
 
@@ -245,7 +265,7 @@ Hver kjøring vises på saken sin og under **Produkter → Security Events → P
 | Mislyktes | Et steg feilet, og kjøringen stoppet |
 | Avbrutt | Noen avbrøt den eller avviste et steg |
 
-Et steg som venter på godkjenning, viser **Approve** og **Reject** på kjøringen, med en valgfri kommentar. Å godkjenne fører kjøringen videre fra det steget; å avvise avslutter den. Beslutningen, hvem som tok den, og kommentaren deres lagres på steget og på tidslinjen til saken. **Venter på godkjenning**, under **Playbooks** i menyen, viser kjøringene som venter på en beslutning, og teller dem; **Playbook-kjøringer** viser hver kjøring.
+Et steg som venter på godkjenning, viser **Approve** og **Reject** på kjøringen, med en valgfri kommentar. Å godkjenne fører kjøringen videre fra det steget; å avvise avslutter den. Beslutningen, hvem som tok den, og kommentaren deres lagres på steget, på tidslinjen til saken og i revisjonsloggen til prosjektet. **Venter på godkjenning**, under **Playbooks** i menyen, viser kjøringene som venter på en beslutning, og teller dem; **Playbook-kjøringer** viser hver kjøring.
 
 En kjøring som slutter å høre fra workeren sin, for eksempel etter en omstart, plukkes opp igjen: en kjøring i kø settes i kø på nytt etter 2 minutter, og en kjøring som ikke har sagt noe på 30 minutter, markeres som mislykket.
 
@@ -269,7 +289,7 @@ Over dem viser en stripe hvordan sikkerhet er satt opp: kildene, deteksjonene, s
 ## Automatiser
 
 - **Arbeidsflyter**: en sak eller et notat kan starte en arbeidsflyt når den opprettes, oppdateres eller slettes. Et steg **Run a workflow** starter en arbeidsflyt som har en webhook som utløser.
-- **API**: saker, notater, deteksjoner, playbooks og kjøringer har det samme REST-API-et som resten av OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook` og `/security-playbook-run`. Se [API-referanse](/docs/api-reference/api-reference).
+- **API**: saker, notater, deteksjoner, playbooks, kjøringer og beskyttede entiteter har det samme REST-API-et som resten av OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` og `/security-protected-entity`. Se [API-referanse](/docs/api-reference/api-reference).
 - AI-agenter: MCP-serveren har verktøy for saker, notater, deteksjoner og playbooks. Se [MCP-server](/docs/ai/mcp-server).
 
 ## Feilsøking
@@ -288,6 +308,10 @@ Sjekk at den er aktivert, at innstillingen **Trigger** passer (Case Opened kjør
 
 :::details Et Contain-steg mislyktes
 Åpne kjøringen på saken: steget forteller for hver bruker eller vert om produktet avviste den, ikke fant den eller ikke kunne nås. Sjekk at legitimasjonen til tilkoblingen har lov til å gjøre endringen, og bruk **Test tilkoblingen** i raden dens.
+:::
+
+:::details Et Contain-steg ble hoppet over
+Saken gjelder ingen bruker eller vert, bare en adresse for eksempel, eller alle brukerne eller vertene den gjelder, er beskyttet. Åpne kjøringen på saken: steget forteller hvilken av de to det er.
 :::
 
 ## Neste steg

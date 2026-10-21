@@ -1,5 +1,5 @@
 import DetectionRule from "../../../Models/DatabaseModels/DetectionRule";
-import LIMIT_MAX from "../../../Types/Database/LimitMax";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import { JSONObject } from "../../../Types/JSON";
@@ -19,6 +19,7 @@ import {
   DETECTION_FINDING_CLASS_UID,
   DETECTION_GROUP_VALUE_ATTRIBUTE,
   DETECTION_MATCH_COUNT_ATTRIBUTE,
+  DETECTION_MAX_FINDINGS_PER_EVALUATION,
   DETECTION_MAX_GROUPS_PER_EVALUATION,
   DETECTION_MAX_LOOKBACK_IN_MINUTES,
   DETECTION_RULE_ID_ATTRIBUTE,
@@ -53,7 +54,21 @@ import SigmaClickhouseCompiler, {
 } from "./Sigma/SigmaClickhouseCompiler";
 import { buildSecurityEventDbRow } from "./SecurityEventRow";
 import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
-import { detectionRuleMatchMarkdown } from "../../../Utils/SecurityCase/SecurityCaseMarkdown";
+import {
+  detectionOverflowMarkdown,
+  detectionRuleMatchMarkdown,
+} from "../../../Utils/SecurityCase/SecurityCaseMarkdown";
+import {
+  DetectionGroupSplit,
+  describeDetectionOverflow,
+  splitDetectionGroups,
+} from "../../../Utils/SecurityEvent/DetectionOverflow";
+import Select from "../../Types/Database/Select";
+import SecurityProjectWork, {
+  SecurityProjectWorkDefinition,
+  SecurityProjectWorkLease,
+  UNLIMITED_SECURITY_PROJECT_WORK_LEASE,
+} from "./SecurityProjectWork";
 import SecurityCaseIngest, {
   SecurityCaseIngestResult,
   SecurityDetectionSignal,
@@ -72,7 +87,10 @@ const DETECTIONS_SERVICE_NAME: string = "OneUptime Detections";
 
 export interface DetectionRuleEvaluationResult {
   ruleId: string;
+  // Groups the run recorded (at most DETECTION_MAX_FINDINGS_PER_EVALUATION).
   matchedGroups: number;
+  // Of those, the ones past DETECTION_MAX_GROUPS_PER_EVALUATION: one case about the rule holds them.
+  overflowGroups: number;
   totalMatches: number;
   alertsCreated: number;
   incidentsCreated: number;
@@ -103,96 +121,188 @@ export interface DetectionRuleSetupTest {
  * A rule reads up to DETECTION_EVALUATION_DELAY_IN_SECONDS behind the
  * clock, and is due on that clock too, so its windows stay as long as its
  * interval and every event is in the table before its moment is read.
+ *
+ * The work is spread by project (SecurityProjectWork): the cron queues one
+ * turn for each project with a rule due, and a turn evaluates that
+ * project's due rules, the longest overdue first.
  */
+export const DETECTION_RULES_PROJECT_WORK: SecurityProjectWorkDefinition = {
+  jobName: "DetectionRules:EvaluateProject",
+  key: "detection-rules",
+  maxConcurrentProjects: 16,
+};
+
+// What a turn reads of each rule: everything evaluateRule needs.
+const DETECTION_RULE_EVALUATION_SELECT: Select<DetectionRule> = {
+  _id: true,
+  projectId: true,
+  name: true,
+  description: true,
+  sigmaRuleYaml: true,
+  evaluationIntervalInMinutes: true,
+  groupByField: true,
+  distinctCountField: true,
+  matchCountThreshold: true,
+  shouldCreateAlert: true,
+  shouldWriteDetectionFinding: true,
+  shouldCreateIncident: true,
+  shouldCreateCase: true,
+  alertSeverityId: true,
+  incidentSeverityId: true,
+  lastEvaluatedAt: true,
+};
+
+// Detection Finding rows written per insert.
+const DETECTION_FINDING_INSERT_BATCH_SIZE: number = 1000;
+
 export default class DetectionRuleEvaluator {
+  // The clock the rules read by: DETECTION_EVALUATION_DELAY_IN_SECONDS behind.
+  private static evaluationClock(): Date {
+    return OneUptimeDate.addRemoveSeconds(
+      OneUptimeDate.getCurrentDate(),
+      -DETECTION_EVALUATION_DELAY_IN_SECONDS,
+    );
+  }
+
+  // When a rule is next due: one interval after its last run; 0 for a rule that never ran.
+  private static dueTime(rule: DetectionRule): number {
+    if (!rule.lastEvaluatedAt) {
+      return 0;
+    }
+
+    return OneUptimeDate.addRemoveMinutes(
+      rule.lastEvaluatedAt,
+      Math.max(1, rule.evaluationIntervalInMinutes || 1),
+    ).getTime();
+  }
+
+  private static isDue(rule: DetectionRule, now: Date): boolean {
+    return this.dueTime(rule) <= now.getTime();
+  }
+
+  /*
+   * The cron's half: every enabled rule in the instance, page by page, and
+   * one turn queued for each project with a rule due. Returns how many
+   * projects were queued.
+   */
   @CaptureSpan()
-  public static async evaluateAllDueRules(): Promise<void> {
-    const rules: Array<DetectionRule> = await DetectionRuleService.findBy({
+  public static async enqueueProjectsWithDueRules(): Promise<number> {
+    const rules: Array<DetectionRule> = await DetectionRuleService.findAllBy({
       query: {
         isEnabled: true,
       },
       select: {
         _id: true,
         projectId: true,
-        name: true,
-        description: true,
-        sigmaRuleYaml: true,
         evaluationIntervalInMinutes: true,
-        groupByField: true,
-        distinctCountField: true,
-        matchCountThreshold: true,
-        shouldCreateAlert: true,
-        shouldWriteDetectionFinding: true,
-        shouldCreateIncident: true,
-        shouldCreateCase: true,
-        alertSeverityId: true,
-        incidentSeverityId: true,
         lastEvaluatedAt: true,
       },
-      skip: 0,
-      limit: LIMIT_MAX,
+      sort: {
+        _id: SortOrder.Ascending,
+      },
       props: {
         isRoot: true,
       },
     });
 
-    // The clock the rules read by: DETECTION_EVALUATION_DELAY_IN_SECONDS behind.
-    const now: Date = OneUptimeDate.addRemoveSeconds(
-      OneUptimeDate.getCurrentDate(),
-      -DETECTION_EVALUATION_DELAY_IN_SECONDS,
+    const now: Date = this.evaluationClock();
+
+    return SecurityProjectWork.enqueueProjects(
+      DETECTION_RULES_PROJECT_WORK,
+      rules
+        .filter((rule: DetectionRule): boolean => {
+          return this.isDue(rule, now);
+        })
+        .map((rule: DetectionRule): ObjectID | undefined => {
+          return rule.projectId;
+        }),
     );
+  }
 
-    for (const rule of rules) {
-      const intervalInMinutes: number = Math.max(
-        1,
-        rule.evaluationIntervalInMinutes || 1,
-      );
+  /*
+   * One project's turn: its due rules, the longest overdue first, for as
+   * long as the turn has time and keeps its lease. A rule left over is
+   * still due next minute and resumes from its own lastEvaluatedAt.
+   */
+  @CaptureSpan()
+  public static async evaluateDueRulesForProject(
+    projectId: ObjectID,
+    lease: SecurityProjectWorkLease = UNLIMITED_SECURITY_PROJECT_WORK_LEASE,
+  ): Promise<void> {
+    const rules: Array<DetectionRule> = await DetectionRuleService.findAllBy({
+      query: {
+        projectId,
+        isEnabled: true,
+      },
+      select: DETECTION_RULE_EVALUATION_SELECT,
+      sort: {
+        _id: SortOrder.Ascending,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
 
-      if (rule.lastEvaluatedAt) {
-        const dueAt: Date = OneUptimeDate.addRemoveMinutes(
-          rule.lastEvaluatedAt,
-          intervalInMinutes,
-        );
+    const now: Date = this.evaluationClock();
 
-        if (OneUptimeDate.isAfter(dueAt, now)) {
-          continue;
-        }
+    const dueRules: Array<DetectionRule> = rules
+      .filter((rule: DetectionRule): boolean => {
+        return this.isDue(rule, now);
+      })
+      .sort((a: DetectionRule, b: DetectionRule): number => {
+        return this.dueTime(a) - this.dueTime(b);
+      });
+
+    for (const rule of dueRules) {
+      if (!lease.hasTimeLeft()) {
+        return;
       }
 
-      try {
-        await this.evaluateRule(rule);
-      } catch (error) {
-        logger.error(
-          `DetectionRuleEvaluator: error evaluating rule ${rule.id?.toString()}:`,
-        );
-        logger.error(error);
+      await this.evaluateRuleRecordingFailure(rule);
 
-        /*
-         * Best-effort bookkeeping, guarded for the same reason as the
-         * connection poller's: one rule whose error will not store must not
-         * throw its way out of this loop and stop every other rule in
-         * the project from being evaluated. ClickHouse errors echo the
-         * failing query back, so they are the long ones.
-         */
-        if (rule.id) {
-          const ruleId: ObjectID = rule.id;
+      if (!(await lease.keep())) {
+        return;
+      }
+    }
+  }
 
-          await ConnectorErrorMessage.recordFailure({
-            label: `DetectionRuleEvaluator: rule ${ruleId.toString()}`,
-            write: async (): Promise<void> => {
-              await DetectionRuleService.updateOneById({
-                id: ruleId,
-                data: {
-                  lastEvaluatedAt: OneUptimeDate.getCurrentDate(),
-                  lastError: ConnectorErrorMessage.toMessage(error),
-                },
-                props: {
-                  isRoot: true,
-                },
-              });
-            },
-          });
-        }
+  // evaluateRule, with a failure recorded on the rule rather than thrown.
+  private static async evaluateRuleRecordingFailure(
+    rule: DetectionRule,
+  ): Promise<void> {
+    try {
+      await this.evaluateRule(rule);
+    } catch (error) {
+      logger.error(
+        `DetectionRuleEvaluator: error evaluating rule ${rule.id?.toString()}:`,
+      );
+      logger.error(error);
+
+      /*
+       * Best-effort bookkeeping, guarded for the same reason as the
+       * connection poller's: one rule whose error will not store must not
+       * throw its way out of the turn and stop every other rule in the
+       * project from being evaluated. ClickHouse errors echo the failing
+       * query back, so they are the long ones.
+       */
+      if (rule.id) {
+        const ruleId: ObjectID = rule.id;
+
+        await ConnectorErrorMessage.recordFailure({
+          label: `DetectionRuleEvaluator: rule ${ruleId.toString()}`,
+          write: async (): Promise<void> => {
+            await DetectionRuleService.updateOneById({
+              id: ruleId,
+              data: {
+                lastEvaluatedAt: OneUptimeDate.getCurrentDate(),
+                lastError: ConnectorErrorMessage.toMessage(error),
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+          },
+        });
       }
     }
   }
@@ -267,7 +377,8 @@ export default class DetectionRuleEvaluator {
         groupByExpression,
         distinctCountExpression,
         minMatchCount: matchCountThreshold,
-        maxGroups: DETECTION_MAX_GROUPS_PER_EVALUATION,
+        // One more than a run records, so it can tell "more than it reads".
+        maxGroups: DETECTION_MAX_FINDINGS_PER_EVALUATION + 1,
       });
 
     /*
@@ -286,6 +397,31 @@ export default class DetectionRuleEvaluator {
       },
     );
 
+    /*
+     * Every group is recorded; the ones with the highest counts open alerts
+     * and cases of their own, and the rest open one case about the rule
+     * (DetectionOverflow) - never dropped without a word.
+     */
+    const split: DetectionGroupSplit<DetectionMatchGroup> =
+      splitDetectionGroups(matchedGroups, {
+        openLimit: DETECTION_MAX_GROUPS_PER_EVALUATION,
+        recordLimit: DETECTION_MAX_FINDINGS_PER_EVALUATION,
+      });
+
+    const writesFindings: boolean =
+      !setupTest && rule.shouldWriteDetectionFinding !== false;
+
+    const overflowNotice: string | null =
+      split.overflow.length > 0 || split.moreThanRead
+        ? describeDetectionOverflow({
+            kind: "rule",
+            matched: split.recorded.length,
+            moreThanRead: split.moreThanRead,
+            opened: split.opened.length,
+            findingsWritten: writesFindings,
+          })
+        : null;
+
     let alertsCreated: number = 0;
     let incidentsCreated: number = 0;
     let findingsWritten: number = 0;
@@ -294,16 +430,16 @@ export default class DetectionRuleEvaluator {
     // Each group's Detection Finding, for the case detection that points at it.
     let findingEventUids: Map<string, string> = new Map();
 
-    for (const matchGroup of matchedGroups) {
+    for (const matchGroup of split.recorded) {
       totalMatches += matchGroup.matchCount;
     }
 
-    if (matchedGroups.length > 0) {
+    if (split.recorded.length > 0) {
       if (!setupTest && rule.shouldCreateAlert !== false) {
         alertsCreated = await this.openAlertsForMatches({
           rule,
           parsedRule,
-          matchedGroups,
+          matchedGroups: split.opened,
           startTime,
           endTime,
         });
@@ -319,17 +455,17 @@ export default class DetectionRuleEvaluator {
         incidentsCreated = await this.openIncidentsForMatches({
           rule,
           parsedRule,
-          matchedGroups,
+          matchedGroups: split.opened,
           startTime,
           endTime,
         });
       }
 
-      if (!setupTest && rule.shouldWriteDetectionFinding !== false) {
+      if (writesFindings) {
         findingEventUids = await this.writeDetectionFindings({
           rule,
           parsedRule,
-          matchedGroups,
+          matchedGroups: split.recorded,
         });
         findingsWritten = findingEventUids.size;
       }
@@ -341,17 +477,32 @@ export default class DetectionRuleEvaluator {
        * detections are already recorded as alerts and findings.
        */
       if (setupTest || rule.shouldCreateCase !== false) {
+        const signals: Array<SecurityDetectionSignal> = this.buildCaseSignals({
+          rule,
+          parsedRule,
+          matchedGroups: split.opened,
+          findingEventUids,
+          startTime,
+          endTime,
+        });
+
+        if (overflowNotice && !setupTest) {
+          signals.push(
+            this.buildOverflowSignal({
+              rule,
+              parsedRule,
+              overflowGroups: split.overflow,
+              summary: overflowNotice,
+              startTime,
+              endTime,
+            }),
+          );
+        }
+
         try {
           const ingestResult: SecurityCaseIngestResult =
             await SecurityCaseIngest.recordDetections(
-              this.buildCaseSignals({
-                rule,
-                parsedRule,
-                matchedGroups,
-                findingEventUids,
-                startTime,
-                endTime,
-              }).map(
+              signals.map(
                 (signal: SecurityDetectionSignal): SecurityDetectionSignal => {
                   return setupTest ? { ...signal, isSetupTest: true } : signal;
                 },
@@ -370,12 +521,19 @@ export default class DetectionRuleEvaluator {
 
     // A setup test leaves the rule's own schedule as it was.
     if (!setupTest) {
+      if (overflowNotice) {
+        logger.warn(
+          `DetectionRuleEvaluator: rule ${rule.id.toString()}: ${overflowNotice}`,
+        );
+      }
+
       await DetectionRuleService.updateOneById({
         id: rule.id,
         data: {
           lastEvaluatedAt: endTime,
-          lastError: null as unknown as string,
-          ...(matchedGroups.length > 0 ? { lastMatchAt: endTime } : {}),
+          // The rule ran; an overflow is what its row should say about it.
+          lastError: overflowNotice as unknown as string,
+          ...(split.recorded.length > 0 ? { lastMatchAt: endTime } : {}),
         },
         props: {
           isRoot: true,
@@ -385,13 +543,66 @@ export default class DetectionRuleEvaluator {
 
     return {
       ruleId: rule.id.toString(),
-      matchedGroups: matchedGroups.length,
+      matchedGroups: split.recorded.length,
+      overflowGroups: split.overflow.length,
       totalMatches,
       alertsCreated,
       incidentsCreated,
       findingsWritten,
       casesOpened,
       error: null,
+    };
+  }
+
+  /*
+   * The one case signal about a run's overflow: the groups past
+   * DETECTION_MAX_GROUPS_PER_EVALUATION. It names no entity - nothing for a
+   * playbook to contain - and its fingerprint is the rule's own, so every
+   * run that overflows joins the same open case and counts it up.
+   */
+  public static buildOverflowSignal(data: {
+    rule: DetectionRule;
+    parsedRule: SigmaRule;
+    overflowGroups: Array<DetectionMatchGroup>;
+    summary: string;
+    startTime: Date;
+    endTime: Date;
+  }): SecurityDetectionSignal {
+    const { rule, parsedRule } = data;
+    const ruleName: string = rule.name || parsedRule.title;
+
+    let eventCount: number = 0;
+
+    for (const matchGroup of data.overflowGroups) {
+      eventCount += matchGroup.matchCount;
+    }
+
+    return {
+      projectId: rule.projectId!,
+      source: SecurityDetectionSource.DetectionRule,
+      fingerprint: `detection-rule:${rule.id!.toString()}:overflow`,
+      title: `${ruleName} — more matches than one run opens cases for`,
+      description: detectionOverflowMarkdown({
+        kind: "rule",
+        sourceName: ruleName,
+        summary: data.summary,
+        windowStart: OneUptimeDate.getDateAsFormattedString(data.startTime),
+        windowEnd: OneUptimeDate.getDateAsFormattedString(data.endTime),
+        examples: data.overflowGroups
+          .map((matchGroup: DetectionMatchGroup): string => {
+            return matchGroup.groupValue;
+          })
+          .filter(Boolean),
+      }).toString(),
+      severity:
+        SIGMA_LEVEL_TO_OCSF_SEVERITY[parsedRule.level] || OcsfSeverity.Medium,
+      eventCount,
+      entities: [],
+      mitreTactics: parsedRule.mitreTactics,
+      mitreTechniques: parsedRule.mitreTechniques,
+      ruleName,
+      detectionRuleId: rule.id!,
+      seenAt: data.endTime,
     };
   }
 
@@ -754,7 +965,15 @@ export default class DetectionRuleEvaluator {
       },
     );
 
-    await SecurityEventService.insertJsonRows(rows);
+    for (
+      let index: number = 0;
+      index < rows.length;
+      index += DETECTION_FINDING_INSERT_BATCH_SIZE
+    ) {
+      await SecurityEventService.insertJsonRows(
+        rows.slice(index, index + DETECTION_FINDING_INSERT_BATCH_SIZE),
+      );
+    }
 
     return eventUids;
   }

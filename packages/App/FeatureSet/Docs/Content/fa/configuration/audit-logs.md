@@ -91,6 +91,7 @@ flowchart TB
 | کلیدهای API | `API Key` |
 | کلاینت‌های MCP که افراد وصل می‌کنند | `MCP Client Authorization` |
 | اقلام موجودی | `Inventory Item` |
+| پیکربندی‌های کالکتور | `Collector Config` |
 | سرورهای vCenter | `vCenter` |
 | ضبط‌های بسته و دانلودهایشان | `Packet Capture` |
 | پرونده‌های امنیتی و پلی‌بوک‌ها | `Security Case`، `Security Playbook` |

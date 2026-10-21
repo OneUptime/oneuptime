@@ -2,6 +2,9 @@
 
 Draai de OpenTelemetry Collector op een Linux-, macOS- of Windows-machine om de metrics, processen, logs en servicestatussen ervan naar OneUptime te sturen. De machine verschijnt onder **Producten → Infrastructuur → Hosts** met eigen pagina's, zonder OneUptime-agent om te installeren: de collector is de upstream-release `otelcol-contrib`. [Host-monitors](/docs/monitor/host-monitor) waarschuwen op basis van wat hij stuurt.
 
+> [!TIP]
+> Laat OneUptime de collector voor je installeren en configureren: [Hosts](/docs/telemetry/hosts) voegt een machine toe met één opdracht en houdt de configuratie actueel. Deze pagina is voor het draaien van de collector met een `config.yaml` die je zelf op de machine bijhoudt.
+
 :::cards
 - [De collector installeren](#de-collector-installeren): Drie stappen op Linux, macOS of Windows.
 - [Kiezen wat je verzamelt](#kiezen-wat-je-verzamelt): Metrics, bestandslogs, de journal, eventlogs en servicestatussen.

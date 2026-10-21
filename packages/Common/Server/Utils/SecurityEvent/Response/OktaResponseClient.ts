@@ -5,20 +5,22 @@ import OktaClient from "../Connectors/Okta/OktaClient";
 import ResponseHttp, { ResponseHttpResult } from "./ResponseHttp";
 
 /*
- * The Okta calls a playbook makes to contain an account, from the Okta
- * management API (https://developer.okta.com/docs/api/openapi/okta-management/management/tag/User/
+ * The Okta calls a playbook makes to contain an account, and to let it back
+ * in, from the Okta management API (https://developer.okta.com/docs/api/openapi/okta-management/management/tag/User/
  * and .../tag/UserLifecycle/, .../tag/UserSessions/):
  *
  *   GET    {orgUrl}/api/v1/users/{login or id}            find the user
  *   POST   {orgUrl}/api/v1/users/{id}/lifecycle/suspend   suspend an ACTIVE user
+ *   POST   {orgUrl}/api/v1/users/{id}/lifecycle/unsuspend unsuspend a SUSPENDED user
  *   DELETE {orgUrl}/api/v1/users/{id}/sessions?oauthTokens=true
  *                                                          end every session and
  *                                                          revoke OAuth tokens
  *
  * The token is the connection's SSWS API token, which acts with its
  * creator's admin rights: suspending needs a Super, Org or Group admin who
- * manages the user. Okta answers a suspend of a user who is not ACTIVE with
- * an error; a user already SUSPENDED is reported as such, not as a failure.
+ * manages the user. Okta answers a suspend of a user who is not ACTIVE, and
+ * an unsuspend of one who is not SUSPENDED, with an error; a user already
+ * in the state asked for is reported as such, not as a failure.
  */
 
 export interface OktaUser {
@@ -144,6 +146,33 @@ export default class OktaResponseClient {
             : result.statusCode === 400
               ? `Okta suspends only ACTIVE users; this one is ${user.status || "in another state"}.`
               : undefined,
+      });
+    }
+
+    return OktaContainmentOutcome.Done;
+  }
+
+  public async unsuspendUser(user: OktaUser): Promise<OktaContainmentOutcome> {
+    if (user.status.toUpperCase() !== "SUSPENDED") {
+      return OktaContainmentOutcome.AlreadyDone;
+    }
+
+    const step: string = "Okta unsuspend";
+    const result: ResponseHttpResult = await this.send(
+      step,
+      "POST",
+      `/api/v1/users/${encodeURIComponent(user.id)}/lifecycle/unsuspend`,
+    );
+
+    if (!ResponseHttp.isSuccess(result)) {
+      throw ResponseHttp.failure({
+        step,
+        result,
+        secrets: [this.apiToken],
+        hint:
+          result.statusCode === 403
+            ? "The connection's API token was created by an admin who cannot unsuspend this user."
+            : undefined,
       });
     }
 

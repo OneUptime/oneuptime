@@ -12,6 +12,7 @@ import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -34,8 +35,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * Starting a run is creating one - name the case and the playbook, and
  * OneUptime copies the steps and queues it - which the Member tier may do.
  * Cancelling one is setting its status to Cancelled; approving or rejecting
- * a step waiting for approval goes through the run's approve and reject
- * routes. Everything else on a run is written by the engine.
+ * a step waiting for approval, and undoing a containment step, go through
+ * the run's own routes. Everything else on a run is written by the engine.
+ *
+ * Who started, cancelled, approved, rejected and undid what is in the
+ * project's audit log, under the run's case and named after its playbook.
  */
 const readPermissions: Array<Permission> = [
   Permission.ProjectOwner,
@@ -73,6 +77,10 @@ const engineColumnAccess: {
 };
 
 @EnableDocumentation()
+@EnableAuditLog({
+  rootResource: { resourceType: "Security Case", column: "securityCaseId" },
+  resourceNameRelation: "securityPlaybook",
+})
 @CanAccessIfCanReadOn("securityCase")
 @TableBillingAccessControl({
   create: PlanType.Free,

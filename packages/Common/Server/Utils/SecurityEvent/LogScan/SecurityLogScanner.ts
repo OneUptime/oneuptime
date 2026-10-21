@@ -1,5 +1,5 @@
 import SecurityLogSource from "../../../../Models/DatabaseModels/SecurityLogSource";
-import LIMIT_MAX from "../../../../Types/Database/LimitMax";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -14,11 +14,15 @@ import OTelIngestService, {
 } from "../../../Services/OpenTelemetryIngestService";
 import SecurityEventService from "../../../Services/SecurityEventService";
 import SecurityLogSourceService from "../../../Services/SecurityLogSourceService";
-import Semaphore, { SemaphoreMutex } from "../../../Infrastructure/Semaphore";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import ConnectorErrorMessage from "../ConnectorErrorMessage";
 import { buildSecurityEventDbRow } from "../SecurityEventRow";
+import SecurityProjectWork, {
+  SecurityProjectWorkDefinition,
+  SecurityProjectWorkLease,
+  UNLIMITED_SECURITY_PROJECT_WORK_LEASE,
+} from "../SecurityProjectWork";
 import ThreatIntelEnricher from "../ThreatIntel/ThreatIntelEnricher";
 
 /*
@@ -31,28 +35,50 @@ import ThreatIntelEnricher from "../ThreatIntel/ThreatIntelEnricher";
  * Logs are read by when they ARRIVED (createdAt), a window at a time, so a
  * log that was written a while before it reached OneUptime is still read
  * once; the window waits LOG_SCAN_SETTLE_IN_SECONDS so the logs of its last
- * seconds have landed. Only lines that hold a security record's words
- * leave the database (SECURITY_LOG_PREFILTER), and only so many per window:
- * the scan is bounded however many logs a project sends.
+ * seconds have landed, and is read in a fixed order, so the same window
+ * reads the same way again. Only lines that hold a security record's words
+ * leave the database (SECURITY_LOG_PREFILTER).
+ *
+ * Every candidate line is read. A scan reads at most
+ * LOG_SCAN_MAX_LINES_PER_RUN of them, for as long as its turn has time:
+ * one that stops part way through a window keeps its place there - the
+ * window, and how many of its lines it had read - and the next scan goes on
+ * from the line after. A project that fell more than
+ * LOG_SCAN_MAX_BACKLOG_IN_HOURS behind (the scan was off, the workers were
+ * down) starts again from there, and its result says which logs it skipped.
  *
  * The events keep the time the log line was written. They are attributed
  * to one "OneUptime Logs" service per project - as detections are to
  * "OneUptime Detections" - and each names the log record it came from.
+ *
+ * The work is spread by project (SecurityProjectWork): the cron queues one
+ * turn for each project that turned the scan on.
  */
 
 export const SECURITY_LOGS_SERVICE_NAME: string = "OneUptime Logs";
+
+export const SECURITY_LOG_SCAN_PROJECT_WORK: SecurityProjectWorkDefinition = {
+  jobName: "SecurityEvents:ScanProjectLogs",
+  key: "security-log-scan",
+  maxConcurrentProjects: 8,
+};
 
 // Logs younger than this wait for the next scan, so a window is complete.
 export const LOG_SCAN_SETTLE_IN_SECONDS: number = 15;
 // The longest window one read covers.
 export const LOG_SCAN_WINDOW_IN_SECONDS: number = 5 * 60;
-// Windows one scan of one project reads before it lets the next project go.
-export const LOG_SCAN_MAX_WINDOWS_PER_RUN: number = 12;
-// The most candidate lines one window reads; past it the window is cut.
-export const LOG_SCAN_MAX_LINES_PER_WINDOW: number = 5000;
+// Candidate lines one query reads.
 export const LOG_SCAN_PAGE_SIZE: number = 1000;
-// A scan that fell further behind than this starts again from here.
-export const LOG_SCAN_MAX_BACKLOG_IN_MINUTES: number = 60;
+/*
+ * The most candidate lines one scan reads. A scan that reaches it part way
+ * through a window stops there, and the next goes on from the line after.
+ */
+export const LOG_SCAN_MAX_LINES_PER_RUN: number = 50000;
+/*
+ * A scan that fell further behind than this starts again from here, and its
+ * result names the logs it skipped.
+ */
+export const LOG_SCAN_MAX_BACKLOG_IN_HOURS: number = 24;
 // Logs written this long before they arrived are not read.
 export const LOG_SCAN_LATE_LOG_WINDOW_IN_MINUTES: number = 60;
 
@@ -62,10 +88,20 @@ export interface SecurityLogScanResult {
   // Events found, by SecurityLogFormat.
   byFormat: Record<string, number>;
   windows: number;
-  // A window held more candidate lines than one scan reads.
-  truncated: boolean;
-  // The scan had fallen too far behind and skipped ahead.
+  /*
+   * The scan had fallen too far behind and skipped ahead: the logs that
+   * arrived between skippedFrom and skippedTo were not read.
+   */
   skippedBacklog: boolean;
+  skippedFrom: string;
+  skippedTo: string;
+  /*
+   * The window the scan stopped in, and how many of its candidate lines it
+   * had read: the next scan goes on from the line after. Empty when the scan
+   * reached the present.
+   */
+  partialWindowStart: string;
+  partialWindowProcessed: number;
   scannedFrom: string;
   scannedTo: string;
 }
@@ -86,49 +122,82 @@ function readAttributes(value: JSONValue | undefined): JSONObject {
     : {};
 }
 
+function readNumber(value: JSONValue | undefined): number {
+  const number: number = typeof value === "number" ? value : Number(value);
+
+  return Number.isFinite(number) && number > 0 ? Math.trunc(number) : 0;
+}
+
 export default class SecurityLogScanner {
+  /*
+   * The cron's half: every enabled source in the instance, page by page, and
+   * one turn queued for each project that has one. Returns how many
+   * projects were queued.
+   */
   @CaptureSpan()
-  public static async scanAllEnabled(): Promise<void> {
+  public static async enqueueProjectsWithEnabledSources(): Promise<number> {
     const sources: Array<SecurityLogSource> =
-      await SecurityLogSourceService.findBy({
+      await SecurityLogSourceService.findAllBy({
         query: { isEnabled: true },
         select: {
           _id: true,
           projectId: true,
-          cursor: true,
         },
-        skip: 0,
-        limit: LIMIT_MAX,
+        sort: { _id: SortOrder.Ascending },
+        props: { isRoot: true },
+      });
+
+    return SecurityProjectWork.enqueueProjects(
+      SECURITY_LOG_SCAN_PROJECT_WORK,
+      sources.map((source: SecurityLogSource): ObjectID | undefined => {
+        return source.projectId;
+      }),
+    );
+  }
+
+  // One project's turn: a scan of each of its enabled sources.
+  @CaptureSpan()
+  public static async scanProject(
+    projectId: ObjectID,
+    lease: SecurityProjectWorkLease = UNLIMITED_SECURITY_PROJECT_WORK_LEASE,
+  ): Promise<void> {
+    const sources: Array<SecurityLogSource> =
+      await SecurityLogSourceService.findAllBy({
+        query: { projectId, isEnabled: true },
+        select: {
+          _id: true,
+          projectId: true,
+          cursor: true,
+          lastScanResult: true,
+        },
+        sort: { _id: SortOrder.Ascending },
         props: { isRoot: true },
       });
 
     for (const source of sources) {
-      await this.scanWithLock(source);
+      if (!lease.hasTimeLeft()) {
+        return;
+      }
+
+      await this.scanSourceRecordingFailure(source, lease);
+
+      if (!(await lease.keep())) {
+        return;
+      }
     }
   }
 
-  // One scan of a project at a time, across every worker.
-  private static async scanWithLock(source: SecurityLogSource): Promise<void> {
+  // scanSource, with a failure recorded on the source rather than thrown.
+  private static async scanSourceRecordingFailure(
+    source: SecurityLogSource,
+    lease: SecurityProjectWorkLease,
+  ): Promise<void> {
     if (!source.projectId || !source.id) {
       return;
     }
 
-    let mutex: SemaphoreMutex | null = null;
-
     try {
-      mutex = await Semaphore.lock({
-        namespace: "SecurityLogScan",
-        key: source.projectId.toString(),
-        lockTimeout: 5 * 60 * 1000,
-        acquireAttemptsLimit: 1,
-      });
-    } catch {
-      // Another worker is scanning this project's logs right now.
-      return;
-    }
-
-    try {
-      await this.scanSource(source);
+      await this.scanSource(source, lease);
     } catch (error) {
       logger.error(
         `SecurityLogScanner: scan of project ${source.projectId.toString()} failed:`,
@@ -150,12 +219,6 @@ export default class SecurityLogScanner {
           });
         },
       });
-    } finally {
-      if (mutex) {
-        await Semaphore.release(mutex).catch((): void => {
-          // The lock runs out on its own.
-        });
-      }
     }
   }
 
@@ -163,6 +226,7 @@ export default class SecurityLogScanner {
   @CaptureSpan()
   public static async scanSource(
     source: SecurityLogSource,
+    lease: SecurityProjectWorkLease = UNLIMITED_SECURITY_PROJECT_WORK_LEASE,
   ): Promise<SecurityLogScanResult> {
     const projectId: ObjectID = source.projectId!;
     const now: Date = OneUptimeDate.getCurrentDate();
@@ -170,17 +234,31 @@ export default class SecurityLogScanner {
       now,
       -LOG_SCAN_SETTLE_IN_SECONDS,
     );
-    const oldestAllowed: Date = OneUptimeDate.addRemoveMinutes(
+    const oldestAllowed: Date = OneUptimeDate.addRemoveHours(
       now,
-      -LOG_SCAN_MAX_BACKLOG_IN_MINUTES,
+      -LOG_SCAN_MAX_BACKLOG_IN_HOURS,
     );
 
     let cursor: Date = readCursor(source.cursor) || until;
-    let skippedBacklog: boolean = false;
+
+    /*
+     * A scan that stopped part way through a window goes on from the line
+     * after the last one it read.
+     */
+    const previous: JSONObject = source.lastScanResult || {};
+    let skipInWindow: number =
+      previous["partialWindowStart"] === cursor.toISOString()
+        ? readNumber(previous["partialWindowProcessed"])
+        : 0;
+
+    let skippedFrom: string = "";
+    let skippedTo: string = "";
 
     if (OneUptimeDate.isBefore(cursor, oldestAllowed)) {
+      skippedFrom = cursor.toISOString();
+      skippedTo = oldestAllowed.toISOString();
       cursor = oldestAllowed;
-      skippedBacklog = true;
+      skipInWindow = 0;
     }
 
     const result: SecurityLogScanResult = {
@@ -188,19 +266,20 @@ export default class SecurityLogScanner {
       eventsFound: 0,
       byFormat: {},
       windows: 0,
-      truncated: false,
-      skippedBacklog,
+      skippedBacklog: Boolean(skippedFrom),
+      skippedFrom,
+      skippedTo,
+      partialWindowStart: "",
+      partialWindowProcessed: 0,
       scannedFrom: cursor.toISOString(),
       scannedTo: cursor.toISOString(),
     };
 
     let serviceMetadata: TelemetryServiceMetadata | null = null;
     let lastEventFoundAt: Date | null = null;
+    let stopped: boolean = false;
 
-    while (
-      OneUptimeDate.isBefore(cursor, until) &&
-      result.windows < LOG_SCAN_MAX_WINDOWS_PER_RUN
-    ) {
+    while (OneUptimeDate.isBefore(cursor, until)) {
       const windowEnd: Date = OneUptimeDate.isBefore(
         OneUptimeDate.addRemoveSeconds(cursor, LOG_SCAN_WINDOW_IN_SECONDS),
         until,
@@ -208,10 +287,20 @@ export default class SecurityLogScanner {
         ? OneUptimeDate.addRemoveSeconds(cursor, LOG_SCAN_WINDOW_IN_SECONDS)
         : until;
 
-      const events: Array<NormalizedSecurityEvent> = [];
-      let offset: number = 0;
+      let offset: number = skipInWindow;
 
-      while (offset < LOG_SCAN_MAX_LINES_PER_WINDOW) {
+      for (;;) {
+        if (
+          result.logsRead >= LOG_SCAN_MAX_LINES_PER_RUN ||
+          !lease.hasTimeLeft()
+        ) {
+          // Out of this scan's budget: the next goes on from this line.
+          result.partialWindowStart = cursor.toISOString();
+          result.partialWindowProcessed = offset;
+          stopped = true;
+          break;
+        }
+
         const rows: Array<JSONObject> =
           await LogService.findSecurityLogCandidates({
             projectId,
@@ -221,14 +310,13 @@ export default class SecurityLogScanner {
               cursor,
               -LOG_SCAN_LATE_LOG_WINDOW_IN_MINUTES,
             ),
-            limit: Math.min(
-              LOG_SCAN_PAGE_SIZE,
-              LOG_SCAN_MAX_LINES_PER_WINDOW - offset,
-            ),
+            limit: LOG_SCAN_PAGE_SIZE,
             offset,
           });
 
         result.logsRead += rows.length;
+
+        const events: Array<NormalizedSecurityEvent> = [];
 
         for (const row of rows) {
           events.push(
@@ -241,45 +329,61 @@ export default class SecurityLogScanner {
           );
         }
 
-        if (rows.length < LOG_SCAN_PAGE_SIZE) {
-          break;
+        if (events.length > 0) {
+          serviceMetadata =
+            serviceMetadata ||
+            (await OTelIngestService.telemetryServiceFromName({
+              serviceName: SECURITY_LOGS_SERVICE_NAME,
+              projectId,
+            }));
+
+          await this.storeEvents({
+            projectId,
+            events,
+            serviceMetadata,
+          });
+
+          for (const event of events) {
+            const format: string = String(
+              event.attributes[SECURITY_LOG_FORMAT_ATTRIBUTE] || "",
+            );
+            result.byFormat[format] = (result.byFormat[format] || 0) + 1;
+          }
+
+          result.eventsFound += events.length;
+          lastEventFoundAt = now;
         }
 
         offset += rows.length;
 
-        if (offset >= LOG_SCAN_MAX_LINES_PER_WINDOW) {
-          result.truncated = true;
+        if (rows.length < LOG_SCAN_PAGE_SIZE) {
+          // The window is read to its end.
+          break;
+        }
+
+        if (!(await lease.keep())) {
+          // Another scan may have the project now: stop at this line.
+          result.partialWindowStart = cursor.toISOString();
+          result.partialWindowProcessed = offset;
+          stopped = true;
+          break;
         }
       }
 
-      if (events.length > 0) {
-        serviceMetadata =
-          serviceMetadata ||
-          (await OTelIngestService.telemetryServiceFromName({
-            serviceName: SECURITY_LOGS_SERVICE_NAME,
-            projectId,
-          }));
-
-        await this.storeEvents({
-          projectId,
-          events,
-          serviceMetadata,
-        });
-
-        for (const event of events) {
-          const format: string = String(
-            event.attributes[SECURITY_LOG_FORMAT_ATTRIBUTE] || "",
-          );
-          result.byFormat[format] = (result.byFormat[format] || 0) + 1;
-        }
-
-        result.eventsFound += events.length;
-        lastEventFoundAt = now;
+      if (stopped) {
+        break;
       }
 
       cursor = windowEnd;
+      skipInWindow = 0;
       result.windows += 1;
       result.scannedTo = cursor.toISOString();
+    }
+
+    if (result.skippedBacklog) {
+      logger.warn(
+        `SecurityLogScanner: project ${projectId.toString()} fell more than ${LOG_SCAN_MAX_BACKLOG_IN_HOURS} hours behind; the logs that arrived between ${skippedFrom} and ${skippedTo} were not read.`,
+      );
     }
 
     await SecurityLogSourceService.updateOneById({

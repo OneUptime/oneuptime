@@ -190,16 +190,19 @@ OneUptime은 케이스에 관한 세 가지 일을 사람들에게 알립니다.
 | 알림 | Post to Microsoft Teams | 케이스 요약을 Microsoft Teams 채널에 게시 |
 | 에스컬레이션 | Page on-call | 온콜 정책을 실행 |
 | 에스컬레이션 | Declare an incident | 케이스와 연결된 OneUptime 인시던트를 엶 |
-| 봉쇄 | Suspend the user in Okta | 케이스의 각 사용자를 Okta에서 일시 중지 |
-| 봉쇄 | End the user's Okta sessions | 케이스의 각 사용자를 Okta에서 로그아웃시키고 토큰을 폐기 |
-| 봉쇄 | Contain the host in CrowdStrike | 케이스의 각 호스트를 CrowdStrike Falcon으로 네트워크에서 봉쇄 |
-| 봉쇄 | Isolate the device in Microsoft Defender | 케이스의 각 호스트를 Microsoft Defender for Endpoint로 격리 |
+| 봉쇄 | Suspend the user in Okta | 케이스가 다루는 사용자를 Okta에서 일시 중지 |
+| 봉쇄 | End the user's Okta sessions | 케이스가 다루는 사용자를 Okta에서 로그아웃시키고 토큰을 폐기 |
+| 봉쇄 | Contain the host in CrowdStrike | 케이스가 다루는 호스트를 CrowdStrike Falcon으로 네트워크에서 봉쇄 |
+| 봉쇄 | Isolate the device in Microsoft Defender | 케이스가 다루는 호스트를 Microsoft Defender for Endpoint로 격리 |
+| 봉쇄 | Unsuspend the user in Okta | 케이스가 다루는 사용자의 Okta 일시 중지를 해제 |
+| 봉쇄 | Lift containment in CrowdStrike | 케이스가 다루는 호스트에 대한 CrowdStrike Falcon의 네트워크 봉쇄를 해제 |
+| 봉쇄 | Release the device in Microsoft Defender | 케이스가 다루는 호스트를 Microsoft Defender for Endpoint의 격리에서 해제 |
 | 자동화 | Send a webhook | 케이스를 JSON으로 URL에 POST |
 | 자동화 | Run a workflow | 케이스를 입력으로 OneUptime 워크플로를 시작 |
 
 플레이북에는 단계를 최대 25개까지 둘 수 있습니다. 단계는 순서대로, 앞 단계가 끝날 때마다 하나씩 실행됩니다. 모든 단계에서 다음도 설정할 수 있습니다.
 
-- **Needs Approval**: 누군가 케이스에서 승인할 때까지 그 단계 앞에서 실행을 멈춥니다. OneUptime 밖에서 동작하는 네 가지 봉쇄 단계에서는 기본적으로 켜져 있습니다.
+- **Needs Approval**: 누군가 케이스에서 승인할 때까지 그 단계 앞에서 실행을 멈춥니다. 누군가를 차단하는 네 가지 단계에서는 Security Admin이 끄지 않는 한 항상 켜져 있습니다.
 - **Only If Threat Intel Matched**: 같은 실행의 앞선 **Check entities against threat intel** 단계가 알려진 지표를 찾지 않았다면 이 단계를 건너뜁니다.
 - **Carry On If It Fails**: 이 단계가 실패해도 다음 단계를 실행합니다. 꺼져 있으면 실패한 단계에서 실행이 멈춥니다.
 
@@ -209,11 +212,28 @@ OneUptime은 케이스에 관한 세 가지 일을 사람들에게 알립니다.
 
 | 단계 | 연결 | 필요한 것 |
 | --- | --- | --- |
-| Suspend the user in Okta, End the user's Okta sessions | Okta System Log | 사용자 관리가 허용된 API 토큰 |
-| Contain the host in CrowdStrike | CrowdStrike Falcon | Hosts 쓰기 범위가 있는 API 클라이언트 |
-| Isolate the device in Microsoft Defender | Microsoft Defender XDR | Machine.Isolate 권한이 있는 앱 |
+| Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | 사용자 관리가 허용된 API 토큰 |
+| Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | Hosts 쓰기 범위가 있는 API 클라이언트 |
+| Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | Machine.Isolate 권한이 있는 앱 |
 
-봉쇄 단계는 케이스의 사용자나 호스트 중 최대 10개에 대해 동작합니다. 각각을 제품에서 이름으로 찾고, 각각에 무엇을 했는지 케이스에 남깁니다. 봉쇄함, 이미 봉쇄됨, 찾지 못함, 거부됨 중 하나입니다.
+봉쇄 단계는 케이스에 이름이 나오는 모든 사용자나 호스트가 아니라, 케이스가 다루는 다음 사용자나 호스트에 대해서만 동작합니다.
+
+- 케이스의 탐지가 그룹화에 쓰는 값. 예를 들어 불가능한 이동 규칙이 그룹화에 쓰는 계정이나, 연결된 제품의 알림이 가리키는 호스트입니다.
+- 케이스의 사용자나 호스트 중 위협 인텔리전스가 지표로 알고 있는 것.
+
+VPN에 대한 무차별 대입처럼 주소로 그룹화된 케이스는 어느 쪽에도 해당하지 않습니다. 그런 케이스에서는 봉쇄 단계를 건너뛰며, 공격이 노린 계정과 공격받은 게이트웨이는 건드리지 않습니다. 단계는 사용자나 호스트 최대 10개에 대해 동작합니다. 각각을 제품에서 이름으로 찾고, 각각에 무엇을 했는지 실행에 남깁니다. 완료, 이미 완료됨, 찾지 못함, 거부됨, 보호됨 중 하나입니다.
+
+#### 보호된 엔티티
+
+메뉴의 **Playbooks** 아래에 있는 **Protected Entities** 는 비상 접근 계정, 도메인 컨트롤러, VPN 게이트웨이처럼 어떤 플레이북도 봉쇄하지 않는 사용자와 호스트를 나열합니다. 값은 대소문자와 관계없이 일치하며, `*` 는 임의의 문자열을 나타냅니다. `svc-*` 는 모든 서비스 계정을 보호합니다. 단계는 보호된 사용자나 호스트를 보호됨으로 보고하고 건드리지 않습니다. 이 목록은 Security Admin이 관리합니다.
+
+#### 승인
+
+누군가를 차단하는 네 가지 단계는 승인을 기다립니다. 그중 하나의 **Needs Approval** 을 끌 수 있는 사람은 Security Admin뿐이며, OneUptime은 누가 껐는지 기록합니다. 승인할 때는 단계가 동작할 사용자나 호스트가 **Act On** 아래에 모두 선택된 상태로 나열됩니다. 단계가 건드리지 말아야 할 대상은 선택을 해제하세요. 보호된 대상은 선택지에 나오지 않습니다. 실행을 시작한 사람은 그 실행의 단계를 승인할 수 없고 다른 사람이 승인하지만, 거부는 여전히 할 수 있습니다.
+
+#### 되돌리기
+
+되돌리기 단계는 자신이 되돌리는 단계와 마찬가지로 케이스가 다루는 사용자나 호스트에 대해 동작합니다. 실행이 멈춘 뒤에는 봉쇄된 사용자나 호스트의 단계에 그 대상만의 버튼도 생깁니다. **Unsuspend**, **Lift Containment**, **해제** 중 하나입니다. 종료된 Okta 세션은 되돌릴 수 없습니다. 모든 되돌리기는 케이스의 타임라인과 프로젝트의 감사 로그에 남습니다.
 
 ### 메시지
 
@@ -245,7 +265,7 @@ OneUptime은 케이스에 관한 세 가지 일을 사람들에게 알립니다.
 | 실패 | 단계가 실패해 실행이 멈춤 |
 | 취소됨 | 누군가 취소했거나 단계를 거부함 |
 
-승인을 기다리는 단계에는 실행에 **Approve** 와 **Reject** 가 표시되며, 선택적으로 코멘트를 남길 수 있습니다. 승인하면 그 단계부터 실행이 이어지고, 거부하면 실행이 끝납니다. 결정, 결정한 사람, 코멘트는 단계와 케이스의 타임라인에 남습니다. 메뉴의 **Playbooks** 아래에 있는 **승인 대기 중** 은 결정을 기다리는 실행을 보여 주고 그 개수를 세며, **플레이북 실행** 은 모든 실행을 보여 줍니다.
+승인을 기다리는 단계에는 실행에 **Approve** 와 **Reject** 가 표시되며, 선택적으로 코멘트를 남길 수 있습니다. 승인하면 그 단계부터 실행이 이어지고, 거부하면 실행이 끝납니다. 결정, 결정한 사람, 코멘트는 단계, 케이스의 타임라인, 프로젝트의 감사 로그에 남습니다. 메뉴의 **Playbooks** 아래에 있는 **승인 대기 중** 은 결정을 기다리는 실행을 보여 주고 그 개수를 세며, **플레이북 실행** 은 모든 실행을 보여 줍니다.
 
 재시작 등으로 워커로부터 응답이 끊긴 실행은 다시 처리됩니다. 대기열에 있던 실행은 2분 뒤 다시 대기열에 들어가고, 30분 동안 아무 응답이 없는 실행은 실패 처리됩니다.
 
@@ -269,7 +289,7 @@ OneUptime은 케이스에 관한 세 가지 일을 사람들에게 알립니다.
 ## 자동화하기
 
 - **워크플로**: 케이스나 노트가 생성, 업데이트, 삭제될 때 워크플로를 시작할 수 있습니다. **Run a workflow** 단계는 트리거가 웹훅인 워크플로를 시작합니다.
-- **API**: 케이스, 노트, 탐지, 플레이북, 실행에는 OneUptime의 나머지 부분과 같은 REST API가 `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` 아래에 있습니다. [API 참조](/docs/api-reference/api-reference) 를 참고하세요.
+- **API**: 케이스, 노트, 탐지, 플레이북, 실행, 보호된 엔티티에는 OneUptime의 나머지 부분과 같은 REST API가 `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity` 아래에 있습니다. [API 참조](/docs/api-reference/api-reference) 를 참고하세요.
 - AI 에이전트: MCP 서버에는 케이스, 노트, 탐지, 플레이북을 위한 도구가 있습니다. [MCP 서버](/docs/ai/mcp-server) 를 참고하세요.
 
 ## 문제 해결
@@ -288,6 +308,10 @@ OneUptime은 케이스에 관한 세 가지 일을 사람들에게 알립니다.
 
 :::details 봉쇄 단계가 실패함
 케이스에서 실행을 여세요. 단계에는 사용자나 호스트마다 제품이 거부했는지, 찾지 못했는지, 제품에 연결할 수 없었는지가 표시됩니다. 연결의 자격 증명으로 그 변경을 할 수 있는지 확인하고, 연결 행의 **연결 테스트** 를 사용하세요.
+:::
+
+:::details 봉쇄 단계를 건너뜀
+케이스가 다루는 사용자나 호스트가 없거나(예를 들어 주소만 다루는 경우), 케이스가 다루는 사용자나 호스트가 모두 보호되어 있습니다. 케이스에서 실행을 여세요. 단계에 어느 쪽인지 표시됩니다.
 :::
 
 ## 다음 단계

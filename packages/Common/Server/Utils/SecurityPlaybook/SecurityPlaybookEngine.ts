@@ -11,6 +11,8 @@ import SecurityPlaybookActions, {
   PlaybookStepOutcome,
 } from "./SecurityPlaybookActions";
 import SecurityCaseNotifications from "../SecurityCase/SecurityCaseNotifications";
+import SecurityPlaybookContainment from "./SecurityPlaybookContainment";
+import SecurityPlaybookTargets from "./SecurityPlaybookTargets";
 import {
   Green500,
   Indigo500,
@@ -22,6 +24,7 @@ import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import {
   SecurityPlaybookActionDefinition,
+  actsOnSecurityEntities,
   getSecurityPlaybookAction,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookAction";
 import SecurityPlaybookRunStatus, {
@@ -29,11 +32,14 @@ import SecurityPlaybookRunStatus, {
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import {
   SecurityPlaybookStep,
+  doesStepNeedApproval,
   parseSecurityPlaybookSteps,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookStep";
 import {
   SecurityPlaybookApprovalDecision,
   SecurityPlaybookStepResult,
+  SecurityPlaybookTarget,
+  SecurityPlaybookTargetState,
   clampStepResultText,
   readStepResults,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
@@ -81,10 +87,17 @@ export function getStepTitle(step: SecurityPlaybookStep): string {
  * status it writes afterwards is a compare-and-set from Running, so a
  * cancellation is never written over.
  *
- * A step marked "needs approval" stops the run in Waiting for Approval
+ * A step marked "needs approval" - and every containment step a Security
+ * Admin did not let run without it - stops the run in Waiting for Approval
  * before it does anything. Approving it (SecurityPlaybookRunAPI) records the
  * decision on the step and queues the run again, which carries on from that
  * step; rejecting it ends the run.
+ *
+ * A step that acts on users or hosts picks its targets first, by the target
+ * rule (SecurityPlaybookTargets), and keeps them on its result: the approver
+ * decides on those, and the step acts on what the approver kept. A step with
+ * nothing to act on - the case is about an address, or all it is about is
+ * protected - is skipped rather than held for an approval of nothing.
  */
 export default class SecurityPlaybookEngine {
   @CaptureSpan()
@@ -198,6 +211,7 @@ export default class SecurityPlaybookEngine {
         priority: true,
         verdict: true,
         source: true,
+        groupingKey: true,
         entities: true,
         mitreTactics: true,
         mitreTechniques: true,
@@ -280,13 +294,14 @@ export default class SecurityPlaybookEngine {
       }
 
       const step: SecurityPlaybookStep = steps[index]!;
-      const result: SecurityPlaybookStepResult = results[index]!;
       const stepNumber: number = index + 1;
       const stepTitle: string = getStepTitle(step);
+      const definition: SecurityPlaybookActionDefinition | undefined =
+        getSecurityPlaybookAction(step.action);
 
       if (step.onlyIfThreatIntelMatched && !threatIntelMatched) {
         results[index] = {
-          ...result,
+          ...results[index]!,
           status: SecurityPlaybookStepStatus.Skipped,
           completedAt: OneUptimeDate.getCurrentDate().toISOString(),
           message:
@@ -303,11 +318,78 @@ export default class SecurityPlaybookEngine {
       }
 
       if (
-        step.requiresApproval &&
-        result.approval?.decision !== SecurityPlaybookApprovalDecision.Approved
+        actsOnSecurityEntities(definition) &&
+        !results[index]!.targets &&
+        definition?.entityType
+      ) {
+        const caseNow: SecurityCase | null = await this.readCase(
+          projectId,
+          securityCaseId,
+        );
+
+        if (!caseNow) {
+          throw new Error("The case this run was started on no longer exists.");
+        }
+
+        const targets: Array<SecurityPlaybookTarget> =
+          await SecurityPlaybookTargets.selectTargets({
+            projectId,
+            securityCase: caseNow,
+            entityType: definition.entityType,
+          });
+
+        results[index] = { ...results[index]!, targets };
+
+        const hasTarget: boolean = targets.some(
+          (target: SecurityPlaybookTarget): boolean => {
+            return target.state === SecurityPlaybookTargetState.Proposed;
+          },
+        );
+
+        if (!hasTarget) {
+          const summary: MarkdownText =
+            SecurityPlaybookContainment.describeNothingToActOn({
+              entityType: definition.entityType,
+              targets,
+            });
+
+          results[index] = {
+            ...results[index]!,
+            status: SecurityPlaybookStepStatus.Skipped,
+            completedAt: OneUptimeDate.getCurrentDate().toISOString(),
+            message: clampStepResultText(summary.toString()),
+          };
+
+          await this.saveProgress({
+            runId,
+            results,
+            currentStepIndex: index + 1,
+            threatIntelMatched,
+          });
+
+          await SecurityCaseFeedService.createSecurityCaseFeedItem({
+            projectId,
+            securityCaseId,
+            feedInfoInMarkdown: playbookStepMarkdown({
+              playbookName,
+              stepNumber,
+              stepTitle,
+              summary,
+            }).toString(),
+            eventType: SecurityCaseFeedEventType.ResponseAction,
+            displayColor: Indigo500,
+          });
+          continue;
+        }
+      }
+
+      if (
+        doesStepNeedApproval(step) &&
+        results[index]!.approval?.decision !==
+          SecurityPlaybookApprovalDecision.Approved
       ) {
         results[index] = {
-          ...result,
+          ...results[index]!,
           status: SecurityPlaybookStepStatus.WaitingForApproval,
         };
 
@@ -339,6 +421,13 @@ export default class SecurityPlaybookEngine {
               playbookName,
               stepNumber,
               stepTitle,
+              targets: (results[index]!.targets || [])
+                .filter((target: SecurityPlaybookTarget): boolean => {
+                  return target.state === SecurityPlaybookTargetState.Proposed;
+                })
+                .map((target: SecurityPlaybookTarget): string => {
+                  return target.value;
+                }),
             }).toString(),
             eventType: SecurityCaseFeedEventType.ApprovalRequested,
             displayColor: Yellow500,
@@ -367,7 +456,7 @@ export default class SecurityPlaybookEngine {
       const startedAt: string = OneUptimeDate.getCurrentDate().toISOString();
 
       results[index] = {
-        ...result,
+        ...results[index]!,
         status: SecurityPlaybookStepStatus.Running,
         startedAt,
       };
@@ -390,6 +479,7 @@ export default class SecurityPlaybookEngine {
           stepNumber,
           securityCase,
           triggeredByUserId: run.triggeredByUserId,
+          targets: results[index]!.targets,
         });
       } catch (error) {
         outcome = {
@@ -415,6 +505,7 @@ export default class SecurityPlaybookEngine {
         completedAt: OneUptimeDate.getCurrentDate().toISOString(),
         message: clampStepResultText(summaryText || undefined),
         error: clampStepResultText(outcome.error),
+        ...(outcome.targets ? { targets: outcome.targets } : {}),
       };
 
       await this.saveProgress({

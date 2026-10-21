@@ -201,3 +201,59 @@ describe("Service SLA", () => {
     },
   );
 });
+
+describe("Bring Your Own LLM", () => {
+  /*
+   * A project brings its own model by creating an LLM provider, and talks to
+   * it in AI conversations. OneUptime Cloud creates neither on a plan below
+   * the one their TableBillingAccessControl names; with billing off, as on a
+   * self-hosted install, there is no plan to check. The table used to tick
+   * Free, which no Free project could set up.
+   */
+  const plansInOrder: Array<string> = ["Free", "Growth", "Scale", "Enterprise"];
+
+  const createPlanOf: (model: string) => string = (model: string): string => {
+    const source: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "Common",
+        "Models",
+        "DatabaseModels",
+        `${model}.ts`,
+      ),
+      "utf-8",
+    );
+
+    return (
+      source.match(
+        /@TableBillingAccessControl\(\{\s*create:\s*PlanType\.(\w+)/,
+      )?.[1] || ""
+    );
+  };
+
+  const bringYourOwnLlm: PricingFeature | undefined = Pricing.find(
+    (category: PricingCategory) => {
+      return category.name === "AI";
+    },
+  )?.data.find((feature: PricingFeature) => {
+    return feature.name === "Bring Your Own LLM";
+  });
+
+  test.each(["LlmProvider", "AIConversation"])(
+    "the table ticks exactly the plans that can create an %s",
+    (model: string) => {
+      const requiredPlan: number = plansInOrder.indexOf(createPlanOf(model));
+
+      expect(requiredPlan).toBeGreaterThanOrEqual(0);
+
+      for (const plan of PricingPlans) {
+        expect([plan.key, bringYourOwnLlm?.plans[plan.key]]).toEqual([
+          plan.key,
+          plansInOrder.indexOf(plan.name) >= requiredPlan,
+        ]);
+      }
+    },
+  );
+});

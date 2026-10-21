@@ -1,5 +1,5 @@
 import SecurityEventDestination from "../../../../Models/DatabaseModels/SecurityEventDestination";
-import LIMIT_MAX from "../../../../Types/Database/LimitMax";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -19,6 +19,11 @@ import Semaphore, { SemaphoreMutex } from "../../../Infrastructure/Semaphore";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import ConnectorErrorMessage from "../ConnectorErrorMessage";
+import SecurityProjectWork, {
+  SecurityProjectWorkDefinition,
+  SecurityProjectWorkLease,
+  UNLIMITED_SECURITY_PROJECT_WORK_LEASE,
+} from "../SecurityProjectWork";
 import SecurityEventDestinationRegistry from "./SecurityEventDestinationRegistry";
 import {
   SecurityEventDestinationSettings,
@@ -43,7 +48,10 @@ import {
  *   - A window is done when everything in it was sent or refused one by
  *     one. When the SIEM stops answering, the cursor stays at the window,
  *     with how many of its events were already delivered, and the next run
- *     goes on from there - nothing is sent twice, nothing skipped.
+ *     goes on from there - nothing is sent twice, nothing skipped. A run
+ *     sends at most FORWARD_MAX_EVENTS_PER_RUN events, for as long as its
+ *     turn has time; one that stops part way through a window keeps its
+ *     place the same way.
  *   - A destination that fell further behind than a day (it was off, or
  *     its SIEM was down) skips ahead to the last day rather than flood the
  *     SIEM with a backlog; the result says so.
@@ -52,7 +60,11 @@ import {
 export const FORWARD_SETTLE_IN_SECONDS: number = 30;
 export const FORWARD_WINDOW_IN_SECONDS: number = 5 * 60;
 export const FORWARD_MAX_WINDOWS_PER_RUN: number = 12;
-export const FORWARD_MAX_EVENTS_PER_WINDOW: number = 10000;
+/*
+ * The most events one run sends. A run that reaches it part way through a
+ * window stops there, and the next goes on from the event after.
+ */
+export const FORWARD_MAX_EVENTS_PER_RUN: number = 50000;
 export const FORWARD_PAGE_SIZE: number = 1000;
 export const FORWARD_MAX_BACKLOG_IN_HOURS: number = 24;
 // Events that happened this long before they arrived are not sent.
@@ -63,8 +75,6 @@ export interface SecurityEventForwardResult {
   rejected: number;
   rejectionReason: string;
   windows: number;
-  // A window held more events than one run sends; the rest were not sent.
-  truncated: boolean;
   skippedBacklog: boolean;
   failure: string;
   // The window the send stopped in, and how many of its events were delivered.
@@ -73,6 +83,17 @@ export interface SecurityEventForwardResult {
   sentFrom: string;
   sentTo: string;
 }
+
+/*
+ * The work is spread by project (SecurityProjectWork): the cron queues one
+ * turn for each project with an enabled destination.
+ */
+export const SECURITY_EVENT_FORWARD_PROJECT_WORK: SecurityProjectWorkDefinition =
+  {
+    jobName: "SecurityEvents:ForwardProject",
+    key: "security-event-forward",
+    maxConcurrentProjects: 8,
+  };
 
 function readCursor(value: string | undefined): Date | null {
   if (!value) {
@@ -91,11 +112,43 @@ function readNumber(value: JSONValue | undefined): number {
 }
 
 export default class SecurityEventForwarder {
+  /*
+   * The cron's half: every enabled destination in the instance, page by
+   * page, and one turn queued for each project that has one. Returns how
+   * many projects were queued.
+   */
   @CaptureSpan()
-  public static async forwardAllEnabled(): Promise<void> {
+  public static async enqueueProjectsWithEnabledDestinations(): Promise<number> {
     const destinations: Array<SecurityEventDestination> =
-      await SecurityEventDestinationService.findBy({
+      await SecurityEventDestinationService.findAllBy({
         query: { isEnabled: true },
+        select: {
+          _id: true,
+          projectId: true,
+        },
+        sort: { _id: SortOrder.Ascending },
+        props: { isRoot: true },
+      });
+
+    return SecurityProjectWork.enqueueProjects(
+      SECURITY_EVENT_FORWARD_PROJECT_WORK,
+      destinations.map(
+        (destination: SecurityEventDestination): ObjectID | undefined => {
+          return destination.projectId;
+        },
+      ),
+    );
+  }
+
+  // One project's turn: a send to each of its enabled destinations.
+  @CaptureSpan()
+  public static async forwardProject(
+    projectId: ObjectID,
+    lease: SecurityProjectWorkLease = UNLIMITED_SECURITY_PROJECT_WORK_LEASE,
+  ): Promise<void> {
+    const destinations: Array<SecurityEventDestination> =
+      await SecurityEventDestinationService.findAllBy({
+        query: { projectId, isEnabled: true },
         select: {
           _id: true,
           projectId: true,
@@ -104,19 +157,27 @@ export default class SecurityEventForwarder {
           cursor: true,
           lastSendResult: true,
         },
-        skip: 0,
-        limit: LIMIT_MAX,
+        sort: { _id: SortOrder.Ascending },
         props: { isRoot: true },
       });
 
     for (const destination of destinations) {
-      await this.forwardWithLock(destination);
+      if (!lease.hasTimeLeft()) {
+        return;
+      }
+
+      await this.forwardWithLock(destination, lease);
+
+      if (!(await lease.keep())) {
+        return;
+      }
     }
   }
 
   // One send per destination at a time, across every worker.
   private static async forwardWithLock(
     destination: SecurityEventDestination,
+    lease: SecurityProjectWorkLease,
   ): Promise<void> {
     if (!destination.id || !destination.projectId) {
       return;
@@ -137,7 +198,7 @@ export default class SecurityEventForwarder {
     }
 
     try {
-      await this.forwardDestination(destination);
+      await this.forwardDestination(destination, { lease });
     } catch (error) {
       logger.error(
         `SecurityEventForwarder: destination ${destination.id.toString()} failed:`,
@@ -171,8 +232,13 @@ export default class SecurityEventForwarder {
   @CaptureSpan()
   public static async forwardDestination(
     destination: SecurityEventDestination,
-    options: { sender?: SecurityEventSender | undefined } = {},
+    options: {
+      sender?: SecurityEventSender | undefined;
+      lease?: SecurityProjectWorkLease | undefined;
+    } = {},
   ): Promise<SecurityEventForwardResult> {
+    const lease: SecurityProjectWorkLease =
+      options.lease || UNLIMITED_SECURITY_PROJECT_WORK_LEASE;
     const projectId: ObjectID = destination.projectId!;
     const definition: SecurityEventDestinationDefinition | undefined =
       getSecurityEventDestinationDefinition(destination.provider);
@@ -223,7 +289,6 @@ export default class SecurityEventForwarder {
       rejected: 0,
       rejectionReason: "",
       windows: 0,
-      truncated: false,
       skippedBacklog,
       failure: "",
       partialWindowStart: "",
@@ -234,6 +299,9 @@ export default class SecurityEventForwarder {
 
     const findingsOnly: boolean =
       destination.sendScope !== SecurityEventDestinationScope.AllEvents;
+
+    // Events read this run, against FORWARD_MAX_EVENTS_PER_RUN.
+    let readThisRun: number = 0;
 
     while (
       OneUptimeDate.isBefore(cursor, until) &&
@@ -251,7 +319,15 @@ export default class SecurityEventForwarder {
       let processedInWindow: number = skipInWindow;
       let stopped: boolean = false;
 
-      while (offset < FORWARD_MAX_EVENTS_PER_WINDOW) {
+      for (;;) {
+        if (readThisRun >= FORWARD_MAX_EVENTS_PER_RUN || !lease.hasTimeLeft()) {
+          // Out of this run's budget: the next goes on from this event.
+          result.partialWindowStart = cursor.toISOString();
+          result.partialWindowProcessed = processedInWindow;
+          stopped = true;
+          break;
+        }
+
         const rows: Array<JSONObject> =
           await SecurityEventService.findArrivedEvents({
             projectId,
@@ -266,16 +342,15 @@ export default class SecurityEventForwarder {
               ...definition.importedProductNames,
               SETUP_TEST_PRODUCT_NAME,
             ],
-            limit: Math.min(
-              FORWARD_PAGE_SIZE,
-              FORWARD_MAX_EVENTS_PER_WINDOW - offset,
-            ),
+            limit: FORWARD_PAGE_SIZE,
             offset,
           });
 
         if (rows.length === 0) {
           break;
         }
+
+        readThisRun += rows.length;
 
         const records: Array<SecurityEventRecord> = rows.map(
           (row: JSONObject): SecurityEventRecord => {
@@ -308,8 +383,12 @@ export default class SecurityEventForwarder {
           break;
         }
 
-        if (offset >= FORWARD_MAX_EVENTS_PER_WINDOW) {
-          result.truncated = true;
+        if (!(await lease.keep())) {
+          // Another send may have the project now: stop at this event.
+          result.partialWindowStart = cursor.toISOString();
+          result.partialWindowProcessed = processedInWindow;
+          stopped = true;
+          break;
         }
       }
 

@@ -16,10 +16,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * High, the default, and a case nobody was told about yet tells the people
  * its priority reaches the first time it rises.
  */
-export class AddSecurityCaseNotifications1805210000000
+export class AddSecurityCaseNotifications1805700000000
   implements MigrationInterface
 {
-  public name: string = "AddSecurityCaseNotifications1805210000000";
+  public name: string = "AddSecurityCaseNotifications1805700000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

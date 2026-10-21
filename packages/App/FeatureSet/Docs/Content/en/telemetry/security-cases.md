@@ -190,16 +190,19 @@ A disabled playbook runs neither by itself nor by hand.
 | Notify | Post to Microsoft Teams | Posts a summary of the case to a Microsoft Teams channel |
 | Escalate | Page on-call | Runs an on-call policy |
 | Escalate | Declare an incident | Opens a OneUptime incident linked to the case |
-| Contain | Suspend the user in Okta | Suspends each user of the case in Okta |
-| Contain | End the user's Okta sessions | Signs each user of the case out of Okta and revokes their tokens |
-| Contain | Contain the host in CrowdStrike | Network-contains each host of the case with CrowdStrike Falcon |
-| Contain | Isolate the device in Microsoft Defender | Isolates each host of the case with Microsoft Defender for Endpoint |
+| Contain | Suspend the user in Okta | Suspends the user the case is about in Okta |
+| Contain | End the user's Okta sessions | Signs the user the case is about out of Okta and revokes their tokens |
+| Contain | Contain the host in CrowdStrike | Network-contains the host the case is about with CrowdStrike Falcon |
+| Contain | Isolate the device in Microsoft Defender | Isolates the host the case is about with Microsoft Defender for Endpoint |
+| Contain | Unsuspend the user in Okta | Unsuspends the user the case is about in Okta |
+| Contain | Lift containment in CrowdStrike | Lifts CrowdStrike Falcon's network containment from the host the case is about |
+| Contain | Release the device in Microsoft Defender | Releases the host the case is about from isolation in Microsoft Defender for Endpoint |
 | Automate | Send a webhook | Posts the case as JSON to a URL |
 | Automate | Run a workflow | Starts a OneUptime workflow with the case as its input |
 
 A playbook has at most 25 steps. They run in order, each once the one before it is done. Every step can also:
 
-- **Needs Approval**: stop the run before the step until someone approves it on the case. It is on by default for the four Contain steps, which act outside OneUptime.
+- **Needs Approval**: stop the run before the step until someone approves it on the case. The four steps that cut someone off always do, unless a Security Admin turns it off.
 - **Only If Threat Intel Matched**: skip the step unless an earlier **Check entities against threat intel** step of the run found a known indicator.
 - **Carry On If It Fails**: run the next step even if this one fails. Off, a failed step stops the run.
 
@@ -209,11 +212,28 @@ The Contain steps act through a [security event connection](/docs/telemetry/secu
 
 | Step | Connection | Needs |
 | --- | --- | --- |
-| Suspend the user in Okta, End the user's Okta sessions | Okta System Log | An API token allowed to manage users |
-| Contain the host in CrowdStrike | CrowdStrike Falcon | An API client with the Hosts write scope |
-| Isolate the device in Microsoft Defender | Microsoft Defender XDR | An app with the Machine.Isolate permission |
+| Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | An API token allowed to manage users |
+| Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | An API client with the Hosts write scope |
+| Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | An app with the Machine.Isolate permission |
 
-A Contain step acts on at most 10 of the case's users or hosts. It finds each in the product by name, and says on the case what it did with each one: contained, already contained, not found, or refused.
+A Contain step acts only on the users or hosts the case is about, never on every one it names:
+
+- The value a detection of the case is grouped on, such as the account an impossible-travel rule groups by, or the host a connected product's alert names.
+- A user or host of the case that your threat intelligence knows as an indicator.
+
+A case grouped on an address, such as a brute force against your VPN, is about neither: its Contain steps are skipped, and the account it tried and the gateway it hit are left alone. A step acts on at most 10 users or hosts. It finds each in the product by name, and says on the run what it did with each one: done, already done, not found, refused, or protected.
+
+#### Protected entities
+
+**Protected Entities**, under **Playbooks** in the menu, lists the users and hosts no playbook contains, such as break-glass accounts, domain controllers and VPN gateways. A value matches whatever its case, and `*` stands for any run of characters: `svc-*` protects every service account. A step reports a protected user or host as protected and leaves it alone. Security Admins keep the list.
+
+#### Approval
+
+The four steps that cut someone off wait for approval. Only a Security Admin can turn **Needs Approval** off for one, and OneUptime records who did. The approval lists the users or hosts the step would act on under **Act On**, every one ticked: untick any it should leave alone. Protected ones are not offered. Whoever started a run cannot approve its steps: someone else does, though they can still reject it.
+
+#### Undo
+
+The undo steps act on the users or hosts the case is about, like the steps they undo. Once the run has stopped, a contained user or host also has a button of its own on its step: **Unsuspend**, **Lift Containment** or **Release**. An ended Okta session cannot be undone. Every undo is kept on the case's timeline and in the project's audit log.
 
 ### Messages
 
@@ -245,7 +265,7 @@ Every run is listed on its case and under **Products → Security Events → Pla
 | Failed | A step failed and the run stopped |
 | Cancelled | Someone cancelled it, or rejected a step |
 
-A step waiting for approval shows **Approve** and **Reject** on the run, with an optional comment. Approving carries the run on from that step; rejecting ends it. The decision, who made it and their comment are kept on the step and on the case's timeline. **Waiting for Approval**, under **Playbooks** in the menu, lists the runs held for a decision and counts them; **Playbook Runs** lists every run.
+A step waiting for approval shows **Approve** and **Reject** on the run, with an optional comment. Approving carries the run on from that step; rejecting ends it. The decision, who made it and their comment are kept on the step, on the case's timeline and in the project's audit log. **Waiting for Approval**, under **Playbooks** in the menu, lists the runs held for a decision and counts them; **Playbook Runs** lists every run.
 
 A run that stops hearing from its worker, after a restart for example, is picked up again: a queued run is queued again after 2 minutes, and a run that has said nothing for 30 minutes is failed.
 
@@ -269,7 +289,7 @@ Above them, a strip shows how Security is set up: its sources, detections, cases
 ## Automate
 
 - **Workflows**: a case or a note can start a workflow when it is created, updated or deleted. A **Run a workflow** step starts a workflow whose trigger is a webhook.
-- **API**: cases, notes, detections, playbooks and runs have the same REST API as the rest of OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook` and `/security-playbook-run`. See [API Reference](/docs/api-reference/api-reference).
+- **API**: cases, notes, detections, playbooks, runs and protected entities have the same REST API as the rest of OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` and `/security-protected-entity`. See [API Reference](/docs/api-reference/api-reference).
 - AI agents: the MCP server has tools for cases, notes, detections and playbooks. See [MCP Server](/docs/ai/mcp-server).
 
 ## Troubleshooting
@@ -288,6 +308,10 @@ Check that it is enabled, that its **Trigger** fits (Case Opened runs once, as a
 
 :::details A Contain step failed
 Open the run on the case: the step says, for each user or host, whether the product refused it, did not find it, or could not be reached. Check that the connection's credential may make the change, and use **Test connection** in its row.
+:::
+
+:::details A Contain step was skipped
+The case is about no user or host, only an address for example, or every user or host it is about is protected. Open the run on the case: the step says which.
 :::
 
 ## Next steps

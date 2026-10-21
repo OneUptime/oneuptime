@@ -9,17 +9,25 @@ export default class AppQueueService {
    * jobs as demand and overscale the fleet.
    */
   public static async getQueueBacklogSize(): Promise<number> {
-    const [workerSize, workflowSize, telemetrySize, runbookSize]: [
-      number,
-      number,
-      number,
-      number,
-    ] = await Promise.all([
+    const [
+      workerSize,
+      workflowSize,
+      telemetrySize,
+      runbookSize,
+      aiInvestigationSize,
+    ]: [number, number, number, number, number] = await Promise.all([
       Queue.getQueueBacklogSize(QueueName.Worker),
       Queue.getQueueBacklogSize(QueueName.Workflow),
       Queue.getQueueBacklogSize(QueueName.Telemetry),
       Queue.getQueueBacklogSize(QueueName.Runbook),
+      Queue.getQueueBacklogSize(QueueName.AIInvestigation),
     ]);
-    return workerSize + workflowSize + telemetrySize + runbookSize;
+    return (
+      workerSize +
+      workflowSize +
+      telemetrySize +
+      runbookSize +
+      aiInvestigationSize
+    );
   }
 }

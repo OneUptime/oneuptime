@@ -45,6 +45,7 @@ Abra **Produtos → Security Events**, em **Observabilidade**. O menu dele tem u
 | **Playbooks** | Playbooks | Etapas que rodam nos casos, sozinhas ou manualmente |
 | **Aguardando aprovação** | Playbooks | As etapas de playbook aguardando alguém aprovar ou rejeitar |
 | **Execuções de playbooks** | Playbooks | O que cada playbook fez, etapa por etapa |
+| **Protected Entities** | Playbooks | Os usuários e hosts aos quais nenhum playbook aplica contenção |
 | **Connections** | Connections | Seus logs, os produtos de segurança que o OneUptime consulta e os SIEMs para os quais ele envia |
 | **Guia de configuração** | Connections | Trechos para enviar eventos, preenchidos com a sua chave de ingestão |
 
@@ -307,7 +308,7 @@ O OneUptime verifica a cada minuto quais regras habilitadas já passaram do inte
 - As janelas vêm uma depois da outra, não deslizam. Com um intervalo de 10 minutos, falhas às 09:58 e às 10:01 podem cair em execuções diferentes e são contadas separadamente, então deixe folga ao escolher um limite.
 - Depois de uma lacuna, como uma queda do worker ou uma regra reativada, a próxima execução cobre a lacuna inteira, até as últimas 24 horas.
 - Um evento que chega com mais de dois minutos de atraso, depois que uma execução já cobriu o seu horário, é salvo e pode ser pesquisado, mas essa regra nunca o lê.
-- No máximo 100 grupos disparam por execução: os de contagens mais altas.
+- Cada grupo que atinge o limite vira um Detection Finding, até 10.000 por execução. Alertas, incidentes e casos abrem para os 100 com as contagens mais altas; o restante compartilha um caso sobre a regra, e o **Último erro** da regra diz quantos grupos corresponderam.
 
 ### Gravidade
 

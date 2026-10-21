@@ -138,7 +138,7 @@ A cada minuto, os indicadores ativos de cada feed habilitado são comparados com
 - A primeira verificação cobre os últimos 15 minutos. Depois de uma queda, a próxima verificação recupera no máximo as últimas 24 horas.
 - Cada janela é verificada uma vez. A inteligência que chega depois que a janela dela foi verificada só vale para eventos posteriores.
 - Um evento que chega atrasado, com um horário anterior à verificação anterior, ainda é marcado na chegada, mas não é comparado.
-- Cada verificação compara no máximo 100 valores de indicador por feed: os vistos no maior número de eventos.
+- Cada verificação registra cada valor de indicador correspondente como um Detection Finding, até 10.000 por feed. Alertas, incidentes e casos abrem para os 100 valores vistos no maior número de eventos; o restante compartilha um caso sobre o feed, e o **Last Match Error** do feed diz quantos corresponderam.
 
 ### O que uma correspondência faz
 

@@ -190,16 +190,19 @@ Een uitgeschakeld playbook draait niet vanzelf en ook niet met de hand.
 | Informeren | Post to Microsoft Teams | Plaatst een samenvatting van de zaak in een kanaal van Microsoft Teams |
 | Escaleren | Page on-call | Voert een on-callbeleid uit |
 | Escaleren | Declare an incident | Opent een OneUptime-incident dat aan de zaak is gekoppeld |
-| Inperken | Suspend the user in Okta | Schorst elke gebruiker van de zaak in Okta |
-| Inperken | End the user's Okta sessions | Meldt elke gebruiker van de zaak af bij Okta en trekt zijn tokens in |
-| Inperken | Contain the host in CrowdStrike | Isoleert elke host van de zaak van het netwerk met CrowdStrike Falcon |
-| Inperken | Isolate the device in Microsoft Defender | Isoleert elke host van de zaak met Microsoft Defender for Endpoint |
+| Inperken | Suspend the user in Okta | Schorst in Okta de gebruiker waar de zaak over gaat |
+| Inperken | End the user's Okta sessions | Meldt de gebruiker waar de zaak over gaat af bij Okta en trekt zijn tokens in |
+| Inperken | Contain the host in CrowdStrike | Isoleert de host waar de zaak over gaat van het netwerk met CrowdStrike Falcon |
+| Inperken | Isolate the device in Microsoft Defender | Isoleert de host waar de zaak over gaat met Microsoft Defender for Endpoint |
+| Inperken | Unsuspend the user in Okta | Heft in Okta de schorsing op van de gebruiker waar de zaak over gaat |
+| Inperken | Lift containment in CrowdStrike | Heft voor de host waar de zaak over gaat de netwerkisolatie van CrowdStrike Falcon op |
+| Inperken | Release the device in Microsoft Defender | Haalt in Microsoft Defender for Endpoint de host waar de zaak over gaat uit isolatie |
 | Automatiseren | Send a webhook | Post de zaak als JSON naar een URL |
 | Automatiseren | Run a workflow | Start een OneUptime-workflow met de zaak als invoer |
 
 Een playbook heeft hoogstens 25 stappen. Ze draaien op volgorde, elk zodra de vorige klaar is. Elke stap kan ook:
 
-- **Needs Approval**: de uitvoering vóór de stap stilzetten totdat iemand hem op de zaak goedkeurt. Dit staat standaard aan voor de vier inperkingsstappen, die buiten OneUptime ingrijpen.
+- **Needs Approval**: de uitvoering vóór de stap stilzetten totdat iemand hem op de zaak goedkeurt. De vier stappen die iemand de toegang ontnemen, zetten de uitvoering altijd stil, tenzij een Security Admin dit uitzet.
 - **Only If Threat Intel Matched**: de stap overslaan, tenzij een eerdere stap **Check entities against threat intel** van dezelfde uitvoering een bekende indicator vond.
 - **Carry On If It Fails**: de volgende stap uitvoeren, ook als deze mislukt. Staat dit uit, dan stopt een mislukte stap de uitvoering.
 
@@ -209,11 +212,28 @@ De inperkingsstappen werken via een [verbinding voor beveiligingsgebeurtenissen]
 
 | Stap | Verbinding | Vereist |
 | --- | --- | --- |
-| Suspend the user in Okta, End the user's Okta sessions | Okta System Log | Een API-token dat gebruikers mag beheren |
-| Contain the host in CrowdStrike | CrowdStrike Falcon | Een API-client met schrijfrechten in de scope Hosts |
-| Isolate the device in Microsoft Defender | Microsoft Defender XDR | Een app met de machtiging Machine.Isolate |
+| Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Een API-token dat gebruikers mag beheren |
+| Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | Een API-client met schrijfrechten in de scope Hosts |
+| Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | Een app met de machtiging Machine.Isolate |
 
-Een inperkingsstap werkt op hoogstens 10 van de gebruikers of hosts van de zaak. Hij zoekt elk ervan op naam op in het product, en meldt op de zaak wat hij met elk deed: ingeperkt, al ingeperkt, niet gevonden of geweigerd.
+Een inperkingsstap werkt alleen op de gebruikers of hosts waar de zaak over gaat, nooit op alle gebruikers en hosts die ze noemt:
+
+- De waarde waarop een detectie van de zaak is gegroepeerd, zoals het account waarop een regel voor onmogelijke reizen groepeert, of de host die de waarschuwing van een gekoppeld product noemt.
+- Een gebruiker of host van de zaak die je threat intelligence als indicator kent.
+
+Een zaak die op een adres is gegroepeerd, zoals een brute-forceaanval op je VPN, gaat over geen van beide: haar inperkingsstappen worden overgeslagen, en het geprobeerde account en de geraakte gateway blijven ongemoeid. Een stap werkt op hoogstens 10 gebruikers of hosts. Hij zoekt elk ervan op naam op in het product, en meldt op de uitvoering wat hij met elk deed: uitgevoerd, al uitgevoerd, niet gevonden, geweigerd of beschermd.
+
+#### Beschermde entiteiten
+
+**Protected Entities**, onder **Playbooks** in het menu, toont de gebruikers en hosts die geen enkel playbook inperkt, zoals noodaccounts, domeincontrollers en VPN-gateways. Een waarde matcht ongeacht hoofdletters, en `*` staat voor elke reeks tekens: `svc-*` beschermt elk serviceaccount. Een stap meldt een beschermde gebruiker of host als beschermd en laat hem ongemoeid. Security Admins houden de lijst bij.
+
+#### Goedkeuring
+
+De vier stappen die iemand de toegang ontnemen, wachten op goedkeuring. Alleen een Security Admin kan **Needs Approval** voor een ervan uitzetten, en OneUptime legt vast wie dat deed. De goedkeuring toont onder **Act On** de gebruikers of hosts waarop de stap zou werken, allemaal aangevinkt: vink uit wat hij ongemoeid moet laten. Beschermde gebruikers en hosts staan er niet tussen. Wie een uitvoering heeft gestart, kan haar stappen niet goedkeuren: dat doet iemand anders, maar afwijzen kan die persoon nog wel.
+
+#### Ongedaan maken
+
+De herstelstappen werken op de gebruikers of hosts waar de zaak over gaat, net als de stappen die ze terugdraaien. Zodra de uitvoering is gestopt, heeft een ingeperkte gebruiker of host ook een eigen knop op zijn stap: **Unsuspend**, **Lift Containment** of **Vrijgeven**. Een beëindigde Okta-sessie kan niet ongedaan worden gemaakt. Elke herstelactie wordt bewaard op de tijdlijn van de zaak en in het auditlogboek van het project.
 
 ### Berichten
 
@@ -245,7 +265,7 @@ Elke uitvoering staat stap voor stap vermeld bij haar zaak en onder **Producten 
 | Mislukt | Een stap mislukte en de uitvoering stopte |
 | Geannuleerd | Iemand heeft haar geannuleerd, of een stap afgewezen |
 
-Een stap die op goedkeuring wacht, toont **Approve** en **Reject** op de uitvoering, met een optionele opmerking. Goedkeuren zet de uitvoering voort vanaf die stap; afwijzen beëindigt haar. De beslissing, wie haar nam en de opmerking worden bewaard bij de stap en op de tijdlijn van de zaak. **Wacht op goedkeuring**, onder **Playbooks** in het menu, toont de uitvoeringen die op een beslissing wachten en telt ze; **Playbook-uitvoeringen** toont elke uitvoering.
+Een stap die op goedkeuring wacht, toont **Approve** en **Reject** op de uitvoering, met een optionele opmerking. Goedkeuren zet de uitvoering voort vanaf die stap; afwijzen beëindigt haar. De beslissing, wie haar nam en de opmerking worden bewaard bij de stap, op de tijdlijn van de zaak en in het auditlogboek van het project. **Wacht op goedkeuring**, onder **Playbooks** in het menu, toont de uitvoeringen die op een beslissing wachten en telt ze; **Playbook-uitvoeringen** toont elke uitvoering.
 
 Een uitvoering die niets meer van haar worker hoort, bijvoorbeeld na een herstart, wordt weer opgepakt: een uitvoering in de wachtrij wordt na 2 minuten opnieuw in de wachtrij gezet, en een uitvoering die 30 minuten niets heeft gemeld, wordt als mislukt gemarkeerd.
 
@@ -269,7 +289,7 @@ Daarboven toont een strook hoe beveiliging is ingericht: de bronnen, detecties, 
 ## Automatiseren
 
 - **Workflows**: een zaak of een notitie kan een workflow starten wanneer ze wordt aangemaakt, bijgewerkt of verwijderd. Een stap **Run a workflow** start een workflow waarvan de trigger een webhook is.
-- **API**: zaken, notities, detecties, playbooks en uitvoeringen hebben dezelfde REST API als de rest van OneUptime, onder `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook` en `/security-playbook-run`. Zie [API-referentie](/docs/api-reference/api-reference).
+- **API**: zaken, notities, detecties, playbooks, uitvoeringen en beschermde entiteiten hebben dezelfde REST API als de rest van OneUptime, onder `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` en `/security-protected-entity`. Zie [API-referentie](/docs/api-reference/api-reference).
 - AI-agents: de MCP-server heeft tools voor zaken, notities, detecties en playbooks. Zie [MCP-server](/docs/ai/mcp-server).
 
 ## Probleemoplossing
@@ -288,6 +308,10 @@ Controleer of het is ingeschakeld, of de **Trigger** klopt (Case Opened draait �
 
 :::details Een inperkingsstap is mislukt
 Open de uitvoering op de zaak: de stap meldt voor elke gebruiker of host of het product de actie weigerde, hem niet vond, of niet bereikbaar was. Controleer of de referentie van de verbinding de wijziging mag doorvoeren, en gebruik **Verbinding testen** in haar rij.
+:::
+
+:::details Een inperkingsstap is overgeslagen
+De zaak gaat over geen enkele gebruiker of host, bijvoorbeeld alleen over een adres, of elke gebruiker of host waar ze over gaat, is beschermd. Open de uitvoering op de zaak: de stap meldt welke van de twee.
 :::
 
 ## Volgende stappen

@@ -190,16 +190,19 @@ En inaktiverad playbook körs varken av sig själv eller manuellt.
 | Avisering | Post to Microsoft Teams | Postar en sammanfattning av ärendet i en Microsoft Teams-kanal |
 | Eskalering | Page on-call | Kör en jourpolicy |
 | Eskalering | Declare an incident | Öppnar en OneUptime-incident som är länkad till ärendet |
-| Begränsning | Suspend the user in Okta | Stänger av varje användare i ärendet i Okta |
-| Begränsning | End the user's Okta sessions | Loggar ut varje användare i ärendet från Okta och återkallar deras tokens |
-| Begränsning | Contain the host in CrowdStrike | Isolerar varje värd i ärendet från nätverket med CrowdStrike Falcon |
-| Begränsning | Isolate the device in Microsoft Defender | Isolerar varje värd i ärendet med Microsoft Defender for Endpoint |
+| Begränsning | Suspend the user in Okta | Stänger av användaren som ärendet handlar om i Okta |
+| Begränsning | End the user's Okta sessions | Loggar ut användaren som ärendet handlar om från Okta och återkallar användarens tokens |
+| Begränsning | Contain the host in CrowdStrike | Isolerar värden som ärendet handlar om från nätverket med CrowdStrike Falcon |
+| Begränsning | Isolate the device in Microsoft Defender | Isolerar värden som ärendet handlar om med Microsoft Defender for Endpoint |
+| Begränsning | Unsuspend the user in Okta | Återaktiverar användaren som ärendet handlar om i Okta |
+| Begränsning | Lift containment in CrowdStrike | Häver CrowdStrike Falcons nätverksisolering av värden som ärendet handlar om |
+| Begränsning | Release the device in Microsoft Defender | Frigör värden som ärendet handlar om från isoleringen i Microsoft Defender for Endpoint |
 | Automatisering | Send a webhook | Postar ärendet som JSON till en URL |
 | Automatisering | Run a workflow | Startar ett OneUptime-arbetsflöde med ärendet som indata |
 
 En playbook har högst 25 steg. De körs i ordning, vart och ett när det föregående är klart. Varje steg har också de här inställningarna:
 
-- **Needs Approval**: stoppar körningen före steget tills någon godkänner det i ärendet. Den är påslagen som standard för de fyra begränsningsstegen, som agerar utanför OneUptime.
+- **Needs Approval**: stoppar körningen före steget tills någon godkänner det i ärendet. För de fyra stegen som stänger ute någon är den alltid påslagen, om inte en Security Admin slår av den.
 - **Only If Threat Intel Matched**: hoppar över steget om inte ett tidigare steg **Check entities against threat intel** i körningen hittade en känd indikator.
 - **Carry On If It Fails**: kör nästa steg även om det här misslyckas. Är den avstängd stoppar ett misslyckat steg körningen.
 
@@ -209,11 +212,28 @@ Begränsningsstegen agerar via en [anslutning för säkerhetshändelser](/docs/t
 
 | Steg | Anslutning | Behöver |
 | --- | --- | --- |
-| Suspend the user in Okta, End the user's Okta sessions | Okta System Log | En API-token som får hantera användare |
-| Contain the host in CrowdStrike | CrowdStrike Falcon | En API-klient med skrivbehörighet i scopet Hosts |
-| Isolate the device in Microsoft Defender | Microsoft Defender XDR | En app med behörigheten Machine.Isolate |
+| Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | En API-token som får hantera användare |
+| Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | En API-klient med skrivbehörighet i scopet Hosts |
+| Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | En app med behörigheten Machine.Isolate |
 
-Ett begränsningssteg agerar på högst 10 av ärendets användare eller värdar. Det letar upp var och en i produkten efter namn och skriver i ärendet vad det gjorde med var och en: begränsad, redan begränsad, hittades inte eller nekades.
+Ett begränsningssteg agerar bara på de användare eller värdar som ärendet handlar om, aldrig på alla som det nämner:
+
+- Värdet som en detektion i ärendet grupperas efter, till exempel kontot som en regel för omöjliga resor grupperar efter, eller värden som ett larm från en ansluten produkt nämner.
+- En användare eller värd i ärendet som dina hotunderrättelser känner till som en indikator.
+
+Ett ärende som grupperas efter en adress, till exempel en brute force-attack mot ditt VPN, handlar om ingetdera: dess begränsningssteg hoppas över, och kontot som attacken prövade och gatewayen som den träffade lämnas i fred. Ett steg agerar på högst 10 användare eller värdar. Det letar upp var och en i produkten efter namn och skriver i körningen vad det gjorde med var och en: klart, redan klart, hittades inte, nekades eller skyddad.
+
+#### Skyddade entiteter
+
+**Protected Entities**, under **Playbooks** i menyn, listar de användare och värdar som ingen playbook begränsar, till exempel konton för nödåtkomst, domänkontrollanter och VPN-gatewayer. Ett värde matchar oavsett skiftläge, och `*` står för en valfri följd av tecken: `svc-*` skyddar alla tjänstkonton. Ett steg rapporterar en skyddad användare eller värd som skyddad och lämnar den i fred. Listan sköts av användare med rollen Security Admin.
+
+#### Godkännande
+
+De fyra stegen som stänger ute någon väntar på godkännande. Bara en Security Admin kan slå av **Needs Approval** för ett av dem, och OneUptime registrerar vem som gjorde det. Godkännandet listar användarna eller värdarna som steget skulle agera på under **Act On**, alla förbockade: avmarkera dem som steget ska lämna i fred. Skyddade finns inte med bland alternativen. Den som startade en körning kan inte godkänna dess steg: det gör någon annan, men den som startade körningen kan fortfarande avvisa steget.
+
+#### Ångra
+
+Ångringsstegen agerar på de användare eller värdar som ärendet handlar om, precis som stegen de ångrar. När körningen har stannat har en begränsad användare eller värd också en egen knapp på sitt steg: **Unsuspend**, **Lift Containment** eller **Frigör**. En avslutad Okta-session kan inte ångras. Varje ångring sparas på ärendets tidslinje och i projektets granskningslogg.
 
 ### Meddelanden
 
@@ -245,7 +265,7 @@ Varje körning listas, steg för steg, i sitt ärende och under **Produkter → 
 | Failed | Ett steg misslyckades och körningen stoppades |
 | Cancelled | Någon avbröt den eller avvisade ett steg |
 
-Ett steg som väntar på godkännande visar **Approve** och **Reject** på körningen, med en valfri kommentar. Ett godkännande låter körningen fortsätta från det steget; ett avvisande avslutar den. Beslutet, vem som fattade det och kommentaren sparas på steget och på ärendets tidslinje. **Väntar på godkännande**, under **Playbooks** i menyn, listar körningarna som väntar på ett beslut och räknar dem; **Playbook-körningar** listar varje körning.
+Ett steg som väntar på godkännande visar **Approve** och **Reject** på körningen, med en valfri kommentar. Ett godkännande låter körningen fortsätta från det steget; ett avvisande avslutar den. Beslutet, vem som fattade det och kommentaren sparas på steget, på ärendets tidslinje och i projektets granskningslogg. **Väntar på godkännande**, under **Playbooks** i menyn, listar körningarna som väntar på ett beslut och räknar dem; **Playbook-körningar** listar varje körning.
 
 En körning vars worker slutar höra av sig, till exempel efter en omstart, tas upp igen: en köad körning läggs i kö på nytt efter 2 minuter, och en körning som inte har hörts av på 30 minuter markeras som misslyckad.
 
@@ -269,7 +289,7 @@ Ovanför visar en remsa hur säkerhet är uppsatt: dess källor, detektioner, ä
 ## Automatisera
 
 - **Arbetsflöden**: ett ärende eller en anteckning kan starta ett arbetsflöde när det skapas, uppdateras eller tas bort. Ett steg **Run a workflow** startar ett arbetsflöde vars utlösare är en webhook.
-- **API**: ärenden, anteckningar, detektioner, playbooks och körningar har samma REST API som resten av OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook` och `/security-playbook-run`. Se [API-referens](/docs/api-reference/api-reference).
+- **API**: ärenden, anteckningar, detektioner, playbooks, körningar och skyddade entiteter har samma REST API som resten av OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` och `/security-protected-entity`. Se [API-referens](/docs/api-reference/api-reference).
 - AI-agenter: MCP-servern har verktyg för ärenden, anteckningar, detektioner och playbooks. Se [MCP-server](/docs/ai/mcp-server).
 
 ## Felsökning
@@ -288,6 +308,10 @@ Kontrollera att den är aktiverad, att dess inställning **Utlösare** passar (C
 
 :::details Ett begränsningssteg misslyckades
 Öppna körningen i ärendet: steget anger, för varje användare eller värd, om produkten nekade, inte hittade den eller inte gick att nå. Kontrollera att anslutningens autentiseringsuppgift får göra ändringen, och använd **Testa anslutningen** i dess rad.
+:::
+
+:::details Ett begränsningssteg hoppades över
+Ärendet handlar inte om någon användare eller värd, utan till exempel bara om en adress, eller så är alla användare och värdar som det handlar om skyddade. Öppna körningen i ärendet: steget anger vilket.
 :::
 
 ## Nästa steg

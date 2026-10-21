@@ -44,7 +44,7 @@ OneUptime دو مانیتور برای ماشین‌ها دارد. هر دو م�
 
 ## پیش از شروع
 
-- **یک OpenTelemetry Collector روی میزبان اجرا کنید**، با گیرنده `hostmetrics`. [کالکتور OpenTelemetry روی میزبان](/docs/telemetry/host-otel-collector) Linux، macOS و Windows را پوشش می‌دهد، و **محصولات → زیرساخت → میزبان‌ها → مستندات** یک پیکربندی آماده ارائه می‌دهد.
+- **یک OpenTelemetry Collector روی میزبان اجرا کنید**، با گیرنده `hostmetrics`. سریع‌ترین راه [میزبان‌ها](/docs/telemetry/hosts) است: یک فرمان کالکتور را نصب می‌کند و OneUptime آن را پیکربندی می‌کند. [کالکتور OpenTelemetry روی میزبان](/docs/telemetry/host-otel-collector) Linux، macOS و Windows را پوشش می‌دهد، و **محصولات → زیرساخت → میزبان‌ها → مستندات** یک پیکربندی آماده ارائه می‌دهد.
 - **متریک‌های بهره‌برداری را روشن کنید.** `system.cpu.utilization`، `system.memory.utilization` و `system.filesystem.utilization` در گیرنده اختیاری‌اند، و الگوهای CPU، حافظه و سامانه فایل به آن‌ها نیاز دارند. پیکربندی داشبورد آن‌ها را روشن می‌کند.
 - **بررسی کنید میزبان ثبت شده باشد.** به محض رسیدن نخستین داده، با نام `host.name` خود زیر **محصولات → زیرساخت → میزبان‌ها → همه میزبان‌ها** پدیدار می‌شود.
 

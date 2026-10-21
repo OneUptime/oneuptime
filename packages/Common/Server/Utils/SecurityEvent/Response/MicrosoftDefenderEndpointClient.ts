@@ -5,17 +5,18 @@ import ResponseHttp, { ResponseHttpResult } from "./ResponseHttp";
 
 /*
  * The Microsoft Defender for Endpoint calls a playbook makes to isolate a
- * device (https://learn.microsoft.com/defender-endpoint/api/get-machines,
- * .../api/isolate-machine):
+ * device, and to release it (https://learn.microsoft.com/defender-endpoint/api/get-machines,
+ * .../api/isolate-machine, .../api/unisolate-machine):
  *
  *   POST {login}/{tenant}/oauth2/v2.0/token   client credentials, scope {api resource}/.default
  *   GET  {api}/api/machines?$filter=...         the device by its DNS name
  *   POST {api}/api/machines/{id}/isolate        { Comment, IsolationType }
+ *   POST {api}/api/machines/{id}/unisolate      { Comment }
  *
  * The connection's app registration is the one the Defender XDR connection
- * imports alerts with; isolating needs the WindowsDefenderATP application
- * permissions Machine.Read.All and Machine.Isolate besides, with admin
- * consent, and the error says so when Defender answers 403.
+ * imports alerts with; isolating and releasing need the WindowsDefenderATP
+ * application permissions Machine.Read.All and Machine.Isolate besides, with
+ * admin consent, and the error says so when Defender answers 403.
  */
 
 interface CloudEndpoints {
@@ -216,6 +217,31 @@ export default class MicrosoftDefenderEndpointClient {
     }
 
     return machines;
+  }
+
+  public async releaseMachine(data: {
+    machineId: string;
+    comment: string;
+  }): Promise<void> {
+    const step: string = "Microsoft Defender release from isolation";
+    const result: ResponseHttpResult = await this.sendAuthenticated(
+      step,
+      "POST",
+      `${this.endpoints.apiHost}/api/machines/${encodeURIComponent(data.machineId)}/unisolate`,
+      JSON.stringify({ Comment: data.comment }),
+    );
+
+    if (!ResponseHttp.isSuccess(result)) {
+      throw ResponseHttp.failure({
+        step,
+        result,
+        secrets: this.secrets(),
+        hint:
+          result.statusCode === 403
+            ? "The app registration needs the WindowsDefenderATP permission Machine.Isolate, with admin consent."
+            : undefined,
+      });
+    }
   }
 
   public async isolateMachine(data: {

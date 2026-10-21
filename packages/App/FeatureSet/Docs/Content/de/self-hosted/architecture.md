@@ -64,7 +64,13 @@ Alle Rollen der App sind dasselbe Image: Docker Compose führt sie in einem `app
 
 ## Verbindungen aus Ihrem Netzwerk heraus
 
-Die App baut nur für das, was Sie einschalten, Verbindungen nach außen auf. Jede davon ist optional, und zu jeder gibt es eine Seite, die die genauen freizugebenden Adressen nennt:
+Drei Verbindungen werden aufgebaut, solange Sie keine Einstellung ändern:
+
+- Einmal am Tag fragt die App die API von GitHub (`api.github.com`), ob eine neuere Version erschienen ist. Abschalten lässt sich das mit `updateCheck.disabled: true` im Helm-Chart oder mit `DISABLE_UPDATE_CHECK=true` in `config.env` bei Docker Compose.
+- Registriert sich jemand mit aktiviertem „Benachrichtigen Sie mich über Sicherheitsupdates und neue Versionen“ (so ist es voreingestellt), gehen Name und E-Mail-Adresse der Person, eine angegebene Firma und Telefonnummer sowie Adresse und Version Ihrer Installation an `oneuptime.com`. Deaktivieren Sie das Kästchen in einem Netzwerk ohne Internetzugang.
+- Unter Kubernetes greifen Probes nach dem DNS Ihres Clusters auf die öffentlichen Resolver `8.8.8.8` und `1.1.1.1` zurück. Setzen Sie `dnsConfig.nameservers` auf `[]`, damit jede Abfrage bei Ihrem eigenen DNS bleibt.
+
+Alles andere baut nur dann Verbindungen nach außen auf, wenn Sie es einschalten, und zu jedem gibt es eine Seite, die die genauen freizugebenden Adressen nennt:
 
 | Ausgehende Verbindung | Wofür | Mehr dazu |
 | --- | --- | --- |

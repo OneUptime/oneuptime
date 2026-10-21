@@ -623,9 +623,14 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
   });
 
   it("starts every setup guide with Choose an ingestion key", () => {
-    expect(
-      readDashboardSource("Components/SetupGuide/SetupGuideCard.tsx"),
-    ).toContain('title: "Choose an ingestion key",');
+    const card: string = readDashboardSource(
+      "Components/SetupGuide/SetupGuideCard.tsx",
+    );
+    expect(card).toContain(
+      'SETUP_GUIDE_KEY_STEP_TITLE: string = translationKey(\n  "Choose an ingestion key",\n);',
+    );
+    // Step 1 of every guide, in the reader's language.
+    expect(card).toContain("title: translate(SETUP_GUIDE_KEY_STEP_TITLE),");
     expect(page).toContain(
       "Every product's **Setup Guide** starts with **Choose an ingestion key**",
     );

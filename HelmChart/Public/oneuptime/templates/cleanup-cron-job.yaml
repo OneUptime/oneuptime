@@ -25,6 +25,10 @@ spec:
           serviceAccountName: cleanup-service-account
           nodeSelector:
             {{- include "oneuptime.nodeSelector" (dict) | nindent 12 }}
+          {{- if $.Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml $.Values.imagePullSecrets | nindent 12 }}
+          {{- end }}
           containers:
           - name: cleanup
             image: {{ include "oneuptime.imageReference" (dict "Values" $.Values "Key" "kubectl" "Default" "bitnami/kubectl:latest") | quote }}
@@ -77,6 +81,10 @@ spec:
           serviceAccountName: cleanup-service-account
           nodeSelector:
             {{- include "oneuptime.nodeSelector" (dict) | nindent 12 }}
+          {{- if $.Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml $.Values.imagePullSecrets | nindent 12 }}
+          {{- end }}
           containers:
           - name: cleanup
             image: {{ include "oneuptime.imageReference" (dict "Values" $.Values "Key" "kubectl" "Default" "bitnami/kubectl:latest") | quote }}

@@ -45,6 +45,7 @@ Open **Producten → Security Events**, onder **Observability**. Het menu heeft 
 | **Playbooks** | Playbooks | Stappen die op zaken draaien, vanzelf of met de hand |
 | **Wacht op goedkeuring** | Playbooks | De playbookstappen die wachten tot iemand ze goedkeurt of afwijst |
 | **Playbook-uitvoeringen** | Playbooks | Wat elk playbook deed, stap voor stap |
+| **Protected Entities** | Playbooks | De gebruikers en hosts die geen enkel playbook inperkt |
 | **Connections** | Connections | Uw logs, de beveiligingsproducten die OneUptime opvraagt en de SIEM's waarnaar het verstuurt |
 | **Installatiegids** | Connections | Snippets om gebeurtenissen te sturen, ingevuld met je ingestiesleutel |
 
@@ -307,7 +308,7 @@ OneUptime controleert elke minuut op ingeschakelde regels waarvan het interval s
 - Vensters sluiten op elkaar aan en glijden niet. Met een interval van 10 minuten kunnen mislukkingen om 09:58 en 10:01 in verschillende uitvoeringen vallen en worden ze apart geteld, dus houd marge aan als je een drempel kiest.
 - Na een onderbreking, zoals een storing van een worker of een regel die weer is aangezet, dekt de volgende uitvoering de hele onderbreking, tot hoogstens de laatste 24 uur.
 - Een gebeurtenis die meer dan twee minuten te laat binnenkomt, nadat een uitvoering haar tijd al heeft gedekt, wordt opgeslagen en is doorzoekbaar, maar die regel leest haar nooit.
-- Per uitvoering gaan hoogstens 100 groepen af: die met de hoogste tellingen.
+- Elke groep die de drempel haalt, wordt een Detection Finding, tot 10.000 per uitvoering. Waarschuwingen, incidenten en zaken openen voor de 100 met de hoogste tellingen; de rest deelt één zaak over de regel, en de **Laatste fout** van de regel zegt hoeveel groepen matchten.
 
 ### Ernst
 

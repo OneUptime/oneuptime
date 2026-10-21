@@ -190,16 +190,19 @@ OneUptime は、ケースについて 3 つのことを人に知らせます。�
 | 通知 | Post to Microsoft Teams | ケースの概要を Microsoft Teams のチャンネルに投稿する |
 | エスカレーション | Page on-call | オンコールポリシーを実行する |
 | エスカレーション | インシデントを宣言 | ケースにリンクされた OneUptime のインシデントを開く |
-| 封じ込め | Suspend the user in Okta | ケースの各ユーザーを Okta で一時停止する |
-| 封じ込め | End the user's Okta sessions | ケースの各ユーザーを Okta からサインアウトさせ、トークンを失効させる |
-| 封じ込め | Contain the host in CrowdStrike | ケースの各ホストを CrowdStrike Falcon でネットワークから封じ込める |
-| 封じ込め | Isolate the device in Microsoft Defender | ケースの各ホストを Microsoft Defender for Endpoint で隔離する |
+| 封じ込め | Suspend the user in Okta | ケースが対象とするユーザーを Okta で一時停止する |
+| 封じ込め | End the user's Okta sessions | ケースが対象とするユーザーを Okta からサインアウトさせ、トークンを失効させる |
+| 封じ込め | Contain the host in CrowdStrike | ケースが対象とするホストを CrowdStrike Falcon でネットワークから封じ込める |
+| 封じ込め | Isolate the device in Microsoft Defender | ケースが対象とするホストを Microsoft Defender for Endpoint で隔離する |
+| 封じ込め | Unsuspend the user in Okta | ケースが対象とするユーザーの Okta での一時停止を解除する |
+| 封じ込め | Lift containment in CrowdStrike | ケースが対象とするホストから CrowdStrike Falcon のネットワーク封じ込めを解除する |
+| 封じ込め | Release the device in Microsoft Defender | ケースが対象とするホストを Microsoft Defender for Endpoint の隔離から解放する |
 | 自動化 | Send a webhook | ケースを JSON として URL に POST する |
 | 自動化 | Run a workflow | ケースを入力として OneUptime のワークフローを開始する |
 
 プレイブックのステップは最大 25 個です。ステップは順番に、前のステップが終わるたびにひとつずつ実行されます。どのステップにも、次の設定ができます。
 
-- **Needs Approval**: 誰かがケース上で承認するまで、そのステップの前で実行を止めます。OneUptime の外で動作する 4 つの封じ込めステップでは、既定でオンです。
+- **Needs Approval**: 誰かがケース上で承認するまで、そのステップの前で実行を止めます。誰かを締め出す 4 つのステップでは、Security Admin がオフにしない限り、常にオンです。
 - **Only If Threat Intel Matched**: 同じ実行の前の **Check entities against threat intel** ステップが既知のインジケーターを見つけていない限り、そのステップをスキップします。
 - **Carry On If It Fails**: このステップが失敗しても次のステップを実行します。オフの場合、失敗したステップで実行が止まります。
 
@@ -209,11 +212,28 @@ OneUptime は、ケースについて 3 つのことを人に知らせます。�
 
 | ステップ | 接続 | 必要なもの |
 | --- | --- | --- |
-| Suspend the user in Okta、End the user's Okta sessions | Okta System Log | ユーザーの管理を許可された API トークン |
-| Contain the host in CrowdStrike | CrowdStrike Falcon | Hosts の書き込みスコープを持つ API クライアント |
-| Isolate the device in Microsoft Defender | Microsoft Defender XDR | Machine.Isolate のアクセス許可を持つアプリ |
+| Suspend the user in Okta、End the user's Okta sessions、Unsuspend the user in Okta | Okta System Log | ユーザーの管理を許可された API トークン |
+| Contain the host in CrowdStrike、Lift containment in CrowdStrike | CrowdStrike Falcon | Hosts の書き込みスコープを持つ API クライアント |
+| Isolate the device in Microsoft Defender、Release the device in Microsoft Defender | Microsoft Defender XDR | Machine.Isolate のアクセス許可を持つアプリ |
 
-封じ込めステップが対象にするのは、ケースのユーザーまたはホストのうち最大 10 件です。それぞれを製品の中で名前によって探し、各対象に何をしたかをケースに記録します。封じ込めた、すでに封じ込められていた、見つからなかった、拒否された、のいずれかです。
+封じ込めステップが動作するのは、ケースが対象とする次のユーザーまたはホストだけで、ケースに名前が挙がったものすべてではありません。
+
+- ケースの検出のグループ化に使われている値。たとえば、ありえない移動のルールがグループ化に使うアカウントや、接続した製品のアラートが示すホストです。
+- ケースのユーザーまたはホストのうち、脅威インテリジェンスがインジケーターとして把握しているもの。
+
+VPN へのブルートフォースのように、アドレスでグループ化されたケースは、どちらにも当たりません。そのケースの封じ込めステップはスキップされ、狙われたアカウントにも、攻撃を受けたゲートウェイにも手を付けません。ステップが対象にするのは最大 10 件のユーザーまたはホストです。それぞれを製品の中で名前によって探し、各対象に何をしたかを実行に記録します。完了、すでに完了、見つからなかった、拒否された、保護されている、のいずれかです。
+
+#### 保護対象のエンティティ
+
+メニューの **Playbooks** の下にある **Protected Entities** には、緊急アクセス用アカウント、ドメインコントローラー、VPN ゲートウェイなど、どのプレイブックも封じ込めないユーザーとホストが一覧表示されます。値は大文字と小文字を区別せずに一致し、 `*` は任意の文字の並びを表します。 `svc-*` はすべてのサービスアカウントを保護します。ステップは、保護されたユーザーやホストを保護されていると報告し、手を付けません。この一覧は Security Admin が管理します。
+
+#### 承認
+
+誰かを締め出す 4 つのステップは承認を待ちます。そのいずれかで **Needs Approval** をオフにできるのは Security Admin だけで、OneUptime は誰がオフにしたかを記録します。承認では、ステップが動作する予定のユーザーやホストが **Act On** の下に、すべてチェックされた状態で並びます。ステップが手を付けるべきでないものは、チェックを外してください。保護されたものは選択肢に表示されません。実行を開始した人は、その実行のステップを承認できず、承認は別の人が行います。ただし、開始した人も拒否はできます。
+
+#### 元に戻す
+
+元に戻すステップは、元のステップと同じく、ケースが対象とするユーザーまたはホストに動作します。実行が止まった後は、封じ込められたユーザーやホストのステップに、それ専用のボタンも表示されます。 **Unsuspend**、 **Lift Containment**、 **解放** のいずれかです。終了した Okta セッションは元に戻せません。元に戻した操作はすべて、ケースのタイムラインとプロジェクトの監査ログに残ります。
 
 ### メッセージ
 
@@ -245,7 +265,7 @@ OneUptime は、ケースについて 3 つのことを人に知らせます。�
 | 失敗 | ステップが失敗し、実行が止まった |
 | キャンセル済み | 誰かがキャンセルしたか、ステップを拒否した |
 
-承認待ちのステップでは、実行に **Approve** と **拒否** が表示され、任意でコメントを添えられます。承認するとそのステップから実行が続き、拒否すると実行が終わります。判断の内容、判断した人、コメントは、ステップとケースのタイムラインに残ります。 メニューの **Playbooks** の下にある **承認待ち** は、判断を待っている実行を一覧表示して件数を示し、 **プレイブックの実行** はすべての実行を一覧表示します。
+承認待ちのステップでは、実行に **Approve** と **拒否** が表示され、任意でコメントを添えられます。承認するとそのステップから実行が続き、拒否すると実行が終わります。判断の内容、判断した人、コメントは、ステップ、ケースのタイムライン、プロジェクトの監査ログに残ります。 メニューの **Playbooks** の下にある **承認待ち** は、判断を待っている実行を一覧表示して件数を示し、 **プレイブックの実行** はすべての実行を一覧表示します。
 
 再起動などでワーカーからの応答が途絶えた実行は、再び拾い上げられます。キューに入った実行は 2 分後に再びキューに入れられ、30 分間何も報告しなかった実行は失敗になります。
 
@@ -269,7 +289,7 @@ OneUptime は、ケースについて 3 つのことを人に知らせます。�
 ## 自動化する
 
 - **ワークフロー**: ケースやメモが作成、更新、削除されたときにワークフローを開始できます。 **Run a workflow** ステップは、トリガーが Webhook のワークフローを開始します。
-- **API**: ケース、メモ、検出、プレイブック、実行には、OneUptime のほかの部分と同じ REST API が `/security-case`、 `/security-case-note`、 `/security-detection`、 `/security-playbook`、 `/security-playbook-run` の下にあります。 [API リファレンス](/docs/api-reference/api-reference) を参照してください。
+- **API**: ケース、メモ、検出、プレイブック、実行、保護対象のエンティティには、OneUptime のほかの部分と同じ REST API が `/security-case`、 `/security-case-note`、 `/security-detection`、 `/security-playbook`、 `/security-playbook-run`、 `/security-protected-entity` の下にあります。 [API リファレンス](/docs/api-reference/api-reference) を参照してください。
 - AI エージェント: MCP サーバーには、ケース、メモ、検出、プレイブックのためのツールがあります。 [MCP サーバー](/docs/ai/mcp-server) を参照してください。
 
 ## トラブルシューティング
@@ -288,6 +308,10 @@ OneUptime は、ケースについて 3 つのことを人に知らせます。�
 
 :::details 封じ込めステップが失敗した
 ケースで実行を開いてください。ステップには、ユーザーやホストごとに、製品が拒否したのか、見つからなかったのか、製品に到達できなかったのかが表示されます。接続の認証情報にその変更を行う権限があることを確認し、接続の行にある **接続をテスト** を使ってください。
+:::
+
+:::details 封じ込めステップがスキップされた
+ケースがどのユーザーやホストも対象にしていない (たとえばアドレスだけを対象にしている) か、ケースが対象とするユーザーやホストがすべて保護されています。ケースで実行を開いてください。どちらなのかがステップに表示されます。
 :::
 
 ## 次のステップ

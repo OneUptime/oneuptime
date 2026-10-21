@@ -1,4 +1,4 @@
-import { AddSecurityCaseNotifications1805210000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805210000000-AddSecurityCaseNotifications";
+import { AddSecurityCaseNotifications1805700000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805700000000-AddSecurityCaseNotifications";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
 import UserNotificationSetting from "../../../../Models/DatabaseModels/UserNotificationSetting";
@@ -27,11 +27,11 @@ import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArg
  * only.
  */
 
-const OWN_CLASS_NAME: string = "AddSecurityCaseNotifications1805210000000";
+const OWN_CLASS_NAME: string = "AddSecurityCaseNotifications1805700000000";
 
-const OWN_TIMESTAMP: number = 1805210000000;
+const OWN_TIMESTAMP: number = 1805700000000;
 
-const PREVIOUS_CLASS_NAME: string = "AddOnCallRuleWorkingHours1805170000000";
+const PREVIOUS_CLASS_NAME: string = "AddAIRunHandedBackCount1805650000000";
 
 const MIGRATIONS_DIR: string = path.join(
   __dirname,
@@ -45,7 +45,7 @@ const MIGRATIONS_DIR: string = path.join(
   "SchemaMigrations",
 );
 
-const MIGRATION_FILE: string = "1805210000000-AddSecurityCaseNotifications.ts";
+const MIGRATION_FILE: string = "1805700000000-AddSecurityCaseNotifications.ts";
 
 interface AddedColumn {
   table: string;
@@ -88,7 +88,7 @@ async function recordQueries(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new AddSecurityCaseNotifications1805210000000()[direction](queryRunner);
+  await new AddSecurityCaseNotifications1805700000000()[direction](queryRunner);
 
   return statements;
 }
@@ -134,10 +134,10 @@ describe("AddSecurityCaseNotifications migration - identity and registration", (
 
     expect(source).toContain(`export class ${OWN_CLASS_NAME}`);
     expect(source).toContain(`public name: string = "${OWN_CLASS_NAME}";`);
-    expect(new AddSecurityCaseNotifications1805210000000().name).toBe(
+    expect(new AddSecurityCaseNotifications1805700000000().name).toBe(
       OWN_CLASS_NAME,
     );
-    expect(AddSecurityCaseNotifications1805210000000.name).toBe(OWN_CLASS_NAME);
+    expect(AddSecurityCaseNotifications1805700000000.name).toBe(OWN_CLASS_NAME);
     expect(timestampOfClassName(OWN_CLASS_NAME)).toBe(OWN_TIMESTAMP);
   });
 
@@ -154,7 +154,7 @@ describe("AddSecurityCaseNotifications migration - identity and registration", (
   test("runs in a transaction, like every migration that only adds columns", () => {
     expect(
       (
-        new AddSecurityCaseNotifications1805210000000() as unknown as {
+        new AddSecurityCaseNotifications1805700000000() as unknown as {
           transaction?: boolean;
         }
       ).transaction,
@@ -193,7 +193,7 @@ describe("AddSecurityCaseNotifications migration - identity and registration", (
     );
 
     expect(index).toContain(
-      `import { ${OWN_CLASS_NAME} } from "./1805210000000-AddSecurityCaseNotifications";`,
+      `import { ${OWN_CLASS_NAME} } from "./1805700000000-AddSecurityCaseNotifications";`,
     );
     expect(index.match(new RegExp(`\\b${OWN_CLASS_NAME},`, "g"))).toHaveLength(
       1,

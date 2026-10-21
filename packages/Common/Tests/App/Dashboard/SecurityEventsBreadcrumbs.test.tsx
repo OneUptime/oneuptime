@@ -201,6 +201,10 @@ describe("each trail names the page as the menu does", () => {
       ["Security Events", "Playbooks", "Playbook Runs"],
     ],
     [
+      PageMap.SECURITY_PROTECTED_ENTITIES,
+      ["Security Events", "Playbooks", "Protected Entities"],
+    ],
+    [
       PageMap.SECURITY_PLAYBOOK_VIEW,
       ["Security Events", "Playbooks", "View Playbook"],
     ],

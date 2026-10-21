@@ -190,16 +190,19 @@ OneUptime 会就案例上的三件事通知相关人员。无需任何人做任�
 | 通知 | Post to Microsoft Teams | 把案例摘要发布到某个 Microsoft Teams 频道 |
 | 升级 | Page on-call | 运行一个值班策略 |
 | 升级 | Declare an incident | 打开一个与案例关联的 OneUptime 事件 |
-| 遏制 | Suspend the user in Okta | 在 Okta 中暂停案例的每个用户 |
-| 遏制 | End the user's Okta sessions | 让案例的每个用户退出 Okta 登录，并吊销其令牌 |
-| 遏制 | Contain the host in CrowdStrike | 通过 CrowdStrike Falcon 对案例的每台主机进行网络遏制 |
-| 遏制 | Isolate the device in Microsoft Defender | 通过 Microsoft Defender for Endpoint 隔离案例的每台主机 |
+| 遏制 | Suspend the user in Okta | 在 Okta 中暂停案例涉及的用户 |
+| 遏制 | End the user's Okta sessions | 让案例涉及的用户退出 Okta 登录，并吊销其令牌 |
+| 遏制 | Contain the host in CrowdStrike | 通过 CrowdStrike Falcon 对案例涉及的主机进行网络遏制 |
+| 遏制 | Isolate the device in Microsoft Defender | 通过 Microsoft Defender for Endpoint 隔离案例涉及的主机 |
+| 遏制 | Unsuspend the user in Okta | 在 Okta 中取消暂停案例涉及的用户 |
+| 遏制 | Lift containment in CrowdStrike | 解除 CrowdStrike Falcon 对案例涉及的主机施加的网络遏制 |
+| 遏制 | Release the device in Microsoft Defender | 在 Microsoft Defender for Endpoint 中将案例涉及的主机解除隔离 |
 | 自动化 | Send a webhook | 把案例以 JSON 格式 POST 到某个 URL |
 | 自动化 | Run a workflow | 以案例作为输入，启动一个 OneUptime 工作流 |
 
 一个剧本最多有 25 个步骤。它们按顺序运行，每个步骤在前一个完成后才开始。每个步骤还可以设置：
 
-- **Needs Approval**：在运行到该步骤之前暂停，直到有人在案例上批准它。四个遏制类步骤会在 OneUptime 之外执行操作，因此默认打开此项。
+- **Needs Approval**：在运行到该步骤之前暂停，直到有人在案例上批准它。切断某人访问的四个步骤始终如此，除非 Security Admin 将其关闭。
 - **Only If Threat Intel Matched**：除非本次运行中之前的 **Check entities against threat intel** 步骤发现了已知指标，否则跳过该步骤。
 - **Carry On If It Fails**：即使该步骤失败，也继续运行下一个步骤。关闭此项时，失败的步骤会停止本次运行。
 
@@ -209,11 +212,28 @@ OneUptime 会就案例上的三件事通知相关人员。无需任何人做任�
 
 | 步骤 | 连接 | 所需权限 |
 | --- | --- | --- |
-| Suspend the user in Okta、End the user's Okta sessions | Okta System Log | 一个有权管理用户的 API 令牌 |
-| Contain the host in CrowdStrike | CrowdStrike Falcon | 一个具有 Hosts 写入范围的 API 客户端 |
-| Isolate the device in Microsoft Defender | Microsoft Defender XDR | 一个具有 Machine.Isolate 权限的应用 |
+| Suspend the user in Okta、End the user's Okta sessions、Unsuspend the user in Okta | Okta System Log | 一个有权管理用户的 API 令牌 |
+| Contain the host in CrowdStrike、Lift containment in CrowdStrike | CrowdStrike Falcon | 一个具有 Hosts 写入范围的 API 客户端 |
+| Isolate the device in Microsoft Defender、Release the device in Microsoft Defender | Microsoft Defender XDR | 一个具有 Machine.Isolate 权限的应用 |
 
-一个遏制类步骤最多作用于案例中的 10 个用户或主机。它会按名称在产品中查找每一个，并在案例上说明对每一个做了什么：已遏制、早已被遏制、未找到或被拒绝。
+遏制类步骤只作用于案例涉及的用户或主机，绝不会作用于案例提到的所有用户或主机：
+
+- 案例中某个检测分组所依据的值，例如“不可能的旅行”规则分组所依据的账户，或已连接产品的警报中提到的主机。
+- 案例中被你的威胁情报列为指标的用户或主机。
+
+按地址分组的案例，例如针对你的 VPN 的暴力破解，并不涉及以上任何一种：它的遏制类步骤会被跳过，它尝试过的账户和它攻击的网关都不会被触及。一个步骤最多作用于 10 个用户或主机。它会按名称在产品中查找每一个，并在运行上说明对每一个做了什么：已完成、早已完成、未找到、被拒绝或受保护。
+
+#### 受保护的实体
+
+菜单中 **Playbooks** 下的 **Protected Entities** 列出任何剧本都不会遏制的用户和主机，例如紧急访问账户、域控制器和 VPN 网关。值的匹配不区分大小写，`*` 代表任意字符序列：`svc-*` 会保护所有服务账户。步骤会把受保护的用户或主机报告为受保护，并且不会触及它。这个列表由 Security Admin 维护。
+
+#### 审批
+
+切断某人访问的四个步骤会等待审批。只有 Security Admin 可以为其中某个步骤关闭 **Needs Approval**，OneUptime 会记录是谁关闭的。审批时会在 **Act On** 下列出该步骤将要作用的用户或主机，每一个都已勾选：取消勾选该步骤不应触及的那些。受保护的用户或主机不会列为可选项。发起运行的人不能批准它的步骤：要由其他人批准，不过发起人仍然可以拒绝该步骤。
+
+#### 撤销
+
+撤销类步骤和它们所撤销的步骤一样，作用于案例涉及的用户或主机。运行停止后，被遏制的用户或主机在其步骤上还会有一个专属按钮：**Unsuspend**、**Lift Containment** 或 **释放**。已结束的 Okta 会话无法撤销。每次撤销都会记录在案例的时间线上和项目的审计日志中。
 
 ### 消息
 
@@ -245,7 +265,7 @@ OneUptime 会就案例上的三件事通知相关人员。无需任何人做任�
 | Failed | 某个步骤失败，运行已停止 |
 | Cancelled | 有人取消了它，或拒绝了某个步骤 |
 
-等待审批的步骤会在运行上显示 **Approve** 和 **Reject**，并可附上一条可选的评论。批准后，运行从该步骤继续；拒绝则会结束运行。审批决定、决定人及其评论都会记录在该步骤和案例的时间线上。菜单中 **Playbooks** 下的 **等待审批** 列出等待决定的运行并显示其数量；**剧本运行记录** 列出所有运行。
+等待审批的步骤会在运行上显示 **Approve** 和 **Reject**，并可附上一条可选的评论。批准后，运行从该步骤继续；拒绝则会结束运行。审批决定、决定人及其评论都会记录在该步骤上、案例的时间线上以及项目的审计日志中。菜单中 **Playbooks** 下的 **等待审批** 列出等待决定的运行并显示其数量；**剧本运行记录** 列出所有运行。
 
 如果某次运行失去了工作进程的响应（例如在重启之后），它会被重新接手：排队中的运行会在 2 分钟后重新排队，30 分钟没有任何动静的运行会被判定为失败。
 
@@ -269,7 +289,7 @@ OneUptime 会就案例上的三件事通知相关人员。无需任何人做任�
 ## 自动化
 
 - **工作流**：案例或备注在创建、更新或删除时可以启动工作流。**Run a workflow** 步骤会启动一个以 Webhook 为触发器的工作流。
-- **API**：与 OneUptime 的其他部分一样，案例、备注、检测、剧本和运行也都有 REST API，位于 `/security-case`、`/security-case-note`、`/security-detection`、`/security-playbook` 和 `/security-playbook-run` 下。请参阅 [API 参考](/docs/api-reference/api-reference)。
+- **API**：与 OneUptime 的其他部分一样，案例、备注、检测、剧本、运行和受保护的实体也都有 REST API，位于 `/security-case`、`/security-case-note`、`/security-detection`、`/security-playbook`、`/security-playbook-run` 和 `/security-protected-entity` 下。请参阅 [API 参考](/docs/api-reference/api-reference)。
 - AI 代理：MCP 服务器提供了用于案例、备注、检测和剧本的工具。请参阅 [MCP 服务器](/docs/ai/mcp-server)。
 
 ## 故障排除
@@ -288,6 +308,10 @@ OneUptime 会就案例上的三件事通知相关人员。无需任何人做任�
 
 :::details 遏制类步骤失败
 在案例上打开这次运行：该步骤会针对每个用户或主机说明产品是拒绝了操作、没有找到它，还是无法连接。请检查连接的凭据是否有权做出该更改，并使用连接所在行中的 **测试连接**。
+:::
+
+:::details 遏制类步骤被跳过
+案例不涉及任何用户或主机，例如只涉及一个地址，或者它涉及的每个用户或主机都受保护。在案例上打开这次运行：该步骤会说明是哪一种情况。
 :::
 
 ## 后续步骤
