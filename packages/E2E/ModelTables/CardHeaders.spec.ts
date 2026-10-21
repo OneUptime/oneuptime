@@ -416,29 +416,26 @@ test.describe("the Runbooks list of the maintainer's screenshot", () => {
     expectDescriptionUnderTitle("Runbooks at 1280px", wide);
 
     await page.setViewportSize({ width: 1024, height: 1000 });
-    await expect
-      .poll(async (): Promise<boolean> => {
-        return onTitleLine(await headerBoxesOf(card));
-      })
-      .toBe(false);
-    const narrow: HeaderBoxes = await headerBoxesOf(card);
-    expectControlsUnderDescription("Runbooks resized to 1024px", narrow);
-    // The description is in the title's block now, read in that order too.
+    /*
+     * Once the controls go under the title the description moves into the
+     * title's block (read in that order too) - a frame after the resize.
+     */
     await expect(
       card
         .getByTestId("card-header-title-block")
         .getByTestId("card-description"),
     ).toBeVisible();
+    const narrow: HeaderBoxes = await headerBoxesOf(card);
+    expect(onTitleLine(narrow)).toBe(false);
+    expectControlsUnderDescription("Runbooks resized to 1024px", narrow);
 
+    // And back, to exactly where everything was.
     await page.setViewportSize({ width: 1280, height: 1000 });
     await expect
-      .poll(async (): Promise<boolean> => {
-        return onTitleLine(await headerBoxesOf(card));
+      .poll(async (): Promise<HeaderBoxes> => {
+        return await headerBoxesOf(card);
       })
-      .toBe(true);
-    const back: HeaderBoxes = await headerBoxesOf(card);
-
-    expect(back).toEqual(wide);
+      .toEqual(wide);
     // Alone on its line, the title is at the card's padding.
     expect(
       Math.abs(narrow.title.y - narrow.frame.y - HEADER_INSET),
