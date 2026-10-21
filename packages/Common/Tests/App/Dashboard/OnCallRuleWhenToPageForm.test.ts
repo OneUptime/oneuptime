@@ -13,6 +13,10 @@ import RestrictionTimes, {
   WeeklyResctriction,
 } from "../../../Types/OnCallDutyPolicy/RestrictionTimes";
 import WorkingHours from "../../../Types/OnCallDutyPolicy/WorkingHours";
+import type {
+  DropdownOption,
+  DropdownOptionGroup,
+} from "../../../UI/Components/Dropdown/Dropdown";
 import type Field from "../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import type FormValues from "../../../UI/Components/Forms/Types/FormValues";
@@ -201,8 +205,8 @@ describe("the fields", () => {
     expect(zone.fieldType).toBe(FormFieldSchemaType.Dropdown);
     expect(
       (zone.dropdownOptions || []).some(
-        (option: { value?: unknown }): boolean => {
-          return option.value === LONDON;
+        (option: DropdownOption | DropdownOptionGroup): boolean => {
+          return "value" in option && option.value === LONDON;
         },
       ),
     ).toBe(true);

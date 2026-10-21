@@ -32248,5 +32248,6 @@
   "Z to A": "Z से A",
   "{{count}} repositories": "{{count}} रिपॉजिटरी",
   "{{count}} repositories_one": "{{count}} रिपॉजिटरी",
-  "{{start}} to {{end}}, all day": "{{start}} – {{end}}, पूरा दिन"
+  "{{start}} to {{end}}, all day": "{{start}} – {{end}}, पूरा दिन",
+  "Paging Started Early Reason": "बुलाना जल्दी शुरू होने का कारण"
 }

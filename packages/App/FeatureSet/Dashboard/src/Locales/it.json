@@ -32248,5 +32248,6 @@
   "Z to A": "Dalla Z alla A",
   "{{count}} repositories": "{{count}} repository",
   "{{count}} repositories_one": "{{count}} repository",
-  "{{start}} to {{end}}, all day": "{{start}} – {{end}}, tutto il giorno"
+  "{{start}} to {{end}}, all day": "{{start}} – {{end}}, tutto il giorno",
+  "Paging Started Early Reason": "Motivo dell'inizio anticipato delle chiamate"
 }

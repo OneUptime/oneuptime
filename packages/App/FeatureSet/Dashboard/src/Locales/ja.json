@@ -32248,5 +32248,6 @@
   "Z to A": "Z→A",
   "{{count}} repositories": "{{count}} 件のリポジトリ",
   "{{count}} repositories_one": "{{count}} repository",
-  "{{start}} to {{end}}, all day": "{{start}}～{{end}}、終日"
+  "{{start}} to {{end}}, all day": "{{start}}～{{end}}、終日",
+  "Paging Started Early Reason": "呼び出しを早めて開始した理由"
 }

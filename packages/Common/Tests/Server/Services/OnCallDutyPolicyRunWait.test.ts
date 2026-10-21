@@ -34,6 +34,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * A RUN THAT WAITS TO PAGE (OnCallDutyPolicyRunWait).
@@ -134,8 +135,13 @@ function run(data: {
   return log;
 }
 
+// The repository's update: the claim from Waiting.
+type RepositoryUpdate = Mock<
+  (...args: Array<unknown>) => Promise<{ affected: number }>
+>;
+
 interface Stubs {
-  repositoryUpdate: jest.Mock;
+  repositoryUpdate: RepositoryUpdate;
   updateOneById: jest.SpyInstance;
   ruleFindOneBy: jest.SpyInstance;
   startRuleExecution: jest.SpyInstance;
@@ -150,7 +156,9 @@ function stub(options?: {
   claimWins?: boolean;
   hasFirstRule?: boolean;
 }): Stubs {
-  const repositoryUpdate: jest.Mock = jest.fn(async () => {
+  const repositoryUpdate: RepositoryUpdate = jest.fn<
+    (...args: Array<unknown>) => Promise<{ affected: number }>
+  >(async (): Promise<{ affected: number }> => {
     return { affected: options?.claimWins === false ? 0 : 1 };
   });
 

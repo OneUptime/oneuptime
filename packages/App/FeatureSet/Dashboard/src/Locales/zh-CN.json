@@ -32248,5 +32248,6 @@
   "Z to A": "Z→A",
   "{{count}} repositories": "{{count}} 个存储库",
   "{{count}} repositories_one": "{{count}} repository",
-  "{{start}} to {{end}}, all day": "{{start}} – {{end}}，全天"
+  "{{start}} to {{end}}, all day": "{{start}} – {{end}}，全天",
+  "Paging Started Early Reason": "提前开始呼叫的原因"
 }

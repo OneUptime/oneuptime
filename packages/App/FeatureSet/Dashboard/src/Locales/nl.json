@@ -32248,5 +32248,6 @@
   "Z to A": "Z tot A",
   "{{count}} repositories": "{{count}} repository's",
   "{{count}} repositories_one": "{{count}} repository",
-  "{{start}} to {{end}}, all day": "{{start}} – {{end}}, hele dag"
+  "{{start}} to {{end}}, all day": "{{start}} – {{end}}, hele dag",
+  "Paging Started Early Reason": "Reden waarom het oproepen eerder begon"
 }

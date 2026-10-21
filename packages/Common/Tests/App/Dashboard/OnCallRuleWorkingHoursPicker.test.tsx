@@ -21,6 +21,7 @@ import i18next from "i18next";
 import path from "path";
 import React, { ReactElement, useState } from "react";
 import { initReactI18next } from "react-i18next";
+import type { Mock } from "jest-mock";
 import OneUptimeDate from "../../../Types/Date";
 import OnCallRuleWhenToPage from "../../../Types/OnCallDutyPolicy/OnCallRuleWhenToPage";
 import RestrictionTimes from "../../../Types/OnCallDutyPolicy/RestrictionTimes";
@@ -79,6 +80,15 @@ function simple(
   value: RestrictionTimes | undefined,
 ): SimpleWorkingHours | null {
   return WorkingHours.toSimpleHours({ hours: value, timezone: ZONE });
+}
+
+type OnChange = Mock<(value: RestrictionTimes) => void>;
+
+// The hours the picker handed on last.
+function lastHours(onChange: OnChange): RestrictionTimes | undefined {
+  const calls: Array<[value: RestrictionTimes]> = onChange.mock.calls;
+
+  return calls[calls.length - 1]?.[0];
 }
 
 function day(index: number): HTMLElement {
@@ -144,7 +154,7 @@ afterEach(() => {
 
 describe("the picker", () => {
   test("a rule with no hours yet starts on Monday to Friday, 09:00 to 17:00", () => {
-    const onChange: jest.Mock<(value: RestrictionTimes) => void> = jest.fn();
+    const onChange: OnChange = jest.fn<(value: RestrictionTimes) => void>();
     render(<Held onChange={onChange} />);
 
     expect(pressedDays()).toEqual([0, 1, 2, 3, 4]);
@@ -173,7 +183,7 @@ describe("the picker", () => {
   });
 
   test("a day's button says the whole day to a screen reader, and picks and unpicks it", () => {
-    const onChange: jest.Mock<(value: RestrictionTimes) => void> = jest.fn();
+    const onChange: OnChange = jest.fn<(value: RestrictionTimes) => void>();
     render(<Held onChange={onChange} />);
 
     expect(day(5)).toHaveAccessibleName("Saturday");
@@ -181,20 +191,18 @@ describe("the picker", () => {
 
     fireEvent.click(day(5));
     expect(pressedDays()).toEqual([0, 1, 2, 3, 4, 5]);
-    expect(simple(onChange.mock.calls.at(-1)![0])).toEqual({
+    expect(simple(lastHours(onChange))).toEqual({
       days: [0, 1, 2, 3, 4, 5],
       from: "09:00",
       to: "17:00",
     });
 
     fireEvent.click(day(0));
-    expect(simple(onChange.mock.calls.at(-1)![0])?.days).toEqual([
-      1, 2, 3, 4, 5,
-    ]);
+    expect(simple(lastHours(onChange))?.days).toEqual([1, 2, 3, 4, 5]);
   });
 
   test("Weekdays and Every day pick the usual sets at once", () => {
-    const onChange: jest.Mock<(value: RestrictionTimes) => void> = jest.fn();
+    const onChange: OnChange = jest.fn<(value: RestrictionTimes) => void>();
     render(<Held onChange={onChange} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Every day" }));
@@ -202,13 +210,11 @@ describe("the picker", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Weekdays" }));
     expect(pressedDays()).toEqual([0, 1, 2, 3, 4]);
-    expect(simple(onChange.mock.calls.at(-1)![0])?.days).toEqual([
-      0, 1, 2, 3, 4,
-    ]);
+    expect(simple(lastHours(onChange))?.days).toEqual([0, 1, 2, 3, 4]);
   });
 
   test("a new time hands the form the new hours; an end before the start ends the next day, and says so", () => {
-    const onChange: jest.Mock<(value: RestrictionTimes) => void> = jest.fn();
+    const onChange: OnChange = jest.fn<(value: RestrictionTimes) => void>();
     render(<Held onChange={onChange} />);
 
     expect(screen.queryByText("Ends the next day")).toBeNull();
@@ -220,7 +226,7 @@ describe("the picker", () => {
       target: { value: "06:00" },
     });
 
-    expect(simple(onChange.mock.calls.at(-1)![0])).toEqual({
+    expect(simple(lastHours(onChange))).toEqual({
       days: [0, 1, 2, 3, 4],
       from: "22:00",
       to: "06:00",
@@ -229,7 +235,7 @@ describe("the picker", () => {
   });
 
   test("a time left half typed changes nothing", () => {
-    const onChange: jest.Mock<(value: RestrictionTimes) => void> = jest.fn();
+    const onChange: OnChange = jest.fn<(value: RestrictionTimes) => void>();
     render(<Held onChange={onChange} />);
 
     fireEvent.change(screen.getByLabelText("Start Time"), {

@@ -1,4 +1,5 @@
 import { describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "../../../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
@@ -328,7 +329,7 @@ describe("a waiting run, read for its message", () => {
   });
 
   test("reads why it started early with the rest of the run", async () => {
-    const findOneById: jest.SpiedFunction<
+    const findOneById: SpyInstance<
       typeof OnCallDutyPolicyExecutionLogService.findOneById
     > = jest
       .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")

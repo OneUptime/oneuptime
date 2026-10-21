@@ -21,6 +21,7 @@ import WorkingHours, {
   WORKING_HOURS_TIMEZONE_NOT_SET_MESSAGE,
 } from "../../../../Types/OnCallDutyPolicy/WorkingHours";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * AN ON-CALL RULE THAT PAGES ONLY DURING WORKING HOURS HAS HOURS THAT OPEN.
@@ -72,12 +73,19 @@ function create(model: AlertOnCallRule): void {
   });
 }
 
+// The rules' findBy, as an update's check reads them.
+type FindBy = Mock<
+  (...args: Array<unknown>) => Promise<Array<AlertOnCallRule>>
+>;
+
 // An update, against the rules it names as they are stored.
 async function update(
   written: AlertOnCallRule,
   stored: Array<AlertOnCallRule>,
-): Promise<jest.Mock> {
-  const findBy: jest.Mock = jest.fn(async () => {
+): Promise<FindBy> {
+  const findBy: FindBy = jest.fn<
+    (...args: Array<unknown>) => Promise<Array<AlertOnCallRule>>
+  >(async (): Promise<Array<AlertOnCallRule>> => {
     return stored;
   });
 
@@ -197,13 +205,13 @@ describe("an update of an on-call rule", () => {
   });
 
   test("that says nothing of when the rule pages reads nothing more", async () => {
-    const findBy: jest.Mock = await update(rule({}), [storedRightAwayRule]);
+    const findBy: FindBy = await update(rule({}), [storedRightAwayRule]);
 
     expect(findBy).not.toHaveBeenCalled();
   });
 
   test("to page right away needs nothing else", async () => {
-    const findBy: jest.Mock = await update(
+    const findBy: FindBy = await update(
       rule({ whenToPage: OnCallRuleWhenToPage.RightAway }),
       [storedWorkingHoursRule],
     );
@@ -212,7 +220,7 @@ describe("an update of an on-call rule", () => {
   });
 
   test("that writes all of it is judged on what it writes", async () => {
-    const findBy: jest.Mock = await update(
+    const findBy: FindBy = await update(
       rule({
         whenToPage: OnCallRuleWhenToPage.WorkingHours,
         workingHours: hours(),
@@ -225,7 +233,7 @@ describe("an update of an on-call rule", () => {
   });
 
   test("that changes only the time zone is judged with the hours the rule has", async () => {
-    const findBy: jest.Mock = await update(
+    const findBy: FindBy = await update(
       rule({ workingHoursTimezone: "America/New_York" }),
       [storedWorkingHoursRule],
     );
@@ -256,7 +264,7 @@ describe("an update of an on-call rule", () => {
 
   test("that clears the hours of a rule that pages right away is saved", async () => {
     // Read, as the rule might page during working hours: it does not.
-    const findBy: jest.Mock = await update(rule({ workingHours: null }), [
+    const findBy: FindBy = await update(rule({ workingHours: null }), [
       storedRightAwayRule,
     ]);
 

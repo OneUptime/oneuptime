@@ -42,7 +42,9 @@ jest.mock("../../../../Server/Utils/Logger");
 const PROJECT_ID: ObjectID = new ObjectID(
   "6a000000-0000-4000-8000-000000000001",
 );
-const RECORD_ID: ObjectID = new ObjectID("6a000000-0000-4000-8000-000000000002");
+const RECORD_ID: ObjectID = new ObjectID(
+  "6a000000-0000-4000-8000-000000000002",
+);
 const PLATFORM: string = "6a000000-0000-4000-8000-0000000000a1";
 const PAYMENTS: string = "6a000000-0000-4000-8000-0000000000a2";
 
@@ -114,8 +116,8 @@ function stubWorld(data: {
       return data.claimWins !== false;
     }) as never);
 
-  const pagingNow: Map<string, Array<string>> =
-    data.pagingNow || new Map<string, Array<string>>();
+  const pagingNow: Map<string, Array<string>> = data.pagingNow ||
+  new Map<string, Array<string>>();
 
   const engines: Array<unknown> = [
     AlertOnCallRuleEngineService,
@@ -179,7 +181,10 @@ function stubWorld(data: {
   return world;
 }
 
-function pagesNow(policyId: string, ruleNames: Array<string>) {
+function pagesNow(
+  policyId: string,
+  ruleNames: Array<string>,
+): Map<string, Array<string>> {
   return new Map<string, Array<string>>([[policyId, ruleNames]]);
 }
 
@@ -285,9 +290,11 @@ describe("a record that changed while some of its runs wait", () => {
       WaitingRunsOnRecordChange.startForAlert(RECORD_ID),
     ).resolves.toBe(1);
 
-    expect(world.starts.map((call: StartCall): unknown => call.run)).toEqual([
-      PAYMENTS_RUN,
-    ]);
+    expect(
+      world.starts.map((call: StartCall): unknown => {
+        return call.run;
+      }),
+    ).toEqual([PAYMENTS_RUN]);
     expect(world.starts[0]!.startedEarlyReason).toBe(
       'The alert now matches on-call rules "Payments P1" and "Everything critical", which page right away.',
     );

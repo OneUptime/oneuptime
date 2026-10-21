@@ -32248,5 +32248,6 @@
   "Z to A": "От Я до А",
   "{{count}} repositories": "Репозиториев: {{count}}",
   "{{count}} repositories_one": "{{count}} репозиторий",
-  "{{start}} to {{end}}, all day": "{{start}} – {{end}}, весь день"
+  "{{start}} to {{end}}, all day": "{{start}} – {{end}}, весь день",
+  "Paging Started Early Reason": "Причина раннего начала вызова"
 }

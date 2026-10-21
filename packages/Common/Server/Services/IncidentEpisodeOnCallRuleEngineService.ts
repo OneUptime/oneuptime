@@ -58,9 +58,8 @@ class IncidentEpisodeOnCallRuleEngineServiceClass {
     }
 
     try {
-      const rules: Array<IncidentEpisodeOnCallRule> = await this.findEnabledRules(
-        episode.projectId,
-      );
+      const rules: Array<IncidentEpisodeOnCallRule> =
+        await this.findEnabledRules(episode.projectId);
 
       if (rules.length === 0) {
         return noHolds;
@@ -209,7 +208,7 @@ class IncidentEpisodeOnCallRuleEngineServiceClass {
         continue;
       }
 
-      if (!(this.doesEpisodeMatchRule(episode, rule))) {
+      if (!this.doesEpisodeMatchRule(episode, rule)) {
         continue;
       }
 
@@ -242,15 +241,15 @@ class IncidentEpisodeOnCallRuleEngineServiceClass {
         },
         props: { isRoot: true },
         select: {
-            _id: true,
-            name: true,
-            criteria: true,
-            incidentSeverities: { _id: true },
-            episodeLabels: { _id: true },
-            episodeTitlePattern: true,
-            episodeDescriptionPattern: true,
-            onCallDutyPolicies: { _id: true },
-            ...ON_CALL_RULE_WHEN_TO_PAGE_SELECT,
+          _id: true,
+          name: true,
+          criteria: true,
+          incidentSeverities: { _id: true },
+          episodeLabels: { _id: true },
+          episodeTitlePattern: true,
+          episodeDescriptionPattern: true,
+          onCallDutyPolicies: { _id: true },
+          ...ON_CALL_RULE_WHEN_TO_PAGE_SELECT,
         },
         limit: MAX_RULES_EVALUATED_PER_PROJECT,
         skip: 0,

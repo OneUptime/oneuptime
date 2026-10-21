@@ -32248,5 +32248,6 @@
   "Z to A": "De la Z a la A",
   "{{count}} repositories": "{{count}} repositorios",
   "{{count}} repositories_one": "{{count}} repositorio",
-  "{{start}} to {{end}}, all day": "{{start}} – {{end}}, todo el día"
+  "{{start}} to {{end}}, all day": "{{start}} – {{end}}, todo el día",
+  "Paging Started Early Reason": "Motivo del inicio anticipado de los avisos"
 }

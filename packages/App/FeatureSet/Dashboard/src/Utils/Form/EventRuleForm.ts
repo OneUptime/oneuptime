@@ -404,7 +404,9 @@ export const getWorkingHoursProblem: (values: unknown) => string | null = (
     return null;
   }
 
-  return translateText(WORKING_HOURS_PROBLEMS[problem] || problem);
+  const text: string = WORKING_HOURS_PROBLEMS[problem] || problem;
+
+  return translateText(text) || text;
 };
 
 /*

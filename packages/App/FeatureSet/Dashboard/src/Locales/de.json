@@ -32248,5 +32248,6 @@
   "Z to A": "Z bis A",
   "{{count}} repositories": "{{count}} Repositorys",
   "{{count}} repositories_one": "{{count}} Repository",
-  "{{start}} to {{end}}, all day": "{{start}} – {{end}}, ganztägig"
+  "{{start}} to {{end}}, all day": "{{start}} – {{end}}, ganztägig",
+  "Paging Started Early Reason": "Grund für den frühen Alarmierungsbeginn"
 }

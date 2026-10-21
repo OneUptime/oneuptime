@@ -10,6 +10,7 @@ import RestrictionTimes, {
 } from "../../../../Types/OnCallDutyPolicy/RestrictionTimes";
 import WorkingHours from "../../../../Types/OnCallDutyPolicy/WorkingHours";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import moment from "moment-timezone";
 
 /*
@@ -139,7 +140,7 @@ describe("the hold one rule puts on its policies", () => {
   ] as Array<[string, OnCallRuleWhenToPageSettings]>)(
     "a working-hours rule %s pages right away, rather than never, and the log says why",
     (_name: string, rule: OnCallRuleWhenToPageSettings) => {
-      const warn: jest.SpiedFunction<typeof logger.warn> = jest
+      const warn: SpyInstance<typeof logger.warn> = jest
         .spyOn(logger, "warn")
         .mockImplementation((() => {
           return undefined;

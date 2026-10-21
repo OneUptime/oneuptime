@@ -32248,5 +32248,6 @@
   "Z to A": "Ö till A",
   "{{count}} repositories": "{{count}} arkiv",
   "{{count}} repositories_one": "{{count}} arkiv",
-  "{{start}} to {{end}}, all day": "{{start}} – {{end}}, hela dagen"
+  "{{start}} to {{end}}, all day": "{{start}} – {{end}}, hela dagen",
+  "Paging Started Early Reason": "Anledning till att larmningen började tidigt"
 }

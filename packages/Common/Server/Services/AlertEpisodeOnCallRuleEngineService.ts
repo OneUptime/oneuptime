@@ -208,7 +208,7 @@ class AlertEpisodeOnCallRuleEngineServiceClass {
         continue;
       }
 
-      if (!(this.doesEpisodeMatchRule(episode, rule))) {
+      if (!this.doesEpisodeMatchRule(episode, rule)) {
         continue;
       }
 
@@ -241,15 +241,15 @@ class AlertEpisodeOnCallRuleEngineServiceClass {
         },
         props: { isRoot: true },
         select: {
-            _id: true,
-            name: true,
-            criteria: true,
-            alertSeverities: { _id: true },
-            episodeLabels: { _id: true },
-            episodeTitlePattern: true,
-            episodeDescriptionPattern: true,
-            onCallDutyPolicies: { _id: true },
-            ...ON_CALL_RULE_WHEN_TO_PAGE_SELECT,
+          _id: true,
+          name: true,
+          criteria: true,
+          alertSeverities: { _id: true },
+          episodeLabels: { _id: true },
+          episodeTitlePattern: true,
+          episodeDescriptionPattern: true,
+          onCallDutyPolicies: { _id: true },
+          ...ON_CALL_RULE_WHEN_TO_PAGE_SELECT,
         },
         limit: MAX_RULES_EVALUATED_PER_PROJECT,
         skip: 0,

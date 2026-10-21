@@ -342,8 +342,10 @@ export default class WaitingRunsOnRecordChange {
     }
 
     const now: Date = OneUptimeDate.getCurrentDate();
-    const pagingNow: Map<string, Array<string>> =
-      await access.getPoliciesPagingNow(record, now);
+    const pagingNow: Map<
+      string,
+      Array<string>
+    > = await access.getPoliciesPagingNow(record, now);
 
     let started: number = 0;
 

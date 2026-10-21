@@ -32248,5 +32248,6 @@
   "Z to A": "Z→A",
   "{{count}} repositories": "저장소 {{count}}개",
   "{{count}} repositories_one": "{{count}} repository",
-  "{{start}} to {{end}}, all day": "{{start}}~{{end}}, 종일"
+  "{{start}} to {{end}}, all day": "{{start}}~{{end}}, 종일",
+  "Paging Started Early Reason": "호출을 일찍 시작한 이유"
 }

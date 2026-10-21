@@ -5,6 +5,7 @@ import logger from "../../../Server/Utils/Logger";
 import WaitingRunsOnRecordChange from "../../../Server/Utils/OnCall/WaitingRunsOnRecordChange";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * An episode whose runs wait for working hours, written something its
@@ -35,9 +36,9 @@ type OnUpdateSuccess = (
 ) => Promise<OnUpdate<never>>;
 
 function onUpdateSuccessOf(service: unknown): OnUpdateSuccess {
-  return (
-    service as { onUpdateSuccess: OnUpdateSuccess }
-  ).onUpdateSuccess.bind(service);
+  return (service as { onUpdateSuccess: OnUpdateSuccess }).onUpdateSuccess.bind(
+    service,
+  );
 }
 
 function update(data: Record<string, unknown>): OnUpdate<never> {
@@ -76,7 +77,7 @@ const CASES: Array<{
 ];
 
 describe.each(CASES)("an $kind's update", (episode: (typeof CASES)[0]) => {
-  function stubStart(): jest.SpiedFunction<
+  function stubStart(): SpyInstance<
     typeof WaitingRunsOnRecordChange.startForAlertEpisode
   > {
     return jest
@@ -87,7 +88,7 @@ describe.each(CASES)("an $kind's update", (episode: (typeof CASES)[0]) => {
   test.each(episode.severityKeys)(
     "writing its severity (%s) starts the runs of each episode updated",
     async (severityKey: string) => {
-      const start: jest.SpiedFunction<
+      const start: SpyInstance<
         typeof WaitingRunsOnRecordChange.startForAlertEpisode
       > = stubStart();
 
@@ -103,7 +104,7 @@ describe.each(CASES)("an $kind's update", (episode: (typeof CASES)[0]) => {
   test.each(["labels", "title", "description"])(
     "writing its %s starts its runs",
     async (key: string) => {
-      const start: jest.SpiedFunction<
+      const start: SpyInstance<
         typeof WaitingRunsOnRecordChange.startForAlertEpisode
       > = stubStart();
 
@@ -116,7 +117,7 @@ describe.each(CASES)("an $kind's update", (episode: (typeof CASES)[0]) => {
   );
 
   test("writing nothing its rules read starts nothing", async () => {
-    const start: jest.SpiedFunction<
+    const start: SpyInstance<
       typeof WaitingRunsOnRecordChange.startForAlertEpisode
     > = stubStart();
 
@@ -129,11 +130,11 @@ describe.each(CASES)("an $kind's update", (episode: (typeof CASES)[0]) => {
   });
 
   test("a start that fails is logged, and never fails the update", async () => {
-    const start: jest.SpiedFunction<
+    const start: SpyInstance<
       typeof WaitingRunsOnRecordChange.startForAlertEpisode
     > = stubStart();
     start.mockRejectedValueOnce(new Error("Database is down"));
-    const logged: jest.SpiedFunction<typeof logger.error> = jest
+    const logged: SpyInstance<typeof logger.error> = jest
       .spyOn(logger, "error")
       .mockImplementation(() => {
         return undefined;
