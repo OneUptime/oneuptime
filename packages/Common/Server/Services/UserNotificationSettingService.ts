@@ -1,6 +1,5 @@
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger from "../Utils/Logger";
 import CallService from "./CallService";
@@ -1266,7 +1265,10 @@ export class Service extends DatabaseService<UserNotificationSetting> {
   ): Promise<OnUpdate<UserNotificationSetting>> {
     /*
      * The event a row is for is fixed (the matrix only switches channels),
-     * so a priority choice is checked against the rows it lands on.
+     * so a priority choice is checked against the rows it lands on: the
+     * rows the update writes, read the way every hook that judges an update
+     * by its rows reads them (findRowsAndHoldUpdateToThem), with the update
+     * held to them - so the rows checked are the rows written.
      */
     const minimumSecurityCasePriority: unknown = (
       updateBy.data as unknown as Record<string, unknown>
@@ -1282,19 +1284,21 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         eventType: undefined,
       });
 
-      const otherEventRows: PositiveNumber = await this.countBy({
-        query: {
-          ...updateBy.query,
-          eventType: QueryHelper.notEquals(
-            NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
-          ),
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      const rows: Array<UserNotificationSetting> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
+          eventType: true,
+        });
 
-      if (otherEventRows.toNumber() > 0) {
+      const isAnotherEventsRow: boolean = rows.some(
+        (row: UserNotificationSetting): boolean => {
+          return (
+            row.eventType !==
+            NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION
+          );
+        },
+      );
+
+      if (isAnotherEventsRow) {
         throw new BadDataException(
           "Only the New Security Case setting has a priority to choose.",
         );
