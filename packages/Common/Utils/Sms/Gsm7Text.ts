@@ -181,6 +181,7 @@ const SUPERSCRIPTS: ReadonlySet<string> = new Set<string>([
   "\u{207E}",
   "\u{207F}",
 ]);
+
 const ASCII_LETTER: RegExp = /^[A-Za-z]$/;
 const ASCII_DIGIT: RegExp = /^[0-9]$/;
 
