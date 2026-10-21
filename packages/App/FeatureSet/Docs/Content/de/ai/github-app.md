@@ -118,11 +118,11 @@ Sie ignoriert außerdem jeden Kommentar, den ein Bot geschrieben hat, ihre eigen
 
 ## Was es kostet und wie Sie es begrenzen
 
-Jeder Befehl, der Arbeit startet, ist ein vollständiger Agent-Lauf: ein Klon, bis zu 40 LLM-Aufrufe und 100.000 Ausgabe-Tokens sowie die Build- und Testbefehle Ihres Repositorys, wenn Sie sie gesetzt haben. Die Produktionsabfragen eines Reviews, höchstens 12, zählen zu denselben 40 Aufrufen.
+Jeder Befehl, der Arbeit startet, ist ein vollständiger Agent-Lauf: ein Klon, bis zu 40 LLM-Aufrufe und 100.000 Ausgabe-Tokens sowie, auf einem eigenen Runner, die Build- und Testprüfungen, die die `AGENTS.md` Ihres Repositorys beschreibt. Die Produktionsabfragen eines Reviews, höchstens 12, zählen zu denselben 40 Aufrufen.
 
 GitHub-Befehle sind KI-Arbeit außerhalb von Vorfällen und Warnungen, daher gilt für sie kein tägliches Limit für Korrekturaufgaben; die eigenen täglichen KI-Limits des Projekts gelten, wenn das Projekt sie festlegt. Die einzige weitere Grenze ist die, die bereits für die Aufgaben in [Code](/docs/ai/ai-agent) gilt:
 
-- **Die Obergrenze für offene Pull Requests** (**Max. offene Korrektur-Pull-Requests** auf der Seite **Einstellungen** des Repositorys). **KI-Korrektur-Pull-Requests** steht auf **Kein Limit**, bis Sie **Ein Limit** wählen, oder auf **Keine**, was KI-Korrektur-Pull-Requests in diesem Repository blockiert. Reviews und Überarbeitungen sind ausgenommen: Keines davon fügt Ihrer Review-Warteschlange einen Pull Request hinzu.
+- **Die Obergrenze für offene Pull Requests** (**Max. offene Korrektur-Pull-Requests** unter **Weitere Einstellungen** auf der Seite **Einstellungen** des Repositorys). **KI-Korrektur-Pull-Requests** steht auf **Kein Limit**, bis Sie **Ein Limit** wählen, oder auf **Keine**, was KI-Korrektur-Pull-Requests in diesem Repository blockiert. Reviews und Überarbeitungen sind ausgenommen: Keines davon fügt Ihrer Review-Warteschlange einen Pull Request hinzu.
 
 Pro Issue oder Pull Request ist jeweils nur ein Lauf einer Art aktiv. Zweimal zu fragen sagt Ihnen, dass sie bereits daran arbeitet; um ein Review zu bitten, während eine Überarbeitung läuft, startet beides, da es verschiedene Anfragen sind.
 
@@ -130,9 +130,9 @@ Wenn ein Lauf nicht starten kann, sagt die App im Thread, warum: Sie schlägt ni
 
 ## Ausschalten
 
-Jedes Repository hat einen Schalter: **Auf GitHub-Befehle reagieren** auf der Seite **Einstellungen** des Repositorys. Ist er aus, ignoriert die App in diesem Repository Erwähnungen, Zuweisungen und das Auslöser-Label und sagt jedem, der fragt, wo der Schalter ist.
+Jedes Repository hat einen Schalter: **Auf GitHub-Befehle reagieren** auf der Seite **Einstellungen** des Repositorys. Er ist für jedes Repository an und speichert, sobald Sie ihn umlegen. Ist er aus, ignoriert die App in diesem Repository Erwähnungen, Zuweisungen und das Auslöser-Label und sagt jedem, der fragt, wo der Schalter ist.
 
-Dieselbe Seite enthält das **GitHub-Auslöser-Label**, falls Sie ein anderes Label als `oneuptime` möchten.
+Dieselbe Seite enthält unter **Weitere Einstellungen** das **GitHub-Auslöser-Label**, falls Sie ein anderes Label als `oneuptime` möchten.
 
 ## Was abonniert werden muss
 

@@ -36,6 +36,13 @@ export interface CodeAgentTask {
    * incident ask.
    */
   productionTelemetry?: boolean;
+  /*
+   * The agent is not told to build and test its change before it finishes:
+   * a review, which changes nothing, and a regression test, written to fail
+   * until its bug is fixed. It still reads how the repository says to work
+   * in it (RepositoryInstructions).
+   */
+  skipsChangeChecks?: boolean;
 }
 
 // Result from the code agent execution

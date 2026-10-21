@@ -11,6 +11,7 @@ import "@testing-library/jest-dom";
 import {
   act,
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -204,11 +205,20 @@ import CodePage, {
   getRepositoryNames,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Code";
 import CodeRepositoriesPage, {
+  CODE_REPOSITORIES_CARD_TEST_ID,
+  CODE_REPOSITORIES_NOT_CONNECTED_TEST_ID,
+  groupRepositories,
+  isFoundOnlyUnderNotConnected,
   isGitHubDisconnected,
   matchesRepositorySearch,
   REPOSITORY_SEARCH_THRESHOLD,
   sortRepositories,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Repositories";
+import {
+  CodeRepositoryGroups,
+  getRepositoriesPage,
+  orderRepositoriesForPicker,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoriesList";
 import CodeRepositoryTasks from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Repository/Tasks";
 import CodeTaskConversation, {
   CODE_TASK_POLL_MS,
@@ -1270,21 +1280,95 @@ describe("Code's first page: the question, one box, and every task", () => {
 describe("Code's Repositories", () => {
   beforeEach(() => {
     goTo(`/dashboard/${PROJECT_ID}/code/repositories`);
+    grant([Permission.ProjectUser, Permission.ProjectOwner]);
   });
 
-  test("while they load, rows in the making, and a screen reader hears Loading", () => {
+  // The rows of one list, by the names they show.
+  function rowNames(list: HTMLElement): Array<string> {
+    return within(list)
+      .queryAllByTestId("code-repository-row")
+      .map((row: HTMLElement): string => {
+        return (
+          within(row).getByTestId("code-repository-name").textContent || ""
+        );
+      });
+  }
+
+  function connectedList(): HTMLElement {
+    return screen.getByTestId(CODE_REPOSITORIES_CARD_TEST_ID);
+  }
+
+  function notConnectedFold(): HTMLElement {
+    return screen.getByTestId(CODE_REPOSITORIES_NOT_CONNECTED_TEST_ID);
+  }
+
+  function openNotConnected(): void {
+    fireEvent.click(
+      within(notConnectedFold()).getByRole("button", { name: "Not connected" }),
+    );
+  }
+
+  // What the page asked the server for, and an install URL for each ask.
+  function answersInstallUrl(): Array<string> {
+    const gets: Array<string> = [];
+
+    jest.spyOn(API, "get").mockImplementation((async (options: {
+      url: URL;
+    }) => {
+      gets.push(options.url.toString());
+      return new HTTPResponse<JSONObject>(
+        200,
+        {
+          installUrl: "https://github.com/apps/oneuptime-app/installations/new",
+        },
+        {},
+      );
+    }) as never);
+
+    return gets;
+  }
+
+  // The maintainer's project: one repository AI can work in, last by name.
+  const STALE: Array<CodeRepositoryListItem> = [
+    "ads",
+    "back-to-metal",
+    "blog",
+    "certificates",
+    "deployment",
+    "gtm-ops",
+    "handbook",
+    "helm-chart",
+    "infrastructure",
+    "landing-pages",
+    "marketing-site",
+    "mobile",
+    "oneuptime",
+    "status-page-templates",
+    "terraform-provider",
+  ].map((name: string): CodeRepositoryListItem => {
+    return repository({
+      name,
+      organizationName: "OneUptime",
+      repositoryName: name,
+      isConnected: name === "oneuptime",
+    });
+  });
+
+  test("while they load, the table's rows in the making, and a screen reader hears Loading", () => {
     getRepositoriesMock.mockReturnValue(new Promise(() => {}) as never);
     draw(<CodeRepositoriesPage {...PAGE_PROPS} />);
 
     const loading: HTMLElement = screen.getByTestId(
       "code-repositories-loading",
     );
+
     expect(loading).toHaveAttribute("role", "status");
     expect(loading).toHaveTextContent("Loading…");
-    expect(loading.querySelectorAll("[aria-hidden='true']")).toHaveLength(3);
+    expect(screen.getByText("Repositories")).toBeInTheDocument();
+    expect(screen.queryByTestId("code-repository-row")).toBeNull();
   });
 
-  test("a list, the most recently active first, then by name, counted - with Connect repositories", async () => {
+  test("the repositories AI can work in are the list - most recently active first, then by name - in the shared table", async () => {
     getRepositoriesMock.mockResolvedValue({
       repositories: [
         repository({ name: "zeta" }),
@@ -1305,24 +1389,103 @@ describe("Code's Repositories", () => {
 
     draw(<CodeRepositoriesPage {...PAGE_PROPS} />);
 
-    const rows: Array<HTMLElement> = await screen.findAllByTestId(
-      "code-repository-row",
-    );
+    await screen.findAllByTestId("code-repository-row");
+
+    expect(rowNames(connectedList())).toEqual(["middle", "alpha", "zeta"]);
+    // The table's own header row and footer: the list every product draws.
+    for (const header of ["Repository", "Tasks", "Last Activity"]) {
+      expect(
+        within(connectedList()).getByRole("columnheader", { name: header }),
+      ).toBeInTheDocument();
+    }
+    expect(connectedList()).toHaveTextContent("Showing 1-3 of 3 repositories");
     expect(
-      rows.map((row: HTMLElement) => {
-        return within(row).getByTestId("code-repository-name").textContent;
+      within(connectedList()).getByRole("button", {
+        name: "Connect repositories",
       }),
-    ).toEqual(["middle", "alpha", "zeta"]);
-    expect(screen.getByTestId("code-repositories-count")).toHaveTextContent(
-      "3 repositories",
-    );
-    expect(screen.getByTestId("code-connect-more")).toBeInTheDocument();
-    // A few repositories need no search box, and GitHub reaches them.
+    ).toBeInTheDocument();
+    // A few repositories need no search box; none is waiting apart.
     expect(screen.queryByTestId("code-repository-search")).toBeNull();
-    expect(screen.queryByTestId("code-github-disconnected")).toBeNull();
+    expect(
+      screen.queryByTestId(CODE_REPOSITORIES_NOT_CONNECTED_TEST_ID),
+    ).toBeNull();
   });
 
-  test("one repository is counted as one", async () => {
+  test("the maintainer's project: the one repository AI can work in is the list, and the fourteen others are folded apart", async () => {
+    getRepositoriesMock.mockResolvedValue({
+      repositories: STALE,
+      tasksWithoutRepositoryCount: 0,
+    } as never);
+
+    draw(<CodeRepositoriesPage {...PAGE_PROPS} />);
+
+    await screen.findAllByTestId("code-repository-row");
+
+    expect(rowNames(connectedList())).toEqual(["oneuptime"]);
+    expect(within(connectedList()).queryByText("Not connected")).toBeNull();
+
+    const fold: HTMLElement = notConnectedFold();
+    const header: HTMLElement = within(fold).getByRole("button", {
+      name: "Not connected",
+    });
+
+    expect(header).toHaveAttribute("aria-expanded", "false");
+    expect(fold).toHaveTextContent("14 repositories");
+    expect(fold).toHaveTextContent(
+      "GitHub does not give OneUptime access to these repositories any more, so AI cannot work in them.",
+    );
+
+    openNotConnected();
+
+    expect(header).toHaveAttribute("aria-expanded", "true");
+    // A page of them, by name, and the rest on the next.
+    expect(rowNames(fold)).toEqual([
+      "ads",
+      "back-to-metal",
+      "blog",
+      "certificates",
+      "deployment",
+      "gtm-ops",
+      "handbook",
+      "helm-chart",
+      "infrastructure",
+      "landing-pages",
+    ]);
+    expect(fold).toHaveTextContent("Showing 1-10 of 14 repositories");
+    expect(
+      screen.getByTestId("code-not-connected-explanation"),
+    ).toHaveTextContent(
+      "Their tasks stay readable. Connect GitHub with access to them to use them again, or open one to delete it.",
+    );
+  });
+
+  test("the folded ones' Connect GitHub starts GitHub's install", async () => {
+    const gets: Array<string> = answersInstallUrl();
+    getRepositoriesMock.mockResolvedValue({
+      repositories: [CHECKOUT, PAYMENTS],
+      tasksWithoutRepositoryCount: 0,
+    } as never);
+
+    draw(<CodeRepositoriesPage {...PAGE_PROPS} />);
+
+    await screen.findAllByTestId("code-repository-row");
+    openNotConnected();
+
+    fireEvent.click(
+      within(screen.getByTestId("code-not-connected-reconnect")).getByRole(
+        "button",
+        { name: "Connect GitHub" },
+      ),
+    );
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalled();
+    });
+    expect(gets[0]?.endsWith("/github/install-url")).toBe(true);
+  });
+
+  test("Connect repositories, in the list's header, starts GitHub's install; its ⋯ reads the list again", async () => {
+    const gets: Array<string> = answersInstallUrl();
     getRepositoriesMock.mockResolvedValue({
       repositories: [CHECKOUT],
       tasksWithoutRepositoryCount: 0,
@@ -1330,12 +1493,103 @@ describe("Code's Repositories", () => {
 
     draw(<CodeRepositoriesPage {...PAGE_PROPS} />);
 
-    expect(
-      await screen.findByTestId("code-repositories-count"),
-    ).toHaveTextContent(/^1 repository$/);
+    await screen.findAllByTestId("code-repository-row");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Connect repositories" }),
+    );
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalled();
+    });
+    expect(gets[0]?.endsWith("/github/install-url")).toBe(true);
+
+    // The ⋯ at the end of the header, as every table's.
+    fireEvent.click(screen.getByTestId("code-repositories-more"));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Refresh" }));
+
+    await waitFor(() => {
+      expect(getRepositoriesMock).toHaveBeenCalledTimes(2);
+    });
   });
 
-  test(`over ${REPOSITORY_SEARCH_THRESHOLD} repositories, a search box finds one by name, full name or description`, async () => {
+  test("a row opens its repository - a click anywhere on it, or its name, a link", async () => {
+    getRepositoriesMock.mockResolvedValue({
+      repositories: [CHECKOUT],
+      tasksWithoutRepositoryCount: 0,
+    } as never);
+
+    draw(<CodeRepositoriesPage {...PAGE_PROPS} />);
+
+    const row: HTMLElement = (
+      await screen.findAllByTestId("code-repository-row")
+    )[0]!;
+
+    expect(row).toHaveAttribute("data-repository-id", REPOSITORY_ID);
+    expect(within(row).getByTestId("code-repository-name")).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}`,
+    );
+
+    fireEvent.click(within(row).getByTestId("code-repository-full-name"));
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(String(navigateMock.mock.calls[0]![0])).toBe(
+      `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}`,
+    );
+  });
+
+  test("a row says its tasks, its open pull requests, what needs someone and when anything last happened", async () => {
+    getRepositoriesMock.mockResolvedValue({
+      repositories: [
+        { ...CHECKOUT, description: "The checkout and payment API." },
+        repository({ name: "quiet" }),
+      ],
+      tasksWithoutRepositoryCount: 0,
+    } as never);
+
+    draw(<CodeRepositoriesPage {...PAGE_PROPS} />);
+
+    const [busy, quiet] = await screen.findAllByTestId("code-repository-row");
+
+    expect(
+      within(busy!).getByTestId("code-repository-full-name"),
+    ).toHaveTextContent("acme/checkout-api");
+    expect(
+      within(busy!).getByTestId("code-repository-row-description"),
+    ).toHaveTextContent("The checkout and payment API.");
+    expect(
+      within(busy!).getByTestId("code-repository-task-count"),
+    ).toHaveTextContent("6 tasks");
+    expect(
+      within(busy!).getByTestId("code-repository-pull-requests"),
+    ).toHaveTextContent("1 open pull request");
+    expect(
+      within(busy!).getByTestId("code-repository-working"),
+    ).toHaveTextContent("1 working");
+    expect(within(busy!).queryByTestId("code-repository-waiting")).toBeNull();
+    // When anything last happened, as a date the reader's language words.
+    expect(busy!.querySelector("time")).toHaveAttribute(
+      "dateTime",
+      "2026-10-19T10:10:00.000Z",
+    );
+
+    // A repository with nothing yet says so, and nothing more.
+    expect(
+      within(quiet!).getByTestId("code-repository-task-count"),
+    ).toHaveTextContent("No tasks yet");
+    expect(
+      within(quiet!).queryByTestId("code-repository-pull-requests"),
+    ).toBeNull();
+    expect(
+      within(quiet!).queryByTestId("code-repository-attention"),
+    ).toBeNull();
+    expect(
+      within(quiet!).queryByTestId("code-repository-row-description"),
+    ).toBeNull();
+  });
+
+  test(`over ${REPOSITORY_SEARCH_THRESHOLD} repositories, a search finds one by name, full name or description - in both lists`, async () => {
     getRepositoriesMock.mockResolvedValue({
       repositories: [
         repository({ name: "checkout-api", description: "Payments and carts" }),
@@ -1348,7 +1602,7 @@ describe("Code's Repositories", () => {
         repository({ name: "two" }),
         repository({ name: "three" }),
         repository({ name: "four" }),
-        repository({ name: "five" }),
+        repository({ name: "legacy-billing", isConnected: false }),
       ],
       tasksWithoutRepositoryCount: 0,
     } as never);
@@ -1358,25 +1612,106 @@ describe("Code's Repositories", () => {
     const search: HTMLElement = await screen.findByTestId(
       "code-repository-search",
     );
-    expect(screen.getAllByTestId("code-repository-row")).toHaveLength(7);
+    expect(rowNames(connectedList())).toHaveLength(6);
 
     await userEvent.type(search, "PAYMENTS");
-    expect(screen.getAllByTestId("code-repository-row")).toHaveLength(1);
+    expect(rowNames(connectedList())).toEqual(["checkout-api"]);
 
     await userEvent.clear(search);
     await userEvent.type(search, "acme/store");
-    expect(screen.getAllByTestId("code-repository-row")).toHaveLength(1);
+    expect(rowNames(connectedList())).toEqual(["web"]);
 
+    // Matches among both lists: Not connected stays folded, counting its own.
+    const foldHeader: HTMLElement = within(notConnectedFold()).getByRole(
+      "button",
+      { name: "Not connected" },
+    );
     await userEvent.clear(search);
-    await userEvent.type(search, "nothing like it");
-    expect(screen.queryAllByTestId("code-repository-row")).toHaveLength(0);
-    expect(
-      screen.getByTestId("code-repository-search-empty"),
-    ).toHaveTextContent("No repository matches your search.");
+    await userEvent.type(search, "i");
+    expect(rowNames(connectedList()).length).toBeGreaterThan(0);
+    expect(foldHeader).toHaveAttribute("aria-expanded", "false");
+
+    /*
+     * Only a repository that is not connected matches: the list says where,
+     * and Not connected opens to show it - not a count behind a fold.
+     */
+    await userEvent.clear(search);
+    await userEvent.type(search, "billing");
+    expect(rowNames(connectedList())).toEqual([]);
+
+    const empty: HTMLElement = screen.getByTestId(
+      "code-repository-search-empty",
+    );
+    expect(empty).toHaveTextContent("No repository matches your search");
+    expect(empty).toHaveTextContent(
+      "1 repository under Not connected matches it.",
+    );
+    await waitFor(() => {
+      expect(foldHeader).toHaveAttribute("aria-expanded", "true");
+    });
+    expect(rowNames(notConnectedFold())).toEqual(["legacy-billing"]);
+
+    // It closes when the reader closes it, though the search still finds it.
+    fireEvent.click(foldHeader);
+    expect(foldHeader).toHaveAttribute("aria-expanded", "false");
+    await userEvent.type(search, "{backspace}");
+    expect(foldHeader).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(
+      within(screen.getByTestId("code-repository-search-empty")).getByRole(
+        "button",
+        { name: "Clear Search" },
+      ),
+    );
+    expect(rowNames(connectedList())).toHaveLength(6);
   });
 
-  test("GitHub reaches none of them: said once over the list with Connect GitHub - not on every row", async () => {
-    grant([Permission.ProjectUser, Permission.ProjectOwner]);
+  test("a search that finds some under Not connected says how many, for one and for many", async () => {
+    getRepositoriesMock.mockResolvedValue({
+      repositories: [
+        ...["one", "two", "three", "four", "five", "six"].map(
+          (name: string): CodeRepositoryListItem => {
+            return repository({ name });
+          },
+        ),
+        repository({ name: "old-billing", isConnected: false }),
+        repository({ name: "old-billing-ui", isConnected: false }),
+      ],
+      tasksWithoutRepositoryCount: 0,
+    } as never);
+
+    draw(<CodeRepositoriesPage {...PAGE_PROPS} />);
+
+    const search: HTMLElement = await screen.findByTestId(
+      "code-repository-search",
+    );
+
+    await userEvent.type(search, "old-billing");
+    expect(
+      screen.getByTestId("code-repository-search-empty"),
+    ).toHaveTextContent("2 repositories under Not connected match it.");
+    expect(rowNames(notConnectedFold())).toEqual([
+      "old-billing",
+      "old-billing-ui",
+    ]);
+
+    await userEvent.type(search, "-ui");
+    expect(
+      screen.getByTestId("code-repository-search-empty"),
+    ).toHaveTextContent("1 repository under Not connected matches it.");
+
+    // Nothing anywhere: no word about Not connected.
+    await userEvent.clear(search);
+    await userEvent.type(search, "nothing-like-it");
+    const empty: HTMLElement = screen.getByTestId(
+      "code-repository-search-empty",
+    );
+    expect(empty).toHaveTextContent("No repository matches your search");
+    expect(empty).not.toHaveTextContent("Not connected");
+  });
+
+  test("GitHub reaches none of them: the list says so with Connect GitHub - once, not in its header too", async () => {
+    const gets: Array<string> = answersInstallUrl();
     getRepositoriesMock.mockResolvedValue({
       repositories: [
         { ...CHECKOUT, isConnected: false },
@@ -1385,35 +1720,30 @@ describe("Code's Repositories", () => {
       ],
       tasksWithoutRepositoryCount: 0,
     } as never);
-    // What the page asked the server for, in order.
-    const gets: Array<string> = [];
-    jest.spyOn(API, "get").mockImplementation((async (options: {
-      url: URL;
-    }) => {
-      gets.push(options.url.toString());
-      return new HTTPResponse<JSONObject>(
-        200,
-        {
-          installUrl: "https://github.com/apps/oneuptime-app/installations/new",
-        },
-        {},
-      );
-    }) as never);
 
     draw(<CodeRepositoriesPage {...PAGE_PROPS} />);
 
-    const banner: HTMLElement = await screen.findByTestId(
+    const empty: HTMLElement = await screen.findByTestId(
       "code-github-disconnected",
     );
-    expect(banner).toHaveTextContent(
-      "GitHub is not connected to this project, so AI cannot work in these repositories. Connect GitHub again to use them.",
-    );
-    expect(screen.getAllByTestId("code-repository-row")).toHaveLength(3);
-    expect(screen.queryByTestId("code-repository-not-connected")).toBeNull();
-    // One way to connect: the banner's, not a second button beside the count.
-    expect(screen.queryByTestId("code-connect-more")).toBeNull();
 
-    await userEvent.click(within(banner).getByTestId("code-github-reconnect"));
+    expect(empty).toHaveTextContent("No connected repositories");
+    // Its repositories are folded below: the list does not say "these".
+    expect(empty).toHaveTextContent(
+      "GitHub is not connected to this project, so AI cannot work in its repositories. Connect GitHub again to use them.",
+    );
+    expect(rowNames(connectedList())).toEqual([]);
+    expect(
+      screen.queryByRole("button", { name: "Connect repositories" }),
+    ).toBeNull();
+    expect(notConnectedFold()).toHaveTextContent("3 repositories");
+
+    // The folded list offers no second way to connect.
+    openNotConnected();
+    expect(screen.queryByTestId("code-not-connected-reconnect")).toBeNull();
+
+    fireEvent.click(within(empty).getByTestId("code-github-reconnect"));
+
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalled();
     });
@@ -1429,29 +1759,15 @@ describe("Code's Repositories", () => {
 
     draw(<CodeRepositoriesPage {...PAGE_PROPS} />);
 
-    const banner: HTMLElement = await screen.findByTestId(
+    const empty: HTMLElement = await screen.findByTestId(
       "code-github-disconnected",
     );
-    expect(within(banner).queryByTestId("code-github-reconnect")).toBeNull();
+
+    expect(within(empty).queryByTestId("code-github-reconnect")).toBeNull();
     expect(
-      within(banner).getByTestId("code-github-disconnected-lock"),
+      within(empty).getByTestId("code-github-disconnected-lock"),
     ).toHaveTextContent(
       "Connecting GitHub needs permission to create code repositories.",
-    );
-  });
-
-  test("some repositories GitHub does not reach: each says so on its row", async () => {
-    getRepositoriesMock.mockResolvedValue({
-      repositories: [CHECKOUT, PAYMENTS],
-      tasksWithoutRepositoryCount: 0,
-    } as never);
-
-    draw(<CodeRepositoriesPage {...PAGE_PROPS} />);
-
-    await screen.findAllByTestId("code-repository-row");
-    expect(screen.queryByTestId("code-github-disconnected")).toBeNull();
-    expect(screen.getAllByTestId("code-repository-not-connected")).toHaveLength(
-      1,
     );
   });
 
@@ -1466,7 +1782,7 @@ describe("Code's Repositories", () => {
     expect(await screen.findByTestId("code-connect-github")).toHaveTextContent(
       "Connect your code",
     );
-    expect(screen.queryByTestId("code-repositories")).toBeNull();
+    expect(screen.queryByTestId(CODE_REPOSITORIES_CARD_TEST_ID)).toBeNull();
   });
 
   test("a failed read says why and tries again", async () => {
@@ -1485,16 +1801,20 @@ describe("Code's Repositories", () => {
 
     draw(<CodeRepositoriesPage {...PAGE_PROPS} />);
 
-    expect(
-      await screen.findByText("Repositories are unavailable."),
-    ).toBeInTheDocument();
-    await userEvent.click(screen.getByText("Refresh?"));
+    const failed: HTMLElement = await screen.findByTestId(
+      "code-repositories-error",
+    );
+
+    expect(failed).toHaveTextContent("Repositories are unavailable.");
+
+    fireEvent.click(within(failed).getByRole("button", { name: "Try again" }));
+
     expect(
       await screen.findByTestId("code-repository-row"),
     ).toBeInTheDocument();
   });
 
-  test("sorting, searching and the disconnected banner as pure rules", () => {
+  test("grouping, sorting, searching, paging and the picker's order as pure rules", () => {
     const sorted: Array<CodeRepositoryListItem> = sortRepositories([
       repository({ name: "b" }),
       repository({
@@ -1524,6 +1844,72 @@ describe("Code's Repositories", () => {
     expect(isGitHubDisconnected([])).toBe(false);
     expect(isGitHubDisconnected([PAYMENTS])).toBe(true);
     expect(isGitHubDisconnected([PAYMENTS, CHECKOUT])).toBe(false);
+
+    const groups: CodeRepositoryGroups = groupRepositories([
+      PAYMENTS,
+      STOREFRONT,
+      CHECKOUT,
+    ]);
+    expect(
+      groups.connected.map((item: CodeRepositoryListItem) => {
+        return item.name;
+      }),
+    ).toEqual(["checkout-api", "storefront-web"]);
+    expect(
+      groups.notConnected.map((item: CodeRepositoryListItem) => {
+        return item.name;
+      }),
+    ).toEqual(["payments-worker"]);
+    expect(
+      groupRepositories([PAYMENTS, CHECKOUT], "payments").connected,
+    ).toEqual([]);
+
+    // A search that finds repositories only under Not connected opens it.
+    expect(
+      isFoundOnlyUnderNotConnected(
+        groupRepositories([PAYMENTS, CHECKOUT], "payments"),
+        "payments",
+      ),
+    ).toBe(true);
+    // Not when the list AI can work in has some too, nor with no search.
+    expect(
+      isFoundOnlyUnderNotConnected(
+        groupRepositories([PAYMENTS, CHECKOUT], "-"),
+        "-",
+      ),
+    ).toBe(false);
+    expect(
+      isFoundOnlyUnderNotConnected(groupRepositories([PAYMENTS]), "  "),
+    ).toBe(false);
+    // Nor when nothing is found anywhere.
+    expect(
+      isFoundOnlyUnderNotConnected(
+        groupRepositories([PAYMENTS, CHECKOUT], "zzz"),
+        "zzz",
+      ),
+    ).toBe(false);
+
+    // Connected first in the request box's picker, each by name as read.
+    expect(
+      orderRepositoriesForPicker([PAYMENTS, STOREFRONT, CHECKOUT]).map(
+        (item: CodeRepositoryListItem) => {
+          return item.name;
+        },
+      ),
+    ).toEqual(["storefront-web", "checkout-api", "payments-worker"]);
+
+    const page2: { items: Array<CodeRepositoryListItem>; pageNumber: number } =
+      getRepositoriesPage({ repositories: STALE, pageNumber: 2, pageSize: 10 });
+    expect(page2.pageNumber).toBe(2);
+    expect(page2.items).toHaveLength(5);
+    // A search that shrank the list takes the reader back to a page it has.
+    expect(
+      getRepositoriesPage({
+        repositories: STALE.slice(0, 3),
+        pageNumber: 4,
+        pageSize: 10,
+      }).pageNumber,
+    ).toBe(1);
   });
 });
 

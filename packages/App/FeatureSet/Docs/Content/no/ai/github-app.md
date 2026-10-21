@@ -118,11 +118,11 @@ Den ignorerer også alle kommentarer skrevet av en bot, sine egne inkludert, og 
 
 ## Hva det koster, og hvordan du begrenser det
 
-Hver kommando som starter arbeid, er en full agentkjøring: en klon, opptil 40 LLM-kall og 100 000 utdata-tokens, og repositoriets bygge- og testkommandoer når du har satt dem. Produksjonsspørringene til en gjennomgang, høyst 12, teller mot de samme 40 kallene.
+Hver kommando som starter arbeid, er en full agentkjøring: en klon, opptil 40 LLM-kall og 100 000 utdata-tokens, og, på din egen Runner, bygge- og testsjekkene repositoriets `AGENTS.md` beskriver. Produksjonsspørringene til en gjennomgang, høyst 12, teller mot de samme 40 kallene.
 
 GitHub-kommandoer er AI-arbeid utenfor hendelser og varsler, så ingen daglig grense for rettingsoppgaver gjelder for dem; prosjektets egne daglige AI-grenser gjør det, når prosjektet setter dem. Den eneste andre grensen er den som allerede gjelder for oppgavene i [Kode](/docs/ai/ai-agent):
 
-- **Taket på åpne pull requests** (**Max Open Fix Pull Requests**, på repositoriets side **Innstillinger**). **AI-rettings-pull requests** står på **Ingen grense** til du velger **En grense**, eller **Ingen**, som blokkerer AI-rettings-pull-requests i det repositoriet. Gjennomganger og revisjoner er unntatt: ingen av dem legger en pull request i gjennomgangskøen din.
+- **Taket på åpne pull requests** (**Max Open Fix Pull Requests**, under **Flere innstillinger** på repositoriets side **Innstillinger**). **AI-rettings-pull requests** står på **Ingen grense** til du velger **En grense**, eller **Ingen**, som blokkerer AI-rettings-pull-requests i det repositoriet. Gjennomganger og revisjoner er unntatt: ingen av dem legger en pull request i gjennomgangskøen din.
 
 Bare én kjøring av en type er aktiv om gangen per issue eller pull request. Spør du to ganger, får du vite at den allerede jobber; ber du om en gjennomgang mens en revisjon kjører, starter begge, siden det er forskjellige forespørsler.
 
@@ -130,9 +130,9 @@ Hvis en kjøring ikke kan starte, sier appen hvorfor i tråden: den feiler aldri
 
 ## Slå den av
 
-Hvert repositorium har en bryter: **Respond to GitHub Commands**, på repositoriets side **Innstillinger**. Når den er av, ignorerer appen omtaler, tildelinger og utløseretiketten i det repositoriet, og forteller alle som spør, hvor bryteren er.
+Hvert repositorium har en bryter: **Respond to GitHub Commands**, på repositoriets side **Innstillinger**. Den er på for alle repositorier og lagres i det øyeblikket du slår den om. Når den er av, ignorerer appen omtaler, tildelinger og utløseretiketten i det repositoriet, og forteller alle som spør, hvor bryteren er.
 
-Den samme siden har **GitHub Trigger Label**, hvis du vil ha en annen etikett enn `oneuptime`.
+Den samme siden har **GitHub Trigger Label** under **Flere innstillinger**, hvis du vil ha en annen etikett enn `oneuptime`.
 
 ## Hva du skal abonnere på
 
