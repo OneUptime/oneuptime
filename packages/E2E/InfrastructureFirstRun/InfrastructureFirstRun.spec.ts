@@ -486,15 +486,94 @@ async function cardFields(card: Locator): Promise<Array<string>> {
 }
 
 // Customize Columns: the card header's More options, then Columns.
-async function openColumnPicker(page: Page): Promise<Locator> {
+async function openColumnPicker(
+  page: Page,
+  names: { moreOptions: string; columns: string } = {
+    moreOptions: "More options",
+    columns: "Columns",
+  },
+): Promise<Locator> {
   await tableCard(page)
     .getByTestId("card-header-actions")
-    .getByRole("button", { name: "More options" })
+    .getByRole("button", { name: names.moreOptions })
     .click();
-  await page.getByRole("menuitem", { name: "Columns", exact: true }).click();
+  await page
+    .getByRole("menuitem", { name: names.columns, exact: true })
+    .click();
   const picker: Locator = page.getByTestId("column-customization-modal");
   await expect(picker).toBeVisible();
+  // Settled: the dialog fades in, and is measured and shot once it has.
+  await expect(page.getByTestId("modal")).toHaveCSS("opacity", "1");
   return picker;
+}
+
+interface ColumnListGeometry {
+  rows: number;
+  clientHeight: number;
+  scrollHeight: number;
+  // From the top of the list's inside: where its last row ends.
+  lastRowBottom: number;
+  firstRowTop: number;
+  // A row with the rule under it.
+  rowPitch: number;
+  // The height the list may grow to, inside its border.
+  innerMaxHeight: number;
+}
+
+// The picker's list of columns, measured as drawn.
+async function columnListGeometry(
+  picker: Locator,
+): Promise<ColumnListGeometry> {
+  return picker
+    .getByTestId("column-customization-list")
+    .evaluate((list: Element): ColumnListGeometry => {
+      const style: CSSStyleDeclaration = getComputedStyle(list);
+      const borderTop: number = parseFloat(style.borderTopWidth) || 0;
+      const borderBottom: number = parseFloat(style.borderBottomWidth) || 0;
+      const insideTop: number = list.getBoundingClientRect().top + borderTop;
+      const rows: Array<DOMRect> = Array.from(
+        list.querySelectorAll("[data-rbd-draggable-id]"),
+      ).map((row: Element): DOMRect => {
+        return row.getBoundingClientRect();
+      });
+      const first: DOMRect = rows[0] as DOMRect;
+      const second: DOMRect = rows[1] as DOMRect;
+      const last: DOMRect = rows[rows.length - 1] as DOMRect;
+
+      return {
+        rows: rows.length,
+        clientHeight: list.clientHeight,
+        scrollHeight: list.scrollHeight,
+        lastRowBottom: last.bottom - insideTop,
+        firstRowTop: first.top - insideTop,
+        rowPitch: second.top - first.top,
+        innerMaxHeight: parseFloat(style.maxHeight) - borderTop - borderBottom,
+      };
+    });
+}
+
+/*
+ * The list used to stop at exactly six rows, so Owners - the seventh - sat
+ * below its edge with nothing to say it was there. Now all seven show, and
+ * the height the list stops at falls in the middle of a row: a longer list
+ * shows half of its next row, which says it scrolls.
+ */
+async function expectEveryColumnInView(picker: Locator): Promise<void> {
+  const geometry: ColumnListGeometry = await columnListGeometry(picker);
+
+  expect(geometry.rows).toBe(7);
+  expect(geometry.scrollHeight).toBeLessThanOrEqual(geometry.clientHeight);
+  expect(geometry.lastRowBottom).toBeLessThanOrEqual(
+    geometry.clientHeight + 0.5,
+  );
+
+  const rowsInView: number =
+    (geometry.innerMaxHeight - geometry.firstRowTop) / geometry.rowPitch;
+  const cut: number = rowsInView - Math.floor(rowsInView);
+
+  expect(rowsInView).toBeGreaterThan(7);
+  expect(cut).toBeGreaterThan(0.3);
+  expect(cut).toBeLessThan(0.7);
 }
 
 async function switchOnBothColumns(page: Page): Promise<void> {
@@ -540,6 +619,10 @@ test("All vCenters opens on Name, Status, Last Seen, Labels and Owners; Collecte
   ).not.toBeChecked();
   await expect(picker.getByTestId("column-toggle-name")).toBeChecked();
   await expect(picker.getByTestId("column-toggle-lastSeenAt")).toBeChecked();
+  await expect(picker.getByTestId("column-customization-count")).toHaveText(
+    "5 of 7 columns shown",
+  );
+  await expectEveryColumnInView(picker);
   await screenshot(page, "vcenters-column-picker");
   await page.getByTestId("modal-footer-close-button").click();
   await expect(picker).toHaveCount(0);
@@ -599,6 +682,13 @@ test("on a phone, a vCenter's card shows neither until Customize Columns switche
   expect(await scrollsSideways(page)).toBe(false);
   await screenshot(page, "vcenters-default-columns-phone");
 
+  // The phone's sheet lists all seven columns too.
+  const picker: Locator = await openColumnPicker(page);
+  await expectEveryColumnInView(picker);
+  await screenshot(page, "vcenters-column-picker-phone");
+  await page.getByTestId("modal-footer-close-button").click();
+  await expect(picker).toHaveCount(0);
+
   await switchOnBothColumns(page);
 
   await expect
@@ -625,6 +715,92 @@ test("on a phone, a vCenter's card shows neither until Customize Columns switche
   ]);
   expect(await scrollsSideways(page)).toBe(false);
   await screenshot(page, "vcenters-columns-switched-on-phone");
+});
+
+/*
+ * The way back to the two columns, in German: the menu item, the dialog's
+ * count line (English until now) and its search, which only matched the
+ * English titles - "Agent-Version" found nothing in a list that showed it.
+ */
+test("in German, Customize Columns reads German and its search finds the columns by their German names", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await open(page, VCENTERS, "vcenters=1&lang=de");
+
+  await expect(
+    tableCard(page).getByText("vcenter-prod", { exact: true }).first(),
+  ).toBeVisible();
+  const germanHeaders: () => Promise<Array<string>> = async (): Promise<
+    Array<string>
+  > => {
+    return (await columnHeaders(page)).filter((text: string): boolean => {
+      return text !== "Aktionen";
+    });
+  };
+  expect(await germanHeaders()).toEqual([
+    "Name",
+    "Status",
+    "Zuletzt gesehen",
+    "Beschriftungen",
+    "Eigentümer",
+  ]);
+
+  const picker: Locator = await openColumnPicker(page, {
+    moreOptions: "Weitere Optionen",
+    columns: "Spalten",
+  });
+  await expect(page.getByRole("dialog")).toContainText("Spalten anpassen");
+  await expect(picker.getByTestId("column-customization-count")).toHaveText(
+    "5 von 7 Spalten angezeigt",
+  );
+  await expect(
+    picker.getByTestId("column-toggle-collectionMethod"),
+  ).not.toBeChecked();
+  await expect(
+    picker.getByTestId("column-toggle-agentVersion"),
+  ).not.toBeChecked();
+  await expect(picker.getByText("Erfasst von", { exact: true })).toBeVisible();
+  await expect(
+    picker.getByText("Agent-Version", { exact: true }),
+  ).toBeVisible();
+
+  // Typed as the row reads.
+  await picker.getByTestId("column-customization-search").fill("agent-version");
+  await expect(picker.getByTestId("column-toggle-agentVersion")).toBeVisible();
+  await expect(picker.getByTestId("column-toggle-name")).toHaveCount(0);
+  await expect(picker.getByTestId("column-customization-hint")).toHaveText(
+    "Leeren Sie die Suche, um Spalten neu anzuordnen.",
+  );
+  await screenshot(page, "vcenters-column-picker-de-search");
+  await picker.getByTestId("column-toggle-agentVersion").check();
+
+  await picker.getByTestId("column-customization-search").fill("Erfasst");
+  await picker.getByTestId("column-toggle-collectionMethod").check();
+  await page.getByTestId("modal-footer-submit-button").click();
+  await expect(picker).toHaveCount(0);
+
+  await expect
+    .poll((): Promise<Array<string>> => {
+      return germanHeaders();
+    })
+    .toEqual([
+      "Name",
+      "Status",
+      "Erfasst von",
+      "Agent-Version",
+      "Zuletzt gesehen",
+      "Beschriftungen",
+      "Eigentümer",
+    ]);
+  await expect(
+    tableCard(page).getByText("Sonde: Lab Probe", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    tableCard(page).getByText("VMware-Agent", { exact: true }),
+  ).toBeVisible();
 });
 
 /*

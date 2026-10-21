@@ -83,6 +83,21 @@ type ColumnCustomizationModalFunction = <
 ) => ReactElement;
 
 /*
+ * How tall the list of columns grows before it scrolls: seven rows and half
+ * of an eighth.
+ *
+ * A row is 53px (52px and the rule under it). The list used to stop at
+ * max-h-80, 320px: exactly six rows. A table's seventh column (Owners, on
+ * every infrastructure list) then sat just below the edge, with nothing to
+ * say it was there, since a Mac shows no scroll bar until you scroll. At
+ * 25rem a table of seven columns lists every one, and a longer list cuts its
+ * eighth row through the middle - the half row is what says it goes on.
+ */
+export const COLUMN_LIST_MAX_HEIGHT_CLASS_NAME: string = "max-h-[25rem]";
+
+export const COLUMN_LIST_TEST_ID: string = "column-customization-list";
+
+/*
  * The "Customize Columns" picker: a checkbox and a drag handle per column.
  *
  * Two constraints shape it:
@@ -118,17 +133,40 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
   const normalizedSearch: string = searchText.trim().toLowerCase();
   const isSearching: boolean = normalizedSearch.length > 0;
 
+  type MatchesSearchFunction = (
+    title: string | undefined,
+    search: string,
+  ) => boolean;
+
+  /*
+   * A column is found by the name the reader sees: its title in their
+   * language. Only the English title used to be searched, so a reader in any
+   * other language typed the name in front of them and was told no column
+   * matched. The English title still finds it too - the name a guide or a
+   * colleague may use.
+   */
+  const matchesSearch: MatchesSearchFunction = (
+    title: string | undefined,
+    search: string,
+  ): boolean => {
+    const englishTitle: string = title || "";
+
+    return [translator.translateText(englishTitle), englishTitle].some(
+      (name: string): boolean => {
+        return name.toLowerCase().includes(search);
+      },
+    );
+  };
+
   const shownEntries: Array<CustomizableColumn<TBaseModel>> = useMemo(() => {
     if (!isSearching) {
       return entries;
     }
 
     return entries.filter((entry: CustomizableColumn<TBaseModel>) => {
-      return (entry.column.title || "")
-        .toLowerCase()
-        .includes(normalizedSearch);
+      return matchesSearch(entry.column.title, normalizedSearch);
     });
-  }, [entries, normalizedSearch, isSearching]);
+  }, [entries, normalizedSearch, isSearching, translator.language]);
 
   /*
    * Both bulk actions are switched off when they have nothing left to do -
@@ -171,11 +209,9 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
       }
 
       return addableColumns.filter((entry: CustomizableColumn<TBaseModel>) => {
-        return (entry.column.title || "")
-          .toLowerCase()
-          .includes(normalizedAddSearch);
+        return matchesSearch(entry.column.title, normalizedAddSearch);
       });
-    }, [addableColumns, normalizedAddSearch]);
+    }, [addableColumns, normalizedAddSearch, translator.language]);
 
   const addableResultLimit: number = props.addableColumns?.maxResults ?? 25;
 
@@ -853,7 +889,10 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
           </div>
         </div>
 
-        <div className="max-h-80 overflow-y-auto overscroll-contain rounded-md border border-gray-200 bg-white">
+        <div
+          className={`${COLUMN_LIST_MAX_HEIGHT_CLASS_NAME} overflow-y-auto overscroll-contain rounded-md border border-gray-200 bg-white`}
+          data-testid={COLUMN_LIST_TEST_ID}
+        >
           {getList()}
         </div>
 
