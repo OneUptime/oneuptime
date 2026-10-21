@@ -135,7 +135,7 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 
 ### Hitta klustret i OneUptime
 
-Öppna **Produkter → Infrastruktur → Kubernetes → Alla kluster**. Klustret visas under sitt `clusterName` inom några minuter, och dess noder, poddar och arbetsbelastningar fylls i. Kubernetes-AI-agenten visas som ansluten på klustrets sida **Agent**, under **AI**.
+Öppna **Produkter → Infrastruktur → Kubernetes → Alla kluster**. Klustret visas under sitt `clusterName` inom några minuter, och dess noder, poddar och arbetsbelastningar fylls i. Kubernetes-AI-agenten visas som ansluten på klustrets sida **Agent**, under **AI**. Klustrets sida **Topologi** ritar dess namnrymder, arbetsbelastningar, poddar och noder på en karta och markerar det som kräver uppmärksamhet: se [Topologi](/docs/telemetry/topology#öppna-en-resurs-egen-karta).
 :::
 
 ## Installera som Amazon EKS-tillägg

@@ -137,7 +137,7 @@ Everything is ready. Begin running and processing data.
 
 ### OneUptime에서 클러스터 찾기
 
-**제품 → 인프라 → Proxmox → 모든 클러스터**를 엽니다. 첫 스크레이프 후 1분 정도 지나면 클러스터가 `PROXMOX_CLUSTER_NAME`으로 노드, 게스트, 스토리지와 함께 나타납니다.
+**제품 → 인프라 → Proxmox → 모든 클러스터**를 엽니다. 첫 스크레이프 후 1분 정도 지나면 클러스터가 `PROXMOX_CLUSTER_NAME`으로 노드, 게스트, 스토리지와 함께 나타납니다. 클러스터의 **토폴로지** 페이지는 이들을 하나의 지도로 그립니다. [토폴로지](/docs/telemetry/topology#리소스별-지도-열기)를 참고하세요.
 :::
 
 ## 환경 변수

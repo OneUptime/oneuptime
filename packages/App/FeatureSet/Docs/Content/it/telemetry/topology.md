@@ -6,6 +6,7 @@ La topologia disegna come sono collegati i vostri sistemi: quali servizi ne chia
 - [Aprire la topologia](#aprire-la-topologia): Tre viste di un'unica pagina.
 - [Leggere la mappa dei servizi](#leggere-la-mappa-dei-servizi): Chi chiama chi, e quanto sono sane le chiamate.
 - [Esplorare la vostra infrastruttura](#esplorare-la-vostra-infrastruttura): Dove gira ogni servizio.
+- [Aprire la mappa di una risorsa](#aprire-la-mappa-di-una-risorsa): Un vCenter, un cluster o un host nel dettaglio.
 - [Vedere la vostra rete](#vedere-la-vostra-rete): I dispositivi e i loro collegamenti, in tempo reale.
 :::
 
@@ -80,6 +81,14 @@ Fate clic su una freccia per vederne la frequenza delle richieste, il tasso di e
 - **Sfogliatela a modo vostro.** Mostratela come **Elenco** o come **Map**, da tutta la vostra infrastruttura fino a un singolo pod. I conteggi in alto dicono quante risorse e quanti carichi di lavoro disegna, quanti servizi riesce a collocare e quante risorse silenziose lascia fuori.
 - **Trovate una risorsa.** Cercatela per nome e fate clic su **View details** per aprirne la pagina.
 - **Passate da una vista all'altra.** Un servizio elencato su una risorsa si apre sulla **Service Map**, e le risorse su cui gira un servizio si aprono su **Infrastruttura**.
+
+## Aprire la mappa di una risorsa
+
+Un vCenter, un cluster Kubernetes, un host, un host Docker o Podman, un cluster Docker Swarm, Proxmox o Ceph e uno storage array hanno ciascuno una propria pagina **Topologia**. Disegna quella risorsa nel dettaglio, dal suo inventario: cosa sta dentro cosa, ogni parte colorata in base al suo stato, e ogni incidente e avviso aperto sulla parte che riguarda.
+
+- **Trovate ciò che richiede attenzione.** **Richiede attenzione** tiene solo le parti con problemi e il percorso fino a ciascuna, e la ricerca trova una parte ovunque nella risorsa.
+- **Guardate più da vicino.** Fate clic su una parte per vedere cos'è e un link alla sua pagina, e su **Concentrati su questo** per disegnare solo quella parte, ciò che contiene e ciò a cui è collegata.
+- **In entrambe le direzioni.** **Apri in Topologia** apre la risorsa in **Infrastruttura**, e il suo pulsante **Apri la topologia del vCenter**, **Apri la topologia del cluster**, **Apri la topologia dell'host** o **Apri la topologia dello storage array** riporta indietro.
 
 ## Vedere la vostra rete
 

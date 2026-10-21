@@ -93,7 +93,7 @@ docker compose logs --tail 50 oneuptime-docker-swarm-agent oneuptime-docker-swar
 
 ### Het cluster vinden in OneUptime
 
-Open **Producten → Infrastructuur → Docker Swarm → Alle clusters**. Het cluster verschijnt binnen een paar minuten, en de pagina's **Knooppunten**, **Services**, **Taken**, **Stacks**, **Netwerken**, **Geheimen**, **Configs** en **Volumes** vullen zich na de eerste inventarissnapshot, binnen 5 minuten.
+Open **Producten → Infrastructuur → Docker Swarm → Alle clusters**. Het cluster verschijnt binnen een paar minuten, en de pagina's **Knooppunten**, **Services**, **Taken**, **Stacks**, **Netwerken**, **Geheimen**, **Configs** en **Volumes** vullen zich na de eerste inventarissnapshot, binnen 5 minuten. De pagina **Topologie** van het cluster tekent zijn stacks, services, taken en nodes op één kaart: zie [Topologie](/docs/telemetry/topology#de-eigen-kaart-van-een-resource-openen).
 :::
 
 ## Omgevingsvariabelen

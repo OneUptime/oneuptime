@@ -137,7 +137,7 @@ Everything is ready. Begin running and processing data.
 
 ### Trova il cluster in OneUptime
 
-Apri **Prodotti → Infrastruttura → Proxmox → Tutti i cluster**. Il cluster compare con il suo `PROXMOX_CLUSTER_NAME` circa un minuto dopo la prima raccolta, con i suoi nodi, guest e storage.
+Apri **Prodotti → Infrastruttura → Proxmox → Tutti i cluster**. Il cluster compare con il suo `PROXMOX_CLUSTER_NAME` circa un minuto dopo la prima raccolta, con i suoi nodi, guest e storage. La sua pagina **Topologia** li disegna su un'unica mappa: vedi [Topologia](/docs/telemetry/topology#aprire-la-mappa-di-una-risorsa).
 :::
 
 ## Variabili d'ambiente

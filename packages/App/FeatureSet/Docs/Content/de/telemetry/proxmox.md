@@ -137,7 +137,7 @@ Everything is ready. Begin running and processing data.
 
 ### Den Cluster in OneUptime finden
 
-Öffnen Sie **Produkte → Infrastruktur → Proxmox → Alle Cluster**. Der Cluster erscheint etwa eine Minute nach dem ersten Scrape unter seinem `PROXMOX_CLUSTER_NAME`, mit seinen Knoten, Gästen und seinem Speicher.
+Öffnen Sie **Produkte → Infrastruktur → Proxmox → Alle Cluster**. Der Cluster erscheint etwa eine Minute nach dem ersten Scrape unter seinem `PROXMOX_CLUSTER_NAME`, mit seinen Knoten, Gästen und seinem Speicher. Seine Seite **Topologie** zeichnet sie als eine Karte: siehe [Topologie](/docs/telemetry/topology#die-eigene-karte-einer-ressource-öffnen).
 :::
 
 ## Umgebungsvariablen

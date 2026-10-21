@@ -205,6 +205,10 @@ const NAVBAR_CATEGORY: RegExp = /category: (\w+)Category/;
 const RESOURCE_NAME_PROP: RegExp = /resourceName="([^"]+)"/;
 const FENCED_TEXT: RegExp = /```text\n([\s\S]*?)\n```/g;
 const QUOTED: RegExp = /"([^"]+)"/g;
+// A resource's own Topology page, as ResourceTopologyLinks names it.
+const RESOURCE_TOPOLOGY_PAGE: RegExp = /page: PageMap\.([A-Z_]+_TOPOLOGY),/g;
+// The button on the master map that leads back to a resource's own map.
+const RESOURCE_TOPOLOGY_LINK_TEXT: RegExp = /linkText: translationKey\("([^"]+)"\)/g;
 
 function english(page: string): string {
   return readPage("en", page);
@@ -2151,6 +2155,97 @@ describe("Topology (telemetry/topology)", () => {
     expect(page).toContain(
       "Go to **Products → Observability → Topology**. **Inventory → Topology Map** opens the same page.",
     );
+  });
+
+  it("names every resource that has a Topology page of its own, and each page is in its side menu", () => {
+    expect(page).toContain(
+      "A vCenter, a Kubernetes cluster, a host, a Docker or Podman host, a Docker Swarm, Proxmox or Ceph cluster and a storage array each have a **Topology** page of their own.",
+    );
+
+    // Each of the nine is a page of the resource, under Topology in its side menu.
+    for (const [menu, key] of [
+      ["VMware", "VMWARE_VCENTER_VIEW_TOPOLOGY"],
+      ["Kubernetes", "KUBERNETES_CLUSTER_VIEW_TOPOLOGY"],
+      ["Host", "HOST_VIEW_TOPOLOGY"],
+      ["Docker", "DOCKER_HOST_VIEW_TOPOLOGY"],
+      ["Podman", "PODMAN_HOST_VIEW_TOPOLOGY"],
+      ["DockerSwarm", "DOCKER_SWARM_CLUSTER_VIEW_TOPOLOGY"],
+      ["Proxmox", "PROXMOX_CLUSTER_VIEW_TOPOLOGY"],
+      ["Ceph", "CEPH_CLUSTER_VIEW_TOPOLOGY"],
+      ["StorageArray", "STORAGE_ARRAY_VIEW_TOPOLOGY"],
+    ] as Array<[string, string]>) {
+      const sideMenu: string = readDashboardSource(
+        `Pages/${menu}/View/SideMenu.tsx`,
+      );
+
+      expect({ menu, linked: sideMenu.includes(`PageMap.${key}`) }).toEqual({
+        menu,
+        linked: true,
+      });
+      expect(
+        between(sideMenu, `PageMap.${key}`, "/>").length,
+      ).toBeGreaterThan(0);
+    }
+
+    // The nine are the ones the master map links into, and no others.
+    const links: string = readDashboardSource(
+      "Components/ResourceTopology/ResourceTopologyLinks.ts",
+    );
+
+    expect(
+      allMatches(links, RESOURCE_TOPOLOGY_PAGE).sort(),
+    ).toEqual(
+      [
+        "CEPH_CLUSTER_VIEW_TOPOLOGY",
+        "DOCKER_HOST_VIEW_TOPOLOGY",
+        "DOCKER_SWARM_CLUSTER_VIEW_TOPOLOGY",
+        "HOST_VIEW_TOPOLOGY",
+        "KUBERNETES_CLUSTER_VIEW_TOPOLOGY",
+        "PODMAN_HOST_VIEW_TOPOLOGY",
+        "PROXMOX_CLUSTER_VIEW_TOPOLOGY",
+        "STORAGE_ARRAY_VIEW_TOPOLOGY",
+        "VMWARE_VCENTER_VIEW_TOPOLOGY",
+      ].sort(),
+    );
+  });
+
+  it("names the buttons that narrow a resource's map and lead between the two maps, as the Dashboard draws them", () => {
+    const map: string = readDashboardSource(
+      "Components/ResourceTopology/ResourceTopologyMap.tsx",
+    );
+    const panel: string = readDashboardSource(
+      "Components/ResourceTopology/ResourceTopologyDetailPanel.tsx",
+    );
+    const resourcePage: string = readDashboardSource(
+      "Components/ResourceTopology/ResourceTopologyPage.tsx",
+    );
+    const links: string = readDashboardSource(
+      "Components/ResourceTopology/ResourceTopologyLinks.ts",
+    );
+
+    expect(map).toContain('tx("Needs attention", translator)');
+    expect(panel).toContain('tx("Focus on this", translator)');
+    expect(resourcePage).toContain('tx("Open in Topology", translator)');
+    // The way back: one button per kind of resource, beside View details.
+    const backLinks: Array<string> = allMatches(
+      links,
+      RESOURCE_TOPOLOGY_LINK_TEXT,
+    );
+
+    expect(Array.from(new Set<string>(backLinks)).sort()).toEqual(
+      [
+        "Open cluster topology",
+        "Open host topology",
+        "Open storage array topology",
+        "Open vCenter topology",
+      ].sort(),
+    );
+    expect(page).toContain(
+      "**Open in Topology** opens the resource on **Infrastructure**, and its **Open vCenter topology**, **Open cluster topology**, **Open host topology** or **Open storage array topology** button leads back.",
+    );
+    expect(
+      readDashboardSource("Components/Topology/InfrastructureExplorer.tsx"),
+    ).toContain("useResourceTopologyLink(scope?.entity || null)");
   });
 
   it("names the three views, the question each answers, and opens on the Service Map for the past day", () => {

@@ -6,6 +6,7 @@ Topologie tekent hoe uw systemen met elkaar verbonden zijn: welke services welke
 - [Topologie openen](#topologie-openen): Drie weergaven van één pagina.
 - [De servicekaart lezen](#de-servicekaart-lezen): Wie wie aanroept, en hoe gezond die aanroepen zijn.
 - [Uw infrastructuur verkennen](#uw-infrastructuur-verkennen): Waar elke service draait.
+- [De eigen kaart van een resource openen](#de-eigen-kaart-van-een-resource-openen): Eén vCenter, cluster of host in detail.
 - [Uw netwerk bekijken](#uw-netwerk-bekijken): Apparaten en hun verbindingen, live.
 :::
 
@@ -80,6 +81,14 @@ Klik op een pijl voor het aantal verzoeken, het foutpercentage en de gemiddelde 
 - **Blader er op uw manier door.** Toon haar als **Lijst** of als **Map**, van uw hele infrastructuur tot één pod. De aantallen erboven zeggen hoeveel resources en workloads ze tekent, hoeveel services ze kan plaatsen en hoeveel stille resources ze weglaat.
 - **Zoek een resource.** Zoek er op naam naar, en klik op **View details** om de pagina ervan te openen.
 - **Wissel tussen weergaven.** Een service die bij een resource staat, opent op de **Service Map**, en de resources waarop een service draait, openen op **Infrastructuur**.
+
+## De eigen kaart van een resource openen
+
+Een vCenter, een Kubernetes-cluster, een host, een Docker- of Podman-host, een Docker Swarm-, Proxmox- of Ceph-cluster en een storage-array hebben elk een eigen pagina **Topologie**. Die tekent die ene resource in detail, uit haar eigen inventaris: wat waarin zit, elk onderdeel gekleurd naar hoe het ervoor staat, en elk open incident en elke open waarschuwing bij het onderdeel waar die over gaat.
+
+- **Vind wat aandacht vraagt.** **Vraagt aandacht** houdt alleen de onderdelen met problemen over en de weg naar elk ervan, en de zoekfunctie vindt een onderdeel overal in de resource.
+- **Kijk van dichterbij.** Klik op een onderdeel voor wat het is en een link naar zijn eigen pagina, en op **Hierop focussen** om alleen dat onderdeel te tekenen, met wat erin zit en waarmee het samenhangt.
+- **Ga beide kanten op.** **Openen in Topologie** opent de resource op **Infrastructuur**, en haar knop **vCenter-topologie openen**, **Clustertopologie openen**, **Hosttopologie openen** of **Topologie van de storage-array openen** brengt u terug.
 
 ## Uw netwerk bekijken
 

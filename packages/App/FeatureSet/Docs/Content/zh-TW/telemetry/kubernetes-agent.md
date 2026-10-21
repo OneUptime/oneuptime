@@ -135,7 +135,7 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 
 ### 在 OneUptime 中找到叢集
 
-開啟 **產品 → 基礎設施 → Kubernetes → 所有叢集**。幾分鐘內，叢集會以其 `clusterName` 出現，節點、Pod 和工作負載也會填入。Kubernetes AI 代理程式會在叢集 **人工智慧** 下的 **代理程式** 頁面上顯示為已連線。
+開啟 **產品 → 基礎設施 → Kubernetes → 所有叢集**。幾分鐘內，叢集會以其 `clusterName` 出現，節點、Pod 和工作負載也會填入。Kubernetes AI 代理程式會在叢集 **人工智慧** 下的 **代理程式** 頁面上顯示為已連線。叢集的 **拓撲** 頁面將其命名空間、工作負載、Pod 和節點繪製在一張地圖上，並標出需要注意的內容：請參閱 [拓撲](/docs/telemetry/topology#開啟資源自己的地圖)。
 :::
 
 ## 作為 Amazon EKS 附加元件安裝

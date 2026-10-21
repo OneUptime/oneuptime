@@ -104,7 +104,7 @@ Everything is ready. Begin running and processing data.
 
 ### OneUptime でクラスターを見つける
 
-**製品 → インフラストラクチャ → Ceph → すべてのクラスター** を開きます。1 分ほどで、クラスターが `CEPH_CLUSTER_NAME` の名前で OSD、プール、デーモンとともに表示されます。
+**製品 → インフラストラクチャ → Ceph → すべてのクラスター** を開きます。1 分ほどで、クラスターが `CEPH_CLUSTER_NAME` の名前で OSD、プール、デーモンとともに表示されます。その **トポロジー** ページは、これらを 1 つのマップに描きます。[トポロジー](/docs/telemetry/topology#リソースごとのマップを開く) を参照してください。
 :::
 
 ## 環境変数

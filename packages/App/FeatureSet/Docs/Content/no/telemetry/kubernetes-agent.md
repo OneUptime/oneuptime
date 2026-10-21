@@ -135,7 +135,7 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 
 ### Finn klyngen i OneUptime
 
-Åpne **Produkter → Infrastruktur → Kubernetes → Alle klynger**. Klyngen vises under sitt `clusterName` innen noen minutter, og nodene, podene og arbeidsbelastningene fylles ut. Kubernetes-AI-agenten vises som tilkoblet på klyngens side **Agent**, under **KI**.
+Åpne **Produkter → Infrastruktur → Kubernetes → Alle klynger**. Klyngen vises under sitt `clusterName` innen noen minutter, og nodene, podene og arbeidsbelastningene fylles ut. Kubernetes-AI-agenten vises som tilkoblet på klyngens side **Agent**, under **KI**. Klyngens side **Topologi** tegner navnerommene, arbeidsbelastningene, podene og nodene på ett kart og markerer det som krever oppmerksomhet: se [Topologi](/docs/telemetry/topology#åpne-en-ressurs-sitt-eget-kart).
 :::
 
 ## Installer som et Amazon EKS-tillegg
