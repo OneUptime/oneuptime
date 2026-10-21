@@ -416,6 +416,10 @@ const SecurityOverviewPage: FunctionComponent<
       )}
 
       {needsSomeone ? (
+        /*
+         * Each count opens the page that lists exactly what it counts:
+         * Assigned to Me, Unassigned and Waiting for Approval.
+         */
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <AttentionTile
             icon={IconProp.User}
@@ -425,7 +429,7 @@ const SecurityOverviewPage: FunctionComponent<
               other: "open cases assigned to you",
             }}
             tone="indigo"
-            to={route(PageMap.SECURITY_CASES)}
+            to={route(PageMap.SECURITY_CASES_ASSIGNED_TO_ME)}
           />
           <AttentionTile
             icon={IconProp.UserGroup}
@@ -435,7 +439,7 @@ const SecurityOverviewPage: FunctionComponent<
               other: "open cases nobody has picked up",
             }}
             tone="red"
-            to={route(PageMap.SECURITY_CASES)}
+            to={route(PageMap.SECURITY_CASES_UNASSIGNED)}
           />
           <AttentionTile
             icon={IconProp.Pause}
@@ -445,7 +449,7 @@ const SecurityOverviewPage: FunctionComponent<
               other: "playbook steps waiting for approval",
             }}
             tone="amber"
-            to={route(PageMap.SECURITY_PLAYBOOK_RUNS)}
+            to={route(PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL)}
           />
         </div>
       ) : (

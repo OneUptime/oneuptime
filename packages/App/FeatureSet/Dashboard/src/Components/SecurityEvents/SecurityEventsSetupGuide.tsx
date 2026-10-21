@@ -140,7 +140,7 @@ const SecurityEventsSetupGuide: FunctionComponent = (): ReactElement => {
   /*
    * Live ingest verification, same idea as the profiles guide: the user
    * finds out on this page whether their source is actually sending,
-   * instead of navigating to the events tab and guessing whether an empty
+   * instead of navigating to the Events page and guessing whether an empty
    * table means "not wired up" or "nothing has happened yet".
    * `isDataConfirmed` is a one-way latch so the success state cannot
    * flicker back if a later window happens to be empty.
@@ -158,7 +158,7 @@ const SecurityEventsSetupGuide: FunctionComponent = (): ReactElement => {
    * cannot distinguish the new source from another active one, but it
    * can no longer confirm on history alone. The trade-off: a source that
    * stamps events with old timestamps confirms late or not at all — the
-   * events tab still shows them.
+   * Events page still shows them.
    */
   const [verifyStartTime] = useState<Date>(() => {
     return OneUptimeDate.getCurrentDate();

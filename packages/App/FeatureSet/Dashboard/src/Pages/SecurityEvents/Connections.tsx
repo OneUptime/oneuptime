@@ -22,7 +22,7 @@ const SecurityEventsConnectionsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   /*
-   * Same reseller-telemetry gate as every other Security Events tab —
+   * Same reseller-telemetry gate as every other Security Events page —
    * polled records land in the telemetry-billed security event stream, so a
    * plan without telemetry features has nowhere to put them.
    */

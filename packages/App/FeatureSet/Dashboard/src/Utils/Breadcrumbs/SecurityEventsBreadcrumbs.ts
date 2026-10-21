@@ -1,89 +1,65 @@
 import PageMap from "../PageMap";
+import {
+  SecurityEventsMenuItem,
+  getSecurityEventsMenuItems,
+  getSecurityEventsPageTrail,
+} from "../SecurityEventsNavigation";
 import { BuildBreadcrumbLinksByTitles } from "./Helper";
 import Dictionary from "Common/Types/Dictionary";
 import Link from "Common/Types/Link";
 
+/*
+ * Each Security Events page's trail names it as the side menu does: the
+ * product, the page's section, and the page - Project > Security Events >
+ * Security Cases > Assigned to Me. A page named like its section (Overview,
+ * Events, Playbooks, Connections) is not named twice. The trails are read
+ * from the menu (SecurityEventsNavigation.ts), so a page renamed or moved
+ * there is named the same here.
+ */
 export function getSecurityEventsBreadcrumbs(
   path: string,
 ): Array<Link> | undefined {
-  const breadcrumpLinksMap: Dictionary<Link[]> = {
-    ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_EVENTS, [
-      "Project",
-      "Security Events",
-      "Events",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_EVENTS_OVERVIEW, [
-      "Project",
-      "Security Events",
-      "Overview",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_CASES, [
-      "Project",
-      "Security Events",
-      "Security Cases",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_CASE_VIEW, [
+  const breadcrumpLinksMap: Dictionary<Link[]> = {};
+
+  for (const item of getSecurityEventsMenuItems()) {
+    Object.assign(
+      breadcrumpLinksMap,
+      BuildBreadcrumbLinksByTitles(item.page, [
+        "Project",
+        ...(getSecurityEventsPageTrail(item.page) as Array<string>),
+      ]),
+    );
+  }
+
+  // A case and a playbook, under the section their lists are in.
+  Object.assign(
+    breadcrumpLinksMap,
+    BuildBreadcrumbLinksByTitles(PageMap.SECURITY_CASE_VIEW, [
       "Project",
       "Security Events",
       "Security Cases",
       "View Case",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_EVENTS_CORRELATE, [
-      "Project",
-      "Security Events",
-      "Correlate",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_EVENTS_ENTITIES, [
-      "Project",
-      "Security Events",
-      "Entities",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_EVENTS_DETECTION_RULES, [
-      "Project",
-      "Security Events",
-      "Detection Rules",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_EVENTS_RULE_LIBRARY, [
-      "Project",
-      "Security Events",
-      "Rule Library",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_EVENTS_ATTACK_COVERAGE, [
-      "Project",
-      "Security Events",
-      "ATT&CK Coverage",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_EVENTS_CONNECTIONS, [
-      "Project",
-      "Security Events",
-      "Connections",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_EVENTS_THREAT_INTEL, [
-      "Project",
-      "Security Events",
-      "Threat Intel",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_PLAYBOOKS, [
-      "Project",
-      "Security Events",
-      "Playbooks",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_PLAYBOOK_VIEW, [
+    BuildBreadcrumbLinksByTitles(PageMap.SECURITY_PLAYBOOK_VIEW, [
       "Project",
       "Security Events",
       "Playbooks",
       "View Playbook",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_PLAYBOOK_RUNS, [
-      "Project",
-      "Security Events",
-      "Playbook Runs",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_EVENTS_DOCUMENTATION, [
-      "Project",
-      "Security Events",
-      "Setup Guide",
-    ]),
-  };
+  );
+
   return breadcrumpLinksMap[path];
+}
+
+// The pages with a trail of their own: every menu page, a case and a playbook.
+export function getSecurityEventsBreadcrumbPages(): Array<PageMap> {
+  return [
+    ...getSecurityEventsMenuItems().map(
+      (item: SecurityEventsMenuItem): PageMap => {
+        return item.page;
+      },
+    ),
+    PageMap.SECURITY_CASE_VIEW,
+    PageMap.SECURITY_PLAYBOOK_VIEW,
+  ];
 }
