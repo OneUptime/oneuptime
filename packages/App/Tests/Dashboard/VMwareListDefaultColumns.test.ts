@@ -181,6 +181,52 @@ function tableColumns(relativePath: string): Array<DeclaredColumn> {
   return columns;
 }
 
+/*
+ * Every object a page writes like a column - a title, and a `field` or a
+ * `key` - wherever it is written: in a table's `columns`, in a constant the
+ * table is given, or as a form field or filter. The absence checks read
+ * these, so moving a list's columns into a variable cannot hide one.
+ */
+function columnLikeObjectsIn(sourceFile: ts.SourceFile): Array<DeclaredColumn> {
+  const found: Array<DeclaredColumn> = [];
+
+  visit(sourceFile, (node: ts.Node): void => {
+    if (!ts.isObjectLiteralExpression(node)) {
+      return;
+    }
+    const column: DeclaredColumn | null = readColumn(sourceFile, node);
+    if (column && column.fields.length > 0) {
+      found.push(column);
+    }
+  });
+
+  return found;
+}
+
+function columnLikeObjects(relativePath: string): Array<DeclaredColumn> {
+  return withColumns(
+    relativePath,
+    columnLikeObjectsIn(parsePage(relativePath)),
+  );
+}
+
+function withColumns(
+  relativePath: string,
+  found: Array<DeclaredColumn>,
+): Array<DeclaredColumn> {
+  if (found.length === 0) {
+    /*
+     * An absence check over nothing would pass for the wrong reason. A list
+     * whose columns moved to another file needs that file named here.
+     */
+    throw new Error(
+      `${relativePath} declares no columns any more: point this test at the file that does.`,
+    );
+  }
+
+  return found;
+}
+
 function titles(columns: Array<DeclaredColumn>): Array<string> {
   return columns.map((column: DeclaredColumn): string => {
     return column.title;
@@ -296,14 +342,12 @@ const OTHER_VMWARE_LISTS: ReadonlyArray<string> = [
 
 describe("VMware's other lists show neither column", () => {
   test.each(OTHER_VMWARE_LISTS)("%s", (file: string) => {
-    const columns: Array<DeclaredColumn> = tableColumns(file);
-
-    // A list with columns to read, or this would pass for the wrong reason.
-    expect(columns.length).toBeGreaterThan(0);
     expect(
-      columns.filter(isAgentColumn).map((column: DeclaredColumn): string => {
-        return describeColumn(file, column);
-      }),
+      columnLikeObjects(file)
+        .filter(isAgentColumn)
+        .map((column: DeclaredColumn): string => {
+          return describeColumn(file, column);
+        }),
     ).toEqual([]);
   });
 });
@@ -396,11 +440,8 @@ const INVENTORY_LISTS: ReadonlyArray<string> = [
 
 describe("the other agent-collected inventories' lists open without them too", () => {
   test.each(INVENTORY_LISTS)("%s", (file: string) => {
-    const columns: Array<DeclaredColumn> = tableColumns(file);
-
-    expect(columns.length).toBeGreaterThan(0);
     expect(
-      columns
+      columnLikeObjects(file)
         .filter((column: DeclaredColumn): boolean => {
           return isAgentColumn(column) && !column.isHiddenByDefault;
         })
@@ -455,14 +496,52 @@ describe("the column reader reads what a list declares", () => {
     expect(labels?.isHiddenByDefault).toBe(false);
   });
 
-  test("it reads a ResourceTable column's key", () => {
-    expect(tableColumns("VMware/View/Hosts.tsx")).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          title: "CPU Capacity",
-          fields: ["cpuCapacityMhz"],
-        }),
-      ]),
+  function snippet(source: string): ts.SourceFile {
+    return ts.createSourceFile(
+      "Snippet.tsx",
+      source,
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TSX,
     );
+  }
+
+  test("it reads a ResourceTable column's key", () => {
+    expect(
+      columnLikeObjectsIn(
+        snippet(
+          '<ResourceTable columns={[{ title: "Agent Version", key: "agentVersion" }]} />;',
+        ),
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        title: "Agent Version",
+        fields: ["agentVersion"],
+        isHiddenByDefault: false,
+      }),
+    ]);
+  });
+
+  test("it finds a column written in a constant, outside any columns array", () => {
+    const found: Array<DeclaredColumn> = columnLikeObjectsIn(
+      snippet(
+        'const collectedBy: Column<VMwareVCenter> = { field: { collectionMethod: true }, title: "How", isHiddenByDefault: true };',
+      ),
+    );
+
+    expect(found).toHaveLength(1);
+    expect(isAgentColumn(found[0]!)).toBe(true);
+    expect(found[0]!.isHiddenByDefault).toBe(true);
+  });
+
+  test("a page with no columns at all is refused, not passed", () => {
+    const found: Array<DeclaredColumn> = columnLikeObjectsIn(
+      snippet("export default function Page() { return null; }"),
+    );
+
+    expect(found).toEqual([]);
+    expect((): void => {
+      withColumns("Somewhere/Moved.tsx", found);
+    }).toThrow("Somewhere/Moved.tsx declares no columns any more");
   });
 });

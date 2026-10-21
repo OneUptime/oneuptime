@@ -405,17 +405,35 @@ function lineOf(sourceFile: ts.SourceFile, node: ts.Node): number {
   return sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1;
 }
 
+// A declared type that is a table column or a set of them.
+const COLUMN_TYPE: RegExp = /\bColumns?</;
+
+function isDeclaredAsColumn(node: ts.Node): boolean {
+  return (
+    ts.isVariableDeclaration(node) &&
+    node.type !== undefined &&
+    COLUMN_TYPE.test(node.type.getText())
+  );
+}
+
 /*
- * A table column: an object written straight into a table's `columns`,
- * `columns={[...]}` on a JSX element or `columns: [...]` in an object - not
- * a details card's `fields`.
+ * A table column: an object written into a table's `columns` -
+ * `columns={[...]}` on a JSX element or `columns: [...]` in an object - or
+ * into a constant typed as columns (`const column: Column<Monitor> = {...}`,
+ * `const columns: Columns<Host> = [...]`). Not a details card's `fields`.
  */
 function isTableColumn(object: ts.ObjectLiteralExpression): boolean {
-  const array: ts.Node = object.parent;
-  if (!ts.isArrayLiteralExpression(array)) {
+  const parent: ts.Node = object.parent;
+  if (isDeclaredAsColumn(parent)) {
+    return true;
+  }
+  if (!ts.isArrayLiteralExpression(parent)) {
     return false;
   }
-  const holder: ts.Node = array.parent;
+  const holder: ts.Node = parent.parent;
+  if (isDeclaredAsColumn(holder)) {
+    return true;
+  }
   if (ts.isJsxExpression(holder) && ts.isJsxAttribute(holder.parent)) {
     return holder.parent.name.getText() === "columns";
   }
@@ -648,22 +666,43 @@ describe("a list offers the agent version, it does not open on it", () => {
     expect(isHiddenByDefault(columns[0]!)).toBe(true);
   });
 
-  // The vCenter's Overview draws it in a details card, which the rule leaves be.
-  test("a details card's Agent Version field is not a table column", () => {
-    const overview: ts.SourceFile = parse(
-      path.join(DASHBOARD_SRC, "Pages", "VMware", "View", "Index.tsx"),
+  function snippet(source: string): ts.SourceFile {
+    return ts.createSourceFile(
+      "Snippet.tsx",
+      source,
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TSX,
     );
-    let fields: number = 0;
-    visit(overview, (node: ts.Node): void => {
-      if (
-        ts.isObjectLiteralExpression(node) &&
-        isAgentVersionFieldDescriptor(node)
-      ) {
-        fields++;
-      }
-    });
-    expect(fields).toBeGreaterThan(0);
-    expect(agentVersionTableColumns(overview)).toEqual([]);
+  }
+
+  // A resource's Overview draws it in a details card, which the rule leaves be.
+  test("a details card's Agent Version field is not a table column", () => {
+    expect(
+      agentVersionTableColumns(
+        snippet(
+          '<CardModelDetail modelDetailProps={{ fields: [{ field: { agentVersion: true }, title: "Agent Version" }] }} />;',
+        ),
+      ),
+    ).toEqual([]);
+  });
+
+  test("a column written in a typed constant, or a typed array, is a table column", () => {
+    const shown: Array<ts.ObjectLiteralExpression> = agentVersionTableColumns(
+      snippet(
+        [
+          'const agentVersionColumn: Column<Host> = { field: { agentVersion: true }, title: "Agent Version" };',
+          'const columns: Columns<Host> = [{ field: { agentVersion: true }, title: "Agent Version", isHiddenByDefault: true }];',
+          '<ResourceTable columns={[{ title: "Agent Version", key: "agentVersion" }]} />;',
+        ].join("\n"),
+      ),
+    );
+
+    expect(
+      shown.map((column: ts.ObjectLiteralExpression): boolean => {
+        return isHiddenByDefault(column);
+      }),
+    ).toEqual([false, true, false]);
   });
 });
 
