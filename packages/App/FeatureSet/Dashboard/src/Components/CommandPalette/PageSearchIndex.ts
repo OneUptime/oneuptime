@@ -1781,6 +1781,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         pages: [
           {
             page: PageMap.CODE,
+            title: "Tasks",
+            icon: IconProp.Sparkles,
+            keywords: [
+              "ask ai",
+              "what should ai do",
+              "code tasks",
+              "ai agent tasks",
+              "pull requests",
+              "fixes",
+            ],
+          },
+          {
+            page: PageMap.CODE_REPOSITORIES,
             title: "Repositories",
             icon: IconProp.Code,
             keywords: [
@@ -1788,11 +1801,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "repository",
               "connect repository",
               "github",
-              "tasks",
-              "ai agent tasks",
-              "ask ai",
-              "pull requests",
-              "fixes",
             ],
           },
         ],
