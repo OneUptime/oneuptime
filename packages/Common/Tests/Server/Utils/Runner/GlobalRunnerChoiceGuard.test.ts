@@ -178,6 +178,8 @@ const CALLS_THE_DEFAULT_ORDER: RegExp = /\bdecideRunnerByDefaultOrder\(/;
 const READS_THE_PROJECT_DEFAULT: RegExp = /\.findProjectDefaultRunner\(/;
 const WRITES_THE_PROJECT_DEFAULT: RegExp =
   /defaultColumn:\s*"isProjectDefault"/;
+// A query of the default Runner by its column.
+const QUERIES_THE_PROJECT_DEFAULT: RegExp = /isProjectDefault\s*:/;
 
 describe("where work that picked no Runner runs is decided by one default order", () => {
   test("only the rule and its server reader call the default order on the server", () => {
@@ -232,6 +234,34 @@ describe("where work that picked no Runner runs is decided by one default order"
     );
 
     expect(CALLS_THE_DEFAULT_ORDER.test(model)).toBe(true);
+  });
+
+  /*
+   * A repository the GitHub App imports starts on the project's default
+   * Runner when the project has one: a pick written once, when it is
+   * imported, through GlobalRunnerChoice - never a second reading of the
+   * default. Once imported, the repository's own pick decides where its AI
+   * work runs (Types/Runner/CodeRepositoryRunner), as every pick does.
+   */
+  test("a repository the GitHub App imports starts on the project's default Runner, read through GlobalRunnerChoice", () => {
+    const service: string = read("Common/Server/Services/CodeRepositoryService.ts");
+    const defaults: string = service.slice(
+      service.indexOf("public static async getNewRepositoryDefaults("),
+    );
+    const body: string = defaults.slice(0, defaults.indexOf("\n  }\n"));
+
+    expect(body).toContain("GlobalRunnerChoice.findProjectDefaultRunnerId(");
+    expect(READS_THE_PROJECT_DEFAULT.test(service)).toBe(false);
+    // Never a query of its own for the default (a comment may name it).
+    expect(QUERIES_THE_PROJECT_DEFAULT.test(service)).toBe(false);
+
+    // Only new repositories: an import reads it where it creates one.
+    const importer: string = service.slice(
+      service.indexOf("public async importReposFromInstallation("),
+    );
+    expect(importer.indexOf("Service.getNewRepositoryDefaults(")).toBeGreaterThan(
+      importer.indexOf("const codeRepository: Model = new Model();") - 400,
+    );
   });
 });
 

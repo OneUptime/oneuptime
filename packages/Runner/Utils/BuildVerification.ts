@@ -8,7 +8,15 @@ import SecretRedactor from "./SecretRedactor";
 import logger from "Common/Server/Utils/Logger";
 
 /*
- * The pre-PR build/test verification loop ("tests green before the PR").
+ * The pre-PR build/test verification loop ("tests green before the PR"), for
+ * a repository whose operator set its commands.
+ *
+ * A repository's own instructions say how to build and test it: the code
+ * agent reads them (its AGENTS.md first, RepositoryInstructions) and builds
+ * and tests its change that way while it works, with commands it composes.
+ * That is how a repository is checked by default, and Code no longer asks
+ * for commands. Commands an operator set on the repository before (or
+ * through the API or Terraform) keep working, here:
  *
  * After the code agent finishes its changes — and BEFORE anything is
  * committed or pushed — the operator-configured commands on the repository
@@ -19,9 +27,9 @@ import logger from "Common/Server/Utils/Logger";
  *
  * The loop never blocks the pull request: a fix that still fails
  * verification still opens a PR, with the failure labeled in its body — the
- * work is preserved and the human reviewer decides. Repositories with no
- * commands configured
- * are Skipped, stated honestly on the PR instead of implying a green build.
+ * work is preserved and the human reviewer decides. A repository with no
+ * commands set is Skipped here, and the pull request says the agent's own
+ * checks are what checked it - never implying a separate green build.
  *
  * Trust model: the commands are operator-authored repository configuration
  * executed on the operator's own Runner (the same posture as runbook Bash
@@ -72,6 +80,15 @@ const STDIO_DRAIN_GRACE_MS: number = 500;
 
 // Wall clock granted to each agent repair pass.
 const REPAIR_AGENT_TIMEOUT_MS: number = 15 * 60 * 1000;
+
+/*
+ * What a repository with no commands set reads in its pull request and on
+ * its recorded verification (a varchar(500) column): no separate pass ran,
+ * and the agent checked its change the way the repository says to while it
+ * worked.
+ */
+export const NO_COMMANDS_VERIFICATION_SUMMARY: string =
+  "No separate verification pass: no build or test commands are set for this repository in OneUptime. The AI builds and tests its change as it works, the way the repository says to (its AGENTS.md first), and its summary says which checks it ran. Your repository's own CI checks the change too.";
 
 export interface VerificationCommand {
   // Which repository field the command came from.
@@ -496,8 +513,7 @@ export default class BuildVerification {
     if (commands.length === 0) {
       return {
         status: FixVerificationStatus.Skipped,
-        summary:
-          "Not verified — the repository has no setup/build/test commands configured. Configure them on the code repository to have fixes verified before the pull request opens.",
+        summary: NO_COMMANDS_VERIFICATION_SUMMARY,
         repairAttemptsUsed: 0,
         repairSummaries: [],
         repairPaths: [],

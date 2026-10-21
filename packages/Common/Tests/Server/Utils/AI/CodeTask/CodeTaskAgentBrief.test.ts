@@ -359,6 +359,60 @@ describe("what the turn is asked, and the conversation before it", () => {
 });
 
 /*
+ * How a change is built and tested. Code no longer asks for commands: the
+ * Runner's code agent reads how from the repository itself (its AGENTS.md,
+ * Runner/Utils/RepositoryInstructions), so a repository nobody set commands
+ * on hands the Runner none. Commands an operator set before - in the old
+ * settings, the API or Terraform - still go to the Runner, as they are,
+ * and still run after the agent's change (Runner/Utils/BuildVerification).
+ */
+describe("the build and test commands an operator set", () => {
+  test("all three go to the Runner as they are set", async () => {
+    const withCommands: CodeRepository = repository();
+    withCommands.setupCommand = "npm ci";
+    withCommands.buildCommand = "npm run build";
+    withCommands.testCommand = "npm test -- --runInBand";
+
+    const details: CodeTaskAgentDetails = await CodeTaskAgentBrief.build({
+      run: turns[1]!,
+      repository: withCommands,
+    });
+
+    expect(details.repository.setupCommand).toBe("npm ci");
+    expect(details.repository.buildCommand).toBe("npm run build");
+    expect(details.repository.testCommand).toBe("npm test -- --runInBand");
+  });
+
+  test("a repository with none hands the Runner none: the agent reads its AGENTS.md", async () => {
+    const withNone: CodeRepository = repository();
+    delete (withNone as unknown as Record<string, unknown>)["testCommand"];
+
+    const details: CodeTaskAgentDetails = await CodeTaskAgentBrief.build({
+      run: turns[1]!,
+      repository: withNone,
+    });
+
+    expect(details.repository.setupCommand).toBeNull();
+    expect(details.repository.buildCommand).toBeNull();
+    expect(details.repository.testCommand).toBeNull();
+  });
+
+  test("an empty command is no command", async () => {
+    const withEmpty: CodeRepository = repository();
+    withEmpty.setupCommand = "";
+    withEmpty.testCommand = "";
+
+    const details: CodeTaskAgentDetails = await CodeTaskAgentBrief.build({
+      run: turns[1]!,
+      repository: withEmpty,
+    });
+
+    expect(details.repository.setupCommand).toBeNull();
+    expect(details.repository.testCommand).toBeNull();
+  });
+});
+
+/*
  * The branch a task starts from: the one the person picked in Code's request
  * box, kept on its first turn, for every turn after it too - handed over as
  * the branch to clone (repository.mainBranchName, which Runners older than

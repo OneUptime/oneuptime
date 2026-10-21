@@ -16,6 +16,7 @@
 import BuildVerification, {
   CommandRunResult,
   MAX_REPAIR_ATTEMPTS,
+  NO_COMMANDS_VERIFICATION_SUMMARY,
   VerificationCommand,
   VerificationOutcome,
 } from "../../Utils/BuildVerification";
@@ -699,10 +700,38 @@ describe("verifyWithRepairs", () => {
     // Nothing to stage and nothing to describe on the pull request.
     expect(outcome.repairPaths).toEqual([]);
     expect(outcome.repairSummaries).toEqual([]);
-    // The skip is stated honestly, pointing at repository configuration.
-    expect(outcome.summary).toContain(
-      "no setup/build/test commands configured",
-    );
+    /*
+     * The skip is stated honestly: no separate pass ran, and the agent's own
+     * checks - the repository's AGENTS.md - are what checked the change.
+     * Never a pointer to a setting Code no longer asks for.
+     */
+    expect(outcome.summary).toBe(NO_COMMANDS_VERIFICATION_SUMMARY);
+    expect(outcome.summary).toContain("No separate verification pass");
+    expect(outcome.summary).toContain("its AGENTS.md first");
+    expect(outcome.summary).not.toContain("Configure them");
+    // It rides in a varchar(500) column.
+    expect(outcome.summary.length).toBeLessThanOrEqual(500);
+    expect(agent.tasks).toHaveLength(0);
+  });
+
+  test("whitespace-only commands count as none: Skipped the same way", async () => {
+    const agent: StubCodeAgent = agentThatMustNotBeCalled();
+
+    const outcome: VerificationOutcome =
+      await BuildVerification.verifyWithRepairs({
+        repo: buildRepo({
+          setupCommand: "   ",
+          buildCommand: "\n",
+          testCommand: "",
+        }),
+        repositoryPath: makeRepoDir(),
+        agent,
+        originalPrompt: "Fix the bug.",
+        log,
+      });
+
+    expect(outcome.status).toBe(FixVerificationStatus.Skipped);
+    expect(outcome.summary).toBe(NO_COMMANDS_VERIFICATION_SUMMARY);
     expect(agent.tasks).toHaveLength(0);
   });
 
@@ -1054,7 +1083,7 @@ describe("buildPullRequestBodySection", () => {
     );
   });
 
-  test("Skipped renders the ℹ️ section pointing at repository configuration", async () => {
+  test("Skipped renders the ℹ️ section saying the agent's own checks are what checked it", async () => {
     // Use the REAL Skipped outcome so the wording asserted is the shipped one.
     const outcome: VerificationOutcome =
       await BuildVerification.verifyWithRepairs({
@@ -1069,7 +1098,10 @@ describe("buildPullRequestBodySection", () => {
       BuildVerification.buildPullRequestBodySection(outcome);
 
     expect(section).toContain("## ℹ️ Verification");
-    expect(section).toContain("Configure them on the code repository");
+    expect(section).toContain(NO_COMMANDS_VERIFICATION_SUMMARY);
+    // Never a green build it did not run, nor a setting Code no longer has.
+    expect(section).not.toContain("✅");
+    expect(section).not.toContain("Configure them on the code repository");
   });
 });
 
