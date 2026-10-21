@@ -51,7 +51,8 @@ const EC2: CloudMonitoredResource = {
   accountId: "123456789012",
   region: "us-east-1",
   resourceGroup: "",
-  identityKey: "aws|123456789012|us-east-1|aws::ec2::instance|instanceid=i-0aaa",
+  identityKey:
+    "aws|123456789012|us-east-1|aws::ec2::instance|instanceid=i-0aaa",
   telemetryAttributes: {},
 };
 
@@ -167,13 +168,13 @@ beforeEach(() => {
       isArchived: false,
     },
   ]);
-  jest
-    .spyOn(CloudConnectionResourceSync, "sync")
-    .mockImplementation((async (data: JSONObject) => {
-      order.push("sync");
-      syncCalls.push(data);
-      return SYNCED;
-    }) as never);
+  jest.spyOn(CloudConnectionResourceSync, "sync").mockImplementation((async (
+    data: JSONObject,
+  ) => {
+    order.push("sync");
+    syncCalls.push(data);
+    return SYNCED;
+  }) as never);
 
   const connector: CloudConnector = {
     provider: CloudProvider.AWS,
@@ -225,9 +226,11 @@ describe("a read that works", () => {
     await run();
 
     expect(order).toEqual(["sync", "import", "import"]);
-    expect(imported.map((entry: { projectId: ObjectID }) => {
-      return entry.projectId.toString();
-    })).toEqual([PROJECT.toString(), PROJECT.toString()]);
+    expect(
+      imported.map((entry: { projectId: ObjectID }) => {
+        return entry.projectId.toString();
+      }),
+    ).toEqual([PROJECT.toString(), PROJECT.toString()]);
     expect(syncCalls[0]).toEqual(
       expect.objectContaining({
         projectId: PROJECT,
@@ -275,7 +278,9 @@ describe("a read that works", () => {
     const outcome: CloudConnectionPullOutcome = await run();
 
     expect(outcome.status).toBe("partial");
-    expect(lastRecord()["nextPullAt"]).toEqual(new Date(NOW.getTime() + MINUTE));
+    expect(lastRecord()["nextPullAt"]).toEqual(
+      new Date(NOW.getTime() + MINUTE),
+    );
   });
 
   test("more new resources than one read adds is partial, and said", async () => {
@@ -347,7 +352,9 @@ describe("a read that fails", () => {
     expect(outcome.status).toBe("failed");
     expect(outcome.error).not.toContain(SECRET);
     expect(lastRecord()["lastError"]).not.toContain(SECRET);
-    expect(lastRecord()["nextPullAt"]).toEqual(new Date(NOW.getTime() + 60 * MINUTE));
+    expect(lastRecord()["nextPullAt"]).toEqual(
+      new Date(NOW.getTime() + 60 * MINUTE),
+    );
     expect(lastRecord()["lastPullResult"]).toEqual(
       expect.objectContaining({
         status: "failed",
@@ -368,12 +375,16 @@ describe("a read that fails", () => {
 
     await run();
 
-    expect(lastRecord()["nextPullAt"]).toEqual(new Date(NOW.getTime() + 15 * MINUTE));
+    expect(lastRecord()["nextPullAt"]).toEqual(
+      new Date(NOW.getTime() + 15 * MINUTE),
+    );
 
     connection.config = { readIntervalInMinutes: "60" };
     await run();
 
-    expect(lastRecord()["nextPullAt"]).toEqual(new Date(NOW.getTime() + 60 * MINUTE));
+    expect(lastRecord()["nextPullAt"]).toEqual(
+      new Date(NOW.getTime() + 60 * MINUTE),
+    );
   });
 
   test("an import that fails keeps where the read got to, so it is read again", async () => {
@@ -431,7 +442,9 @@ describe("when the next read comes", () => {
   test("a stored state that is not an object is an empty one", () => {
     expect(CloudConnectionPullRunner.readPullState(null)).toEqual({});
     expect(CloudConnectionPullRunner.readPullState([1])).toEqual({});
-    expect(CloudConnectionPullRunner.readPullState({ accounts: ["a"] })).toEqual({
+    expect(
+      CloudConnectionPullRunner.readPullState({ accounts: ["a"] }),
+    ).toEqual({
       accounts: ["a"],
     });
   });

@@ -143,7 +143,11 @@ function readPair(key: string): { region: string; namespace: string } | null {
   return { region: key.slice(0, index), namespace: key.slice(index + 1) };
 }
 
-function isOlderThan(iso: string | undefined, ageMs: number, now: Date): boolean {
+function isOlderThan(
+  iso: string | undefined,
+  ageMs: number,
+  now: Date,
+): boolean {
   const time: number = iso ? Date.parse(iso) : NaN;
   return !Number.isFinite(time) || now.getTime() - time >= ageMs;
 }
@@ -165,11 +169,14 @@ export default class AwsCloudConnector implements CloudConnector {
   }
 
   // The Regions the connection names, or none: every Region, swept daily.
-  public getConfiguredRegions(settings: CloudConnectionSettings): Array<string> {
-    return splitCloudConnectionList(readCloudSetting(settings.config, "regions"))
-      .map((region: string): string => {
-        return region.toLowerCase();
-      });
+  public getConfiguredRegions(
+    settings: CloudConnectionSettings,
+  ): Array<string> {
+    return splitCloudConnectionList(
+      readCloudSetting(settings.config, "regions"),
+    ).map((region: string): string => {
+      return region.toLowerCase();
+    });
   }
 
   public validateSettings(settings: CloudConnectionSettings): void {
@@ -639,13 +646,11 @@ export default class AwsCloudConnector implements CloudConnector {
           }
 
           for (const metric of outcome.value) {
-            const resource: CloudMonitoredResource | null = this.resolveSeries(
-              {
-                metric,
-                accountId: identity.account,
-                region: countPairs[index]!.region,
-              },
-            );
+            const resource: CloudMonitoredResource | null = this.resolveSeries({
+              metric,
+              accountId: identity.account,
+              region: countPairs[index]!.region,
+            });
 
             if (resource) {
               resources.set(resource.identityKey, resource);
@@ -988,10 +993,7 @@ export default class AwsCloudConnector implements CloudConnector {
 
       if (!allRead) {
         for (const outcome of read) {
-          if (
-            !outcome.ok &&
-            !(outcome.error instanceof CloudReadBudgetSpent)
-          ) {
+          if (!outcome.ok && !(outcome.error instanceof CloudReadBudgetSpent)) {
             if (
               outcome.error instanceof LlmProviderError &&
               (outcome.error.kind === CloudConnectionFailureKind.Permission ||

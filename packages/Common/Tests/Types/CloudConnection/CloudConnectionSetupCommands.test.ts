@@ -228,7 +228,9 @@ describe("getCloudConnectionSetupCommand", () => {
         CloudConnectionAuthMethod.AwsRole,
         { trustedPrincipalArn: TRUSTED, externalId },
       ),
-    ).toBe(getAwsRoleSetupCommand({ trustedPrincipalArn: TRUSTED, externalId }));
+    ).toBe(
+      getAwsRoleSetupCommand({ trustedPrincipalArn: TRUSTED, externalId }),
+    );
     expect(
       getCloudConnectionSetupCommand(
         CloudProvider.Azure,

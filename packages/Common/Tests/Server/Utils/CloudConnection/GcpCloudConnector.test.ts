@@ -50,7 +50,8 @@ const { privateKey } = generateKeyPairSync("rsa", {
   privateKeyEncoding: { type: "pkcs8", format: "pem" },
   publicKeyEncoding: { type: "spki", format: "pem" },
 });
-const CLIENT_EMAIL: string = "oneuptime-read-only@acme-prod.iam.gserviceaccount.com";
+const CLIENT_EMAIL: string =
+  "oneuptime-read-only@acme-prod.iam.gserviceaccount.com";
 const KEY: string = JSON.stringify({
   type: "service_account",
   project_id: PROJECT_ID,
@@ -78,25 +79,41 @@ function settings(config: JSONObject = {}): CloudConnectionSettings {
 
 const CPU: string = "compute.googleapis.com/instance/cpu/utilization";
 const SQL_CPU: string = "cloudsql.googleapis.com/database/cpu/utilization";
-const RECEIVED: string = "compute.googleapis.com/instance/network/received_bytes_count";
+const RECEIVED: string =
+  "compute.googleapis.com/instance/network/received_bytes_count";
 
-function vmSeries(metricType: string, instanceId: string, name: string, labels: JSONObject = {}): JSONObject {
+function vmSeries(
+  metricType: string,
+  instanceId: string,
+  name: string,
+  labels: JSONObject = {},
+): JSONObject {
   return {
     metric: { type: metricType, labels },
     resource: {
       type: "gce_instance",
-      labels: { project_id: PROJECT_ID, zone: "us-central1-a", instance_id: instanceId },
+      labels: {
+        project_id: PROJECT_ID,
+        zone: "us-central1-a",
+        instance_id: instanceId,
+      },
     },
     metadata: { systemLabels: { name } },
     metricKind: "GAUGE",
     valueType: "DOUBLE",
     points: [
       {
-        interval: { startTime: "2026-10-21T11:59:00Z", endTime: "2026-10-21T12:00:00Z" },
+        interval: {
+          startTime: "2026-10-21T11:59:00Z",
+          endTime: "2026-10-21T12:00:00Z",
+        },
         value: { doubleValue: 0.42 },
       },
       {
-        interval: { startTime: "2026-10-21T11:58:00Z", endTime: "2026-10-21T11:59:00Z" },
+        interval: {
+          startTime: "2026-10-21T11:58:00Z",
+          endTime: "2026-10-21T11:59:00Z",
+        },
         value: { doubleValue: 0.41 },
       },
     ],
@@ -108,7 +125,11 @@ function sqlSeries(): JSONObject {
     metric: { type: SQL_CPU, labels: {} },
     resource: {
       type: "cloudsql_database",
-      labels: { project_id: PROJECT_ID, database_id: `${PROJECT_ID}:orders`, region: "us-central1" },
+      labels: {
+        project_id: PROJECT_ID,
+        database_id: `${PROJECT_ID}:orders`,
+        region: "us-central1",
+      },
     },
     points: [
       {
@@ -123,12 +144,14 @@ interface FakeGcp extends FakeProviderApi {
   seriesCalls: Array<URL>;
 }
 
-function createFakeGcp(options: {
-  series?: Record<string, Array<JSONObject>>;
-  errors?: Record<string, FakeResponse>;
-  tokenError?: FakeResponse;
-  pages?: number;
-} = {}): FakeGcp {
+function createFakeGcp(
+  options: {
+    series?: Record<string, Array<JSONObject>>;
+    errors?: Record<string, FakeResponse>;
+    tokenError?: FakeResponse;
+    pages?: number;
+  } = {},
+): FakeGcp {
   const seriesCalls: Array<URL> = [];
 
   const routes: Array<FakeRoute> = [
@@ -137,7 +160,10 @@ function createFakeGcp(options: {
       path: "/token",
       method: "POST",
       respond: (): FakeResponse => {
-        return options.tokenError || json({ access_token: "ya29.token", expires_in: 3599 });
+        return (
+          options.tokenError ||
+          json({ access_token: "ya29.token", expires_in: 3599 })
+        );
       },
     },
     {
@@ -153,12 +179,14 @@ function createFakeGcp(options: {
           return options.errors[metricType]!;
         }
 
-        const all: Array<JSONObject> = (options.series?.[metricType] || []).filter(
-          (series: JSONObject): boolean => {
-            const labels: JSONObject = (series["resource"] as JSONObject)["labels"] as JSONObject;
-            return labels["project_id"] === project;
-          },
-        );
+        const all: Array<JSONObject> = (
+          options.series?.[metricType] || []
+        ).filter((series: JSONObject): boolean => {
+          const labels: JSONObject = (series["resource"] as JSONObject)[
+            "labels"
+          ] as JSONObject;
+          return labels["project_id"] === project;
+        });
         const page: number = Number(url.searchParams.get("pageToken") || 0);
         const pages: number = options.pages || 1;
         const per: number = Math.ceil(all.length / pages) || 1;
@@ -201,10 +229,11 @@ describe("validateSettings", () => {
       connector.validateSettings(settings());
     }).not.toThrow();
     expect(connector.getProjects(settings())).toEqual([PROJECT_ID]);
-    expect(connector.getProjects(settings({ projectIds: `${PROJECT_ID}, ${OTHER_PROJECT}` }))).toEqual([
-      PROJECT_ID,
-      OTHER_PROJECT,
-    ]);
+    expect(
+      connector.getProjects(
+        settings({ projectIds: `${PROJECT_ID}, ${OTHER_PROJECT}` }),
+      ),
+    ).toEqual([PROJECT_ID, OTHER_PROJECT]);
   });
 
   test("a key that is not one, a project id that is not one, too many projects are form errors", () => {
@@ -212,7 +241,10 @@ describe("validateSettings", () => {
       connector.validateSettings({ ...settings(), secrets: {} });
     }).toThrow("Service account key (JSON) is required.");
     expect(() => {
-      connector.validateSettings({ ...settings(), secrets: { serviceAccountJson: "{}" } });
+      connector.validateSettings({
+        ...settings(),
+        secrets: { serviceAccountJson: "{}" },
+      });
     }).toThrow(BadDataException);
     expect(() => {
       connector.validateSettings(settings({ projectIds: "Not_A_Project" }));
@@ -260,7 +292,12 @@ describe("testConnection", () => {
 
     const result: CloudConnectionTestResult = await connector.testConnection(
       settings(),
-      { transport: fake.transport, now: () => NOW },
+      {
+        transport: fake.transport,
+        now: () => {
+          return NOW;
+        },
+      },
     );
 
     expect(result).toEqual(
@@ -293,7 +330,12 @@ describe("testConnection", () => {
 
     const result: CloudConnectionTestResult = await connector.testConnection(
       settings(),
-      { transport: fake.transport, now: () => NOW },
+      {
+        transport: fake.transport,
+        now: () => {
+          return NOW;
+        },
+      },
     );
 
     expect(result.status).toBe("warn");
@@ -306,7 +348,12 @@ describe("testConnection", () => {
 
     const result: CloudConnectionTestResult = await connector.testConnection(
       settings(),
-      { transport: fake.transport, now: () => NOW },
+      {
+        transport: fake.transport,
+        now: () => {
+          return NOW;
+        },
+      },
     );
 
     expect(result.status).toBe("fail");
@@ -326,20 +373,32 @@ describe("testConnection", () => {
 
     const result: CloudConnectionTestResult = await connector.testConnection(
       settings(),
-      { transport: fake.transport, now: () => NOW },
+      {
+        transport: fake.transport,
+        now: () => {
+          return NOW;
+        },
+      },
     );
 
     expect(result.status).toBe("fail");
     expect(result.failureKind).toBe(CloudConnectionFailureKind.Settings);
-    expect(result.message).toContain("gcloud services enable monitoring.googleapis.com");
+    expect(result.message).toContain(
+      "gcloud services enable monitoring.googleapis.com",
+    );
   });
 });
 
 describe("read", () => {
   test("asks each project for each key metric since the last read, aligned to a minute", async () => {
-    const fake: FakeGcp = createFakeGcp({ series: { [CPU]: [vmSeries(CPU, "1001", "web-1")] } });
+    const fake: FakeGcp = createFakeGcp({
+      series: { [CPU]: [vmSeries(CPU, "1001", "web-1")] },
+    });
 
-    const result: CloudReadResult = await connector.read(settings(), readOptions(fake));
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
 
     expect(fake.seriesCalls).toHaveLength(getGcpKeyMetricTypes().length);
 
@@ -349,8 +408,12 @@ describe("read", () => {
 
     expect(cpuCall.searchParams.get("filter")).toBe(`metric.type="${CPU}"`);
     expect(cpuCall.searchParams.get("aggregation.alignmentPeriod")).toBe("60s");
-    expect(cpuCall.searchParams.get("aggregation.perSeriesAligner")).toBe("ALIGN_MEAN");
-    expect(cpuCall.searchParams.get("aggregation.crossSeriesReducer")).toBeNull();
+    expect(cpuCall.searchParams.get("aggregation.perSeriesAligner")).toBe(
+      "ALIGN_MEAN",
+    );
+    expect(
+      cpuCall.searchParams.get("aggregation.crossSeriesReducer"),
+    ).toBeNull();
     expect(cpuCall.searchParams.get("interval.endTime")).toBe(WINDOW_END);
     expect(cpuCall.searchParams.get("interval.startTime")).toBe(
       new Date(Date.parse(WINDOW_END) - 3600000).toISOString(),
@@ -363,12 +426,17 @@ describe("read", () => {
     const fake: FakeGcp = createFakeGcp({
       series: {
         [CPU]: [vmSeries(CPU, "1001", "web-1")],
-        [RECEIVED]: [vmSeries(RECEIVED, "1001", "web-1", { loadbalanced: "false" })],
+        [RECEIVED]: [
+          vmSeries(RECEIVED, "1001", "web-1", { loadbalanced: "false" }),
+        ],
         [SQL_CPU]: [sqlSeries()],
       },
     });
 
-    const result: CloudReadResult = await connector.read(settings(), readOptions(fake));
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
 
     expect(
       result.resources
@@ -406,7 +474,9 @@ describe("read", () => {
                   attributes: stored,
                 });
 
-              expect(resolved && identities.has(resolved.identityKey)).toBe(true);
+              expect(resolved && identities.has(resolved.identityKey)).toBe(
+                true,
+              );
               expect(stored["resource.gcp.resource_type"]).toBeDefined();
               expect(stored["resource.service.name"]).toBe("Google Cloud");
               points++;
@@ -423,21 +493,34 @@ describe("read", () => {
 
   test("the metric's labels are on its datapoints, the resource's on the resource", async () => {
     const fake: FakeGcp = createFakeGcp({
-      series: { [RECEIVED]: [vmSeries(RECEIVED, "1001", "web-1", { loadbalanced: "false" })] },
+      series: {
+        [RECEIVED]: [
+          vmSeries(RECEIVED, "1001", "web-1", { loadbalanced: "false" }),
+        ],
+      },
     });
 
-    const result: CloudReadResult = await connector.read(settings(), readOptions(fake));
-    const rm: JSONObject = (result.payloads[0]!["resourceMetrics"] as JSONArray)[0] as JSONObject;
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
+    const rm: JSONObject = (
+      result.payloads[0]!["resourceMetrics"] as JSONArray
+    )[0] as JSONObject;
     const metric: JSONObject = (
-      ((rm["scopeMetrics"] as JSONArray)[0] as JSONObject)["metrics"] as JSONArray
+      ((rm["scopeMetrics"] as JSONArray)[0] as JSONObject)[
+        "metrics"
+      ] as JSONArray
     )[0] as JSONObject;
 
     expect(metric["name"]).toBe(RECEIVED);
     expect(metric["unit"]).toBe("By/s");
     expect(
-      ((((metric["gauge"] as JSONObject)["dataPoints"] as JSONArray)[0] as JSONObject)[
-        "attributes"
-      ] as JSONArray),
+      (
+        (
+          (metric["gauge"] as JSONObject)["dataPoints"] as JSONArray
+        )[0] as JSONObject
+      )["attributes"] as JSONArray,
     ).toEqual([{ key: "loadbalanced", value: { stringValue: "false" } }]);
     expect(
       ((rm["resource"] as JSONObject)["attributes"] as Array<JSONObject>).map(
@@ -480,7 +563,10 @@ describe("read", () => {
       errors: { [SQL_CPU]: { status: 404, body: '{"error":{"code":404}}' } },
     });
 
-    const result: CloudReadResult = await connector.read(settings(), readOptions(fake));
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
 
     expect(result.warnings).toEqual([]);
     expect(result.pointsWritten).toBe(2);
@@ -492,7 +578,10 @@ describe("read", () => {
       errors: { [SQL_CPU]: { status: 500, body: "backend error" } },
     });
 
-    const result: CloudReadResult = await connector.read(settings(), readOptions(fake));
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
 
     expect(result.warnings.join(" ")).toContain("Could not read 1 metrics");
     expect(result.pointsWritten).toBe(2);
@@ -516,11 +605,15 @@ describe("read", () => {
       });
 
     expect(error).toBeInstanceOf(LlmProviderError);
-    expect((error as LlmProviderError).kind).toBe(CloudConnectionFailureKind.Settings);
+    expect((error as LlmProviderError).kind).toBe(
+      CloudConnectionFailureKind.Settings,
+    );
   });
 
   test("a read out of budget writes nothing and keeps the cursor", async () => {
-    const fake: FakeGcp = createFakeGcp({ series: { [CPU]: [vmSeries(CPU, "1001", "web-1")] } });
+    const fake: FakeGcp = createFakeGcp({
+      series: { [CPU]: [vmSeries(CPU, "1001", "web-1")] },
+    });
 
     const result: CloudReadResult = await connector.read(
       settings(),
@@ -546,11 +639,20 @@ describe("read", () => {
 
   test("pages are followed", async () => {
     const fake: FakeGcp = createFakeGcp({
-      series: { [CPU]: [vmSeries(CPU, "1", "a"), vmSeries(CPU, "2", "b"), vmSeries(CPU, "3", "c")] },
+      series: {
+        [CPU]: [
+          vmSeries(CPU, "1", "a"),
+          vmSeries(CPU, "2", "b"),
+          vmSeries(CPU, "3", "c"),
+        ],
+      },
       pages: 3,
     });
 
-    const result: CloudReadResult = await connector.read(settings(), readOptions(fake));
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
 
     expect(
       result.resources.filter((entry: CloudDiscoveredResource): boolean => {
@@ -570,8 +672,14 @@ describe("reading Cloud Monitoring's answer", () => {
               metric: { type: CPU, labels: { a: "1", b: 2 } },
               resource: { type: "gce_instance", labels: { zone: "z" } },
               points: [
-                { interval: { endTime: "2026-10-21T12:01:00Z" }, value: { int64Value: "7" } },
-                { interval: { endTime: "2026-10-21T12:00:00Z" }, value: { doubleValue: 1.5 } },
+                {
+                  interval: { endTime: "2026-10-21T12:01:00Z" },
+                  value: { int64Value: "7" },
+                },
+                {
+                  interval: { endTime: "2026-10-21T12:00:00Z" },
+                  value: { doubleValue: 1.5 },
+                },
                 { interval: { endTime: "nope" }, value: { doubleValue: 1 } },
               ],
             },

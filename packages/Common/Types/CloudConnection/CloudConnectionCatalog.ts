@@ -47,7 +47,11 @@ export enum CloudConnectionAuthMethod {
   GcpServiceAccountKey = "gcp-service-account-key",
 }
 
-export type CloudConnectionFieldType = "text" | "password" | "dropdown" | "json";
+export type CloudConnectionFieldType =
+  | "text"
+  | "password"
+  | "dropdown"
+  | "json";
 
 export interface CloudConnectionFieldOption {
   label: string;
@@ -391,7 +395,9 @@ export function getCloudConnectionAuthMethod(
   value: unknown,
 ): CloudConnectionAuthMethod {
   const offered: Array<CloudConnectionAuthMethod> = definition.authMethods.map(
-    (method: CloudConnectionAuthMethodDefinition): CloudConnectionAuthMethod => {
+    (
+      method: CloudConnectionAuthMethodDefinition,
+    ): CloudConnectionAuthMethod => {
       return method.method;
     },
   );

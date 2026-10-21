@@ -52,7 +52,9 @@ const recordedRoutes: Array<{
 jest.mock("../../../Server/Utils/Express", () => {
   return {
     getRouter: () => {
-      const record: (method: string) => (uri: string, ...handlers: Array<Handler>) => void = (
+      const record: (
+        method: string,
+      ) => (uri: string, ...handlers: Array<Handler>) => void = (
         method: string,
       ) => {
         return (uri: string, ...handlers: Array<Handler>): void => {
@@ -72,12 +74,18 @@ jest.mock("../../../Server/Utils/Express", () => {
 jest.mock("../../../Server/Utils/Response", () => {
   return { sendJsonObjectResponse: jest.fn() };
 });
-jest.mock("../../../Server/Utils/CloudConnection/CloudConnectorRegistry", () => {
-  return { __esModule: true, default: { getConnector: jest.fn() } };
-});
-jest.mock("../../../Server/Utils/CloudConnection/CloudConnectionScheduler", () => {
-  return { __esModule: true, default: { enqueue: jest.fn() } };
-});
+jest.mock(
+  "../../../Server/Utils/CloudConnection/CloudConnectorRegistry",
+  () => {
+    return { __esModule: true, default: { getConnector: jest.fn() } };
+  },
+);
+jest.mock(
+  "../../../Server/Utils/CloudConnection/CloudConnectionScheduler",
+  () => {
+    return { __esModule: true, default: { enqueue: jest.fn() } };
+  },
+);
 
 const ActualRegistry: typeof CloudConnectorRegistry = (
   jest.requireActual(
@@ -213,17 +221,15 @@ beforeEach(() => {
     .mockImplementation((async () => {
       return accessible;
     }) as never);
-  jest
-    .spyOn(CloudConnectionService, "getConnectorSettings")
-    .mockResolvedValue({
-      provider: CloudProvider.AWS,
-      projectId: PROJECT.toString(),
-      config: {
-        authMethod: CloudConnectionAuthMethod.AwsAccessKey,
-        accessKeyId: ACCESS_KEY_ID,
-      },
-      secrets: { secretAccessKey: STORED_SECRET },
-    });
+  jest.spyOn(CloudConnectionService, "getConnectorSettings").mockResolvedValue({
+    provider: CloudProvider.AWS,
+    projectId: PROJECT.toString(),
+    config: {
+      authMethod: CloudConnectionAuthMethod.AwsAccessKey,
+      accessKeyId: ACCESS_KEY_ID,
+    },
+    secrets: { secretAccessKey: STORED_SECRET },
+  });
 });
 
 afterEach(() => {
@@ -282,24 +288,25 @@ describe("POST /cloud-connection/test", () => {
     },
   );
 
-  test.each([Permission.ProjectMember, Permission.Viewer, Permission.ReadCloudResource])(
-    "%s may not test",
-    async (permission: Permission) => {
-      setPermission(permission);
+  test.each([
+    Permission.ProjectMember,
+    Permission.Viewer,
+    Permission.ReadCloudResource,
+  ])("%s may not test", async (permission: Permission) => {
+    setPermission(permission);
 
-      await testHandler(
-        request({ provider: CloudProvider.AWS, config: {}, secrets: {} }),
-        res,
-        next,
-      );
+    await testHandler(
+      request({ provider: CloudProvider.AWS, config: {}, secrets: {} }),
+      res,
+      next,
+    );
 
-      expect(next).toHaveBeenCalledWith(expect.any(Error));
-      expect((next.mock.calls[0]![0] as Error).message).toContain(
-        "Project owners and project administrators",
-      );
-      expect(testConnection).not.toHaveBeenCalled();
-    },
-  );
+    expect(next).toHaveBeenCalledWith(expect.any(Error));
+    expect((next.mock.calls[0]![0] as Error).message).toContain(
+      "Project owners and project administrators",
+    );
+    expect(testConnection).not.toHaveBeenCalled();
+  });
 
   test("settings a save would refuse are the test's answer, and nothing is sent", async () => {
     await testHandler(
@@ -339,7 +346,11 @@ describe("POST /cloud-connection/test", () => {
   });
 
   test("a saved connection is tested with its stored secret, read in the caller's project", async () => {
-    await testHandler(request({ connectionId: CONNECTION.toString() }), res, next);
+    await testHandler(
+      request({ connectionId: CONNECTION.toString() }),
+      res,
+      next,
+    );
 
     expect(CloudConnectionService.findOneBy).toHaveBeenCalledWith({
       query: { _id: CONNECTION.toString(), projectId: PROJECT },
@@ -379,7 +390,11 @@ describe("POST /cloud-connection/test", () => {
   test("another project's connection is refused before its settings are read", async () => {
     accessible = null;
 
-    await testHandler(request({ connectionId: CONNECTION.toString() }), res, next);
+    await testHandler(
+      request({ connectionId: CONNECTION.toString() }),
+      res,
+      next,
+    );
 
     expect(next).toHaveBeenCalledWith(expect.any(Error));
     expect(CloudConnectionService.getConnectorSettings).not.toHaveBeenCalled();
@@ -482,7 +497,11 @@ describe("GET /cloud-connection/aws-role-setup", () => {
       externalId: getAwsExternalIdForProject(PROJECT.toString()),
     });
 
-    await roleSetupHandler(request({ projectId: OTHER_PROJECT.toString() }), res, next);
+    await roleSetupHandler(
+      request({ projectId: OTHER_PROJECT.toString() }),
+      res,
+      next,
+    );
 
     expect(AwsServerIdentity.getRoleSetup).toHaveBeenCalledWith(
       expect.objectContaining({ projectId: PROJECT.toString() }),

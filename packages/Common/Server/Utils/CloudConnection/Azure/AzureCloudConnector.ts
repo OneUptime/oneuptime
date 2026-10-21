@@ -178,7 +178,11 @@ export function selectAzureMetrics(
   return selected;
 }
 
-function isOlderThan(iso: string | undefined, ageMs: number, now: Date): boolean {
+function isOlderThan(
+  iso: string | undefined,
+  ageMs: number,
+  now: Date,
+): boolean {
   const time: number = iso ? Date.parse(iso) : NaN;
   return !Number.isFinite(time) || now.getTime() - time >= ageMs;
 }
@@ -435,7 +439,9 @@ export default class AzureCloudConnector implements CloudConnector {
         await mapWithConcurrency(
           subscriptions.slice(0, TEST_MAX_SUBSCRIPTIONS),
           TEST_MAX_SUBSCRIPTIONS,
-          async (subscription: AzureSubscription): Promise<Array<AzureResource>> => {
+          async (
+            subscription: AzureSubscription,
+          ): Promise<Array<AzureResource>> => {
             return await arm.listResources(subscription.subscriptionId, {
               firstPageOnly: true,
             });
@@ -691,9 +697,11 @@ export default class AzureCloudConnector implements CloudConnector {
         throw firstError;
       }
 
-      accounts = subscriptions.map((subscription: AzureSubscription): string => {
-        return subscription.subscriptionId;
-      });
+      accounts = subscriptions.map(
+        (subscription: AzureSubscription): string => {
+          return subscription.subscriptionId;
+        },
+      );
       state.inventoryAt = now.toISOString();
     } else {
       for (const known of options.knownResources || []) {
@@ -787,57 +795,58 @@ export default class AzureCloudConnector implements CloudConnector {
     const grainsRead: Set<string> = new Set<string>();
     let failedResources: number = 0;
 
-    const outcomes: Array<Settled<Array<AzureMetricSeries & { grain: string }>>> =
-      await mapWithConcurrency(
-        reading,
-        CONCURRENCY,
-        async (
-          entry: AzureResourceToRead,
-        ): Promise<Array<AzureMetricSeries & { grain: string }>> => {
-          const selected: Array<SelectedMetric> =
-            selectedByType.get(entry.type.toLowerCase()) || [];
-          const byGrain: Map<string, Array<SelectedMetric>> = new Map();
+    const outcomes: Array<
+      Settled<Array<AzureMetricSeries & { grain: string }>>
+    > = await mapWithConcurrency(
+      reading,
+      CONCURRENCY,
+      async (
+        entry: AzureResourceToRead,
+      ): Promise<Array<AzureMetricSeries & { grain: string }>> => {
+        const selected: Array<SelectedMetric> =
+          selectedByType.get(entry.type.toLowerCase()) || [];
+        const byGrain: Map<string, Array<SelectedMetric>> = new Map();
 
-          for (const metric of selected) {
-            const list: Array<SelectedMetric> = byGrain.get(metric.grain) || [];
-            list.push(metric);
-            byGrain.set(metric.grain, list);
+        for (const metric of selected) {
+          const list: Array<SelectedMetric> = byGrain.get(metric.grain) || [];
+          list.push(metric);
+          byGrain.set(metric.grain, list);
+        }
+
+        const series: Array<AzureMetricSeries & { grain: string }> = [];
+
+        for (const [grain, metrics] of byGrain) {
+          const window: MetricWindow | null | undefined = windows.get(grain);
+
+          if (!window) {
+            continue;
           }
 
-          const series: Array<AzureMetricSeries & { grain: string }> = [];
+          const read: Array<AzureMetricSeries> = await arm.getMetrics({
+            resourceId: entry.armId,
+            metrics,
+            interval: grain,
+            start: window.start,
+            end: window.end,
+          });
 
-          for (const [grain, metrics] of byGrain) {
-            const window: MetricWindow | null | undefined = windows.get(grain);
+          grainsRead.add(grain);
 
-            if (!window) {
-              continue;
-            }
+          for (const item of read) {
+            const unit: string =
+              metrics.find((metric: SelectedMetric): boolean => {
+                return (
+                  metric.name.toLowerCase() === item.metricName.toLowerCase()
+                );
+              })?.unit || item.unit;
 
-            const read: Array<AzureMetricSeries> = await arm.getMetrics({
-              resourceId: entry.armId,
-              metrics,
-              interval: grain,
-              start: window.start,
-              end: window.end,
-            });
-
-            grainsRead.add(grain);
-
-            for (const item of read) {
-              const unit: string =
-                metrics.find((metric: SelectedMetric): boolean => {
-                  return (
-                    metric.name.toLowerCase() === item.metricName.toLowerCase()
-                  );
-                })?.unit || item.unit;
-
-              series.push({ ...item, unit, grain });
-            }
+            series.push({ ...item, unit, grain });
           }
+        }
 
-          return series;
-        },
-      );
+        return series;
+      },
+    );
 
     outcomes.forEach(
       (
@@ -954,7 +963,9 @@ export default class AzureCloudConnector implements CloudConnector {
           return { resource: entry.resource };
         },
       ),
-      completelyListedAccounts: budget.isSpent() ? [] : completelyListedAccounts,
+      completelyListedAccounts: budget.isSpent()
+        ? []
+        : completelyListedAccounts,
       payloads: buildMetricsPayloads(metricGroups),
       pointsWritten: countPayloadPoints(metricGroups),
       requestCount: budget.getUsed(),

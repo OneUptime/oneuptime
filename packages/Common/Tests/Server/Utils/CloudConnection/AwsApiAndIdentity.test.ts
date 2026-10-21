@@ -18,12 +18,23 @@ import {
   getRoleSessionName,
   getStsRegion,
 } from "../../../../Server/Utils/CloudConnection/Aws/AwsSts";
-import { CloudReadBudget, CloudReadBudgetSpent } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
+import {
+  CloudReadBudget,
+  CloudReadBudgetSpent,
+} from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
 import LlmProviderError from "../../../../Server/Utils/LlmObservability/LlmProviderError";
-import { CloudConnectionAwsRoleSetup, getAwsExternalIdForProject } from "../../../../Types/CloudConnection/CloudConnectionSetupCommands";
+import {
+  CloudConnectionAwsRoleSetup,
+  getAwsExternalIdForProject,
+} from "../../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import { CloudConnectionFailureKind } from "../../../../Types/CloudConnection/CloudConnectionTest";
 import BadDataException from "../../../../Types/Exception/BadDataException";
-import { FAKE_ACCOUNT_ID, FakeAws, createFakeAws, stsError } from "./FakeAwsApi";
+import {
+  FAKE_ACCOUNT_ID,
+  FakeAws,
+  createFakeAws,
+  stsError,
+} from "./FakeAwsApi";
 
 /*
  * The pieces every AWS call of a cloud connection goes through: the hosts
@@ -79,7 +90,10 @@ describe("partitions and hosts", () => {
 describe("reading AWS's answers", () => {
   test("a tag's text, with XML's entities decoded", () => {
     expect(
-      readXmlTag("<a><Code>Access&amp;Denied &lt;x&gt; &quot;y&quot; &apos;z&apos;</Code></a>", "Code"),
+      readXmlTag(
+        "<a><Code>Access&amp;Denied &lt;x&gt; &quot;y&quot; &apos;z&apos;</Code></a>",
+        "Code",
+      ),
     ).toBe(`Access&Denied <x> "y" 'z'`);
     expect(readXmlTag("<a></a>", "Code")).toBe("");
     expect(readXmlTag("<Code>unclosed", "Code")).toBe("");
@@ -87,11 +101,15 @@ describe("reading AWS's answers", () => {
 
   test("an error code from either protocol", () => {
     expect(
-      awsErrorCodeOf('{"__type":"com.amazonaws.coral#AccessDeniedException","message":"x"}'),
+      awsErrorCodeOf(
+        '{"__type":"com.amazonaws.coral#AccessDeniedException","message":"x"}',
+      ),
     ).toBe("AccessDeniedException");
     expect(awsErrorCodeOf('{"code":"Throttling"}')).toBe("Throttling");
     expect(
-      awsErrorCodeOf("<ErrorResponse><Error><Code>InvalidClientTokenId</Code></Error></ErrorResponse>"),
+      awsErrorCodeOf(
+        "<ErrorResponse><Error><Code>InvalidClientTokenId</Code></Error></ErrorResponse>",
+      ),
     ).toBe("InvalidClientTokenId");
     expect(awsErrorCodeOf("{not json")).toBe("");
     expect(awsErrorCodeOf("")).toBe("");
@@ -144,7 +162,10 @@ describe("sending", () => {
     await expect(
       sendAwsRequest({
         transport: fake.transport,
-        credentials: { accessKeyId: "AKIAIOSFODNN7EXAMPLE", secretAccessKey: "s" },
+        credentials: {
+          accessKeyId: "AKIAIOSFODNN7EXAMPLE",
+          secretAccessKey: "s",
+        },
         service: "sts",
         region: "us-east-1",
         body: { Action: "GetCallerIdentity", Version: "2011-06-15" },
@@ -167,7 +188,10 @@ describe("sending", () => {
     await expect(
       sendAwsRequest({
         transport: fake.transport,
-        credentials: { accessKeyId: "AKIAIOSFODNN7EXAMPLE", secretAccessKey: "s" },
+        credentials: {
+          accessKeyId: "AKIAIOSFODNN7EXAMPLE",
+          secretAccessKey: "s",
+        },
         service: "sts",
         region: "us-east-1",
         body: { Action: "GetCallerIdentity", Version: "2011-06-15" },
@@ -218,10 +242,23 @@ describe("sending", () => {
 
 describe("Regions", () => {
   test("a Region code is letters and a number", () => {
-    for (const region of ["us-east-1", "eu-central-2", "us-gov-west-1", "ap-southeast-7"]) {
+    for (const region of [
+      "us-east-1",
+      "eu-central-2",
+      "us-gov-west-1",
+      "ap-southeast-7",
+    ]) {
       expect(isAwsRegion(region)).toBe(true);
     }
-    for (const region of ["", "us-east", "us_east_1", "us-east-1a", "1-2-3", "us--1", "x".repeat(30)]) {
+    for (const region of [
+      "",
+      "us-east",
+      "us_east_1",
+      "us-east-1a",
+      "1-2-3",
+      "us--1",
+      "x".repeat(30),
+    ]) {
       expect(isAwsRegion(region)).toBe(false);
     }
   });
@@ -252,10 +289,11 @@ describe("this OneUptime's AWS identity", () => {
     process.env["CLOUD_CONNECT_AWS_ACCESS_KEY_ID"] = "AKIAONEUPTIMESERVER1";
     expect(AwsServerIdentity.isConfigured()).toBe(false);
 
-    const setup: CloudConnectionAwsRoleSetup = await AwsServerIdentity.getRoleSetup({
-      projectId: PROJECT,
-      transport: fake.transport,
-    });
+    const setup: CloudConnectionAwsRoleSetup =
+      await AwsServerIdentity.getRoleSetup({
+        projectId: PROJECT,
+        transport: fake.transport,
+      });
 
     expect(setup).toEqual({
       isAvailable: false,
@@ -267,12 +305,16 @@ describe("this OneUptime's AWS identity", () => {
   test("configured, it trusts its whole account, asked of AWS once an hour", async () => {
     process.env["CLOUD_CONNECT_AWS_ACCESS_KEY_ID"] = "AKIAONEUPTIMESERVER1";
     process.env["CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY"] = "server-secret";
-    const fake: FakeAws = createFakeAws({ regions: {}, account: "999988887777" });
-
-    const setup: CloudConnectionAwsRoleSetup = await AwsServerIdentity.getRoleSetup({
-      projectId: PROJECT,
-      transport: fake.transport,
+    const fake: FakeAws = createFakeAws({
+      regions: {},
+      account: "999988887777",
     });
+
+    const setup: CloudConnectionAwsRoleSetup =
+      await AwsServerIdentity.getRoleSetup({
+        projectId: PROJECT,
+        transport: fake.transport,
+      });
     await AwsServerIdentity.getRoleSetup({
       projectId: PROJECT,
       transport: fake.transport,
@@ -294,10 +336,11 @@ describe("this OneUptime's AWS identity", () => {
       callerIdentityError: stsError(403, "InvalidClientTokenId"),
     });
 
-    const setup: CloudConnectionAwsRoleSetup = await AwsServerIdentity.getRoleSetup({
-      projectId: PROJECT,
-      transport: fake.transport,
-    });
+    const setup: CloudConnectionAwsRoleSetup =
+      await AwsServerIdentity.getRoleSetup({
+        projectId: PROJECT,
+        transport: fake.transport,
+      });
 
     expect(setup.isAvailable).toBe(false);
     expect(setup.trustedPrincipalArn).toBeUndefined();

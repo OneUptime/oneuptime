@@ -15,7 +15,10 @@ import CloudResourceService, {
   CloudMonitoredResourceFindOrCreateResult,
 } from "../../Services/CloudResourceService";
 import logger from "../Logger";
-import { CloudDiscoveredResource, CloudKnownResource } from "./CloudConnectorTypes";
+import {
+  CloudDiscoveredResource,
+  CloudKnownResource,
+} from "./CloudConnectorTypes";
 
 /*
  * THE RESOURCES A CONNECTION HOLDS, KEPT IN STEP WITH WHAT ITS READS FIND.
@@ -75,7 +78,11 @@ function countReturnedRows(rows: unknown): number {
   }
 
   // UPDATE ... RETURNING answers [rows, count] through TypeORM's query().
-  if (rows.length === 2 && Array.isArray(rows[0]) && typeof rows[1] === "number") {
+  if (
+    rows.length === 2 &&
+    Array.isArray(rows[0]) &&
+    typeof rows[1] === "number"
+  ) {
     return rows[1];
   }
 
@@ -210,22 +217,23 @@ export default class CloudConnectionResourceSync {
     }
 
     if (newIds.length > 0) {
-      const rows: unknown = await CloudResourceService.getRepository().manager.query(
-        `UPDATE "CloudResource"
+      const rows: unknown =
+        await CloudResourceService.getRepository().manager.query(
+          `UPDATE "CloudResource"
           SET "cloudConnectionId" = $1
           WHERE "projectId" = $2
             AND "_id" = ANY($3::uuid[])
             AND "cloudConnectionId" IS NULL
             AND "deletedAt" IS NULL
           RETURNING "_id"`,
-        [
-          data.connectionId.toString(),
-          data.projectId.toString(),
-          newIds.map((id: ObjectID): string => {
-            return id.toString();
-          }),
-        ],
-      );
+          [
+            data.connectionId.toString(),
+            data.projectId.toString(),
+            newIds.map((id: ObjectID): string => {
+              return id.toString();
+            }),
+          ],
+        );
 
       newResources = countReturnedRows(rows);
     }
@@ -243,10 +251,7 @@ export default class CloudConnectionResourceSync {
           buildCloudMonitoredResourceIdentifier(entry.resource).toLowerCase(),
         );
 
-        if (
-          row &&
-          listedAccounts.has(entry.resource.accountId.toLowerCase())
-        ) {
+        if (row && listedAccounts.has(entry.resource.accountId.toLowerCase())) {
           await CloudResourceService.recordMonitoredResourceSighting({
             cloudResourceId: row.id,
             resource: entry.resource,
@@ -276,8 +281,9 @@ export default class CloudConnectionResourceSync {
     );
 
     if (gone.length > 0) {
-      const rows: unknown = await CloudResourceService.getRepository().manager.query(
-        `UPDATE "CloudResource"
+      const rows: unknown =
+        await CloudResourceService.getRepository().manager.query(
+          `UPDATE "CloudResource"
           SET "isArchived" = true,
             "archivedAt" = $3,
             "autoArchivedAt" = $3,
@@ -289,14 +295,14 @@ export default class CloudConnectionResourceSync {
             AND "isArchived" = false
             AND "deletedAt" IS NULL
           RETURNING "_id"`,
-        [
-          data.projectId.toString(),
-          gone.map((row: LinkedRow): string => {
-            return row.id.toString();
-          }),
-          new Date(),
-        ],
-      );
+          [
+            data.projectId.toString(),
+            gone.map((row: LinkedRow): string => {
+              return row.id.toString();
+            }),
+            new Date(),
+          ],
+        );
 
       archivedResources = countReturnedRows(rows);
     }

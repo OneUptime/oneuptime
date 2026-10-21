@@ -47,7 +47,8 @@ import {
 const PROJECT: string = "11111111-1111-4111-8111-111111111111";
 const ACCESS_KEY_ID: string = "AKIAIOSFODNN7EXAMPLE";
 const SECRET: string = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
-const ROLE_ARN: string = "arn:aws:iam::123456789012:role/OneUptimeReadOnly-5f3a9c1e";
+const ROLE_ARN: string =
+  "arn:aws:iam::123456789012:role/OneUptimeReadOnly-5f3a9c1e";
 // 12:07; the CloudWatch window ends ten minutes back, on five: 11:55.
 const NOW: Date = new Date("2026-10-21T12:07:00Z");
 const WINDOW_END_S: number = Date.UTC(2026, 9, 21, 11, 55) / 1000;
@@ -72,12 +73,18 @@ function roleSettings(): CloudConnectionSettings {
   return {
     provider: CloudProvider.AWS,
     projectId: PROJECT,
-    config: { authMethod: CloudConnectionAuthMethod.AwsRole, roleArn: ROLE_ARN },
+    config: {
+      authMethod: CloudConnectionAuthMethod.AwsRole,
+      roleArn: ROLE_ARN,
+    },
     secrets: {},
   };
 }
 
-function ec2(instanceId: string, values: Array<number> = []): Array<FakeMetric> {
+function ec2(
+  instanceId: string,
+  values: Array<number> = [],
+): Array<FakeMetric> {
   return [
     {
       namespace: "AWS/EC2",
@@ -222,7 +229,8 @@ afterEach(() => {
 
 function giveOneUptimeAnAwsIdentity(): void {
   process.env["CLOUD_CONNECT_AWS_ACCESS_KEY_ID"] = "AKIAONEUPTIMESERVER1";
-  process.env["CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY"] = "oneuptime-server-secret";
+  process.env["CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY"] =
+    "oneuptime-server-secret";
 }
 
 describe("validateSettings", () => {
@@ -231,7 +239,9 @@ describe("validateSettings", () => {
       connector.validateSettings(keySettings());
     }).not.toThrow();
     expect(() => {
-      connector.validateSettings(keySettings({ regions: "us-east-1, eu-west-1" }));
+      connector.validateSettings(
+        keySettings({ regions: "us-east-1, eu-west-1" }),
+      );
     }).not.toThrow();
   });
 
@@ -273,7 +283,9 @@ describe("testConnection", () => {
   test("signs in, finds where resources are, and counts them by type and Region", async () => {
     const fake: FakeAws = createFakeAws({
       regions: {
-        "us-east-1": { metrics: [...ec2("i-0aaa"), ...ec2("i-0bbb"), ...alb()] },
+        "us-east-1": {
+          metrics: [...ec2("i-0aaa"), ...ec2("i-0bbb"), ...alb()],
+        },
         "eu-west-1": { metrics: ec2("i-0ccc") },
         "us-west-2": { metrics: [] },
       },
@@ -281,7 +293,12 @@ describe("testConnection", () => {
 
     const result: CloudConnectionTestResult = await connector.testConnection(
       keySettings(),
-      { transport: fake.transport, now: () => NOW },
+      {
+        transport: fake.transport,
+        now: () => {
+          return NOW;
+        },
+      },
     );
 
     expect(result).toEqual(
@@ -315,12 +332,16 @@ describe("testConnection", () => {
 
     await connector.testConnection(keySettings({ regions: "us-east-1" }), {
       transport: fake.transport,
-      now: () => NOW,
+      now: () => {
+        return NOW;
+      },
     });
 
     const listMetrics: DataSourceHttpRequest = fake.requests.find(
       (request: DataSourceHttpRequest): boolean => {
-        return new URL(request.url).host === "monitoring.us-east-1.amazonaws.com";
+        return (
+          new URL(request.url).host === "monitoring.us-east-1.amazonaws.com"
+        );
       },
     )!;
     const headers: Record<string, string> = listMetrics.headers as Record<
@@ -347,7 +368,12 @@ describe("testConnection", () => {
 
     const result: CloudConnectionTestResult = await connector.testConnection(
       keySettings({ regions: "us-east-1" }),
-      { transport: fake.transport, now: () => NOW },
+      {
+        transport: fake.transport,
+        now: () => {
+          return NOW;
+        },
+      },
     );
 
     expect(result.status).toBe("warn");
@@ -366,7 +392,12 @@ describe("testConnection", () => {
 
     const result: CloudConnectionTestResult = await connector.testConnection(
       keySettings(),
-      { transport: fake.transport, now: () => NOW },
+      {
+        transport: fake.transport,
+        now: () => {
+          return NOW;
+        },
+      },
     );
 
     expect(result.status).toBe("fail");
@@ -390,7 +421,12 @@ describe("testConnection", () => {
 
     const result: CloudConnectionTestResult = await connector.testConnection(
       keySettings({ regions: "us-east-1" }),
-      { transport: fake.transport, now: () => NOW },
+      {
+        transport: fake.transport,
+        now: () => {
+          return NOW;
+        },
+      },
     );
 
     expect(result.status).toBe("fail");
@@ -402,7 +438,12 @@ describe("testConnection", () => {
 
     const result: CloudConnectionTestResult = await connector.testConnection(
       keySettings({ regions: "nowhere" }),
-      { transport: fake.transport, now: () => NOW },
+      {
+        transport: fake.transport,
+        now: () => {
+          return NOW;
+        },
+      },
     );
 
     expect(result.status).toBe("fail");
@@ -417,8 +458,16 @@ describe("testConnection", () => {
     });
 
     const result: CloudConnectionTestResult = await connector.testConnection(
-      { ...roleSettings(), config: { ...roleSettings().config, regions: "us-east-1" } },
-      { transport: fake.transport, now: () => NOW },
+      {
+        ...roleSettings(),
+        config: { ...roleSettings().config, regions: "us-east-1" },
+      },
+      {
+        transport: fake.transport,
+        now: () => {
+          return NOW;
+        },
+      },
     );
 
     expect(result.status).toBe("pass");
@@ -448,7 +497,9 @@ describe("testConnection", () => {
       string
     >;
 
-    expect(headers["Authorization"]).toContain("Credential=ASIAASSUMEDROLE00001/");
+    expect(headers["Authorization"]).toContain(
+      "Credential=ASIAASSUMEDROLE00001/",
+    );
     expect(headers["X-Amz-Security-Token"]).toBe("session-token-abc");
   });
 
@@ -465,7 +516,12 @@ describe("testConnection", () => {
 
     const result: CloudConnectionTestResult = await connector.testConnection(
       roleSettings(),
-      { transport: fake.transport, now: () => NOW },
+      {
+        transport: fake.transport,
+        now: () => {
+          return NOW;
+        },
+      },
     );
 
     expect(result.status).toBe("fail");
@@ -531,7 +587,9 @@ describe("read", () => {
     expect(
       resolved
         .filter((entry: { metricName: string }): boolean => {
-          return entry.metricName === "amazonaws.com/AWS/ApplicationELB/RequestCount";
+          return (
+            entry.metricName === "amazonaws.com/AWS/ApplicationELB/RequestCount"
+          );
         })
         .map((entry: { attributes: JSONObject }) => {
           return entry.attributes["Dimensions.TargetGroup"];
@@ -558,7 +616,10 @@ describe("read", () => {
       regions: { "us-east-1": { metrics: ec2("i-0aaa", [10]) } },
     });
 
-    await connector.read(keySettings({ regions: "us-east-1" }), readOptions(fake));
+    await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      readOptions(fake),
+    );
 
     const call: { body: JSONObject } = fake.cloudWatchCalls.find(
       (entry: { action: string }): boolean => {
@@ -575,10 +636,20 @@ describe("read", () => {
       queries.map((query: JSONObject) => {
         const stat: JSONObject = query["MetricStat"] as JSONObject;
         const metric: JSONObject = stat["Metric"] as JSONObject;
-        return [metric["MetricName"], stat["Stat"], stat["Period"], metric["Dimensions"]];
+        return [
+          metric["MetricName"],
+          stat["Stat"],
+          stat["Period"],
+          metric["Dimensions"],
+        ];
       }),
     ).toEqual([
-      ["CPUUtilization", "Average", 300, [{ Name: "InstanceId", Value: "i-0aaa" }]],
+      [
+        "CPUUtilization",
+        "Average",
+        300,
+        [{ Name: "InstanceId", Value: "i-0aaa" }],
+      ],
       ["NetworkIn", "Sum", 300, [{ Name: "InstanceId", Value: "i-0aaa" }]],
     ]);
     for (const query of queries) {
@@ -601,7 +672,9 @@ describe("read", () => {
     const tenMinutesLater: Date = new Date(NOW.getTime() + 10 * 60 * 1000);
     const second: CloudReadResult = await connector.read(keySettings(), {
       ...readOptions(fake, first.nextState),
-      now: () => tenMinutesLater,
+      now: () => {
+        return tenMinutesLater;
+      },
     });
 
     // No first-page probes of every Region: only the Region in use is listed.
@@ -839,7 +912,9 @@ describe("read", () => {
     );
     await connector.read(settings, {
       ...readOptions(fake, first.nextState),
-      now: () => new Date(NOW.getTime() + 10 * 60 * 1000),
+      now: () => {
+        return new Date(NOW.getTime() + 10 * 60 * 1000);
+      },
     });
 
     expect(

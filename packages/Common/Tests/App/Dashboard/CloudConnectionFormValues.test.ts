@@ -53,7 +53,8 @@ const GCP: CloudConnectionDefinition = getCloudConnectionDefinition(
   CloudProvider.GCP,
 )!;
 
-const ROLE_ARN: string = "arn:aws:iam::123456789012:role/OneUptimeReadOnly-5f3a9c1e";
+const ROLE_ARN: string =
+  "arn:aws:iam::123456789012:role/OneUptimeReadOnly-5f3a9c1e";
 const ACCESS_KEY_ID: string = "AKIAIOSFODNN7EXAMPLE";
 const SECRET_ACCESS_KEY: string = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
 const TENANT: string = "b3c1b5fc-828c-45fa-a1e1-10d74f6d6e9c";
@@ -144,7 +145,8 @@ describe("what the form sends", () => {
       }).secrets,
     ).toEqual({});
 
-    const key: string = '{\n  "type": "service_account",\n  "private_key": "-----BEGIN-----\\nabc\\n-----END-----\\n"\n}\n';
+    const key: string =
+      '{\n  "type": "service_account",\n  "private_key": "-----BEGIN-----\\nabc\\n-----END-----\\n"\n}\n';
 
     expect(
       readCloudConnectionForm(GCP, {
@@ -237,7 +239,11 @@ describe("one paste", () => {
         method: CloudConnectionAuthMethod.AzureClientSecret,
         pasted: AZURE_OUTPUT,
       }),
-    ).toEqual(["Directory (tenant) ID", "Application (client) ID", "Client secret"]);
+    ).toEqual([
+      "Directory (tenant) ID",
+      "Application (client) ID",
+      "Client secret",
+    ]);
   });
 
   test("a paste that names nothing changes nothing", () => {

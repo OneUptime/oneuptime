@@ -29,7 +29,8 @@ const CloudConnectionLogo: FunctionComponent<ComponentProps> = (
   const glyph: string =
     size === "lg" ? "h-5 w-5" : size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4";
   const colours: string =
-    MARK_COLOURS[props.provider as CloudProvider] || "bg-gray-200 text-gray-600";
+    MARK_COLOURS[props.provider as CloudProvider] ||
+    "bg-gray-200 text-gray-600";
 
   return (
     <span

@@ -195,7 +195,9 @@ describe("a read's failure", () => {
         }),
       ),
     ).toBeUndefined();
-    expect(getCloudReadFailureWords({ lastPullResult: undefined })).toBeUndefined();
+    expect(
+      getCloudReadFailureWords({ lastPullResult: undefined }),
+    ).toBeUndefined();
   });
 });
 
@@ -305,14 +307,21 @@ describe("counts in the reader's language", () => {
     );
     // No Russian words: the sentence is English, its count Russian-written.
     expect(
-      drawCloudTemplate(createTranslator(() => undefined, "ru"), words),
+      drawCloudTemplate(
+        createTranslator(() => {
+          return undefined;
+        }, "ru"),
+        words,
+      ),
     ).toBe(`${(1500).toLocaleString("ru")} resources in 2 regions`);
   });
 });
 
 describe("what the last read left a connection holding", () => {
   test("nothing before the first read", () => {
-    expect(getCloudLastReadWords({ lastPullResult: undefined })).toBeUndefined();
+    expect(
+      getCloudLastReadWords({ lastPullResult: undefined }),
+    ).toBeUndefined();
   });
 
   test("no resources yet", () => {

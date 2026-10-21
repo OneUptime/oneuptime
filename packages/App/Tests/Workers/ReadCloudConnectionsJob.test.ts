@@ -41,35 +41,44 @@ jest.mock("Common/Server/Infrastructure/Queue", () => {
   };
 });
 
-jest.mock("Common/Server/Utils/CloudConnection/CloudConnectionScheduler", () => {
-  return {
-    __esModule: true,
-    // The real values, which the test below holds to the scheduler's source.
-    CLOUD_CONNECTION_PULL_JOB: "CloudConnection:Read",
-    CLOUD_CONNECTION_PULL_JOB_TIMEOUT_MS: 9 * 60 * 1000,
-    default: {
-      enqueueDueConnections: mockEnqueueDueConnections,
-    },
-  };
-});
+jest.mock(
+  "Common/Server/Utils/CloudConnection/CloudConnectionScheduler",
+  () => {
+    return {
+      __esModule: true,
+      // The real values, which the test below holds to the scheduler's source.
+      CLOUD_CONNECTION_PULL_JOB: "CloudConnection:Read",
+      CLOUD_CONNECTION_PULL_JOB_TIMEOUT_MS: 9 * 60 * 1000,
+      default: {
+        enqueueDueConnections: mockEnqueueDueConnections,
+      },
+    };
+  },
+);
 
-jest.mock("Common/Server/Utils/CloudConnection/CloudConnectionPullRunner", () => {
-  return {
-    __esModule: true,
-    default: {
-      run: mockRun,
-    },
-  };
-});
+jest.mock(
+  "Common/Server/Utils/CloudConnection/CloudConnectionPullRunner",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        run: mockRun,
+      },
+    };
+  },
+);
 
-jest.mock("../../FeatureSet/Telemetry/Services/OtelMetricsIngestService", () => {
-  return {
-    __esModule: true,
-    default: {
-      processMetricsFromQueue: mockProcessMetrics,
-    },
-  };
-});
+jest.mock(
+  "../../FeatureSet/Telemetry/Services/OtelMetricsIngestService",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        processMetricsFromQueue: mockProcessMetrics,
+      },
+    };
+  },
+);
 
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
@@ -126,7 +135,9 @@ describe("ReadCloudConnections - wired into the worker", () => {
     const specifier: string = "./Jobs/Cloud/ReadCloudConnections";
 
     expect(
-      fs.existsSync(path.join(WORKERS_DIR, "Jobs/Cloud/ReadCloudConnections.ts")),
+      fs.existsSync(
+        path.join(WORKERS_DIR, "Jobs/Cloud/ReadCloudConnections.ts"),
+      ),
     ).toBe(true);
     expect(index).toMatch(
       new RegExp(
@@ -159,7 +170,9 @@ describe("ReadCloudConnections - wired into the worker", () => {
 
 describe("ReadCloudConnections - registration", () => {
   test("registering logged no error", () => {
-    expect((logger as unknown as { error: jest.Mock }).error).not.toHaveBeenCalled();
+    expect(
+      (logger as unknown as { error: jest.Mock }).error,
+    ).not.toHaveBeenCalled();
   });
 
   test("schedules the sweep once, every minute, and never on startup", () => {
@@ -209,15 +222,17 @@ describe("ReadCloudConnections - a read", () => {
     });
   });
 
-  test.each([[undefined], [{}], [{ connectionId: "not-an-id" }], [{ connectionId: 7 }]])(
-    "refuses a job that names no connection: %j",
-    async (data: unknown) => {
-      await expect(
-        runCloudConnectionRead({ name: READ_JOB, data } as never),
-      ).rejects.toThrow("A valid cloud connection ID is required.");
-      expect(mockRun).not.toHaveBeenCalled();
-    },
-  );
+  test.each([
+    [undefined],
+    [{}],
+    [{ connectionId: "not-an-id" }],
+    [{ connectionId: 7 }],
+  ])("refuses a job that names no connection: %j", async (data: unknown) => {
+    await expect(
+      runCloudConnectionRead({ name: READ_JOB, data } as never),
+    ).rejects.toThrow("A valid cloud connection ID is required.");
+    expect(mockRun).not.toHaveBeenCalled();
+  });
 
   test("a read that fails is a failed job", async () => {
     mockRun.mockRejectedValue(new Error("the read broke"));
@@ -231,7 +246,9 @@ describe("ReadCloudConnections - a read", () => {
   });
 
   test("what a read imports reaches the ingest as the body of its own project's request", async () => {
-    const payload: { resourceMetrics: Array<unknown> } = { resourceMetrics: [] };
+    const payload: { resourceMetrics: Array<unknown> } = {
+      resourceMetrics: [],
+    };
     const projectId: ObjectID = new ObjectID(PROJECT_ID);
 
     await importCloudMetrics({ projectId, payload: payload as never });

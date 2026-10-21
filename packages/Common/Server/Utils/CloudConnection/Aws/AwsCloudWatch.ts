@@ -4,7 +4,10 @@ import {
   readObject,
   readText,
 } from "../../LlmObservability/LlmProviderHttp";
-import { CloudConnectorTransport, CloudReadBudget } from "../CloudConnectorTypes";
+import {
+  CloudConnectorTransport,
+  CloudReadBudget,
+} from "../CloudConnectorTypes";
 import { AwsCredentials, sendAwsRequest } from "./AwsApi";
 
 /*

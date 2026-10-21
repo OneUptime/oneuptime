@@ -1,7 +1,5 @@
 import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
-import {
-  CloudConnectionDefinition,
-} from "../../../Types/CloudConnection/CloudConnectionCatalog";
+import { CloudConnectionDefinition } from "../../../Types/CloudConnection/CloudConnectionCatalog";
 import {
   CloudConnectionFailureKind,
   CloudConnectionReadStatus,

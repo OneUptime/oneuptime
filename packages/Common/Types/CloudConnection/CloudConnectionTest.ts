@@ -113,10 +113,9 @@ function readStrings(value: JSONValue | undefined): Array<string> {
   return strings;
 }
 
-function readCounts<T extends CloudConnectionTypeCount | CloudConnectionRegionCount>(
-  value: JSONValue | undefined,
-  key: "type" | "region",
-): Array<T> {
+function readCounts<
+  T extends CloudConnectionTypeCount | CloudConnectionRegionCount,
+>(value: JSONValue | undefined, key: "type" | "region"): Array<T> {
   if (!Array.isArray(value)) {
     return [];
   }

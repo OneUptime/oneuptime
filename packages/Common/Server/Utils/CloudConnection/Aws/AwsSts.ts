@@ -1,7 +1,10 @@
 import { CloudConnectionFailureKind } from "../../../../Types/CloudConnection/CloudConnectionTest";
 import { getAwsExternalIdForProject } from "../../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import LlmProviderError from "../../LlmObservability/LlmProviderError";
-import { CloudConnectorTransport, CloudReadBudget } from "../CloudConnectorTypes";
+import {
+  CloudConnectorTransport,
+  CloudReadBudget,
+} from "../CloudConnectorTypes";
 import {
   AwsCredentials,
   AwsPartition,

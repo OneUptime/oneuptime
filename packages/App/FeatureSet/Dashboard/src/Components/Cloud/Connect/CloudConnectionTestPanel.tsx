@@ -170,9 +170,7 @@ const CloudConnectionTestPanel: FunctionComponent<ComponentProps> = (
                   icon={IconProp.CurrencyDollar}
                   className="mt-px h-3.5 w-3.5 flex-shrink-0 text-gray-400"
                 />
-                <span>
-                  {drawCloudTemplate(translator, cost)}
-                </span>
+                <span>{drawCloudTemplate(translator, cost)}</span>
               </div>
             ) : (
               <></>

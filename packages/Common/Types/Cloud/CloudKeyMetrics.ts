@@ -292,14 +292,16 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
   },
 ];
 
-const AWS_KEY_METRICS_BY_NAMESPACE: ReadonlyMap<string, AwsNamespaceKeyMetrics> =
-  new Map(
-    AWS_KEY_METRICS.map(
-      (entry: AwsNamespaceKeyMetrics): [string, AwsNamespaceKeyMetrics] => {
-        return [entry.namespace.toLowerCase(), entry];
-      },
-    ),
-  );
+const AWS_KEY_METRICS_BY_NAMESPACE: ReadonlyMap<
+  string,
+  AwsNamespaceKeyMetrics
+> = new Map(
+  AWS_KEY_METRICS.map(
+    (entry: AwsNamespaceKeyMetrics): [string, AwsNamespaceKeyMetrics] => {
+      return [entry.namespace.toLowerCase(), entry];
+    },
+  ),
+);
 
 export function getAwsKeyMetrics(
   namespace: string,
@@ -441,7 +443,12 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
   },
   {
     type: "Microsoft.Storage/storageAccounts",
-    metrics: ["Transactions", "Availability", "SuccessE2ELatency", "UsedCapacity"],
+    metrics: [
+      "Transactions",
+      "Availability",
+      "SuccessE2ELatency",
+      "UsedCapacity",
+    ],
   },
   {
     type: "Microsoft.KeyVault/vaults",
@@ -626,7 +633,11 @@ export const GCP_KEY_METRICS: ReadonlyArray<GcpTypeKeyMetrics> = [
   {
     resourceType: "cloudsql_database",
     metrics: [
-      gcp("cloudsql.googleapis.com/database/cpu/utilization", "ALIGN_MEAN", "1"),
+      gcp(
+        "cloudsql.googleapis.com/database/cpu/utilization",
+        "ALIGN_MEAN",
+        "1",
+      ),
       gcp(
         "cloudsql.googleapis.com/database/memory/utilization",
         "ALIGN_MEAN",
@@ -680,11 +691,7 @@ export const GCP_KEY_METRICS: ReadonlyArray<GcpTypeKeyMetrics> = [
     resourceType: "cloud_run_revision",
     metrics: [
       gcp("run.googleapis.com/request_count", "ALIGN_RATE", "1/s"),
-      gcp(
-        "run.googleapis.com/request_latencies",
-        "ALIGN_PERCENTILE_95",
-        "ms",
-      ),
+      gcp("run.googleapis.com/request_latencies", "ALIGN_PERCENTILE_95", "ms"),
       gcp("run.googleapis.com/container/instance_count", "ALIGN_MAX", "1"),
     ],
   },

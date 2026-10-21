@@ -254,10 +254,9 @@ describe("a row", () => {
     expect(
       within(cell).getByTestId("cloud-resource-groups-types"),
     ).toBeInTheDocument();
-    expect(within(cell).getByText("See all resources").closest("a")).toHaveAttribute(
-      "href",
-      RESOURCES_ROUTE.toString(),
-    );
+    expect(
+      within(cell).getByText("See all resources").closest("a"),
+    ).toHaveAttribute("href", RESOURCES_ROUTE.toString());
   });
 
   test("when it was last read, what it then held, and how often it is read", () => {
@@ -428,7 +427,8 @@ describe("its actions", () => {
     await act(async () => {
       await action("View error").onClick(
         connection({
-          lastError: "AccessDenied: User is not authorized to perform sts:AssumeRole",
+          lastError:
+            "AccessDenied: User is not authorized to perform sts:AssumeRole",
           lastPulledAt: new Date("2026-10-21T10:00:00Z"),
           lastPullResult: readResult({
             status: "failed",

@@ -168,9 +168,9 @@ describe("the setup step", () => {
     const step: HTMLElement = screen.getByTestId("cloud-setup-command");
 
     expect(step).toHaveTextContent(AZURE.authMethods[0]!.hint);
-    expect(
-      screen.getByTestId("cloud-setup-command-code"),
-    ).toHaveTextContent("az ad sp create-for-rbac");
+    expect(screen.getByTestId("cloud-setup-command-code")).toHaveTextContent(
+      "az ad sp create-for-rbac",
+    );
     expect(screen.getByTestId("cloud-setup-open-shell")).toHaveAttribute(
       "href",
       AZURE.shellUrl,
@@ -223,9 +223,9 @@ describe("the setup step", () => {
       />,
     );
 
-    expect(
-      screen.getByTestId("cloud-setup-command-loading"),
-    ).toHaveTextContent("Getting the command ready…");
+    expect(screen.getByTestId("cloud-setup-command-loading")).toHaveTextContent(
+      "Getting the command ready…",
+    );
     expect(
       screen.queryByTestId("cloud-setup-command-code"),
     ).not.toBeInTheDocument();
@@ -318,9 +318,7 @@ describe("the test", () => {
     expect(screen.getByTestId("cloud-test-found")).toHaveTextContent(
       "A quick look. The first read finds every resource.",
     );
-    expect(
-      screen.getByTestId("cloud-resource-groups-types"),
-    ).toHaveTextContent(
+    expect(screen.getByTestId("cloud-resource-groups-types")).toHaveTextContent(
       getCloudResourceTypeLabel(CloudProvider.AWS, "AWS::EC2::Instance"),
     );
     expect(
@@ -336,9 +334,9 @@ describe("the test", () => {
     expect(
       screen.queryByTestId("cloud-connection-test-details"),
     ).not.toBeInTheDocument();
-    expect(screen.getByTestId("cloud-connection-test-button")).toHaveTextContent(
-      "Test again",
-    );
+    expect(
+      screen.getByTestId("cloud-connection-test-button"),
+    ).toHaveTextContent("Test again");
   });
 
   test("a failure: what to fix, and the cloud's own answer apart", async () => {

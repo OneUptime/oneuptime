@@ -50,7 +50,11 @@ export interface FakeAwsOptions {
 export interface FakeAws extends FakeProviderApi {
   // CloudWatch calls by action and Region, in order.
   cloudWatchCalls: Array<{ action: string; region: string; body: JSONObject }>;
-  stsCalls: Array<{ action: string; body: URLSearchParams; request: DataSourceHttpRequest }>;
+  stsCalls: Array<{
+    action: string;
+    body: URLSearchParams;
+    request: DataSourceHttpRequest;
+  }>;
   taggingCalls: Array<{ region: string; body: JSONObject }>;
 }
 
@@ -201,8 +205,7 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
           (metric: FakeMetric): boolean => {
             return (
               metric.namespace === body["Namespace"] &&
-              (!body["MetricName"] ||
-                metric.metricName === body["MetricName"])
+              (!body["MetricName"] || metric.metricName === body["MetricName"])
             );
           },
         );

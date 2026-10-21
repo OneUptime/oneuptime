@@ -44,7 +44,10 @@ function nextId(): ObjectID {
   );
 }
 
-function azureVm(name: string, account: string = SUBSCRIPTION): CloudMonitoredResource {
+function azureVm(
+  name: string,
+  account: string = SUBSCRIPTION,
+): CloudMonitoredResource {
   const id: string = `/subscriptions/${account}/resourceGroups/rg/providers/Microsoft.Compute/virtualMachines/${name}`;
 
   return {
@@ -90,7 +93,10 @@ interface Row {
   isArchived: boolean;
 }
 
-function rowOf(resource: CloudMonitoredResource, isArchived: boolean = false): Row {
+function rowOf(
+  resource: CloudMonitoredResource,
+  isArchived: boolean = false,
+): Row {
   return {
     id: nextId(),
     resourceIdentifier: buildCloudMonitoredResourceIdentifier(resource),
@@ -219,10 +225,11 @@ describe("new resources", () => {
       ],
     });
 
-    expect(created.map((resource: CloudMonitoredResource) => resource.name)).toEqual([
-      "checkout-web-1",
-      "i-0def",
-    ]);
+    expect(
+      created.map((resource: CloudMonitoredResource) => {
+        return resource.name;
+      }),
+    ).toEqual(["checkout-web-1", "i-0def"]);
     // Only the name: the identity is the ingest's.
     expect(created[0]!.identityKey).toBe(ec2("i-0abc").identityKey);
     expect(findOrCreate.mock.calls[0]![0].projectId).toBe(PROJECT);
@@ -257,8 +264,11 @@ describe("new resources", () => {
 
     query.mockResolvedValueOnce([{ _id: "x" }, { _id: "y" }]);
     expect(
-      (await sync({ discovered: [discovered(ec2("i-3")), discovered(ec2("i-4"))] }))
-        .newResources,
+      (
+        await sync({
+          discovered: [discovered(ec2("i-3")), discovered(ec2("i-4"))],
+        })
+      ).newResources,
     ).toBe(2);
   });
 
@@ -274,9 +284,11 @@ describe("new resources", () => {
       ],
     });
 
-    expect(created.map((resource: CloudMonitoredResource) => resource.name)).toEqual([
-      "i-new",
-    ]);
+    expect(
+      created.map((resource: CloudMonitoredResource) => {
+        return resource.name;
+      }),
+    ).toEqual(["i-new"]);
   });
 
   test("one that cannot be saved does not stop the others, and is not linked", async () => {
@@ -313,7 +325,11 @@ describe("new resources", () => {
   test(`one read creates ${MAX_NEW_RESOURCES_PER_READ} at most; the next creates the rest`, async () => {
     const many: Array<CloudDiscoveredResource> = [];
 
-    for (let index: number = 0; index < MAX_NEW_RESOURCES_PER_READ + 3; index++) {
+    for (
+      let index: number = 0;
+      index < MAX_NEW_RESOURCES_PER_READ + 3;
+      index++
+    ) {
       many.push(discovered(ec2(`i-${index}`)));
     }
 
@@ -322,7 +338,8 @@ describe("new resources", () => {
     expect(findOrCreate).toHaveBeenCalledTimes(MAX_NEW_RESOURCES_PER_READ);
     expect(result.hasMore).toBe(true);
     expect(
-      (await sync({ discovered: many.slice(0, MAX_NEW_RESOURCES_PER_READ) })).hasMore,
+      (await sync({ discovered: many.slice(0, MAX_NEW_RESOURCES_PER_READ) }))
+        .hasMore,
     ).toBe(false);
   });
 });
@@ -365,7 +382,9 @@ describe("gone resources", () => {
     const kept: Row = rowOf(azureVm("vm-kept"));
     const gone: Row = rowOf(azureVm("vm-gone"));
     const alreadyArchived: Row = rowOf(azureVm("vm-old"), true);
-    const otherSubscription: Row = rowOf(azureVm("vm-other", OTHER_SUBSCRIPTION));
+    const otherSubscription: Row = rowOf(
+      azureVm("vm-other", OTHER_SUBSCRIPTION),
+    );
 
     const result: CloudConnectionSyncResult = await sync({
       linked: [kept, gone, alreadyArchived, otherSubscription],
@@ -374,7 +393,8 @@ describe("gone resources", () => {
     });
 
     expect(archiveQueries()).toHaveLength(1);
-    const archive: { sql: string; parameters: Array<unknown> } = archiveQueries()[0]!;
+    const archive: { sql: string; parameters: Array<unknown> } =
+      archiveQueries()[0]!;
     expect(archive.parameters[0]).toBe(PROJECT.toString());
     // Not one of another subscription this read did not list in full.
     expect(archive.parameters[1]).toEqual([gone.id.toString()]);

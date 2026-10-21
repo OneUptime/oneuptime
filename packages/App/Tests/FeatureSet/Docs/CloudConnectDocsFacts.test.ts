@@ -126,7 +126,9 @@ describe("Connect a Cloud Account", () => {
       expect(cloud.docsPath.startsWith(`/docs/${CLOUD_ACCOUNTS}#`)).toBe(true);
       expect(
         anchors.has(
-          (cloud.docsPath.match(HEADING_ANCHOR) as RegExpMatchArray)[1] as string,
+          (
+            cloud.docsPath.match(HEADING_ANCHOR) as RegExpMatchArray
+          )[1] as string,
         ),
       ).toBe(true);
       expect(scanMarkdown(PAGE).headings).toContainEqual(

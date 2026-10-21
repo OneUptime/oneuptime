@@ -96,12 +96,14 @@ export function estimateCloudConnectionCost(data: {
 
     const units: number = resourcesWithMetrics * reads;
     const free: number =
-      AZURE_FREE_METRIC_READS_PER_SUBSCRIPTION * Math.max(1, data.accounts || 1);
+      AZURE_FREE_METRIC_READS_PER_SUBSCRIPTION *
+      Math.max(1, data.accounts || 1);
 
     return {
       monthlyUnits: units,
       monthlyCostUsd:
-        (Math.max(0, units - free) / 1000) * AZURE_USD_PER_THOUSAND_METRIC_READS,
+        (Math.max(0, units - free) / 1000) *
+        AZURE_USD_PER_THOUSAND_METRIC_READS,
     };
   }
 

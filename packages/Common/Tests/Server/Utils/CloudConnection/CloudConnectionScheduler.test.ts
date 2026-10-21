@@ -171,17 +171,23 @@ describe("CloudConnectionScheduler", () => {
 
   test("the same minute gives the same job id; the next minute a new one", () => {
     expect(CloudConnectionScheduler.jobIdOf(AWS, NOW)).toBe(
-      CloudConnectionScheduler.jobIdOf(AWS, new Date(NOW.getTime() + 20 * 1000)),
+      CloudConnectionScheduler.jobIdOf(
+        AWS,
+        new Date(NOW.getTime() + 20 * 1000),
+      ),
     );
     expect(CloudConnectionScheduler.jobIdOf(AWS, NOW)).not.toBe(
-      CloudConnectionScheduler.jobIdOf(AWS, new Date(NOW.getTime() + 60 * 1000)),
+      CloudConnectionScheduler.jobIdOf(
+        AWS,
+        new Date(NOW.getTime() + 60 * 1000),
+      ),
     );
   });
 
   test("an unknown cloud waits 15 minutes; a read that runs long is stopped", () => {
-    expect(
-      CloudConnectionScheduler.intervalOf(connection(AWS, "oracle")),
-    ).toBe(15);
+    expect(CloudConnectionScheduler.intervalOf(connection(AWS, "oracle"))).toBe(
+      15,
+    );
     /*
      * Within AWS's default interval. A shorter interval waits on the
      * deduplication instead: one job per connection, waiting or running.

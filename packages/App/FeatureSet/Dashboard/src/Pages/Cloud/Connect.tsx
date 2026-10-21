@@ -79,9 +79,8 @@ const CloudConnectPage: FunctionComponent<PageComponentProps> = (
   const [formState, setFormState] = useState<
     { provider: CloudProvider; connection?: CloudConnection } | undefined
   >(() => {
-    const fromAddress: string | null = Navigation.getQueryStringByName(
-      CLOUD_QUERY_PARAM,
-    );
+    const fromAddress: string | null =
+      Navigation.getQueryStringByName(CLOUD_QUERY_PARAM);
 
     return isCloudConnectionProvider(fromAddress)
       ? { provider: fromAddress }
@@ -324,7 +323,9 @@ const CloudConnectPage: FunctionComponent<PageComponentProps> = (
               rel="noopener noreferrer"
               className="font-medium text-indigo-600 hover:text-indigo-700"
             >
-              {translator.translateText("Send cloud metrics from your own collector")}
+              {translator.translateText(
+                "Send cloud metrics from your own collector",
+              )}
             </a>
           </span>
         </div>

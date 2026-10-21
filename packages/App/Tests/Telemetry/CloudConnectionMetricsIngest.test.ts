@@ -181,10 +181,7 @@ function identifiers(resources: Array<CloudMonitoredResource>): Array<string> {
   ).sort();
 }
 
-function expectStored(
-  row: JSONObject,
-  expected: Record<string, string>,
-): void {
+function expectStored(row: JSONObject, expected: Record<string, string>): void {
   const stored: JSONObject = row["attributes"] as JSONObject;
 
   for (const [key, value] of Object.entries(expected)) {
@@ -200,7 +197,9 @@ describe("AWS: CloudWatch read through a connection", () => {
   const EC2: Array<OtlpAttribute> = [
     stringAttribute("Namespace", "AWS/EC2"),
     stringAttribute("MetricName", "CPUUtilization"),
-    kvlistAttribute("Dimensions", [stringAttribute("InstanceId", "i-0abc123def")]),
+    kvlistAttribute("Dimensions", [
+      stringAttribute("InstanceId", "i-0abc123def"),
+    ]),
   ];
   const RDS: Array<OtlpAttribute> = [
     stringAttribute("Namespace", "AWS/RDS"),
@@ -315,7 +314,10 @@ describe("Azure: Azure Monitor read through a connection", () => {
         resourceAttributes: [
           ...connection(CloudProvider.Azure),
           stringAttribute("azuremonitor.subscription_id", SUBSCRIPTION),
-          stringAttribute("azuremonitor.tenant_id", "b3c1b5fc-828c-45fa-a1e1-10d74f6d6e9c"),
+          stringAttribute(
+            "azuremonitor.tenant_id",
+            "b3c1b5fc-828c-45fa-a1e1-10d74f6d6e9c",
+          ),
         ],
         metrics: [
           {

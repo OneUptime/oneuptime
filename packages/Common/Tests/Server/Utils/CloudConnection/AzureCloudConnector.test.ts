@@ -33,7 +33,6 @@ import {
   createFakeProviderApi,
   everythingSent,
   json,
-  queryValues,
 } from "../LlmObservability/FakeProviderApi";
 
 /*
@@ -119,7 +118,12 @@ const SQL_DEFINITIONS: Array<JSONObject> = [
   definition("connection_failed", "Total", ["PT1M"], "Count"),
 ];
 
-function resource(id: string, type: string, name: string, location: string = "westeurope"): JSONObject {
+function resource(
+  id: string,
+  type: string,
+  name: string,
+  location: string = "westeurope",
+): JSONObject {
   return { id, name, type, location, kind: "" };
 }
 
@@ -149,13 +153,15 @@ function createFakeAzure(options: FakeAzureOptions = {}): FakeAzure {
         return json({
           value: (
             options.subscriptions || [{ id: SUB_A, name: "Production" }]
-          ).map((subscription: { id: string; name: string; state?: string }) => {
-            return {
-              subscriptionId: subscription.id,
-              displayName: subscription.name,
-              state: subscription.state || "Enabled",
-            };
-          }),
+          ).map(
+            (subscription: { id: string; name: string; state?: string }) => {
+              return {
+                subscriptionId: subscription.id,
+                displayName: subscription.name,
+                state: subscription.state || "Enabled",
+              };
+            },
+          ),
         });
       },
     },
@@ -201,7 +207,8 @@ function createFakeAzure(options: FakeAzureOptions = {}): FakeAzure {
           : "sql";
 
         return json({
-          value: options.definitions?.[resourceId] ||
+          value:
+            options.definitions?.[resourceId] ||
             (type === "vm" ? VM_DEFINITIONS : SQL_DEFINITIONS),
         });
       },
@@ -268,7 +275,12 @@ function createFakeAzure(options: FakeAzureOptions = {}): FakeAzure {
 const STANDARD_RESOURCES: Record<string, Array<JSONObject>> = {
   [SUB_A]: [
     resource(VM, "Microsoft.Compute/virtualMachines", "vm-web-1"),
-    resource(SQL, "Microsoft.Sql/servers/databases", "sql-prod/orders", "northeurope"),
+    resource(
+      SQL,
+      "Microsoft.Sql/servers/databases",
+      "sql-prod/orders",
+      "northeurope",
+    ),
     resource(VNET, "Microsoft.Network/virtualNetworks", "vnet-1"),
     // Not a type OneUptime lists: left out.
     resource(NIC, "Microsoft.Network/networkSecurityGroups", "nsg-1"),
@@ -299,8 +311,11 @@ function datapoints(result: CloudReadResult): Array<{
   stored: JSONObject;
   value: number;
 }> {
-  const found: Array<{ metricName: string; stored: JSONObject; value: number }> =
-    [];
+  const found: Array<{
+    metricName: string;
+    stored: JSONObject;
+    value: number;
+  }> = [];
 
   for (const payload of result.payloads) {
     for (const rm of payload["resourceMetrics"] as JSONArray) {
@@ -337,7 +352,9 @@ describe("validateSettings", () => {
     }).not.toThrow();
     // A tenant may be named by its domain.
     expect(() => {
-      connector.validateSettings(settings({ tenantId: "contoso.onmicrosoft.com" }));
+      connector.validateSettings(
+        settings({ tenantId: "contoso.onmicrosoft.com" }),
+      );
     }).not.toThrow();
   });
 
@@ -355,7 +372,9 @@ describe("validateSettings", () => {
       connector.validateSettings(settings({ cloud: "china" }));
     }).toThrow(BadDataException);
     expect(() => {
-      connector.validateSettings(settings({ subscriptionIds: `${SUB_A}, nope` }));
+      connector.validateSettings(
+        settings({ subscriptionIds: `${SUB_A}, nope` }),
+      );
     }).toThrow("Each subscription must be a GUID");
   });
 });
@@ -398,9 +417,9 @@ describe("testConnection", () => {
     );
     // Every later call carries the token, never the secret.
     for (const request of fake.requests.slice(1)) {
-      expect(
-        (request.headers as Record<string, string>)["Authorization"],
-      ).toBe("Bearer azure-access-token");
+      expect((request.headers as Record<string, string>)["Authorization"]).toBe(
+        "Bearer azure-access-token",
+      );
       expect(everythingSent(request)).not.toContain(SECRET);
     }
   });
@@ -443,7 +462,9 @@ describe("testConnection", () => {
     });
 
     expect(fake.requestsTo("/subscriptions")).toHaveLength(0);
-    expect(fake.requestsTo(`/subscriptions/${SUB_A}/resources`)).toHaveLength(1);
+    expect(fake.requestsTo(`/subscriptions/${SUB_A}/resources`)).toHaveLength(
+      1,
+    );
   });
 });
 
@@ -464,19 +485,30 @@ describe("read", () => {
       subscriptions: [
         { id: SUB_A, name: "Production" },
         { id: SUB_B, name: "Staging" },
-        { id: "99999999-9999-4999-8999-999999999999", name: "Old", state: "Disabled" },
+        {
+          id: "99999999-9999-4999-8999-999999999999",
+          name: "Old",
+          state: "Disabled",
+        },
       ],
       resources: { ...STANDARD_RESOURCES, [SUB_B]: many },
       pageSize: 2,
     });
 
-    const result: CloudReadResult = await connector.read(settings(), readOptions(fake));
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
 
     expect(result.accounts).toEqual([SUB_A, SUB_B]);
-    expect(result.completelyListedAccounts.sort()).toEqual([SUB_A, SUB_B].sort());
+    expect(result.completelyListedAccounts.sort()).toEqual(
+      [SUB_A, SUB_B].sort(),
+    );
     expect(result.resources).toHaveLength(3 + 5);
     // Three pages of Staging's five apps.
-    expect(fake.requestsTo(`/subscriptions/${SUB_B}/resources`)).toHaveLength(3);
+    expect(fake.requestsTo(`/subscriptions/${SUB_B}/resources`)).toHaveLength(
+      3,
+    );
     expect(result.nextState.inventoryAt).toBe(NOW.toISOString());
     expect(result.nextState.accounts).toEqual([SUB_A, SUB_B]);
   });
@@ -484,7 +516,10 @@ describe("read", () => {
   test("each resource is the one the ingest will file its metrics under", async () => {
     const fake: FakeAzure = createFakeAzure({ resources: STANDARD_RESOURCES });
 
-    const result: CloudReadResult = await connector.read(settings(), readOptions(fake));
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
     const vm: CloudMonitoredResource = result.resources.find(
       (entry: CloudDiscoveredResource): boolean => {
         return entry.resource.providerResourceId === VM;
@@ -524,7 +559,10 @@ describe("read", () => {
   test("reads each resource's key metrics it publishes, with their own aggregation, in one call", async () => {
     const fake: FakeAzure = createFakeAzure({ resources: STANDARD_RESOURCES });
 
-    const result: CloudReadResult = await connector.read(settings(), readOptions(fake));
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
     const vmCall: URL = fake.metricCalls.find((url: URL): boolean => {
       return url.pathname.includes("virtualMachines");
     })!;
@@ -569,13 +607,20 @@ describe("read", () => {
         return point.metricName === "azure_percentage_cpu_average";
       },
     );
-    expect(cpu.map((point: { value: number }) => point.value)).toEqual([10, 11]);
+    expect(
+      cpu.map((point: { value: number }) => {
+        return point.value;
+      }),
+    ).toEqual([10, 11]);
   });
 
   test("the receiver's datapoint attributes are on every point", async () => {
     const fake: FakeAzure = createFakeAzure({ resources: STANDARD_RESOURCES });
 
-    const result: CloudReadResult = await connector.read(settings(), readOptions(fake));
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
     const sql: { stored: JSONObject } = datapoints(result).find(
       (point: { metricName: string }): boolean => {
         return point.metricName === "azure_cpu_percent_average";
@@ -601,7 +646,10 @@ describe("read", () => {
   test("metric definitions are read once per type and kept a day", async () => {
     const fake: FakeAzure = createFakeAzure({ resources: STANDARD_RESOURCES });
 
-    const first: CloudReadResult = await connector.read(settings(), readOptions(fake));
+    const first: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
     const definitionCalls: number = fake.requests.filter(
       (request: DataSourceHttpRequest): boolean => {
         return request.url.includes("metricDefinitions");
@@ -609,7 +657,9 @@ describe("read", () => {
     ).length;
 
     expect(definitionCalls).toBe(2);
-    expect(Object.keys(first.nextState.azureMetricDefinitions || {}).sort()).toEqual([
+    expect(
+      Object.keys(first.nextState.azureMetricDefinitions || {}).sort(),
+    ).toEqual([
       "microsoft.compute/virtualmachines",
       "microsoft.sql/servers/databases",
     ]);
@@ -617,7 +667,9 @@ describe("read", () => {
     await connector.read(
       settings(),
       readOptions(fake, first.nextState, {
-        now: () => new Date(NOW.getTime() + 5 * 60000),
+        now: () => {
+          return new Date(NOW.getTime() + 5 * 60000);
+        },
       }),
     );
 
@@ -633,7 +685,9 @@ describe("read", () => {
     const state: CloudConnectionPullState = {
       inventoryAt: new Date(NOW.getTime() - 10 * 60000).toISOString(),
       accounts: [SUB_A],
-      cursors: { "60": new Date(WINDOW_END.getTime() - 5 * 60000).toISOString() },
+      cursors: {
+        "60": new Date(WINDOW_END.getTime() - 5 * 60000).toISOString(),
+      },
     };
 
     const result: CloudReadResult = await connector.read(
@@ -652,7 +706,9 @@ describe("read", () => {
       }),
     );
 
-    expect(fake.requestsTo(`/subscriptions/${SUB_A}/resources`)).toHaveLength(0);
+    expect(fake.requestsTo(`/subscriptions/${SUB_A}/resources`)).toHaveLength(
+      0,
+    );
     // Nothing was listed in full: nothing is gone.
     expect(result.completelyListedAccounts).toEqual([]);
     expect(result.resources).toHaveLength(1);
@@ -668,7 +724,10 @@ describe("read", () => {
       metricsError: { [SQL]: { status: 400, body: '{"code":"BadRequest"}' } },
     });
 
-    const result: CloudReadResult = await connector.read(settings(), readOptions(fake));
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
 
     expect(result.warnings).toContain(
       "Could not read the metrics of 1 resources this time.",
@@ -688,10 +747,15 @@ describe("read", () => {
         { id: SUB_B, name: "Staging" },
       ],
       resources: STANDARD_RESOURCES,
-      resourcesError: { [SUB_B]: { status: 403, body: '{"code":"AuthorizationFailed"}' } },
+      resourcesError: {
+        [SUB_B]: { status: 403, body: '{"code":"AuthorizationFailed"}' },
+      },
     });
 
-    const result: CloudReadResult = await connector.read(settings(), readOptions(fake));
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
 
     expect(result.completelyListedAccounts).toEqual([SUB_A]);
     expect(result.warnings.join(" ")).toContain(SUB_B);
@@ -700,7 +764,9 @@ describe("read", () => {
   test("no subscription to read fails the read as a permission", async () => {
     const fake: FakeAzure = createFakeAzure({ subscriptions: [] });
 
-    await expect(connector.read(settings(), readOptions(fake))).rejects.toMatchObject({
+    await expect(
+      connector.read(settings(), readOptions(fake)),
+    ).rejects.toMatchObject({
       kind: CloudConnectionFailureKind.Permission,
     });
   });
@@ -745,31 +811,44 @@ describe("choosing metrics", () => {
 
   test("key metrics the definitions list, in the catalog's order, with their primary aggregation", () => {
     expect(
-      selectAzureMetrics(getAzureKeyMetrics("Microsoft.Sql/servers/databases")!, [
-        {
-          name: "storage_percent",
-          unit: "Percent",
-          primaryAggregationType: "Maximum",
-          timeGrains: ["PT1M"],
-        },
-        // Matched without regard to case, kept as the definition spells it.
-        {
-          name: "CPU_PERCENT",
-          unit: "Percent",
-          primaryAggregationType: "Average",
-          timeGrains: ["PT5M", "PT1M"],
-        },
-        // No grain from a minute up: not read.
-        {
-          name: "deadlock",
-          unit: "Count",
-          primaryAggregationType: "Total",
-          timeGrains: ["PT30S"],
-        },
-      ]),
+      selectAzureMetrics(
+        getAzureKeyMetrics("Microsoft.Sql/servers/databases")!,
+        [
+          {
+            name: "storage_percent",
+            unit: "Percent",
+            primaryAggregationType: "Maximum",
+            timeGrains: ["PT1M"],
+          },
+          // Matched without regard to case, kept as the definition spells it.
+          {
+            name: "CPU_PERCENT",
+            unit: "Percent",
+            primaryAggregationType: "Average",
+            timeGrains: ["PT5M", "PT1M"],
+          },
+          // No grain from a minute up: not read.
+          {
+            name: "deadlock",
+            unit: "Count",
+            primaryAggregationType: "Total",
+            timeGrains: ["PT30S"],
+          },
+        ],
+      ),
     ).toEqual([
-      { name: "CPU_PERCENT", aggregation: "Average", grain: "PT1M", unit: "Percent" },
-      { name: "storage_percent", aggregation: "Maximum", grain: "PT1M", unit: "Percent" },
+      {
+        name: "CPU_PERCENT",
+        aggregation: "Average",
+        grain: "PT1M",
+        unit: "Percent",
+      },
+      {
+        name: "storage_percent",
+        aggregation: "Maximum",
+        grain: "PT1M",
+        unit: "Percent",
+      },
     ]);
   });
 

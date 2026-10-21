@@ -53,10 +53,10 @@ export async function runCloudConnectionRead(job?: QueueJob): Promise<void> {
     throw new BadDataException("A valid cloud connection ID is required.");
   }
 
-  const outcome: CloudConnectionPullOutcome = await CloudConnectionPullRunner.run(
-    new ObjectID(connectionId),
-    { importMetrics: importCloudMetrics },
-  );
+  const outcome: CloudConnectionPullOutcome =
+    await CloudConnectionPullRunner.run(new ObjectID(connectionId), {
+      importMetrics: importCloudMetrics,
+    });
 
   // The outcome is on the connection; the log line names no cloud data.
   logger.debug(`CloudConnection:Read ${connectionId}: ${outcome.status}`);

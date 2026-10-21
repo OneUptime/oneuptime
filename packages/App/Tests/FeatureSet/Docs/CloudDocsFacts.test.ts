@@ -414,7 +414,10 @@ describe("the menu paths", () => {
 
   it("reads the menus the way they are built (harness guard)", () => {
     expect(menuSections(CLOUD_SIDE_MENU)).toEqual([
-      { title: "Cloud", items: ["Connect", "All Environments", "All Resources"] },
+      {
+        title: "Cloud",
+        items: ["Connect", "All Environments", "All Resources"],
+      },
       { title: "Settings", items: ["Owner Rules", "Label Rules"] },
       { title: "Advanced", items: ["Archived"] },
     ]);
@@ -519,7 +522,7 @@ describe("the environments list and its create form", () => {
       '{firstRecordWatch.count === 0 && (\n        <div className="space-y-4">\n          <CloudConnectCallout />',
     );
     expect(readSource(RESOURCES_PAGE)).toContain(
-      '            defaultCollapsed={true}\n          >\n            <CloudMonitoringDocumentationCard',
+      "            defaultCollapsed={true}\n          >\n            <CloudMonitoringDocumentationCard",
     );
     expect(pageProse(HUB)).toContain(
       "under **Cloud → All Environments** until your first environment arrives",

@@ -326,7 +326,9 @@ describe("testing and connecting", () => {
     });
 
     await act(async () => {
-      fireEvent.click(within(modal()).getByTestId("modal-footer-submit-button"));
+      fireEvent.click(
+        within(modal()).getByTestId("modal-footer-submit-button"),
+      );
     });
 
     await waitFor(() => {
@@ -377,12 +379,16 @@ describe("editing a connection", () => {
 
     await next();
 
-    expect(within(modal()).getByPlaceholderText("Unchanged")).toBeInTheDocument();
+    expect(
+      within(modal()).getByPlaceholderText("Unchanged"),
+    ).toBeInTheDocument();
 
     await next();
 
     await act(async () => {
-      fireEvent.click(within(modal()).getByTestId("modal-footer-submit-button"));
+      fireEvent.click(
+        within(modal()).getByTestId("modal-footer-submit-button"),
+      );
     });
 
     await waitFor(() => {

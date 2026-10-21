@@ -5,7 +5,11 @@ import {
 import logger from "../../Logger";
 import { CloudConnectorTransport } from "../CloudConnectorTypes";
 import { AwsCredentials } from "./AwsApi";
-import { AwsCallerIdentity, STS_HOME_REGIONS, getCallerIdentity } from "./AwsSts";
+import {
+  AwsCallerIdentity,
+  STS_HOME_REGIONS,
+  getCallerIdentity,
+} from "./AwsSts";
 
 /*
  * THIS ONEUPTIME'S OWN AWS IDENTITY: the one that assumes the read-only

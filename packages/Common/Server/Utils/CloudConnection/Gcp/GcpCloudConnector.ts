@@ -351,7 +351,11 @@ export default class GcpCloudConnector implements CloudConnector {
     });
     const state: CloudConnectionPullState = { ...options.state };
     const warnings: Array<string> = [];
-    const monitoring: GcpMonitoring = this.monitoring(settings, options, budget);
+    const monitoring: GcpMonitoring = this.monitoring(
+      settings,
+      options,
+      budget,
+    );
     const projects: Array<string> = this.getProjects(settings);
     const cursors: Record<string, string> = { ...(state.cursors || {}) };
     const window: MetricWindow | null = getMetricWindow({

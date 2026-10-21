@@ -85,7 +85,10 @@ describe("the catalog", () => {
         });
       }),
     ).toEqual([
-      [CloudConnectionAuthMethod.AwsRole, CloudConnectionAuthMethod.AwsAccessKey],
+      [
+        CloudConnectionAuthMethod.AwsRole,
+        CloudConnectionAuthMethod.AwsAccessKey,
+      ],
       [CloudConnectionAuthMethod.AzureClientSecret],
       [CloudConnectionAuthMethod.GcpServiceAccountKey],
     ]);
@@ -144,9 +147,9 @@ describe("the catalog", () => {
     expect(definitionOf(CloudProvider.AWS).defaultReadIntervalInMinutes).toBe(
       10,
     );
-    expect(
-      definitionOf(CloudProvider.Azure).defaultReadIntervalInMinutes,
-    ).toBe(5);
+    expect(definitionOf(CloudProvider.Azure).defaultReadIntervalInMinutes).toBe(
+      5,
+    );
     expect(definitionOf(CloudProvider.GCP).defaultReadIntervalInMinutes).toBe(
       5,
     );
@@ -290,7 +293,9 @@ describe("the helpers", () => {
 
   test("a list splits on commas and whitespace, without blanks or repeats", () => {
     expect(
-      splitCloudConnectionList(" us-east-1, eu-west-1 ,us-east-1\nap-south-1\t sa-east-1,, "),
+      splitCloudConnectionList(
+        " us-east-1, eu-west-1 ,us-east-1\nap-south-1\t sa-east-1,, ",
+      ),
     ).toEqual(["us-east-1", "eu-west-1", "ap-south-1", "sa-east-1"]);
     expect(splitCloudConnectionList("")).toEqual([]);
     expect(splitCloudConnectionList(undefined)).toEqual([]);

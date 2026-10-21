@@ -55,7 +55,9 @@ describe("key metrics per read", () => {
     expect(
       countKeyMetrics({
         provider: CloudProvider.Azure,
-        resourceTypes: [{ type: "Microsoft.Network/virtualNetworks", count: 9 }],
+        resourceTypes: [
+          { type: "Microsoft.Network/virtualNetworks", count: 9 },
+        ],
       }),
     ).toBe(0);
     expect(
@@ -137,7 +139,9 @@ describe("the monthly estimate", () => {
         accounts: 2,
       });
 
-    expect(200 * 8640).toBeLessThan(2 * AZURE_FREE_METRIC_READS_PER_SUBSCRIPTION);
+    expect(200 * 8640).toBeLessThan(
+      2 * AZURE_FREE_METRIC_READS_PER_SUBSCRIPTION,
+    );
     expect(twoSubscriptions.monthlyCostUsd).toBe(0);
   });
 

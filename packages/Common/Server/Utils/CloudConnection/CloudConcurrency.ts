@@ -5,9 +5,7 @@
  * account has not opted in to, a subscription the app cannot read.
  */
 
-export type Settled<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: unknown };
+export type Settled<T> = { ok: true; value: T } | { ok: false; error: unknown };
 
 export async function mapWithConcurrency<TItem, TResult>(
   items: Array<TItem>,

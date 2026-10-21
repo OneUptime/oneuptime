@@ -101,7 +101,8 @@ export default class CloudConnectionAPI extends BaseAPI<
               provider: String(body["provider"] || ""),
               status: "fail",
               message: error.message,
-              failureKind: "settings" as CloudConnectionTestResult["failureKind"],
+              failureKind:
+                "settings" as CloudConnectionTestResult["failureKind"],
               durationMs: 0,
             };
 

@@ -35,7 +35,11 @@ export function cloudConnectionDocsUrl(docsPath: string): URL {
   return URL.fromString(`${DOCS_URL.toString()}${relativePath}`);
 }
 
-const TEST_STATUSES: Array<CloudConnectionTestStatus> = ["pass", "warn", "fail"];
+const TEST_STATUSES: Array<CloudConnectionTestStatus> = [
+  "pass",
+  "warn",
+  "fail",
+];
 
 function readCounts<T>(
   value: JSONValue | undefined,

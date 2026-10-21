@@ -208,9 +208,9 @@ describe("Azure", () => {
   });
 
   test("a brace inside the password does not end the object early", () => {
-    expect(
-      findJsonObjects(`x {"password": "a}b{c", "tenant": "t"} y`),
-    ).toEqual([{ password: "a}b{c", tenant: "t" }]);
+    expect(findJsonObjects(`x {"password": "a}b{c", "tenant": "t"} y`)).toEqual(
+      [{ password: "a}b{c", tenant: "t" }],
+    );
   });
 
   test("an escaped quote inside a value does not end the string", () => {

@@ -258,9 +258,7 @@ describe("the page", () => {
       "Chart them, and alert on them with a metric monitor.",
     );
     expect(listIsShown()).toBe(false);
-    expect(
-      screen.queryByTestId("connection-form"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("connection-form")).not.toBeInTheDocument();
   });
 
   test("those who run their own collector are pointed to that guide", async () => {
@@ -273,9 +271,9 @@ describe("the page", () => {
     expect(note).toHaveTextContent(
       "Already run an OpenTelemetry Collector, or need CloudWatch Metric Streams?",
     );
-    expect(
-      note.querySelector("a")!.getAttribute("href"),
-    ).toMatch(/\/telemetry\/cloud-resources$/);
+    expect(note.querySelector("a")!.getAttribute("href")).toMatch(
+      /\/telemetry\/cloud-resources$/,
+    );
   });
 
   test("the tiles count the project's connections, and the list shows", async () => {

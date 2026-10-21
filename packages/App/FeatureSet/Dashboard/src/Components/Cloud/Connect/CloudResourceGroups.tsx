@@ -29,11 +29,12 @@ const CloudResourceGroups: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const types: Array<{ label: string; count: number }> =
-    getResourceTypeEntries({
+  const types: Array<{ label: string; count: number }> = getResourceTypeEntries(
+    {
       provider: props.provider,
       resourceTypes: props.resourceTypes,
-    });
+    },
+  );
   const regions: Array<CloudConnectionRegionCount> = props.regions.filter(
     (entry: CloudConnectionRegionCount): boolean => {
       return Boolean(entry.region);
@@ -118,7 +119,11 @@ const CloudResourceGroups: FunctionComponent<ComponentProps> = (
           >
             {shownRegions.map(
               (entry: CloudConnectionRegionCount): ReactElement => {
-                return chip(entry.region, entry.count, `region-${entry.region}`);
+                return chip(
+                  entry.region,
+                  entry.count,
+                  `region-${entry.region}`,
+                );
               },
             )}
           </ul>
@@ -128,7 +133,10 @@ const CloudResourceGroups: FunctionComponent<ComponentProps> = (
       )}
 
       {!props.compact && props.accounts && props.accounts.length > 0 ? (
-        <div className="text-xs text-gray-500" data-testid="cloud-resource-groups-accounts">
+        <div
+          className="text-xs text-gray-500"
+          data-testid="cloud-resource-groups-accounts"
+        >
           {translator.translateTemplate("Reads {{accounts}}", {
             accounts: props.accounts.join(", "),
           })}

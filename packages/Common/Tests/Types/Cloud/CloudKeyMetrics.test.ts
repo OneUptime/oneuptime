@@ -114,9 +114,9 @@ describe("AWS", () => {
   test("a resource type is read from its rule's namespace", () => {
     expect(getAwsNamespaceOfType("AWS::EC2::Instance")).toBe("AWS/EC2");
     expect(getAwsNamespaceOfType("aws::rds::dbinstance")).toBe("AWS/RDS");
-    expect(getAwsNamespaceOfType("AWS::ElasticLoadBalancingV2::LoadBalancer")).toBe(
-      "AWS/ApplicationELB",
-    );
+    expect(
+      getAwsNamespaceOfType("AWS::ElasticLoadBalancingV2::LoadBalancer"),
+    ).toBe("AWS/ApplicationELB");
     expect(getAwsNamespaceOfType("AWS::Nope::Thing")).toBeUndefined();
   });
 });
@@ -214,13 +214,16 @@ describe("Google Cloud", () => {
     expect(
       getGcpKeyMetricTypes().find((metric: GcpKeyMetric) => {
         return (
-          metric.metricType === "compute.googleapis.com/instance/cpu/utilization"
+          metric.metricType ===
+          "compute.googleapis.com/instance/cpu/utilization"
         );
       })?.resourceType,
     ).toBe("gce_instance");
-    expect(GCP_KEY_METRICS.map((entry: GcpTypeKeyMetrics) => {
-      return entry.resourceType;
-    })).toContain("cloud_run_revision");
+    expect(
+      GCP_KEY_METRICS.map((entry: GcpTypeKeyMetrics) => {
+        return entry.resourceType;
+      }),
+    ).toContain("cloud_run_revision");
   });
 });
 
@@ -229,7 +232,10 @@ describe("key metric counts", () => {
     expect(getKeyMetricCount(CloudProvider.AWS, "AWS/EC2")).toBe(4);
     expect(getKeyMetricCount(CloudProvider.AWS, "AWS::EC2::Instance")).toBe(4);
     expect(
-      getKeyMetricCount(CloudProvider.Azure, "Microsoft.Compute/virtualMachines"),
+      getKeyMetricCount(
+        CloudProvider.Azure,
+        "Microsoft.Compute/virtualMachines",
+      ),
     ).toBe(7);
     expect(getKeyMetricCount(CloudProvider.GCP, "gce_instance")).toBe(3);
     expect(getKeyMetricCount(CloudProvider.GCP, "nope")).toBe(0);

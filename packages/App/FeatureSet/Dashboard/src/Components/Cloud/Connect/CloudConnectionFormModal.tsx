@@ -558,8 +558,9 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
         try {
           const submission: CloudConnectionFormSubmission =
             readCloudConnectionForm(definition, values, defaultMethod);
-          const name: string =
-            readFormText(values["name"] as JSONValue | undefined).trim();
+          const name: string = readFormText(
+            values["name"] as JSONValue | undefined,
+          ).trim();
 
           if (isEditing && props.connection?.id) {
             await ModelAPI.updateById<CloudConnection>({

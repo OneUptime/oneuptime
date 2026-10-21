@@ -252,7 +252,9 @@ export default class AzureArm {
         return {
           name: readText(readObject(definition["name"])["value"]),
           unit: readText(definition["unit"]),
-          primaryAggregationType: readText(definition["primaryAggregationType"]),
+          primaryAggregationType: readText(
+            definition["primaryAggregationType"],
+          ),
           timeGrains: readArray(definition["metricAvailabilities"])
             .map((availability: unknown): string => {
               return readText(readObject(availability)["timeGrain"]);
@@ -352,7 +354,11 @@ export default class AzureArm {
       }
 
       if (name && points.length > 0) {
-        series.push({ metricName: name, unit: readText(metric["unit"]), points });
+        series.push({
+          metricName: name,
+          unit: readText(metric["unit"]),
+          points,
+        });
       }
     }
 

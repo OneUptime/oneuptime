@@ -51,7 +51,8 @@ const CloudConnectionTiles: FunctionComponent<ComponentProps> = (
               className="flex h-full w-full items-start gap-3 rounded-lg border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-indigo-300 hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <CloudConnectionLogo provider={definition.provider} size="lg" />
-              <div className="min-w-0 flex-1">
+              {/* A column, so each tile's Connect sits on the same line. */}
+              <div className="flex h-full min-w-0 flex-1 flex-col">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span className="text-sm font-semibold text-gray-900">
                     {translator.translateText(definition.title)}
@@ -76,7 +77,7 @@ const CloudConnectionTiles: FunctionComponent<ComponentProps> = (
                 <div className="mt-1 text-sm text-gray-600">
                   {translator.translateText(definition.description)}
                 </div>
-                <div className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-indigo-600">
+                <div className="mt-auto inline-flex items-center gap-1 pt-2 text-sm font-medium text-indigo-600">
                   {count > 0
                     ? translator.translateText("Connect another")
                     : translator.translateText("Connect")}

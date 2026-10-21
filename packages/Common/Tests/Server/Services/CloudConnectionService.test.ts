@@ -220,7 +220,11 @@ describe("validateSettings", () => {
   test.each([
     [{ provider: "oracle", config: {}, secrets: {} }, "Cloud must be"],
     [
-      { provider: CloudProvider.AWS, config: { accessKeyId: ACCESS_KEY_ID }, secrets: {} },
+      {
+        provider: CloudProvider.AWS,
+        config: { accessKeyId: ACCESS_KEY_ID },
+        secrets: {},
+      },
       "Secret access key is required",
     ],
     [
@@ -250,7 +254,10 @@ describe("validateSettings", () => {
     [
       {
         provider: CloudProvider.AWS,
-        config: { authMethod: CloudConnectionAuthMethod.AwsRole, roleArn: ROLE_ARN },
+        config: {
+          authMethod: CloudConnectionAuthMethod.AwsRole,
+          roleArn: ROLE_ARN,
+        },
         secrets: {},
       },
       "no AWS identity",
@@ -377,12 +384,16 @@ describe("onBeforeCreate", () => {
         made.id = SERVICE;
         return made;
       });
-    const update: jest.SpiedFunction<typeof CloudConnectionService.updateOneById> =
-      jest.spyOn(CloudConnectionService, "updateOneById").mockResolvedValue();
+    const update: jest.SpiedFunction<
+      typeof CloudConnectionService.updateOneById
+    > = jest.spyOn(CloudConnectionService, "updateOneById").mockResolvedValue();
 
     const created: CloudConnection = stored({ name: "Prod AWS" });
     await service.onCreateSuccess(
-      { createBy: createBy({}), carryForward: null } as OnCreate<CloudConnection>,
+      {
+        createBy: createBy({}),
+        carryForward: null,
+      } as OnCreate<CloudConnection>,
       created,
     );
 
@@ -397,11 +408,16 @@ describe("onBeforeCreate", () => {
   });
 
   test("a telemetry service that cannot be made yet does not fail the create", async () => {
-    jest.spyOn(ServiceService, "findOneBy").mockRejectedValue(new Error("down"));
+    jest
+      .spyOn(ServiceService, "findOneBy")
+      .mockRejectedValue(new Error("down"));
 
     await expect(
       service.onCreateSuccess(
-        { createBy: createBy({}), carryForward: null } as OnCreate<CloudConnection>,
+        {
+          createBy: createBy({}),
+          carryForward: null,
+        } as OnCreate<CloudConnection>,
         stored(),
       ),
     ).resolves.toBeDefined();
@@ -409,7 +425,9 @@ describe("onBeforeCreate", () => {
 });
 
 describe("onBeforeUpdate", () => {
-  let findOneById: jest.SpiedFunction<typeof CloudConnectionService.findOneById>;
+  let findOneById: jest.SpiedFunction<
+    typeof CloudConnectionService.findOneById
+  >;
 
   beforeEach(() => {
     findOneById = jest
@@ -478,7 +496,10 @@ describe("onBeforeUpdate", () => {
 
     const result: OnUpdate<CloudConnection> = await service.onBeforeUpdate(
       updateBy({
-        config: { authMethod: CloudConnectionAuthMethod.AwsRole, roleArn: ROLE_ARN },
+        config: {
+          authMethod: CloudConnectionAuthMethod.AwsRole,
+          roleArn: ROLE_ARN,
+        },
       }),
     );
 
@@ -546,14 +567,16 @@ describe("onUpdatePermitted", () => {
 
 describe("getConnectorSettings", () => {
   test("decrypted settings, with defaults and the method", async () => {
-    jest.spyOn(CloudConnectionService, "findOneById").mockResolvedValue(
-      stored({ config: { accessKeyId: ACCESS_KEY_ID } }),
-    );
+    jest
+      .spyOn(CloudConnectionService, "findOneById")
+      .mockResolvedValue(stored({ config: { accessKeyId: ACCESS_KEY_ID } }));
 
     const connection: CloudConnection = new CloudConnection();
     connection.id = CONNECTION;
 
-    expect(await CloudConnectionService.getConnectorSettings(connection)).toEqual({
+    expect(
+      await CloudConnectionService.getConnectorSettings(connection),
+    ).toEqual({
       provider: CloudProvider.AWS,
       projectId: PROJECT.toString(),
       config: {
@@ -608,7 +631,11 @@ describe("the model", () => {
       "lastError",
       "pullState",
     ]) {
-      expect({ column, create: access[column]?.create, update: access[column]?.update }).toEqual({
+      expect({
+        column,
+        create: access[column]?.create,
+        update: access[column]?.update,
+      }).toEqual({
         column,
         create: [],
         update: [],

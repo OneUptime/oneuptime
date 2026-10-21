@@ -455,9 +455,7 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                     to={props.resourcesRoute}
                     className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
                   >
-                    <span>
-                      {translator.translateText("See all resources")}
-                    </span>
+                    <span>{translator.translateText("See all resources")}</span>
                   </AppLink>
                 </div>
               );

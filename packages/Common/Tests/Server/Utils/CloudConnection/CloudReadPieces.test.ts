@@ -63,7 +63,9 @@ describe("the export", () => {
         resourceMetrics: [
           {
             resource: {
-              attributes: [{ key: "service.name", value: { stringValue: "svc" } }],
+              attributes: [
+                { key: "service.name", value: { stringValue: "svc" } },
+              ],
             },
             scopeMetrics: [
               {
@@ -78,13 +80,17 @@ describe("the export", () => {
                           startTimeUnixNano: "1000000000",
                           timeUnixNano: "1000000000",
                           asDouble: 0,
-                          attributes: [{ key: "a", value: { stringValue: "b" } }],
+                          attributes: [
+                            { key: "a", value: { stringValue: "b" } },
+                          ],
                         },
                         {
                           startTimeUnixNano: "1001000000",
                           timeUnixNano: "1001000000",
                           asDouble: 1,
-                          attributes: [{ key: "a", value: { stringValue: "b" } }],
+                          attributes: [
+                            { key: "a", value: { stringValue: "b" } },
+                          ],
                         },
                       ],
                     },
@@ -123,9 +129,11 @@ describe("the export", () => {
 
     const metrics: JSONArray = (
       (
-        ((buildMetricsPayloads([mixed])[0]!["resourceMetrics"] as JSONArray)[0] as JSONObject)[
-          "scopeMetrics"
-        ] as JSONArray
+        (
+          (
+            buildMetricsPayloads([mixed])[0]!["resourceMetrics"] as JSONArray
+          )[0] as JSONObject
+        )["scopeMetrics"] as JSONArray
       )[0] as JSONObject
     )["metrics"] as JSONArray;
 
@@ -197,7 +205,10 @@ describe("the window a read asks for", () => {
 
   test("a first read: the last hour, ending a delay back on a whole period", () => {
     const window: MetricWindow | null = getMetricWindow({
-      policy: getMetricWindowPolicy({ periodSeconds: 300, delayMs: AWS_METRIC_DELAY_MS }),
+      policy: getMetricWindowPolicy({
+        periodSeconds: 300,
+        delayMs: AWS_METRIC_DELAY_MS,
+      }),
       now: NOW,
     });
 
@@ -225,7 +236,10 @@ describe("the window a read asks for", () => {
   test("nothing new since the last read is no window", () => {
     expect(
       getMetricWindow({
-        policy: getMetricWindowPolicy({ periodSeconds: 60, delayMs: 4 * 60000 }),
+        policy: getMetricWindowPolicy({
+          periodSeconds: 60,
+          delayMs: 4 * 60000,
+        }),
         cursor: "2026-10-21T12:03:00.000Z",
         now: NOW,
       }),
@@ -245,7 +259,10 @@ describe("the window a read asks for", () => {
   test("a cursor that is not a time is read as no cursor", () => {
     expect(
       getMetricWindow({
-        policy: getMetricWindowPolicy({ periodSeconds: 60, delayMs: 4 * 60000 }),
+        policy: getMetricWindowPolicy({
+          periodSeconds: 60,
+          delayMs: 4 * 60000,
+        }),
         cursor: "yesterday",
         now: NOW,
       })!.start,
@@ -253,10 +270,11 @@ describe("the window a read asks for", () => {
   });
 
   test("a day: a day and a half back, whole days, three at most", () => {
-    const policy: ReturnType<typeof getMetricWindowPolicy> = getMetricWindowPolicy({
-      periodSeconds: 86400,
-      delayMs: AWS_METRIC_DELAY_MS,
-    });
+    const policy: ReturnType<typeof getMetricWindowPolicy> =
+      getMetricWindowPolicy({
+        periodSeconds: 86400,
+        delayMs: AWS_METRIC_DELAY_MS,
+      });
 
     expect(getMetricWindow({ policy, now: NOW })).toEqual({
       periodSeconds: 86400,
@@ -264,15 +282,17 @@ describe("the window a read asks for", () => {
       end: new Date("2026-10-20T00:00:00Z"),
     });
     expect(
-      getMetricWindow({ policy, cursor: "2026-10-01T00:00:00Z", now: NOW })!.start,
+      getMetricWindow({ policy, cursor: "2026-10-01T00:00:00Z", now: NOW })!
+        .start,
     ).toEqual(new Date("2026-10-17T00:00:00Z"));
   });
 
   test("an hour: an hour back at least, three hours first", () => {
-    const policy: ReturnType<typeof getMetricWindowPolicy> = getMetricWindowPolicy({
-      periodSeconds: 3600,
-      delayMs: 4 * 60000,
-    });
+    const policy: ReturnType<typeof getMetricWindowPolicy> =
+      getMetricWindowPolicy({
+        periodSeconds: 3600,
+        delayMs: 4 * 60000,
+      });
 
     expect(policy.delayMs).toBe(3600000);
     expect(getMetricWindow({ policy, now: NOW })).toEqual({
@@ -341,6 +361,10 @@ describe("running side by side", () => {
   });
 
   test("nothing to run is nothing", async () => {
-    expect(await mapWithConcurrency([], 4, async () => 1)).toEqual([]);
+    expect(
+      await mapWithConcurrency([], 4, async () => {
+        return 1;
+      }),
+    ).toEqual([]);
   });
 });
