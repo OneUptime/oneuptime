@@ -69,7 +69,7 @@ Abra um cartão para ver dois blocos de detalhes:
 
 | Bloco        | O que mostra                                                                                                                                                                                                    |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Received** | As configurações que o bloco recebeu, pelo nome e na ordem da lista de configurações dele, depois de todas as variáveis serem preenchidas. Uma configuração que faz referência a outro passo ou a uma variável mostra a referência ao lado do valor em que ela se transformou, e **Did not resolve** quando ela não virou nada. |
+| **Recebido** | As configurações que o bloco recebeu, pelo nome e na ordem da lista de configurações dele, depois de todas as variáveis serem preenchidas. Uma configuração que faz referência a outro passo ou a uma variável mostra a referência ao lado do valor em que ela se transformou, e **Did not resolve** quando ela não virou nada. |
 | **Returned** | O que ele produziu, com o ID de cada valor (a última parte de uma referência `returnValues`). Listas e objetos aparecem com recuo.                                                                             |
 
 Os passos com falha, os passos com aviso e o único passo de uma execução já começam abertos. O contador da aba **Etapas** fica vermelho quando algo falhou e âmbar quando um passo tem um aviso.
@@ -123,7 +123,7 @@ Um bloco que não roda costuma ser um problema de ligação. Abra o **Construtor
 :::
 
 :::details Um valor chegou vazio, ou como texto {{…}}
-Abra a execução e olhe o passo. Uma referência que não resolveu aparece no próprio passo como aviso, e a configuração dela no bloco **Received** fica marcada como **Did not resolve**.
+Abra a execução e olhe o passo. Uma referência que não resolveu aparece no próprio passo como aviso, e a configuração dela no bloco **Recebido** fica marcada como **Did not resolve**.
 
 - Se você vê o texto literal `{{local.components.…}}`, a referência não resolveu. Normalmente é um erro de digitação no ID do componente ou no ID do valor de retorno — lembre-se de que é o **Identifier** do bloco, não o nome exibido nele. Confira também a grafia do próprio `local.components`: `{{local.componets.api-get-1.returnValues.response-body}}` é enviado como texto literal e a execução ainda informa **Executed**. Se a execução foi um teste com **Run just this step**, o bloco anterior nem rodou — rode o workflow inteiro.
 - Se você vê **Empty text**, o bloco anterior rodou mas não produziu esse campo.
@@ -132,7 +132,7 @@ O mesmo aviso aparece na aba **Full Log**, em uma linha que começa com `Warning
 :::
 
 :::details Funciona quando rodo manualmente, mas não pelo gatilho
-Abra o **Construtor**, clique em **Executar fluxo de trabalho** e preencha os campos do gatilho com valores parecidos com o que o gatilho real envia. Depois compare os valores **Received** dessa execução com os da execução real, lado a lado. A diferença costuma estar no nome ou no tipo de um único campo.
+Abra o **Construtor**, clique em **Executar fluxo de trabalho** e preencha os campos do gatilho com valores parecidos com o que o gatilho real envia. Depois compare os valores **Recebido** dessa execução com os da execução real, lado a lado. A diferença costuma estar no nome ou no tipo de um único campo.
 :::
 
 ## Executar um workflow de novo

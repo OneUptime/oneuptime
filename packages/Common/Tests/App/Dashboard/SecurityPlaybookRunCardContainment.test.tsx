@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { Mock } from "jest-mock";
 import {
   act,
   cleanup,
@@ -106,7 +107,7 @@ function containmentRun(data: {
   return run;
 }
 
-let onChanged: jest.Mock<() => void>;
+let onChanged: Mock<() => void>;
 
 async function renderCard(run: SecurityPlaybookRun): Promise<void> {
   await act(async () => {

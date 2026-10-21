@@ -69,7 +69,7 @@ Open een kaart voor twee blokken met details:
 
 | Blok         | Wat het toont                                                                                                                                                                                                   |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Received** | De instellingen die het blok kreeg, op naam en in de volgorde van zijn instellingenlijst, nadat alle variabelen waren ingevuld. Een instelling die naar een andere stap of een variabele verwijst, toont de verwijzing naast de waarde die ze werd, en **Did not resolve** als ze niets werd. |
+| **Ontvangen** | De instellingen die het blok kreeg, op naam en in de volgorde van zijn instellingenlijst, nadat alle variabelen waren ingevuld. Een instelling die naar een andere stap of een variabele verwijst, toont de verwijzing naast de waarde die ze werd, en **Did not resolve** als ze niets werd. |
 | **Returned** | Wat het opleverde, met de ID van elke waarde (het laatste deel van een `returnValues`-verwijzing). Lijsten en objecten worden ingesprongen getoond.                                                             |
 
 Mislukte stappen, stappen met een waarschuwing en de enige stap van een uitvoering staan meteen open. De teller van het tabblad **Stappen** wordt rood als er iets mislukte en oranje als een stap een waarschuwing heeft.
@@ -123,7 +123,7 @@ Een blok dat niet draait, is meestal een aansluitprobleem. Open de **Bouwer** en
 :::
 
 :::details Een waarde kwam leeg binnen, of als {{…}}-tekst
-Open de uitvoering en bekijk de stap. Een verwijzing die niet werd opgelost, wordt bij de stap zelf als waarschuwing gemeld, en de instelling ervan in het blok **Received** is gemarkeerd als **Did not resolve**.
+Open de uitvoering en bekijk de stap. Een verwijzing die niet werd opgelost, wordt bij de stap zelf als waarschuwing gemeld, en de instelling ervan in het blok **Ontvangen** is gemarkeerd als **Did not resolve**.
 
 - Zie je de letterlijke tekst `{{local.components.…}}`, dan werd de verwijzing niet opgelost. Meestal is dat een typfout in de component-ID of de ID van de retourwaarde — onthoud dat het de **Identifier** van het blok is, niet de naam die erop staat. Controleer ook de spelling van `local.components` zelf: `{{local.componets.api-get-1.returnValues.response-body}}` wordt als letterlijke tekst verstuurd en de uitvoering meldt nog steeds **Executed**. Was de uitvoering een test met **Run just this step**, dan draaide het eerdere blok helemaal niet — voer in plaats daarvan de hele workflow uit.
 - Zie je **Empty text**, dan draaide het eerdere blok wel maar leverde het dat veld niet op.
@@ -132,7 +132,7 @@ Dezelfde waarschuwing staat in het tabblad **Full Log**, op een regel die begint
 :::
 
 :::details Het werkt als ik het handmatig uitvoer, maar niet vanuit de trigger
-Open de **Bouwer**, klik op **Workflow uitvoeren** en vul de velden van de trigger met waarden die lijken op wat de echte trigger stuurt. Vergelijk daarna de waarden onder **Received** van die uitvoering naast elkaar met die van de echte uitvoering. Het verschil zit meestal in de naam of het type van één veld.
+Open de **Bouwer**, klik op **Workflow uitvoeren** en vul de velden van de trigger met waarden die lijken op wat de echte trigger stuurt. Vergelijk daarna de waarden onder **Ontvangen** van die uitvoering naast elkaar met die van de echte uitvoering. Het verschil zit meestal in de naam of het type van één veld.
 :::
 
 ## Een workflow opnieuw uitvoeren

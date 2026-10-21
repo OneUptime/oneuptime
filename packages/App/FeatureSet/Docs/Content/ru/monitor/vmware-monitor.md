@@ -75,7 +75,7 @@ flowchart TB
 | Поле | Вкладка | Что делает |
 | --- | --- | --- |
 | **vCenter** | Все | Обязательно. Ограничивает каждый запрос атрибутом `resource.vmware.vcenter.name`. |
-| **Datacenter** | Custom Metric, Расширенный | Необязательно. Один центр обработки данных: `resource.vcenter.datacenter.name`. Его несёт каждая серия. |
+| **Центр обработки данных** | Custom Metric, Расширенный | Необязательно. Один центр обработки данных: `resource.vcenter.datacenter.name`. Его несёт каждая серия. |
 | **Кластер** | Custom Metric, Расширенный | Необязательно. Один кластер: `resource.vcenter.cluster.name`. Совпадает с собственными сериями кластера и сериями хостов, ВМ и пулов ресурсов в нём; у отдельного хоста ESXi кластера нет. |
 | **ESXi Host** | Custom Metric, Расширенный | Необязательно. Один хост ESXi: `resource.vcenter.host.name`. Совпадает с собственными сериями хоста **и** сериями каждой ВМ, которую он запускает, потому что ВМ несёт имя своего хоста. |
 | **Virtual Machine** | Custom Metric, Расширенный | Необязательно. Одна ВМ: `resource.vcenter.vm.name`. Имена ВМ не обязаны быть уникальными: добавьте хост или кластер, если у двух ВМ одинаковое имя. |
@@ -127,11 +127,11 @@ OneUptime поставляет 23 шаблона для типичных про�
 | Datastore Capacity Warning | Datastore | Warning | `vcenter.datastore.disk.utilization`, Avg по `resource.vcenter.datastore.name` | Выше 80 %: раннее предупреждение, поскольку тонкие диски и снимки быстро расходуют остаток | 72 % или ниже |
 | Datastore Capacity Critical | Datastore | Критический | `vcenter.datastore.disk.utilization`, Avg по хранилищу данных | Выше 90 %: заполненное хранилище данных приостанавливает каждую ВМ, у которой на нём есть диск | 81 % или ниже |
 | Cluster Host Not Effective | Кластер | Критический | `vcenter.cluster.host.count` с фильтром `effective = false`, Max по `resource.vcenter.cluster.name` | Выше 0: хост в режиме обслуживания, отключён или не отвечает, поэтому кластер работает с меньшей ёмкостью, чем рассчитан | Равно 0 |
-| Datacenter Hosts Unhealthy | Datacenter | Критический | `vcenter.datacenter.host.count` с фильтром `status = red`, Max по `resource.vcenter.datacenter.name` | Выше 0: у хоста критическая тревога, например от аппаратного датчика, из-за потерянного пути к хранилищу или ошибки агента HA | Равно 0 |
-| Datacenter Hosts Degraded | Datacenter | Warning | `vcenter.datacenter.host.count` с фильтром `status = yellow`, Max по центру обработки данных | Выше 0: у хоста тревога уровня предупреждения | Равно 0 |
-| Datacenter Hosts Powered Off | Datacenter | Warning | `vcenter.datacenter.host.count` с фильтром `power_state = off`, Max по центру обработки данных | Выше 0: хост выключен — он упал, потерял питание или был переведён DPM в режим ожидания | Равно 0 |
-| Datacenter VMs Unhealthy | Datacenter | Warning | `vcenter.datacenter.vm.count` с фильтром `status = red`, Max по центру обработки данных | Выше 0: у ВМ критическая тревога, например неудачный перезапуск HA, потерянное хранилище данных или потерянный сигнал Tools heartbeat | Равно 0 |
-| Datacenter Clusters Unhealthy | Datacenter | Критический | `vcenter.datacenter.cluster.count` с фильтром `status = red`, Max по центру обработки данных | Выше 0: у кластера критическая тревога, например слишком мало ресурсов для отработки отказа HA, неудачные выборы HA или критическая проверка работоспособности vSAN | Равно 0 |
+| Datacenter Hosts Unhealthy | Центр обработки данных | Критический | `vcenter.datacenter.host.count` с фильтром `status = red`, Max по `resource.vcenter.datacenter.name` | Выше 0: у хоста критическая тревога, например от аппаратного датчика, из-за потерянного пути к хранилищу или ошибки агента HA | Равно 0 |
+| Datacenter Hosts Degraded | Центр обработки данных | Warning | `vcenter.datacenter.host.count` с фильтром `status = yellow`, Max по центру обработки данных | Выше 0: у хоста тревога уровня предупреждения | Равно 0 |
+| Datacenter Hosts Powered Off | Центр обработки данных | Warning | `vcenter.datacenter.host.count` с фильтром `power_state = off`, Max по центру обработки данных | Выше 0: хост выключен — он упал, потерял питание или был переведён DPM в режим ожидания | Равно 0 |
+| Datacenter VMs Unhealthy | Центр обработки данных | Warning | `vcenter.datacenter.vm.count` с фильтром `status = red`, Max по центру обработки данных | Выше 0: у ВМ критическая тревога, например неудачный перезапуск HA, потерянное хранилище данных или потерянный сигнал Tools heartbeat | Равно 0 |
+| Datacenter Clusters Unhealthy | Центр обработки данных | Критический | `vcenter.datacenter.cluster.count` с фильтром `status = red`, Max по центру обработки данных | Выше 0: у кластера критическая тревога, например слишком мало ресурсов для отработки отказа HA, неудачные выборы HA или критическая проверка работоспособности vSAN | Равно 0 |
 | vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, Avg по кластеру | Выше 20 000 мкс (20 мс): хранилище замедляется для каждой ВМ в хранилище данных vSAN. На кластерах без vSAN молчит | 18 000 мкс или ниже |
 | vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, Max по кластеру | Выше 0: дисковая группа не справляется, и vSAN замедляет ввод-вывод своих клиентов | Равно 0 |
 | Resource Pool Memory Swapped | Кластер | Warning | `vcenter.resource_pool.memory.swapped`, Max по `resource.vcenter.resource_pool.inventory_path` | Выше 0: ВМ пула берут память из подкачки хоста, обычно потому что лимит памяти или доли пула слишком малы | Равно 0 |
@@ -260,7 +260,7 @@ OneUptime поставляет 23 шаблона для типичных про�
 | `vcenter.vm.vsan.throughput` | `By/s` | Пропускная способность vSAN ВМ по `direction` |
 
 > [!NOTE]
-> Состояние питания ВМ — это не метрика. Receiver отправляет `vcenter.vm.cpu.*` только для включённых ВМ, поэтому OneUptime отличает **Powered on** от **Powered off** по тому, пришли ли данные CPU в том же сборе, что и данные памяти и дисков ВМ; результат показывает страница vCenter **Virtual Machines**. Чтобы создавать оповещения о выключенных хостах или о количестве работающих ВМ, используйте атрибут `power_state` метрик `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` или `vcenter.cluster.vm.count`.
+> Состояние питания ВМ — это не метрика. Receiver отправляет `vcenter.vm.cpu.*` только для включённых ВМ, поэтому OneUptime отличает **Powered on** от **Powered off** по тому, пришли ли данные CPU в том же сборе, что и данные памяти и дисков ВМ; результат показывает страница vCenter **Виртуальные машины**. Чтобы создавать оповещения о выключенных хостах или о количестве работающих ВМ, используйте атрибут `power_state` метрик `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` или `vcenter.cluster.vm.count`.
 
 ## Критерии мониторинга
 

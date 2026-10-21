@@ -2054,6 +2054,11 @@ app:
   workerConcurrency: 100
   # Max concurrent telemetry ingestion jobs processed by each pod
   telemetryConcurrency: 100
+  # Max AI investigations each pod runs at once (more wait in the queue,
+  # incident and alert investigations first). App pods run them only while
+  # worker.enabled is false; otherwise worker.aiInvestigationConcurrency
+  # applies.
+  aiInvestigationConcurrency: 10
   # How many NetworkDevice SNMP walks one probe is handed per fetch. A probe
   # fetches once a minute, so this is the ceiling on how fast that probe's
   # fleet can be polled, whatever the devices' configured intervals say.
@@ -2172,6 +2177,10 @@ worker:
   # Max concurrent telemetry ingestion jobs processed by each worker pod.
   # This is the telemetry hot path; tune it together with pod CPU/memory.
   telemetryConcurrency: 100
+  # Max AI investigations each worker pod runs at once (more wait in the
+  # queue, incident and alert investigations first, and count toward the
+  # KEDA queue-size trigger). Each holds its conversation in memory.
+  aiInvestigationConcurrency: 10
   # Fan-in telemetry writer (per pod). Batches all telemetry ClickHouse inserts
   # into a handful of large INSERTs so worker replicas can scale horizontally
   # without exploding ClickHouse insert concurrency. Defaults match the code

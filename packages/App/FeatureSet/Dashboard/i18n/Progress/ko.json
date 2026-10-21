@@ -1,11 +1,12 @@
 {
   "baseline": {
-    "keys": 32062,
-    "untranslated": 16109
+    "keys": 32602,
+    "untranslated": 16030
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "AI / LLM",
+    "CPU Ready {{percent}}",
     "Gemini for Google Workspace",
     "Grafana OnCall API URL",
     "PR #{{number}}",

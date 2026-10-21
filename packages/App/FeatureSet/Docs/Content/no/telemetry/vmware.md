@@ -240,6 +240,17 @@ Siden **Oversikt** svarer først på "er dette vCenter-et friskt": de effektive 
 
 ![Siden med verter som viser hver ESXi-vert med klynge, datasenter og CPU- og minneutnyttelse](/docs/static/images/VMwareHosts.png)
 
+Velg en vert for å åpne siden dens. Den svarer på det siden til en vert utenfor VMware svarer på, med det vCenter vet om en hypervisor:
+
+- **Oversikt**: CPU, minne, latensen til den tregeste disken og nettverksgjennomstrømning i tidsrommet du velger, som fliser og diagrammer (dra over et diagram for å zoome inn); hendelsene og varslene som er åpne på verten; de mest belastede virtuelle maskinene, med dem som venter på en fysisk CPU markert; de fysiske nettverkskortene og lagringsenhetene, med pakkefeil og trege disker markert; hvilke vertsvarsler som er slått på; og detaljene om verten.
+- **Virtuelle maskiner**: VM-ene og malene på verten, med status, ressurspool, CPU ready, CPU og minne.
+- **Målinger**: vertens CPU-, minne-, nettverks- og diskserier som diagrammer, per nettverkskort og lagringsenhet, der hver kan åpnes i måleutforskeren.
+- **Logger**: vertens egen syslog, så snart den sender den (se [Send ESXi-syslog](#valgfritt-send-esxi-syslog)). Inntil da gir fanen kommandoene som peker denne verten, eller hele klyngen dens, mot agenten. En vCenter som en sonde samler inn, har ingen syslog, fordi en sonde ikke mottar den.
+
+Når vCenter slutter å rapportere en vert, sier siden det over fanene, med når vCenter sist rapporterte den. Etter 15 minutter uten rapport forlater verten inventaret: siden dens sier det da, og viser fortsatt de tidligere målingene.
+
+De fem vertsvarslene (CPU- og minnemetning, høy disklatens, nettverkspakkefeil og forkastede pakker) overvåker hver for seg alle vertene i vCenter og utløses for hver vert som går over dem. Kortet **Vertsvarsler** på en verts side viser hvilke som er slått på, og knappen åpner vCenters **Recommendations** med de manglende allerede valgt: Opprett dem der, én gang, for alle vertene.
+
 ### Virtuelle maskiner
 
 ![Siden med virtuelle maskiner som viser hver VM med vert, strømtilstand, klynge, ressurspool, CPU ready, CPU og minne](/docs/static/images/VMwareVirtualMachines.png)

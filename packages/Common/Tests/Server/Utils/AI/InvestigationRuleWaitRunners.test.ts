@@ -32,6 +32,7 @@ import AlertService from "../../../../Server/Services/AlertService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
+import Queue from "../../../../Server/Infrastructure/Queue";
 import logger from "../../../../Server/Utils/Logger";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
@@ -41,6 +42,7 @@ import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import { InvestigationNotStartedCode } from "../../../../Types/AI/InvestigationNotStartedReason";
 import ObjectID from "../../../../Types/ObjectID";
+import { JSONObject } from "../../../../Types/JSON";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
@@ -823,12 +825,12 @@ describe("the queue and a waited run", () => {
     handoff.mockClear();
   });
 
-  test("enqueue stamps the wait on the run and carries it to the inline kick", async () => {
+  test("enqueue stamps the wait on the run and sends it to the workers with it", async () => {
     const create: jest.SpyInstance = jest
       .spyOn(AIRunService, "create")
       .mockResolvedValue({ id: RUN_ID } as unknown as AIRun);
-    const processRun: jest.SpyInstance = jest
-      .spyOn(AIInvestigationQueue, "processRun")
+    const sendToWorkers: jest.SpyInstance = jest
+      .spyOn(AIInvestigationQueue, "sendToWorkers")
       .mockResolvedValue(undefined);
 
     await AIInvestigationQueue.enqueue({
@@ -840,10 +842,7 @@ describe("the queue and a waited run", () => {
     expect(
       (create.mock.calls[0]![0] as { data: AIRun }).data.ruleWaitMinutes,
     ).toBe(10);
-    await new Promise((resolve: (value: unknown) => void) => {
-      setTimeout(resolve, 0);
-    });
-    expect(processRun).toHaveBeenCalledWith(
+    expect(sendToWorkers).toHaveBeenCalledWith(
       expect.objectContaining({ id: RUN_ID, ruleWaitMinutes: 10 }),
     );
   });
@@ -852,7 +851,9 @@ describe("the queue and a waited run", () => {
     const create: jest.SpyInstance = jest
       .spyOn(AIRunService, "create")
       .mockResolvedValue({ id: RUN_ID } as unknown as AIRun);
-    jest.spyOn(AIInvestigationQueue, "processRun").mockResolvedValue(undefined);
+    jest
+      .spyOn(AIInvestigationQueue, "sendToWorkers")
+      .mockResolvedValue(undefined);
 
     await AIInvestigationQueue.enqueue({
       projectId: PROJECT_ID,
@@ -873,7 +874,7 @@ describe("the queue and a waited run", () => {
     ["incident", { triggeredByIncidentId: INCIDENT_ID }],
     ["alert", { triggeredByAlertId: ALERT_ID }],
   ])(
-    "the poller reads the wait with the run and carries it to the %s runner",
+    "the poller reads the wait with the run, and its job carries it to the %s runner",
     async (kind: string, subject: Record<string, ObjectID>) => {
       jest
         .spyOn(AIRunService, "findBy")
@@ -889,6 +890,9 @@ describe("the queue and a waited run", () => {
           } as unknown as AIRun,
         ]);
       jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
+      const addJob: jest.SpyInstance = jest
+        .spyOn(Queue, "addJob")
+        .mockResolvedValue({} as never);
       const execute: jest.SpyInstance =
         kind === "incident"
           ? jest
@@ -899,9 +903,13 @@ describe("the queue and a waited run", () => {
               .mockResolvedValue(undefined);
 
       await AIInvestigationQueue.processQueuedRuns();
-      await new Promise((resolve: (value: unknown) => void) => {
-        setTimeout(resolve, 0);
-      });
+
+      // The poller only sends the run; a worker runs the job it sent.
+      expect(execute).not.toHaveBeenCalled();
+      expect(addJob).toHaveBeenCalledTimes(1);
+      await AIInvestigationQueue.processQueueJob(
+        addJob.mock.calls[0]![3] as JSONObject,
+      );
 
       expect(execute).toHaveBeenCalledWith(
         expect.objectContaining({ aiRunId: RUN_ID, ruleWaitMinutes: 30 }),

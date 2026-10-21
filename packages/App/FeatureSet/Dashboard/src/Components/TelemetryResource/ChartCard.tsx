@@ -19,6 +19,8 @@ import {
   ChartTimeRangeZoomContextValue,
   useChartTimeRangeZoom,
 } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export type ChartCardColor =
   | "blue"
@@ -73,6 +75,7 @@ export interface ChartCardProps {
 const ChartCard: FunctionComponent<ChartCardProps> = (
   props: ChartCardProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const colors: { bg: string; ring: string; text: string } =
     colorClasses[props.iconColor];
   // The page's drag-to-zoom (TimeRangeZoomScope), which the chart takes.
@@ -148,7 +151,8 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
           }`}
           onDoubleClick={emptyStateReset}
         >
-          No data in this time range
+          {/* Every page's empty chart, in the reader's language. */}
+          {translator.translateText("No data in this time range")}
         </div>
       </div>
     );

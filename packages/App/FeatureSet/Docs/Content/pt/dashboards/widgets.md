@@ -178,7 +178,7 @@ Cada um destes widgets lista os recursos que um agente ou um coletor informa ao 
 | **Docker Swarm** | **Nós**, **Serviços** | O agente Docker Swarm |
 | **Podman** | **Hosts**, **Contêineres**, **Imagens**, **Redes**, **Volumes** | O agente Podman |
 | **Proxmox** | **Nós**, **Guests** | O agente Proxmox |
-| **VMware** | **Hosts**, **Virtual Machines** | O agente VMware, ou um vCenter que você conecte |
+| **VMware** | **Hosts**, **Máquinas virtuais** | O agente VMware, ou um vCenter que você conecte |
 | **Ceph** | **OSDs**, como uma parede colorida por estado, e **Pools** | O agente Ceph |
 | **Arrays de armazenamento** | **Volumes**, e **Hardware** como uma parede colorida por status | O agente de arrays de armazenamento |
 
