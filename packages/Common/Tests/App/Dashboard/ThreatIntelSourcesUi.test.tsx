@@ -14,6 +14,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import type { Mock } from "jest-mock";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 
@@ -460,7 +461,7 @@ describe("Free Lists", () => {
   });
 
   test("Add List creates the list feed, says Added and tells the page", async () => {
-    const onAdded: jest.Mock = jest.fn();
+    const onAdded: Mock<() => void> = jest.fn<() => void>();
 
     await renderLists(onAdded);
 

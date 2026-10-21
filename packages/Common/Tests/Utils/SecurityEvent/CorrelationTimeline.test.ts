@@ -84,7 +84,7 @@ describe("countStepTimes", () => {
 describe("findOrderedChain", () => {
   test("failures then a success within the timespan", () => {
     const match: CorrelationMatch | null = findOrderedChain(
-      [[1 * MINUTE, 2 * MINUTE], [5 * MINUTE]],
+      [[MINUTE, 2 * MINUTE], [5 * MINUTE]],
       10 * MINUTE,
       0,
     );
@@ -98,7 +98,7 @@ describe("findOrderedChain", () => {
 
   test("the wrong order is no chain", () => {
     expect(
-      findOrderedChain([[5 * MINUTE], [1 * MINUTE]], 10 * MINUTE, 0),
+      findOrderedChain([[5 * MINUTE], [MINUTE]], 10 * MINUTE, 0),
     ).toBeNull();
   });
 
@@ -111,12 +111,12 @@ describe("findOrderedChain", () => {
 
   test("a chain whose last step the previous run saw is not reported again", () => {
     expect(
-      findOrderedChain([[1 * MINUTE], [2 * MINUTE]], 10 * MINUTE, 3 * MINUTE),
+      findOrderedChain([[MINUTE], [2 * MINUTE]], 10 * MINUTE, 3 * MINUTE),
     ).toBeNull();
 
     // A chain whose first step came before this run, finished in it, is.
     expect(
-      findOrderedChain([[1 * MINUTE], [4 * MINUTE]], 10 * MINUTE, 3 * MINUTE),
+      findOrderedChain([[MINUTE], [4 * MINUTE]], 10 * MINUTE, 3 * MINUTE),
     ).not.toBeNull();
   });
 
@@ -142,7 +142,7 @@ describe("findOrderedChain", () => {
   test("the most recent chain is the one reported", () => {
     const match: CorrelationMatch | null = findOrderedChain(
       [
-        [1 * MINUTE, 20 * MINUTE],
+        [MINUTE, 20 * MINUTE],
         [2 * MINUTE, 21 * MINUTE],
       ],
       5 * MINUTE,
@@ -247,13 +247,13 @@ describe("findTogetherWindow", () => {
 
   test("at least some of the steps, when that is all the rule asks", () => {
     const match: CorrelationMatch | null = findTogetherWindow(
-      [[1 * MINUTE], [2 * MINUTE], [30 * MINUTE]],
+      [[MINUTE], [2 * MINUTE], [30 * MINUTE]],
       5 * MINUTE,
       2,
       0,
     );
 
-    expect(match?.stepTimes).toEqual([1 * MINUTE, 2 * MINUTE, -1]);
+    expect(match?.stepTimes).toEqual([MINUTE, 2 * MINUTE, -1]);
   });
 
   test("a window the previous run saw whole is not reported again", () => {

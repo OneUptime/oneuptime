@@ -61,7 +61,12 @@ type HookCaller = {
 
 const service: HookCaller = ThreatIntelFeedService as unknown as HookCaller;
 
-function listFeed(changes: Partial<ThreatIntelFeed> = {}): ThreatIntelFeed {
+// A feed's columns, any of which a test may clear by passing undefined.
+type FeedChanges = {
+  [Key in keyof ThreatIntelFeed]?: ThreatIntelFeed[Key] | undefined;
+};
+
+function listFeed(changes: FeedChanges = {}): ThreatIntelFeed {
   const feed: ThreatIntelFeed = new ThreatIntelFeed();
   feed.projectId = PROJECT_ID;
   feed.name = "Tor exit nodes";
@@ -73,7 +78,7 @@ function listFeed(changes: Partial<ThreatIntelFeed> = {}): ThreatIntelFeed {
   return feed;
 }
 
-function secOpsFeed(changes: Partial<ThreatIntelFeed> = {}): ThreatIntelFeed {
+function secOpsFeed(changes: FeedChanges = {}): ThreatIntelFeed {
   const feed: ThreatIntelFeed = new ThreatIntelFeed();
   feed.projectId = PROJECT_ID;
   feed.name = "Google SecOps IOCs";

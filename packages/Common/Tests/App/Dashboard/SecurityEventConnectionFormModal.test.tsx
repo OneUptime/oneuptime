@@ -1454,7 +1454,12 @@ describe("SecurityEventConnectionFormModal (Google SecOps)", () => {
     const body: JSONObject = lastPostBody();
     expect(body).toEqual({
       provider: GOOGLE,
-      config: { region: GOOGLE_REGION, instanceResourceName: GOOGLE_INSTANCE },
+      config: {
+        region: GOOGLE_REGION,
+        instanceResourceName: GOOGLE_INSTANCE,
+        // The last step's switch, off unless turned on.
+        closeAlertsWhenCaseCloses: false,
+      },
       secrets: { serviceAccountJson: GOOGLE_KEY },
       alertingOnly: true,
     });
@@ -1517,6 +1522,7 @@ describe("SecurityEventConnectionFormModal (Google SecOps)", () => {
     expect(created.model.config).toEqual({
       region: GOOGLE_REGION,
       instanceResourceName: GOOGLE_INSTANCE,
+      closeAlertsWhenCaseCloses: false,
     });
     expect(typeof created.model.secrets).toBe("string");
     expect(JSON.parse(created.model.secrets as string)).toEqual({
@@ -1595,7 +1601,11 @@ describe("SecurityEventConnectionFormModal (Google SecOps)", () => {
     expect(await screen.findByText("All checks passed")).toBeVisible();
     expect(lastPostBody()).toEqual({
       connectionId: CONNECTION_ID,
-      config: { region: GOOGLE_REGION, instanceResourceName: GOOGLE_INSTANCE },
+      config: {
+        region: GOOGLE_REGION,
+        instanceResourceName: GOOGLE_INSTANCE,
+        closeAlertsWhenCaseCloses: false,
+      },
       secrets: {},
       alertingOnly: false,
     });
@@ -1619,7 +1629,11 @@ describe("SecurityEventConnectionFormModal (Google SecOps)", () => {
     });
     expect(lastPostBody()).toEqual({
       connectionId: CONNECTION_ID,
-      config: { region: GOOGLE_REGION, instanceResourceName: GOOGLE_INSTANCE },
+      config: {
+        region: GOOGLE_REGION,
+        instanceResourceName: GOOGLE_INSTANCE,
+        closeAlertsWhenCaseCloses: false,
+      },
       secrets: {},
       alertingOnly: true,
     });
@@ -1637,7 +1651,11 @@ describe("SecurityEventConnectionFormModal (Google SecOps)", () => {
     expect(update.data).toEqual({
       name: "Customer SecOps",
       description: "",
-      config: { region: GOOGLE_REGION, instanceResourceName: GOOGLE_INSTANCE },
+      config: {
+        region: GOOGLE_REGION,
+        instanceResourceName: GOOGLE_INSTANCE,
+        closeAlertsWhenCaseCloses: false,
+      },
       isEnabled: true,
       pollIntervalInMinutes: 5,
       alertingOnly: true,
@@ -1807,7 +1825,10 @@ describe("form value mapping", () => {
           value: GOOGLE_REGION,
         },
       });
-    expect(region.config).toEqual({ region: GOOGLE_REGION });
+    expect(region.config).toEqual({
+      region: GOOGLE_REGION,
+      closeAlertsWhenCaseCloses: false,
+    });
   });
 
   test("refuses to map without a provider", (): void => {
@@ -1840,6 +1861,7 @@ describe("form value mapping", () => {
     expect(submission.config).toEqual({
       region: GOOGLE_REGION,
       instanceResourceName: GOOGLE_INSTANCE,
+      closeAlertsWhenCaseCloses: false,
     });
     expect(submission.alertingOnly).toBe(false);
     expect(
@@ -2069,6 +2091,7 @@ describe("field types and test readiness", () => {
     ).toEqual([
       ["region", "dropdown", true, undefined],
       ["instanceResourceName", "text", true, undefined],
+      ["closeAlertsWhenCaseCloses", "toggle", false, false],
     ]);
     expect(
       definition?.secretFields.map((item: ConnectorField) => {

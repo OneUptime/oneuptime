@@ -320,7 +320,9 @@ describe("Threat Intel page", () => {
         return (capturedFeedTableProps?.formSteps || [])
           .filter(
             (step: {
-              showIf?: (values: Record<string, unknown>) => boolean;
+              showIf?:
+                | ((values: Record<string, unknown>) => boolean)
+                | undefined;
             }) => {
               return !step.showIf || step.showIf(values);
             },

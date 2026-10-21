@@ -18,6 +18,7 @@ import TaxiiClient, {
   TaxiiObjectsPage,
 } from "Common/Server/Utils/SecurityEvent/ThreatIntel/TaxiiClient";
 import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
+import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
@@ -145,7 +146,7 @@ function securityEvent(data: {
     className: "Network Activity",
     activityName: "Traffic",
     severityId: 1,
-    severityName: "Informational",
+    severityName: OcsfSeverity.Informational,
     statusName: "Success",
     message: `connection to ${data.observables.join(", ")}`,
     vendorName: "Fixture",
@@ -158,6 +159,12 @@ function securityEvent(data: {
     principalHost: "",
     principalIp: "",
     principalProcess: "",
+    processName: "",
+    processPath: "",
+    processCommandLine: "",
+    parentProcessName: "",
+    parentProcessPath: "",
+    parentProcessCommandLine: "",
     targetUser: "",
     targetHost: "",
     targetIp: "",

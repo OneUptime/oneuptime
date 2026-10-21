@@ -91,7 +91,9 @@ const SEND_HEADINGS: Record<string, string> = {
 describe("each SIEM OneUptime sends to", () => {
   it.each(
     SecurityEventDestinationCatalog.map(
-      (definition: SecurityEventDestinationDefinition) => {
+      (
+        definition: SecurityEventDestinationDefinition,
+      ): [string, SecurityEventDestinationDefinition] => {
         return [definition.provider, definition];
       },
     ),

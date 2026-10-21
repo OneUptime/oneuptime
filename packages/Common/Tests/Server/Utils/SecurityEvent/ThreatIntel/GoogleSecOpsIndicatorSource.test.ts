@@ -172,7 +172,7 @@ describe("the connection a feed reads through", () => {
 
   test("a feed with none says how to choose one", async () => {
     const feed: ThreatIntelFeed = buildFeed();
-    feed.securityEventConnectionId = undefined;
+    delete feed.securityEventConnectionId;
 
     await expect(
       GoogleSecOpsIndicatorSource.loadConnection(feed),

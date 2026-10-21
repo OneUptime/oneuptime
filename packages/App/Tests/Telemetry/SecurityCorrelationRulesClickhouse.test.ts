@@ -4,7 +4,6 @@ import ClickhouseDatabase, {
   ClickhouseClient,
 } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import { TelemetryServiceMetadata } from "Common/Server/Services/OpenTelemetryIngestService";
-import { DetectionMatchGroup } from "Common/Server/Services/SecurityEventService";
 import {
   SQL,
   Statement,
@@ -15,6 +14,7 @@ import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
+import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
 import {
   DetectionRuleDefinition,
   SigmaRuleReferenceResolver,
@@ -72,7 +72,9 @@ jest.mock("Common/Server/Utils/Logger", () => {
   };
 });
 
-import SecurityEventService from "Common/Server/Services/SecurityEventService";
+import SecurityEventService, {
+  DetectionMatchGroup,
+} from "Common/Server/Services/SecurityEventService";
 import CorrelationRuleMatcher, {
   CorrelationMatchResult,
 } from "Common/Server/Utils/SecurityEvent/Correlation/CorrelationRuleMatcher";
@@ -95,7 +97,6 @@ const HOUR: number = 60 * MINUTE;
 const WINDOW_START: Date = new Date(
   Math.floor(Date.now() / MINUTE) * MINUTE - HOUR,
 );
-const WINDOW_END: Date = new Date(WINDOW_START.getTime() + 50 * MINUTE);
 
 const projectId: ObjectID = new ObjectID(
   "77000000-0000-4000-8000-00000000000a",
@@ -143,7 +144,7 @@ function event(fixture: EventFixture): JSONObject {
     className: fixture.className || "Authentication",
     activityName: fixture.activityName || "Logon",
     severityId: 1,
-    severityName: "Informational",
+    severityName: OcsfSeverity.Informational,
     statusName: fixture.statusName || "Failure",
     message: fixture.message || `event ${sequence}`,
     vendorName: "Fixture",
@@ -156,6 +157,12 @@ function event(fixture: EventFixture): JSONObject {
     principalHost: fixture.host || "",
     principalIp: fixture.sourceIp || "",
     principalProcess: "",
+    processName: "",
+    processPath: "",
+    processCommandLine: "",
+    parentProcessName: "",
+    parentProcessPath: "",
+    parentProcessCommandLine: "",
     targetUser: "",
     targetHost: "",
     targetIp: fixture.targetIp || "",

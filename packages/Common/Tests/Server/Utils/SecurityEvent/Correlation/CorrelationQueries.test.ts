@@ -417,7 +417,10 @@ detection:
 
     const condition: string = compileStepCondition(counted.steps[0]!).query;
 
-    expect(condition).toMatch(/^\(\(.*\) OR \(.*\)\)$/s);
+    // Both rules' conditions, ORed: "((first) OR (second))", over several lines.
+    expect(condition.startsWith("((")).toBe(true);
+    expect(condition.endsWith("))")).toBe(true);
+    expect(condition).toContain(") OR (");
   });
 
   test("a step that is not resolved to a rule cannot be compiled", () => {

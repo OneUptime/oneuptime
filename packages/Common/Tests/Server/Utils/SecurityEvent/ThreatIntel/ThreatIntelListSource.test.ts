@@ -217,7 +217,7 @@ describe("a list feed's first poll", () => {
 
   test("a feed with no confidence gives its indicators none (a Medium match)", async () => {
     const feed: ThreatIntelFeed = buildFeed();
-    feed.indicatorConfidence = undefined;
+    delete feed.indicatorConfidence;
 
     await ThreatIntelListSource.poll(feed, {
       fetchImplementation: serving("192.0.2.1").fetch,
@@ -417,7 +417,7 @@ describe("a list address that does not answer with a list", () => {
 
   test("a feed with no address says how to fix it", async () => {
     const feed: ThreatIntelFeed = buildFeed();
-    feed.listUrl = undefined;
+    delete feed.listUrl;
 
     await expect(
       ThreatIntelListSource.poll(feed, {
