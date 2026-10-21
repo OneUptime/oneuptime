@@ -100,6 +100,14 @@ export interface ComponentProps {
    * card it is in has the height.
    */
   fillHeight?: boolean | undefined;
+  /*
+   * The card's header is drawn by what holds it: a fold whose title names
+   * the table inside it (the Archived section of a value's settings page,
+   * useArchivableValues). The card draws no header of its own - not even an
+   * empty one - and its body starts at its top edge, under the divider of
+   * the section it is.
+   */
+  isHeaderHidden?: boolean | undefined;
 }
 
 /*
@@ -341,6 +349,9 @@ export const CARD_FRAME_CLASS_NAME: string =
 export const CARD_SECTION_CLASS_NAME: string = "border-t border-gray-200";
 
 export const CARD_PADDING_CLASS_NAME: string = "py-6 px-5 md:px-6";
+
+// A card with no header of its own (isHeaderHidden): nothing above its body.
+export const CARD_HEADERLESS_PADDING_CLASS_NAME: string = "pb-6 px-5 md:px-6";
 
 /*
  * What fillHeight adds, exported so the tests read the same strings: the
@@ -651,17 +662,23 @@ const Card: FunctionComponent<ComponentProps> = (
    * what it was, so no other card changes.
    */
   const fillsHeight: boolean = Boolean(props.fillHeight) && !isSection;
-  const bodyClassName: string = props.bodyClassName || "mt-4";
+  const isHeaderHidden: boolean = Boolean(props.isHeaderHidden);
+  const bodyClassName: string = isHeaderHidden
+    ? props.bodyClassName || ""
+    : props.bodyClassName || "mt-4";
+  const paddingClassName: string = isHeaderHidden
+    ? CARD_HEADERLESS_PADDING_CLASS_NAME
+    : CARD_PADDING_CLASS_NAME;
 
   const content: ReactElement = (
     <div
       className={
         fillsHeight
-          ? `${CARD_PADDING_CLASS_NAME} ${CARD_FILL_HEIGHT_CONTENT_CLASS_NAME}`
-          : CARD_PADDING_CLASS_NAME
+          ? `${paddingClassName} ${CARD_FILL_HEIGHT_CONTENT_CLASS_NAME}`
+          : paddingClassName
       }
     >
-      {isStacked ? stackedHeader : defaultHeader}
+      {isHeaderHidden ? <></> : isStacked ? stackedHeader : defaultHeader}
 
       {props.children && (
         <div
