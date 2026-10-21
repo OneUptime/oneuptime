@@ -78,6 +78,8 @@ import SessionReplayTable, {
   SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS,
   SESSION_REPLAY_LIST_AUTO_REFRESH_MS,
   SESSION_REPLAY_LIST_URL_STORAGE_KEY,
+  SESSION_REPLAY_SESSION_COLUMN_MIN_WIDTH_CLASS_NAME,
+  SESSION_REPLAY_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME,
   SESSION_REPLAY_SIGNAL_BADGES,
   SessionReplayListResult,
   SessionReplaySignalBadge,
@@ -3449,5 +3451,85 @@ describe("SessionReplayTable auto-refresh", () => {
       SESSION_B,
     );
     expect(screen.queryByTestId("table-skeleton-loader")).toBeNull();
+  });
+});
+
+/*
+ * The list fits a laptop's card. Its six columns each kept the table's 10rem
+ * floor and two lines of them never wrapped - a device, the session's id
+ * and start (with the absolute date from 2xl up) - so the table was 1144px
+ * in a 938px card at 1280: the Recording column went under the sticky
+ * Actions column, and still did at 1600. Measured in the offline suite; the
+ * classes that do it are held here.
+ */
+describe("SessionReplayTable fits a laptop's card", () => {
+  function wrappersOf(row: HTMLElement): Array<HTMLElement> {
+    return Array.from(row.querySelectorAll("td")).map(
+      (cell: HTMLTableCellElement): HTMLElement => {
+        return cell.firstElementChild as HTMLElement;
+      },
+    );
+  }
+
+  it("gives its short columns a floor below the table's", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+    const wrappers: Array<HTMLElement> = wrappersOf(row as HTMLElement);
+
+    expect(SESSION_REPLAY_SESSION_COLUMN_MIN_WIDTH_CLASS_NAME).toBe(
+      "min-w-[8rem]",
+    );
+    expect(SESSION_REPLAY_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME).toBe(
+      "min-w-[7rem]",
+    );
+
+    /* Session */
+    expect(wrappers[0]).toHaveClass(
+      SESSION_REPLAY_SESSION_COLUMN_MIN_WIDTH_CLASS_NAME,
+    );
+    expect(wrappers[0]).not.toHaveClass("min-w-[10rem]");
+    /* User & device keeps the table's floor: a name reads best whole. */
+    expect(wrappers[1]).toHaveClass("min-w-[10rem]");
+
+    /* Duration, Signals, Recording */
+    for (const index of [2, 3, 4]) {
+      expect(wrappers[index]).toHaveClass(
+        SESSION_REPLAY_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME,
+      );
+      expect(wrappers[index]).not.toHaveClass("min-w-[10rem]");
+    }
+  });
+
+  it("lets a line that keeps to one line end in an ellipsis rather than widen the table", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+    const wrappers: Array<HTMLElement> = wrappersOf(row as HTMLElement);
+
+    /* A minmax(0, 1fr) track adds nothing to the column's minimum width. */
+    expect(wrappers[0]?.firstElementChild).toHaveClass("grid", "grid-cols-1");
+    expect(wrappers[1]?.firstElementChild).toHaveClass("grid", "grid-cols-1");
+
+    const start: HTMLElement = within(row as HTMLElement).getByTestId(
+      "session-row-start",
+    );
+
+    expect(start).toHaveClass("min-w-0", "truncate");
+    expect(start).toHaveAttribute("title");
+    /*
+     * The id and the start wrap as whole pieces where the column is narrow:
+     * never "7 minute...", never a date broken mid-phrase.
+     */
+    expect(start.parentElement).toHaveClass("flex-wrap", "whitespace-nowrap");
+    expect(start.previousElementSibling).toHaveClass("flex-none");
   });
 });

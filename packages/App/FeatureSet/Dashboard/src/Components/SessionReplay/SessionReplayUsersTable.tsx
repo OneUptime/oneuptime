@@ -285,8 +285,14 @@ function getUserRollupCells(
     );
   }
 
+  /*
+   * The person's cell is a one-column grid (a minmax(0, 1fr) track adds
+   * nothing to the column's minimum width): a long name or device line ends
+   * in "..." where the column does rather than widening the table past its
+   * card.
+   */
   return [
-    <div key="0">
+    <div key="0" className="grid grid-cols-1">
       <div className="flex min-w-0 items-center gap-3">
         <SessionReplayUserAvatar
           initials={user.initials}
@@ -457,6 +463,14 @@ function getUserRollupRowProps(
   return attributes;
 }
 
+/*
+ * The floor of the rollup's short columns, below the table's 10rem, so the
+ * six columns fit a laptop's card at 1280px: Signals used to go under the
+ * sticky Actions column there. Their words wrap.
+ */
+export const SESSION_REPLAY_USERS_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME: string =
+  "min-w-[7rem]";
+
 const SESSION_REPLAY_USER_COLUMNS: Columns<SessionReplayUsersTableRow> = [
   {
     title: "User",
@@ -467,6 +481,9 @@ const SESSION_REPLAY_USER_COLUMNS: Columns<SessionReplayUsersTableRow> = [
   {
     title: "Sessions",
     key: "sessionCount",
+    wrapContent: true,
+    wrapMaxWidthClassName: "max-w-48",
+    contentClassName: SESSION_REPLAY_USERS_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME,
     headerTooltip: RUM_REPLAY_USERS_METRIC_DESCRIPTIONS.sessions,
   },
   {
@@ -474,6 +491,7 @@ const SESSION_REPLAY_USER_COLUMNS: Columns<SessionReplayUsersTableRow> = [
     key: "lastSeenUnixMs",
     wrapContent: true,
     wrapMaxWidthClassName: "max-w-48",
+    contentClassName: SESSION_REPLAY_USERS_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME,
     headerTooltip: RUM_REPLAY_USERS_METRIC_DESCRIPTIONS.lastSeen,
   },
   {
@@ -486,6 +504,7 @@ const SESSION_REPLAY_USER_COLUMNS: Columns<SessionReplayUsersTableRow> = [
     key: "errorCount",
     wrapContent: true,
     wrapMaxWidthClassName: "max-w-56",
+    contentClassName: SESSION_REPLAY_USERS_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME,
     headerTooltip: RUM_REPLAY_USERS_METRIC_DESCRIPTIONS.signals,
   },
   { title: "Actions", key: "lastSessionId", type: FieldType.Actions },
@@ -497,6 +516,7 @@ const SESSION_REPLAY_USER_COLUMNS: Columns<SessionReplayUsersTableRow> = [
       type?: FieldType;
       wrapContent?: boolean;
       wrapMaxWidthClassName?: string;
+      contentClassName?: string;
       /* What the column's numbers mean, in an (i) beside the header. */
       headerTooltip?: string;
     },

@@ -69,6 +69,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 import SessionReplayUsersTable, {
   getWatchLatestMenuRoute,
   SESSION_REPLAY_USERS_PAGE_SIZE,
+  SESSION_REPLAY_USERS_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayUsersTable";
 import { parseSessionReplayUserRollup } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayUsersApi";
 import { SessionReplayUserSessionsHandoff } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayListFilters";
@@ -1034,5 +1035,48 @@ describe("SessionReplayUsersTable paging, reload, empty and error", () => {
     await waitForUserRows(1);
 
     expect(screen.queryByTestId("session-users-error")).toBeNull();
+  });
+});
+
+/*
+ * The rollup fits a laptop's card: at 1280 its Signals column went under
+ * the sticky Actions column. Its short columns take a floor below the
+ * table's, and the person's cell ends a long name or device line in an
+ * ellipsis rather than widening the table. Measured in the offline suite;
+ * the classes that do it are held here.
+ */
+describe("SessionReplayUsersTable fits a laptop's card", () => {
+  it("gives Sessions, Last seen and Signals a floor below the table's", async () => {
+    mockUsers(() => {
+      return usersResponse([wireRollup()]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForUserRows(1);
+    const wrappers: Array<HTMLElement> = Array.from(
+      (row as HTMLElement).querySelectorAll("td"),
+    ).map((cell: HTMLTableCellElement): HTMLElement => {
+      return cell.firstElementChild as HTMLElement;
+    });
+
+    expect(SESSION_REPLAY_USERS_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME).toBe(
+      "min-w-[7rem]",
+    );
+
+    /* Sessions, Last seen, Signals */
+    for (const index of [1, 2, 4]) {
+      expect(wrappers[index]).toHaveClass(
+        SESSION_REPLAY_USERS_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME,
+      );
+      expect(wrappers[index]).not.toHaveClass("min-w-[10rem]");
+    }
+
+    /* The person keeps the table's floor, in a cell that cannot widen it. */
+    expect(wrappers[0]).toHaveClass("min-w-[10rem]");
+    expect(wrappers[0]?.firstElementChild).toHaveClass("grid", "grid-cols-1");
+    expect(
+      within(row as HTMLElement).getByTestId("session-user-name"),
+    ).toHaveClass("truncate");
   });
 });

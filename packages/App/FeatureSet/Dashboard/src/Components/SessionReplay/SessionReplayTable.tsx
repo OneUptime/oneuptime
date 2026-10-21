@@ -297,6 +297,17 @@ export const SESSION_REPLAY_LIST_CURSOR_STORAGE_KEY_PREFIX: string =
 const MAX_ROUTE_PILLS: number = 3;
 
 /*
+ * The floors of the list's columns (see SESSION_REPLAY_COLUMNS), below the
+ * table's 10rem: the six of them fit a laptop's card at 1280px, so no
+ * column goes under the sticky Actions column.
+ */
+export const SESSION_REPLAY_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME: string =
+  "min-w-[7rem]";
+
+export const SESSION_REPLAY_SESSION_COLUMN_MIN_WIDTH_CLASS_NAME: string =
+  "min-w-[8rem]";
+
+/*
  * The applied filters neither the search box nor the chips can show: an
  * exact page (set in the filter form) and the pseudonymous user key (set by
  * clicking a person whose name your role cannot read). They are listed in
@@ -962,8 +973,16 @@ function getSessionReplayCells(
     row.samplePercentageAtCapture,
   );
 
+  /*
+   * The Session and User & device cells are one-column grids (a
+   * minmax(0, 1fr) track adds nothing to the column's minimum width), so a
+   * line that keeps to one line - the session's id and start, a device -
+   * ends in "..." where the column does rather than widening it: those
+   * lines set the table's width, and the Recording column went under the
+   * sticky Actions column from a laptop up to 1600px.
+   */
   return [
-    <div key="0">
+    <div key="0" className="grid grid-cols-1">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           {/*
@@ -1019,19 +1038,23 @@ function getSessionReplayCells(
           </div>
         )}
         {/*
-         * One line, never two. The absolute timestamp is what pushes it
-         * over, so it appears only where the column has room; it is on
-         * the element's title at every width.
+         * The id and the start, each kept whole - never a date broken
+         * mid-phrase: side by side where the column has room, the start
+         * under the id where it does not (a laptop's narrower column). The
+         * absolute timestamp appears only from 2xl up, ends in "..." where
+         * the column does rather than widening it, and is on the element's
+         * title at every width.
          */}
-        <div className="mt-1 flex items-center gap-2 whitespace-nowrap text-xs text-gray-500">
+        <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 whitespace-nowrap text-xs text-gray-500">
           <span
-            className="rounded bg-gray-100 px-1 font-mono text-[11px] text-gray-500"
+            className="flex-none rounded bg-gray-100 px-1 font-mono text-[11px] text-gray-500"
             title={row.sessionId}
           >
             {row.sessionId.slice(0, 8) || "—"}
           </span>
           {hasStart && (
             <time
+              className="min-w-0 truncate"
               dateTime={(startedAt as Date).toISOString()}
               title={absoluteStart}
               data-testid="session-row-start"
@@ -1046,7 +1069,7 @@ function getSessionReplayCells(
         </div>
       </div>
     </div>,
-    <div key="1">
+    <div key="1" className="grid grid-cols-1">
       <div className="flex min-w-0 items-center gap-2">
         <SessionReplayUserAvatar
           initials={user.initials}
@@ -1349,6 +1372,7 @@ const SESSION_REPLAY_COLUMNS: Columns<SessionReplayTableRow> = [
     key: "startTime",
     wrapContent: true,
     wrapMaxWidthClassName: "max-w-xs",
+    contentClassName: SESSION_REPLAY_SESSION_COLUMN_MIN_WIDTH_CLASS_NAME,
   },
   {
     title: "User & device",
@@ -1356,23 +1380,30 @@ const SESSION_REPLAY_COLUMNS: Columns<SessionReplayTableRow> = [
     wrapContent: true,
     wrapMaxWidthClassName: "max-w-xs",
   },
+  /*
+   * Three short columns - a duration over its activity, a few badges, a
+   * badge over a line - whose words wrap, on a lower floor than the table's.
+   */
   {
     title: "Duration",
     key: "durationMs",
     wrapContent: true,
     wrapMaxWidthClassName: "max-w-48",
+    contentClassName: SESSION_REPLAY_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME,
   },
   {
     title: "Signals",
     key: "errorCount",
     wrapContent: true,
     wrapMaxWidthClassName: "max-w-56",
+    contentClassName: SESSION_REPLAY_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME,
   },
   {
     title: "Recording",
     key: "isFinalized",
     wrapContent: true,
     wrapMaxWidthClassName: "max-w-56",
+    contentClassName: SESSION_REPLAY_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME,
   },
   { title: "Actions", key: "sessionId", type: FieldType.Actions },
 ].map(
@@ -1383,6 +1414,7 @@ const SESSION_REPLAY_COLUMNS: Columns<SessionReplayTableRow> = [
       type?: FieldType;
       wrapContent?: boolean;
       wrapMaxWidthClassName?: string;
+      contentClassName?: string;
     },
     index: number,
   ) => {
