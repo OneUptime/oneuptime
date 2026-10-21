@@ -435,7 +435,12 @@ const TemplatePreview: FunctionComponent<{
             ? intervalLabel
               ? translator.translateTemplate(
                   "Checked on the template's schedule: {{interval}}.",
-                  { interval: translatableTerm(intervalLabel) },
+                  {
+                    // "every 5 minutes", as the poll's line beside it reads.
+                    interval: translatableTerm(intervalLabel, {
+                      inSentence: true,
+                    }),
+                  },
                 )
               : translator.translateText("Checked on the template's schedule.")
             : translator.translateTemplate(

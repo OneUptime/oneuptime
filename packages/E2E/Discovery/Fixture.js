@@ -1,3 +1,8 @@
+/*
+ * The product's theme, as the Dashboard loads it: a test can draw the page
+ * dark by putting "dark" on <html>, as the theme switch does.
+ */
+import "Common/UI/Styles/Theme.css";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import {
