@@ -120,10 +120,11 @@ flowchart TB
 
 ### 호출 SMS의 내용
 
-SMS는 160자 단위의 부분으로 나뉘어 발송되고, 부분마다 요금이 매겨집니다. SMS로 보내는 호출은 가능하면 한 부분에 들어가도록 쓰이며, 잠긴 휴대폰에서 필요한 것만 알려 줍니다. 누가 보냈는지, 무슨 일이 일어났는지, 그리고 호출을 확인하거나 넘기는 하나의 링크입니다.
+SMS는 160자 단위의 부분으로 나뉘어 발송되고, 부분마다 요금이 매겨집니다. SMS로 보내는 호출은 가능하면 한 부분에 들어가도록 쓰이며, 잠긴 휴대폰에서 필요한 것만 알려 줍니다. 누가 보냈는지, 무슨 일이 일어났는지, 그리고 호출을 확인하거나 넘기는 하나의 링크입니다. 휴대폰에서는 다음과 같이 보입니다.
 
 ```text
-OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down. Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
 ```
 
 심각도와 일어난 일(인시던트, 알림 또는 둘 중 하나의 에피소드), 그 번호, 프로젝트, 제목을 이 순서로 알려 줍니다. 모두 한 부분에 들어가지 않으면 다음과 같이 합니다.

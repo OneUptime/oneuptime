@@ -120,10 +120,11 @@ Eine längere Nachricht, mit einem langen Titel oder einer langen Beschreibung, 
 
 ### Was die SMS einer Alarmierung sagt
 
-Eine SMS wird in Teilen zu 160 Zeichen gesendet und abgerechnet. Eine Alarmierung per SMS ist so geschrieben, dass sie wo immer möglich in einen Teil passt, und sagt nur, was Sie auf einem gesperrten Telefon brauchen: wer sie sendet, was passiert ist und den einen Link, um die Alarmierung zu bestätigen oder weiterzugeben.
+Eine SMS wird in Teilen zu 160 Zeichen gesendet und abgerechnet. Eine Alarmierung per SMS ist so geschrieben, dass sie wo immer möglich in einen Teil passt, und sagt nur, was Sie auf einem gesperrten Telefon brauchen: wer sie sendet, was passiert ist und den einen Link, um die Alarmierung zu bestätigen oder weiterzugeben. Auf einem Telefon sieht sie so aus:
 
 ```text
-OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down. Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
 ```
 
 Sie nennt den Schweregrad und was passiert ist (ein Vorfall, eine Warnung oder eine Episode davon), die Nummer, das Projekt und den Titel, in dieser Reihenfolge. Passt nicht alles in einen Teil:

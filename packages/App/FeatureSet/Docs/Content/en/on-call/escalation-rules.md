@@ -120,10 +120,11 @@ A longer message, with a long title or a long description a template placed in i
 
 ### What a page's text message says
 
-A text message is sent, and billed, in parts of 160 characters. A page by SMS is written to fit in one part wherever it can, and says only what you need on a locked phone: who sends it, what happened, and the one link to acknowledge the page or pass it on.
+A text message is sent, and billed, in parts of 160 characters. A page by SMS is written to fit in one part wherever it can, and says only what you need on a locked phone: who sends it, what happened, and the one link to acknowledge the page or pass it on. On a phone it reads:
 
 ```text
-OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down. Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
 ```
 
 It names the severity and what happened (an incident, an alert or an episode of either), its number, the project and the title, in that order. When they do not all fit in one part:

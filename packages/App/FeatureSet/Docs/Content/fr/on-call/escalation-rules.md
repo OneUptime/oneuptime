@@ -120,10 +120,11 @@ Un message plus long, avec un titre long ou une longue description qu'un modèle
 
 ### Ce que dit le SMS d'une alerte
 
-Un SMS est envoyé, et facturé, par parties de 160 caractères. Une alerte par SMS est écrite pour tenir en une seule partie chaque fois que c'est possible, et ne dit que ce dont vous avez besoin sur un téléphone verrouillé : qui l'envoie, ce qui s'est passé, et l'unique lien pour accuser réception de l'alerte ou la transmettre.
+Un SMS est envoyé, et facturé, par parties de 160 caractères. Une alerte par SMS est écrite pour tenir en une seule partie chaque fois que c'est possible, et ne dit que ce dont vous avez besoin sur un téléphone verrouillé : qui l'envoie, ce qui s'est passé, et l'unique lien pour accuser réception de l'alerte ou la transmettre. Sur un téléphone, elle s'affiche ainsi :
 
 ```text
-OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down. Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
 ```
 
 Il indique la gravité et ce qui s'est passé (un incident, une alerte ou un épisode de l'un ou de l'autre), son numéro, le projet et le titre, dans cet ordre. Quand tout ne tient pas en une partie :

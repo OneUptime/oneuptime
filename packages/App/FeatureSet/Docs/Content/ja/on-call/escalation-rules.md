@@ -120,10 +120,11 @@ flowchart TB
 
 ### 呼び出しの SMS の内容
 
-SMS は 160 文字ごとに 1 通として送信され、課金されます。SMS による呼び出しは、できる限り 1 通に収まるように書かれ、ロック画面で必要なことだけを伝えます。誰が送ったか、何が起きたか、そして呼び出しを確認またはパスするための 1 つのリンクです。
+SMS は 160 文字ごとに 1 通として送信され、課金されます。SMS による呼び出しは、できる限り 1 通に収まるように書かれ、ロック画面で必要なことだけを伝えます。誰が送ったか、何が起きたか、そして呼び出しを確認またはパスするための 1 つのリンクです。電話では次のように表示されます。
 
 ```text
-OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down. Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
 ```
 
 重大度と起きたこと（インシデント、アラート、またはそのどちらかのエピソード）、その番号、プロジェクト、タイトルをこの順に示します。すべてが 1 通に収まらない場合は次のとおりです。

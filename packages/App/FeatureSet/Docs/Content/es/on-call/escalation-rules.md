@@ -120,10 +120,11 @@ Un mensaje más largo, con un título largo o una descripción larga que puso un
 
 ### Qué dice el SMS de un aviso
 
-Un SMS se envía, y se cobra, en partes de 160 caracteres. Un aviso por SMS se escribe para que quepa en una sola parte siempre que se pueda, y dice solo lo que necesitas en un teléfono bloqueado: quién lo envía, qué ha pasado y el único enlace para reconocer el aviso o pasarlo.
+Un SMS se envía, y se cobra, en partes de 160 caracteres. Un aviso por SMS se escribe para que quepa en una sola parte siempre que se pueda, y dice solo lo que necesitas en un teléfono bloqueado: quién lo envía, qué ha pasado y el único enlace para reconocer el aviso o pasarlo. En un teléfono se lee así:
 
 ```text
-OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down. Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
 ```
 
 Indica la severidad y qué ha pasado (un incidente, una alerta o un episodio de cualquiera de ellos), su número, el proyecto y el título, en ese orden. Cuando no cabe todo en una parte:

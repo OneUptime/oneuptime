@@ -120,10 +120,11 @@ Ett längre meddelande, med en lång titel eller en lång beskrivning som en mal
 
 ### Vad ett larms sms säger
 
-Ett sms skickas, och debiteras, i delar om 160 tecken. Ett larm via sms skrivs så att det ryms i en del där det går, och säger bara det du behöver på en låst telefon: vem som skickar det, vad som har hänt och den enda länken för att bekräfta larmet eller skicka det vidare.
+Ett sms skickas, och debiteras, i delar om 160 tecken. Ett larm via sms skrivs så att det ryms i en del där det går, och säger bara det du behöver på en låst telefon: vem som skickar det, vad som har hänt och den enda länken för att bekräfta larmet eller skicka det vidare. På en telefon ser det ut så här:
 
 ```text
-OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down. Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
 ```
 
 Det anger allvarlighetsgraden och vad som har hänt (en incident, ett larm eller en episod av någon av dem), dess nummer, projektet och titeln, i den ordningen. När inte allt ryms i en del:

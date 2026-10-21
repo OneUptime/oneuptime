@@ -120,10 +120,11 @@ En lengre melding, med en lang tittel eller en lang beskrivelse som en mal har s
 
 ### Hva SMS-en for en varsling sier
 
-En SMS sendes, og faktureres, i deler på 160 tegn. En varsling på SMS skrives slik at den får plass i én del der det går an, og sier bare det du trenger på en låst telefon: hvem som sender den, hva som har skjedd, og den ene lenken for å bekrefte varslingen eller sende den videre.
+En SMS sendes, og faktureres, i deler på 160 tegn. En varsling på SMS skrives slik at den får plass i én del der det går an, og sier bare det du trenger på en låst telefon: hvem som sender den, hva som har skjedd, og den ene lenken for å bekrefte varslingen eller sende den videre. På en telefon ser den slik ut:
 
 ```text
-OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down. Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
 ```
 
 Den oppgir alvorlighetsgraden og hva som har skjedd (en hendelse, et varsel eller en episode av en av dem), nummeret, prosjektet og tittelen, i den rekkefølgen. Når ikke alt får plass i én del:

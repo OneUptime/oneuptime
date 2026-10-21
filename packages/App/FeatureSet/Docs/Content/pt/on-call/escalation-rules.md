@@ -120,10 +120,11 @@ Uma mensagem mais longa, com um título longo ou uma descrição longa que um mo
 
 ### O que diz o SMS de um acionamento
 
-Um SMS é enviado, e cobrado, em partes de 160 caracteres. Um acionamento por SMS é escrito para caber em uma só parte sempre que possível, e diz só o que você precisa em um telefone bloqueado: quem envia, o que aconteceu e o único link para confirmar o acionamento ou repassá-lo.
+Um SMS é enviado, e cobrado, em partes de 160 caracteres. Um acionamento por SMS é escrito para caber em uma só parte sempre que possível, e diz só o que você precisa em um telefone bloqueado: quem envia, o que aconteceu e o único link para confirmar o acionamento ou repassá-lo. No telefone, ele aparece assim:
 
 ```text
-OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down. Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
 ```
 
 Ele informa a severidade e o que aconteceu (um incidente, um alerta ou um episódio de qualquer um deles), o número, o projeto e o título, nessa ordem. Quando nem tudo cabe em uma parte:

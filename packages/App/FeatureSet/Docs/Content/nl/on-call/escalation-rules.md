@@ -120,10 +120,11 @@ Een langer bericht, met een lange titel of een lange beschrijving die een sjablo
 
 ### Wat de sms van een oproep zegt
 
-Een sms wordt verstuurd, en betaald, in delen van 160 tekens. Een oproep per sms is zo geschreven dat hij waar het kan in één deel past, en zegt alleen wat u nodig hebt op een vergrendelde telefoon: wie hem stuurt, wat er is gebeurd en de ene link om de oproep te bevestigen of door te geven.
+Een sms wordt verstuurd, en betaald, in delen van 160 tekens. Een oproep per sms is zo geschreven dat hij waar het kan in één deel past, en zegt alleen wat u nodig hebt op een vergrendelde telefoon: wie hem stuurt, wat er is gebeurd en de ene link om de oproep te bevestigen of door te geven. Op een telefoon ziet hij er zo uit:
 
 ```text
-OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down. Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
 ```
 
 Hij noemt de ernst en wat er is gebeurd (een incident, een waarschuwing of een episode van een van beide), het nummer, het project en de titel, in die volgorde. Als niet alles in één deel past:

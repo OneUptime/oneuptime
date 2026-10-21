@@ -120,10 +120,11 @@ En længere besked, med en lang titel eller en lang beskrivelse, som en skabelon
 
 ### Hvad et tilkalds sms siger
 
-En sms sendes, og betales, i dele på 160 tegn. Et tilkald pr. sms skrives, så det passer i én del, hvor det overhovedet kan, og siger kun det, du har brug for på en låst telefon: hvem der sender det, hvad der er sket, og det ene link til at kvittere for tilkaldet eller sende det videre.
+En sms sendes, og betales, i dele på 160 tegn. Et tilkald pr. sms skrives, så det passer i én del, hvor det overhovedet kan, og siger kun det, du har brug for på en låst telefon: hvem der sender det, hvad der er sket, og det ene link til at kvittere for tilkaldet eller sende det videre. På en telefon ser det sådan ud:
 
 ```text
-OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down. Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
 ```
 
 Det nævner alvorligheden og hvad der er sket (en hændelse, en advarsel eller en episode af en af dem), dens nummer, projektet og titlen, i den rækkefølge. Når det ikke alt sammen kan være i én del:

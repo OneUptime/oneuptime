@@ -120,10 +120,11 @@ flowchart TB
 
 ### 呼叫簡訊的內容
 
-簡訊按每段 160 個字元傳送並計費。以簡訊傳送的呼叫會盡可能寫成一段，只說明在鎖定的手機上需要知道的內容：誰傳送的、發生了什麼，以及用來確認或轉交該呼叫的唯一連結。
+簡訊按每段 160 個字元傳送並計費。以簡訊傳送的呼叫會盡可能寫成一段，只說明在鎖定的手機上需要知道的內容：誰傳送的、發生了什麼，以及用來確認或轉交該呼叫的唯一連結。在手機上顯示如下：
 
 ```text
-OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down. Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
 ```
 
 簡訊依序寫明嚴重程度和發生的情況（事件、警示，或其中之一的片段）、編號、專案和標題。當這些內容無法全部放進一段時：

@@ -120,10 +120,11 @@ Un messaggio più lungo, con un titolo lungo o una descrizione lunga inserita da
 
 ### Cosa dice l'SMS di un avviso
 
-Un SMS viene inviato, e fatturato, in parti da 160 caratteri. Un avviso via SMS è scritto per stare in una sola parte ovunque possibile, e dice solo ciò che ti serve su un telefono bloccato: chi lo invia, cosa è successo e l'unico link per confermare l'avviso o passarlo.
+Un SMS viene inviato, e fatturato, in parti da 160 caratteri. Un avviso via SMS è scritto per stare in una sola parte ovunque possibile, e dice solo ciò che ti serve su un telefono bloccato: chi lo invia, cosa è successo e l'unico link per confermare l'avviso o passarlo. Su un telefono appare così:
 
 ```text
-OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down. Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
 ```
 
 Indica la gravità e cosa è successo (un incidente, un avviso o un episodio di uno dei due), il suo numero, il progetto e il titolo, in quest'ordine. Quando non entra tutto in una parte:

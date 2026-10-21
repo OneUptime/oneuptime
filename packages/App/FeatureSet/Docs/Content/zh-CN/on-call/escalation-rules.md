@@ -120,10 +120,11 @@ flowchart TB
 
 ### 呼叫短信的内容
 
-短信按每段 160 个字符发送并计费。通过短信发送的呼叫会尽可能写成一段，只说明在锁屏的手机上需要知道的内容：谁发送的、发生了什么，以及用于确认或转交该呼叫的唯一链接。
+短信按每段 160 个字符发送并计费。通过短信发送的呼叫会尽可能写成一段，只说明在锁屏的手机上需要知道的内容：谁发送的、发生了什么，以及用于确认或转交该呼叫的唯一链接。在手机上显示如下：
 
 ```text
-OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down. Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
 ```
 
 短信依次写明严重级别和发生的情况（事件、告警，或其中之一的片段）、编号、项目和标题。当这些内容无法全部放进一段时：

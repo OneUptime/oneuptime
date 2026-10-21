@@ -876,7 +876,30 @@ describe("the Escalation Rules page's text message section", () => {
   });
 
   it("quotes a page's text exactly as OneUptime writes it, and it is one part", () => {
-    expect(section).toContain("```text\n" + example.text + "\n```");
+    /*
+     * Shown as a phone wraps it, at the sentence before the link, so the
+     * docs column shows it all without scrolling: the same text, one line
+     * when sent.
+     */
+    const block: string = section.slice(
+      section.indexOf("```text\n") + "```text\n".length,
+      section.indexOf("\n```", section.indexOf("```text\n") + 1),
+    );
+    const lines: Array<string> = block.split("\n");
+
+    expect(section).toContain("On a phone it reads:\n\n```text\n");
+    expect(lines).toEqual([
+      example.text.slice(
+        0,
+        example.text.indexOf(` ${ON_CALL_PAGE_SMS_ACTION}`),
+      ),
+      example.text.slice(example.text.indexOf(ON_CALL_PAGE_SMS_ACTION)),
+    ]);
+    expect(lines.join(" ")).toBe(example.text);
+    // Each line fits the docs column (556px of 13px JetBrains Mono: 71 characters).
+    for (const line of lines) {
+      expect(line.length).toBeLessThanOrEqual(71);
+    }
     expect(example.sent.encoding).toBe(SmsEncoding.Gsm7);
     expect(example.sent.segments).toBe(1);
     expect(example.text).toContain(ON_CALL_PAGE_SMS_ACTION);
