@@ -32249,5 +32249,14 @@
   "{{count}} repositories": "{{count}} repository's",
   "{{count}} repositories_one": "{{count}} repository",
   "{{start}} to {{end}}, all day": "{{start}} – {{end}}, hele dag",
-  "Paging Started Early Reason": "Reden waarom het oproepen eerder begon"
+  "Paging Started Early Reason": "Reden waarom het oproepen eerder begon",
+  "Also os:, device:, country: and trigger:, as the filter chips": "Ook os:, device:, country: en trigger:, zoals de filterchips",
+  "Carries a tag your page set": "Draagt een tag die uw pagina heeft gezet",
+  "Every session of one signed-in user": "Elke sessie van één aangemelde gebruiker",
+  "Lasted at least this long": "Duurde minstens zo lang",
+  "Narrows to that session; press Enter to open it": "Beperkt tot die sessie; druk op Enter om haar te openen",
+  "Press Enter to open this session.": "Druk op Enter om deze sessie te openen.",
+  "Session and trace IDs, page addresses and user names": "Sessie- en trace-ID's, paginaadressen en gebruikersnamen",
+  "The user filter is ignored by the server for your role; the list is not narrowed by it.": "De server negeert het gebruikersfilter voor uw rol; de lijst wordt er niet door beperkt.",
+  "Visited a page whose address starts with this": "Bezocht een pagina waarvan het adres zo begint"
 }

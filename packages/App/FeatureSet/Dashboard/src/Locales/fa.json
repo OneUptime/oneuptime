@@ -32249,5 +32249,14 @@
   "{{count}} repositories": "{{count}} مخزن",
   "{{count}} repositories_one": "{{count}} مخزن",
   "{{start}} to {{end}}, all day": "{{start}} – {{end}}، تمام روز",
-  "Paging Started Early Reason": "دلیل آغاز زودتر فراخوانی"
+  "Paging Started Early Reason": "دلیل آغاز زودتر فراخوانی",
+  "Also os:, device:, country: and trigger:, as the filter chips": "همچنین os:، device:، country: و trigger:، مانند تراشه‌های فیلتر",
+  "Carries a tag your page set": "برچسبی دارد که صفحه شما گذاشته است",
+  "Every session of one signed-in user": "همه نشست‌های یک کاربر واردشده",
+  "Lasted at least this long": "دست‌کم این مدت طول کشید",
+  "Narrows to that session; press Enter to open it": "به همان نشست محدود می‌کند؛ برای باز کردنش Enter را بزنید",
+  "Press Enter to open this session.": "برای باز کردن این نشست Enter را بزنید.",
+  "Session and trace IDs, page addresses and user names": "شناسه‌های نشست و ترِیس، نشانی صفحه‌ها و نام کاربران",
+  "The user filter is ignored by the server for your role; the list is not narrowed by it.": "سرور فیلتر کاربر را برای نقش شما نادیده می‌گیرد؛ فهرست با آن محدود نمی‌شود.",
+  "Visited a page whose address starts with this": "صفحه‌ای را دیده که نشانی‌اش با این آغاز می‌شود"
 }

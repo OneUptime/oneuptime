@@ -32249,5 +32249,14 @@
   "{{count}} repositories": "{{count}} 个存储库",
   "{{count}} repositories_one": "{{count}} repository",
   "{{start}} to {{end}}, all day": "{{start}} – {{end}}，全天",
-  "Paging Started Early Reason": "提前开始呼叫的原因"
+  "Paging Started Early Reason": "提前开始呼叫的原因",
+  "Also os:, device:, country: and trigger:, as the filter chips": "还有 os:、device:、country: 和 trigger:，与筛选标签相同",
+  "Carries a tag your page set": "带有你的页面设置的标签",
+  "Every session of one signed-in user": "某个已登录用户的所有会话",
+  "Lasted at least this long": "持续时间至少这么长",
+  "Narrows to that session; press Enter to open it": "缩小到该会话；按 Enter 打开它",
+  "Press Enter to open this session.": "按 Enter 打开此会话。",
+  "Session and trace IDs, page addresses and user names": "会话和跟踪 ID、页面地址和用户名",
+  "The user filter is ignored by the server for your role; the list is not narrowed by it.": "对于你的角色，服务器会忽略用户过滤器；列表不会因此缩小。",
+  "Visited a page whose address starts with this": "访问过地址以此开头的页面"
 }

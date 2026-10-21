@@ -32249,5 +32249,14 @@
   "{{count}} repositories": "{{count}} repositorios",
   "{{count}} repositories_one": "{{count}} repositorio",
   "{{start}} to {{end}}, all day": "{{start}} – {{end}}, todo el día",
-  "Paging Started Early Reason": "Motivo del inicio anticipado de los avisos"
+  "Paging Started Early Reason": "Motivo del inicio anticipado de los avisos",
+  "Also os:, device:, country: and trigger:, as the filter chips": "También os:, device:, country: y trigger:, como los chips de filtro",
+  "Carries a tag your page set": "Lleva una etiqueta que fijó tu página",
+  "Every session of one signed-in user": "Cada sesión de un usuario que ha iniciado sesión",
+  "Lasted at least this long": "Duró al menos este tiempo",
+  "Narrows to that session; press Enter to open it": "Acota a esa sesión; pulsa Intro para abrirla",
+  "Press Enter to open this session.": "Pulsa Intro para abrir esta sesión.",
+  "Session and trace IDs, page addresses and user names": "ID de sesión y de traza, direcciones de página y nombres de usuario",
+  "The user filter is ignored by the server for your role; the list is not narrowed by it.": "El servidor ignora el filtro de usuario para tu rol; no acota la lista.",
+  "Visited a page whose address starts with this": "Visitó una página cuya dirección empieza así"
 }

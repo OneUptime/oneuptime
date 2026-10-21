@@ -32249,5 +32249,14 @@
   "{{count}} repositories": "{{count}} 個儲存庫",
   "{{count}} repositories_one": "{{count}} repository",
   "{{start}} to {{end}}, all day": "{{start}} – {{end}}，全天",
-  "Paging Started Early Reason": "提前開始呼叫的原因"
+  "Paging Started Early Reason": "提前開始呼叫的原因",
+  "Also os:, device:, country: and trigger:, as the filter chips": "還有 os:、device:、country: 與 trigger:，與篩選標籤相同",
+  "Carries a tag your page set": "帶有你的頁面設定的標籤",
+  "Every session of one signed-in user": "某位已登入使用者的所有工作階段",
+  "Lasted at least this long": "持續時間至少這麼長",
+  "Narrows to that session; press Enter to open it": "縮小到該工作階段；按 Enter 開啟它",
+  "Press Enter to open this session.": "按 Enter 開啟此工作階段。",
+  "Session and trace IDs, page addresses and user names": "工作階段與追蹤 ID、頁面位址與使用者名稱",
+  "The user filter is ignored by the server for your role; the list is not narrowed by it.": "對於你的角色，伺服器會忽略使用者篩選器；清單不會因此縮小。",
+  "Visited a page whose address starts with this": "造訪過位址以此開頭的頁面"
 }

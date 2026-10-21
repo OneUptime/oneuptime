@@ -32249,5 +32249,14 @@
   "{{count}} repositories": "{{count}} repositorier",
   "{{count}} repositories_one": "{{count}} repository",
   "{{start}} to {{end}}, all day": "{{start}} – {{end}}, hele dagen",
-  "Paging Started Early Reason": "Årsak til at tilkallingen startet tidlig"
+  "Paging Started Early Reason": "Årsak til at tilkallingen startet tidlig",
+  "Also os:, device:, country: and trigger:, as the filter chips": "Også os:, device:, country: og trigger:, som filterbrikkene",
+  "Carries a tag your page set": "Bærer en tagg som siden din har satt",
+  "Every session of one signed-in user": "Hver økt for én pålogget bruker",
+  "Lasted at least this long": "Varte minst så lenge",
+  "Narrows to that session; press Enter to open it": "Avgrenser til den økten; trykk Enter for å åpne den",
+  "Press Enter to open this session.": "Trykk Enter for å åpne denne økten.",
+  "Session and trace IDs, page addresses and user names": "Økt- og spor-ID-er, sideadresser og brukernavn",
+  "The user filter is ignored by the server for your role; the list is not narrowed by it.": "Serveren ignorerer brukerfilteret for rollen din; listen avgrenses ikke av det.",
+  "Visited a page whose address starts with this": "Besøkte en side der adressen begynner slik"
 }

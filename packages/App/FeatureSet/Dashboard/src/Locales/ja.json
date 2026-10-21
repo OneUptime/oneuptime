@@ -32249,5 +32249,14 @@
   "{{count}} repositories": "{{count}} 件のリポジトリ",
   "{{count}} repositories_one": "{{count}} repository",
   "{{start}} to {{end}}, all day": "{{start}}～{{end}}、終日",
-  "Paging Started Early Reason": "呼び出しを早めて開始した理由"
+  "Paging Started Early Reason": "呼び出しを早めて開始した理由",
+  "Also os:, device:, country: and trigger:, as the filter chips": "os:、device:、country:、trigger: も、フィルターチップと同じく使えます",
+  "Carries a tag your page set": "ページが設定したタグを持つ",
+  "Every session of one signed-in user": "サインインした同じユーザーのすべてのセッション",
+  "Lasted at least this long": "少なくともこの長さ続いた",
+  "Narrows to that session; press Enter to open it": "そのセッションに絞り込みます。Enter で開きます",
+  "Press Enter to open this session.": "Enter を押すとこのセッションを開きます。",
+  "Session and trace IDs, page addresses and user names": "セッション ID とトレース ID、ページのアドレス、ユーザー名",
+  "The user filter is ignored by the server for your role; the list is not narrowed by it.": "あなたのロールではサーバーがユーザーフィルターを無視するため、一覧は絞り込まれません。",
+  "Visited a page whose address starts with this": "アドレスがこれで始まるページを訪れた"
 }

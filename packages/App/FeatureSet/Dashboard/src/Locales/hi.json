@@ -32249,5 +32249,14 @@
   "{{count}} repositories": "{{count}} रिपॉजिटरी",
   "{{count}} repositories_one": "{{count}} रिपॉजिटरी",
   "{{start}} to {{end}}, all day": "{{start}} – {{end}}, पूरा दिन",
-  "Paging Started Early Reason": "बुलाना जल्दी शुरू होने का कारण"
+  "Paging Started Early Reason": "बुलाना जल्दी शुरू होने का कारण",
+  "Also os:, device:, country: and trigger:, as the filter chips": "os:, device:, country: और trigger: भी, फ़िल्टर चिप्स की तरह",
+  "Carries a tag your page set": "आपके पेज का सेट किया हुआ टैग रखता है",
+  "Every session of one signed-in user": "एक साइन-इन उपयोगकर्ता के सभी सेशन",
+  "Lasted at least this long": "कम से कम इतनी देर चला",
+  "Narrows to that session; press Enter to open it": "उस सेशन तक सीमित करता है; उसे खोलने के लिए Enter दबाएँ",
+  "Press Enter to open this session.": "यह सेशन खोलने के लिए Enter दबाएँ।",
+  "Session and trace IDs, page addresses and user names": "सेशन और ट्रेस ID, पेज के पते और उपयोगकर्ता नाम",
+  "The user filter is ignored by the server for your role; the list is not narrowed by it.": "आपकी भूमिका के लिए सर्वर उपयोगकर्ता फ़िल्टर को अनदेखा करता है; इससे सूची सीमित नहीं होती।",
+  "Visited a page whose address starts with this": "ऐसा पेज देखा जिसका पता इससे शुरू होता है"
 }

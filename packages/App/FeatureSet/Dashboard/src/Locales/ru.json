@@ -32249,5 +32249,14 @@
   "{{count}} repositories": "Репозиториев: {{count}}",
   "{{count}} repositories_one": "{{count}} репозиторий",
   "{{start}} to {{end}}, all day": "{{start}} – {{end}}, весь день",
-  "Paging Started Early Reason": "Причина раннего начала вызова"
+  "Paging Started Early Reason": "Причина раннего начала вызова",
+  "Also os:, device:, country: and trigger:, as the filter chips": "А также os:, device:, country: и trigger:, как чипы фильтров",
+  "Carries a tag your page set": "Несёт тег, заданный вашей страницей",
+  "Every session of one signed-in user": "Все сеансы одного вошедшего пользователя",
+  "Lasted at least this long": "Длился не меньше этого",
+  "Narrows to that session; press Enter to open it": "Сужает до этого сеанса; нажмите Enter, чтобы открыть его",
+  "Press Enter to open this session.": "Нажмите Enter, чтобы открыть этот сеанс.",
+  "Session and trace IDs, page addresses and user names": "ID сеансов и трассировок, адреса страниц и имена пользователей",
+  "The user filter is ignored by the server for your role; the list is not narrowed by it.": "Сервер игнорирует фильтр по пользователю для вашей роли; список им не сужается.",
+  "Visited a page whose address starts with this": "Посетил страницу, адрес которой начинается так"
 }
