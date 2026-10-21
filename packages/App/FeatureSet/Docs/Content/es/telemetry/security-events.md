@@ -45,6 +45,7 @@ Abre **Productos → Eventos de seguridad**, en **Observabilidad**. Su menú tie
 | **Playbooks** | Playbooks | Pasos que se ejecutan sobre los casos, por sí solos o a mano |
 | **Esperando aprobación** | Playbooks | Los pasos de playbook que esperan que alguien los apruebe o los rechace |
 | **Ejecuciones de playbooks** | Playbooks | Lo que hizo cada playbook, paso a paso |
+| **Protected Entities** | Playbooks | Los usuarios y hosts a los que ningún playbook aplica contención |
 | **Conexiones** | Conexiones | Sus registros, los productos de seguridad que consulta OneUptime y los SIEM a los que envía |
 | **Guía de configuración** | Conexiones | Fragmentos para enviar eventos, rellenados con tu clave de ingesta |
 
@@ -184,7 +185,7 @@ La tarjeta **Tus registros**, en la parte superior de **Conexiones**, convierte 
 | AWS Security Hub | Findings, como Detection y Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Eventos de inicio de sesión, MFA, cuentas y políticas | [Okta System Log](/docs/integrations/okta) |
 
-- Las alertas propias del producto con un nivel igual o superior a **Open Cases From** (**High and above** salvo que elijas otro nivel, o **Nunca**) abren [casos](/docs/telemetry/security-cases), agrupadas por el usuario, host o dirección de los que tratan.
+- Las alertas propias del producto con un nivel igual o superior a **Open Cases From** (**Alta y superior** salvo que elijas otro nivel, o **Nunca**) abren [casos](/docs/telemetry/security-cases), agrupadas por el usuario, host o dirección de los que tratan.
 - Una conexión lee los registros según el momento en que el producto los creó, no según el momento de la actividad que describen. Una regla de SIEM que se ejecuta cada hora crea detecciones mucho después de los eventos que coincidieron, y aun así se importan.
 - La primera consulta mira 24 horas atrás, así que una conexión nueva muestra registros recientes de inmediato.
 - **Probar conexión**, en la fila de la conexión, comprueba el acceso al producto y que los workers propios de OneUptime están funcionando, y no importa nada. **Ejecutar ahora** consulta en el acto.
@@ -315,7 +316,7 @@ OneUptime comprueba cada minuto qué reglas habilitadas han cumplido su interval
 - Las ventanas van una tras otra, no se deslizan. Con un intervalo de 10 minutos, unos fallos a las 09:58 y a las 10:01 pueden caer en ejecuciones distintas y se cuentan por separado, así que deja margen al elegir un umbral.
 - Tras un hueco, como una caída del worker o una regla que se vuelve a activar, la siguiente ejecución cubre el hueco entero, hasta las últimas 24 horas.
 - Un evento que llega con más de dos minutos de retraso, cuando una ejecución ya ha cubierto su hora, se guarda y se puede buscar, pero esa regla nunca lo lee.
-- Como mucho se disparan 100 grupos por ejecución: los de recuentos más altos.
+- Cada grupo que alcanza el umbral se convierte en un Detection Finding, hasta 10.000 por ejecución. Se abren alertas, incidentes y casos para los 100 con los recuentos más altos; el resto comparte un caso sobre la regla, y el **Último error** de la regla dice cuántos grupos coincidieron.
 
 ### Gravedad
 

@@ -17,6 +17,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import SecurityCasePriority from "../../Types/SecurityCase/SecurityCasePriority";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @TenantColumn("projectId")
@@ -398,6 +399,32 @@ class UserNotificationSetting extends BaseModel {
     default: false,
   })
   public alertByWebhook?: boolean = undefined;
+
+  /*
+   * For the New Security Case setting
+   * (SEND_SECURITY_CASE_OPENED_NOTIFICATION) alone: the lowest case priority
+   * that notifies this person. Empty is High - High and Critical cases - the
+   * default for everyone who never picked one (SecurityCaseNotificationPriority).
+   */
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [Permission.CurrentUser],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    title: "Minimum Security Case Priority",
+    description:
+      "For the New Security Case setting: the lowest case priority that notifies you - Critical, High, Medium, Low or Informational. Empty means High.",
+    example: "High",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public minimumSecurityCasePriority?: SecurityCasePriority = undefined;
 }
 
 export default UserNotificationSetting;

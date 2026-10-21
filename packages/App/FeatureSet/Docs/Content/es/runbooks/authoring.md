@@ -12,7 +12,7 @@ Un runbook se escribe como una lista ordenada de pasos en su página **Pasos**. 
 ## Antes de empezar
 
 - **Un rol que escriba runbooks.** Project Owner, Project Admin y Runbook Admin crean runbooks y guardan sus pasos. Con permisos granulares necesitas **Create Runbook** y **Edit Runbook**. Consulta [Permisos](/docs/runbooks/configuration#permisos).
-- **Un Runner, para los pasos Bash, SSH y kubectl.** Estos pasos se ejecutan en un [Runner](/docs/runbooks/agents) dentro de tu propia infraestructura, nunca en el Worker de OneUptime. Instala uno primero. Un paso JavaScript se ejecuta en un [Runner global](/docs/runbooks/agents#runners-globales) salvo que elijas uno de los tuyos.
+- **Un Runner, para los pasos Bash, SSH y kubectl.** Estos pasos se ejecutan en un [Runner](/docs/runbooks/agents) dentro de tu propia infraestructura, nunca en el Worker de OneUptime. Instala uno primero. Un paso que no elige ningún Runner se ejecuta en el [Runner predeterminado del proyecto](/docs/runbooks/agents#el-runner-predeterminado-del-proyecto), si has definido uno; si no, un paso JavaScript se ejecuta en un [Runner global](/docs/runbooks/agents#runners-globales).
 - **Una variable secreta, para los pasos SSH y kubectl.** La clave, la contraseña o el kubeconfig con que inicia sesión un paso es una [variable de runbook](/docs/runbooks/variables) secreta. Project Owner y Project Admin crean las variables, y Runbook Admin las elige en los pasos que escribe. Un paso kubectl puede usar en su lugar el acceso propio del Runner.
 - **Un proveedor de LLM, para los pasos de IA.** Consulta [Proveedores de LLM](/docs/ai/llm-provider).
 
@@ -64,7 +64,7 @@ Cada paso tiene estos campos. Un paso automatizado muestra su **Título** y los 
 | [kubectl](#kubectl) | Un Runner | Un Runner, y una variable de kubeconfig o el acceso propio del Runner |
 | [AI](#ai) | El Worker de OneUptime | Un proveedor de LLM |
 
-En cada paso automatizado de abajo, **Más campos** del paso contiene primero **Requerir aprobación** y **Continuar en caso de error**, luego los ajustes propios del paso - los encabezados de una llamada HTTP, el puerto y la frase de contraseña de la clave de un paso SSH, el proveedor y los interruptores de contexto de un paso de IA - y por último la **Descripción** y los tiempos de espera.
+En cada paso automatizado de abajo, **Más campos** del paso contiene primero su **Runner**, en un paso que se ejecuta en uno, luego **Requerir aprobación** y **Continuar en caso de error**, luego los ajustes propios del paso - los encabezados de una llamada HTTP, el puerto y la frase de contraseña de la clave de un paso SSH, el proveedor y los interruptores de contexto de un paso de IA - y por último la **Descripción** y los tiempos de espera. Plegado, nombra el Runner del paso, para que veas dónde se ejecuta un paso sin abrirlo.
 
 ### Manual
 
@@ -78,7 +78,7 @@ Un fragmento de JavaScript que se ejecuta en un sandbox `isolated-vm` en un [age
 
 | Campo | Qué hace | Predeterminado |
 | --- | --- | --- |
-| **Runner** | El Runner que ejecuta el paso: **Runner global**, o uno de los tuyos. Solo el Runner que eliges puede reclamar el trabajo; cualquier Runner global puede reclamar un paso en **Runner global**. | **Runner global**, cuando hay uno |
+| **Runner** | En **Más campos**. El Runner que ejecuta el paso: **Runner global**, o uno de los tuyos. Solo el Runner que eliges puede reclamar el trabajo; cualquier Runner global puede reclamar un paso en **Runner global**. | El [Runner predeterminado del proyecto](/docs/runbooks/agents#el-runner-predeterminado-del-proyecto), si has definido uno; si no, **Runner global**, cuando hay uno |
 | **Script** | El JavaScript que se ejecuta. Devuelve un valor con `return` para capturarlo; cada línea de `console.log` también se captura. Lanzar un error hace fallar el paso. | — |
 | **Tiempo de espera de ejecución** | Cuánto tiempo deja el Runner que se ejecute el fragmento antes de destruir el sandbox. Un Runner global lo deja ejecutarse 5 minutos como mucho. | 30 segundos |
 | **Tiempo de espera de reclamación** | Cuánto tiempo espera el Worker a que el Runner reclame el trabajo. | 2 minutos |
@@ -117,7 +117,7 @@ Un script de bash que se ejecuta con `bash -c <script>` en un [agente de runbook
 
 | Campo | Qué hace | Predeterminado |
 | --- | --- | --- |
-| **Runner** | El Runner que ejecuta el paso. Solo ese Runner puede reclamar el trabajo. | — |
+| **Runner** | En **Más campos**. El Runner que ejecuta el paso. Solo ese Runner puede reclamar el trabajo. Los Runners globales solo ejecutan pasos JavaScript. | El Runner predeterminado del proyecto, si has definido uno |
 | **Script de Bash** | El script. La salida (stdout y stderr) se captura hasta 50 KB, y un código de salida distinto de cero hace fallar el paso. | — |
 | **Tiempo de espera de ejecución** | Cuánto tiempo deja el Runner que se ejecute el script antes de matarlo con `SIGKILL`. Auméntalo para los pasos que tardan minutos con razón. | 30 segundos |
 | **Tiempo de espera de reclamación** | Cuánto tiempo espera el Worker a que el Runner reclame el trabajo. | 2 minutos |
@@ -146,7 +146,7 @@ Iniciar sesión en una máquina por SSH y ejecutar allí un script de bash. El R
 
 | Campo | Qué hace |
 | --- | --- |
-| **Runner** | El Runner que abre la conexión. Debe poder llegar a la máquina por la red. |
+| **Runner** | En **Más campos**. El Runner que abre la conexión. Debe poder llegar a la máquina por la red. Un paso que no elige ninguno se ejecuta en el Runner predeterminado del proyecto. |
 | **SSH a** | El usuario y la máquina, tal como los escribirías después de `ssh`: `deploy@10.0.4.21`. |
 | **Iniciar sesión con** | La variable secreta que contiene la clave privada o la contraseña; el valor indica cuál es. Solo se ofrecen variables secretas, y el paso avisa cuando su Runner no puede usar la elegida. |
 | **Script de Bash** | Se ejecuta con `bash` en la máquina, como el usuario con que inicia sesión. La salida se captura hasta 50 KB, y un código de salida distinto de cero hace fallar el paso. |
@@ -168,7 +168,7 @@ Ejecutar comandos kubectl contra un clúster. El script se ejecuta con bash en e
 
 | Campo | Qué hace |
 | --- | --- |
-| **Runner** | El Runner que ejecuta kubectl. Debe poder llegar al servidor de API del clúster. |
+| **Runner** | En **Más campos**. El Runner que ejecuta kubectl. Debe poder llegar al servidor de API del clúster. Un paso que no elige ninguno se ejecuta en el Runner predeterminado del proyecto. |
 | **Kubeconfig** | La variable secreta que contiene el kubeconfig del clúster, o **El acceso propio del Runner**: el kubeconfig propio del Runner, o su cuenta de servicio cuando se ejecuta en el clúster. El Runner escribe un kubeconfig en un archivo que solo él puede leer, y lo elimina cuando termina el script. |
 | **Script** | Los comandos kubectl. La salida se captura hasta 50 KB, y un código de salida distinto de cero hace fallar el paso. |
 | **Tiempo de espera de ejecución** | Cuánto tiempo deja el Runner que se ejecute el script antes de detenerlo con `SIGKILL`. 30 segundos por defecto. |

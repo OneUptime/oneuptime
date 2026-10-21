@@ -45,6 +45,7 @@ flowchart TB
 | **Playbooks** | Playbooks | Steg som kjører på saker, av seg selv eller manuelt |
 | **Venter på godkjenning** | Playbooks | Playbook-stegene som venter på at noen godkjenner eller avviser dem |
 | **Playbook-kjøringer** | Playbooks | Hva hver playbook gjorde, steg for steg |
+| **Protected Entities** | Playbooks | Brukerne og vertene som ingen playbook demmer inn |
 | **Connections** | Connections | Loggene dine, sikkerhetsproduktene OneUptime henter fra, og SIEM-ene det sender til |
 | **Oppsettveiledning** | Connections | Kodesnutter for å sende hendelser, fylt ut med ingestion-nøkkelen din |
 
@@ -184,7 +185,7 @@ Kortet **Loggene dine**, øverst på **Connections**, gjør loggene du allerede 
 | AWS Security Hub | Findings, som Detection og Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Hendelser for pålogging, MFA, kontoer og policyer | [Okta System Log](/docs/integrations/okta) |
 
-- Produktets egne varsler på eller over **Open Cases From** (**High and above** med mindre du velger et annet nivå, eller **Aldri**) åpner [saker](/docs/telemetry/security-cases), gruppert etter brukeren, verten eller adressen de gjelder.
+- Produktets egne varsler på eller over **Open Cases From** (**Høy og høyere** med mindre du velger et annet nivå, eller **Aldri**) åpner [saker](/docs/telemetry/security-cases), gruppert etter brukeren, verten eller adressen de gjelder.
 - En tilkobling leser poster etter tidspunktet produktet opprettet dem, ikke etter tidspunktet for aktiviteten de beskriver. En SIEM-regel som kjører hver time, oppretter deteksjoner lenge etter hendelsene den traff, og de importeres likevel.
 - Den første hentingen ser 24 timer tilbake, så en ny tilkobling viser nylige poster med en gang.
 - **Test tilkoblingen**, i tilkoblingens rad, sjekker tilgangen til produktet og at OneUptimes egne workers kjører, og importerer ingenting. **Run now** henter med en gang.
@@ -315,7 +316,7 @@ OneUptime sjekker hvert minutt etter aktiverte regler der intervallet har gått 
 - Vinduene ligger etter hverandre og glir ikke. Med et intervall på 10 minutter kan feil kl. 09:58 og 10:01 havne i ulike kjøringer og telles hver for seg, så legg inn margin når du velger en terskel.
 - Etter et opphold, for eksempel et worker-avbrudd eller en regel som er slått på igjen, dekker neste kjøring hele oppholdet, opptil de siste 24 timene.
 - En hendelse som kommer mer enn to minutter for sent, etter at en kjøring har dekket tidspunktet, lagres og er søkbar, men den regelen leser den aldri.
-- Høyst 100 grupper slår til per kjøring: de med høyest telling.
+- Hver gruppe som når terskelen, blir et Detection Finding, opptil 10 000 per kjøring. Varsler, hendelser og saker åpnes for de 100 med høyest telling; resten deler én sak om regelen, og regelens **Siste feil** sier hvor mange grupper som traff.
 
 ### Alvorlighetsgrad
 

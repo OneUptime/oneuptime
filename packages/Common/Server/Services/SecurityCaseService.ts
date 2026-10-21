@@ -14,6 +14,9 @@ import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
 import SecurityPlaybookLauncher from "../Utils/SecurityPlaybook/SecurityPlaybookLauncher";
+import SecurityCaseNotifications, {
+  isSetupTestCase,
+} from "../Utils/SecurityCase/SecurityCaseNotifications";
 import {
   Blue500,
   Gray500,
@@ -28,6 +31,7 @@ import { JSONArray, JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import SecurityCasePriority, {
   isSecurityCasePriority,
+  securityCasePriorityRank,
 } from "../../Types/SecurityCase/SecurityCasePriority";
 import SecurityCaseStatus, {
   isSecurityCaseStatus,
@@ -301,6 +305,32 @@ export class Service extends ProjectReferencesService<Model> {
         SECURITY_CASE_OPENED_BY_DETECTION_KEY
       ] === true;
 
+    /*
+     * Whoever's chosen priority the new case reaches is told, a moment from
+     * now (SecurityCaseNotifications), and whoever it was opened assigned to.
+     * The person who opened it is not told about it, and nobody is told
+     * about the setup test's case.
+     */
+    if (
+      createdItem.id &&
+      createdItem.projectId &&
+      !isSetupTestCase(createdItem)
+    ) {
+      await SecurityCaseNotifications.caseReachedPriority({
+        projectId: createdItem.projectId,
+        securityCaseId: createdItem.id,
+        actorUserId: onCreate.createBy.props.userId,
+      });
+
+      await SecurityCaseNotifications.caseAssigned({
+        projectId: createdItem.projectId,
+        securityCaseId: createdItem.id,
+        userId: createdItem.assignedToUserId,
+        teamId: createdItem.assignedToTeamId,
+        actorUserId: onCreate.createBy.props.userId,
+      });
+    }
+
     if (createdItem.id && createdItem.projectId && !openedByDetection) {
       await SecurityCaseFeedService.createSecurityCaseFeedItem({
         projectId: createdItem.projectId,
@@ -526,6 +556,18 @@ export class Service extends ProjectReferencesService<Model> {
       isSecurityCasePriority(data["priority"]) ? data["priority"] : undefined;
 
     if (newPriority && newPriority !== old.priority) {
+      // Up, it may reach somebody's chosen priority now; down tells nobody.
+      if (
+        securityCasePriorityRank(newPriority) >
+        securityCasePriorityRank(old.priority)
+      ) {
+        await SecurityCaseNotifications.caseReachedPriority({
+          projectId,
+          securityCaseId: caseId,
+          actorUserId: userId,
+        });
+      }
+
       await SecurityCaseFeedService.createSecurityCaseFeedItem({
         projectId,
         securityCaseId: caseId,
@@ -560,6 +602,22 @@ export class Service extends ProjectReferencesService<Model> {
       if (userChanged && assignedUserId && !old.acknowledgedAt) {
         stamps["acknowledgedAt"] = now;
       }
+
+      // Told: the person it now is, or the team it moved to.
+      await SecurityCaseNotifications.caseAssigned({
+        projectId,
+        securityCaseId: caseId,
+        userId:
+          userChanged && assignedUserId
+            ? new ObjectID(assignedUserId)
+            : undefined,
+        teamId:
+          teamChanged && assignedTeamId
+            ? new ObjectID(assignedTeamId)
+            : undefined,
+        actorUserId: userId,
+        playbookName,
+      });
 
       await SecurityCaseFeedService.createSecurityCaseFeedItem({
         projectId,

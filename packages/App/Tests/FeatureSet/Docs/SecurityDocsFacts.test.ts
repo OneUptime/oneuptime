@@ -82,6 +82,7 @@ import {
   DETECTION_MATCH_COUNT_ATTRIBUTE,
   DETECTION_MATCH_COUNT_THRESHOLD_MAX,
   DETECTION_MATCH_COUNT_THRESHOLD_MIN,
+  DETECTION_MAX_FINDINGS_PER_EVALUATION,
   DETECTION_MAX_GROUPS_PER_EVALUATION,
   DETECTION_MAX_LOOKBACK_IN_MINUTES,
   DETECTION_RULE_ID_ATTRIBUTE,
@@ -120,6 +121,7 @@ import {
   THREAT_INTEL_DEFAULT_VALID_DAYS,
   THREAT_INTEL_FIRST_MATCH_WINDOW_IN_MINUTES,
   THREAT_INTEL_MATCH_MAX_LOOKBACK_IN_MINUTES,
+  THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION,
   THREAT_INTEL_MAX_INDICATORS_PER_EVALUATION,
   THREAT_INTEL_MINIMUM_CONFIDENCE_MAX,
   THREAT_INTEL_MINIMUM_CONFIDENCE_MIN,
@@ -1598,18 +1600,26 @@ describe("the Security Events page", () => {
     );
   });
 
-  it("runs the rules every minute over back-to-back windows, at most 24 hours back, firing at most the 100 highest groups", () => {
+  it("runs the rules every minute over back-to-back windows, at most 24 hours back, recording every group and opening cases for the 100 highest", () => {
     const job: string = source("detectionJob");
     const evaluator: string = flat(source("detectionEvaluator"));
     const service: string = flat(source("securityEventService"));
 
     expect(job).toContain("schedule: EVERY_MINUTE,");
-    expect(job).toContain("DetectionRuleEvaluator.evaluateAllDueRules()");
+    expect(job).toContain(
+      "DetectionRuleEvaluator.enqueueProjectsWithDueRules()",
+    );
+    expect(job).toContain(
+      "DetectionRuleEvaluator.evaluateDueRulesForProject(projectId, lease)",
+    );
     expect(evaluator).toContain(
       "let startTime: Date = rule.lastEvaluatedAt ? rule.lastEvaluatedAt : OneUptimeDate.addRemoveMinutes(endTime, -intervalInMinutes); if (OneUptimeDate.isBefore(startTime, earliestAllowed)) { startTime = earliestAllowed; }",
     );
     expect(evaluator).toContain(
-      "maxGroups: DETECTION_MAX_GROUPS_PER_EVALUATION,",
+      "maxGroups: DETECTION_MAX_FINDINGS_PER_EVALUATION + 1,",
+    );
+    expect(evaluator).toContain(
+      "openLimit: DETECTION_MAX_GROUPS_PER_EVALUATION, recordLimit: DETECTION_MAX_FINDINGS_PER_EVALUATION,",
     );
     expect(service).toContain(
       "AND time >= ${{ type: TableColumnType.DateTime64, value: data.startTime, }} AND time < ${{ type: TableColumnType.DateTime64, value: data.endTime, }}",
@@ -1619,6 +1629,7 @@ describe("the Security Events page", () => {
     );
     expect(DETECTION_MAX_LOOKBACK_IN_MINUTES).toBe(24 * 60);
     expect(DETECTION_MAX_GROUPS_PER_EVALUATION).toBe(100);
+    expect(DETECTION_MAX_FINDINGS_PER_EVALUATION).toBe(10000);
     expect(page).toContain(
       "OneUptime checks every minute for enabled rules whose interval has passed since their last run.",
     );
@@ -1635,7 +1646,7 @@ describe("the Security Events page", () => {
       "the next run covers the whole gap, up to the last 24 hours.",
     );
     expect(page).toContain(
-      "- At most 100 groups fire per run: the ones with the highest counts.",
+      "- Every group that reaches the threshold becomes a Detection Finding, up to 10,000 a run. Alerts, incidents and cases open for the 100 with the highest counts; the rest share one case about the rule, and the rule's **Last Error** says how many groups matched.",
     );
   });
 
@@ -2226,7 +2237,7 @@ describe("the Threat Intelligence page", () => {
     expect(statement.query).toContain(">=");
   });
 
-  it("matches every minute: 15 minutes first, at most 24 hours back, at most the 100 values seen in the most events", () => {
+  it("matches every minute: 15 minutes first, at most 24 hours back, recording every value and opening cases for the 100 seen in the most events", () => {
     const matcher: string = flat(source("matcher"));
     const indicators: string = flat(source("indicatorService"));
 
@@ -2235,6 +2246,13 @@ describe("the Threat Intelligence page", () => {
     expect(THREAT_INTEL_FIRST_MATCH_WINDOW_IN_MINUTES).toBe(15);
     expect(THREAT_INTEL_MATCH_MAX_LOOKBACK_IN_MINUTES).toBe(24 * 60);
     expect(THREAT_INTEL_MAX_INDICATORS_PER_EVALUATION).toBe(100);
+    expect(THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION).toBe(10000);
+    expect(matcher).toContain(
+      "maxGroups: THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION + 1,",
+    );
+    expect(matcher).toContain(
+      "openLimit: MAX_GROUPS_PER_EVALUATION, recordLimit: THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION,",
+    );
     expect(matcher).toContain(
       "let startTime: Date = feed.lastEvaluatedAt ? feed.lastEvaluatedAt : OneUptimeDate.addRemoveMinutes( endTime, -THREAT_INTEL_FIRST_MATCH_WINDOW_IN_MINUTES, ); if (OneUptimeDate.isBefore(startTime, earliestAllowed)) { startTime = earliestAllowed; }",
     );
@@ -2248,7 +2266,7 @@ describe("the Threat Intelligence page", () => {
       "- The first check covers the last 15 minutes. After an outage, the next check catches up on at most the last 24 hours.",
     );
     expect(page).toContain(
-      "- Each check matches at most 100 indicator values per feed: the ones seen in the most events.",
+      "- Each check records every matched indicator value as a finding, up to 10,000 per feed. Alerts, incidents and cases open for the 100 values seen in the most events; the rest share one case about the feed, and the feed's **Last Match Error** says how many matched.",
     );
     expect(page).toContain(
       "Matching compares an indicator's value with an event's observables, not with every field",

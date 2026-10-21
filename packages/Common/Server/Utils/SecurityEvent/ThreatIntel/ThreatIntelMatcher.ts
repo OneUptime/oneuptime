@@ -1,5 +1,5 @@
 import ThreatIntelFeed from "../../../../Models/DatabaseModels/ThreatIntelFeed";
-import LIMIT_MAX from "../../../../Types/Database/LimitMax";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -20,6 +20,7 @@ import {
   THREAT_INDICATOR_VALUE_ATTRIBUTE,
   THREAT_INTEL_FIRST_MATCH_WINDOW_IN_MINUTES,
   THREAT_INTEL_MATCH_MAX_LOOKBACK_IN_MINUTES,
+  THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION,
   THREAT_INTEL_MAX_INDICATORS_PER_EVALUATION,
   THREAT_INTEL_PRODUCT_NAME,
   THREAT_INTEL_SERVICE_NAME,
@@ -49,7 +50,21 @@ import {
   resolveIncidentSeverityIdForProject,
 } from "../SecurityEventAlerting";
 import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
-import { threatIntelMatchMarkdown } from "../../../../Utils/SecurityCase/SecurityCaseMarkdown";
+import {
+  detectionOverflowMarkdown,
+  threatIntelMatchMarkdown,
+} from "../../../../Utils/SecurityCase/SecurityCaseMarkdown";
+import {
+  DetectionGroupSplit,
+  describeDetectionOverflow,
+  splitDetectionGroups,
+} from "../../../../Utils/SecurityEvent/DetectionOverflow";
+import Select from "../../../Types/Database/Select";
+import SecurityProjectWork, {
+  SecurityProjectWorkDefinition,
+  SecurityProjectWorkLease,
+  UNLIMITED_SECURITY_PROJECT_WORK_LEASE,
+} from "../SecurityProjectWork";
 import SecurityCaseIngest, {
   SecurityCaseIngestResult,
   SecurityDetectionSignal,
@@ -84,7 +99,10 @@ export const MAX_GROUPS_PER_EVALUATION: number =
 
 export interface ThreatIntelMatchResult {
   feedId: string;
+  // Indicator values the check recorded (at most THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION).
   matchedIndicators: number;
+  // Of those, the ones past MAX_GROUPS_PER_EVALUATION: one case about the feed holds them.
+  overflowIndicators: number;
   totalMatches: number;
   alertsCreated: number;
   incidentsCreated: number;
@@ -93,66 +111,148 @@ export interface ThreatIntelMatchResult {
   casesOpened: number;
 }
 
+/*
+ * The work is spread by project (SecurityProjectWork): the cron queues one
+ * turn for each project with an enabled feed, and a turn checks that
+ * project's feeds, the longest unchecked first.
+ */
+export const THREAT_INTEL_MATCH_PROJECT_WORK: SecurityProjectWorkDefinition = {
+  jobName: "ThreatIntel:MatchProjectIndicators",
+  key: "threat-intel-match",
+  maxConcurrentProjects: 8,
+};
+
+// What a turn reads of each feed: everything evaluateFeed needs.
+const THREAT_INTEL_MATCH_FEED_SELECT: Select<ThreatIntelFeed> = {
+  _id: true,
+  projectId: true,
+  name: true,
+  shouldCreateAlert: true,
+  shouldCreateIncident: true,
+  shouldWriteDetectionFinding: true,
+  shouldCreateCase: true,
+  alertSeverityId: true,
+  incidentSeverityId: true,
+  lastEvaluatedAt: true,
+};
+
+// Finding rows written per insert.
+const THREAT_INTEL_FINDING_INSERT_BATCH_SIZE: number = 1000;
+
 export default class ThreatIntelMatcher {
+  /*
+   * The cron's half: every enabled feed in the instance, page by page, and
+   * one turn queued for each project that has one. Returns how many
+   * projects were queued.
+   */
   @CaptureSpan()
-  public static async evaluateAllDueFeeds(): Promise<void> {
-    const feeds: Array<ThreatIntelFeed> = await ThreatIntelFeedService.findBy({
-      query: {
-        isEnabled: true,
-      },
-      select: {
-        _id: true,
-        projectId: true,
-        name: true,
-        shouldCreateAlert: true,
-        shouldCreateIncident: true,
-        shouldWriteDetectionFinding: true,
-        shouldCreateCase: true,
-        alertSeverityId: true,
-        incidentSeverityId: true,
-        lastEvaluatedAt: true,
-      },
-      skip: 0,
-      limit: LIMIT_MAX,
-      props: {
-        isRoot: true,
-      },
+  public static async enqueueProjectsWithEnabledFeeds(): Promise<number> {
+    const feeds: Array<ThreatIntelFeed> =
+      await ThreatIntelFeedService.findAllBy({
+        query: {
+          isEnabled: true,
+        },
+        select: {
+          _id: true,
+          projectId: true,
+        },
+        sort: {
+          _id: SortOrder.Ascending,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    return SecurityProjectWork.enqueueProjects(
+      THREAT_INTEL_MATCH_PROJECT_WORK,
+      feeds.map((feed: ThreatIntelFeed): ObjectID | undefined => {
+        return feed.projectId;
+      }),
+    );
+  }
+
+  /*
+   * One project's turn: each enabled feed, the longest unchecked first, for
+   * as long as the turn has time and keeps its lease. A feed left over goes
+   * on next minute from its own lastEvaluatedAt.
+   */
+  @CaptureSpan()
+  public static async evaluateFeedsForProject(
+    projectId: ObjectID,
+    lease: SecurityProjectWorkLease = UNLIMITED_SECURITY_PROJECT_WORK_LEASE,
+  ): Promise<void> {
+    const feeds: Array<ThreatIntelFeed> =
+      await ThreatIntelFeedService.findAllBy({
+        query: {
+          projectId,
+          isEnabled: true,
+        },
+        select: THREAT_INTEL_MATCH_FEED_SELECT,
+        sort: {
+          _id: SortOrder.Ascending,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    feeds.sort((a: ThreatIntelFeed, b: ThreatIntelFeed): number => {
+      return (
+        (a.lastEvaluatedAt?.getTime() || 0) -
+        (b.lastEvaluatedAt?.getTime() || 0)
+      );
     });
 
     for (const feed of feeds) {
-      try {
-        await this.evaluateFeed(feed);
-      } catch (error) {
-        logger.error(
-          `ThreatIntelMatcher: error evaluating feed ${feed.id?.toString()}:`,
-        );
-        logger.error(error);
+      if (!lease.hasTimeLeft()) {
+        return;
+      }
 
-        /*
-         * Best-effort bookkeeping guarded the same way as the poller's:
-         * one feed whose error will not store must not stop every other
-         * feed from being evaluated. ClickHouse errors echo the failing
-         * query back, so they are the long ones.
-         */
-        if (feed.id) {
-          const feedId: ObjectID = feed.id;
+      await this.evaluateFeedRecordingFailure(feed);
 
-          await ConnectorErrorMessage.recordFailure({
-            label: `ThreatIntelMatcher: feed ${feedId.toString()}`,
-            write: async (): Promise<void> => {
-              await ThreatIntelFeedService.updateOneById({
-                id: feedId,
-                data: {
-                  lastEvaluatedAt: OneUptimeDate.getCurrentDate(),
-                  lastMatchError: ConnectorErrorMessage.toMessage(error),
-                },
-                props: {
-                  isRoot: true,
-                },
-              });
-            },
-          });
-        }
+      if (!(await lease.keep())) {
+        return;
+      }
+    }
+  }
+
+  // evaluateFeed, with a failure recorded on the feed rather than thrown.
+  private static async evaluateFeedRecordingFailure(
+    feed: ThreatIntelFeed,
+  ): Promise<void> {
+    try {
+      await this.evaluateFeed(feed);
+    } catch (error) {
+      logger.error(
+        `ThreatIntelMatcher: error evaluating feed ${feed.id?.toString()}:`,
+      );
+      logger.error(error);
+
+      /*
+       * Best-effort bookkeeping guarded the same way as the poller's:
+       * one feed whose error will not store must not stop every other
+       * feed from being evaluated. ClickHouse errors echo the failing
+       * query back, so they are the long ones.
+       */
+      if (feed.id) {
+        const feedId: ObjectID = feed.id;
+
+        await ConnectorErrorMessage.recordFailure({
+          label: `ThreatIntelMatcher: feed ${feedId.toString()}`,
+          write: async (): Promise<void> => {
+            await ThreatIntelFeedService.updateOneById({
+              id: feedId,
+              data: {
+                lastEvaluatedAt: OneUptimeDate.getCurrentDate(),
+                lastMatchError: ConnectorErrorMessage.toMessage(error),
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+          },
+        });
       }
     }
   }
@@ -183,18 +283,44 @@ export default class ThreatIntelMatcher {
       startTime = earliestAllowed;
     }
 
-    const matchedGroups: Array<IndicatorMatchGroup> =
+    const matches: Array<IndicatorMatchGroup> =
       await ThreatIntelIndicatorService.findIndicatorMatches({
         projectId: feed.projectId,
         feedId: feed.id,
         startTime,
         endTime,
-        maxGroups: MAX_GROUPS_PER_EVALUATION,
+        // One more than a check records, so it can tell "more than it reads".
+        maxGroups: THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION + 1,
       });
+
+    /*
+     * Every matched value is recorded; the ones seen in the most events open
+     * alerts and cases of their own, and the rest open one case about the
+     * feed (DetectionOverflow) - never dropped without a word.
+     */
+    const split: DetectionGroupSplit<IndicatorMatchGroup> =
+      splitDetectionGroups(matches, {
+        openLimit: MAX_GROUPS_PER_EVALUATION,
+        recordLimit: THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION,
+      });
+    const matchedGroups: Array<IndicatorMatchGroup> = split.recorded;
+    const writesFindings: boolean = feed.shouldWriteDetectionFinding !== false;
+
+    const overflowNotice: string | null =
+      split.overflow.length > 0 || split.moreThanRead
+        ? describeDetectionOverflow({
+            kind: "feed",
+            matched: split.recorded.length,
+            moreThanRead: split.moreThanRead,
+            opened: split.opened.length,
+            findingsWritten: writesFindings,
+          })
+        : null;
 
     const result: ThreatIntelMatchResult = {
       feedId: feed.id.toString(),
       matchedIndicators: matchedGroups.length,
+      overflowIndicators: split.overflow.length,
       totalMatches: 0,
       alertsCreated: 0,
       incidentsCreated: 0,
@@ -210,7 +336,7 @@ export default class ThreatIntelMatcher {
       if (feed.shouldCreateAlert !== false) {
         result.alertsCreated = await this.openAlertsForMatches({
           feed,
-          matchedGroups,
+          matchedGroups: split.opened,
           startTime,
           endTime,
         });
@@ -220,7 +346,7 @@ export default class ThreatIntelMatcher {
       if (feed.shouldCreateIncident === true) {
         result.incidentsCreated = await this.openIncidentsForMatches({
           feed,
-          matchedGroups,
+          matchedGroups: split.opened,
           startTime,
           endTime,
         });
@@ -228,7 +354,7 @@ export default class ThreatIntelMatcher {
 
       let findingEventUids: Map<string, string> = new Map();
 
-      if (feed.shouldWriteDetectionFinding !== false) {
+      if (writesFindings) {
         findingEventUids = await this.writeThreatIntelFindings({
           feed,
           matchedGroups,
@@ -238,17 +364,29 @@ export default class ThreatIntelMatcher {
 
       // !== false, like a detection rule's: see DetectionRule.shouldCreateCase.
       if (feed.shouldCreateCase !== false) {
+        const signals: Array<SecurityDetectionSignal> = this.buildCaseSignals({
+          feed,
+          matchedGroups: split.opened,
+          findingEventUids,
+          startTime,
+          endTime,
+        });
+
+        if (overflowNotice) {
+          signals.push(
+            this.buildOverflowSignal({
+              feed,
+              overflowGroups: split.overflow,
+              summary: overflowNotice,
+              startTime,
+              endTime,
+            }),
+          );
+        }
+
         try {
           const ingestResult: SecurityCaseIngestResult =
-            await SecurityCaseIngest.recordDetections(
-              this.buildCaseSignals({
-                feed,
-                matchedGroups,
-                findingEventUids,
-                startTime,
-                endTime,
-              }),
-            );
+            await SecurityCaseIngest.recordDetections(signals);
 
           result.casesOpened = ingestResult.casesOpened;
         } catch (error) {
@@ -260,11 +398,18 @@ export default class ThreatIntelMatcher {
       }
     }
 
+    if (overflowNotice) {
+      logger.warn(
+        `ThreatIntelMatcher: feed ${feed.id.toString()}: ${overflowNotice}`,
+      );
+    }
+
     await ThreatIntelFeedService.updateOneById({
       id: feed.id,
       data: {
         lastEvaluatedAt: endTime,
-        lastMatchError: null as unknown as string,
+        // The feed was checked; an overflow is what its row should say about it.
+        lastMatchError: overflowNotice as unknown as string,
         ...(matchedGroups.length > 0 ? { lastMatchAt: endTime } : {}),
       },
       props: {
@@ -434,6 +579,59 @@ export default class ThreatIntelMatcher {
     );
   }
 
+  /*
+   * The one case signal about a check's overflow: the indicator values past
+   * MAX_GROUPS_PER_EVALUATION. It names no entity - nothing for a playbook
+   * to contain - at the severity of the strongest indicator among them, and
+   * its fingerprint is the feed's own, so every check that overflows joins
+   * the same open case and counts it up.
+   */
+  public static buildOverflowSignal(data: {
+    feed: ThreatIntelFeed;
+    overflowGroups: Array<IndicatorMatchGroup>;
+    summary: string;
+    startTime: Date;
+    endTime: Date;
+  }): SecurityDetectionSignal {
+    const { feed } = data;
+    const feedName: string = feed.name || "Threat intel";
+
+    let eventCount: number = 0;
+    let highestConfidence: number = 0;
+
+    for (const matchGroup of data.overflowGroups) {
+      eventCount += matchGroup.matchCount;
+      highestConfidence = Math.max(highestConfidence, matchGroup.confidence);
+    }
+
+    return {
+      projectId: feed.projectId!,
+      source: SecurityDetectionSource.ThreatIntel,
+      fingerprint: `threat-intel:${feed.id!.toString()}:overflow`,
+      title: `${feedName} — more matches than one check opens cases for`,
+      description: detectionOverflowMarkdown({
+        kind: "feed",
+        sourceName: feedName,
+        summary: data.summary,
+        windowStart: OneUptimeDate.getDateAsFormattedString(data.startTime),
+        windowEnd: OneUptimeDate.getDateAsFormattedString(data.endTime),
+        examples: data.overflowGroups.map(
+          (matchGroup: IndicatorMatchGroup): string => {
+            return matchGroup.indicatorValue;
+          },
+        ),
+      }).toString(),
+      severity: ocsfSeverityForConfidence(highestConfidence),
+      eventCount,
+      entities: [],
+      mitreTactics: [],
+      mitreTechniques: [],
+      ruleName: feed.name || undefined,
+      threatIntelFeedId: feed.id!,
+      seenAt: data.endTime,
+    };
+  }
+
   private static async writeThreatIntelFindings(data: {
     feed: ThreatIntelFeed;
     matchedGroups: Array<IndicatorMatchGroup>;
@@ -538,7 +736,15 @@ export default class ThreatIntelMatcher {
       },
     );
 
-    await SecurityEventService.insertJsonRows(rows);
+    for (
+      let index: number = 0;
+      index < rows.length;
+      index += THREAT_INTEL_FINDING_INSERT_BATCH_SIZE
+    ) {
+      await SecurityEventService.insertJsonRows(
+        rows.slice(index, index + THREAT_INTEL_FINDING_INSERT_BATCH_SIZE),
+      );
+    }
 
     return eventUids;
   }

@@ -1,10 +1,11 @@
 # Runbook-Agents
 
-Ein **Runbook-Agent**, im Dashboard **Runner** genannt, ist ein kleiner, selbst gehosteter Prozess, der die JavaScript-, Bash-, SSH- und kubectl-Schritte Ihrer Runbooks **in Ihrer eigenen Infrastruktur** ausführt. Der OneUptime Worker führt Ihre Skripte nie aus: Er reiht sie ein, und der Runner, den die Autorin oder der Autor des Schritts gewählt hat, übernimmt jedes, führt es aus und meldet das Ergebnis zurück. Diese Seite richtet sich an alle, die Runner installieren und betreiben. Ein JavaScript-Schritt, der keinen Runner wählt, läuft stattdessen auf einem [globalen Runner](#globale-runner), einem, den OneUptime für jedes Projekt betreibt.
+Ein **Runbook-Agent**, im Dashboard **Runner** genannt, ist ein kleiner, selbst gehosteter Prozess, der die JavaScript-, Bash-, SSH- und kubectl-Schritte Ihrer Runbooks **in Ihrer eigenen Infrastruktur** ausführt. Der OneUptime Worker führt Ihre Skripte nie aus: Er reiht sie ein, und der Runner, den die Autorin oder der Autor des Schritts gewählt hat, übernimmt jedes, führt es aus und meldet das Ergebnis zurück. Diese Seite richtet sich an alle, die Runner installieren und betreiben. Ein Schritt, der keinen Runner wählt, läuft auf dem [Standard-Runner des Projekts](#der-standard-runner-des-projekts), wenn Sie einen festgelegt haben; ein JavaScript-Schritt läuft sonst auf einem [globalen Runner](#globale-runner), einem, den OneUptime für jedes Projekt betreibt.
 
 :::cards
 - [Einen Runner installieren](#einen-runner-installieren): Vom Dashboard zu einem verbundenen Container, in fünf Schritten.
 - [Einen Schritt auf einen Runner richten](#einen-schritt-auf-einen-runner-richten): Einen Schritt an den Runner binden, der ihn ausführen soll.
+- [Der Standard-Runner des Projekts](#der-standard-runner-des-projekts): Der Runner, auf dem ein Schritt läuft, der keinen wählt.
 - [Globale Runner](#globale-runner): Die Runner, die OneUptime für jedes Projekt betreibt, und was sie ausführen.
 - [Timeouts](#timeouts): Übernahme- und Ausführungs-Timeouts und wie sie zusammenwirken.
 - [Umgebungsvariablen](#umgebungsvariablen): Was der Container beim Start liest.
@@ -33,7 +34,7 @@ flowchart TB
 1. Sie erstellen einen Runner in OneUptime. OneUptime erzeugt eine ID und einen geheimen Schlüssel für ihn.
 2. Sie starten den Runner-Container auf einem Host in Ihrer Infrastruktur, mit dieser ID, diesem Schlüssel und Ihrer OneUptime-URL.
 3. Der Runner fragt OneUptime alle 5 Sekunden nach Arbeit und meldet alle 60 Sekunden, dass er lebt.
-4. Wenn Sie einen JavaScript-, Bash-, SSH- oder kubectl-Schritt schreiben, wählen Sie den Runner aus einer Dropdown-Liste. Der Schritt ist an diesen Runner gebunden. Ein JavaScript-Schritt kann **Globaler Runner** behalten, den die Dropdown-Liste für ihn wählt.
+4. Wenn Sie einen JavaScript-, Bash-, SSH- oder kubectl-Schritt schreiben, wählen Sie den Runner aus einer Dropdown-Liste unter **Weitere Felder** des Schritts. Der Schritt ist an diesen Runner gebunden. Ein Schritt, der keinen wählt, läuft auf dem Standard-Runner des Projekts, wenn Sie einen festgelegt haben, und ein JavaScript-Schritt sonst auf **Globaler Runner**.
 5. Wenn der Schritt läuft, reiht der Worker einen Job ein, dessen `targetAgentId` auf diesen Runner zeigt. Nur dieser Runner kann ihn übernehmen.
 6. Der Runner führt den Job lokal aus — `bash -c <script>` für Bash und kubectl, eine `isolated-vm`-Sandbox für JavaScript, eine SSH-Verbindung, die das Skript mit bash auf dem Rechner ausführt —, erfasst das Ergebnis, verbirgt darin die Geheimnisse des Schritts und meldet es zurück. Der Worker setzt das Runbook mit dem Ergebnis fort.
 
@@ -52,7 +53,7 @@ Mit Runnern laufen diese Schritte auf einem Host, den Sie kontrollieren, und Sie
 
 ## Globale Runner
 
-Globale Runner sind die Runner, die OneUptime für jedes Projekt betreibt. Ein JavaScript-Schritt, der keinen eigenen Runner wählt, läuft auf einem davon, sodass Sie ihn schreiben können, bevor Sie irgendetwas installieren. **Runbooks → Runbook-Agents** listet sie unter **Globale Runner** auf, über Ihren eigenen Runnern, und die Dropdown-Liste **Runner** eines JavaScript-Schritts bietet **Globaler Runner** zuerst an.
+Globale Runner sind die Runner, die OneUptime für jedes Projekt betreibt. Ein JavaScript-Schritt, der keinen eigenen Runner wählt, läuft auf einem davon, sofern das Projekt keinen [Standard-Runner](#der-standard-runner-des-projekts) hat, sodass Sie ihn schreiben können, bevor Sie irgendetwas installieren. **Runbooks → Runbook-Agents** listet sie unter **Globale Runner** auf, über Ihren eigenen Runnern, und die Dropdown-Liste **Runner** eines JavaScript-Schritts bietet **Globaler Runner** zuerst an, oder direkt nach dem Standard-Runner des Projekts. Die Dropdown-Liste eines Bash-, SSH- oder kubectl-Schritts zeigt ihn zuletzt, ausgegraut, mit **Führt nur JavaScript-Schritte aus.** Diese Schritte laufen auf einem eigenen Runner in Ihrem Netzwerk, nie auf einem, den sich alle Projekte teilen.
 
 | | Globaler Runner | Ihr eigener Runner |
 | --- | --- | --- |
@@ -69,7 +70,7 @@ Ein globaler Runner führt die Schritte vieler Projekte aus, daher wird jeder Sc
 - Er erhält eine geheime Variable nur, wenn ihr Schalter **Globale Runner dürfen es nutzen** eingeschaltet ist, und nur für einen Schritt aus dem eigenen Projekt der Variable. Er erhält nie Anmeldedaten.
 - Ein Projekt führt höchstens drei Schritte gleichzeitig auf globalen Runnern aus, sodass kein Projekt sie für sich allein belegt.
 
-Wählen Sie einen Ihrer eigenen Runner für einen Schritt, der Ihr Netzwerk erreichen muss, oder um den Schritt auf Hosts zu halten, die Sie kontrollieren. Um jeden Schritt auf Ihren eigenen Runnern zu halten, schalten Sie **Globale Runner nutzen** unten auf **Runbooks → Runbook-Agents** aus. Ein JavaScript-Schritt, der keinen Runner wählt, schlägt dann mit einer Meldung fehl, bis er einen Ihrer Runner wählt; ein Schritt, der einen Ihrer Runner wählt, behält ihn in jedem Fall. Ein Code-Repository, das in seinen Einstellungen in Code keinen Runner auswählt, arbeitet ebenfalls auf einem globalen Runner und braucht einen Ihrer Runner, solange der Schalter aus ist; siehe [Code](/docs/ai/ai-agent#den-runner-des-repositorys-auswählen).
+Wählen Sie einen Ihrer eigenen Runner für einen Schritt, der Ihr Netzwerk erreichen muss, oder um den Schritt auf Hosts zu halten, die Sie kontrollieren. Um jeden Schritt auf Ihren eigenen Runnern zu halten, schalten Sie **Globale Runner nutzen** unten auf **Runbooks → Runbook-Agents** aus. Ein JavaScript-Schritt, der keinen Runner wählt, läuft dann auf dem Standard-Runner des Projekts oder schlägt, wenn keiner festgelegt ist, mit einer Meldung fehl, bis er einen Ihrer Runner wählt; ein Schritt, der einen Ihrer Runner wählt, behält ihn in jedem Fall. Ein Code-Repository, das in seinen Einstellungen in Code keinen Runner auswählt, arbeitet ebenfalls auf einem globalen Runner und braucht einen Ihrer Runner, solange der Schalter aus ist; siehe [Code](/docs/ai/ai-agent#den-runner-des-repositorys-auswählen).
 
 ### Woher globale Runner kommen
 
@@ -142,7 +143,7 @@ Fügen Sie in den **Schritte** Ihres Runbooks einen JavaScript-, Bash-, SSH- ode
 
 ### Den Runner wählen
 
-Die Dropdown-Liste **Runner** des Schritts zeigt jeden Runner im Projekt und ob er verbunden ist. Hat das Projekt noch keinen, sagt der Schritt das und verweist Sie auf **Runbooks › Runners**. Die Dropdown-Liste eines JavaScript-Schritts bietet außerdem **Globaler Runner** an, als Erstes, und wählt ihn, bis Sie einen Ihrer Runner wählen.
+Öffnen Sie **Weitere Felder** des Schritts: Seine Dropdown-Liste **Runner** zeigt jeden Runner im Projekt und ob er verbunden ist, und die eingeklappte Zeile nennt den Runner, auf dem der Schritt läuft. Hat das Projekt noch keinen, sagt der Schritt das und verweist Sie auf **Runbooks › Runners**. Die erste Wahl ist das, worauf ein Schritt läuft, der keinen Runner wählt: der [Standard-Runner des Projekts](#der-standard-runner-des-projekts), markiert mit **Projektstandard**, oder sonst, für einen JavaScript-Schritt, **Globaler Runner**.
 
 ### Die Schritte speichern
 
@@ -152,6 +153,26 @@ Klicken Sie auf **Schritte speichern**. Wenn ein Lauf den Schritt erreicht, reih
 Bash wird mit `bash -c` ausgeführt. JavaScript läuft in einer `isolated-vm`-Sandbox auf dem Runner, ohne Zugriff auf Dateisystem oder Prozesse; es kann öffentliche HTTP-APIs mit `axios` aufrufen, aber keine Adressen in einem privaten Netz. Ein SSH- oder kubectl-Schritt meldet sich mit einer geheimen [Runbook-Variable](/docs/runbooks/variables) an, die den Runner des Schritts unter **Ihre Runner, die es nutzen dürfen** aufführen muss.
 
 Brauchen Sie mehr als einen Runner? Erstellen Sie sie und richten Sie jeden Schritt auf den passenden. Für Redundanz betreiben Sie einen zweiten Runner und teilen Ihre Schritte zwischen beiden auf, oder Sie halten ein Ersatz-Runbook bereit, dessen Schritte auf den anderen Runner zielen.
+
+## Der Standard-Runner des Projekts
+
+Ein Projekt kann einen seiner eigenen Runner zu seinem Standard machen, so wie es eine Twilio-Konfiguration zu seinem Standard macht. Jeder Runbook-Schritt, der keinen Runner wählt, läuft dann auf ihm: Bash-, SSH- und kubectl-Schritte, und JavaScript-Schritte, die sonst auf einem globalen Runner laufen würden.
+
+Um einen Runner zum Standard zu machen, gehen Sie zu **Runbooks → Runbook-Agents**, öffnen das Menü **⋯** in der Zeile des Runners, klicken auf **Als Projektstandard festlegen** und bestätigen mit **Zum Projektstandard machen**. Oder öffnen Sie den Runner und schalten Sie auf seiner Karte **Projektstandard** den Schalter **Als Projektstandard nutzen** ein. Die Liste markiert den Standard mit **Projektstandard**, neben seinem Namen, und ebenso die Dropdown-Liste **Runner** eines Schritts, bei ihrer ersten Wahl. Ein Projekt hat einen Standard-Runner: Wird ein anderer Runner zum Standard gemacht, ersetzt er ihn. **Nicht mehr als Projektstandard nutzen**, im selben Menü, oder der Schalter auf der Seite des Runners beendet seine Nutzung.
+
+Wo ein Schritt läuft, der keinen Runner wählt:
+
+| Das Projekt | Ein JavaScript-Schritt | Ein Bash-, SSH- oder kubectl-Schritt |
+| --- | --- | --- |
+| Hat einen Standard-Runner | Der Standard-Runner | Der Standard-Runner |
+| Hat keinen und nutzt globale Runner | Ein globaler Runner | Nirgends: Der Schritt schlägt fehl und meldet, dass er keinen Runner hat |
+| Hat keinen und nutzt keine globalen Runner | Nirgends: Der Schritt schlägt mit einer Meldung fehl | Nirgends: Der Schritt schlägt fehl und meldet, dass er keinen Runner hat |
+
+Ein Schritt, der einen Runner gewählt hat, behält ihn, was auch immer der Standard ist, und ein JavaScript-Schritt kann weiterhin selbst **Globaler Runner** wählen. Einen Standard festzulegen ändert keinen gespeicherten Schritt.
+
+Der Standard ist einer der eigenen Runner des Projekts, der Runbook-Schritte ausführt: kein globaler Runner, nicht der In-Cluster-Runner, den der Kubernetes-Agent installiert hat, und keiner, bei dem **Führt Runbooks aus** aus ist. Solange ein Runner der Standard ist, bleibt sein **Führt Runbooks aus** an. Ist der Standard nicht verbunden, sagt die Dropdown-Liste eines Schritts das, und ein Schritt auf ihm wartet auf ihn, wie auf jeden Runner, bis sein Übernahme-Timeout abgelaufen ist.
+
+Nur Runbook-Schritte nutzen den Standard. Ein Code-Repository wählt seinen Runner in seinen Einstellungen in Code, und eine Regel für automatische Behebung wählt ihren eigenen.
 
 ## Betriebshinweise
 

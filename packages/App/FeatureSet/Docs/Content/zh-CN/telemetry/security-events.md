@@ -45,6 +45,7 @@ flowchart TB
 | **Playbooks** | Playbooks | 在案例上自动或手动运行的步骤 |
 | **等待审批** | Playbooks | 等待有人批准或拒绝的剧本步骤 |
 | **剧本运行记录** | Playbooks | 每个剧本逐步做了什么 |
+| **Protected Entities** | Playbooks | 任何剧本都不会遏制的用户和主机 |
 | **Connections** | Connections | 您的日志、OneUptime 轮询的安全产品，以及它发送到的 SIEM |
 | **设置指南** | Connections | 发送事件的代码片段，已填好你的摄取密钥 |
 
@@ -184,7 +185,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | AWS Security Hub | Finding，作为 Detection Finding 和 Compliance Finding | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | 登录、MFA、账户和策略事件 | [Okta System Log](/docs/integrations/okta) |
 
-- 产品自身的警报，只要级别达到或高于 **Open Cases From**（默认为 **High and above**，你也可以选择其他级别或 **从未**），就会打开 [案例](/docs/telemetry/security-cases)，并按它们涉及的用户、主机或地址分组。
+- 产品自身的警报，只要级别达到或高于 **Open Cases From**（默认为 **高及以上**，你也可以选择其他级别或 **从未**），就会打开 [案例](/docs/telemetry/security-cases)，并按它们涉及的用户、主机或地址分组。
 - 连接按产品创建记录的时间读取记录，而不是按记录所描述活动的时间。每小时运行一次的 SIEM 规则会在它匹配的事件之后很久才创建检测，这些检测仍然会被导入。
 - 第一次轮询会回溯 24 小时，所以新连接会立刻显示最近的记录。
 - 连接所在行中的 **测试连接** 会检查对产品的访问以及 OneUptime 自身的工作进程是否在运行，不会导入任何内容。**Run now** 会立即轮询。
@@ -315,7 +316,7 @@ OneUptime 每分钟检查一次已启用、且自上次运行以来已过了间�
 - 时间窗口首尾相接，不会滚动。间隔为 10 分钟时，09:58 和 10:01 的失败可能落在不同的运行中、被分开计数，所以选择阈值时请留出余量。
 - 出现空档之后，例如工作进程中断或规则被重新打开，下一次运行会覆盖整个空档，最多覆盖最近 24 小时。
 - 在某次运行已经覆盖其时间之后、迟到超过两分钟的事件，会被存储并可以搜索，但那条规则永远不会读取它。
-- 每次运行最多触发 100 个分组：计数最高的那些。
+- 每个达到阈值的分组都会成为一个 Detection Finding，每次运行最多 10,000 个。警报、事件和案例只为计数最高的 100 个分组打开；其余分组共用一个关于该规则的案例，规则的 **最近错误** 会说明有多少分组匹配。
 
 ### 严重程度
 

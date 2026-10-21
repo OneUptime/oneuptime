@@ -840,6 +840,106 @@ describe("InvestigationConversation — a shared thread", () => {
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith("ClickHouse.");
     expect(screen.getByRole("button", { name: "Copied" })).toBeVisible();
   });
+
+  /*
+   * Issue #5132: on a page served over plain http there is no
+   * navigator.clipboard, and Copy did nothing at all - no copy, no word.
+   * It copies through the browser's older copy command there, and says Copy
+   * failed when nothing could copy.
+   */
+  test("says Copy failed, never Copied, when the browser cannot copy the answer", async () => {
+    // Writable, so the next test's beforeEach can put its clipboard back.
+    Object.defineProperty(navigator, "clipboard", {
+      value: undefined,
+      configurable: true,
+      writable: true,
+    });
+    const originalExecCommand: PropertyDescriptor | undefined =
+      Object.getOwnPropertyDescriptor(document, "execCommand");
+    Object.defineProperty(document, "execCommand", {
+      value: undefined,
+      configurable: true,
+      writable: true,
+    });
+
+    routeResponses({
+      thread: () => {
+        return threadResponse({
+          messages: [
+            answer({ content: "ClickHouse.", userId: SAM, name: "Sam Lee" }),
+          ],
+        });
+      },
+    });
+
+    renderConversation();
+    await flush();
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+    await flush();
+
+    const button: HTMLElement = screen.getByTestId(
+      "investigation-conversation-copy-answer",
+    );
+
+    expect(button).toHaveAccessibleName("Copy failed");
+    expect(button).toHaveAttribute("data-copy-state", "failed");
+    expect(screen.queryByRole("button", { name: "Copied" })).toBeNull();
+
+    if (originalExecCommand) {
+      Object.defineProperty(document, "execCommand", originalExecCommand);
+    }
+  });
+
+  test("copies through the browser's copy command on a page with no clipboard API", async () => {
+    // Writable, so the next test's beforeEach can put its clipboard back.
+    Object.defineProperty(navigator, "clipboard", {
+      value: undefined,
+      configurable: true,
+      writable: true,
+    });
+    const originalExecCommand: PropertyDescriptor | undefined =
+      Object.getOwnPropertyDescriptor(document, "execCommand");
+    let copied: string = "";
+    Object.defineProperty(document, "execCommand", {
+      value: (): boolean => {
+        copied =
+          (
+            document.querySelector(
+              "textarea[aria-hidden='true']",
+            ) as HTMLTextAreaElement | null
+          )?.value || "";
+        return true;
+      },
+      configurable: true,
+      writable: true,
+    });
+
+    routeResponses({
+      thread: () => {
+        return threadResponse({
+          messages: [
+            answer({ content: "ClickHouse.", userId: SAM, name: "Sam Lee" }),
+          ],
+        });
+      },
+    });
+
+    renderConversation();
+    await flush();
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+    await flush();
+
+    expect(copied).toBe("ClickHouse.");
+    expect(screen.getByRole("button", { name: "Copied" })).toBeVisible();
+
+    if (originalExecCommand) {
+      Object.defineProperty(document, "execCommand", originalExecCommand);
+    } else {
+      delete (document as unknown as { execCommand?: unknown }).execCommand;
+    }
+  });
 });
 
 describe("InvestigationConversation — while OneUptime AI works", () => {

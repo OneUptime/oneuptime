@@ -2,10 +2,17 @@ import { DocsHeading, readPage, scanMarkdown } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
 import { SECURITY_CASE_QUEUE_VIEWS } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
 import { SECURITY_PLAYBOOK_RUN_VIEWS } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunViews";
+import { UNDO_BUTTON_TITLES } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunStepRows";
+import {
+  SECURITY_EVENTS_MENU,
+  SecurityEventsMenuItem,
+  SecurityEventsMenuSection,
+} from "../../../FeatureSet/Dashboard/src/Utils/SecurityEventsNavigation";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
+import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
 import {
   SECURITY_OVERVIEW_CASE_WINDOW_IN_DAYS,
   SECURITY_OVERVIEW_DETECTION_WINDOW_IN_DAYS,
@@ -17,7 +24,9 @@ import {
 import { CONTAINMENT_ENTITY_LIMIT } from "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookContainment";
 import Permission from "Common/Types/Permission";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
-import { securityCasePriorityFromSeverity } from "Common/Types/SecurityCase/SecurityCasePriority";
+import SecurityCasePriority, {
+  securityCasePriorityFromSeverity,
+} from "Common/Types/SecurityCase/SecurityCasePriority";
 import { SECURITY_CASE_STATUSES } from "Common/Types/SecurityCase/SecurityCaseStatus";
 import {
   SECURITY_CASE_VERDICTS,
@@ -27,11 +36,24 @@ import {
   SECURITY_PLAYBOOK_ACTIONS,
   SecurityPlaybookActionCategory,
   SecurityPlaybookActionDefinition,
+  getSecurityPlaybookUndoAction,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookAction";
 import SecurityPlaybookRunStatus from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
-import { SECURITY_PLAYBOOK_MAX_STEPS } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
+import {
+  SECURITY_PLAYBOOK_MAX_STEPS,
+  TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS,
+} from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
+import { matchesProtectedEntityPattern } from "Common/Types/SecurityPlaybook/SecurityProtectedEntity";
 import { SECURITY_PLAYBOOK_TRIGGERS } from "Common/Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { SECURITY_CASE_TEMPLATE_PLACEHOLDERS } from "Common/Utils/SecurityCase/SecurityCaseMarkdown";
+import { SECURITY_CASE_NOTIFICATION_EVENT_TYPES } from "Common/Server/Services/UserNotificationSettingService";
+import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
+import {
+  DEFAULT_SECURITY_CASE_NOTIFICATION_PRIORITY,
+  SECURITY_CASE_NOTIFICATION_PRIORITY_CHOICES,
+} from "Common/Types/SecurityCase/SecurityCaseNotificationPriority";
+import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
+import { NotificationRuleConditionUtil } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -376,7 +398,7 @@ describe("Security Cases and Playbooks docs", () => {
       }),
     ).toBe(true);
     expect(page).toContain(
-      "It is on by default for the four Contain steps, which act outside OneUptime.",
+      "The four steps that cut someone off always do, unless a Security Admin turns it off.",
     );
   });
 
@@ -394,7 +416,94 @@ describe("Security Cases and Playbooks docs", () => {
       [...containTitles].sort(),
     );
     expect(page).toContain(
-      `A Contain step acts on at most ${CONTAINMENT_ENTITY_LIMIT} of the case's users or hosts.`,
+      `A step acts on at most ${CONTAINMENT_ENTITY_LIMIT} users or hosts.`,
+    );
+  });
+
+  it("says a Contain step acts only on what the case is about: grouped on, or known to threat intel", () => {
+    const containment: string = flat(section(page, "Containment"));
+
+    expect(containment).toContain(
+      "A Contain step acts only on the users or hosts the case is about, never on every one it names:",
+    );
+    expect(containment).toContain(
+      "- The value a detection of the case is grouped on,",
+    );
+    expect(containment).toContain(
+      "- A user or host of the case that your threat intelligence knows as an indicator.",
+    );
+    expect(containment).toContain(
+      "says on the run what it did with each one: done, already done, not found, refused, or protected.",
+    );
+  });
+
+  it("names the protected entities page where the menu puts it, and matches values as the page says", () => {
+    const playbooks: SecurityEventsMenuSection | undefined =
+      SECURITY_EVENTS_MENU.find((menu: SecurityEventsMenuSection): boolean => {
+        return menu.title === "Playbooks";
+      });
+
+    expect(
+      playbooks?.items.map((item: SecurityEventsMenuItem): string => {
+        return item.title;
+      }),
+    ).toContain("Protected Entities");
+    expect(page).toContain(
+      "**Protected Entities**, under **Playbooks** in the menu, lists the users and hosts no playbook contains",
+    );
+    expect(page).toContain(
+      "A value matches whatever its case, and `*` stands for any run of characters: `svc-*` protects every service account.",
+    );
+    expect(matchesProtectedEntityPattern("svc-*", "SVC-Backup")).toBe(true);
+    expect(page).toContain("Security Admins keep the list.");
+    expect(new SecurityProtectedEntity().getCreatePermissions()).toContain(
+      Permission.SecurityAdmin,
+    );
+    expect(new SecurityProtectedEntity().getCreatePermissions()).not.toContain(
+      Permission.SecurityMember,
+    );
+  });
+
+  it("says who may turn approval off, what the approver picks, and that whoever started a run cannot approve it", () => {
+    const approval: string = flat(section(page, "Approval"));
+    const runCard: string = flat(
+      source(
+        `${DASHBOARD}/Components/SecurityPlaybook/SecurityPlaybookRunCard.tsx`,
+      ),
+    );
+
+    expect([...TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS]).toContain(
+      Permission.SecurityAdmin,
+    );
+    expect([...TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS]).not.toContain(
+      Permission.SecurityMember,
+    );
+    expect(approval).toContain(
+      "Only a Security Admin can turn **Needs Approval** off for one, and OneUptime records who did.",
+    );
+    expect(approval).toContain(
+      "under **Act On**, every one ticked: untick any it should leave alone.",
+    );
+    expect(runCard).toContain('title: "Act On",');
+    expect(approval).toContain(
+      "Whoever started a run cannot approve its steps: someone else does, though they can still reject it.",
+    );
+  });
+
+  it("names the undo buttons as the run draws them, one for each step that can be undone", () => {
+    const undoable: Array<string> = SECURITY_PLAYBOOK_ACTIONS.filter(
+      (action: SecurityPlaybookActionDefinition): boolean => {
+        return Boolean(getSecurityPlaybookUndoAction(action.type));
+      },
+    ).map((action: SecurityPlaybookActionDefinition): string => {
+      return UNDO_BUTTON_TITLES[
+        getSecurityPlaybookUndoAction(action.type)!.type
+      ]!;
+    });
+
+    expect(undoable).toEqual(["Unsuspend", "Lift Containment", "Release"]);
+    expect(flat(section(page, "Undo"))).toContain(
+      "a contained user or host also has a button of its own on its step: **Unsuspend**, **Lift Containment** or **Release**.",
     );
   });
 
@@ -445,12 +554,112 @@ describe("Security Cases and Playbooks docs", () => {
     expect(boldSpans(overview)).toContain("Mean Time to Acknowledge");
   });
 
+  it("names the three notifications as Notification Settings lists them, on by email and push", () => {
+    const settingsPage: string = source(
+      `${DASHBOARD}/Pages/UserSettings/NotificationSettings.tsx`,
+    );
+    const settingService: string = source(
+      "Common/Server/Services/UserNotificationSettingService.ts",
+    );
+    const notificationRows: Array<Array<string>> = rowsOf("Notifications");
+
+    expect(column(notificationRows, 0)).toEqual([
+      "New security case",
+      "Security case assigned to me",
+      "Playbook step waiting for my approval",
+    ]);
+
+    for (const label of column(notificationRows, 0)) {
+      expect(settingsPage).toContain(`label: "${label}",`);
+    }
+
+    // Each is added for every member with email and push on.
+    for (const eventType of SECURITY_CASE_NOTIFICATION_EVENT_TYPES) {
+      const member: string = Object.entries(NotificationSettingEventType).find(
+        ([, value]: [string, string]): boolean => {
+          return value === eventType;
+        },
+      )![0];
+
+      expect(settingService).toContain(
+        `NotificationSettingEventType.${member},\n      { alertByPush: true },`,
+      );
+    }
+
+    expect(column(notificationRows, 2)).toEqual([
+      "Email and push, for High and Critical cases",
+      "Email and push",
+      "Email and push",
+    ]);
+    expect(DEFAULT_SECURITY_CASE_NOTIFICATION_PRIORITY).toBe(
+      SecurityCasePriority.High,
+    );
+  });
+
+  it("lists the priority choices as the setting offers them, the default marked", () => {
+    const choiceRows: Array<Array<string>> = rowsOf("Choose what you are told");
+
+    expect(column(choiceRows, 0)).toEqual(
+      SECURITY_CASE_NOTIFICATION_PRIORITY_CHOICES.map(
+        (choice: { label: string }): string => {
+          return choice.label;
+        },
+      ),
+    );
+    expect(
+      choiceRows.find((row: Array<string>): boolean => {
+        return row[0] === "High and Critical";
+      })![1],
+    ).toContain("(the default)");
+
+    // The setting's own picker offers the same choices, in the same order.
+    const settingsPage: string = source(
+      `${DASHBOARD}/Pages/UserSettings/NotificationSettings.tsx`,
+    );
+    let from: number = settingsPage.indexOf(
+      "SECURITY_CASE_PRIORITY_CHOICE_LABELS",
+    );
+    for (const choice of SECURITY_CASE_NOTIFICATION_PRIORITY_CHOICES) {
+      const at: number = settingsPage.indexOf(
+        `translationKey("${choice.label}")`,
+        from,
+      );
+      expect({ choice: choice.label, offered: at >= 0 }).toEqual({
+        choice: choice.label,
+        offered: true,
+      });
+      from = at;
+    }
+  });
+
+  it("lists the Slack and Microsoft Teams conditions a Security Case rule offers", () => {
+    const conditionRows: Array<Array<string>> = rowsOf(
+      "Post to Slack and Microsoft Teams channels",
+    );
+    const offered: Array<string> =
+      NotificationRuleConditionUtil.getCheckOnByEventType(
+        NotificationRuleEventType.SecurityCase,
+      );
+
+    expect(
+      column(conditionRows, 0)
+        .flatMap((cell: string): Array<string> => {
+          return cell.split(", ");
+        })
+        .sort(),
+    ).toEqual([...offered].sort());
+    expect(page).toContain(
+      "**Products → Security Events → Workspace → Slack** (or **Microsoft Teams**)",
+    );
+  });
+
   it("names the API's routes as the models serve them", () => {
     for (const [model, route] of [
       [new SecurityCase(), "/security-case"],
       [new SecurityCaseNote(), "/security-case-note"],
       [new SecurityPlaybook(), "/security-playbook"],
       [new SecurityPlaybookRun(), "/security-playbook-run"],
+      [new SecurityProtectedEntity(), "/security-protected-entity"],
     ] as Array<[SecurityCase, string]>) {
       expect(model.getCrudApiPath()?.toString()).toBe(route);
       expect(codeSpans(section(page, "Automate"))).toContain(route);

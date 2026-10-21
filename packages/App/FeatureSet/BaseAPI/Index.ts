@@ -613,6 +613,9 @@ import SecurityDetectionService, {
 import SecurityPlaybookService, {
   Service as SecurityPlaybookServiceType,
 } from "Common/Server/Services/SecurityPlaybookService";
+import SecurityProtectedEntityService, {
+  Service as SecurityProtectedEntityServiceType,
+} from "Common/Server/Services/SecurityProtectedEntityService";
 import LogScrubRuleService, {
   Service as LogScrubRuleServiceType,
 } from "Common/Server/Services/LogScrubRuleService";
@@ -1627,6 +1630,7 @@ import SecurityCaseFeed from "Common/Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
+import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule";
 import MetricRecordingRule from "Common/Models/DatabaseModels/MetricRecordingRule";
@@ -3995,6 +3999,14 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new SecurityPlaybookRunAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityProtectedEntity, SecurityProtectedEntityServiceType>(
+        SecurityProtectedEntity,
+        SecurityProtectedEntityService,
+      ).getRouter(),
     );
 
     app.use(

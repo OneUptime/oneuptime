@@ -136,6 +136,10 @@ spec:
               value: {{ $.Values.app.enableProfiling | quote }}
             - name: TELEMETRY_CONCURRENCY
               value: {{ $.Values.app.telemetryConcurrency | default 100 | squote }}
+            # AI investigations one pod runs at once. App pods run them only
+            # while worker.enabled is false (DISABLE_QUEUE_WORKERS).
+            - name: AI_INVESTIGATION_CONCURRENCY
+              value: {{ $.Values.app.aiInvestigationConcurrency | default 10 | squote }}
             {{- if $.Values.app.networkDevicePollFetchLimit }}
             # How many NetworkDevice SNMP walks one probe is handed per fetch,
             # and so the ceiling on how fast that probe's fleet can be polled

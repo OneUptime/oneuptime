@@ -260,7 +260,7 @@ Skickas bara för kluster med vSAN, värdarna i dem och de virtuella maskinerna 
 | `vcenter.vm.vsan.throughput` | `By/s` | VM:ens vSAN-genomströmning, efter `direction` |
 
 > [!NOTE]
-> En VM:s strömläge är inte ett mätvärde. Receivern skickar bara `vcenter.vm.cpu.*` för påslagna virtuella maskiner, så OneUptime skiljer **Powered on** från **Powered off** utifrån om CPU-data kom i samma insamling som VM:ens minnes- och diskdata; vCentrets sida **Virtual Machines** visar resultatet. För att varna om avstängda värdar eller om hur många virtuella maskiner som körs använder du attributet `power_state` på `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` eller `vcenter.cluster.vm.count`.
+> En VM:s strömläge är inte ett mätvärde. Receivern skickar bara `vcenter.vm.cpu.*` för påslagna virtuella maskiner, så OneUptime skiljer **Powered on** från **Powered off** utifrån om CPU-data kom i samma insamling som VM:ens minnes- och diskdata; vCentrets sida **Virtuella maskiner** visar resultatet. För att varna om avstängda värdar eller om hur många virtuella maskiner som körs använder du attributet `power_state` på `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` eller `vcenter.cluster.vm.count`.
 
 ## Övervakningskriterier
 

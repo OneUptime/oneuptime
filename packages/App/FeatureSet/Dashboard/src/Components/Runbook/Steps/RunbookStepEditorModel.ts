@@ -47,15 +47,20 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  *
  *   - Manual: its title and the instructions the responder reads, nothing
  *     folded;
- *   - JavaScript and Bash: the Runner and the script;
+ *   - JavaScript and Bash: the script;
  *   - HTTP request: the method, the URL and - for a method that sends one -
  *     the body; its headers folded;
- *   - SSH: the Runner, the machine (user@host), the secret it signs in
- *     with, and the bash script - its port and key passphrase folded;
- *   - kubectl: the Runner, the cluster's kubeconfig and the script;
+ *   - SSH: the machine (user@host), the secret it signs in with, and the
+ *     bash script - its port and key passphrase folded;
+ *   - kubectl: the cluster's kubeconfig and the script;
  *   - AI: the prompt - its provider and the context it reads folded;
- *   - every automated step folds, first, Require approval before running
- *     this step and Continue on failure, then its notes and its timeouts.
+ *   - every step that runs on a Runner folds its Runner first, named on
+ *     the folded line whatever it is ("Runner: Global Runner") - the
+ *     maintainer: "have this runner drop down, hidden in More, and by
+ *     default select the global runner unless I have custom runner set to
+ *     default runner for the project";
+ *   - every automated step folds Require approval before running this step
+ *     and Continue on failure, then its notes and its timeouts.
  *
  * A step that asks for approval says so on its header too ("Needs
  * approval"), so the list reads where the run stops for a person: the
@@ -221,6 +226,9 @@ test -z "$pods"`,
 
 // -------------------------------------------------------- More fields
 
+// The step's Runner, as its folded line names it ("Runner: Global Runner").
+export const RUNNER_FIELD_TITLE: string = translationKey("Runner");
+
 export const MORE_FIELDS_DESCRIPTION_TITLE: string =
   translationKey("Description");
 export const MORE_FIELDS_TIMEOUTS_TITLE: string = translationKey("Timeouts");
@@ -264,17 +272,31 @@ function isSetTimeout(value: unknown, defaultValue: number): boolean {
   return typeof value === "number" && value !== defaultValue;
 }
 
+export interface StepMoreFieldsOptions {
+  /*
+   * Where a step that runs on a Runner runs, as the folded line names it -
+   * already in the reader's words: "Global Runner", a Runner's own name
+   * ("prod-eu-west-1", with "· Disconnected" when it is not connected), or
+   * "None" while the step cannot run as it is. Left out for a step that
+   * runs on no Runner, or folds no Runner field.
+   */
+  runner?: string | undefined;
+}
+
 /*
  * What a step's More fields fold holds, in order, and which of it is set -
- * so the folded line says "More fields · Require approval: On, Port: 2222"
- * and nothing in force is hidden. The two switches every automated step has
- * come first: they change how the run goes, and the line names them before
- * it runs out of room. Empty for a Manual step, which folds nothing: its
- * instructions are what the responder reads, and it stops the run for a
- * person already.
+ * so the folded line says "More fields · Runner: Global Runner, Require
+ * approval: On, Port: 2222" and nothing in force is hidden. A step that
+ * runs on a Runner names it first, always with what it is: where the step
+ * runs is what a reader most needs from the fold. The two switches every
+ * automated step has come next: they change how the run goes, and the line
+ * names them before it runs out of room. Empty for a Manual step, which
+ * folds nothing: its instructions are what the responder reads, and it
+ * stops the run for a person already.
  */
 export function getStepMoreFieldsItems(
   step: RunbookStep,
+  options: StepMoreFieldsOptions = {},
 ): Array<FoldedSectionItem> {
   if (step.type === RunbookStepType.Manual) {
     return [];
@@ -286,6 +308,19 @@ export function getStepMoreFieldsItems(
   >;
 
   const items: Array<FoldedSectionItem> = [];
+
+  /*
+   * Named with what it is whatever it is - the default included - so it
+   * reads as set: the one item the line always says the value of.
+   */
+  if (options.runner) {
+    items.push({
+      key: "runner",
+      title: RUNNER_FIELD_TITLE,
+      isSet: true,
+      value: options.runner,
+    });
+  }
 
   const requiresApproval: boolean = stepRequiresApprovalBeforeRunning(step);
 

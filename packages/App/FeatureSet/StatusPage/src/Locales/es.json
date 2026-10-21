@@ -147,6 +147,7 @@
       "copyHint": "Pégalo en cualquier aplicación de calendario que pueda suscribirse a un calendario por URL.",
       "copy": "Copiar enlace",
       "copied": "¡Copiado!",
+      "copyFailed": "Tu navegador no ha permitido que esta página copie el enlace. Está seleccionado arriba para que puedas copiarlo.",
       "done": "Hecho",
       "refreshNote": "Las aplicaciones de calendario buscan cambios según su propio horario, así que una actualización puede tardar unas horas en aparecer."
     }

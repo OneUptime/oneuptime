@@ -152,6 +152,9 @@ spec:
               value: {{ $.Values.worker.enableProfiling | quote }}
             - name: TELEMETRY_CONCURRENCY
               value: {{ $.Values.worker.telemetryConcurrency | default 100 | squote }}
+            # AI investigations one worker pod runs at once.
+            - name: AI_INVESTIGATION_CONCURRENCY
+              value: {{ $.Values.worker.aiInvestigationConcurrency | default 10 | squote }}
             # Fan-in telemetry writer knobs (defaults match the code —
             # Common/Server/Utils/Telemetry/TelemetryFanInWriter.ts). Fleet-wide
             # ClickHouse insert concurrency is replicas x maxConcurrentInserts.

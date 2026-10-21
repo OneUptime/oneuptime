@@ -69,7 +69,7 @@ Den vej, kørslen tog, med ét nummereret kort pr. blok, i den rækkefølge, de 
 
 | Blok         | Hvad den viser                                                                                                                                                                                                  |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Received** | De indstillinger, blokken fik, ved navn og i den rækkefølge, dens indstillingsliste har dem, efter at alle variabler blev udfyldt. En indstilling, der henviser til et andet trin eller en variabel, viser referencen ved siden af den værdi, den blev til, og **Did not resolve**, når den blev til ingenting. |
+| **Modtaget** | De indstillinger, blokken fik, ved navn og i den rækkefølge, dens indstillingsliste har dem, efter at alle variabler blev udfyldt. En indstilling, der henviser til et andet trin eller en variabel, viser referencen ved siden af den værdi, den blev til, og **Did not resolve**, når den blev til ingenting. |
 | **Returned** | Det, den producerede, med hver værdis ID (den sidste del af en `returnValues`-reference). Lister og objekter vises med indrykning.                                                                              |
 
 Mislykkede trin, trin med en advarsel og en kørsels eneste trin starter åbne. Fanen **Trin**s tæller bliver rød, når noget mislykkedes, og orange, når et trin har en advarsel.
@@ -123,7 +123,7 @@ En blok, der ikke kører, er som regel et forbindelsesproblem. Åbn **Bygger**, 
 :::
 
 :::details En værdi kom tom frem, eller som {{…}}-tekst
-Åbn kørslen, og se på trinnet. En reference, der ikke blev opløst, fremhæves på selve trinnet som en advarsel, og dens indstilling i blokken **Received** er markeret **Did not resolve**.
+Åbn kørslen, og se på trinnet. En reference, der ikke blev opløst, fremhæves på selve trinnet som en advarsel, og dens indstilling i blokken **Modtaget** er markeret **Did not resolve**.
 
 - Ser du den bogstavelige tekst `{{local.components.…}}`, blev referencen ikke opløst. Som regel er det en slåfejl i komponent-ID'et eller returværdiens ID — husk, at det er blokkens **Identifier**, ikke det navn, der står på den. Tjek også stavningen af selve `local.components`: `{{local.componets.api-get-1.returnValues.response-body}}` sendes som bogstavelig tekst, og kørslen melder stadig **Executed**. Var kørslen en test med **Run just this step**, kørte den tidligere blok slet ikke — kør hele workflowet i stedet.
 - Ser du **Empty text**, kørte den tidligere blok, men producerede ikke det felt.
@@ -132,7 +132,7 @@ Den samme advarsel står i fanen **Full Log** som en linje, der begynder med `Wa
 :::
 
 :::details Det virker, når jeg kører det manuelt, men ikke fra triggeren
-Åbn **Bygger**, klik på **Kør arbejdsgang**, og udfyld triggerens felter med værdier, der ligner det, den rigtige trigger sender. Sammenlign derefter den kørsels **Received**-værdier med den rigtige kørsels, side om side. Forskellen ligger som regel i et enkelt felts navn eller type.
+Åbn **Bygger**, klik på **Kør arbejdsgang**, og udfyld triggerens felter med værdier, der ligner det, den rigtige trigger sender. Sammenlign derefter den kørsels **Modtaget**-værdier med den rigtige kørsels, side om side. Forskellen ligger som regel i et enkelt felts navn eller type.
 :::
 
 ## Kør et workflow igen

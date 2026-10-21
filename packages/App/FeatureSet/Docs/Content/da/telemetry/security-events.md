@@ -45,6 +45,7 @@ flowchart TB
 | **Playbooks** | Playbooks | Trin, der kører på sager, af sig selv eller manuelt |
 | **Venter på godkendelse** | Playbooks | De playbook-trin, der venter på, at nogen godkender eller afviser dem |
 | **Playbook-kørsler** | Playbooks | Hvad hver playbook gjorde, trin for trin |
+| **Protected Entities** | Playbooks | De brugere og værter, som ingen playbook inddæmmer |
 | **Connections** | Connections | Dine logs, de sikkerhedsprodukter, OneUptime henter fra, og de SIEM'er, det sender til |
 | **Opsætningsvejledning** | Connections | Kodestykker til at sende begivenheder, udfyldt med din ingestion-nøgle |
 
@@ -184,7 +185,7 @@ Kortet **Dine logs**, øverst på **Connections**, gør de logs, du allerede sen
 | AWS Security Hub | Findings, som Detection og Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Begivenheder om login, MFA, konti og politikker | [Okta System Log](/docs/integrations/okta) |
 
-- Produktets egne advarsler på eller over **Open Cases From** (**High and above**, medmindre du vælger et andet niveau, eller **Aldrig**) åbner [sager](/docs/telemetry/security-cases), grupperet efter den bruger, vært eller adresse, de handler om.
+- Produktets egne advarsler på eller over **Open Cases From** (**Høj og højere**, medmindre du vælger et andet niveau, eller **Aldrig**) åbner [sager](/docs/telemetry/security-cases), grupperet efter den bruger, vært eller adresse, de handler om.
 - En forbindelse læser poster efter det tidspunkt, produktet oprettede dem, ikke efter tidspunktet for den aktivitet, de beskriver. En SIEM-regel, der kører hver time, opretter detektioner længe efter de begivenheder, den matchede, og de importeres alligevel.
 - Den første hentning kigger 24 timer tilbage, så en ny forbindelse viser nylige poster med det samme.
 - **Test forbindelse** i forbindelsens række tjekker adgangen til produktet, og at OneUptimes egne workers kører, og importerer intet. **Run now** henter med det samme.
@@ -315,7 +316,7 @@ OneUptime tjekker hvert minut for aktiverede regler, hvis interval er gået side
 - Vinduerne ligger i forlængelse af hinanden og glider ikke. Med et interval på 10 minutter kan fejl kl. 09:58 og 10:01 lande i forskellige kørsler og tælles hver for sig, så hold en margin, når du vælger en tærskel.
 - Efter et hul, f.eks. et worker-nedbrud eller en regel, der er slået til igen, dækker den næste kørsel hele hullet, op til de seneste 24 timer.
 - En begivenhed, der ankommer mere end to minutter for sent, efter at en kørsel har dækket dens tidspunkt, gemmes og kan søges, men den regel læser den aldrig.
-- Højst 100 grupper udløses pr. kørsel: dem med de højeste optællinger.
+- Hver gruppe, der når tærsklen, bliver et Detection Finding, op til 10.000 pr. kørsel. Advarsler, hændelser og sager åbnes for de 100 med de højeste optællinger; resten deler én sag om reglen, og reglens **Seneste fejl** fortæller, hvor mange grupper der matchede.
 
 ### Alvorlighed
 

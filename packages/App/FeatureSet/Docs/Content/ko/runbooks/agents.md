@@ -1,10 +1,11 @@
 # Runbook 에이전트
 
-대시보드에서 **Runner**라고 부르는 **Runbook 에이전트**는 Runbook의 JavaScript, Bash, SSH, kubectl 단계를 **자체 인프라에서** 실행하는 작은 자체 호스팅 프로세스입니다. OneUptime Worker는 스크립트를 실행하지 않습니다. Worker는 스크립트를 큐에 넣고, 단계 작성자가 고른 Runner가 각 작업을 가져가 실행한 뒤 결과를 돌려보냅니다. 이 페이지는 Runner를 설치하고 운영하는 사람을 위한 것입니다. Runner를 고르지 않은 JavaScript 단계는 대신 [글로벌 Runner](#글로벌-runner)에서 실행됩니다. 글로벌 Runner는 OneUptime이 모든 프로젝트를 위해 실행하는 Runner입니다.
+대시보드에서 **Runner**라고 부르는 **Runbook 에이전트**는 Runbook의 JavaScript, Bash, SSH, kubectl 단계를 **자체 인프라에서** 실행하는 작은 자체 호스팅 프로세스입니다. OneUptime Worker는 스크립트를 실행하지 않습니다. Worker는 스크립트를 큐에 넣고, 단계 작성자가 고른 Runner가 각 작업을 가져가 실행한 뒤 결과를 돌려보냅니다. 이 페이지는 Runner를 설치하고 운영하는 사람을 위한 것입니다. Runner를 고르지 않은 단계는 설정해 두었다면 [프로젝트 기본 Runner](#프로젝트-기본-runner)에서 실행되고, 그렇지 않으면 JavaScript 단계는 [글로벌 Runner](#글로벌-runner)에서 실행됩니다. 글로벌 Runner는 OneUptime이 모든 프로젝트를 위해 실행하는 Runner입니다.
 
 :::cards
 - [Runner 설치](#runner-설치): 대시보드에서 연결된 컨테이너까지 다섯 단계.
 - [단계에 Runner 지정](#단계에-runner-지정): 단계를 실행할 Runner에 연결합니다.
+- [프로젝트 기본 Runner](#프로젝트-기본-runner): Runner를 고르지 않은 단계가 실행되는 Runner입니다.
 - [글로벌 Runner](#글로벌-runner): OneUptime이 모든 프로젝트를 위해 실행하는 Runner와 그 Runner가 실행하는 것입니다.
 - [타임아웃](#타임아웃): claim 타임아웃과 실행 타임아웃, 그리고 둘의 관계.
 - [환경 변수](#환경-변수): 컨테이너가 시작할 때 읽는 것.
@@ -33,7 +34,7 @@ flowchart TB
 1. OneUptime에서 Runner를 만듭니다. OneUptime이 Runner의 ID와 비밀 키를 생성합니다.
 2. 자체 인프라의 호스트에서 그 ID, 키, OneUptime URL로 Runner 컨테이너를 실행합니다.
 3. Runner는 5초마다 OneUptime에 작업을 요청하고, 60초마다 살아 있다고 보고합니다.
-4. JavaScript, Bash, SSH 또는 kubectl 단계를 작성할 때 드롭다운에서 Runner를 고릅니다. 단계는 그 Runner에 연결됩니다. JavaScript 단계는 드롭다운이 골라 두는 **글로벌 Runner**를 그대로 둘 수 있습니다.
+4. JavaScript, Bash, SSH 또는 kubectl 단계를 작성할 때 단계의 **추가 필드**에 있는 드롭다운에서 Runner를 고릅니다. 단계는 그 Runner에 연결됩니다. Runner를 고르지 않은 단계는 설정해 두었다면 프로젝트 기본 Runner에서, 그렇지 않으면 JavaScript 단계는 **글로벌 Runner**에서 실행됩니다.
 5. 단계가 실행되면 Worker는 `targetAgentId`를 그 Runner로 설정한 작업을 큐에 넣습니다. 그 Runner만 작업을 가져갈 수 있습니다.
 6. Runner는 작업을 로컬에서 실행하고(Bash와 kubectl은 `bash -c <script>`, JavaScript는 `isolated-vm` 샌드박스, SSH는 머신에서 bash로 스크립트를 실행하는 SSH 연결), 결과를 기록하고, 그 안의 단계 시크릿을 가린 뒤 돌려보냅니다. Worker는 그 결과로 Runbook을 이어서 진행합니다.
 
@@ -52,7 +53,7 @@ Runner를 쓰면 이런 단계가 여러분이 관리하는 호스트에서 실�
 
 ## 글로벌 Runner
 
-글로벌 Runner는 OneUptime이 모든 프로젝트를 위해 실행하는 Runner입니다. 자신의 Runner를 고르지 않은 JavaScript 단계는 그중 하나에서 실행되므로, 아무것도 설치하기 전에 단계를 작성할 수 있습니다. **런북 → Runbook 에이전트**는 내 Runner 위의 **글로벌 Runner** 아래에 이들을 나열하며, JavaScript 단계의 **Runner** 드롭다운은 **글로벌 Runner**를 맨 먼저 보여 줍니다.
+글로벌 Runner는 OneUptime이 모든 프로젝트를 위해 실행하는 Runner입니다. 자신의 Runner를 고르지 않은 JavaScript 단계는 프로젝트에 [기본 Runner](#프로젝트-기본-runner)가 없는 한 그중 하나에서 실행되므로, 아무것도 설치하기 전에 단계를 작성할 수 있습니다. **런북 → Runbook 에이전트**는 내 Runner 위의 **글로벌 Runner** 아래에 이들을 나열하며, JavaScript 단계의 **Runner** 드롭다운은 **글로벌 Runner**를 맨 먼저, 또는 프로젝트 기본 Runner 바로 다음에 보여 줍니다. Bash, SSH, kubectl 단계의 드롭다운은 이를 맨 마지막에 흐리게 표시하며 **JavaScript 단계만 실행합니다.** 라고 알려 줍니다. 이런 단계는 모든 프로젝트가 함께 쓰는 Runner가 아니라 네트워크 안에 있는 내 Runner에서 실행됩니다.
 
 | | 글로벌 Runner | 내 Runner |
 | --- | --- | --- |
@@ -69,7 +70,7 @@ Runner를 쓰면 이런 단계가 여러분이 관리하는 호스트에서 실�
 - 시크릿 변수는 그 변수의 **글로벌 Runner가 사용할 수 있음** 스위치가 켜져 있을 때만, 그리고 변수가 속한 프로젝트의 단계에 대해서만 받습니다. 자격 증명은 절대 받지 않습니다.
 - 한 프로젝트가 글로벌 Runner에서 동시에 실행하는 단계는 최대 세 개이므로, 어떤 프로젝트도 글로벌 Runner를 독차지하지 못합니다.
 
-여러분의 네트워크에 접근해야 하는 단계나, 직접 관리하는 호스트에 두고 싶은 단계에는 내 Runner 중 하나를 고르세요. 모든 단계를 내 Runner에서 실행하려면 **런북 → Runbook 에이전트** 맨 아래의 **글로벌 Runner 사용**을 끕니다. 그러면 Runner를 고르지 않은 JavaScript 단계는 내 Runner 중 하나를 고를 때까지 그 이유를 알리며 실패합니다. 내 Runner를 고른 단계는 어느 경우든 그 Runner를 유지합니다. 코드의 설정에서 Runner를 선택하지 않은 코드 저장소도 글로벌 Runner에서 작업하며, 이 스위치가 꺼져 있는 동안에는 내 Runner가 필요합니다. [코드](/docs/ai/ai-agent#저장소의-runner-선택하기)를 참조하세요.
+여러분의 네트워크에 접근해야 하는 단계나, 직접 관리하는 호스트에 두고 싶은 단계에는 내 Runner 중 하나를 고르세요. 모든 단계를 내 Runner에서 실행하려면 **런북 → Runbook 에이전트** 맨 아래의 **글로벌 Runner 사용**을 끕니다. 그러면 Runner를 고르지 않은 JavaScript 단계는 프로젝트 기본 Runner에서 실행되거나, 기본 Runner가 없으면 내 Runner 중 하나를 고를 때까지 그 이유를 알리며 실패합니다. 내 Runner를 고른 단계는 어느 경우든 그 Runner를 유지합니다. 코드의 설정에서 Runner를 선택하지 않은 코드 저장소도 글로벌 Runner에서 작업하며, 이 스위치가 꺼져 있는 동안에는 내 Runner가 필요합니다. [코드](/docs/ai/ai-agent#저장소의-runner-선택하기)를 참조하세요.
 
 ### 글로벌 Runner의 출처
 
@@ -142,7 +143,7 @@ Runbook의 **단계**에 JavaScript, Bash, SSH 또는 kubectl 단계를 추가�
 
 ### Runner 선택
 
-단계의 **Runner** 드롭다운에는 프로젝트의 모든 Runner와 각 Runner의 연결 여부가 표시됩니다. 프로젝트에 아직 Runner가 없으면 단계가 그렇게 알려 주고 **Runbooks › Runners**를 안내합니다. JavaScript 단계의 드롭다운에는 **글로벌 Runner**도 맨 먼저 표시되며, 내 Runner 중 하나를 고를 때까지 그것이 선택되어 있습니다.
+단계의 **추가 필드**를 여세요. 그 안의 **Runner** 드롭다운에는 프로젝트의 모든 Runner와 각 Runner의 연결 여부가 표시되며, 접힌 줄에는 단계가 실행되는 Runner가 표시됩니다. 프로젝트에 아직 Runner가 없으면 단계가 그렇게 알려 주고 **Runbooks › Runners**를 안내합니다. 첫 번째 선택지는 Runner를 고르지 않은 단계가 실행되는 곳입니다. **프로젝트 기본값** 표시가 붙은 [프로젝트 기본 Runner](#프로젝트-기본-runner)이거나, 그것이 없으면 JavaScript 단계의 경우 **글로벌 Runner**입니다.
 
 ### 단계 저장
 
@@ -152,6 +153,26 @@ Runbook의 **단계**에 JavaScript, Bash, SSH 또는 kubectl 단계를 추가�
 Bash는 `bash -c`로 실행됩니다. JavaScript는 Runner의 `isolated-vm` 샌드박스에서 파일 시스템이나 프로세스에 접근하지 않고 실행됩니다. `axios`로 공개 HTTP API를 호출할 수 있지만 사설 네트워크의 주소는 호출할 수 없습니다. SSH와 kubectl 단계는 시크릿 [Runbook 변수](/docs/runbooks/variables)로 로그인하며, 그 변수의 **사용할 수 있는 Runner**에 단계의 Runner가 있어야 합니다.
 
 Runner가 둘 이상 필요한가요? 각각 만들고 각 단계에 알맞은 Runner를 지정하세요. 이중화를 위해서는 Runner를 하나 더 실행해 단계를 나누거나, 단계가 다른 Runner를 가리키는 예비 Runbook을 마련하세요.
+
+## 프로젝트 기본 Runner
+
+프로젝트는 Twilio 설정 하나를 기본값으로 삼듯이, 내 Runner 중 하나를 기본값으로 삼을 수 있습니다. 그러면 Runner를 고르지 않은 모든 Runbook 단계가 그 Runner에서 실행됩니다. Bash, SSH, kubectl 단계는 물론, 기본값이 없으면 글로벌 Runner에서 실행되었을 JavaScript 단계도 마찬가지입니다.
+
+Runner를 기본값으로 삼으려면 **런북 → Runbook 에이전트**로 가서 그 Runner 행의 **⋯** 메뉴를 열고 **프로젝트 기본값으로 설정**을 클릭한 뒤 **프로젝트 기본값으로 지정**으로 확인합니다. 또는 Runner를 열고 **프로젝트 기본값** 카드에서 **프로젝트 기본값으로 사용**을 켭니다. 목록은 기본 Runner의 이름 옆에 **프로젝트 기본값**을 표시하며, 단계의 **Runner** 드롭다운도 첫 번째 선택지에 같은 표시를 합니다. 프로젝트의 기본 Runner는 하나뿐이므로, 다른 Runner를 기본값으로 삼으면 기존 것이 바뀝니다. 같은 메뉴의 **프로젝트 기본값으로 사용 중지**나 Runner 페이지의 스위치로 사용을 멈출 수 있습니다.
+
+Runner를 고르지 않은 단계가 실행되는 곳:
+
+| 프로젝트 | JavaScript 단계 | Bash, SSH, kubectl 단계 |
+| --- | --- | --- |
+| 기본 Runner가 있음 | 기본 Runner | 기본 Runner |
+| 기본 Runner가 없고 글로벌 Runner를 사용함 | 글로벌 Runner | 어디에서도 실행되지 않음: Runner가 없다고 알리며 실패 |
+| 기본 Runner가 없고 글로벌 Runner를 사용하지 않음 | 어디에서도 실행되지 않음: 그 이유를 알리며 실패 | 어디에서도 실행되지 않음: Runner가 없다고 알리며 실패 |
+
+Runner를 고른 단계는 기본값이 무엇이든 그 Runner를 유지하며, JavaScript 단계는 여전히 직접 **글로벌 Runner**를 고를 수 있습니다. 기본값을 설정해도 저장된 단계는 바뀌지 않습니다.
+
+기본값이 될 수 있는 것은 Runbook 단계를 실행하는 프로젝트 자체의 Runner뿐입니다. 글로벌 Runner, Kubernetes 에이전트가 설치한 클러스터 내 Runner, **런북 실행**이 꺼진 Runner는 기본값이 될 수 없습니다. Runner가 기본값인 동안에는 그 **런북 실행**이 켜진 상태로 유지됩니다. 기본 Runner가 연결되어 있지 않으면 단계의 드롭다운이 그렇게 알려 주며, 그 Runner를 쓰는 단계는 다른 Runner와 마찬가지로 claim timeout이 지날 때까지 기다립니다.
+
+기본값은 Runbook 단계만 사용합니다. 코드 저장소는 코드의 설정에서 자신의 Runner를 선택하고, 자동 해결 규칙도 자신의 Runner를 선택합니다.
 
 ## 운영 참고 사항
 

@@ -69,7 +69,7 @@ Apri una scheda per due blocchi di dettaglio:
 
 | Blocco       | Cosa mostra                                                                                                                                                                                                     |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Received** | Le impostazioni che il blocco ha ricevuto, per nome e nell'ordine del suo elenco di impostazioni, dopo che tutte le variabili sono state compilate. Un'impostazione che fa riferimento a un altro passaggio o a una variabile mostra il riferimento accanto al valore che è diventato, e **Did not resolve** quando non è diventato nulla. |
+| **Ricevuti** | Le impostazioni che il blocco ha ricevuto, per nome e nell'ordine del suo elenco di impostazioni, dopo che tutte le variabili sono state compilate. Un'impostazione che fa riferimento a un altro passaggio o a una variabile mostra il riferimento accanto al valore che è diventato, e **Did not resolve** quando non è diventato nulla. |
 | **Returned** | Ciò che ha prodotto, con l'ID di ogni valore (l'ultima parte di un riferimento `returnValues`). Liste e oggetti sono mostrati con il rientro.                                                                   |
 
 I passaggi non riusciti, i passaggi con un avviso e l'unico passaggio di un'esecuzione partono aperti. Il contatore della scheda **Passaggi** diventa rosso quando qualcosa non è riuscito e ambra quando un passaggio ha un avviso.
@@ -123,7 +123,7 @@ Un blocco che non viene eseguito è di solito un problema di collegamento. Apri 
 :::
 
 :::details Un valore è arrivato vuoto, o come testo {{…}}
-Apri l'esecuzione e guarda il passaggio. Un riferimento che non si è risolto viene segnalato sul passaggio stesso come avviso, e la sua impostazione nel blocco **Received** è contrassegnata come **Did not resolve**.
+Apri l'esecuzione e guarda il passaggio. Un riferimento che non si è risolto viene segnalato sul passaggio stesso come avviso, e la sua impostazione nel blocco **Ricevuti** è contrassegnata come **Did not resolve**.
 
 - Se vedi il testo letterale `{{local.components.…}}`, il riferimento non si è risolto. Di solito è un errore di battitura nell'ID del componente o nell'ID del valore di ritorno: ricorda che è l'**Identifier** del blocco, non il nome visualizzato su di esso. Controlla anche come è scritto `local.components`: `{{local.componets.api-get-1.returnValues.response-body}}` viene inviato come testo letterale e l'esecuzione riporta comunque **Executed**. Se l'esecuzione era una prova con **Run just this step**, il blocco precedente non è stato eseguito affatto: esegui invece l'intero workflow.
 - Se vedi **Empty text**, il blocco precedente è stato eseguito ma non ha prodotto quel campo.
@@ -132,7 +132,7 @@ Lo stesso avviso si trova nella scheda **Full Log**, su una riga che inizia con 
 :::
 
 :::details Funziona quando lo eseguo a mano, ma non dal trigger
-Apri il **Costruttore**, fai clic su **Esegui flusso di lavoro** e compila i campi del trigger con valori simili a quelli che invia il trigger reale. Poi confronta i valori **Received** di quell'esecuzione con quelli dell'esecuzione reale, uno accanto all'altro. La differenza sta di solito nel nome o nel tipo di un solo campo.
+Apri il **Costruttore**, fai clic su **Esegui flusso di lavoro** e compila i campi del trigger con valori simili a quelli che invia il trigger reale. Poi confronta i valori **Ricevuti** di quell'esecuzione con quelli dell'esecuzione reale, uno accanto all'altro. La differenza sta di solito nel nome o nel tipo di un solo campo.
 :::
 
 ## Rieseguire un workflow

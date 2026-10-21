@@ -13,6 +13,10 @@ import ProjectService from "../../../Services/ProjectService";
 import AIService, { AutonomousBudgetStatus } from "../../../Services/AIService";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import QueryHelper from "../../../Types/Database/QueryHelper";
+import Queue, { QueueJob, QueueName } from "../../../Infrastructure/Queue";
+import QueueWorker from "../../../Infrastructure/QueueWorker";
+import { JSONObject } from "../../../../Types/JSON";
+import GracefulShutdown, { ShutdownPriority } from "../../GracefulShutdown";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import InvestigationSubjectLock from "./InvestigationSubjectLock";
@@ -26,22 +30,31 @@ import InvestigationSubjectLock from "./InvestigationSubjectLock";
  *
  * The shape:
  *   1. enqueue() records the durable intent as an AIRun in status Queued
- *      BEFORE any expensive work, then immediately tries to process it
- *      in-process — same latency as before when the pod stays alive.
+ *      BEFORE any expensive work, then sends it to the workers: a job on
+ *      the AIInvestigation BullMQ queue, which only worker-role servers
+ *      consume, each running at most AI_INVESTIGATION_CONCURRENCY runs at
+ *      once (startWorker). A free worker takes the job within seconds, as
+ *      fast as when the enqueueing process ran the investigation itself,
+ *      but a storm can no longer start more runs on one server than it
+ *      can hold, and an API server never runs one.
  *   2. Claims go through AIRunService.attemptStatusTransition — one
  *      conditional UPDATE guarded on BOTH status=Queued and the expected
- *      attemptCount — so the enqueueing pod and the poller can race and
- *      exactly one wins, and a stale queue snapshot can never claim (or
- *      re-number) a run that moved on. attemptCount can therefore never
- *      exceed MAX_INVESTIGATION_ATTEMPTS.
- *   3. A Workers poller claims whatever the inline path left behind
- *      (pod died, cap was full, budget was exhausted) and expires runs
- *      that sat queued past their usefulness window. The poller claims
- *      sequentially (so the concurrency cap sees each claim) but executes
- *      detached, keeping the every-minute tick fast.
+ *      attemptCount — so two jobs for one run can race and exactly one
+ *      wins, and a stale job can never claim (or re-number) a run that
+ *      moved on. The attempts that count — attemptCount less
+ *      handedBackCount — can therefore never exceed
+ *      MAX_INVESTIGATION_ATTEMPTS.
+ *   3. A Workers poller sends to the workers whatever is still Queued (a
+ *      job that could not be added, a run a cap or the budget held back, a
+ *      requeued attempt) and expires runs that sat queued past their
+ *      usefulness window.
  *   4. Failed attempts requeue (transient errors and stale heartbeats)
  *      until MAX_ATTEMPTS, then finalize as Error/Stale — G9's retry
  *      policy. Permanent errors (bad configuration) never retry.
+ *   5. A server shutting down hands the runs it is executing back
+ *      (handBackRunsInFlight): another server picks each one up within
+ *      seconds instead of after the stale sweep's twelve minutes, and the
+ *      claim is not counted as a failed attempt (handedBackCount).
  *
  * Mid-run message-level checkpointing is deliberately NOT here: a retried
  * investigation re-runs from the top, which is safe because investigations
@@ -71,11 +84,12 @@ export const MAX_INVESTIGATION_ATTEMPTS: number = 2;
  * BEHIND that backlog — the exact RCA latency the product promises.
  *
  * So background work may hold at most (cap - RESERVED) slots: at least one
- * slot is always unreachable by it. Combined with the inline kick that
- * enqueue() fires for every run, that reserved slot is enough on its own —
- * an incident/alert enqueue calls processRun immediately, passes the gates
- * against a cap that background work cannot have saturated, and dispatches
- * without ever touching the poller (so it can also never be TTL-expired
+ * slot is always unreachable by it. Combined with the job that enqueue()
+ * sends for every run — an incident/alert run's at the highest priority,
+ * so a worker takes it before any background job — that reserved slot is
+ * enough on its own: an incident/alert run is claimed as soon as a worker
+ * is free, against a cap that background work cannot have saturated,
+ * without ever waiting for the poller (so it can also never be TTL-expired
  * behind it). Splitting the poller's oldest-first query into two lane
  * queries would therefore only re-order runs that are ALREADY late, at the
  * cost of an extra query every tick — deliberately not done.
@@ -89,13 +103,39 @@ export const INSIGHT_TRIAGE_RESERVED_SLOTS: number = 1;
  */
 export const QUEUE_TTL_MINUTES: number = 30;
 
-// How many queued runs one poller tick will try to claim.
+// How many queued runs one poller tick sends to the workers.
 const POLLER_BATCH_SIZE: number = 10;
+
+// The name of an AIInvestigation job; its data names the run it is for.
+const RUN_JOB_NAME: string = "ProcessQueuedRun";
+
+/*
+ * The priority of a background run's job (isBackgroundRun). An incident or
+ * alert RCA's job keeps BullMQ's default, 0, the highest: a paged human is
+ * waiting for it, so a worker takes it before any background job, however
+ * many are waiting.
+ */
+const BACKGROUND_RUN_JOB_PRIORITY: number = 10;
+
+/*
+ * How many times a run may be handed back by a server shutting down without
+ * the claim counting as a failed attempt. A run that keeps taking its server
+ * down — one that holds the event loop past the liveness probe, say — would
+ * otherwise move from server to server for ever; past this, a shutdown
+ * leaves it to the stale sweep, which counts the attempt.
+ */
+export const MAX_INVESTIGATION_HAND_BACKS: number = 3;
 
 export interface QueuedRunRef {
   id: ObjectID;
   projectId: ObjectID;
   attemptCount: number;
+  /*
+   * How many times a server shutting down handed the run back, read with
+   * attemptCount: neither changes while the run is Queued, so the claim of
+   * an attemptCount is the claim of this count too.
+   */
+  handedBackCount?: number | undefined;
   runType?: AIRunType | undefined;
   triggeredByIncidentId?: ObjectID | undefined;
   triggeredByAlertId?: ObjectID | undefined;
@@ -110,12 +150,30 @@ export interface QueuedRunRef {
   ruleWaitMinutes?: number | undefined;
 }
 
+// A run this server claimed and is executing: the attempt its claim gave it.
+interface RunInFlight extends QueuedRunRef {
+  attempt: number;
+}
+
 export default class AIInvestigationQueue {
   /*
-   * Record the durable intent to investigate, then try to process it
-   * immediately (detached — the poller is the safety net if this pod dies).
-   * Callers have already passed the subject-specific gates (opt-in,
-   * severity floor, dedupe window).
+   * The runs this server is executing (processRun), by run id: what it hands
+   * back when it shuts down, and where failOrRequeue reads how many times a
+   * run was handed back.
+   */
+  private static runsInFlight: Map<string, RunInFlight> = new Map<
+    string,
+    RunInFlight
+  >();
+
+  // Set when this server starts shutting down: from then on it claims nothing.
+  private static isHandingBack: boolean = false;
+
+  /*
+   * Record the durable intent to investigate, then send it to the workers
+   * (a worker-role server claims and runs it; the poller is the safety net
+   * if the job is lost). Callers have already passed the subject-specific
+   * gates (opt-in, severity floor, dedupe window).
    *
    * Returns the created run's id (so subject rows can link back to it), or
    * null when the enqueue was quiet-skipped (budget) or failed — enqueue
@@ -326,11 +384,12 @@ export default class AIInvestigationQueue {
 
     const createdRunId: ObjectID | null = createdRun.id;
 
-    // Inline kick — preserves the 1-3 minute RCA latency on the happy path.
-    this.processRun({
+    // To the workers — a free one claims it within seconds (the RCA latency).
+    await this.sendToWorkers({
       id: createdRunId!,
       projectId,
       attemptCount: 0,
+      handedBackCount: 0,
       runType,
       triggeredByIncidentId: data.subjectIncidentId,
       triggeredByAlertId: data.subjectAlertId,
@@ -339,25 +398,99 @@ export default class AIInvestigationQueue {
         data.subjectAutoRemediationSuggestionId,
       followUpForAlertId: data.followUpForAlertId,
       ruleWaitMinutes: run.ruleWaitMinutes,
-    }).catch((error: Error) => {
-      logger.error(
-        `AI: inline processing of queued run ${createdRunId?.toString()} failed: ${error}`,
-      );
     });
 
     return createdRunId || null;
   }
 
   /*
-   * Claim a queued run and execute it to completion. Safe to call from
-   * multiple places concurrently — the claim is one conditional UPDATE, so
-   * exactly one caller wins. Leaves the run Queued (for the poller / TTL)
-   * when a concurrency cap the project set is full or the budget is
-   * exhausted.
+   * Run this server's share of the queue: a worker on the AIInvestigation
+   * queue that runs up to `concurrency` runs at once, and the hand-back of
+   * those still running when the server shuts down. Workers starts it on
+   * worker-role servers only (not with DISABLE_QUEUE_WORKERS), so an API
+   * server never runs an investigation.
+   */
+  public static startWorker(options: { concurrency: number }): void {
+    QueueWorker.getWorker(
+      QueueName.AIInvestigation,
+      async (job: QueueJob): Promise<void> => {
+        await this.processQueueJob(job.data as JSONObject);
+      },
+      { concurrency: options.concurrency },
+    );
+
+    GracefulShutdown.registerHandler(
+      "AIInvestigationQueue:HandBackRunsInFlight",
+      ShutdownPriority.Workers,
+      () => {
+        return this.handBackRunsInFlight();
+      },
+    );
+  }
+
+  /*
+   * Send a Queued run to the workers: a job on the AIInvestigation queue,
+   * for a worker-role server to claim and run (processQueueJob). The job id
+   * is the run's and the attempt count it is queued at, so sending a run
+   * whose job is still there adds nothing (BullMQ keeps the job it has),
+   * and a run requeued at a new count gets a new job. Never throws: a run
+   * whose job could not be added stays Queued, and the poller sends it
+   * again.
+   */
+  @CaptureSpan()
+  public static async sendToWorkers(run: QueuedRunRef): Promise<void> {
+    try {
+      await Queue.addJob(
+        QueueName.AIInvestigation,
+        `${run.id.toString()}-${run.attemptCount || 0}`,
+        RUN_JOB_NAME,
+        this.toJobData(run),
+        {
+          skipExistenceCheck: true,
+          removeWhenDone: true,
+          priority: this.isBackgroundRun(run) ? BACKGROUND_RUN_JOB_PRIORITY : 0,
+        },
+      );
+    } catch (error) {
+      logger.error(
+        `AI: could not send run ${run.id.toString()} to the workers; the poller sends it again: ${error}`,
+      );
+    }
+  }
+
+  /*
+   * A worker's job: claim and run the run it names. A job that names no run
+   * is dropped — there is nothing to claim.
+   */
+  @CaptureSpan()
+  public static async processQueueJob(data: JSONObject): Promise<void> {
+    const run: QueuedRunRef | null = this.fromJobData(data);
+
+    if (!run) {
+      logger.error(
+        `AI: dropping an ${QueueName.AIInvestigation} job that names no run.`,
+      );
+      return;
+    }
+
+    await this.processRun(run);
+  }
+
+  /*
+   * Claim a queued run and execute it to completion — what a worker does
+   * with each job. Safe to call from multiple places concurrently — the
+   * claim is one conditional UPDATE, so exactly one caller wins. Leaves the
+   * run Queued (for the poller / TTL) when a concurrency cap the project set
+   * is full, the budget is exhausted, or this server is shutting down.
    */
   @CaptureSpan()
   public static async processRun(run: QueuedRunRef): Promise<void> {
     try {
+      // A server shutting down starts nothing: another one takes the run.
+      if (this.isHandingBack) {
+        return;
+      }
+
       if (!(await this.passesClaimGates(run))) {
         return;
       }
@@ -368,7 +501,28 @@ export default class AIInvestigationQueue {
         return;
       }
 
-      await this.dispatch(run, attempt);
+      const runInFlight: RunInFlight = { ...run, attempt };
+
+      /*
+       * Won as the server began shutting down: straight back to the queue.
+       * Nothing ran yet, so even a remediation execution goes back.
+       */
+      if (this.isHandingBack) {
+        await this.handBack(runInFlight);
+        return;
+      }
+
+      const runKey: string = run.id.toString();
+
+      this.runsInFlight.set(runKey, runInFlight);
+
+      try {
+        await this.dispatch(run, attempt);
+      } finally {
+        if (this.runsInFlight.get(runKey) === runInFlight) {
+          this.runsInFlight.delete(runKey);
+        }
+      }
     } catch (error) {
       logger.error(
         `AI: failed to process queued run ${run.id.toString()}: ${error}`,
@@ -377,13 +531,43 @@ export default class AIInvestigationQueue {
   }
 
   /*
+   * When this server shuts down (startWorker registers it): hand every run
+   * it is executing back to the queue, so another server picks it up within
+   * seconds instead of after the stale sweep's twelve minutes. From then on
+   * this server claims nothing (processRun).
+   */
+  public static async handBackRunsInFlight(): Promise<void> {
+    this.isHandingBack = true;
+
+    await Promise.all(
+      Array.from(this.runsInFlight.values())
+        /*
+         * A remediation execution stays, for the stale sweep to requeue and
+         * its interrupted-execution check to settle: its commands change
+         * things and are not fenced by the attempt, so this server's
+         * execution could start one after another server took the run.
+         */
+        .filter((run: RunInFlight): boolean => {
+          return run.runType !== AIRunType.RemediationExecution;
+        })
+        .map((run: RunInFlight): Promise<void> => {
+          return this.handBack(run);
+        }),
+    );
+  }
+
+  // Tests only: forget the runs in flight and any shutdown hand-back.
+  public static resetForTests(): void {
+    this.runsInFlight.clear();
+    this.isHandingBack = false;
+  }
+
+  /*
    * One poller tick: expire runs that queued past their usefulness window,
-   * then claim a batch of the rest. Claims happen sequentially — each claim
-   * sets Running immediately, so the next iteration's concurrency-cap count
-   * sees it — but execution is detached so the tick finishes in seconds
-   * instead of holding the job open for the length of the investigations.
-   * Called every minute from Workers; also the recovery path for runs
-   * orphaned by pod restarts.
+   * then send the oldest of the rest to the workers again — a run whose job
+   * is still there is not added twice (sendToWorkers). Called every minute
+   * from Workers; the recovery path for a job that could not be added, a
+   * run a cap or the budget held back, and a requeued attempt.
    */
   @CaptureSpan()
   public static async processQueuedRuns(): Promise<void> {
@@ -458,6 +642,7 @@ export default class AIInvestigationQueue {
         _id: true,
         projectId: true,
         attemptCount: true,
+        handedBackCount: true,
         runType: true,
         triggeredByIncidentId: true,
         triggeredByAlertId: true,
@@ -473,10 +658,11 @@ export default class AIInvestigationQueue {
     });
 
     for (const queued of queuedRuns) {
-      const ref: QueuedRunRef = {
+      await this.sendToWorkers({
         id: queued.id!,
         projectId: queued.projectId!,
         attemptCount: queued.attemptCount || 0,
+        handedBackCount: queued.handedBackCount || 0,
         runType: queued.runType,
         triggeredByIncidentId: queued.triggeredByIncidentId,
         triggeredByAlertId: queued.triggeredByAlertId,
@@ -485,33 +671,7 @@ export default class AIInvestigationQueue {
           queued.triggeredByAutoRemediationSuggestionId,
         followUpForAlertId: queued.followUpForAlertId,
         ruleWaitMinutes: queued.ruleWaitMinutes,
-      };
-
-      try {
-        if (!(await this.passesClaimGates(ref))) {
-          continue;
-        }
-
-        const attempt: number | null = await this.claim(ref);
-
-        if (attempt === null) {
-          continue;
-        }
-
-        /*
-         * Execute detached — the run is claimed (Running + heartbeat), so
-         * the sweeper owns recovery if this pod dies mid-flight.
-         */
-        this.dispatch(ref, attempt).catch((error: Error) => {
-          logger.error(
-            `AI: detached execution of run ${ref.id.toString()} failed: ${error}`,
-          );
-        });
-      } catch (error) {
-        logger.error(
-          `AI: poller failed on queued run ${ref.id.toString()}: ${error}`,
-        );
-      }
+      });
     }
   }
 
@@ -536,7 +696,11 @@ export default class AIInvestigationQueue {
   }): Promise<"requeued" | "finalized" | "noop"> {
     const truncatedMessage: string = data.errorMessage.substring(0, 400);
 
-    if (!data.isPermanent && data.attemptCount < MAX_INVESTIGATION_ATTEMPTS) {
+    // A claim a server shutting down handed back is not a failed attempt.
+    const countedAttempts: number =
+      data.attemptCount - this.getHandedBackCount(data);
+
+    if (!data.isPermanent && countedAttempts < MAX_INVESTIGATION_ATTEMPTS) {
       const requeued: number = await AIRunService.attemptStatusTransition({
         aiRunId: data.aiRunId,
         fromStatus: AIRunStatus.Running,
@@ -588,6 +752,8 @@ export default class AIInvestigationQueue {
   public static async requeueOrMarkStale(run: {
     id: ObjectID;
     attemptCount: number;
+    // The claims a server shutting down handed back, which do not count.
+    handedBackCount?: number | undefined;
     lastHeartbeatAt?: Date | undefined;
     runType?: AIRunType | undefined;
     projectId?: ObjectID | undefined;
@@ -596,7 +762,10 @@ export default class AIInvestigationQueue {
     followUpForAlertId?: ObjectID | undefined;
     ruleWaitMinutes?: number | undefined;
   }): Promise<"requeued" | "stale" | "noop"> {
-    if ((run.attemptCount || 0) < MAX_INVESTIGATION_ATTEMPTS) {
+    if (
+      (run.attemptCount || 0) - (run.handedBackCount || 0) <
+      MAX_INVESTIGATION_ATTEMPTS
+    ) {
       const requeued: number = await AIRunService.attemptStatusTransition({
         aiRunId: run.id,
         fromStatus: AIRunStatus.Running,
@@ -638,6 +807,160 @@ export default class AIInvestigationQueue {
     }
 
     return "noop";
+  }
+
+  /*
+   * Hand one run this server claimed back to the queue: Queued again at the
+   * attempt count its claim gave it, and sent to the workers. That count is
+   * a fence: this server's execution goes on until the process exits, but it
+   * can no longer heartbeat, complete or fail the run — each of those is
+   * guarded on Running at its attempt — and the next claim moves the count
+   * on. handedBackCount records the hand-back, so failOrRequeue and
+   * requeueOrMarkStale do not count the claim as a failed attempt.
+   *
+   * A run already handed back MAX_INVESTIGATION_HAND_BACKS times stays with
+   * the server, for the stale sweep to requeue. Never throws.
+   */
+  private static async handBack(run: RunInFlight): Promise<void> {
+    const handedBackCount: number = run.handedBackCount || 0;
+
+    if (handedBackCount >= MAX_INVESTIGATION_HAND_BACKS) {
+      logger.warn(
+        `AI: not handing run ${run.id.toString()} back — it was handed back ${handedBackCount} times already; the stale sweep requeues it.`,
+      );
+      return;
+    }
+
+    try {
+      const handedBack: number = await AIRunService.attemptStatusTransition({
+        aiRunId: run.id,
+        fromStatus: AIRunStatus.Running,
+        expectedAttemptCount: run.attempt,
+        set: {
+          status: AIRunStatus.Queued,
+          handedBackCount: handedBackCount + 1,
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+          errorMessage: `Attempt ${run.attempt} was handed back to the queue because the server running it shut down.`,
+        },
+      });
+
+      // The run moved on first (it completed, or failed): nothing to hand back.
+      if (handedBack === 0) {
+        return;
+      }
+
+      await this.sendToWorkers({
+        ...run,
+        attemptCount: run.attempt,
+        handedBackCount: handedBackCount + 1,
+      });
+    } catch (error) {
+      logger.error(
+        `AI: could not hand run ${run.id.toString()} back; the stale sweep requeues it: ${error}`,
+      );
+    }
+  }
+
+  /*
+   * How many times a run that is failing here was handed back. The attempt
+   * fails in the server executing it, whose claim read the count with the
+   * attempt count, and a hand-back — the one change to the count — takes the
+   * run off Running first, so the claim's count is still the run's. 0 for an
+   * attempt this server is not executing.
+   */
+  private static getHandedBackCount(data: {
+    aiRunId: ObjectID;
+    attemptCount: number;
+  }): number {
+    const run: RunInFlight | undefined = this.runsInFlight.get(
+      data.aiRunId.toString(),
+    );
+
+    if (!run || run.attempt !== data.attemptCount) {
+      return 0;
+    }
+
+    return run.handedBackCount || 0;
+  }
+
+  /*
+   * Background work — insight triage, remediation plans and remediation
+   * executions — is storm-shaped, and nobody is waiting for it. Incident and
+   * alert RCAs are the work a paged human waits for.
+   */
+  private static isBackgroundRun(run: QueuedRunRef): boolean {
+    return (
+      Boolean(run.triggeredByAiInsightId) ||
+      run.runType === AIRunType.RemediationPlan ||
+      run.runType === AIRunType.RemediationExecution
+    );
+  }
+
+  /*
+   * A run as its job carries it: plain JSON, ids as strings. projectId,
+   * incidentId and alertId are names the worker's telemetry context reads,
+   * so the job's spans and logs carry them.
+   */
+  private static toJobData(run: QueuedRunRef): JSONObject {
+    return {
+      aiRunId: run.id.toString(),
+      projectId: run.projectId.toString(),
+      attemptCount: run.attemptCount || 0,
+      handedBackCount: run.handedBackCount || 0,
+      runType: run.runType || null,
+      incidentId: run.triggeredByIncidentId?.toString() || null,
+      alertId: run.triggeredByAlertId?.toString() || null,
+      aiInsightId: run.triggeredByAiInsightId?.toString() || null,
+      autoRemediationSuggestionId:
+        run.triggeredByAutoRemediationSuggestionId?.toString() || null,
+      followUpForAlertId: run.followUpForAlertId?.toString() || null,
+      ruleWaitMinutes: run.ruleWaitMinutes || null,
+    };
+  }
+
+  // The run a job names (toJobData), or null when it names none.
+  private static fromJobData(data: JSONObject): QueuedRunRef | null {
+    const readId: (key: string) => ObjectID | undefined = (
+      key: string,
+    ): ObjectID | undefined => {
+      const value: unknown = data[key];
+      return typeof value === "string" && value
+        ? new ObjectID(value)
+        : undefined;
+    };
+
+    const readCount: (key: string) => number = (key: string): number => {
+      const value: unknown = data[key];
+      return typeof value === "number" && value > 0 ? value : 0;
+    };
+
+    const id: ObjectID | undefined = readId("aiRunId");
+    const projectId: ObjectID | undefined = readId("projectId");
+
+    if (!id || !projectId) {
+      return null;
+    }
+
+    const runType: unknown = data["runType"];
+    const ruleWaitMinutes: number = readCount("ruleWaitMinutes");
+
+    return {
+      id,
+      projectId,
+      attemptCount: readCount("attemptCount"),
+      handedBackCount: readCount("handedBackCount"),
+      runType: Object.values(AIRunType).includes(runType as AIRunType)
+        ? (runType as AIRunType)
+        : undefined,
+      triggeredByIncidentId: readId("incidentId"),
+      triggeredByAlertId: readId("alertId"),
+      triggeredByAiInsightId: readId("aiInsightId"),
+      triggeredByAutoRemediationSuggestionId: readId(
+        "autoRemediationSuggestionId",
+      ),
+      followUpForAlertId: readId("followUpForAlertId"),
+      ruleWaitMinutes: ruleWaitMinutes > 0 ? ruleWaitMinutes : undefined,
+    };
   }
 
   /*
@@ -826,12 +1149,7 @@ export default class AIInvestigationQueue {
      * background run cannot outlast for long (both kinds are read-only and
      * short).
      */
-    const isBackgroundLane: boolean =
-      Boolean(run.triggeredByAiInsightId) ||
-      run.runType === AIRunType.RemediationPlan ||
-      run.runType === AIRunType.RemediationExecution;
-
-    if (isBackgroundLane) {
+    if (this.isBackgroundRun(run)) {
       const backgroundCap: number = Math.max(
         1,
         concurrencyCap - INSIGHT_TRIAGE_RESERVED_SLOTS,

@@ -40,12 +40,12 @@ flowchart TB
 
 ## Runner 步骤如何分发
 
-JavaScript、Bash、SSH 和 kubectl 步骤 **从不在 OneUptime Worker 上运行** 。它们作为作业分发给特定的 [Runbook 代理](/docs/runbooks/agents)：一个你安装在自己基础设施中某台主机上的小进程。 未选择 Runner 的 JavaScript 步骤会交给 OneUptime 为所有项目运行的 [全局 Runner](/docs/runbooks/agents#全局-runner)。
+JavaScript、Bash、SSH 和 kubectl 步骤 **从不在 OneUptime Worker 上运行** 。它们作为作业分发给特定的 [Runbook 代理](/docs/runbooks/agents)：一个你安装在自己基础设施中某台主机上的小进程。 未选择 Runner 的步骤会交给 [项目默认 Runner](/docs/runbooks/agents#项目默认-runner) （如果项目有）；否则 JavaScript 步骤会交给 OneUptime 为所有项目运行的 [全局 Runner](/docs/runbooks/agents#全局-runner)。
 
 分发模型：
 
 1. Runbook 步骤的作者在编写步骤时从下拉列表中选择一个 Runner。
-2. 步骤运行时，Worker 在 `RunnerJob` 中插入一行，`targetAgentId` 设为该 Runner 的 ID，状态为 `Pending`。 在使用全局 Runner 的项目中，未选择 Runner 的 JavaScript 步骤会改为获得 `runsOnGlobalRunner`。
+2. 步骤运行时，Worker 在 `RunnerJob` 中插入一行，`targetAgentId` 设为该 Runner 的 ID（未选择 Runner 的步骤则设为项目默认 Runner 的 ID），状态为 `Pending`。 在没有默认 Runner 且使用全局 Runner 的项目中，未选择 Runner 的 JavaScript 步骤会改为获得 `runsOnGlobalRunner`。
 3. 正是这个 Runner（且只有它）以原子方式领取作业，在本地运行——Bash 和 kubectl 通过 `bash -c <script>`，JavaScript 在 `isolated-vm` 沙箱中，SSH 通过到机器的连接，每种都填入其引用的变量——并发回结果。 任何全局 Runner 都可以领取带有 `runsOnGlobalRunner` 的作业。
 4. Worker 用该结果继续执行 Runbook。
 
@@ -92,7 +92,7 @@ Runbook 执行在 `Runbook` BullMQ 队列上运行。每个 Worker 进程最多�
 
 ## 加固说明
 
-- **JavaScript、Bash、SSH 和 kubectl** 在你掌控的 Runner 主机上运行，而不是在 OneUptime Worker 上。JavaScript 在独立的 `isolated-vm` 隔离环境中运行，拥有 128 MB 内存，无法访问 Runner 的文件系统或进程；它可以用 `axios` 发送 HTTP 请求，但发往私有网络、环回地址和链路本地地址的请求会被拒绝。Bash 通过 `bash -c` 运行，其超时在 Runner 上强制执行。 未选择 Runner 的 JavaScript 步骤则会在全局 Runner 上运行。
+- **JavaScript、Bash、SSH 和 kubectl** 在你掌控的 Runner 主机上运行，而不是在 OneUptime Worker 上。JavaScript 在独立的 `isolated-vm` 隔离环境中运行，拥有 128 MB 内存，无法访问 Runner 的文件系统或进程；它可以用 `axios` 发送 HTTP 请求，但发往私有网络、环回地址和链路本地地址的请求会被拒绝。Bash 通过 `bash -c` 运行，其超时在 Runner 上强制执行。 未选择 Runner 的 JavaScript 步骤会在项目默认 Runner 上运行；如果没有设置，则在全局 Runner 上运行。
 - **HTTP 步骤** 使用宽松的状态校验，因此 4xx 或 5xx 响应会被记录为失败的步骤，而不是作为异常抛出，记录的输出反映的是上游实际返回的内容。不跟随重定向。Worker 从不调用环回地址或链路本地地址，例如云元数据端点；在 OneUptime Cloud 上，它还会拒绝私有网络地址，自托管的 OneUptime 在设置 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` 时也会拒绝。
 - **AI 步骤** 永远看不到事件的私有备注，也看不到 Slack 和 Microsoft Teams 的消息；前面步骤的输出会被扫描是否含有机密信息，并在到达模型之前被遮盖。嵌入的图片和很长的编码数据不会进入提示词。参见 [AI](/docs/runbooks/authoring#ai)。
 - **全局 Runner** 只运行 JavaScript 步骤，每个步骤都在为它创建、结束后丢弃的沙箱中运行，只能访问公共互联网地址，最长 5 分钟，并且同一项目同时最多运行三个步骤。它们只会获得步骤所属项目中已为全局 Runner 打开的机密变量，永远不会获得凭据；内置的全局 Runner 持有自己的密钥，不持有服务器的任何其他东西。参见 [全局 Runner](/docs/runbooks/agents#全局-runner)。
@@ -106,7 +106,7 @@ Runbook 执行在 `Runbook` BullMQ 队列上运行。每个 Worker 进程最多�
 | `Runbook` | 模板：名称、slug、描述、`isEnabled`、标签，以及以 JSON 存储的步骤。 |
 | `RunbookExecution` | 每次运行一行，带有可为空的外键 `incidentId`、`alertId` 和 `scheduledMaintenanceId`，以及一个 JSON 数组 `stepExecutions`，保存步骤和每个步骤状态的快照。 |
 | `RunbookRule` | 自动触发规则，带有判别字段 `triggerEntityType`（Incident、Alert、ScheduledMaintenance）、与要启动的 Runbook 的多对多关系，以及匹配依据：JSON 列 `criteria`（条件），外加指向监视器、事件严重性、警报严重性、标签和监视器标签的多对多链接，以及标题、描述、监视器名称和监视器描述的匹配模式。 |
-| `Runner` | 每个已安装的 Runner 一行：名称、密钥、`lastAlive`、`connectionStatus`、主机信息和功能。 全局 Runner 设置了 `isGlobalRunner`，且不属于任何项目。 |
+| `Runner` | 每个已安装的 Runner 一行：名称、密钥、`lastAlive`、`connectionStatus`、主机信息和功能。 全局 Runner 设置了 `isGlobalRunner`，且不属于任何项目；项目默认 Runner 设置了 `isProjectDefault`。 |
 | `RunnerJob` | 每个分发给 Runner 的步骤一行：`targetAgentId`（步骤作者选择的 Runner）、步骤类型、脚本或负载、状态（`Pending` → `Claimed` → `Running` → `Succeeded`、`Failed`、`TimedOut` 或 `Cancelled`）、领取截止时间、租约、输出和退出码。 `runsOnGlobalRunner` 标记任何全局 Runner 都可以领取的步骤。 |
 | `RunbookCredential` | OneUptime AI 命令使用的 SSH 和 Kubernetes 凭据，其机密字段已加密，以及分配到的 Runner。 |
 | `RunbookVariable` | Runbook 变量：项目的全局变量，以及在 `runbookId` 中指明所属 Runbook 的 Runbook 自有变量；机密的值已加密，以及可以接收机密的 Runner。 |

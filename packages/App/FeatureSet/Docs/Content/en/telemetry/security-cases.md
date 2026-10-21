@@ -5,6 +5,7 @@ Security Events turns what your detection rules, threat intelligence and connect
 :::cards
 - [Where cases come from](#where-cases-come-from): Detection rules, threat intelligence, connected products and people.
 - [Work a case](#work-a-case): Assign it, investigate its entities, close it with a verdict.
+- [Notifications](#notifications): Who is told about a new case, an assignment and a step waiting for approval.
 - [Playbooks](#playbooks): Steps that run on a case, with approval where it matters.
 - [The overview](#the-overview): What needs someone now, and how fast cases are handled.
 :::
@@ -108,6 +109,51 @@ The verdicts are counted on the overview. A rule whose cases keep closing as Fal
 
 **Declare Incident** opens a OneUptime incident for the case, at the severity you choose, and links the two both ways: the incident's description names the case, and the case's header links to the incident. On-call, status pages and the postmortem take over from there. It takes a role that can both work cases and create incidents.
 
+## Notifications
+
+OneUptime tells people about three things on a case. Nobody has to set anything up: a project that only clicked **Turn on recommended** hears about its High and Critical cases by email and push.
+
+| Notification | Who is told | By default |
+| --- | --- | --- |
+| New security case | Everyone who can see the project's cases, when a case opens, or rises, at the priority they chose or above | Email and push, for High and Critical cases |
+| Security case assigned to me | The person the case is assigned to, and the members of the team it is assigned to | Email and push |
+| Playbook step waiting for my approval | The people on the case who can approve the step: the person it is assigned to and the members of its team. When none of them can approve, everyone in the project who can | Email and push |
+
+- Only people who can see the case are told about it: Project Owners, Project Admins, and the Security Admin, Security Member and Security Viewer roles. A role limited to some labels is told only about the cases with those labels.
+- Nobody is told about what they did: the person who opens a case by hand, assigns it or starts a run is not notified of it.
+- Each person hears about a case once. A case that opens at Medium and later rises to Critical reaches the people who chose High or Critical when it rises, and not again the people who chose Medium, who heard about it when it opened.
+- The test attack from **Send a test attack** opens a case that notifies nobody.
+- A Critical case and a step waiting for approval are sent at once, never held back in an [email rollup](/docs/emails/notification-rollup).
+- The case's **Timeline** says who was told, and when.
+
+### Choose what you are told
+
+Each person chooses for themselves, under **User Settings → Notification Settings → Security**: the channels for each notification (email, SMS, call, push, Telegram, Slack, Microsoft Teams or webhook), and under **New security case**, the priority that notifies them:
+
+| Choice | Notifies about cases at |
+| --- | --- |
+| Critical only | Critical |
+| High and Critical | High and Critical (the default) |
+| Medium and above | Critical, High and Medium |
+| Low and above | Every priority but Informational |
+| Every case | Every priority |
+
+WhatsApp messages are not sent for security cases. A push notification opens the OneUptime app, and its link opens the case in the browser.
+
+### Post to Slack and Microsoft Teams channels
+
+To post to a channel, add a rule under **Products → Security Events → Workspace → Slack** (or **Microsoft Teams**). With neither connected, the section's one entry is **Connect Slack or Teams**. A rule names the channels to post to (and, in Microsoft Teams, the chats) and, if you want, the cases it is for:
+
+| Condition | Matches on |
+| --- | --- |
+| Security Case Priority | Critical, High, Medium, Low or Informational |
+| Security Case Title, Security Case Description | Text the case's title or description contains, starts with or ends with |
+| Security Case Status | New, Investigating, Contained or Closed |
+| Security Case Source | Detection Rule, Threat Intel, Connected Product or Manual |
+| Security Case Labels | The case's labels |
+
+The three notifications are each posted to the channels of every rule the case matches at that moment. A rule with **Security Case Priority** contains any of **Critical** and **High** posts High and Critical cases as they open, and a Medium case when it rises to High. A security case never gets a channel of its own.
+
 ## Playbooks
 
 A playbook is a list of steps that run on a case. Create one under **Products → Security Events → Playbooks**, from a template or blank, and add its steps on its page.
@@ -144,16 +190,19 @@ A disabled playbook runs neither by itself nor by hand.
 | Notify | Post to Microsoft Teams | Posts a summary of the case to a Microsoft Teams channel |
 | Escalate | Page on-call | Runs an on-call policy |
 | Escalate | Declare an incident | Opens a OneUptime incident linked to the case |
-| Contain | Suspend the user in Okta | Suspends each user of the case in Okta |
-| Contain | End the user's Okta sessions | Signs each user of the case out of Okta and revokes their tokens |
-| Contain | Contain the host in CrowdStrike | Network-contains each host of the case with CrowdStrike Falcon |
-| Contain | Isolate the device in Microsoft Defender | Isolates each host of the case with Microsoft Defender for Endpoint |
+| Contain | Suspend the user in Okta | Suspends the user the case is about in Okta |
+| Contain | End the user's Okta sessions | Signs the user the case is about out of Okta and revokes their tokens |
+| Contain | Contain the host in CrowdStrike | Network-contains the host the case is about with CrowdStrike Falcon |
+| Contain | Isolate the device in Microsoft Defender | Isolates the host the case is about with Microsoft Defender for Endpoint |
+| Contain | Unsuspend the user in Okta | Unsuspends the user the case is about in Okta |
+| Contain | Lift containment in CrowdStrike | Lifts CrowdStrike Falcon's network containment from the host the case is about |
+| Contain | Release the device in Microsoft Defender | Releases the host the case is about from isolation in Microsoft Defender for Endpoint |
 | Automate | Send a webhook | Posts the case as JSON to a URL |
 | Automate | Run a workflow | Starts a OneUptime workflow with the case as its input |
 
 A playbook has at most 25 steps. They run in order, each once the one before it is done. Every step can also:
 
-- **Needs Approval**: stop the run before the step until someone approves it on the case. It is on by default for the four Contain steps, which act outside OneUptime.
+- **Needs Approval**: stop the run before the step until someone approves it on the case. The four steps that cut someone off always do, unless a Security Admin turns it off.
 - **Only If Threat Intel Matched**: skip the step unless an earlier **Check entities against threat intel** step of the run found a known indicator.
 - **Carry On If It Fails**: run the next step even if this one fails. Off, a failed step stops the run.
 
@@ -163,11 +212,28 @@ The Contain steps act through a [security event connection](/docs/telemetry/secu
 
 | Step | Connection | Needs |
 | --- | --- | --- |
-| Suspend the user in Okta, End the user's Okta sessions | Okta System Log | An API token allowed to manage users |
-| Contain the host in CrowdStrike | CrowdStrike Falcon | An API client with the Hosts write scope |
-| Isolate the device in Microsoft Defender | Microsoft Defender XDR | An app with the Machine.Isolate permission |
+| Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | An API token allowed to manage users |
+| Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | An API client with the Hosts write scope |
+| Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | An app with the Machine.Isolate permission |
 
-A Contain step acts on at most 10 of the case's users or hosts. It finds each in the product by name, and says on the case what it did with each one: contained, already contained, not found, or refused.
+A Contain step acts only on the users or hosts the case is about, never on every one it names:
+
+- The value a detection of the case is grouped on, such as the account an impossible-travel rule groups by, or the host a connected product's alert names.
+- A user or host of the case that your threat intelligence knows as an indicator.
+
+A case grouped on an address, such as a brute force against your VPN, is about neither: its Contain steps are skipped, and the account it tried and the gateway it hit are left alone. A step acts on at most 10 users or hosts. It finds each in the product by name, and says on the run what it did with each one: done, already done, not found, refused, or protected.
+
+#### Protected entities
+
+**Protected Entities**, under **Playbooks** in the menu, lists the users and hosts no playbook contains, such as break-glass accounts, domain controllers and VPN gateways. A value matches whatever its case, and `*` stands for any run of characters: `svc-*` protects every service account. A step reports a protected user or host as protected and leaves it alone. Security Admins keep the list.
+
+#### Approval
+
+The four steps that cut someone off wait for approval. Only a Security Admin can turn **Needs Approval** off for one, and OneUptime records who did. The approval lists the users or hosts the step would act on under **Act On**, every one ticked: untick any it should leave alone. Protected ones are not offered. Whoever started a run cannot approve its steps: someone else does, though they can still reject it.
+
+#### Undo
+
+The undo steps act on the users or hosts the case is about, like the steps they undo. Once the run has stopped, a contained user or host also has a button of its own on its step: **Unsuspend**, **Lift Containment** or **Release**. An ended Okta session cannot be undone. Every undo is kept on the case's timeline and in the project's audit log.
 
 ### Messages
 
@@ -199,7 +265,7 @@ Every run is listed on its case and under **Products → Security Events → Pla
 | Failed | A step failed and the run stopped |
 | Cancelled | Someone cancelled it, or rejected a step |
 
-A step waiting for approval shows **Approve** and **Reject** on the run, with an optional comment. Approving carries the run on from that step; rejecting ends it. The decision, who made it and their comment are kept on the step and on the case's timeline. **Waiting for Approval**, under **Playbooks** in the menu, lists the runs held for a decision and counts them; **Playbook Runs** lists every run.
+A step waiting for approval shows **Approve** and **Reject** on the run, with an optional comment. Approving carries the run on from that step; rejecting ends it. The decision, who made it and their comment are kept on the step, on the case's timeline and in the project's audit log. **Waiting for Approval**, under **Playbooks** in the menu, lists the runs held for a decision and counts them; **Playbook Runs** lists every run.
 
 A run that stops hearing from its worker, after a restart for example, is picked up again: a queued run is queued again after 2 minutes, and a run that has said nothing for 30 minutes is failed.
 
@@ -223,7 +289,7 @@ Above them, a strip shows how Security is set up: its sources, detections, cases
 ## Automate
 
 - **Workflows**: a case or a note can start a workflow when it is created, updated or deleted. A **Run a workflow** step starts a workflow whose trigger is a webhook.
-- **API**: cases, notes, detections, playbooks and runs have the same REST API as the rest of OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook` and `/security-playbook-run`. See [API Reference](/docs/api-reference/api-reference).
+- **API**: cases, notes, detections, playbooks, runs and protected entities have the same REST API as the rest of OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` and `/security-protected-entity`. See [API Reference](/docs/api-reference/api-reference).
 - AI agents: the MCP server has tools for cases, notes, detections and playbooks. See [MCP Server](/docs/ai/mcp-server).
 
 ## Troubleshooting
@@ -232,12 +298,20 @@ Above them, a strip shows how Security is set up: its sources, detections, cases
 Check **Open a Case on Match** on the rule's **On Match** step. A detection about an entity that already has an open case joins that case instead of opening another: look for it under **Detections** on the open case.
 :::
 
+:::details Nobody was told about a case
+Look at the case's **Timeline**, which says who was notified. A **New security case** notification goes to the people whose chosen priority the case reaches, so a Medium case notifies nobody who kept the default, **High and Critical**. Check that the people who should hear can see security cases (a Security role, or Project Owner or Admin), and that the notification is on for them under **User Settings → Notification Settings → Security**.
+:::
+
 :::details A playbook did not run
 Check that it is enabled, that its **Trigger** fits (Case Opened runs once, as a case opens), and that the case meets its **For Cases At Least**, **Only For Detections From** and **Only For These Detection Rules** settings. A case opened by hand has no detection, so a playbook limited to a source or to rules does not run on it.
 :::
 
 :::details A Contain step failed
 Open the run on the case: the step says, for each user or host, whether the product refused it, did not find it, or could not be reached. Check that the connection's credential may make the change, and use **Test connection** in its row.
+:::
+
+:::details A Contain step was skipped
+The case is about no user or host, only an address for example, or every user or host it is about is protected. Open the run on the case: the step says which.
 :::
 
 ## Next steps

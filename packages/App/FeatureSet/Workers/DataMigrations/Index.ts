@@ -146,6 +146,7 @@ import HideImagesOfScheduledAnnouncements from "./HideImagesOfScheduledAnnouncem
 import RemoveProjectAccessOfFormerMembers from "./RemoveProjectAccessOfFormerMembers";
 import AddMissingIdsToMonitorSteps from "./AddMissingIdsToMonitorSteps";
 import MoveRunbookApprovalsBeforeTheirSteps from "./MoveRunbookApprovalsBeforeTheirSteps";
+import AddSecurityCaseNotificationSettingsForUsers from "./AddSecurityCaseNotificationSettingsForUsers";
 import AddProcessColumnsToSecurityEvent from "./AddProcessColumnsToSecurityEvent";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
@@ -786,6 +787,14 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new BackfillFirstPagedAt(),
+  /*
+   * The three security case notification settings (a case at my chosen
+   * priority, a case assigned to me or my team, a playbook step waiting for
+   * my approval) with email and push on, for every member who joined before
+   * they existed, so Notification Settings shows them as they behave.
+   * Idempotent, no ordering requirement.
+   */
+  new AddSecurityCaseNotificationSettingsForUsers(),
   /*
    * Security events gained the process an event is about and its parent
    * (SecurityEvent.processName, processPath, processCommandLine,

@@ -6,6 +6,7 @@ import {
   approvalDecidedMarkdown,
   assigneeChangedMarkdown,
   detectionAddedMarkdown,
+  detectionOverflowMarkdown,
   detectionRuleMatchMarkdown,
   playbookFinishedMarkdown,
   playbookStartedMarkdown,
@@ -213,6 +214,79 @@ describe("detection descriptions", () => {
     expect(markdown).toContain("confidence 90");
     expect(markdown).toContain("matched 1 security event between");
     assertInert(markdown);
+  });
+});
+
+/*
+ * The case a run opens for the groups past those with cases of their own:
+ * the group values are the attacker-reachable part, so they are code.
+ */
+describe("detectionOverflowMarkdown", () => {
+  test("names the source and the window, says what the run did, and lists some of the rest", () => {
+    const markdown: string = detectionOverflowMarkdown({
+      kind: "rule",
+      sourceName: "Brute Force Watch",
+      summary:
+        "This run matched 150 groups. Alerts, incidents and cases opened for the 100 with the most matches; every one of them is a Detection Finding.",
+      windowStart: "Oct 21, 2026 12:00 PM",
+      windowEnd: "Oct 21, 2026 12:05 PM",
+      examples: ["alice", "bob_x"],
+    }).toString();
+
+    expect(markdown).toBe(
+      "**Brute Force Watch** matched more than one run opens cases for, between Oct 21, 2026 12:00 PM and Oct 21, 2026 12:05 PM.\n\n" +
+        "This run matched 150 groups. Alerts, incidents and cases opened for the 100 with the most matches; every one of them is a Detection Finding.\n\n" +
+        "Among the rest: `alice`, `bob_x`",
+    );
+  });
+
+  test("a feed's says check, and lists at most twenty of the rest", () => {
+    const examples: Array<string> = [];
+
+    for (let index: number = 0; index < 30; index++) {
+      examples.push(`host-${index}.example`);
+    }
+
+    const markdown: string = detectionOverflowMarkdown({
+      kind: "feed",
+      sourceName: "Abuse feed",
+      summary: "This check matched 130 indicator values.",
+      windowStart: "a",
+      windowEnd: "b",
+      examples,
+    }).toString();
+
+    expect(markdown).toContain(
+      "**Abuse feed** matched more than one check opens cases for, between a and b.",
+    );
+    expect(markdown).toContain("`host-19.example`");
+    expect(markdown).not.toContain("`host-20.example`");
+  });
+
+  test("with nothing to list, there is no list", () => {
+    const markdown: string = detectionOverflowMarkdown({
+      kind: "rule",
+      sourceName: "Brute Force Watch",
+      summary: "This run matched more than 10,000 groups.",
+      windowStart: "a",
+      windowEnd: "b",
+      examples: [],
+    }).toString();
+
+    expect(markdown).not.toContain("Among the rest");
+  });
+
+  test("places a hostile rule name and group value as text", () => {
+    assertInert(
+      detectionOverflowMarkdown({
+        kind: "rule",
+        sourceName: HOSTILE,
+        summary: "This run matched 101 groups.",
+        windowStart: "a",
+        windowEnd: "b",
+        examples: [HOSTILE, "`backticks` [too](https://evil.example)"],
+      }).toString(),
+    );
   });
 });
 

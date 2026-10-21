@@ -9,6 +9,10 @@ import React, {
   useState,
 } from "react";
 import { Translator } from "../../Utils/TranslateTemplate";
+import useClipboardCopy, {
+  ClipboardCopy,
+  ClipboardCopyStatus,
+} from "../../Utils/UseClipboardCopy";
 import useTranslator from "../../Utils/UseTranslator";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import TemplateVariablesCatalog, {
@@ -36,14 +40,16 @@ export interface ComponentProps {
  *
  * Click a variable to copy `{{var}}` to the clipboard; the chip flips
  * to a "Copied" state briefly so the feedback lands on the thing that
- * was clicked.
+ * was clicked - only once the token is on the clipboard, and to "Copy
+ * failed" when the browser refused it (it said "Copied" whatever happened,
+ * issue #5132).
  */
 const TemplateVariablesModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [search, setSearch] = useState<string>("");
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const clipboard: ClipboardCopy = useClipboardCopy({ copiedForMs: 1500 });
 
   const groups: Array<TemplateVariableGroup> = useMemo(() => {
     return TemplateVariablesCatalog.getVariables({
@@ -76,26 +82,24 @@ const TemplateVariablesModal: FunctionComponent<ComponentProps> = (
   }, [groups, normalized]);
 
   const copyToClipboard: (key: string) => void = (key: string): void => {
-    const token: string = `{{${key}}}`;
-    if (
-      typeof navigator !== "undefined" &&
-      navigator.clipboard &&
-      typeof navigator.clipboard.writeText === "function"
-    ) {
-      void navigator.clipboard.writeText(token);
-    }
-    setCopiedKey(key);
-    setTimeout(() => {
-      setCopiedKey((current: string | null): string | null => {
-        return current === key ? null : current;
-      });
-    }, 1500);
+    void clipboard.copy(`{{${key}}}`, key);
   };
 
   const renderVariableRow: (v: TemplateVariable) => ReactElement = (
     v: TemplateVariable,
   ): ReactElement => {
-    const isCopied: boolean = copiedKey === v.key;
+    const copyStatus: ClipboardCopyStatus = clipboard.statusOf(v.key);
+    const isCopied: boolean = copyStatus === ClipboardCopyStatus.Copied;
+    const isFailed: boolean = copyStatus === ClipboardCopyStatus.Failed;
+
+    let chipText: string = translator.translateText("Copy") || "Copy";
+
+    if (isCopied) {
+      chipText = translator.translateText("Copied") || "Copied";
+    } else if (isFailed) {
+      chipText = translator.translateText("Copy failed") || "Copy failed";
+    }
+
     return (
       <button
         key={v.key}
@@ -132,13 +136,17 @@ const TemplateVariablesModal: FunctionComponent<ComponentProps> = (
             ) : null}
           </div>
           <span
+            aria-live="polite"
+            data-copy-state={copyStatus}
             className={`shrink-0 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide transition ${
               isCopied
                 ? "bg-emerald-100 text-emerald-700"
-                : "bg-gray-100 text-gray-500 group-hover:bg-indigo-100 group-hover:text-indigo-700"
+                : isFailed
+                  ? "bg-red-100 text-red-700"
+                  : "bg-gray-100 text-gray-500 group-hover:bg-indigo-100 group-hover:text-indigo-700"
             }`}
           >
-            {translator.translateText(isCopied ? "Copied" : "Copy")}
+            {chipText}
           </span>
         </div>
       </button>

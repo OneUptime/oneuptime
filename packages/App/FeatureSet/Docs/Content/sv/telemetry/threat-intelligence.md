@@ -138,7 +138,7 @@ Varje minut matchas varje aktiverat flödes aktiva indikatorer mot händelserna 
 - Den första kontrollen täcker de senaste 15 minuterna. Efter ett avbrott tar nästa kontroll igen högst de senaste 24 timmarna.
 - Varje fönster kontrolleras en gång. Underrättelser som kommer in efter att deras fönster har kontrollerats gäller bara senare händelser.
 - En händelse som kommer sent, med en tid från före den föregående kontrollen, märks fortfarande när den kommer in, men matchas inte.
-- Varje kontroll matchar högst 100 indikatorvärden per flöde: de som förekommer i flest händelser.
+- Varje kontroll registrerar varje indikatorvärde som träffade som ett Detection Finding, upp till 10 000 per flöde. Larm, incidenter och ärenden öppnas för de 100 värden som förekommer i flest händelser; resten delar ett ärende om flödet, och flödets **Last Match Error** säger hur många som träffade.
 
 ### Vad en träff gör
 

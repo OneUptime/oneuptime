@@ -965,7 +965,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
         "STIX/TAXII threat-intel feeds with IOC enrichment",
         "Security Cases that group detections by user, host or IP address",
         "Case verdicts, and mean time to acknowledge, contain and close",
-        "Playbooks with 18 actions, run as a case opens, as detections join it, or by hand",
+        "Playbooks with 21 actions, run as a case opens, as detections join it, or by hand",
         "Containment through Okta, CrowdStrike Falcon and Microsoft Defender, with per-step approval",
         "Deduplicated alerts and optional incidents, or an incident declared from a case",
         "Detection findings written back as searchable events",

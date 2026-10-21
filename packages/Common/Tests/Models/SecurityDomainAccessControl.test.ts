@@ -8,6 +8,7 @@ import SecurityCaseNote from "../../Models/DatabaseModels/SecurityCaseNote";
 import SecurityDetection from "../../Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "../../Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "../../Models/DatabaseModels/SecurityPlaybookRun";
+import SecurityProtectedEntity from "../../Models/DatabaseModels/SecurityProtectedEntity";
 import SecurityEvent from "../../Models/AnalyticsModels/SecurityEvent";
 import ThreatIntelIndicator from "../../Models/AnalyticsModels/ThreatIntelIndicator";
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
@@ -91,10 +92,11 @@ const buildSecurityModels: BuildSecurityModelsFunction =
       new ThreatIntelIndicator();
 
     /*
-     * The SOAR half - cases, their detections, notes and feed, playbooks
-     * and their runs - is the investigation trail of possible breaches and
-     * the automated response to them: SIEM data like the events it is made
-     * from, held to the same tiers.
+     * The SOAR half - cases, their detections, notes and feed, playbooks,
+     * their runs and the users and hosts they never contain - is the
+     * investigation trail of possible breaches and the automated response
+     * to them: SIEM data like the events it is made from, held to the same
+     * tiers.
      */
     const soarModels: Array<SecurityModel> = [
       new SecurityCase(),
@@ -103,6 +105,7 @@ const buildSecurityModels: BuildSecurityModelsFunction =
       new SecurityDetection(),
       new SecurityPlaybook(),
       new SecurityPlaybookRun(),
+      new SecurityProtectedEntity(),
     ].map(
       (
         model:
@@ -111,7 +114,8 @@ const buildSecurityModels: BuildSecurityModelsFunction =
           | SecurityCaseNote
           | SecurityDetection
           | SecurityPlaybook
-          | SecurityPlaybookRun,
+          | SecurityPlaybookRun
+          | SecurityProtectedEntity,
       ): SecurityModel => {
         return {
           name: model.tableName!,
@@ -230,6 +234,7 @@ describe("Security domain access control", () => {
       "SecurityEventConnectionRun",
       "SecurityPlaybook",
       "SecurityPlaybookRun",
+      "SecurityProtectedEntity",
       "ThreatIntelFeed",
       "ThreatIntelIndicator",
     ]);

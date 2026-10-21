@@ -572,6 +572,59 @@ export default class Runner extends BaseModel {
   })
   public isGlobalRunner?: boolean = undefined;
 
+  /*
+   * The project's default Runner: a runbook step that picks no Runner of
+   * its own runs on it, in place of the Global Runner (Types/Runner/
+   * RunnerChoice, the default order). One per project at most: making a
+   * Runner the default takes it from the project's other Runners, once the
+   * write succeeded (RunnerService, ProjectDefaultRow). Only a Runner that
+   * runs runbook steps may be it - never a global Runner, nor the
+   * in-cluster Runner the Kubernetes agent chart installed
+   * (Types/Runner/ProjectDefaultRunner). Off for every Runner until someone
+   * makes one the default, so no step moves by itself; written by those who
+   * edit Runners, from Runbooks -> Runners and the Runner's own page.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.RunbookAdmin,
+      Permission.EditRunner,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunner,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.RunbookAdmin,
+      Permission.EditRunner,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Project Default",
+    description:
+      "Whether this is the project's default Runner: runbook steps that pick no Runner run on it instead of the Global Runner.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  public isProjectDefault?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

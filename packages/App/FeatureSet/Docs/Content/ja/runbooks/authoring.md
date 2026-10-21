@@ -12,7 +12,7 @@ Runbook は、その **ステップ** ページでステップの順序付きリ
 ## 始める前に
 
 - **Runbook を書けるロール。** Project Owner、Project Admin、Runbook Admin は Runbook を作成し、そのステップを保存できます。詳細な権限の場合は **Create Runbook** と **Edit Runbook** が必要です。[権限](/docs/runbooks/configuration#権限) を参照してください。
-- **Bash、SSH、kubectl のステップ用の Runner。** これらのステップは自社インフラの [Runner](/docs/runbooks/agents) で実行され、OneUptime Worker では実行されません。先にインストールしてください。JavaScript のステップは、自社の Runner を選ばない限り [グローバル Runner](/docs/runbooks/agents#グローバル-runner) で実行されます。
+- **Bash、SSH、kubectl のステップ用の Runner。** これらのステップは自社インフラの [Runner](/docs/runbooks/agents) で実行され、OneUptime Worker では実行されません。先にインストールしてください。Runner を選ばないステップは、設定していれば [プロジェクトのデフォルト Runner](/docs/runbooks/agents#プロジェクトのデフォルト-runner) で実行され、設定していなければ JavaScript のステップは [グローバル Runner](/docs/runbooks/agents#グローバル-runner) で実行されます。
 - **SSH と kubectl のステップ用のシークレット変数。** ステップがサインインに使う鍵、パスワード、kubeconfig は、シークレットの [Runbook の変数](/docs/runbooks/variables) です。変数を作成するのは Project Owner と Project Admin で、Runbook Admin は自分が書くステップで変数を選びます。kubectl のステップは、代わりに Runner 自身のアクセスを使うこともできます。
 - **AI ステップ用の LLM プロバイダー。** [LLM プロバイダー](/docs/ai/llm-provider) を参照してください。
 
@@ -64,7 +64,7 @@ Runbook は、その **ステップ** ページでステップの順序付きリ
 | [kubectl](#kubectl) | Runner | Runner と、kubeconfig の変数または Runner 自身のアクセス |
 | [AI](#ai) | OneUptime Worker | LLM プロバイダー |
 
-以下のどの自動ステップでも、ステップの **その他の項目** には、まず **承認を要求** と **失敗時に続行** があり、次にそのステップ固有の設定（HTTP request ステップのヘッダー、SSH ステップのポートと鍵のパスフレーズ、AI ステップのプロバイダーとコンテキストのスイッチ）、最後に **説明** とタイムアウトがあります。
+以下のどの自動ステップでも、ステップの **その他の項目** には、まず Runner で実行されるステップならその **Runner** 、続いて **承認を要求** と **失敗時に続行** があり、次にそのステップ固有の設定（HTTP request ステップのヘッダー、SSH ステップのポートと鍵のパスフレーズ、AI ステップのプロバイダーとコンテキストのスイッチ）、最後に **説明** とタイムアウトがあります。折りたたむとステップの Runner が表示されるので、開かなくてもステップがどこで実行されるかがわかります。
 
 ### Manual
 
@@ -78,7 +78,7 @@ OneUptime Worker ではなく [Runbook エージェント](/docs/runbooks/agents
 
 | 項目 | 内容 | 既定値 |
 | --- | --- | --- |
-| **Runner** | ステップを実行する Runner です。 **グローバル Runner** か、自社の Runner のいずれかです。ジョブを取得できるのは選んだ Runner だけですが、 **グローバル Runner** のステップはどのグローバル Runner でも取得できます。 | **グローバル Runner** （ある場合） |
+| **Runner** | **その他の項目** にあります。ステップを実行する Runner です。 **グローバル Runner** か、自社の Runner のいずれかです。ジョブを取得できるのは選んだ Runner だけですが、 **グローバル Runner** のステップはどのグローバル Runner でも取得できます。 | 設定していれば [プロジェクトのデフォルト Runner](/docs/runbooks/agents#プロジェクトのデフォルト-runner) 、なければ **グローバル Runner** （ある場合） |
 | **スクリプト** | 実行する JavaScript です。値を記録するには `return` で返します。`console.log` の各行も記録されます。エラーがスローされるとステップは失敗します。 | — |
 | **実行タイムアウト** | Runner がサンドボックスを破棄するまでにスニペットを実行させる時間です。 グローバル Runner では最長 5 分です。 | 30 秒 |
 | **取得のタイムアウト** | Worker が Runner によるジョブの取得を待つ時間です。 | 2 分 |
@@ -117,7 +117,7 @@ OneUptime Worker が行う送信 HTTP 呼び出しです。Runner は不要で�
 
 | 項目 | 内容 | 既定値 |
 | --- | --- | --- |
-| **Runner** | ステップを実行する Runner です。ジョブを取得できるのはこの Runner だけです。 | — |
+| **Runner** | **その他の項目** にあります。ステップを実行する Runner です。ジョブを取得できるのはこの Runner だけです。グローバル Runner が実行するのは JavaScript のステップだけです。 | 設定していればプロジェクトのデフォルト Runner |
 | **Bash スクリプト** | スクリプトです。出力（stdout と stderr）は最大 50 KB まで記録され、0 以外の終了コードでステップは失敗します。 | — |
 | **実行タイムアウト** | Runner が `SIGKILL` で終了させるまでにスクリプトを実行させる時間です。正当な理由で数分かかるステップでは引き上げます。 | 30 秒 |
 | **取得のタイムアウト** | Worker が Runner によるジョブの取得を待つ時間です。 | 2 分 |
@@ -146,7 +146,7 @@ SSH でマシンにサインインし、そこで bash スクリプトを実行�
 
 | 項目 | 内容 |
 | --- | --- |
-| **Runner** | 接続を開く Runner です。ネットワーク経由でマシンに到達できる必要があります。 |
+| **Runner** | **その他の項目** にあります。接続を開く Runner です。ネットワーク経由でマシンに到達できる必要があります。 Runner を選ばないステップは、プロジェクトのデフォルト Runner で実行されます。 |
 | **SSH 接続先** | ユーザーとマシンを `ssh` の後に書くとおりに指定します: `deploy@10.0.4.21`。 |
 | **サインイン方法** | 秘密鍵またはパスワードを持つシークレット変数です。どちらかは値から判断されます。シークレット変数だけが表示され、選んだ変数をステップの Runner が使えない場合はステップが知らせます。 |
 | **Bash スクリプト** | マシン上で、サインインしたユーザーとして `bash` で実行されます。出力は 50 KB まで記録され、終了コードが 0 以外だとステップは失敗します。 |
@@ -168,7 +168,7 @@ systemctl status nginx --no-pager
 
 | 項目 | 内容 |
 | --- | --- |
-| **Runner** | kubectl を実行する Runner です。クラスターの API サーバーに到達できる必要があります。 |
+| **Runner** | **その他の項目** にあります。kubectl を実行する Runner です。クラスターの API サーバーに到達できる必要があります。 Runner を選ばないステップは、プロジェクトのデフォルト Runner で実行されます。 |
 | **Kubeconfig** | クラスターの kubeconfig を持つシークレット変数、または **Runner 自身のアクセス** です。後者は Runner 自身の kubeconfig、またはクラスター内で動くときはそのサービスアカウントを使います。Runner は kubeconfig を自分だけが読めるファイルに書き込み、スクリプトの終了時に削除します。 |
 | **スクリプト** | kubectl コマンドです。出力は 50 KB まで記録され、終了コードが 0 以外だとステップは失敗します。 |
 | **実行タイムアウト** | Runner が `SIGKILL` で止めるまでスクリプトを実行させておく時間です。既定は 30 秒です。 |

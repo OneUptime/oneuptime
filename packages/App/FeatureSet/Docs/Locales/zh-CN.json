@@ -17,6 +17,7 @@
     "backToTop": "回到顶部",
     "copy": "复制",
     "copied": "已复制",
+    "copyFailed": "复制失败",
     "copyCode": "复制代码",
     "diagramNotDrawn": "无法绘制此图表。",
     "searchHintNavigate": "导航",

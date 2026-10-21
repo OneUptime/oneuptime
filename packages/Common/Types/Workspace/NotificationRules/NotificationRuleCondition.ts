@@ -10,6 +10,9 @@ import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledM
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "../../../UI/Utils/Dropdown";
 import MonitorType from "../../Monitor/MonitorType";
+import SecurityCasePriority from "../../SecurityCase/SecurityCasePriority";
+import SecurityCaseStatus from "../../SecurityCase/SecurityCaseStatus";
+import SecurityDetectionSource from "../../SecurityCase/SecurityDetectionSource";
 import WorkspaceType, { getWorkspaceTypeDisplayName } from "../WorkspaceType";
 import NotificationRuleEventType from "./EventType";
 import IncidentNotificationRule from "./NotificationRuleTypes/IncidentNotificationRule";
@@ -49,6 +52,14 @@ export enum NotificationRuleConditionCheckOn {
   OnCallDutyPolicyName = "On Call Duty Policy Name",
   OnCallDutyPolicyDescription = "On Call Duty Policy Description",
   OnCallDutyPolicyLabels = "On Call Duty Policy Labels",
+
+  // Security Case
+  SecurityCaseTitle = "Security Case Title",
+  SecurityCaseDescription = "Security Case Description",
+  SecurityCasePriority = "Security Case Priority",
+  SecurityCaseStatus = "Security Case Status",
+  SecurityCaseSource = "Security Case Source",
+  SecurityCaseLabels = "Security Case Labels",
 }
 
 export enum ConditionType {
@@ -169,6 +180,31 @@ export class NotificationRuleConditionUtil {
        */
     }
 
+    /*
+     * A security case has no channel of its own, so its rule posts somewhere
+     * that exists: a channel, or (Microsoft Teams) a chat.
+     */
+    if (eventType === NotificationRuleEventType.SecurityCase) {
+      const workspaceDisplayName: string =
+        getWorkspaceTypeDisplayName(workspaceType);
+
+      if (
+        !notificationRule.shouldPostToExistingChannel &&
+        !notificationRule.shouldPostToExistingChat
+      ) {
+        return workspaceType === WorkspaceType.MicrosoftTeams
+          ? `Please select a destination: post to an existing ${workspaceDisplayName} channel or to an existing ${workspaceDisplayName} chat`
+          : `Please select a destination: post to an existing ${workspaceDisplayName} channel`;
+      }
+
+      if (
+        notificationRule.shouldPostToExistingChannel &&
+        !notificationRule.existingChannelNames?.trim()
+      ) {
+        return "Existing " + workspaceDisplayName + " channel name is required";
+      }
+    }
+
     if (notificationRule.shouldPostToExistingChat) {
       if (
         !notificationRule.existingChatIds ||
@@ -267,6 +303,10 @@ export class NotificationRuleConditionUtil {
       case NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels:
       case NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels:
       case NotificationRuleConditionCheckOn.Monitors:
+      case NotificationRuleConditionCheckOn.SecurityCasePriority:
+      case NotificationRuleConditionCheckOn.SecurityCaseStatus:
+      case NotificationRuleConditionCheckOn.SecurityCaseSource:
+      case NotificationRuleConditionCheckOn.SecurityCaseLabels:
         return true;
       default:
         return false;
@@ -344,7 +384,9 @@ export class NotificationRuleConditionUtil {
       data.checkOn === NotificationRuleConditionCheckOn.IncidentEpisodeLabels ||
       data.checkOn ===
         NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels ||
-      data.checkOn === NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels
+      data.checkOn ===
+        NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels ||
+      data.checkOn === NotificationRuleConditionCheckOn.SecurityCaseLabels
     ) {
       return toOptions(data.labels);
     }
@@ -364,6 +406,25 @@ export class NotificationRuleConditionUtil {
     // if monitor type
     if (data.checkOn === NotificationRuleConditionCheckOn.MonitorType) {
       return DropdownUtil.getDropdownOptionsFromEnum(MonitorType);
+    }
+
+    /*
+     * A security case's priority, status and source are fixed scales every
+     * project shares, listed in their own order: most urgent priority first,
+     * statuses as a case moves through them.
+     */
+    if (
+      data.checkOn === NotificationRuleConditionCheckOn.SecurityCasePriority
+    ) {
+      return DropdownUtil.getDropdownOptionsFromEnum(SecurityCasePriority);
+    }
+
+    if (data.checkOn === NotificationRuleConditionCheckOn.SecurityCaseStatus) {
+      return DropdownUtil.getDropdownOptionsFromEnum(SecurityCaseStatus);
+    }
+
+    if (data.checkOn === NotificationRuleConditionCheckOn.SecurityCaseSource) {
+      return DropdownUtil.getDropdownOptionsFromEnum(SecurityDetectionSource);
     }
 
     return [];
@@ -434,6 +495,15 @@ export class NotificationRuleConditionUtil {
           NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription,
           NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
         ];
+      case NotificationRuleEventType.SecurityCase:
+        return [
+          NotificationRuleConditionCheckOn.SecurityCasePriority,
+          NotificationRuleConditionCheckOn.SecurityCaseTitle,
+          NotificationRuleConditionCheckOn.SecurityCaseDescription,
+          NotificationRuleConditionCheckOn.SecurityCaseStatus,
+          NotificationRuleConditionCheckOn.SecurityCaseSource,
+          NotificationRuleConditionCheckOn.SecurityCaseLabels,
+        ];
       default:
         return [];
     }
@@ -456,6 +526,8 @@ export class NotificationRuleConditionUtil {
       case NotificationRuleConditionCheckOn.ScheduledMaintenanceDescription:
       case NotificationRuleConditionCheckOn.OnCallDutyPolicyName:
       case NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription:
+      case NotificationRuleConditionCheckOn.SecurityCaseTitle:
+      case NotificationRuleConditionCheckOn.SecurityCaseDescription:
         return [
           ConditionType.EqualTo,
           ConditionType.NotEqualTo,
@@ -477,6 +549,9 @@ export class NotificationRuleConditionUtil {
       case NotificationRuleConditionCheckOn.ScheduledMaintenanceState:
         return [ConditionType.ContainsAny, ConditionType.NotContains];
       case NotificationRuleConditionCheckOn.MonitorType:
+      case NotificationRuleConditionCheckOn.SecurityCasePriority:
+      case NotificationRuleConditionCheckOn.SecurityCaseStatus:
+      case NotificationRuleConditionCheckOn.SecurityCaseSource:
         return [ConditionType.ContainsAny, ConditionType.NotContains];
       case NotificationRuleConditionCheckOn.AlertLabels:
       case NotificationRuleConditionCheckOn.AlertEpisodeLabels:
@@ -485,6 +560,7 @@ export class NotificationRuleConditionUtil {
       case NotificationRuleConditionCheckOn.MonitorLabels:
       case NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels:
       case NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels:
+      case NotificationRuleConditionCheckOn.SecurityCaseLabels:
         return [
           ConditionType.ContainsAny,
           ConditionType.NotContains,

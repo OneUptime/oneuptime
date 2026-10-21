@@ -25,12 +25,19 @@ export interface ComponentProps {
   projectId: ObjectID;
   // Told whether the switch is on: once read, and each time it moves.
   onChange?: ((isOn: boolean) => void) | undefined;
+  /*
+   * Whether the project has a default Runner: steps that pick no Runner run
+   * on it, so the switch decides only the steps that pick Global Runner.
+   */
+  hasProjectDefaultRunner?: boolean | undefined;
 }
 
 export const getStopUsingGlobalRunnersConfirmation: (
   isTurningOn: boolean,
+  hasProjectDefaultRunner?: boolean | undefined,
 ) => ModelSwitchConfirmation | undefined = (
   isTurningOn: boolean,
+  hasProjectDefaultRunner?: boolean | undefined,
 ): ModelSwitchConfirmation | undefined => {
   if (isTurningOn) {
     return undefined;
@@ -38,7 +45,9 @@ export const getStopUsingGlobalRunnersConfirmation: (
 
   return {
     title: GlobalRunnersCopy.turnOffTitle,
-    description: GlobalRunnersCopy.turnOffDescription,
+    description: hasProjectDefaultRunner
+      ? GlobalRunnersCopy.turnOffDescriptionWithDefault
+      : GlobalRunnersCopy.turnOffDescription,
     submitButtonText: GlobalRunnersCopy.turnOffButton,
     submitButtonType: ButtonStyleType.DANGER,
   };
@@ -56,11 +65,24 @@ const UseGlobalRunnersCard: FunctionComponent<ComponentProps> = (
       cardDescription={GlobalRunnersCopy.switchCardDescription}
       title={GlobalRunnersCopy.switchTitle}
       getDescription={(isOn: boolean): string => {
+        if (props.hasProjectDefaultRunner) {
+          return isOn
+            ? GlobalRunnersCopy.switchOnDescriptionWithDefault
+            : GlobalRunnersCopy.switchOffDescriptionWithDefault;
+        }
+
         return isOn
           ? GlobalRunnersCopy.switchOnDescription
           : GlobalRunnersCopy.switchOffDescription;
       }}
-      getConfirmation={getStopUsingGlobalRunnersConfirmation}
+      getConfirmation={(
+        isTurningOn: boolean,
+      ): ModelSwitchConfirmation | undefined => {
+        return getStopUsingGlobalRunnersConfirmation(
+          isTurningOn,
+          props.hasProjectDefaultRunner,
+        );
+      }}
       onChange={props.onChange}
       dataTestId={USE_GLOBAL_RUNNERS_SWITCH_TEST_ID}
     />

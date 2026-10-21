@@ -1616,7 +1616,8 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
     /*
      * The menu's sections and their pages, as SecurityEventsNavigation.ts
      * lists them: each page of the case queue and of the runs a page of its
-     * own.
+     * own, and the Workspace section's Slack and Microsoft Teams pages,
+     * where security cases are posted to channels.
      */
     sections: [
       {
@@ -1755,8 +1756,24 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Play,
             keywords: ["run history", "soar runs"],
           },
+          {
+            page: PageMap.SECURITY_PROTECTED_ENTITIES,
+            title: "Protected Entities",
+            icon: IconProp.Lock,
+            keywords: [
+              "protected users",
+              "protected hosts",
+              "containment exclusions",
+              "break-glass accounts",
+            ],
+          },
         ],
       },
+      workspaceSection({
+        slack: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK,
+        microsoftTeams:
+          PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      }),
       {
         title: "Connections",
         pages: [

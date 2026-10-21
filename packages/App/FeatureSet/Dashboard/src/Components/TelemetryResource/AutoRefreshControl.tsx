@@ -13,6 +13,8 @@ import {
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 interface CountdownCircleProps {
   // Length of one auto-refresh cycle.
@@ -139,6 +141,14 @@ export interface AutoRefreshControlProps {
 const AutoRefreshControl: FunctionComponent<AutoRefreshControlProps> = (
   props: AutoRefreshControlProps,
 ): ReactElement => {
+  /*
+   * In the reader's language: every infrastructure overview draws this
+   * control, and it was English on all of them.
+   */
+  const translator: Translator = useTranslator();
+  const autoRefreshLabel: string =
+    translator.translateText("Auto-refresh") || "Auto-refresh";
+
   const intervals: Array<AutoRefreshInterval> = [
     AutoRefreshInterval.OFF,
     AutoRefreshInterval.THIRTY_SECONDS,
@@ -158,7 +168,7 @@ const AutoRefreshControl: FunctionComponent<AutoRefreshControlProps> = (
         type="button"
         onClick={props.onManualRefresh}
         disabled={props.isRefreshing}
-        title="Refresh now"
+        title={translator.translateText("Refresh now")}
         className="inline-flex h-8 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <Icon
@@ -167,10 +177,12 @@ const AutoRefreshControl: FunctionComponent<AutoRefreshControlProps> = (
             props.isRefreshing ? "animate-spin text-gray-400" : "text-gray-500"
           }`}
         />
-        <span className="max-sm:hidden sm:inline">Refresh</span>
+        <span className="max-sm:hidden sm:inline">
+          {translator.translateText("Refresh")}
+        </span>
       </button>
       <label className="flex items-center gap-1.5 text-xs text-gray-500">
-        <span className="max-sm:hidden sm:inline">Auto-refresh</span>
+        <span className="max-sm:hidden sm:inline">{autoRefreshLabel}</span>
         {durationMs !== null ? (
           <CountdownCircle
             durationMs={durationMs}
@@ -180,7 +192,12 @@ const AutoRefreshControl: FunctionComponent<AutoRefreshControlProps> = (
             isRefreshing={props.isRefreshing}
           />
         ) : null}
+        {/*
+         * Named on its own too: on a phone the words beside it are hidden,
+         * and hidden words name nothing.
+         */}
         <select
+          aria-label={autoRefreshLabel}
           value={props.autoRefreshInterval}
           onChange={(e: React.ChangeEvent<HTMLSelectElement>): void => {
             props.onAutoRefreshIntervalChange(
@@ -193,8 +210,10 @@ const AutoRefreshControl: FunctionComponent<AutoRefreshControlProps> = (
             return (
               <option key={interval} value={interval}>
                 {interval === AutoRefreshInterval.OFF
-                  ? "Off"
-                  : `Every ${getAutoRefreshIntervalLabel(interval)}`}
+                  ? translator.translateText("Off")
+                  : translator.translateTemplate("Every {{interval}}", {
+                      interval: getAutoRefreshIntervalLabel(interval),
+                    })}
               </option>
             );
           })}

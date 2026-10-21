@@ -339,7 +339,7 @@ describe("the messages people act on name Runbooks", () => {
     const choice: string = read("Common", "Types", "Runner", "RunnerChoice.ts");
 
     for (const message of [
-      "Pick one of your Runners for the step, or add one under Runbooks → Runners.",
+      "Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners.",
       "Pick one of your Runners for the step, or turn global Runners on under Runbooks → Runners.",
     ]) {
       expect(choice).toContain(message);
@@ -358,12 +358,37 @@ describe("the messages people act on name Runbooks", () => {
     );
 
     for (const template of [
-      'template="{{stepType}} steps run on a Runner of your own, inside your network. Add one under {{location}}, then pick it here."',
       'template="This project does not use global Runners. Add a Runner of your own under {{location}}, or turn global Runners on there."',
       'template="Add a Runner under {{location}} to run this step, then pick it here."',
     ]) {
       expect(picker).toContain(template);
     }
+
+    /*
+     * A Bash, SSH or kubectl step global Runners never run: its sentences
+     * live with the picker's other words (RunnerPickerModel), and both send
+     * people to Runbooks › Runners - to add a Runner, or to make one the
+     * project default.
+     */
+    const model: string = read(
+      "App",
+      "FeatureSet",
+      "Dashboard",
+      "src",
+      "Components",
+      "Runner",
+      "RunnerPickerModel.ts",
+    ).replace(/\s+/g, " ");
+
+    for (const sentence of [
+      '"{{stepType}} steps run on a Runner of your own, inside your network: the Global Runner runs JavaScript steps only. Add one under {{location}}, then pick it here."',
+      '"{{stepType}} steps run on a Runner of your own, inside your network: the Global Runner runs JavaScript steps only. Pick one, or make one the project default under {{location}}."',
+    ]) {
+      expect(model).toContain(sentence);
+    }
+
+    expect(picker).toContain("template={NEEDS_OWN_RUNNER_ADD_TEMPLATE}");
+    expect(picker).toContain("template={NEEDS_OWN_RUNNER_TEMPLATE}");
 
     /*
      * Named "Runbooks › Runners", as a link to that page: in a new tab, so
