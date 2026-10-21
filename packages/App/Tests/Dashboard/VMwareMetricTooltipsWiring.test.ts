@@ -647,7 +647,6 @@ describe("VMware ESXi host page", () => {
       ["Memory", null],
       ["Virtual machines", null],
       ["VM templates", null],
-      ["Metrics updated", null],
       ["Inventory ID", null],
     ]);
     expect(code).toContain(

@@ -1,14 +1,19 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import Route from "Common/Types/API/Route";
-import OneUptimeDate from "Common/Types/Date";
 import VMwareResourceModel from "Common/Models/DatabaseModels/VMwareResource";
 import Card from "Common/UI/Components/Card/Card";
-import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
+import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
+import CopyableButton from "Common/UI/Components/CopyableButton/CopyableButton";
+import { DETAIL_VALUE_CLASS_NAME } from "Common/UI/Components/Detail/Detail";
+import { DETAIL_FIELD_LABEL_CLASS_NAME } from "Common/UI/Components/Detail/DetailFieldLabel";
+import {
+  getDetailCellClassNames,
+  getDetailGridClassName,
+} from "Common/UI/Components/Detail/DetailGridLayout";
 import Link from "Common/UI/Components/Link/Link";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import { formatRelativeTime } from "../../Home/HomeRelativeTime";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/VMwareMetricDescriptions";
 import {
   VMwareHostIdentity,
@@ -23,9 +28,18 @@ import {
 /*
  * An ESXi host's details, as the host page outside VMware has its
  * Identification and Hardware cards: who the host is to vCenter, how big it
- * is, what it runs and when vCenter last reported it - each value one copy
- * away, nothing to edit (vCenter owns the host).
+ * is and what it runs - nothing to edit (vCenter owns the host), and the
+ * names a reader pastes elsewhere one copy away.
+ *
+ * Laid out the way every detail card in the product is (Detail's grid:
+ * each name over its value, three columns on a wide screen, rules between
+ * the rows), not as ten label-and-value lines that took 550px for what fits
+ * in four rows. When vCenter last reported the host is the hero's line, so
+ * it is not repeated here.
  */
+
+// The detail card's columns on a wide screen (two from sm, one on a phone).
+export const VMWARE_HOST_DETAIL_COLUMNS: number = 3;
 
 export interface ComponentProps {
   identity: VMwareHostIdentity;
@@ -41,6 +55,8 @@ interface DetailRow {
   value: ReactElement | string;
   description?: string | undefined;
   mono?: boolean | undefined;
+  // What the value's copy button copies; no button without it.
+  copyText?: string | undefined;
 }
 
 const VMwareHostDetailsCard: FunctionComponent<ComponentProps> = (
@@ -51,7 +67,7 @@ const VMwareHostDetailsCard: FunctionComponent<ComponentProps> = (
   const tx: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;
   };
-  const listClassName: string = useCardRuledListClassName();
+  const bodyClassName: string = useCardRuledBodyClassName();
 
   const cpuCapacity: number | null = toFiniteNumber(props.row?.cpuCapacityMhz);
   const memoryCapacity: number | null = toFiniteNumber(
@@ -64,6 +80,7 @@ const VMwareHostDetailsCard: FunctionComponent<ComponentProps> = (
       label: "Host name",
       value: props.identity.hostName,
       mono: true,
+      copyText: props.identity.hostName,
     },
     { key: "vcenter", label: "vCenter", value: props.identity.vcenterName },
   ];
@@ -146,30 +163,21 @@ const VMwareHostDetailsCard: FunctionComponent<ComponentProps> = (
     }
   }
 
-  if (props.row?.metricsUpdatedAt) {
-    const updatedAt: Date = new Date(props.row.metricsUpdatedAt as Date);
-
-    rows.push({
-      key: "metrics-updated",
-      label: "Metrics updated",
-      value: (
-        <span title={OneUptimeDate.getDateAsLocalFormattedString(updatedAt)}>
-          {formatRelativeTime({
-            date: updatedAt,
-            now: new Date(),
-            language: translator.language,
-          })}
-        </span>
-      ),
-    });
-  }
-
   rows.push({
     key: "inventory-id",
     label: "Inventory ID",
     value: props.externalId,
     mono: true,
+    copyText: props.externalId,
   });
+
+  // Where each field sits in the grid, as Detail places its fields.
+  const cellClassNames: Array<string> = getDetailCellClassNames(
+    rows.map((): undefined => {
+      return undefined;
+    }),
+    VMWARE_HOST_DETAIL_COLUMNS,
+  );
 
   return (
     <div className="mb-6" data-testid="vmware-host-details">
@@ -177,33 +185,56 @@ const VMwareHostDetailsCard: FunctionComponent<ComponentProps> = (
         title="Details"
         description="How vCenter knows this host. vCenter owns these: change them there."
       >
-        <dl className={listClassName}>
-          {rows.map((row: DetailRow): ReactElement => {
-            return (
-              <div
-                key={row.key}
-                data-testid={`vmware-host-detail-${row.key}`}
-                className="px-5 py-3 sm:grid sm:grid-cols-3 sm:gap-4 md:px-6"
-              >
-                <dt className="flex items-center gap-1 text-sm font-medium text-gray-500">
-                  {tx(row.label)}
-                  {row.description ? (
-                    <InfoTooltip label={row.label} text={row.description} />
-                  ) : (
-                    <></>
-                  )}
-                </dt>
-                <dd
-                  className={`mt-1 break-all text-sm text-gray-900 sm:col-span-2 sm:mt-0 ${
-                    row.mono ? "font-mono" : ""
-                  }`}
+        <div className={`${bodyClassName} px-5 py-5 md:px-6`}>
+          <dl className={getDetailGridClassName(VMWARE_HOST_DETAIL_COLUMNS)}>
+            {rows.map((row: DetailRow, index: number): ReactElement => {
+              return (
+                <div
+                  key={row.key}
+                  data-testid={`vmware-host-detail-${row.key}`}
+                  className={cellClassNames[index]}
                 >
-                  {row.value}
-                </dd>
-              </div>
-            );
-          })}
-        </dl>
+                  <dt
+                    className={`flex justify-start ${DETAIL_FIELD_LABEL_CLASS_NAME}`}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      {tx(row.label)}
+                      {row.description ? (
+                        <InfoTooltip label={row.label} text={row.description} />
+                      ) : (
+                        <></>
+                      )}
+                    </span>
+                  </dt>
+                  <dd
+                    className={`${DETAIL_VALUE_CLASS_NAME} flex items-start gap-2`}
+                  >
+                    <div
+                      className={`min-w-0 break-all${row.mono ? " font-mono" : ""}`}
+                    >
+                      {row.value}
+                    </div>
+                    {/*
+                     * Beside the value and always in view, as on every
+                     * detail card: a keyboard, a touch screen or a reader
+                     * who would not think to hover still finds it.
+                     */}
+                    {row.copyText ? (
+                      <div
+                        className="flex h-6 flex-none items-center"
+                        data-testid="vmware-host-detail-copy"
+                      >
+                        <CopyableButton textToBeCopied={row.copyText} />
+                      </div>
+                    ) : (
+                      <></>
+                    )}
+                  </dd>
+                </div>
+              );
+            })}
+          </dl>
+        </div>
       </Card>
     </div>
   );

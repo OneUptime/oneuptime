@@ -147,6 +147,7 @@ const PART_SENTENCES: Record<string, Array<string>> = {
     "ESXi host in cluster {{cluster}}",
     "ESXi host in cluster {{cluster}}, datacenter {{datacenter}}",
     "ESXi host in datacenter {{datacenter}}",
+    "Last reported {{time}}",
     "Standalone ESXi host in datacenter {{datacenter}}",
     "{{capacity}} CPU",
     "{{capacity}} memory",
@@ -157,7 +158,7 @@ const PART_SENTENCES: Record<string, Array<string>> = {
     "See all hosts",
     "This host is not in the vCenter's inventory",
     "Waiting for this host's first metrics",
-    "vCenter has not reported it for more than 15 minutes, so it was taken out of the inventory. Its earlier metrics are still below, and it comes back with the next collection that reports it.",
+    "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.",
     "vCenter lists this host but has sent no metrics for it yet. They arrive with the next collection, every 2 minutes by default.",
     "Its numbers stop there. The host may be disconnected from vCenter, in maintenance mode or powered off - or the vCenter itself stopped reporting.",
     "vCenter last reported this host {{time}}",
@@ -212,7 +213,6 @@ const PART_SENTENCES: Record<string, Array<string>> = {
     "Host name",
     "How vCenter knows this host. vCenter owns these: change them there.",
     "Inventory ID",
-    "Metrics updated",
     "None - a standalone host",
     "VM templates",
     "Virtual machines",
@@ -237,6 +237,17 @@ const PART_SENTENCES: Record<string, Array<string>> = {
     "Replace <agent-host> with the agent machine's address. On the host itself (ESXi Shell or SSH):",
     "Shipping ESXi syslog",
     "Turn on the VMware agent's syslog listener",
+  ],
+  /*
+   * Shared parts the host page draws, whose words were English in every
+   * language until its review: an empty chart, and the refresh control.
+   */
+  "Components/TelemetryResource/ChartCard.tsx": ["No data in this time range"],
+  "Components/TelemetryResource/AutoRefreshControl.tsx": [
+    "Every {{interval}}",
+    "Off",
+    "Refresh",
+    "Refresh now",
   ],
   "Components/MetricDescriptions/VMwareMetricDescriptions.ts": [
     "CPU in use in each interval of the selected range, as a share of this host's CPU capacity.",
@@ -419,10 +430,7 @@ describe("a time inside a sentence", () => {
     ).toBeInTheDocument();
   });
 
-  test("stays English, time and all, where the language has no wording for the sentence", async () => {
-    // German has no wording of "Last seen {{time}}" (other pages fill it).
-    expect(readLocale("de")["Last seen {{time}}"]).toBe("Last seen {{time}}");
-
+  test("the hero's last report reads in German, time and all", async () => {
     await readIn("de");
 
     renderInRouter(
@@ -439,8 +447,45 @@ describe("a time inside a sentence", () => {
       />,
     );
 
+    /*
+     * Its own sentence, not the shared "Last seen {{time}}", which German
+     * and most languages leave English because other pages fill it with an
+     * English time.
+     */
+    expect(readLocale("de")["Last seen {{time}}"]).toBe("Last seen {{time}}");
     expect(screen.getByTestId("vmware-host-last-seen")).toHaveTextContent(
-      /^Last seen 2 hours ago$/,
+      /^Zuletzt gemeldet vor 2 Stunden$/,
+    );
+  });
+
+  test("stays English, time and all, where a language has no wording for the sentence", async () => {
+    /*
+     * A language with every word of the hero but its "Last reported"
+     * sentence: German without it, under a code with no base language
+     * for i18next to fall back to.
+     */
+    const partial: Record<string, string> = { ...readLocale("de") };
+    delete partial["Last reported {{time}}"];
+    i18next.addResourceBundle("xx", "translation", partial);
+
+    await readIn("xx");
+
+    renderInRouter(
+      <VMwareHostHero
+        hostName="esx01.acme.example"
+        reportState={VMwareHostReportState.Reporting}
+        lastReportAt={HOURS_AGO_2()}
+        datacenterName="dc-east"
+        clusterName="prod"
+        isStandalone={false}
+        cpuCapacityMhz={48000}
+        memoryCapacityBytes={256 * 1024 * 1024 * 1024}
+        virtualMachines={null}
+      />,
+    );
+
+    expect(screen.getByTestId("vmware-host-last-seen")).toHaveTextContent(
+      /^Last reported 2 hours ago$/,
     );
     // The rest of the hero is German.
     expect(

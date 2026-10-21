@@ -301,7 +301,11 @@ const VMwareVCenterHostDetail: FunctionComponent<
     },
     {
       name: VMWARE_HOST_TAB_VIRTUAL_MACHINES,
-      countBadge: virtualMachineRows.length,
+      /*
+       * The VMs, templates left out: the number the hero, "View all N
+       * virtual machines" and the vCenter's side menu give.
+       */
+      countBadge: virtualMachineSummary.total,
       children: (
         <VMwareHostVirtualMachinesTab
           rows={virtualMachineRows}

@@ -13225,7 +13225,7 @@
   "No data for the selected time range": "No data for the selected time range",
   "No data for this metric in the selected range": "No data for this metric in the selected range",
   "No data in the selected range": "No data in the selected range",
-  "No data in this time range": "No data in this time range",
+  "No data in this time range": "Нет данных за этот период",
   "No data points in this bucket.": "No data points in this bucket.",
   "No data points in this range.": "No data points in this range.",
   "No data reported for the selected time range.": "No data reported for the selected time range.",
@@ -32344,7 +32344,6 @@
   "Lift CrowdStrike Falcon's network containment from the host the case is about, so it reaches the network again.": "Lift CrowdStrike Falcon's network containment from the host the case is about, so it reaches the network again.",
   "Lift containment in CrowdStrike": "Lift containment in CrowdStrike",
   "Lines show here when the host names itself {{hostName}} in them. If it uses another name, see it with {{command}} on the host.": "Строки появляются здесь, когда хост называет себя в них {{hostName}}. Если он использует другое имя, узнайте его командой {{command}} на хосте.",
-  "Metrics updated": "Метрики обновлены",
   "Microsoft Azure": "Microsoft Azure",
   "Network adapters": "Сетевые адаптеры",
   "Network-contain the host the case is about with CrowdStrike Falcon: it can reach only the Falcon cloud until containment is lifted.": "Network-contain the host the case is about with CrowdStrike Falcon: it can reach only the Falcon cloud until containment is lifted.",
@@ -32619,7 +32618,6 @@
   "Write and keep config.yaml on the host instead.": "Вместо этого писать и поддерживать config.yaml на хосте.",
   "macOS hosts": "Хосты macOS",
   "macOS hosts with {{labels}}": "Хосты macOS с {{labels}}",
-  "vCenter has not reported it for more than 15 minutes, so it was taken out of the inventory. Its earlier metrics are still below, and it comes back with the next collection that reports it.": "vCenter не сообщал о нём более 15 минут, поэтому он был удалён из инвентаря. Его прежние метрики остаются ниже, и он вернётся со следующим сбором, в котором будет указан.",
   "vCenter has sent no metrics for this host for more than 15 minutes.": "vCenter не отправлял метрики этого хоста более 15 минут.",
   "vCenter lists this host but has sent no metrics for it yet. They arrive with the next collection, every 2 minutes by default.": "vCenter указывает этот хост, но ещё не отправил его метрики. Они придут со следующим сбором, по умолчанию каждые 2 минуты.",
   "vCenter lists this host, but has sent no metrics for it yet.": "vCenter указывает этот хост, но ещё не отправил его метрики.",
@@ -32677,5 +32675,8 @@
   "The running VMs on this host using the most CPU in the latest inventory.": "Запущенные ВМ этого хоста, которые больше всего используют CPU по последнему инвентарю.",
   "{{value}} gets its access back, undoing step {{number}}. Do it once the threat is gone. It is kept on the case's timeline and in the audit log.": "{{value}} gets its access back, undoing step {{number}}. Do it once the threat is gone. It is kept on the case's timeline and in the audit log.",
   "Lift Containment": "Lift Containment",
-  "Unsuspend": "Unsuspend"
+  "Unsuspend": "Unsuspend",
+  "Every {{interval}}": "Каждые {{interval}}",
+  "Last reported {{time}}": "Последний отчёт {{time}}",
+  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter не сообщал о нём более 15 минут, поэтому он исключён из инвентаря, пока очередной сбор снова не сообщит о нём. Его прежние метрики сохранены: выберите более длинный период, чтобы их увидеть."
 }

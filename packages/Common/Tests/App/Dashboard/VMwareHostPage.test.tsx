@@ -292,6 +292,7 @@ jest.mock(
 );
 
 import HostDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/HostDetail";
+import { getCpuBarColor } from "../../../../App/FeatureSet/Dashboard/src/Components/Infrastructure/ResourceTable";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
@@ -504,9 +505,16 @@ describe("the hero says which host this is and whether vCenter still reports it"
     expect(within(hero).getByTestId("vmware-host-location")).toHaveTextContent(
       "ESXi host in cluster prod-cluster, datacenter dc-east",
     );
-    expect(within(hero).getByTestId("vmware-host-last-seen")).toHaveTextContent(
-      "Last seen",
+    /*
+     * "Last reported", in the status's own words; the exact time is the
+     * line's title.
+     */
+    const lastReported: HTMLElement = within(hero).getByTestId(
+      "vmware-host-last-seen",
     );
+    expect(lastReported).toHaveTextContent(/^Last reported 2 minutes ago$/);
+    expect(lastReported.getAttribute("title") || "").not.toBe("");
+    expect(hero).not.toHaveTextContent("Last seen");
     expect(within(hero).getByTestId("vmware-host-chips")).toHaveTextContent(
       "76.80 GHz CPU512 GiB memory3 VMs, 2 running",
     );
@@ -553,6 +561,8 @@ describe("the hero says which host this is and whether vCenter still reports it"
     expect(
       within(notice).getByText("Check the vCenter").closest("a"),
     ).toHaveAttribute("href", BASE);
+    // Said once: the notice opens with the time, the hero leaves it out.
+    expect(screen.queryByTestId("vmware-host-last-seen")).toBeNull();
   });
 
   test("no data yet: listed, but no metrics; the notice says they are coming", async () => {
@@ -590,6 +600,14 @@ describe("the hero says which host this is and whether vCenter still reports it"
     expect(notice).toHaveTextContent(
       "This host is not in the vCenter's inventory",
     );
+    /*
+     * The page opens on 30 minutes, where it has no data: the notice says
+     * where its earlier metrics are, not that they are below.
+     */
+    expect(notice).toHaveTextContent(
+      "Its earlier metrics are kept: pick a longer time range to see them.",
+    );
+    expect(notice).not.toHaveTextContent("still below");
     expect(
       within(notice).getByText("See all hosts").closest("a"),
     ).toHaveAttribute("href", `${BASE}/hosts`);
@@ -695,6 +713,16 @@ describe("the tiles", () => {
     for (const title of ["CPU", "Memory", "Disk latency", "Network"]) {
       expect(tile(title)).toHaveTextContent("—");
     }
+    /*
+     * ...and only a dash: "— of 76.80 GHz" read as a value missing its
+     * number (the hero's chips still give the host's size).
+     */
+    expect(tile("CPU")).not.toHaveTextContent("of 76.80 GHz");
+    expect(tile("Memory")).not.toHaveTextContent("of 512 GiB");
+    expect(tile("Disk latency")).not.toHaveTextContent("slowest disk");
+    expect(screen.getByTestId("vmware-host-chips")).toHaveTextContent(
+      "76.80 GHz CPU",
+    );
   });
 });
 
@@ -742,9 +770,41 @@ describe("the cards", () => {
     expect(
       within(rows[0]!).getByTestId("vmware-host-busy-vm-cpu-ready"),
     ).toHaveTextContent("CPU Ready 12.4%");
-    expect(within(card).getByTestId("card-button")).toHaveTextContent(
-      "View all 3 virtual machines",
-    );
+    // A screen reader hears what the percentage is.
+    expect(rows[0]).toHaveTextContent("CPU 78.4%");
+
+    /*
+     * "View all" is the line under the list, not a header button whose
+     * long label squeezed the title beside the side menu.
+     */
+    expect(within(card).queryByTestId("card-button")).toBeNull();
+    expect(
+      within(within(card).getByTestId("vmware-host-busiest-vms-all")).getByRole(
+        "button",
+        { name: "View all 3 virtual machines" },
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("a VM's CPU bar is coloured as its row in the Virtual Machines tab colours it", async () => {
+    await renderPage();
+
+    const bars: Array<string> = within(
+      screen.getByTestId("vmware-host-busiest-vms"),
+    )
+      .getAllByTestId("vmware-host-busy-vm")
+      .map((row: HTMLElement): string => {
+        const bar: Element | null = row.querySelector(
+          "div.h-1\\.5.rounded-full[style]",
+        );
+        return bar?.className || "";
+      });
+
+    // 78.4% and 31.9%: the VM list's thresholds (60 and 80), not 70 and 90.
+    expect(bars[0]).toContain(getCpuBarColor(78.4));
+    expect(getCpuBarColor(78.4)).toBe("bg-yellow-500");
+    expect(bars[1]).toContain(getCpuBarColor(31.9));
+    expect(getCpuBarColor(31.9)).toBe("bg-green-500");
   });
 
   test("a host that runs no VM has no busiest list", async () => {
@@ -784,6 +844,34 @@ describe("the cards", () => {
     ).toHaveTextContent("57.4 ms");
   });
 
+  test("each device table is a list of its own below xl, where a table ran past a card beside the side menu", async () => {
+    await renderPage();
+
+    for (const [cardTestId, rowTestId] of [
+      ["vmware-host-network-adapters", "vmware-host-network-adapter"],
+      ["vmware-host-storage-devices", "vmware-host-storage-device"],
+    ] as Array<[string, string]>) {
+      const card: HTMLElement = screen.getByTestId(cardTestId);
+      const table: HTMLTableElement = card.querySelector(
+        "table",
+      ) as HTMLTableElement;
+      // The table's ruled body: div.max-xl:hidden > div.overflow-x-auto.
+      const tableBody: HTMLElement = table.parentElement!
+        .parentElement as HTMLElement;
+      const list: HTMLElement = within(card).getByTestId(`${rowTestId}-list`);
+
+      expect(tableBody.className.split(" ")).toContain("max-xl:hidden");
+      expect(list.className.split(" ")).toContain("xl:hidden");
+      // Not the phone-only switch: at md the card is under 500px wide.
+      expect(card.innerHTML).not.toContain("max-sm:hidden");
+      expect(list.className.split(" ")).not.toContain("sm:hidden");
+      // Each device's values wrap into as many columns as fit.
+      expect(list.querySelector("dl")?.className || "").toContain(
+        "grid-cols-[repeat(auto-fill,minmax(9rem,1fr))]",
+      );
+    }
+  });
+
   test("a vCenter that reports no per-device counters has no device tables", async () => {
     mockSeries = {
       "vcenter.host.cpu.utilization":
@@ -795,10 +883,43 @@ describe("the cards", () => {
     expect(screen.queryByTestId("vmware-host-storage-devices")).toBeNull();
   });
 
-  test("the details: who the host is to vCenter, its size and when it last reported", async () => {
+  test("the details: who the host is to vCenter and its size, laid out as every detail card is", async () => {
     await renderPage();
 
     const details: HTMLElement = screen.getByTestId("vmware-host-details");
+
+    // Detail's grid: one column on a phone, two from sm, three from lg.
+    const grid: HTMLElement = details.querySelector("dl") as HTMLElement;
+    expect(grid.className.split(" ")).toEqual(
+      expect.arrayContaining(["grid", "grid-cols-1", "sm:grid-cols-2"]),
+    );
+    expect(grid.className.split(" ")).toContain("lg:grid-cols-3");
+
+    /*
+     * The names a reader pastes elsewhere copy in one click: the host
+     * name and the inventory id, nothing else.
+     */
+    const copyable: Array<string> = within(details)
+      .getAllByTestId("vmware-host-detail-copy")
+      .map((button: HTMLElement): string => {
+        return (
+          button
+            .closest(
+              "[data-testid^='vmware-host-detail-']:not([data-testid='vmware-host-detail-copy'])",
+            )
+            ?.getAttribute("data-testid") || ""
+        );
+      });
+    expect(copyable).toEqual([
+      "vmware-host-detail-host",
+      "vmware-host-detail-inventory-id",
+    ]);
+
+    // When vCenter last reported the host is the hero's line, not a row.
+    expect(
+      within(details).queryByTestId("vmware-host-detail-metrics-updated"),
+    ).toBeNull();
+    expect(details).not.toHaveTextContent("Metrics updated");
     expect(
       within(details).getByTestId("vmware-host-detail-host"),
     ).toHaveTextContent(HOST);
@@ -868,20 +989,21 @@ describe("what is open on the host, and the alerts that watch it", () => {
     const rows: Array<HTMLElement> = within(card).getAllByTestId(
       "vmware-host-open-event",
     );
+    // The incident first, though the alert is newer.
     expect(
       rows.map((row: HTMLElement): string | null => {
         return row.getAttribute("data-kind");
       }),
-    ).toEqual(["Alert", "Incident"]);
+    ).toEqual(["Incident", "Alert"]);
     expect(within(rows[0]!).getByRole("link")).toHaveAttribute(
-      "href",
-      `/dashboard/${PROJECT_ID}/alerts/61000000-0000-4000-8000-000000000001`,
-    );
-    expect(within(rows[1]!).getByRole("link")).toHaveAttribute(
       "href",
       `/dashboard/${PROJECT_ID}/incidents/60000000-0000-4000-8000-000000000001`,
     );
-    expect(rows[1]).toHaveTextContent("Incident · #7");
+    expect(within(rows[1]!).getByRole("link")).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/alerts/61000000-0000-4000-8000-000000000001`,
+    );
+    expect(rows[0]).toHaveTextContent("Incident · #7");
     expect(card).not.toHaveTextContent("Another host's incident");
   });
 
@@ -953,19 +1075,42 @@ describe("the tabs", () => {
   test("Overview, Virtual Machines with its count, Metrics and Logs", async () => {
     await renderPage();
 
+    /*
+     * The VMs, templates left out: the 3 the hero and "View all 3 virtual
+     * machines" give, as the vCenter's side menu counts them - not 4.
+     */
     expect(
       screen.getAllByRole("tab").map((tab: HTMLElement): string => {
         return (tab.textContent || "").trim();
       }),
-    ).toEqual(["Overview", "Virtual Machines4", "Metrics", "Logs"]);
+    ).toEqual(["Overview", "Virtual Machines3", "Metrics", "Logs"]);
+    expect(screen.getByTestId("vmware-host-chips")).toHaveTextContent(
+      "3 VMs, 2 running",
+    );
+  });
+
+  test("a host with only templates shows no count on its Virtual Machines tab", async () => {
+    mockVirtualMachines = [
+      VIRTUAL_MACHINES.find((row: Record<string, unknown>): boolean => {
+        return row["isTemplate"] === true;
+      })!,
+    ];
+    await renderPage();
+
+    expect(
+      (
+        screen.getByRole("tab", { name: /^Virtual Machines/ }).textContent || ""
+      ).trim(),
+    ).toBe("Virtual Machines");
   });
 
   test("View all virtual machines opens the Virtual Machines tab with every VM on the host", async () => {
     await renderPage();
 
     fireEvent.click(
-      within(screen.getByTestId("vmware-host-busiest-vms")).getByTestId(
-        "card-button",
+      within(screen.getByTestId("vmware-host-busiest-vms")).getByRole(
+        "button",
+        { name: "View all 3 virtual machines" },
       ),
     );
 

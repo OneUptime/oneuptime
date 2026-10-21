@@ -399,28 +399,55 @@ describe("one open record, as the card shows it", () => {
 });
 
 describe("the order of what is open", () => {
-  test("newest first, incidents and alerts together; a tie by title; no date last", () => {
+  test("incidents first, then alerts, each newest first; a tie by title; no date last", () => {
     const events: Array<VMwareHostOpenEvent> = [
       toVMwareHostOpenIncident(incident(1, 10, HOST))!,
       toVMwareHostOpenAlert(alert(1, 4, HOST))!,
       toVMwareHostOpenAlert(alert(2, 10, HOST, { title: "A tie" }))!,
+      toVMwareHostOpenAlert(alert(3, 10, HOST, { title: "B tie" }))!,
       toVMwareHostOpenIncident(
         incident(2, 0, HOST, { declaredAt: undefined, createdAt: undefined }),
       )!,
+      toVMwareHostOpenIncident(incident(3, 2, HOST))!,
     ];
 
     expect(titles(sortVMwareHostOpenEvents(events))).toEqual([
-      "Alert 1",
-      "A tie",
+      "Incident 3",
       "Incident 1",
       "Incident 2",
+      "Alert 1",
+      "A tie",
+      "B tie",
     ]);
     // The input is not reordered in place.
     expect(titles(events)).toEqual([
       "Incident 1",
       "Alert 1",
       "A tie",
+      "B tie",
       "Incident 2",
+      "Incident 3",
+    ]);
+  });
+
+  test("an older incident comes before fresher alerts, so the first five never hide it", () => {
+    // Four warnings in the last minutes, the critical incident an hour ago.
+    const events: Array<VMwareHostOpenEvent> = [
+      ...[1, 2, 3, 4, 5].map((number: number): VMwareHostOpenEvent => {
+        return toVMwareHostOpenAlert(alert(number, number, HOST))!;
+      }),
+      toVMwareHostOpenIncident(incident(1, 60, HOST))!,
+    ];
+
+    const sorted: Array<VMwareHostOpenEvent> = sortVMwareHostOpenEvents(events);
+
+    expect(sorted[0]!.kind).toBe(VMwareHostOpenEventKind.Incident);
+    expect(titles(sorted.slice(0, 5))).toEqual([
+      "Incident 1",
+      "Alert 1",
+      "Alert 2",
+      "Alert 3",
+      "Alert 4",
     ]);
   });
 });

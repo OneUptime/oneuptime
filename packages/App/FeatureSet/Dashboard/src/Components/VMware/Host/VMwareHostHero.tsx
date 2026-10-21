@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import Route from "Common/Types/API/Route";
+import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
@@ -220,15 +221,25 @@ const VMwareHostHero: FunctionComponent<ComponentProps> = (
               {renderLocation()}
             </div>
             {/*
-             * A host no longer in the inventory has no "last seen" left to
+             * A host no longer in the inventory has no report time left to
              * show: the notice under the hero says what happened instead.
+             * "Last reported", in the status's own words, and its own
+             * sentence: the shared "Last seen {{time}}" is English in most
+             * languages, since other pages fill it with an English time.
+             * The exact time is the line's title. A host vCenter stopped
+             * reporting has the notice under the hero open with the same
+             * time, so the line is left out rather than said twice.
              */}
-            {props.lastReportAt ? (
+            {props.lastReportAt &&
+            props.reportState !== VMwareHostReportState.NotReporting ? (
               <div
                 className="mt-1 text-xs text-gray-500"
                 data-testid="vmware-host-last-seen"
+                title={OneUptimeDate.getDateAsLocalFormattedString(
+                  props.lastReportAt,
+                )}
               >
-                {translator.translateTemplate("Last seen {{time}}", {
+                {translator.translateTemplate("Last reported {{time}}", {
                   // In the language the sentence is shown in.
                   time: composedValue((sentence: Translator): string => {
                     return formatRelativeTime({

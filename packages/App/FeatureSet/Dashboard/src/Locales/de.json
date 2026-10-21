@@ -32305,7 +32305,7 @@
   "Data received and sent per second by this host's physical network adapters in each interval of the selected range.": "Pro Sekunde von den physischen Netzwerkadaptern dieses Hosts empfangene und gesendete Daten in jedem Intervall des ausgewählten Zeitraums.",
   "Data the adapter received and sent per second, averaged over the selected range.": "Pro Sekunde vom Adapter empfangene und gesendete Daten, gemittelt über den ausgewählten Zeitraum.",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "Wenn du eine Cloud-Verbindung löschst, liest OneUptime das Konto nicht mehr. Die Ressourcen bleiben erhalten, mit ihren Metriken.",
-  "Disk latency": "Festplattenlatenz",
+  "Disk latency": "Disk-Latenz",
   "EC2, RDS, Lambda, load balancers and more, read from CloudWatch.": "EC2, RDS, Lambda, Load Balancer und mehr, gelesen aus CloudWatch.",
   "ESXi host": "ESXi-Host",
   "ESXi host in cluster {{cluster}}": "ESXi-Host im Cluster {{cluster}}",
@@ -32344,7 +32344,6 @@
   "Lift CrowdStrike Falcon's network containment from the host the case is about, so it reaches the network again.": "Lift CrowdStrike Falcon's network containment from the host the case is about, so it reaches the network again.",
   "Lift containment in CrowdStrike": "Lift containment in CrowdStrike",
   "Lines show here when the host names itself {{hostName}} in them. If it uses another name, see it with {{command}} on the host.": "Zeilen erscheinen hier, wenn sich der Host darin {{hostName}} nennt. Verwendet er einen anderen Namen, sehen Sie ihn mit {{command}} auf dem Host.",
-  "Metrics updated": "Metriken aktualisiert",
   "Microsoft Azure": "Microsoft Azure",
   "Network adapters": "Netzwerkadapter",
   "Network-contain the host the case is about with CrowdStrike Falcon: it can reach only the Falcon cloud until containment is lifted.": "Network-contain the host the case is about with CrowdStrike Falcon: it can reach only the Falcon cloud until containment is lifted.",
@@ -32619,7 +32618,6 @@
   "Write and keep config.yaml on the host instead.": "Stattdessen die config.yaml auf dem Host schreiben und pflegen.",
   "macOS hosts": "macOS-Hosts",
   "macOS hosts with {{labels}}": "macOS-Hosts mit {{labels}}",
-  "vCenter has not reported it for more than 15 minutes, so it was taken out of the inventory. Its earlier metrics are still below, and it comes back with the next collection that reports it.": "vCenter hat ihn seit mehr als 15 Minuten nicht gemeldet, daher wurde er aus dem Inventar genommen. Seine früheren Metriken stehen weiter unten, und er kehrt mit der nächsten Erfassung zurück, die ihn meldet.",
   "vCenter has sent no metrics for this host for more than 15 minutes.": "vCenter hat seit mehr als 15 Minuten keine Metriken für diesen Host gesendet.",
   "vCenter lists this host but has sent no metrics for it yet. They arrive with the next collection, every 2 minutes by default.": "vCenter führt diesen Host, hat aber noch keine Metriken für ihn gesendet. Sie kommen mit der nächsten Erfassung, standardmäßig alle 2 Minuten.",
   "vCenter lists this host, but has sent no metrics for it yet.": "vCenter führt diesen Host, hat aber noch keine Metriken für ihn gesendet.",
@@ -32677,5 +32675,8 @@
   "The running VMs on this host using the most CPU in the latest inventory.": "Die laufenden VMs auf diesem Host, die im neuesten Inventar die meiste CPU nutzen.",
   "{{value}} gets its access back, undoing step {{number}}. Do it once the threat is gone. It is kept on the case's timeline and in the audit log.": "{{value}} gets its access back, undoing step {{number}}. Do it once the threat is gone. It is kept on the case's timeline and in the audit log.",
   "Lift Containment": "Lift Containment",
-  "Unsuspend": "Unsuspend"
+  "Unsuspend": "Unsuspend",
+  "Every {{interval}}": "Alle {{interval}}",
+  "Last reported {{time}}": "Zuletzt gemeldet {{time}}",
+  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter hat ihn seit mehr als 15 Minuten nicht gemeldet, daher hat er das Inventar verlassen, bis eine Erfassung ihn wieder meldet. Seine früheren Metriken bleiben erhalten: Wählen Sie einen längeren Zeitraum, um sie zu sehen."
 }

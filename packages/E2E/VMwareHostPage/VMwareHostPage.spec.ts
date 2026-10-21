@@ -249,9 +249,10 @@ test.describe("a reporting host at a laptop's width", () => {
         name: CLUSTER,
       }),
     ).toHaveAttribute("href", CLUSTER_PAGE);
-    await expect(page.getByTestId("vmware-host-last-seen")).toHaveText(
-      "Last seen 2 minutes ago",
-    );
+    // In the status's own words; the exact time is the line's title.
+    const lastReported: Locator = page.getByTestId("vmware-host-last-seen");
+    await expect(lastReported).toHaveText("Last reported 2 minutes ago");
+    await expect(lastReported).toHaveAttribute("title", /\d/);
 
     const chips: Locator = page.getByTestId("vmware-host-chips");
     await expect(chips).toContainText("76.80 GHz CPU");
@@ -267,10 +268,13 @@ test.describe("a reporting host at a laptop's width", () => {
     await expect(marked).toHaveAttribute("href", `${VCENTER_PATH}/hosts`);
     await expect(marked).toContainText("Hosts");
 
-    // The tabs a host page outside VMware has, with the host's VM count.
+    /*
+     * The tabs a host page outside VMware has, with the host's VM count:
+     * its 7 VMs, as the hero says, the template left out.
+     */
     await expect(page.getByRole("tab")).toHaveText([
       /^Overview$/,
-      /^Virtual Machines\s*8$/,
+      /^Virtual Machines\s*7$/,
       /^Metrics$/,
       /^Logs$/,
     ]);
@@ -326,22 +330,23 @@ test.describe("a reporting host at a laptop's width", () => {
 
     const events: Locator = page.getByTestId("vmware-host-open-event");
     await expect(events).toHaveCount(3);
+    // The incident first, though both alerts are newer; then the alerts.
     await expect(events.nth(0)).toContainText(
+      "[VMware] Host CPU Saturation (>90%) - vcenter-prod",
+    );
+    await expect(events.nth(1)).toContainText(
       "[VMware] Host Network Packet Errors - vcenter-prod",
     );
     // The host's name as vCenter capitalised it on the alert.
-    await expect(events.nth(1)).toContainText(
-      "[VMware] Host Disk Latency High (>50 ms) - vcenter-prod",
-    );
     await expect(events.nth(2)).toContainText(
-      "[VMware] Host CPU Saturation (>90%) - vcenter-prod",
+      "[VMware] Host Disk Latency High (>50 ms) - vcenter-prod",
     );
     await expect(
       page.getByText("[VMware] Host Memory Saturation (>90%) - vcenter-prod"),
     ).toHaveCount(0);
 
     await expect(
-      events.nth(2).getByRole("link", {
+      events.nth(0).getByRole("link", {
         name: "[VMware] Host CPU Saturation (>90%) - vcenter-prod",
       }),
     ).toHaveAttribute(
@@ -349,7 +354,7 @@ test.describe("a reporting host at a laptop's width", () => {
       `/dashboard/${PROJECT_ID}/incidents/60000000-0000-4000-8000-000000000001`,
     );
     await expect(
-      events.nth(0).getByRole("link", {
+      events.nth(1).getByRole("link", {
         name: "[VMware] Host Network Packet Errors - vcenter-prod",
       }),
     ).toHaveAttribute(
@@ -366,15 +371,32 @@ test.describe("a reporting host at a laptop's width", () => {
   }: {
     page: Page;
   }) => {
+    // Three incidents, and four alerts newer than any of them.
     await openHost(page, "open=many");
 
-    await expect(page.getByTestId("vmware-host-open-event")).toHaveCount(5);
+    const events: Locator = page.getByTestId("vmware-host-open-event");
+    await expect(events).toHaveCount(5);
+    // Every incident is among the five shown, ahead of the fresher alerts.
+    const kinds: Array<string | null> = await events.evaluateAll(
+      (rows: Array<Element>): Array<string | null> => {
+        return rows.map((row: Element): string | null => {
+          return row.getAttribute("data-kind");
+        });
+      },
+    );
+    expect(kinds).toEqual([
+      "Incident",
+      "Incident",
+      "Incident",
+      "Alert",
+      "Alert",
+    ]);
 
     const more: Locator = page.getByTestId("vmware-host-open-events-more");
-    await expect(more).toHaveText("2 more incidents");
+    await expect(more).toHaveText("2 more alerts");
     await expect(
-      more.getByRole("link", { name: "2 more incidents" }),
-    ).toHaveAttribute("href", `${VCENTER_PATH}/incidents`);
+      more.getByRole("link", { name: "2 more alerts" }),
+    ).toHaveAttribute("href", `${VCENTER_PATH}/alerts`);
   });
 
   test("ranks the VMs keeping it busy, and marks the ones waiting for a CPU", async ({
@@ -421,6 +443,17 @@ test.describe("a reporting host at a laptop's width", () => {
   }) => {
     await openHost(page);
     await waitForOverview(page);
+
+    // A laptop is wide enough for the tables; the per-device lists wait.
+    for (const [card, rows] of [
+      ["vmware-host-network-adapters", "vmware-host-network-adapter"],
+      ["vmware-host-storage-devices", "vmware-host-storage-device"],
+    ] as Array<[string, string]>) {
+      await expect(page.getByTestId(card).locator("table")).toBeVisible();
+      await expect(
+        page.getByTestId(card).getByTestId(`${rows}-list`),
+      ).toBeHidden();
+    }
 
     const adapters: Locator = page
       .getByTestId("vmware-host-network-adapters")
@@ -498,12 +531,35 @@ test.describe("a reporting host at a laptop's width", () => {
     await expect(detailRow(page, "memory")).toContainText("512 GiB");
     await expect(detailRow(page, "vms")).toContainText("7 (6 running, 1 off)");
     await expect(detailRow(page, "templates")).toContainText("1");
-    await expect(detailRow(page, "metrics-updated")).toContainText(
-      "2 minutes ago",
-    );
     await expect(detailRow(page, "inventory-id")).toContainText(
       `host/${DATACENTER}/${HOST_NAME}`,
     );
+    // When vCenter last reported it is the hero's line, not a row here.
+    await expect(detailRow(page, "metrics-updated")).toHaveCount(0);
+
+    /*
+     * Laid out as every detail card is: name over value, three to a row on
+     * a laptop, so the card is four rows tall, not ten.
+     */
+    const details: Locator = page.getByTestId("vmware-host-details");
+    const tops: Array<number> = await details
+      .locator("dl > div")
+      .evaluateAll((cells: Array<Element>): Array<number> => {
+        return cells.map((cell: Element): number => {
+          return Math.round(cell.getBoundingClientRect().top);
+        });
+      });
+    expect(new Set(tops).size).toBe(Math.ceil(tops.length / 3));
+    for (const key of ["host", "inventory-id"]) {
+      await expect(
+        detailRow(page, key).getByRole("button", {
+          name: "Copy to clipboard",
+        }),
+      ).toBeVisible();
+    }
+    await expect(
+      details.getByRole("button", { name: "Copy to clipboard" }),
+    ).toHaveCount(2);
 
     await expectNoSidewaysScroll(page);
     await screenshot(page, "overview-1280");
@@ -749,6 +805,8 @@ test.describe("the states a host can be in", () => {
     await expect(
       notice.getByRole("link", { name: "Check the vCenter" }),
     ).toHaveAttribute("href", VCENTER_PATH);
+    // Said once: the notice opens with the time, the hero leaves it out.
+    await expect(page.getByTestId("vmware-host-last-seen")).toHaveCount(0);
     await screenshot(page, "state-not-reporting");
   });
 
@@ -771,6 +829,16 @@ test.describe("the states a host can be in", () => {
     for (const title of ["CPU", "Memory", "Disk latency", "Network"]) {
       await expect(tile(page, title)).toContainText("—");
     }
+    /*
+     * A tile with no reading says only that: not "— of 76.80 GHz" or
+     * "— slowest disk". The hero still gives the host's size.
+     */
+    await expect(tile(page, "CPU")).not.toContainText("of 76.80 GHz");
+    await expect(tile(page, "Memory")).not.toContainText("of 512 GiB");
+    await expect(tile(page, "Disk latency")).not.toContainText("slowest disk");
+    await expect(page.getByTestId("vmware-host-chips")).toContainText(
+      "76.80 GHz CPU",
+    );
     await expect(
       page
         .getByTestId("vmware-host-charts")
@@ -799,6 +867,18 @@ test.describe("the states a host can be in", () => {
     await expect(
       notice.getByRole("link", { name: "See all hosts" }),
     ).toHaveAttribute("href", `${VCENTER_PATH}/hosts`);
+    /*
+     * The page opens on the last 30 minutes, where the host has no data:
+     * the notice says where its earlier metrics are.
+     */
+    await expect(notice).toContainText(
+      "Its earlier metrics are kept: pick a longer time range to see them.",
+    );
+    await expect(
+      page
+        .getByTestId("vmware-host-charts")
+        .getByText("No data in this time range"),
+    ).toHaveCount(4);
 
     // Nothing is known about it now: no last seen, no cluster row, no VMs.
     await expect(page.getByTestId("vmware-host-last-seen")).toHaveCount(0);
@@ -851,6 +931,101 @@ test.describe("the states a host can be in", () => {
 });
 
 test.describe("on a phone, in dark mode and in German", () => {
+  test("beside the side menu, each device is a list and no card runs wide", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * At 768 the side menu takes 256px and a card is under 500px wide: the
+     * storage table ran past its card there, and broke the LUN's name into
+     * lines of six letters.
+     */
+    await page.setViewportSize({ width: 768, height: 1000 });
+    await openHost(page, "open=1&alerts=some");
+    await waitForOverview(page);
+
+    for (const [card, rows] of [
+      ["vmware-host-network-adapters", "vmware-host-network-adapter"],
+      ["vmware-host-storage-devices", "vmware-host-storage-device"],
+    ] as Array<[string, string]>) {
+      const element: Locator = page.getByTestId(card);
+      await expect(element.locator("table")).toBeHidden();
+
+      const list: Locator = element.getByTestId(`${rows}-list`);
+      await expect(list).toBeVisible();
+
+      const fits: Array<{ name: string; inside: boolean; oneLine: boolean }> =
+        await list.evaluate(
+          (
+            node: Element,
+          ): Array<{ name: string; inside: boolean; oneLine: boolean }> => {
+            const card: DOMRect = node.getBoundingClientRect();
+            return Array.from(node.querySelectorAll(":scope > li")).map(
+              (
+                item: Element,
+              ): { name: string; inside: boolean; oneLine: boolean } => {
+                const name: Element = item.firstElementChild as Element;
+                const box: DOMRect = name.getBoundingClientRect();
+                const values: Array<DOMRect> = Array.from(
+                  item.querySelectorAll("dd"),
+                ).map((value: Element): DOMRect => {
+                  return value.getBoundingClientRect();
+                });
+                return {
+                  name: name.textContent || "",
+                  inside:
+                    box.right <= card.right + 0.5 &&
+                    values.every((value: DOMRect): boolean => {
+                      return value.right <= card.right + 0.5;
+                    }),
+                  oneLine: box.height <= 24,
+                };
+              },
+            );
+          },
+        );
+
+      expect(fits.length).toBeGreaterThan(0);
+      for (const fit of fits) {
+        expect({ name: fit.name, inside: fit.inside }).toEqual({
+          name: fit.name,
+          inside: true,
+        });
+      }
+      if (card === "vmware-host-storage-devices") {
+        // The LUN's 36-character name reads on one line.
+        expect(fits[0]).toMatchObject({
+          name: "naa.600508b1001c4d41ad6b8b6d9c2a0f17",
+          oneLine: true,
+        });
+      }
+    }
+
+    /*
+     * "View all 7 virtual machines" is the line under the busiest VMs, so
+     * the card's title keeps its line beside the side menu.
+     */
+    const busiest: Locator = page.getByTestId("vmware-host-busiest-vms");
+    const all: Locator = busiest.getByTestId("vmware-host-busiest-vms-all");
+    await expect(
+      all.getByRole("button", { name: "View all 7 virtual machines" }),
+    ).toBeVisible();
+    const lastRow: { bottom: number } | null = await busiest
+      .getByTestId("vmware-host-busy-vm")
+      .last()
+      .evaluate((row: Element): { bottom: number } => {
+        return { bottom: row.getBoundingClientRect().bottom };
+      });
+    const allTop: number = await all.evaluate((row: Element): number => {
+      return row.getBoundingClientRect().top;
+    });
+    expect(allTop).toBeGreaterThanOrEqual((lastRow?.bottom || 0) - 1);
+
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "overview-768");
+  });
+
   test("a phone reads every part without scrolling sideways", async ({
     page,
   }: {
@@ -941,6 +1116,37 @@ test.describe("on a phone, in dark mode and in German", () => {
         page.getByText(GERMAN[title]!, { exact: true }),
       ).toBeVisible();
     }
+
+    // The hero's last report: a German sentence with a German time.
+    await expect(page.getByTestId("vmware-host-last-seen")).toHaveText(
+      "Zuletzt gemeldet vor 2 Minuten",
+    );
+
+    // The refresh control speaks German too, its interval included.
+    const controls: Locator = page.getByTestId("vmware-host-controls");
+    await expect(
+      controls.getByRole("button", { name: GERMAN["Refresh"]! }),
+    ).toBeVisible();
+    const interval: Locator = controls.getByRole("combobox", {
+      name: GERMAN["Auto-refresh"]!,
+    });
+    await expect(interval.locator("option:checked")).toHaveText("Alle 30s");
+
+    /*
+     * Each tile's title keeps clear of its icon: "Festplattenlatenz" ran
+     * into it at a laptop's width.
+     */
+    const titleClear: boolean = await tile(
+      page,
+      GERMAN["Disk latency"]!,
+    ).evaluate((card: Element): boolean => {
+      const title: Element = card.querySelector("span.uppercase") as Element;
+      const icon: Element = card.querySelector("div.h-7.w-7") as Element;
+      const info: Element | null = title.parentElement!.querySelector("button");
+      const end: number = (info || title).getBoundingClientRect().right;
+      return end <= icon.getBoundingClientRect().left;
+    });
+    expect(titleClear).toBe(true);
 
     await page.setViewportSize({ width: 390, height: 844 });
     await expectNoSidewaysScroll(page);

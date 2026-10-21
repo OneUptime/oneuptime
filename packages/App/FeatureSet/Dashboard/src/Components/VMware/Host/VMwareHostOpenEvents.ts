@@ -132,14 +132,26 @@ export function toVMwareHostOpenAlert(
 }
 
 /*
- * Newest first, incidents and alerts together, so the card reads as one
- * timeline of what is wrong with the host.
+ * Incidents first, then alerts, each newest first. The card shows five: in
+ * one timeline of both kinds, four fresh warnings pushed the host's critical
+ * incident below them or into "1 more incident", and an incident is the one
+ * a reader must not miss.
  */
 export function sortVMwareHostOpenEvents(
   events: Array<VMwareHostOpenEvent>,
 ): Array<VMwareHostOpenEvent> {
+  const kindOrder: (event: VMwareHostOpenEvent) => number = (
+    event: VMwareHostOpenEvent,
+  ): number => {
+    return event.kind === VMwareHostOpenEventKind.Incident ? 0 : 1;
+  };
+
   return [...events].sort(
     (a: VMwareHostOpenEvent, b: VMwareHostOpenEvent): number => {
+      if (kindOrder(a) !== kindOrder(b)) {
+        return kindOrder(a) - kindOrder(b);
+      }
+
       const aTime: number = a.createdAt ? a.createdAt.getTime() : 0;
       const bTime: number = b.createdAt ? b.createdAt.getTime() : 0;
 

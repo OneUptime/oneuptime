@@ -72,9 +72,9 @@ import VMwareHostOpenEventsCard from "./VMwareHostOpenEventsCard";
  * tells, from what vCenter reports - how busy the host is now (tiles), how
  * that moved over the selected range (charts), what is wrong with it
  * (open incidents and alerts), what keeps it busy (its virtual machines),
- * its hardware (network adapters and storage devices), whether anyone will
- * hear when it is in trouble (Host alerts), its details and the AI agent
- * that can look at it.
+ * whether anyone will hear when it is in trouble (Host alerts), its
+ * hardware (network adapters and storage devices), its details and the AI
+ * agent that can look at it.
  *
  * The tiles, charts and tables follow the time picker and refresh with it;
  * the virtual machines and the details are the latest inventory, which the
@@ -298,6 +298,10 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
         : (tiles.networkReceivedBytesPerSecond || 0) +
           (tiles.networkSentBytesPerSecond || 0);
 
+    /*
+     * A tile without a reading says only that ("—"): "— of 76.80 GHz" or
+     * "— slowest disk" read as a value that is missing a number.
+     */
     return (
       <div
         className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
@@ -309,7 +313,7 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
           iconColor="blue"
           value={formatPercent(tiles.cpuPercent)}
           sublabel={
-            cpuCapacityMhz !== null
+            tiles.cpuPercent !== null && cpuCapacityMhz !== null
               ? translator.translateTemplate("of {{capacity}}", {
                   capacity: formatMhz(cpuCapacityMhz),
                 })
@@ -324,7 +328,7 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
           iconColor="violet"
           value={formatPercent(tiles.memoryPercent)}
           sublabel={
-            memoryCapacityBytes !== null
+            tiles.memoryPercent !== null && memoryCapacityBytes !== null
               ? translator.translateTemplate("of {{capacity}}", {
                   capacity: formatBytes(memoryCapacityBytes),
                 })
@@ -338,7 +342,9 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
           icon={IconProp.Database}
           iconColor="amber"
           value={formatVMwareMilliseconds(tiles.highestDiskLatencyMs)}
-          sublabel={tx("slowest disk")}
+          sublabel={
+            tiles.highestDiskLatencyMs !== null ? tx("slowest disk") : undefined
+          }
           percent={getVMwareDiskLatencyGaugePercent(tiles.highestDiskLatencyMs)}
           thresholds={VMWARE_DISK_LATENCY_GAUGE_THRESHOLDS}
           description={VMWARE_METRIC_DESCRIPTIONS.hostPageDiskLatency}
@@ -549,12 +555,11 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
         onShowAll={props.onShowVirtualMachines}
       />
 
-      <VMwareHostNetworkAdaptersCard
-        adapters={metrics?.networkAdapters || []}
-      />
-
-      <VMwareHostStorageDevicesCard devices={metrics?.storageDevices || []} />
-
+      {/*
+       * Whether anyone hears when this host is in trouble, before the
+       * hardware tables: the page's one step to observing the host, and
+       * its "Turn on N alerts" no longer three cards down.
+       */}
       <VMwareHostAlertsCard
         vcenterId={props.vcenterId}
         vcenterName={props.identity.vcenterName}
@@ -562,6 +567,12 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
         getMonitorRoute={props.getMonitorRoute}
         refreshToken={refreshToken}
       />
+
+      <VMwareHostNetworkAdaptersCard
+        adapters={metrics?.networkAdapters || []}
+      />
+
+      <VMwareHostStorageDevicesCard devices={metrics?.storageDevices || []} />
 
       <VMwareHostDetailsCard
         identity={props.identity}

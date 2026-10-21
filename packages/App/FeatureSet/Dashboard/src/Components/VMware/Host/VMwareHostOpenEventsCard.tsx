@@ -28,7 +28,8 @@ import {
 /*
  * What is wrong with an ESXi host right now, near the top of its page: the
  * unresolved incidents and alerts its vCenter's monitors opened for this
- * host, newest first, each one a step from its own page. The host page
+ * host, incidents first and each kind newest first, each one a step from
+ * its own page. The host page
  * outside VMware counts them in its Activity cards; a VMware monitor is the
  * vCenter's, so here they are read through their series labels and listed.
  *

@@ -13225,7 +13225,7 @@
   "No data for the selected time range": "No data for the selected time range",
   "No data for this metric in the selected range": "No data for this metric in the selected range",
   "No data in the selected range": "No data in the selected range",
-  "No data in this time range": "No data in this time range",
+  "No data in this time range": "此時間範圍內沒有資料",
   "No data points in this bucket.": "No data points in this bucket.",
   "No data points in this range.": "No data points in this range.",
   "No data reported for the selected time range.": "No data reported for the selected time range.",
@@ -32344,7 +32344,6 @@
   "Lift CrowdStrike Falcon's network containment from the host the case is about, so it reaches the network again.": "Lift CrowdStrike Falcon's network containment from the host the case is about, so it reaches the network again.",
   "Lift containment in CrowdStrike": "Lift containment in CrowdStrike",
   "Lines show here when the host names itself {{hostName}} in them. If it uses another name, see it with {{command}} on the host.": "當主機在日誌行中自稱 {{hostName}} 時，這些行會顯示在這裡。如果它使用其他名稱，請在主機上以 {{command}} 查看。",
-  "Metrics updated": "指標更新時間",
   "Microsoft Azure": "Microsoft Azure",
   "Network adapters": "網路介面卡",
   "Network-contain the host the case is about with CrowdStrike Falcon: it can reach only the Falcon cloud until containment is lifted.": "Network-contain the host the case is about with CrowdStrike Falcon: it can reach only the Falcon cloud until containment is lifted.",
@@ -32619,7 +32618,6 @@
   "Write and keep config.yaml on the host instead.": "改為在主機上撰寫並維護 config.yaml。",
   "macOS hosts": "macOS 主機",
   "macOS hosts with {{labels}}": "具有 {{labels}} 的 macOS 主機",
-  "vCenter has not reported it for more than 15 minutes, so it was taken out of the inventory. Its earlier metrics are still below, and it comes back with the next collection that reports it.": "vCenter 已超過 15 分鐘未回報它，因此它已移出詳細目錄。它先前的指標仍在下方，下一次回報它的收集會讓它回來。",
   "vCenter has sent no metrics for this host for more than 15 minutes.": "vCenter 已超過 15 分鐘未傳送此主機的指標。",
   "vCenter lists this host but has sent no metrics for it yet. They arrive with the next collection, every 2 minutes by default.": "vCenter 已列出此主機，但尚未傳送它的指標。指標會隨下一次收集送達，預設每 2 分鐘一次。",
   "vCenter lists this host, but has sent no metrics for it yet.": "vCenter 已列出此主機，但尚未傳送它的指標。",
@@ -32677,5 +32675,8 @@
   "The running VMs on this host using the most CPU in the latest inventory.": "在最新詳細目錄中，此主機上使用最多 CPU 的執行中 VM。",
   "{{value}} gets its access back, undoing step {{number}}. Do it once the threat is gone. It is kept on the case's timeline and in the audit log.": "{{value}} gets its access back, undoing step {{number}}. Do it once the threat is gone. It is kept on the case's timeline and in the audit log.",
   "Lift Containment": "Lift Containment",
-  "Unsuspend": "Unsuspend"
+  "Unsuspend": "Unsuspend",
+  "Every {{interval}}": "每 {{interval}}",
+  "Last reported {{time}}": "上次回報於 {{time}}",
+  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter 已超過 15 分鐘未回報它，因此它已移出詳細目錄，直到某次收集再次回報它。它先前的指標仍會保留：選擇更長的時間範圍即可查看。"
 }

@@ -98,8 +98,13 @@ const VMwareHostReportNotice: FunctionComponent<ComponentProps> = (
         strongTitle="This host is not in the vCenter's inventory"
         title={
           <span>
+            {/*
+             * The page opens on the last 30 minutes, where a host that left
+             * the inventory has no data: its earlier metrics are there for
+             * a range that reaches back to them, not "still below".
+             */}
             {tx(
-              "vCenter has not reported it for more than 15 minutes, so it was taken out of the inventory. Its earlier metrics are still below, and it comes back with the next collection that reports it.",
+              "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.",
             )}{" "}
             <Link to={props.hostsRoute} className={LINK_CLASS_NAME}>
               {tx("See all hosts")}

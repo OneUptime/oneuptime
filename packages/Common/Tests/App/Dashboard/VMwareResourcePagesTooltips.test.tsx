@@ -278,7 +278,6 @@ describe("VMware ESXi host detail", () => {
       "Datacenter",
       "Cluster",
       "Virtual machines",
-      "Metrics updated",
       "Inventory ID",
       "Sent",
       "Write",

@@ -23,8 +23,9 @@ The suite reads the page the way a person does:
   menu keeps Hosts marked;
 - the Overview over the picked range: CPU, memory, slowest-disk latency and
   network tiles and charts, every series read with this host's vCenter,
-  datacenter and name; what is open on the host, newest first, five at most
-  and how many more, never another host's; the VMs keeping it busy, with the
+  datacenter and name; what is open on the host, incidents before alerts and
+  each newest first, five at most and how many more, never another host's;
+  the VMs keeping it busy, with the
   ones waiting for a CPU marked; its network adapters and storage devices,
   errors and slow disks marked; which host alerts are on; its details;
 - "Turn on 3 alerts" opening the vCenter's Recommendations with exactly the

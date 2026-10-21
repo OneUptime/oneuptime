@@ -25,9 +25,13 @@ import {
  * its Filesystems card, an ESXi host has its NICs and the disks and LUNs
  * its datastores live on.
  *
- * A table from sm up; on a phone each device is a short list of its own -
- * the values under its name - rather than a table that scrolls sideways
- * and squeezes a 40-character device name into a column of letters.
+ * A table from xl up; below that each device is a short list of its own -
+ * the values under its name, in columns that line up from one device to
+ * the next - rather than a table that scrolls sideways and squeezes a
+ * 40-character device name into a column of letters. Not only on a phone:
+ * beside the side menu (md) the card is under 500px wide, where the storage
+ * table ran past it and broke "naa.600508b1001c4d41..." into lines of six
+ * letters, and at lg it still took three lines.
  *
  * A card shows only when the host reported at least one device over the
  * range: a collector that leaves the per-device series out (or a host that
@@ -129,7 +133,7 @@ function DeviceTable<TRow>(props: DeviceTableProps<TRow>): ReactElement {
 
   return (
     <>
-      <div className={`max-sm:hidden ${bodyClassName}`}>
+      <div className={`max-xl:hidden ${bodyClassName}`}>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -196,20 +200,25 @@ function DeviceTable<TRow>(props: DeviceTableProps<TRow>): ReactElement {
         </div>
       </div>
 
-      {/* A phone: each device under its own name. */}
+      {/* Under xl: each device under its own name. */}
       <ul
-        className={`sm:hidden ${listClassName}`}
+        className={`xl:hidden ${listClassName}`}
         data-testid={`${props.rowTestId}-list`}
       >
         {props.rows.map((row: TRow): ReactElement => {
           const name: string = props.getName(row);
 
           return (
-            <li key={name} className="px-5 py-3">
+            <li key={name} className="px-5 py-3 md:px-6">
               <div className="break-all font-mono text-sm font-medium text-gray-900">
                 {name}
               </div>
-              <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5">
+              {/*
+               * As many 9rem columns as the card has room for: two on a
+               * phone and beside the side menu, three or four on a wider
+               * card, so a value never drifts far from its name.
+               */}
+              <dl className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-x-6 gap-y-1.5">
                 {props.columns.map(
                   (column: DeviceColumn<TRow>): ReactElement => {
                     return (

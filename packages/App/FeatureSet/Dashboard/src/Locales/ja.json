@@ -32344,7 +32344,6 @@
   "Lift CrowdStrike Falcon's network containment from the host the case is about, so it reaches the network again.": "Lift CrowdStrike Falcon's network containment from the host the case is about, so it reaches the network again.",
   "Lift containment in CrowdStrike": "Lift containment in CrowdStrike",
   "Lines show here when the host names itself {{hostName}} in them. If it uses another name, see it with {{command}} on the host.": "ログ行の中でホストが自身を {{hostName}} と名乗っている場合に、ここに表示されます。別の名前を使っている場合は、ホスト上で {{command}} を実行して確認してください。",
-  "Metrics updated": "メトリクスの更新",
   "Microsoft Azure": "Microsoft Azure",
   "Network adapters": "ネットワークアダプター",
   "Network-contain the host the case is about with CrowdStrike Falcon: it can reach only the Falcon cloud until containment is lifted.": "Network-contain the host the case is about with CrowdStrike Falcon: it can reach only the Falcon cloud until containment is lifted.",
@@ -32619,7 +32618,6 @@
   "Write and keep config.yaml on the host instead.": "代わりに config.yaml をホスト上で作成・管理する。",
   "macOS hosts": "macOS ホスト",
   "macOS hosts with {{labels}}": "{{labels}} を持つ macOS ホスト",
-  "vCenter has not reported it for more than 15 minutes, so it was taken out of the inventory. Its earlier metrics are still below, and it comes back with the next collection that reports it.": "vCenter が 15 分以上報告していないため、インベントリから外されました。以前のメトリクスは下に残っており、次にこのホストを報告する収集で戻ってきます。",
   "vCenter has sent no metrics for this host for more than 15 minutes.": "vCenter は 15 分以上このホストのメトリクスを送っていません。",
   "vCenter lists this host but has sent no metrics for it yet. They arrive with the next collection, every 2 minutes by default.": "vCenter はこのホストを一覧に載せていますが、まだメトリクスを送っていません。次の収集（既定では 2 分ごと）で届きます。",
   "vCenter lists this host, but has sent no metrics for it yet.": "vCenter はこのホストを一覧に載せていますが、まだメトリクスを送っていません。",
@@ -32677,5 +32675,8 @@
   "The running VMs on this host using the most CPU in the latest inventory.": "最新のインベントリで CPU を最も使っている、このホストの稼働中の VM です。",
   "{{value}} gets its access back, undoing step {{number}}. Do it once the threat is gone. It is kept on the case's timeline and in the audit log.": "{{value}} gets its access back, undoing step {{number}}. Do it once the threat is gone. It is kept on the case's timeline and in the audit log.",
   "Lift Containment": "Lift Containment",
-  "Unsuspend": "Unsuspend"
+  "Unsuspend": "Unsuspend",
+  "Every {{interval}}": "{{interval}}ごと",
+  "Last reported {{time}}": "最終報告 {{time}}",
+  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter が 15 分以上報告していないため、次に報告されるまでインベントリから外れています。以前のメトリクスは残っています。表示するには、より長い期間を選んでください。"
 }

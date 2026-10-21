@@ -13225,7 +13225,7 @@
   "No data for the selected time range": "No data for the selected time range",
   "No data for this metric in the selected range": "No data for this metric in the selected range",
   "No data in the selected range": "No data in the selected range",
-  "No data in this time range": "No data in this time range",
+  "No data in this time range": "이 기간에 데이터가 없습니다",
   "No data points in this bucket.": "No data points in this bucket.",
   "No data points in this range.": "No data points in this range.",
   "No data reported for the selected time range.": "No data reported for the selected time range.",
@@ -32344,7 +32344,6 @@
   "Lift CrowdStrike Falcon's network containment from the host the case is about, so it reaches the network again.": "Lift CrowdStrike Falcon's network containment from the host the case is about, so it reaches the network again.",
   "Lift containment in CrowdStrike": "Lift containment in CrowdStrike",
   "Lines show here when the host names itself {{hostName}} in them. If it uses another name, see it with {{command}} on the host.": "로그 줄에서 호스트가 자신을 {{hostName}}(으)로 표시하면 여기에 나타납니다. 다른 이름을 쓰는 경우 호스트에서 {{command}}(으)로 확인하세요.",
-  "Metrics updated": "메트릭 업데이트",
   "Microsoft Azure": "Microsoft Azure",
   "Network adapters": "네트워크 어댑터",
   "Network-contain the host the case is about with CrowdStrike Falcon: it can reach only the Falcon cloud until containment is lifted.": "Network-contain the host the case is about with CrowdStrike Falcon: it can reach only the Falcon cloud until containment is lifted.",
@@ -32619,7 +32618,6 @@
   "Write and keep config.yaml on the host instead.": "대신 호스트에서 config.yaml을 작성하고 관리합니다.",
   "macOS hosts": "macOS 호스트",
   "macOS hosts with {{labels}}": "{{labels}} 레이블이 있는 macOS 호스트",
-  "vCenter has not reported it for more than 15 minutes, so it was taken out of the inventory. Its earlier metrics are still below, and it comes back with the next collection that reports it.": "vCenter가 15분 넘게 보고하지 않아 인벤토리에서 제외되었습니다. 이전 메트릭은 아래에 그대로 있으며, 이 호스트를 보고하는 다음 수집 때 다시 나타납니다.",
   "vCenter has sent no metrics for this host for more than 15 minutes.": "vCenter가 15분 넘게 이 호스트의 메트릭을 보내지 않았습니다.",
   "vCenter lists this host but has sent no metrics for it yet. They arrive with the next collection, every 2 minutes by default.": "vCenter가 이 호스트를 목록에 올렸지만 아직 메트릭을 보내지 않았습니다. 다음 수집 때(기본값은 2분마다) 도착합니다.",
   "vCenter lists this host, but has sent no metrics for it yet.": "vCenter가 이 호스트를 목록에 올렸지만 아직 메트릭을 보내지 않았습니다.",
@@ -32677,5 +32675,8 @@
   "The running VMs on this host using the most CPU in the latest inventory.": "최신 인벤토리에서 이 호스트의 CPU를 가장 많이 쓰는 실행 중인 VM입니다.",
   "{{value}} gets its access back, undoing step {{number}}. Do it once the threat is gone. It is kept on the case's timeline and in the audit log.": "{{value}} gets its access back, undoing step {{number}}. Do it once the threat is gone. It is kept on the case's timeline and in the audit log.",
   "Lift Containment": "Lift Containment",
-  "Unsuspend": "Unsuspend"
+  "Unsuspend": "Unsuspend",
+  "Every {{interval}}": "{{interval}}마다",
+  "Last reported {{time}}": "마지막 보고 {{time}}",
+  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter가 15분 넘게 보고하지 않아, 다음 수집에서 다시 보고될 때까지 인벤토리에서 빠졌습니다. 이전 메트릭은 그대로 남아 있으니, 더 긴 기간을 선택해 확인하세요."
 }

@@ -32344,7 +32344,6 @@
   "Lift CrowdStrike Falcon's network containment from the host the case is about, so it reaches the network again.": "Lift CrowdStrike Falcon's network containment from the host the case is about, so it reaches the network again.",
   "Lift containment in CrowdStrike": "Lift containment in CrowdStrike",
   "Lines show here when the host names itself {{hostName}} in them. If it uses another name, see it with {{command}} on the host.": "Las líneas aparecen aquí cuando el host se nombra a sí mismo {{hostName}} en ellas. Si usa otro nombre, consúltalo con {{command}} en el host.",
-  "Metrics updated": "Métricas actualizadas",
   "Microsoft Azure": "Microsoft Azure",
   "Network adapters": "Adaptadores de red",
   "Network-contain the host the case is about with CrowdStrike Falcon: it can reach only the Falcon cloud until containment is lifted.": "Network-contain the host the case is about with CrowdStrike Falcon: it can reach only the Falcon cloud until containment is lifted.",
@@ -32619,7 +32618,6 @@
   "Write and keep config.yaml on the host instead.": "Escribir y mantener config.yaml en el host en su lugar.",
   "macOS hosts": "Hosts macOS",
   "macOS hosts with {{labels}}": "Hosts macOS con {{labels}}",
-  "vCenter has not reported it for more than 15 minutes, so it was taken out of the inventory. Its earlier metrics are still below, and it comes back with the next collection that reports it.": "vCenter no ha informado de él durante más de 15 minutos, así que se sacó del inventario. Sus métricas anteriores siguen abajo, y vuelve con la próxima recopilación que informe de él.",
   "vCenter has sent no metrics for this host for more than 15 minutes.": "vCenter no ha enviado métricas de este host desde hace más de 15 minutos.",
   "vCenter lists this host but has sent no metrics for it yet. They arrive with the next collection, every 2 minutes by default.": "vCenter incluye este host, pero aún no ha enviado métricas suyas. Llegan con la próxima recopilación, cada 2 minutos de forma predeterminada.",
   "vCenter lists this host, but has sent no metrics for it yet.": "vCenter incluye este host, pero aún no ha enviado métricas suyas.",
@@ -32677,5 +32675,8 @@
   "The running VMs on this host using the most CPU in the latest inventory.": "Las VM en ejecución de este host que más CPU usan en el inventario más reciente.",
   "{{value}} gets its access back, undoing step {{number}}. Do it once the threat is gone. It is kept on the case's timeline and in the audit log.": "{{value}} gets its access back, undoing step {{number}}. Do it once the threat is gone. It is kept on the case's timeline and in the audit log.",
   "Lift Containment": "Lift Containment",
-  "Unsuspend": "Unsuspend"
+  "Unsuspend": "Unsuspend",
+  "Every {{interval}}": "Cada {{interval}}",
+  "Last reported {{time}}": "Último informe {{time}}",
+  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter no ha informado de él durante más de 15 minutos, así que salió del inventario hasta que una recopilación vuelva a informar de él. Sus métricas anteriores se conservan: elige un intervalo de tiempo más largo para verlas."
 }
