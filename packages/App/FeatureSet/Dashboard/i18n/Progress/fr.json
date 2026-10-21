@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 32602,
-    "untranslated": 9547
+    "keys": 32601,
+    "untranslated": 9568
   },
   "sameAsEnglish": [
     " incidents",
@@ -17,7 +17,6 @@
     "\"warn\"",
     "%{IPV4:client_ip} %{USER:ident} %{USER:auth} [%{HTTPDATE:timestamp}] \"%{WORD:verb} %{NOTSPACE:request} HTTP/%{NUMBER:http_version}\" %{NUMBER:status:int} %{NUMBER:bytes:int}",
     "%{IPV4:client_ip} - %{WORD:method} %{NOTSPACE:path} %{NUMBER:status:int}",
-    "-----BEGIN CERTIFICATE-----",
     "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
     "-----BEGIN CERTIFICATE-----\nMIIB...\n-----END CERTIFICATE-----",
     "-----BEGIN OPENSSH PRIVATE KEY-----",

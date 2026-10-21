@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 32602,
-    "untranslated": 4875
+    "keys": 32601,
+    "untranslated": 4909
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -16,7 +16,6 @@
     "%{IPV4:client_ip} %{USER:ident} %{USER:auth} [%{HTTPDATE:timestamp}] \"%{WORD:verb} %{NOTSPACE:request} HTTP/%{NUMBER:http_version}\" %{NUMBER:status:int} %{NUMBER:bytes:int}",
     "%{IPV4:client_ip} - %{WORD:method} %{NOTSPACE:path} %{NUMBER:status:int}",
     "(Optional)",
-    "-----BEGIN CERTIFICATE-----",
     "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
     "-----BEGIN CERTIFICATE-----\nMIIB...\n-----END CERTIFICATE-----",
     "-----BEGIN OPENSSH PRIVATE KEY-----",
@@ -575,7 +574,6 @@
     "payment-.*",
     "prod, staging",
     "prod-.*",
-    "prod-cluster",
     "prod-vcenter",
     "production, staging",
     "public",
