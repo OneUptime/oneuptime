@@ -104,7 +104,10 @@ import PermissionGate, {
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
-import { createTranslator, Translator } from "../../../UI/Utils/TranslateTemplate";
+import {
+  createTranslator,
+  Translator,
+} from "../../../UI/Utils/TranslateTemplate";
 
 const PROJECT_ID: string = "dddddddd-0000-4000-8000-0000000000c7";
 const REPOSITORY_ID: string = "eeeeeeee-0000-4000-8000-0000000000c7";

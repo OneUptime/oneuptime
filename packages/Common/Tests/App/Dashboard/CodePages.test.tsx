@@ -1287,7 +1287,9 @@ describe("Code's Repositories", () => {
     return within(list)
       .queryAllByTestId("code-repository-row")
       .map((row: HTMLElement): string => {
-        return within(row).getByTestId("code-repository-name").textContent || "";
+        return (
+          within(row).getByTestId("code-repository-name").textContent || ""
+        );
       });
   }
 
@@ -1419,9 +1421,7 @@ describe("Code's Repositories", () => {
     await screen.findAllByTestId("code-repository-row");
 
     expect(rowNames(connectedList())).toEqual(["oneuptime"]);
-    expect(
-      within(connectedList()).queryByText("Not connected"),
-    ).toBeNull();
+    expect(within(connectedList()).queryByText("Not connected")).toBeNull();
 
     const fold: HTMLElement = notConnectedFold();
     const header: HTMLElement = within(fold).getByRole("button", {
@@ -1451,7 +1451,9 @@ describe("Code's Repositories", () => {
       "landing-pages",
     ]);
     expect(fold).toHaveTextContent("Showing 1-10 of 14 repositories");
-    expect(screen.getByTestId("code-not-connected-explanation")).toHaveTextContent(
+    expect(
+      screen.getByTestId("code-not-connected-explanation"),
+    ).toHaveTextContent(
       "Their tasks stay readable. Connect GitHub with access to them to use them again, or open one to delete it.",
     );
   });
@@ -1549,21 +1551,21 @@ describe("Code's Repositories", () => {
 
     const [busy, quiet] = await screen.findAllByTestId("code-repository-row");
 
-    expect(within(busy!).getByTestId("code-repository-full-name")).toHaveTextContent(
-      "acme/checkout-api",
-    );
+    expect(
+      within(busy!).getByTestId("code-repository-full-name"),
+    ).toHaveTextContent("acme/checkout-api");
     expect(
       within(busy!).getByTestId("code-repository-row-description"),
     ).toHaveTextContent("The checkout and payment API.");
-    expect(within(busy!).getByTestId("code-repository-task-count")).toHaveTextContent(
-      "6 tasks",
-    );
+    expect(
+      within(busy!).getByTestId("code-repository-task-count"),
+    ).toHaveTextContent("6 tasks");
     expect(
       within(busy!).getByTestId("code-repository-pull-requests"),
     ).toHaveTextContent("1 open pull request");
-    expect(within(busy!).getByTestId("code-repository-working")).toHaveTextContent(
-      "1 working",
-    );
+    expect(
+      within(busy!).getByTestId("code-repository-working"),
+    ).toHaveTextContent("1 working");
     expect(within(busy!).queryByTestId("code-repository-waiting")).toBeNull();
     // When anything last happened, as a date the reader's language words.
     expect(busy!.querySelector("time")).toHaveAttribute(
@@ -1572,13 +1574,15 @@ describe("Code's Repositories", () => {
     );
 
     // A repository with nothing yet says so, and nothing more.
-    expect(within(quiet!).getByTestId("code-repository-task-count")).toHaveTextContent(
-      "No tasks yet",
-    );
+    expect(
+      within(quiet!).getByTestId("code-repository-task-count"),
+    ).toHaveTextContent("No tasks yet");
     expect(
       within(quiet!).queryByTestId("code-repository-pull-requests"),
     ).toBeNull();
-    expect(within(quiet!).queryByTestId("code-repository-attention")).toBeNull();
+    expect(
+      within(quiet!).queryByTestId("code-repository-attention"),
+    ).toBeNull();
     expect(
       within(quiet!).queryByTestId("code-repository-row-description"),
     ).toBeNull();
@@ -1621,14 +1625,18 @@ describe("Code's Repositories", () => {
     await userEvent.type(search, "billing");
     expect(rowNames(connectedList())).toEqual([]);
 
-    const empty: HTMLElement = screen.getByTestId("code-repository-search-empty");
+    const empty: HTMLElement = screen.getByTestId(
+      "code-repository-search-empty",
+    );
     expect(empty).toHaveTextContent("No repository matches your search");
     expect(empty).toHaveTextContent(
       "1 repository that is not connected matches it, below.",
     );
     expect(notConnectedFold()).toHaveTextContent("1 repository");
 
-    fireEvent.click(within(empty).getByRole("button", { name: "Clear Search" }));
+    fireEvent.click(
+      within(empty).getByRole("button", { name: "Clear Search" }),
+    );
     expect(rowNames(connectedList())).toHaveLength(6);
   });
 

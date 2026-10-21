@@ -244,7 +244,9 @@ describe("where work that picked no Runner runs is decided by one default order"
    * work runs (Types/Runner/CodeRepositoryRunner), as every pick does.
    */
   test("a repository the GitHub App imports starts on the project's default Runner, read through GlobalRunnerChoice", () => {
-    const service: string = read("Common/Server/Services/CodeRepositoryService.ts");
+    const service: string = read(
+      "Common/Server/Services/CodeRepositoryService.ts",
+    );
     const defaults: string = service.slice(
       service.indexOf("public static async getNewRepositoryDefaults("),
     );
@@ -259,7 +261,9 @@ describe("where work that picked no Runner runs is decided by one default order"
     const importer: string = service.slice(
       service.indexOf("public async importReposFromInstallation("),
     );
-    expect(importer.indexOf("Service.getNewRepositoryDefaults(")).toBeGreaterThan(
+    expect(
+      importer.indexOf("Service.getNewRepositoryDefaults("),
+    ).toBeGreaterThan(
       importer.indexOf("const codeRepository: Model = new Model();") - 400,
     );
   });

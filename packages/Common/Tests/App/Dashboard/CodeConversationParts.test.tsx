@@ -1631,15 +1631,13 @@ describe("a repository's row in the Repositories table", () => {
 
     const row: HTMLElement = screen.getByTestId(CODE_REPOSITORY_ROW_TEST_ID);
 
-    expect(
-      within(row).getByTestId("code-repository-stats"),
-    ).toHaveTextContent(/^No tasks yet$/);
+    expect(within(row).getByTestId("code-repository-stats")).toHaveTextContent(
+      /^No tasks yet$/,
+    );
     expect(within(row).queryByTestId("code-repository-attention")).toBeNull();
     expect(row.querySelector("time")).toBeNull();
     // The table's quiet dash, as every empty cell is.
-    expect(
-      within(row).getByTestId("table-empty-value"),
-    ).toBeInTheDocument();
+    expect(within(row).getByTestId("table-empty-value")).toBeInTheDocument();
   });
 
   test("a repository AI can work in carries the dark GitHub mark; one in the not-connected list a grey one, and no pill", () => {

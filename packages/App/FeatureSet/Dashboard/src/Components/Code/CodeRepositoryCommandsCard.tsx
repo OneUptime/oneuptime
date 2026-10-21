@@ -144,7 +144,6 @@ const CodeRepositoryCommandsCard: FunctionComponent<ComponentProps> = (
           item={repository}
           fields={fields}
           showDetailsInNumberOfColumns={fields.length}
-          showRecordLine={false}
         />
       </div>
 

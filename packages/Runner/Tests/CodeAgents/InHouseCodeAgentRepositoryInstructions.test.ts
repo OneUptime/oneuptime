@@ -296,8 +296,6 @@ describe("on the shared Runner, which runs no command", () => {
     expect(prompt).toContain(AGENTS_MD);
     expect(prompt).not.toContain("## Check your change before you finish");
     expect(tools).not.toContain("run_command");
-    expect(prompt).toContain(
-      "There is no command-running tool on this Runner",
-    );
+    expect(prompt).toContain("There is no command-running tool on this Runner");
   });
 });

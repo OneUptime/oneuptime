@@ -81,9 +81,7 @@ export default class RepositoryInstructions {
    * first of REPOSITORY_INSTRUCTION_FILES found, in any letter case
    * ("agents.md" too), or null.
    */
-  public static findInstructionFileName(
-    entries: Array<string>,
-  ): string | null {
+  public static findInstructionFileName(entries: Array<string>): string | null {
     for (const wanted of REPOSITORY_INSTRUCTION_FILES) {
       const found: string | undefined = entries.find(
         (entry: string): boolean => {

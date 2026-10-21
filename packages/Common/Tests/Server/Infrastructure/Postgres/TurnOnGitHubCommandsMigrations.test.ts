@@ -65,7 +65,10 @@ function registeredNames(): Array<string> {
 describe("TurnOnGitHubCommandsByDefault1805760000000", () => {
   test("makes the column's default true, and nothing else", async () => {
     expect(
-      await statementsOf(new TurnOnGitHubCommandsByDefault1805760000000(), "up"),
+      await statementsOf(
+        new TurnOnGitHubCommandsByDefault1805760000000(),
+        "up",
+      ),
     ).toEqual([
       `ALTER TABLE "CodeRepository" ALTER COLUMN "isGitHubCommandsEnabled" SET DEFAULT true`,
     ]);
@@ -107,7 +110,7 @@ describe("TurnOnUnsetGitHubCommands1805770000000", () => {
       `UPDATE "CodeRepository" SET "isGitHubCommandsEnabled" = true WHERE "isGitHubCommandsEnabled" IS NULL`,
     ]);
     // Never a write to the rows that hold false.
-    expect(statements[0]).not.toMatch(/= false|IS NOT NULL|NOT /);
+    expect(statements[0]).not.toMatch(/[=] false|IS NOT NULL|NOT /);
   });
 
   test("down does nothing: true is what those nulls already meant", async () => {
@@ -162,6 +165,8 @@ describe("both migrations", () => {
 
     expect(
       registered.indexOf("TurnOnGitHubCommandsByDefault1805760000000"),
-    ).toBeLessThan(registered.indexOf("TurnOnUnsetGitHubCommands1805770000000"));
+    ).toBeLessThan(
+      registered.indexOf("TurnOnUnsetGitHubCommands1805770000000"),
+    );
   });
 });
