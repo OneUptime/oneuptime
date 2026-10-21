@@ -64,7 +64,13 @@ Todos os papéis da aplicação são a mesma imagem: o Docker Compose os executa
 
 ## Conexões que saem da sua rede
 
-A aplicação só se conecta para fora para o que você ativar. Cada uma destas conexões é opcional, e cada uma tem uma página que indica os endereços exatos a liberar:
+Três conexões são feitas, a menos que você mude uma configuração:
+
+- Uma vez por dia, a aplicação pergunta à API do GitHub (`api.github.com`) se saiu uma versão mais nova. Para desligar isso, defina `updateCheck.disabled: true` no chart do Helm, ou `DISABLE_UPDATE_CHECK=true` no `config.env` com o Docker Compose.
+- Cadastrar-se com “Notifique-me sobre patches de segurança e novas versões” marcado, como vem de início, envia para `oneuptime.com` o nome e o e-mail da pessoa, a empresa e o telefone que ela informou, e o endereço e a versão da sua instalação. Desmarque essa opção em uma rede sem acesso à internet.
+- No Kubernetes, as sondas recorrem aos resolvedores públicos `8.8.8.8` e `1.1.1.1` depois do DNS do seu próprio cluster. Defina `dnsConfig.nameservers` como `[]` para manter todas as consultas no seu próprio DNS.
+
+Todo o resto só se conecta para fora quando você o ativa, e cada um tem uma página que indica os endereços exatos a liberar:
 
 | Conexão de saída | Usada para | Onde ler mais |
 | --- | --- | --- |

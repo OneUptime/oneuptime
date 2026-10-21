@@ -64,7 +64,13 @@ Alla appens roller är samma image: Docker Compose kör dem i en enda `app`-cont
 
 ## Anslutningar ut från ditt nätverk
 
-Appen ansluter bara utåt för det du slår på. Var och en av dessa är valfri, och var och en har en sida som anger exakt vilka adresser som ska tillåtas:
+Tre anslutningar görs om du inte ändrar en inställning:
+
+- En gång om dagen frågar appen GitHubs API (`api.github.com`) om en nyare version har kommit. Du stänger av det med `updateCheck.disabled: true` i Helm-chartet, eller med `DISABLE_UPDATE_CHECK=true` i `config.env` med Docker Compose.
+- Registrerar sig någon med ”Meddela mig om säkerhetsuppdateringar och nya versioner” markerad, som den är från början, skickas personens namn och e-post, eventuellt företag och telefonnummer samt din installations adress och version till `oneuptime.com`. Avmarkera den i ett nätverk utan internetåtkomst.
+- På Kubernetes faller prober tillbaka på de publika resolvrarna `8.8.8.8` och `1.1.1.1` efter klustrets egen DNS. Sätt `dnsConfig.nameservers` till `[]` för att hålla alla uppslag på din egen DNS.
+
+Allt annat ansluter bara utåt när du slår på det, och var och en har en sida som anger exakt vilka adresser som ska tillåtas:
 
 | Utgående anslutning | Används till | Läs mer |
 | --- | --- | --- |

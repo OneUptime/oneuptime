@@ -158,6 +158,7 @@ runner:
 | `image.pullPolicy`    | Image pull policy.                                                                        | `IfNotPresent`       |
 | `image.type`          | `community-edition` (the Apache-2.0 images, SAML and OIDC single sign-on included) or `enterprise-edition` (the Enterprise Edition images: the same tags with an `enterprise-` prefix, adding the enterprise features (SCIM, audit logs, team compliance, instance health dashboards) under the OneUptime Enterprise License). Production use of the Enterprise Edition requires a subscription under that license; an install with no license, or one holding a license whose expiry was never recorded, runs as a 14-day trial, which is for evaluation. After the trial (or 30 days after a license expires), SCIM and audit logging stop and enterprise configuration becomes read-only until a license is activated; single sign-on does not depend on the license, and core monitoring is never affected. | `community-edition`  |
 | `image.restartPolicy` | Image restart policy.                                                                     | `Always`             |
+| `imagePullSecrets`    | Pull secrets (a list of `name:` entries) for every pod the chart defines, the bundled PostgreSQL, ClickHouse and Valkey and the operator-run databases included. Set it for a registry that asks for credentials, such as an air-gapped install's mirror. | `nil` |
 
 ## Autoscaling & availability
 
