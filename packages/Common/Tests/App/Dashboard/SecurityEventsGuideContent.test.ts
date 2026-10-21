@@ -9,7 +9,14 @@ jest.mock("isolated-vm", () => {
 import { describe, expect, test } from "@jest/globals";
 import { Lexer, Token, Tokens } from "marked";
 import { markdownTableCell } from "../../../Utils/Markdown/MarkdownTableCell";
+import {
+  DETECTION_RULE_TYPE_DEFINITIONS,
+  DetectionRuleType,
+  detectionRuleTypeOf,
+} from "../../../Types/SecurityEvent/SigmaCorrelation";
 import DetectionRulesGuide, {
+  CORRELATION_RULE_EXAMPLE_YAML,
+  NEW_VALUE_RULE_EXAMPLE_YAML,
   DETECTION_RULE_EXAMPLE_YAML,
   DETECTION_THRESHOLD_EXAMPLES,
   DetectionThresholdExample,
@@ -40,6 +47,9 @@ import {
   markdownTable,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
 import SigmaRuleParser from "../../../Utils/SecurityEvent/Sigma/SigmaRuleParser";
+import SigmaRuleSetParser, {
+  sigmaRulesOf,
+} from "../../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 import SigmaClickhouseCompiler, {
   FIELD_ALIASES,
   buildSigmaDistinctCountExpression,
@@ -336,13 +346,58 @@ describe("Security Events guides: structure", () => {
 
       expect(blocks.length).toBeGreaterThan(0);
 
+      /*
+       * As a save checks it: one Sigma rule, or a correlation with the
+       * rules it reads (SigmaRuleSetParser), each of them compiled.
+       */
       for (const block of blocks) {
         expect(() => {
-          SigmaClickhouseCompiler.compileYaml(block);
+          for (const rule of sigmaRulesOf(SigmaRuleSetParser.parse(block))) {
+            SigmaClickhouseCompiler.compile(rule);
+          }
         }).not.toThrow();
       }
     },
   );
+
+  test("the correlation examples are the kinds the section says they are", () => {
+    const sequence: ReturnType<typeof SigmaRuleSetParser.parse> =
+      SigmaRuleSetParser.parse(CORRELATION_RULE_EXAMPLE_YAML);
+    const firstSeen: ReturnType<typeof SigmaRuleSetParser.parse> =
+      SigmaRuleSetParser.parse(NEW_VALUE_RULE_EXAMPLE_YAML);
+
+    expect(detectionRuleTypeOf(sequence)).toBe(
+      DetectionRuleType.TemporalOrdered,
+    );
+    expect(detectionRuleTypeOf(firstSeen)).toBe(DetectionRuleType.NewValue);
+
+    if (sequence.kind !== "correlation") {
+      throw new Error("expected a correlation");
+    }
+
+    // "five failed sign-ins ... within ten minutes", as the section says.
+    expect(sequence.steps[0]!.count?.correlation.condition.comparisons).toEqual(
+      [{ operator: "gte", value: 5 }],
+    );
+    expect(sequence.correlation.timespanInSeconds).toBe(600);
+
+    const section: SecurityEventsGuideSection | undefined = getGuideSection(
+      DetectionRulesGuide,
+      "correlations",
+    );
+
+    expect(section).toBeDefined();
+
+    // Every kind is in the types table, shown as the product names it.
+    for (const definition of DETECTION_RULE_TYPE_DEFINITIONS) {
+      if (definition.correlationType) {
+        expect(section!.markdown).toContain(
+          `| \`${definition.correlationType}\` |`,
+        );
+        expect(section!.markdown).toContain(`| ${definition.title} |`);
+      }
+    }
+  });
 
   test("the two guides use different ids, so their collapsed state is stored apart", () => {
     expect(DetectionRulesGuide.id).not.toBe(ThreatIntelGuide.id);

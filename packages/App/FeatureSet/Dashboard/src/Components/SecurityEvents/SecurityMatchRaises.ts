@@ -176,13 +176,49 @@ export function raisesIncident(values: unknown): boolean {
  * after it). The form names a new rule after it until a name of one's own
  * is typed. Read line by line, without a regular expression: the YAML is
  * pasted text of any length.
+ *
+ * A correlation's YAML holds several documents (`---` between them): the
+ * rule is the correlation's, so its document's title names it, wherever in
+ * the file it is.
  */
 export function getSigmaRuleTitle(yaml: unknown): string {
   if (typeof yaml !== "string") {
     return "";
   }
 
+  const documents: Array<Array<string>> = [[]];
+
   for (const line of yaml.split("\n")) {
+    if (line.trimEnd() === "---") {
+      documents.push([]);
+      continue;
+    }
+
+    documents[documents.length - 1]!.push(line);
+  }
+
+  const correlation: Array<string> | undefined = documents.find(
+    (lines: Array<string>): boolean => {
+      return lines.some((line: string): boolean => {
+        return line.startsWith("correlation:");
+      });
+    },
+  );
+
+  for (const document of correlation ? [correlation] : documents) {
+    const title: string = readTopLevelTitle(document);
+
+    if (title) {
+      return title;
+    }
+  }
+
+  return "";
+}
+
+// The first top-level `title:` of a YAML document's lines, or "".
+function readTopLevelTitle(lines: Array<string>): string {
+  for (const line of lines) {
     // A top-level key only: an indented title belongs to something else.
     if (!line.startsWith("title:")) {
       continue;

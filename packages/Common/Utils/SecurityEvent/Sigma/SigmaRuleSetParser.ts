@@ -1061,6 +1061,25 @@ export function correlationAsSigmaRule(
   };
 }
 
+// Every Sigma rule a definition evaluates: the single rule, or each rule its steps read.
+export function sigmaRulesOf(
+  definition: DetectionRuleDefinition,
+): Array<SigmaRule> {
+  if (definition.kind === "single") {
+    return [definition.rule];
+  }
+
+  return definition.steps.flatMap(
+    (step: SigmaCorrelationStep): Array<SigmaRule> => {
+      if (step.rule) {
+        return [step.rule];
+      }
+
+      return step.count ? step.count.rules : [];
+    },
+  );
+}
+
 // The rule that names a detection rule: the single Sigma rule, or the correlation.
 export function detectionRuleHeader(
   definition: DetectionRuleDefinition,

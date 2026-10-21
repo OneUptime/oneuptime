@@ -12,14 +12,13 @@ import {
   DETECTION_MATCH_COUNT_THRESHOLD_MAX,
   DETECTION_MATCH_COUNT_THRESHOLD_MIN,
 } from "../../Types/SecurityEvent/DetectionFindingConstants";
-import SigmaRule from "../../Types/SecurityEvent/SigmaRule";
 import {
   DetectionRuleDefinition,
-  SigmaCorrelationStep,
   SigmaRuleReferenceResolver,
 } from "../../Types/SecurityEvent/SigmaCorrelation";
 import SigmaRuleSetParser, {
   detectionRuleHeader,
+  sigmaRulesOf,
 } from "../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 import {
   SigmaRuleSource,
@@ -80,28 +79,11 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    for (const rule of Service.rulesOf(definition)) {
+    for (const rule of sigmaRulesOf(definition)) {
       SigmaClickhouseCompiler.compile(rule);
     }
 
     return definition;
-  }
-
-  // Every Sigma rule a definition evaluates.
-  public static rulesOf(definition: DetectionRuleDefinition): Array<SigmaRule> {
-    if (definition.kind === "single") {
-      return [definition.rule];
-    }
-
-    return definition.steps.flatMap(
-      (step: SigmaCorrelationStep): Array<SigmaRule> => {
-        if (step.rule) {
-          return [step.rule];
-        }
-
-        return step.count ? step.count.rules : [];
-      },
-    );
   }
 
   // The project's single Sigma rules, by Sigma id and name (SigmaRuleIndex).
