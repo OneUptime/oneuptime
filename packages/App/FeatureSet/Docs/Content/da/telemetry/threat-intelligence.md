@@ -138,7 +138,7 @@ Hvert minut matches hvert aktiveret feeds aktive indikatorer mod de begivenheder
 - Det første tjek dækker de seneste 15 minutter. Efter et nedbrud indhenter det næste tjek højst de seneste 24 timer.
 - Hvert vindue tjekkes én gang. Intelligens, der ankommer, efter at dens vindue er tjekket, gælder kun for senere begivenheder.
 - En begivenhed, der ankommer sent, med et tidspunkt fra før det forrige tjek, mærkes stadig ved ankomst, men matches ikke.
-- Hvert tjek matcher højst 100 indikatorværdier pr. feed: dem, der ses i flest begivenheder.
+- Hvert tjek registrerer hver matchet indikatorværdi som et Detection Finding, op til 10.000 pr. feed. Advarsler, hændelser og sager åbnes for de 100 værdier, der ses i flest begivenheder; resten deler én sag om feedet, og feedets **Last Match Error** fortæller, hvor mange der matchede.
 
 ### Hvad et match gør
 

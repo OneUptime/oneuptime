@@ -138,7 +138,7 @@ Elke minuut worden de actieve indicatoren van elke ingeschakelde feed vergeleken
 - De eerste controle dekt de laatste 15 minuten. Na een storing haalt de volgende controle hoogstens de laatste 24 uur in.
 - Elk venster wordt één keer gecontroleerd. Intel die binnenkomt nadat zijn venster is gecontroleerd, geldt alleen voor latere gebeurtenissen.
 - Een gebeurtenis die te laat binnenkomt, met een tijd van vóór de vorige controle, wordt nog steeds bij binnenkomst gemarkeerd, maar niet vergeleken.
-- Elke controle vergelijkt hoogstens 100 indicatorwaarden per feed: die welke in de meeste gebeurtenissen voorkomen.
+- Elke controle legt elke gematchte indicatorwaarde vast als Detection Finding, tot 10.000 per feed. Waarschuwingen, incidenten en zaken openen voor de 100 waarden die in de meeste gebeurtenissen voorkomen; de rest deelt één zaak over de feed, en de **Last Match Error** van de feed zegt hoeveel er matchten.
 
 ### Wat een match doet
 

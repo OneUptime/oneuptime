@@ -33,6 +33,7 @@ import AttackCoveragePage from "../Pages/SecurityEvents/AttackCoverage";
 import SecurityPlaybooksPage from "../Pages/SecurityEvents/Playbooks";
 import SecurityPlaybookViewPage from "../Pages/SecurityEvents/PlaybookView";
 import SecurityPlaybookRunsPage from "../Pages/SecurityEvents/PlaybookRuns";
+import SecurityProtectedEntitiesPage from "../Pages/SecurityEvents/ProtectedEntities";
 
 /*
  * Every page under the product's side menu renders inside its layout; a
@@ -199,6 +200,17 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             );
           },
         )}
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[PageMap.SECURITY_PROTECTED_ENTITIES] || ""
+          }
+          element={
+            <SecurityProtectedEntitiesPage
+              {...props}
+              pageRoute={RouteMap[PageMap.SECURITY_PROTECTED_ENTITIES] as Route}
+            />
+          }
+        />
         <PageRoute
           path={
             SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_CONNECTIONS] || ""
