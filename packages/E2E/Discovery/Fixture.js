@@ -39,6 +39,7 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import NetworkAlertPolicy from "Common/Models/DatabaseModels/NetworkAlertPolicy";
 import {
   buildAlertSeverities,
+  buildBackOfficeTemplate,
   buildCampusHosts,
   buildIncidentSeverities,
   buildMonitorStatuses,
@@ -377,6 +378,10 @@ window.__discoveryFixture = {
   policies: [],
   usePolicy() {
     this.policies = [buildPolicy({})];
+  },
+  // A template made in another tab while the import is open (#5145).
+  addBackOfficeTemplate() {
+    this.templates = [...this.templates, buildBackOfficeTemplate()];
   },
   dropRecommendedTemplate() {
     this.templates = this.templates.filter(

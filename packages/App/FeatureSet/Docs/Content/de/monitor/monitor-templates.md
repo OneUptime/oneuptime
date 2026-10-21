@@ -111,7 +111,7 @@ Welche Optionen es gibt, hängt vom Monitortyp ab. Dazu gehören Ziele und Ports
 - Ausnahmen gelten für Sammel- und Einzelsynchronisierungen. Sie werden in der Vorlage gespeichert und nicht für jede Synchronisierung einzeln ausgewählt.
 - Neue Monitore beginnen weiterhin mit den Feldwerten der Vorlage. Ausnahmen wirken sich nur auf das Synchronisieren bestehender Monitore aus.
 - Kriterien werden immer synchronisiert. Eine reine Kriteriensynchronisierung lässt das Überwachungsintervall, die Beschriftungen und andere Einstellungen auf Monitorebene unverändert.
-- Bestehende Vorlagen haben keine Feldausnahmen, bis Sie welche einrichten. Netzwerkgerät-Monitore behalten ihre eigene Gerätebindung weiterhin automatisch.
+- Bestehende Vorlagen haben keine Feldausnahmen, bis Sie welche einrichten. Netzwerkgerät-Monitore behalten ihre eigene Gerätebindung weiterhin automatisch, und die Ping-, IP-, Port- und NTP-Monitore, die ein Import aus der Netzwerkerkennung für Geräte angelegt hat, prüfen weiter die eigene Adresse jedes Geräts.
 
 Bei Vorlagen mit mehreren Schritten werden geschützte Werte über die Schritt-IDs zugeordnet. Unabhängig erstellte einstufige Monitore können auch eine einstufige Vorlage erhalten. Lässt sich ein geschützter Schritt nicht zuordnen, wird die Synchronisierung abgelehnt, bevor ein Monitor aktualisiert wird, sodass ein neuer oder umsortierter Schritt nicht versehentlich das Ziel oder die Anmeldedaten eines anderen Schritts kopieren kann.
 

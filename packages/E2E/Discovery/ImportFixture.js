@@ -138,6 +138,7 @@ export const TEMPLATE_IDS = {
   receiptPrinters: "60000000-0000-4000-8000-000000000004",
   timeServers: "60000000-0000-4000-8000-000000000005",
   storefront: "60000000-0000-4000-8000-000000000006",
+  backOffice: "60000000-0000-4000-8000-000000000007",
 };
 
 const STATUS_IDS = {
@@ -222,6 +223,18 @@ export function buildTemplates() {
       monitoringInterval: "*/5 * * * *",
     }),
   ];
+}
+
+// A template someone makes in another tab while the import is open (#5145).
+export function buildBackOfficeTemplate() {
+  return addressTemplate({
+    id: TEMPLATE_IDS.backOffice,
+    name: "Back office printers",
+    monitorType: MonitorType.Port,
+    destination: IP.fromString("10.48.11.33"),
+    port: 515,
+    monitoringInterval: "*/5 * * * *",
+  });
 }
 
 /*

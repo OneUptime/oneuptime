@@ -111,7 +111,7 @@ Vilka alternativ som finns beror på monitortypen. De omfattar mål och portar, 
 - Undantag gäller för massvisa och enskilda synkroniseringar. De sparas på mallen och väljs inte separat för varje synkronisering.
 - Nya monitorer börjar fortfarande med mallens fältvärden. Undantag påverkar bara synkronisering av befintliga monitorer.
 - Kriterier synkroniseras alltid. En synkronisering av enbart kriterier lämnar övervakningsintervallet, etiketterna och andra inställningar på monitornivå orörda.
-- Befintliga mallar har inga fältundantag förrän du ställer in dem. Monitorer för nätverksenheter behåller fortfarande sin egen enhetskoppling automatiskt.
+- Befintliga mallar har inga fältundantag förrän du ställer in dem. Monitorer för nätverksenheter behåller fortfarande sin egen enhetskoppling automatiskt, och de Ping-, IP-, Port- och NTP-monitorer som en import från nätverksidentifiering har skapat för enheter fortsätter att kontrollera varje enhets egen adress.
 
 För mallar med flera steg matchas skyddade värden via steg-ID:na. Fristående skapade monitorer med ett steg kan också ta emot en mall med ett steg. Om ett skyddat steg inte kan matchas avvisas synkroniseringen innan någon monitor uppdateras, så att ett nytt eller omordnat steg inte av misstag kan kopiera ett annat stegs mål eller inloggningsuppgifter.
 

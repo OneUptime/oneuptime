@@ -415,6 +415,283 @@ test.describe("how the devices are monitored", () => {
   });
 });
 
+/*
+ * Issue #5145: a customer's own "WB KDS Ping Monitor Template" never showed
+ * in this list - only Network Device templates did. Every kind a device's
+ * monitor can be made from is listed now, under its kind, with one line that
+ * says which kinds are listed; the picked template is previewed as what each
+ * device gets; and a template made in another tab is in the list on coming
+ * back. Light and dark, on a desktop and on a phone.
+ */
+const KDS_TEMPLATE_ID: string = "60000000-0000-4000-8000-000000000003";
+
+async function openTemplateMenu(page: Page): Promise<Locator> {
+  await page.locator("#discovery-import-template").click();
+  const menu: Locator = page.getByRole("listbox");
+  await expect(menu).toBeVisible();
+  return menu;
+}
+
+async function pickTemplate(page: Page, name: RegExp): Promise<void> {
+  const menu: Locator = await openTemplateMenu(page);
+  await menu.getByRole("option", { name: name }).click();
+}
+
+async function useDarkTheme(page: Page): Promise<void> {
+  await page.evaluate((): void => {
+    document.documentElement.classList.add("dark");
+  });
+}
+
+test.describe("templates of every kind a device's monitor can be made from (#5145)", () => {
+  test("the KDS Ping template is listed under its kind, with the Port and NTP ones; a Website template is not", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openImport(page, POS_SCAN);
+    await toMonitoring(page);
+    await page.getByTestId("discovery-import-alerting-template").check();
+
+    // One line says which kinds are listed, beside a way to the templates.
+    await expect(
+      page.getByTestId("discovery-import-template-rule"),
+    ).toContainText(
+      "Network Device, Ping, IP, Port and NTP templates are listed: other kinds cannot check a device.",
+    );
+    const manage: Locator = page.getByTestId(
+      "discovery-import-manage-templates",
+    );
+    await expect(manage).toHaveText("Manage templates");
+    await expect(manage).toHaveAttribute(
+      "href",
+      "/dashboard/10000000-0000-4000-8000-000000000001/monitors/settings/templates",
+    );
+    await expect(manage).toHaveAttribute("target", "_blank");
+
+    const menu: Locator = await openTemplateMenu(page);
+    await expect(menu.getByText("Network Device templates")).toBeVisible();
+    await expect(
+      menu.getByText("Ping, IP, Port and NTP templates"),
+    ).toBeVisible();
+
+    const options: Array<string> = await menu
+      .getByRole("option")
+      .allInnerTexts();
+    expect(
+      options.map((text: string): string => {
+        return text.split("\n").join(" | ");
+      }),
+    ).toEqual([
+      "Network device alert pack (recommended)",
+      "POS ping availability",
+      "Receipt printers | Checks port 9100 on each device",
+      "Store time servers | Asks each device for the time",
+      "WB KDS Ping Monitor Template | Pings each device",
+    ]);
+    await expect(menu).not.toContainText("Storefront website");
+
+    // The project's templates were asked for by kind: these five, no other.
+    const kinds: Array<string> = await page.evaluate((): Array<string> => {
+      const requests: Array<{
+        model: string;
+        query: { monitorType?: { values?: Array<string> } };
+      }> = (
+        window as unknown as {
+          __discoveryFixture: {
+            requests: Array<{
+              model: string;
+              query: { monitorType?: { values?: Array<string> } };
+            }>;
+          };
+        }
+      ).__discoveryFixture.requests;
+      const read: (typeof requests)[number] | undefined = requests.find(
+        (request: (typeof requests)[number]): boolean => {
+          return request.model === "MonitorTemplate";
+        },
+      );
+      return (read?.query.monitorType?.values || []).map(String);
+    });
+    expect(kinds).toEqual(["Network Device", "Ping", "IP", "Port", "NTP"]);
+
+    await page.screenshot({
+      path: path.join(screenshots, "discovery-import-templates-menu.png"),
+    });
+  });
+
+  test("the KDS Ping template: each register gets a Ping monitor on its own address, from the scan's probe - previewed, summed up and sent", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openImport(page, POS_SCAN);
+    await toMonitoring(page);
+    await page.getByTestId("discovery-import-alerting-template").check();
+    await pickTemplate(page, /^WB KDS Ping Monitor Template/);
+
+    await expect(
+      page.getByTestId("discovery-import-template-lead"),
+    ).toHaveText(
+      "Each device gets a Ping monitor that pings its own address from London datacenter.",
+    );
+    await expect(
+      page.getByTestId("discovery-import-template-schedule"),
+    ).toHaveText("Checked on the template's schedule: every 5 minutes.");
+    const preview: Locator = page.getByTestId(
+      "discovery-import-template-preview",
+    );
+    await expect(preview).toContainText("Opens an incident (Critical)");
+    await expect(preview).not.toContainText("SNMP devices only");
+    await expect(
+      page.getByTestId("discovery-import-outcome-monitors"),
+    ).toContainText(
+      "511 monitors, one per device, from “WB KDS Ping Monitor Template”, which opens incidents",
+    );
+    await expect(
+      page.getByTestId("discovery-import-outcome-address"),
+    ).toHaveText(
+      "Each monitor checks its device's address from London datacenter.",
+    );
+    await expect(
+      page.getByTestId("discovery-import-outcome-ping-silent"),
+    ).toHaveCount(0);
+
+    await page.getByTestId("discovery-import-monitoring-step").screenshot({
+      path: path.join(screenshots, "discovery-import-ping-template-desktop.png"),
+    });
+    await useDarkTheme(page);
+    await page.getByTestId("discovery-import-monitoring-step").screenshot({
+      path: path.join(
+        screenshots,
+        "discovery-import-ping-template-desktop-dark.png",
+      ),
+    });
+
+    await submitImport(page);
+
+    const start: ImportStart = (await fixture(page)).importStarts[0]!;
+    expect(start.settings).toEqual({
+      pollingIntervalInMinutes: 5,
+      applyVendorTemplates: true,
+      alerting: "MonitorTemplate",
+      monitorTemplateId: KDS_TEMPLATE_ID,
+    });
+  });
+
+  test("the recommended pack on registers that answer ping only: the checks that read a walk fold into one line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openImport(page, POS_SCAN);
+    await toMonitoring(page);
+    await page.getByTestId("discovery-import-alerting-template").check();
+
+    const preview: Locator = page.getByTestId(
+      "discovery-import-template-preview",
+    );
+    await expect(
+      preview.getByTestId("discovery-import-template-check"),
+    ).toHaveCount(1);
+    await expect(preview).toContainText("Device unreachable");
+
+    const folded: Locator = page.getByTestId(
+      "discovery-import-template-walk-checks-folded",
+    );
+    await expect(folded).toHaveText(
+      /^\d+ more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials\.$/,
+    );
+    const count: number = Number(
+      ((await folded.textContent()) || "").split(" ")[0],
+    );
+
+    const toggle: Locator = page.getByTestId(
+      "discovery-import-template-walk-checks-toggle",
+    );
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await toggle.click();
+    await expect(toggle).toHaveText("Hide them");
+    await expect(
+      page.getByTestId("discovery-import-template-walk-check"),
+    ).toHaveCount(count);
+    await toggle.click();
+    await expect(
+      page.getByTestId("discovery-import-template-walk-check"),
+    ).toHaveCount(0);
+
+    await page.screenshot({
+      path: path.join(screenshots, "discovery-import-walk-checks-folded.png"),
+    });
+  });
+
+  test("a template made in another tab is in the list on coming back, and the pick stays", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openImport(page, POS_SCAN);
+    await toMonitoring(page);
+    await page.getByTestId("discovery-import-alerting-template").check();
+    await pickTemplate(page, /^WB KDS Ping Monitor Template/);
+
+    await page.evaluate((): void => {
+      (
+        window as unknown as {
+          __discoveryFixture: { addBackOfficeTemplate: () => void };
+        }
+      ).__discoveryFixture.addBackOfficeTemplate();
+      window.dispatchEvent(new Event("focus"));
+    });
+
+    const menu: Locator = await openTemplateMenu(page);
+    await expect(
+      menu.getByRole("option", { name: /^Back office printers/ }),
+    ).toContainText("Checks port 515 on each device");
+    await page.keyboard.press("Escape");
+    await expect(
+      page.getByTestId("discovery-import-template-lead"),
+    ).toContainText("Each device gets a Ping monitor");
+  });
+});
+
+test.describe("templates of every kind, on a phone (#5145)", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("the list and the picked template's preview fit 390 pixels, light and dark", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openImport(page, POS_SCAN);
+    await toMonitoring(page);
+    await page.getByTestId("discovery-import-alerting-template").check();
+
+    await openTemplateMenu(page);
+    await expectNoSidewaysScroll(page, 390);
+    await page.screenshot({
+      path: path.join(screenshots, "discovery-import-templates-menu-phone.png"),
+    });
+    await page.keyboard.press("Escape");
+
+    await pickTemplate(page, /^WB KDS Ping Monitor Template/);
+    await page.getByTestId("discovery-import-template-preview").scrollIntoViewIfNeeded();
+    await expectNoSidewaysScroll(page, 390);
+    await page.screenshot({
+      path: path.join(screenshots, "discovery-import-ping-template-phone.png"),
+    });
+
+    await useDarkTheme(page);
+    await expectNoSidewaysScroll(page, 390);
+    await page.screenshot({
+      path: path.join(
+        screenshots,
+        "discovery-import-ping-template-phone-dark.png",
+      ),
+    });
+  });
+});
+
 test.describe("the import as it runs", () => {
   test("progress counts devices and monitors apart, and the finish says where everything is", async ({
     page,
