@@ -51,7 +51,7 @@ Plak alles wat de opdracht heeft getoond in **Wat de opdracht heeft getoond**. O
 
 ### AWS testen en koppelen
 
-Kies **Verbinding testen**. OneUptime meldt zich aan, telt de resources die het vindt en zegt wat het lezen ervan kost. Kies **Koppelen** om op te slaan.
+OneUptime test de verbinding zodra deze stap opent: het meldt zich aan, telt de resources die het vindt en zegt wat het lezen ervan kost. Kies **Koppelen** om op te slaan.
 :::
 
 De rol en de gebruiker kunnen drie dingen doen, en verder niets:
@@ -86,7 +86,7 @@ Plak alles wat de opdracht heeft getoond in **Wat de opdracht heeft getoond**. O
 
 ### Azure testen en koppelen
 
-Kies **Verbinding testen** en daarna **Koppelen**.
+OneUptime test de verbinding zodra deze stap opent. Kies **Koppelen** om op te slaan.
 :::
 
 Om meer abonnementen met dezelfde app te lezen, geef je de app de rol op elk ervan:
@@ -123,7 +123,7 @@ Plak alles wat de opdracht heeft getoond. OneUptime leest het eigen project van 
 
 ### Google Cloud testen en koppelen
 
-Kies **Verbinding testen** en daarna **Koppelen**.
+OneUptime test de verbinding zodra deze stap opent. Kies **Koppelen** om op te slaan.
 :::
 
 Om meer projecten met hetzelfde serviceaccount te lezen, geef je het de rol in elk ervan en geef je ze op onder **Projecten**:
@@ -143,7 +143,7 @@ gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:one
 
 Elke leesactie gaat verder waar de vorige stopte, zodat elk datapunt één keer wordt geschreven. De eerste leesactie van een nieuwe koppeling start binnen een minuut en gaat een uur terug; na een pauze gaat een leesactie hooguit 6 uur terug.
 
-De aanroepen van OneUptime worden aan je cloudaccount gefactureerd, tegen de prijzen van je cloud. **Verbinding testen** schat de kosten van wat het vond, en minder vaak lezen kost minder: wijzig **Leesinterval voor metrieken** onder **Meer velden**.
+De aanroepen van OneUptime worden aan je cloudaccount gefactureerd, tegen de prijzen van je cloud. De test schat de kosten van wat hij vindt, en minder vaak lezen kost minder: wijzig **Leesinterval voor metrieken** onder **Meer velden**.
 
 | Cloud | Prijs |
 | --- | --- |

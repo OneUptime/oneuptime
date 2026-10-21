@@ -51,7 +51,7 @@ Incolla tutto ciò che il comando ha stampato in **Cosa ha stampato il comando**
 
 ### Testare e collegare AWS
 
-Seleziona **Testa la connessione**. OneUptime accede, conta le risorse che trova e dice quanto costa leggerle. Seleziona **Collega** per salvare.
+OneUptime testa la connessione appena si apre questo passaggio: accede, conta le risorse che trova e dice quanto costa leggerle. Seleziona **Collega** per salvare.
 :::
 
 Il ruolo e l'utente possono fare tre cose, e nient'altro:
@@ -86,7 +86,7 @@ Incolla tutto ciò che il comando ha stampato in **Cosa ha stampato il comando**
 
 ### Testare e collegare Azure
 
-Seleziona **Testa la connessione**, poi **Collega**.
+OneUptime testa la connessione appena si apre questo passaggio. Seleziona **Collega** per salvare.
 :::
 
 Per leggere altre sottoscrizioni con la stessa app, assegnale il ruolo su ciascuna di esse:
@@ -123,7 +123,7 @@ Incolla tutto ciò che il comando ha stampato. OneUptime legge il progetto della
 
 ### Testare e collegare Google Cloud
 
-Seleziona **Testa la connessione**, poi **Collega**.
+OneUptime testa la connessione appena si apre questo passaggio. Seleziona **Collega** per salvare.
 :::
 
 Per leggere altri progetti con lo stesso account di servizio, assegnagli il ruolo in ciascuno di essi ed elencali in **Progetti**:
@@ -143,7 +143,7 @@ gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:one
 
 Ogni lettura riprende da dove si era fermata la precedente, quindi ogni punto dati viene scritto una sola volta. La prima lettura di una nuova connessione parte entro un minuto e risale a un'ora prima; dopo una pausa, una lettura risale al massimo di 6 ore.
 
-Le chiamate di OneUptime vengono addebitate al tuo account cloud, ai prezzi del tuo cloud. **Testa la connessione** stima il costo di ciò che ha trovato, e leggere meno spesso costa meno: cambia **Frequenza di lettura delle metriche** in **Altri campi**.
+Le chiamate di OneUptime vengono addebitate al tuo account cloud, ai prezzi del tuo cloud. Il test stima il costo di ciò che trova, e leggere meno spesso costa meno: cambia **Frequenza di lettura delle metriche** in **Altri campi**.
 
 | Cloud | Prezzo |
 | --- | --- |

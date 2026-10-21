@@ -51,7 +51,7 @@ Paste everything the command printed into **What the command printed**. OneUptim
 
 ### Test and connect AWS
 
-Select **Test connection**. OneUptime signs in, counts the resources it finds and says what reading them costs. Select **Connect** to save.
+OneUptime tests the connection as this step opens: it signs in, counts the resources it finds and says what reading them costs. Select **Connect** to save.
 :::
 
 The role and the user can do three things, and nothing else:
@@ -86,7 +86,7 @@ Paste everything the command printed into **What the command printed**. OneUptim
 
 ### Test and connect Azure
 
-Select **Test connection**, then **Connect**.
+OneUptime tests the connection as this step opens. Select **Connect** to save.
 :::
 
 To read more subscriptions with the same app, give it the role on each of them:
@@ -123,7 +123,7 @@ Paste everything the command printed. OneUptime reads the key's own project, and
 
 ### Test and connect Google Cloud
 
-Select **Test connection**, then **Connect**.
+OneUptime tests the connection as this step opens. Select **Connect** to save.
 :::
 
 To read more projects with the same service account, give it the role in each of them and list them under **Projects**:
@@ -143,7 +143,7 @@ gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:one
 
 Each read picks up where the last one stopped, so every data point is written once. A new connection's first read starts within a minute and goes an hour back; after a pause, a read goes back 6 hours at most.
 
-The calls OneUptime makes are billed to your cloud account, at your cloud's prices. **Test connection** estimates the cost of what it found, and reading less often costs less: change **Read metrics every** under **More fields**.
+The calls OneUptime makes are billed to your cloud account, at your cloud's prices. The test estimates the cost of what it finds, and reading less often costs less: change **Read metrics every** under **More fields**.
 
 | Cloud | Price |
 | --- | --- |

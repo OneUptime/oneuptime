@@ -51,7 +51,7 @@ Fügen Sie alles, was der Befehl ausgegeben hat, in **Was der Befehl ausgegeben 
 
 ### AWS testen und verbinden
 
-Wählen Sie **Verbindung testen**. OneUptime meldet sich an, zählt die gefundenen Ressourcen und sagt, was ihr Lesen kostet. Wählen Sie **Verbinden**, um zu speichern.
+OneUptime testet die Verbindung, sobald dieser Schritt geöffnet wird: Es meldet sich an, zählt die gefundenen Ressourcen und sagt, was ihr Lesen kostet. Wählen Sie **Verbinden**, um zu speichern.
 :::
 
 Die Rolle und der Benutzer können drei Dinge tun, und sonst nichts:
@@ -86,7 +86,7 @@ Fügen Sie alles, was der Befehl ausgegeben hat, in **Was der Befehl ausgegeben 
 
 ### Azure testen und verbinden
 
-Wählen Sie **Verbindung testen** und dann **Verbinden**.
+OneUptime testet die Verbindung, sobald dieser Schritt geöffnet wird. Wählen Sie **Verbinden**, um zu speichern.
 :::
 
 Um weitere Abonnements mit derselben App zu lesen, geben Sie ihr die Rolle für jedes davon:
@@ -123,7 +123,7 @@ Fügen Sie alles ein, was der Befehl ausgegeben hat. OneUptime liest das eigene 
 
 ### Google Cloud testen und verbinden
 
-Wählen Sie **Verbindung testen** und dann **Verbinden**.
+OneUptime testet die Verbindung, sobald dieser Schritt geöffnet wird. Wählen Sie **Verbinden**, um zu speichern.
 :::
 
 Um weitere Projekte mit demselben Dienstkonto zu lesen, geben Sie ihm die Rolle in jedem davon und führen Sie sie unter **Projekte** auf:
@@ -143,7 +143,7 @@ gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:one
 
 Jeder Lesevorgang setzt dort an, wo der letzte aufgehört hat, sodass jeder Datenpunkt einmal geschrieben wird. Der erste Lesevorgang einer neuen Verbindung startet innerhalb einer Minute und reicht eine Stunde zurück; nach einer Pause reicht ein Lesevorgang höchstens 6 Stunden zurück.
 
-Die Aufrufe von OneUptime werden Ihrem Cloud-Konto zu den Preisen Ihrer Cloud berechnet. **Verbindung testen** schätzt die Kosten dessen, was gefunden wurde, und seltener zu lesen kostet weniger: Ändern Sie **Leseintervall für Metriken** unter **Weitere Felder**.
+Die Aufrufe von OneUptime werden Ihrem Cloud-Konto zu den Preisen Ihrer Cloud berechnet. Der Test schätzt die Kosten dessen, was er findet, und seltener zu lesen kostet weniger: Ändern Sie **Leseintervall für Metriken** unter **Weitere Felder**.
 
 | Cloud | Preis |
 | --- | --- |

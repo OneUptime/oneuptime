@@ -51,7 +51,7 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 
 ### 测试并连接 AWS
 
-选择 **测试连接**。OneUptime 会登录、统计找到的资源，并说明读取它们的费用。选择 **连接** 即可保存。
+打开此步骤时，OneUptime 会测试连接：登录、统计找到的资源，并说明读取它们的费用。选择 **连接** 即可保存。
 :::
 
 该角色和用户只能做以下三件事：
@@ -86,7 +86,7 @@ az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --s
 
 ### 测试并连接 Azure
 
-选择 **测试连接**，然后选择 **连接**。
+打开此步骤时，OneUptime 会测试连接。选择 **连接** 即可保存。
 :::
 
 要用同一个应用读取更多订阅，请在每个订阅上为它分配该角色：
@@ -123,7 +123,7 @@ cat oneuptime-key.json && rm oneuptime-key.json
 
 ### 测试并连接 Google Cloud
 
-选择 **测试连接**，然后选择 **连接**。
+打开此步骤时，OneUptime 会测试连接。选择 **连接** 即可保存。
 :::
 
 要用同一个服务账号读取更多项目，请在每个项目中为它分配该角色，并在 **项目** 中列出这些项目：
@@ -143,7 +143,7 @@ gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:one
 
 每次读取都会从上一次停止的地方继续，因此每个数据点只写入一次。新连接的首次读取会很快开始，并回溯最近一小时；暂停之后，一次读取最多回溯 6 小时。
 
-OneUptime 发出的调用会按你的云的价格计入你的云账户。**测试连接** 会估算它找到的内容的费用，降低读取频率可以减少费用：在 **更多字段** 中修改 **指标读取间隔**。
+OneUptime 发出的调用会按你的云的价格计入你的云账户。测试会估算它找到的内容的费用，降低读取频率可以减少费用：在 **更多字段** 中修改 **指标读取间隔**。
 
 | 云 | 价格 |
 | --- | --- |

@@ -51,7 +51,7 @@ Cole tudo o que o comando exibiu em **O que o comando exibiu**. O OneUptime sepa
 
 ### Testar e conectar a AWS
 
-Selecione **Testar conexão**. O OneUptime faz login, conta os recursos que encontra e diz quanto custa lê-los. Selecione **Conectar** para salvar.
+O OneUptime testa a conexão assim que esta etapa abre: faz login, conta os recursos que encontra e diz quanto custa lê-los. Selecione **Conectar** para salvar.
 :::
 
 A função e o usuário podem fazer três coisas, e nada mais:
@@ -86,7 +86,7 @@ Cole tudo o que o comando exibiu em **O que o comando exibiu**. O OneUptime sepa
 
 ### Testar e conectar o Azure
 
-Selecione **Testar conexão** e depois **Conectar**.
+O OneUptime testa a conexão assim que esta etapa abre. Selecione **Conectar** para salvar.
 :::
 
 Para ler mais assinaturas com o mesmo aplicativo, dê a ele a função em cada uma delas:
@@ -123,7 +123,7 @@ Cole tudo o que o comando exibiu. O OneUptime lê o próprio projeto da chave e 
 
 ### Testar e conectar o Google Cloud
 
-Selecione **Testar conexão** e depois **Conectar**.
+O OneUptime testa a conexão assim que esta etapa abre. Selecione **Conectar** para salvar.
 :::
 
 Para ler mais projetos com a mesma conta de serviço, dê a ela o papel em cada um deles e liste-os em **Projetos**:
@@ -143,7 +143,7 @@ gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:one
 
 Cada leitura continua de onde a anterior parou, então cada ponto de dados é gravado uma só vez. A primeira leitura de uma conexão nova começa em até um minuto e volta uma hora; depois de uma pausa, uma leitura volta no máximo 6 horas.
 
-As chamadas do OneUptime são cobradas na sua conta de nuvem, pelos preços da sua nuvem. **Testar conexão** estima o custo do que encontrou, e ler com menos frequência custa menos: altere **Frequência de leitura de métricas** em **Mais campos**.
+As chamadas do OneUptime são cobradas na sua conta de nuvem, pelos preços da sua nuvem. O teste estima o custo do que encontra, e ler com menos frequência custa menos: altere **Frequência de leitura de métricas** em **Mais campos**.
 
 | Nuvem | Preço |
 | --- | --- |

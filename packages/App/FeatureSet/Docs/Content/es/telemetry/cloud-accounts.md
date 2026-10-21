@@ -51,7 +51,7 @@ Pega todo lo que imprimió el comando en **Lo que imprimió el comando**. OneUpt
 
 ### Probar y conectar AWS
 
-Selecciona **Probar conexión**. OneUptime inicia sesión, cuenta los recursos que encuentra y dice cuánto cuesta leerlos. Selecciona **Conectar** para guardar.
+OneUptime prueba la conexión al abrirse este paso: inicia sesión, cuenta los recursos que encuentra y dice cuánto cuesta leerlos. Selecciona **Conectar** para guardar.
 :::
 
 El rol y el usuario pueden hacer tres cosas, y nada más:
@@ -86,7 +86,7 @@ Pega todo lo que imprimió el comando en **Lo que imprimió el comando**. OneUpt
 
 ### Probar y conectar Azure
 
-Selecciona **Probar conexión** y luego **Conectar**.
+OneUptime prueba la conexión al abrirse este paso. Selecciona **Conectar** para guardar.
 :::
 
 Para leer más suscripciones con la misma aplicación, dale el rol en cada una de ellas:
@@ -123,7 +123,7 @@ Pega todo lo que imprimió el comando. OneUptime lee el propio proyecto de la cl
 
 ### Probar y conectar Google Cloud
 
-Selecciona **Probar conexión** y luego **Conectar**.
+OneUptime prueba la conexión al abrirse este paso. Selecciona **Conectar** para guardar.
 :::
 
 Para leer más proyectos con la misma cuenta de servicio, dale el rol en cada uno de ellos e indícalos en **Proyectos**:
@@ -143,7 +143,7 @@ gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:one
 
 Cada lectura continúa donde se detuvo la anterior, así que cada punto de datos se escribe una sola vez. La primera lectura de una conexión nueva empieza en menos de un minuto y retrocede una hora; tras una pausa, una lectura retrocede como mucho 6 horas.
 
-Las llamadas de OneUptime se facturan a tu cuenta en la nube, a los precios de tu nube. **Probar conexión** estima el coste de lo que encontró, y leer con menos frecuencia cuesta menos: cambia **Frecuencia de lectura de métricas** en **Más campos**.
+Las llamadas de OneUptime se facturan a tu cuenta en la nube, a los precios de tu nube. La prueba estima el coste de lo que encuentra, y leer con menos frecuencia cuesta menos: cambia **Frecuencia de lectura de métricas** en **Más campos**.
 
 | Nube | Precio |
 | --- | --- |

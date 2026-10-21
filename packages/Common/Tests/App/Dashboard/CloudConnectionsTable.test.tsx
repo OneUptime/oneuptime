@@ -79,6 +79,7 @@ interface CapturedAction {
   disabled?: boolean;
   tooltip?: string;
   isVisible?: (item: CloudConnection) => boolean;
+  getDisabledReason?: (item: CloudConnection) => string | undefined;
   onClick: (item: CloudConnection, done: () => void) => void | Promise<void>;
 }
 
@@ -496,13 +497,14 @@ describe("its actions", () => {
     expect(
       within(cell).queryByTestId("cloud-connection-last-read"),
     ).not.toBeInTheDocument();
-    // Not twice: Read now is put away while it reads - on that row only.
-    expect(action("Read now").isVisible!(item)).toBe(false);
+    // Not twice: Read now stays where it is, locked, on that row only.
+    expect(action("Read now").isVisible!(item)).toBe(true);
+    expect(action("Read now").getDisabledReason!(item)).toBe("Reading now…");
     expect(
-      action("Read now").isVisible!(
+      action("Read now").getDisabledReason!(
         connection({ _id: "20000000-0000-4000-8000-000000000009" }),
       ),
-    ).toBe(true);
+    ).toBeUndefined();
   });
 
   test("the list loads again by itself once the read ends, asked of the one connection", async () => {
@@ -529,7 +531,7 @@ describe("its actions", () => {
     });
     expect(getItemSpy.mock.calls[0]![0].id.toString()).toBe(CONNECTION_ID);
     expect(tableProps()["refreshToggle"]).toBe(toggleBefore);
-    expect(action("Read now").isVisible!(item)).toBe(false);
+    expect(action("Read now").getDisabledReason!(item)).toBe("Reading now…");
 
     // The read ends: its last read time moves.
     getItemSpy.mockImplementation(async (): Promise<CloudConnection> => {
@@ -539,7 +541,7 @@ describe("its actions", () => {
     await tick(READ_NOW_POLL_MS);
 
     expect(tableProps()["refreshToggle"]).not.toBe(toggleBefore);
-    expect(action("Read now").isVisible!(item)).toBe(true);
+    expect(action("Read now").getDisabledReason!(item)).toBeUndefined();
     expect(
       within(drawCell("Status", item)).queryByTestId(
         "cloud-connection-reading",
@@ -564,11 +566,11 @@ describe("its actions", () => {
     const toggleBefore: unknown = tableProps()["refreshToggle"];
 
     await tick(READ_NOW_GIVE_UP_MS - READ_NOW_POLL_MS);
-    expect(action("Read now").isVisible!(item)).toBe(false);
+    expect(action("Read now").getDisabledReason!(item)).toBe("Reading now…");
 
     await tick(READ_NOW_POLL_MS * 2);
 
-    expect(action("Read now").isVisible!(item)).toBe(true);
+    expect(action("Read now").getDisabledReason!(item)).toBeUndefined();
     // The list loads again: whatever it now holds is what is shown.
     expect(tableProps()["refreshToggle"]).not.toBe(toggleBefore);
   });
@@ -585,7 +587,7 @@ describe("its actions", () => {
 
     await tick(READ_NOW_POLL_MS);
 
-    expect(action("Read now").isVisible!(item)).toBe(true);
+    expect(action("Read now").getDisabledReason!(item)).toBeUndefined();
   });
 
   test("Read now that is refused says why", async () => {

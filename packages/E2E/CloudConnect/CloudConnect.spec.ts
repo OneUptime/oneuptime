@@ -9,9 +9,11 @@ import path from "path";
  * person sees and what is sent: a tile per cloud, the one command in the
  * cloud's own browser terminal, one paste of what it printed - for every
  * cloud and every way in, a Google Cloud key printed after gcloud's own
- * lines included - a test that says what it found and what reading it
- * costs, an AWS role or an access key, and the list's status and actions -
- * at desktop and phone width, in the dark theme and in Japanese.
+ * lines included - a test, run by itself as its step opens, that says what
+ * it found and what reading it costs, an AWS role or an access key, and the
+ * list's status and actions, Read now watched to its end - at desktop and
+ * phone width, beside the side menu at 768 and 1024, in the dark theme and
+ * in Japanese.
  *
  * The screenshots under output/playwright/cloud-connect-ui are for the
  * people who review the page.
@@ -82,6 +84,7 @@ interface FixtureState {
   updates: Array<{ id: string; data: Record<string, unknown> }>;
   tests: Array<{ body: Record<string, unknown> }>;
   readNows: Array<string>;
+  itemAsks: number;
   roleSetupAsks: number;
 }
 
@@ -234,10 +237,11 @@ test.describe("connecting Azure", () => {
     await next(page).click();
     await pasteAzureOutput(page);
     await shoot(page, "azure-paste");
+    // Nothing is tested before the Test step opens.
+    expect((await fixture(page)).tests).toHaveLength(0);
 
-    // Step 3: the test.
+    // Step 3: the test runs by itself as the step opens - nothing to press.
     await next(page).click();
-    await dialog(page).getByTestId("cloud-connection-test-button").click();
     const answer: Locator = dialog(page).getByTestId(
       "cloud-connection-test-pass",
     );
@@ -252,6 +256,9 @@ test.describe("connecting Azure", () => {
       answer.getByTestId("cloud-resource-groups-regions"),
     ).toContainText("westeurope");
     await expect(answer.getByTestId("cloud-test-cost")).toBeVisible();
+    await expect(
+      dialog(page).getByTestId("cloud-connection-test-button"),
+    ).toHaveText("Test again");
     await expectNoSidewaysScroll(page);
     await shoot(page, "azure-test-pass");
 
@@ -299,7 +306,6 @@ test.describe("connecting Azure", () => {
     await next(page).click();
     await pasteAzureOutput(page);
     await next(page).click();
-    await dialog(page).getByTestId("cloud-connection-test-button").click();
 
     const answer: Locator = dialog(page).getByTestId(
       "cloud-connection-test-fail",
@@ -339,9 +345,8 @@ test.describe("one paste, whatever the cloud", () => {
     await expectNoSidewaysScroll(page);
     await shoot(page, "gcp-paste");
 
-    // gcloud's own lines do not stop the step.
+    // gcloud's own lines do not stop the step, and it tests by itself.
     await next(page).click();
-    await dialog(page).getByTestId("cloud-connection-test-button").click();
 
     const answer: Locator = dialog(page).getByTestId(
       "cloud-connection-test-pass",
@@ -381,7 +386,6 @@ test.describe("one paste, whatever the cloud", () => {
     ).toContainText("Found: Role ARN");
 
     await next(page).click();
-    await dialog(page).getByTestId("cloud-connection-test-button").click();
     await expect(
       dialog(page)
         .getByTestId("cloud-connection-test-pass")
@@ -491,9 +495,23 @@ test.describe("the connected accounts", () => {
     await expect(page.getByText("Working").first()).toBeVisible();
     await expect(page.getByText("Not working").first()).toBeVisible();
     await expect(page.getByText("Off", { exact: true }).first()).toBeVisible();
+    // How many, as the way to them, and where.
+    const count: Locator = page
+      .getByTestId("cloud-connection-resource-count")
+      .first();
+    await expect(count).toHaveText("46 resources");
+    await expect(page.getByRole("link", { name: "46 resources" })).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/cloud/resources`,
+    );
     await expect(
-      page.getByText("46 resources in 2 regions").first(),
-    ).toBeVisible();
+      page.getByTestId("cloud-connection-regions").first(),
+    ).toHaveText("us-east-1, eu-west-1");
+    // Under how it is doing: when it was last read, and how often it is.
+    await expect(
+      page.getByTestId("cloud-connection-last-read").first(),
+    ).toHaveText("Last read Oct 21, 09:50");
+    await expect(page.getByText("Not read yet")).toBeVisible();
     await expect(page.getByText("Every 10 minutes").first()).toBeVisible();
     // The Google Cloud connection is off: it is not said to be read hourly.
     await expect(page.getByText("Every hour")).toHaveCount(0);
@@ -508,6 +526,78 @@ test.describe("the connected accounts", () => {
 
     await expectNoSidewaysScroll(page);
     await shoot(page, "connect-connected");
+  });
+
+  test("beside the side menu, the list fits a 1280 window in English and German, and the tiles never squeeze", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(
+      test.info().project.name !== "desktop",
+      "Widths beside the side menu: a desktop's.",
+    );
+
+    for (const language of ["", "&lang=de"]) {
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await open(page, `state=connected${language}`);
+      await expect(
+        page.getByTestId("cloud-connection-resource-count").first(),
+      ).toBeVisible();
+      // In the reader's words, German's longer ones included.
+      await expect(
+        page.getByTestId("cloud-connection-last-read").first(),
+      ).toContainText(language ? "Zuletzt gelesen" : "Last read");
+
+      // Nothing runs under the sticky actions: the table does not scroll sideways.
+      const table: { scroll: number; client: number } = await page.evaluate(
+        () => {
+          const scroller: HTMLElement = document.querySelector("table")!
+            .parentElement as HTMLElement;
+          return {
+            scroll: scroller.scrollWidth,
+            client: scroller.clientWidth,
+          };
+        },
+      );
+      expect(table.scroll).toBeLessThanOrEqual(table.client + 1);
+    }
+
+    /*
+     * 768 and 1024 leave the card too narrow for three tiles side by side:
+     * they stack, each as wide as the card, its words on a line or two.
+     */
+    for (const width of [768, 1024]) {
+      await page.setViewportSize({ width, height: 900 });
+      await open(page, "state=connected");
+
+      const tiles: Array<{ x: number; width: number }> = await page
+        .getByTestId("cloud-connection-tiles")
+        .locator("li")
+        .evaluateAll((items: Array<Element>) => {
+          return items.map((item: Element) => {
+            const box: DOMRect = item.getBoundingClientRect();
+            return { x: Math.round(box.x), width: Math.round(box.width) };
+          });
+        });
+      const list: { x: number; width: number } = await page
+        .getByTestId("cloud-connection-tiles")
+        .evaluate((element: Element) => {
+          const box: DOMRect = element.getBoundingClientRect();
+          return { x: Math.round(box.x), width: Math.round(box.width) };
+        });
+
+      expect(tiles).toHaveLength(3);
+      for (const tile of tiles) {
+        expect(tile.x).toBe(list.x);
+        expect(tile.width).toBe(list.width);
+      }
+      await expectNoSidewaysScroll(page);
+      await page.screenshot({
+        path: path.join(SCREENSHOTS, `connect-connected-${width}.png`),
+        fullPage: true,
+      });
+    }
   });
 
   test("a connection that is not working opens its error in a test's words", async ({
@@ -529,7 +619,7 @@ test.describe("the connected accounts", () => {
     await shoot(page, "connect-last-error");
   });
 
-  test("Read now queues a read and says how to see it end", async ({
+  test("Read now: the row says it is reading, and shows the read once it ends - nothing to refresh by hand", async ({
     page,
   }: {
     page: Page;
@@ -537,15 +627,43 @@ test.describe("the connected accounts", () => {
     await open(page, "state=connected");
 
     await page.getByRole("button", { name: "Read now" }).first().click();
-    await expect(page.getByTestId("cloud-connections-notice")).toContainText(
-      "Refresh the list in a minute",
-    );
 
-    const state: FixtureState = await fixture(page);
+    const reading: Locator = page.getByTestId("cloud-connection-reading");
+    await expect(reading).toHaveText("Reading now…");
+    // Nothing to read in a notice, and no second read to start: Read now stays, locked.
+    await expect(page.getByTestId("cloud-connections-notice")).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Read now" }).first(),
+    ).toBeDisabled();
+    await shoot(page, "connect-reading");
+
+    let state: FixtureState = await fixture(page);
     expect(state.readNows).toHaveLength(1);
     expect(state.readNows[0]).toMatch(
       /^(\/api)?\/cloud-connection\/20000000-0000-4000-8000-000000000001\/read-now$/,
     );
+
+    // The read ends: the list asks after it, and shows it.
+    await page.evaluate(() => {
+      (
+        window as unknown as {
+          __cloudConnectFixture: { finishRead: (id: string) => void };
+        }
+      ).__cloudConnectFixture.finishRead(
+        "20000000-0000-4000-8000-000000000001",
+      );
+    });
+
+    await expect(reading).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Read now" }).first(),
+    ).toBeEnabled();
+    await expect(
+      page.getByTestId("cloud-connection-last-read").first(),
+    ).not.toHaveText("Last read Oct 21, 09:50");
+
+    state = await fixture(page);
+    expect(state.itemAsks).toBeGreaterThan(0);
   });
 });
 

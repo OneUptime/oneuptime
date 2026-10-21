@@ -409,6 +409,12 @@ export function getCloudRegionNames(
 export const LAST_READ_AT: string = translationKey("Last read {{time}}");
 export const NOT_READ_YET: string = translationKey("Not read yet");
 
+/*
+ * A read started from the list, until it ends: said in the row, and as why
+ * Read now is locked meanwhile.
+ */
+export const READING_NOW: string = translationKey("Reading now…");
+
 // How often a connection is read: "Every 10 minutes", "Every hour".
 export function getCloudReadIntervalWords(minutes: number): CloudTemplate {
   if (minutes === 60) {

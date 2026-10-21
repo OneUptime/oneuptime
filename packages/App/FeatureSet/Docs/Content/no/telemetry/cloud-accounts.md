@@ -51,7 +51,7 @@ Lim inn alt kommandoen skrev ut i **Det kommandoen skrev ut**. OneUptime plukker
 
 ### Test og koble til AWS
 
-Velg **Test tilkoblingen**. OneUptime logger på, teller ressursene den finner og sier hva det koster å lese dem. Velg **Koble til** for å lagre.
+OneUptime tester tilkoblingen når dette trinnet åpnes: den logger på, teller ressursene den finner og sier hva det koster å lese dem. Velg **Koble til** for å lagre.
 :::
 
 Rollen og brukeren kan gjøre tre ting, og ingenting annet:
@@ -86,7 +86,7 @@ Lim inn alt kommandoen skrev ut i **Det kommandoen skrev ut**. OneUptime plukker
 
 ### Test og koble til Azure
 
-Velg **Test tilkoblingen**, og deretter **Koble til**.
+OneUptime tester tilkoblingen når dette trinnet åpnes. Velg **Koble til** for å lagre.
 :::
 
 For å lese flere abonnementer med den samme appen gir du den rollen på hvert av dem:
@@ -123,7 +123,7 @@ Lim inn alt kommandoen skrev ut. OneUptime leser nøkkelens eget prosjekt, og la
 
 ### Test og koble til Google Cloud
 
-Velg **Test tilkoblingen**, og deretter **Koble til**.
+OneUptime tester tilkoblingen når dette trinnet åpnes. Velg **Koble til** for å lagre.
 :::
 
 For å lese flere prosjekter med den samme tjenestekontoen gir du den rollen i hvert av dem og oppgir dem under **Prosjekter**:
@@ -143,7 +143,7 @@ gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:one
 
 Hver lesing fortsetter der den forrige stoppet, så hvert datapunkt skrives én gang. Den første lesingen av en ny tilkobling starter innen ett minutt og går en time tilbake; etter en pause går en lesing høyst 6 timer tilbake.
 
-Kallene OneUptime gjør, faktureres skykontoen din, til skyens priser. **Test tilkoblingen** anslår hva det den fant koster, og sjeldnere lesing koster mindre: endre **Intervall for lesing av målinger** under **Flere felt**.
+Kallene OneUptime gjør, faktureres skykontoen din, til skyens priser. Testen anslår hva det den finner koster, og sjeldnere lesing koster mindre: endre **Intervall for lesing av målinger** under **Flere felt**.
 
 | Sky | Pris |
 | --- | --- |

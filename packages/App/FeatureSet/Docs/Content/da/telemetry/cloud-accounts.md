@@ -51,7 +51,7 @@ Indsæt alt, hvad kommandoen udskrev, i **Det, kommandoen udskrev**. OneUptime f
 
 ### Test og forbind AWS
 
-Vælg **Test forbindelse**. OneUptime logger ind, tæller de ressourcer, den finder, og siger, hvad det koster at læse dem. Vælg **Forbind** for at gemme.
+OneUptime tester forbindelsen, når trinnet åbner: den logger ind, tæller de ressourcer, den finder, og siger, hvad det koster at læse dem. Vælg **Forbind** for at gemme.
 :::
 
 Rollen og brugeren kan gøre tre ting og intet andet:
@@ -86,7 +86,7 @@ Indsæt alt, hvad kommandoen udskrev, i **Det, kommandoen udskrev**. OneUptime f
 
 ### Test og forbind Azure
 
-Vælg **Test forbindelse** og derefter **Forbind**.
+OneUptime tester forbindelsen, når trinnet åbner. Vælg **Forbind** for at gemme.
 :::
 
 For at læse flere abonnementer med den samme app skal du give den rollen på hvert af dem:
@@ -123,7 +123,7 @@ Indsæt alt, hvad kommandoen udskrev. OneUptime læser nøglens eget projekt og 
 
 ### Test og forbind Google Cloud
 
-Vælg **Test forbindelse** og derefter **Forbind**.
+OneUptime tester forbindelsen, når trinnet åbner. Vælg **Forbind** for at gemme.
 :::
 
 For at læse flere projekter med den samme tjenestekonto skal du give den rollen i hvert af dem og angive dem under **Projekter**:
@@ -143,7 +143,7 @@ gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:one
 
 Hver læsning fortsætter, hvor den forrige stoppede, så hvert datapunkt skrives én gang. En ny forbindelses første læsning starter inden for et minut og går en time tilbage; efter en pause går en læsning højst 6 timer tilbage.
 
-OneUptimes kald faktureres til din cloudkonto til din clouds priser. **Test forbindelse** anslår, hvad det, den fandt, koster, og sjældnere læsning koster mindre: skift **Interval for læsning af metrikker** under **Flere felter**.
+OneUptimes kald faktureres til din cloudkonto til din clouds priser. Testen anslår, hvad det, den finder, koster, og sjældnere læsning koster mindre: skift **Interval for læsning af metrikker** under **Flere felter**.
 
 | Cloud | Pris |
 | --- | --- |

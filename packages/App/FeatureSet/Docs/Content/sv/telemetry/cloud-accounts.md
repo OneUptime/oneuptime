@@ -51,7 +51,7 @@ Klistra in allt som kommandot skrev ut i **Det som kommandot skrev ut**. OneUpti
 
 ### Testa och anslut AWS
 
-Välj **Testa anslutningen**. OneUptime loggar in, räknar resurserna det hittar och säger vad det kostar att läsa dem. Välj **Anslut** för att spara.
+OneUptime testar anslutningen när det här steget öppnas: det loggar in, räknar resurserna det hittar och säger vad det kostar att läsa dem. Välj **Anslut** för att spara.
 :::
 
 Rollen och användaren kan göra tre saker, och inget annat:
@@ -86,7 +86,7 @@ Klistra in allt som kommandot skrev ut i **Det som kommandot skrev ut**. OneUpti
 
 ### Testa och anslut Azure
 
-Välj **Testa anslutningen** och sedan **Anslut**.
+OneUptime testar anslutningen när det här steget öppnas. Välj **Anslut** för att spara.
 :::
 
 Om du vill läsa fler prenumerationer med samma app ger du den rollen på var och en av dem:
@@ -123,7 +123,7 @@ Klistra in allt som kommandot skrev ut. OneUptime läser nyckelns eget projekt o
 
 ### Testa och anslut Google Cloud
 
-Välj **Testa anslutningen** och sedan **Anslut**.
+OneUptime testar anslutningen när det här steget öppnas. Välj **Anslut** för att spara.
 :::
 
 Om du vill läsa fler projekt med samma tjänstkonto ger du det rollen i vart och ett av dem och anger dem under **Projekt**:
@@ -143,7 +143,7 @@ gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:one
 
 Varje läsning fortsätter där den förra slutade, så varje datapunkt skrivs en gång. En ny anslutnings första läsning startar inom en minut och går en timme bakåt; efter ett uppehåll går en läsning högst 6 timmar bakåt.
 
-Anropen som OneUptime gör faktureras ditt molnkonto, till molnets priser. **Testa anslutningen** uppskattar vad det som hittades kostar, och att läsa mer sällan kostar mindre: ändra **Intervall för läsning av mätvärden** under **Fler fält**.
+Anropen som OneUptime gör faktureras ditt molnkonto, till molnets priser. Testet uppskattar vad det som hittas kostar, och att läsa mer sällan kostar mindre: ändra **Intervall för läsning av mätvärden** under **Fler fält**.
 
 | Moln | Pris |
 | --- | --- |

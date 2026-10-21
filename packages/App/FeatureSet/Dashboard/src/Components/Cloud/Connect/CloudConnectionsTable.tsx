@@ -53,6 +53,7 @@ import {
   LAST_READ_AT,
   MORE_COUNT,
   NOT_READ_YET,
+  READING_NOW,
   drawCloudTemplate,
   getAccountsNotInName,
   getCloudConnectionHealth,
@@ -359,9 +360,15 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
               title: "Read now",
               icon: IconProp.Refresh,
               buttonStyleType: ButtonStyleType.OUTLINE,
-              // Not again while the row says it is reading.
               isVisible: (item: CloudConnection): boolean => {
-                return item.isEnabled !== false && !isReading(item);
+                return item.isEnabled !== false;
+              },
+              /*
+               * Not again while the row says it is reading - locked where it
+               * is, so the next button does not slide under the finger.
+               */
+              getDisabledReason: (item: CloudConnection): string | undefined => {
+                return isReading(item) ? READING_NOW : undefined;
               },
               disabled: !props.updateGate.isAllowed,
               tooltip: props.updateGate.isAllowed
@@ -545,7 +552,7 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                         icon={IconProp.Spinner}
                         className="h-3 w-3 flex-shrink-0 animate-spin text-gray-400"
                       />
-                      <span>{translator.translateText("Reading now…")}</span>
+                      <span>{translator.translateText(READING_NOW)}</span>
                     </div>
                   );
                 } else if (item.lastSuccessfulPullAt) {

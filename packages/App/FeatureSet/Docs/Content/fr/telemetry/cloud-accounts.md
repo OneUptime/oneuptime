@@ -51,7 +51,7 @@ Collez tout ce que la commande a affiché dans **Ce que la commande a affiché**
 
 ### Tester et connecter AWS
 
-Sélectionnez **Tester la connexion**. OneUptime se connecte, compte les ressources qu'il trouve et indique ce que coûte leur lecture. Sélectionnez **Connecter** pour enregistrer.
+OneUptime teste la connexion dès que cette étape s'ouvre : il se connecte, compte les ressources qu'il trouve et indique ce que coûte leur lecture. Sélectionnez **Connecter** pour enregistrer.
 :::
 
 Le rôle et l'utilisateur peuvent faire trois choses, et rien d'autre :
@@ -86,7 +86,7 @@ Collez tout ce que la commande a affiché dans **Ce que la commande a affiché**
 
 ### Tester et connecter Azure
 
-Sélectionnez **Tester la connexion**, puis **Connecter**.
+OneUptime teste la connexion dès que cette étape s'ouvre. Sélectionnez **Connecter** pour enregistrer.
 :::
 
 Pour lire d'autres abonnements avec la même application, donnez-lui le rôle sur chacun d'eux :
@@ -123,7 +123,7 @@ Collez tout ce que la commande a affiché. OneUptime lit le projet propre de la 
 
 ### Tester et connecter Google Cloud
 
-Sélectionnez **Tester la connexion**, puis **Connecter**.
+OneUptime teste la connexion dès que cette étape s'ouvre. Sélectionnez **Connecter** pour enregistrer.
 :::
 
 Pour lire d'autres projets avec le même compte de service, donnez-lui le rôle dans chacun d'eux et listez-les dans **Projets** :
@@ -143,7 +143,7 @@ gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:one
 
 Chaque lecture reprend là où la précédente s'est arrêtée, de sorte que chaque point de données est écrit une seule fois. La première lecture d'une nouvelle connexion démarre dans la minute et remonte une heure en arrière ; après une pause, une lecture remonte au plus 6 heures en arrière.
 
-Les appels de OneUptime sont facturés à votre compte cloud, aux prix de votre cloud. **Tester la connexion** estime le coût de ce qu'il a trouvé, et lire moins souvent coûte moins cher : changez **Fréquence de lecture des métriques** dans **Plus de champs**.
+Les appels de OneUptime sont facturés à votre compte cloud, aux prix de votre cloud. Le test estime le coût de ce qu'il trouve, et lire moins souvent coûte moins cher : changez **Fréquence de lecture des métriques** dans **Plus de champs**.
 
 | Cloud | Prix |
 | --- | --- |
