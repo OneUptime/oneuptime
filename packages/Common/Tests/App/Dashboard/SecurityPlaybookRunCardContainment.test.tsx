@@ -275,7 +275,7 @@ describe("a containment step waiting for approval on the run card", () => {
       within(modal).getByText("Known to threat intel"),
     ).toBeInTheDocument();
     expect(within(modal).getByTestId("modal-description")).toHaveTextContent(
-      "It never acts on protected entities: breakglass@acme.com.",
+      "The run carries on and never acts on protected entities: breakglass@acme.com.",
     );
 
     // Leave trent out.

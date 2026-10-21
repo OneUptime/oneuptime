@@ -16,6 +16,7 @@ import {
 } from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import {
   buildObservables,
+  buildProcessFields,
   contentHashEventUid,
   flattenPayload,
   parseEventTime,
@@ -38,7 +39,8 @@ import {
  * severity_name, status, tactic/tactic_id, technique/technique_id,
  * created_timestamp, timestamp, updated_timestamp, product, type,
  * device.{hostname, local_ip, external_ip, platform_name}, user_name,
- * user_id, filename, cmdline, sha256, falcon_host_link, pattern_id.
+ * user_id, filename, filepath, cmdline, parent_details.{filename,
+ * filepath, cmdline}, sha256, falcon_host_link, pattern_id.
  *
  * Pure and isomorphic: only Common/Types and Common/Utils imports, so the
  * same code is unit-testable without a server and reusable from the UI.
@@ -179,6 +181,19 @@ export default class CrowdStrikeFalconNormalizer {
       principalHost: hostname,
       principalIp: localIp,
       principalProcess: filename || cmdline,
+      // The process the alert fired on, and the one that started it.
+      ...buildProcessFields({
+        process: {
+          name: filename,
+          path: readString(raw, "filepath"),
+          commandLine: cmdline,
+        },
+        parent: {
+          name: readString(raw, "parent_details.filename"),
+          path: readString(raw, "parent_details.filepath"),
+          commandLine: readString(raw, "parent_details.cmdline"),
+        },
+      }),
       targetUser: "",
       targetHost: "",
       targetIp: "",

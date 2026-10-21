@@ -17,6 +17,7 @@
     "backToTop": "Voltar ao topo",
     "copy": "Copiar",
     "copied": "Copiado",
+    "copyFailed": "Falha ao copiar",
     "copyCode": "Copiar código",
     "diagramNotDrawn": "Não foi possível desenhar este diagrama.",
     "searchHintNavigate": "para navegar",

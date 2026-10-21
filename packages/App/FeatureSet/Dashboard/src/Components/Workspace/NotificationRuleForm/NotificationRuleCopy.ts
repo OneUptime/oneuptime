@@ -15,6 +15,10 @@ import {
   RuleCriteriaSubjectCopy,
 } from "Common/UI/Components/RuleCriteria/RuleCriteriaSubjectCopy";
 import { formatNameList } from "../../AiAccess/AiAccessModes";
+import {
+  canRuleCreateChannel,
+  ChannelRecordEventType,
+} from "./NotificationRuleOwnChannel";
 
 /*
  * WHAT A WORKSPACE NOTIFICATION RULE SAYS, IN PLAIN WORDS.
@@ -31,6 +35,10 @@ import { formatNameList } from "../../AiAccess/AiAccessModes";
  *     - Archives the channel when the incident is resolved.
  *     - Posts updates in #ops.
  *
+ * A security case rule only posts to channels and chats people have
+ * (NotificationRuleOwnChannel), so the words about a channel of the
+ * record's own exist only for the kinds of record that can have one.
+ *
  * React-free, so the copy can be read where React is not (App's tests).
  * Every sentence is whole in the locale files - one per kind of record
  * where the record is named - so it reads right in every language; a list
@@ -38,6 +46,9 @@ import { formatNameList } from "../../AiAccess/AiAccessModes";
  */
 
 type ByEventType = Readonly<Record<NotificationRuleEventType, string>>;
+
+// Words about the channel a rule creates: only where a rule can create one.
+type ByChannelEventType = Readonly<Record<ChannelRecordEventType, string>>;
 
 // The Conditions step's field: which records the rule is for.
 export const NOTIFICATION_RULE_CONDITIONS_TITLES: ByEventType = {
@@ -56,12 +67,17 @@ export const NOTIFICATION_RULE_CONDITIONS_TITLES: ByEventType = {
   [NotificationRuleEventType.OnCallDutyPolicy]: translationKey(
     "Which on-call policies",
   ),
+  [NotificationRuleEventType.SecurityCase]: translationKey(
+    "Which security cases",
+  ),
 };
 
 /*
  * And when they are checked: when the record is created and each time it
  * changes - so a rule for acknowledged incidents acts when an incident is
- * acknowledged, not only when one is created.
+ * acknowledged, not only when one is created. A security case's rules are
+ * checked each time there is something to post about the case
+ * (SecurityCaseNotifications), against the case as it is then.
  */
 export const NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS: ByEventType = {
   [NotificationRuleEventType.Incident]: translationKey(
@@ -85,6 +101,9 @@ export const NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS: ByEventType = {
   [NotificationRuleEventType.OnCallDutyPolicy]: translationKey(
     "Conditions are checked when an on-call policy is created and again each time it changes.",
   ),
+  [NotificationRuleEventType.SecurityCase]: translationKey(
+    "Conditions are checked each time there is something to post about a security case: when it opens or rises to a higher priority, is assigned, or has a playbook step waiting for approval.",
+  ),
 };
 
 /*
@@ -97,7 +116,7 @@ export const NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS: ByEventType = {
  * they did not want.
  */
 const RULE_SUBJECTS: Readonly<
-  Record<NotificationRuleEventType, RuleCriteriaSubject>
+  Partial<Record<NotificationRuleEventType, RuleCriteriaSubject>>
 > = {
   [NotificationRuleEventType.Incident]: RuleCriteriaSubject.Incidents,
   [NotificationRuleEventType.Alert]: RuleCriteriaSubject.Alerts,
@@ -111,6 +130,20 @@ const RULE_SUBJECTS: Readonly<
     RuleCriteriaSubject.OnCallPolicies,
 };
 
+/*
+ * The kinds of record only these rules are about, so no other rule's
+ * conditions name them (RuleCriteriaSubject has no security cases): their
+ * two answers, in the same words.
+ */
+const OWN_ANSWERS: Readonly<
+  Partial<Record<NotificationRuleEventType, RuleCriteriaSubjectCopy>>
+> = {
+  [NotificationRuleEventType.SecurityCase]: {
+    all: translationKey("All security cases"),
+    matching: translationKey("Only security cases that match conditions"),
+  },
+};
+
 const answersByEventType: (
   pick: (copy: RuleCriteriaSubjectCopy) => string,
 ) => ByEventType = (
@@ -120,7 +153,8 @@ const answersByEventType: (
 
   for (const eventType of Object.values(NotificationRuleEventType)) {
     answers[eventType] = pick(
-      getRuleCriteriaSubjectCopy(RULE_SUBJECTS[eventType]),
+      OWN_ANSWERS[eventType] ||
+        getRuleCriteriaSubjectCopy(RULE_SUBJECTS[eventType]),
     );
   }
 
@@ -168,6 +202,9 @@ export const RULE_SINGULAR_NAMES: ByEventType = {
   [NotificationRuleEventType.OnCallDutyPolicy]: translationKey(
     "On-Call Policy Notification Rule",
   ),
+  [NotificationRuleEventType.SecurityCase]: translationKey(
+    "Security Case Notification Rule",
+  ),
 };
 
 export const RULE_PLURAL_NAMES: ByEventType = {
@@ -189,6 +226,9 @@ export const RULE_PLURAL_NAMES: ByEventType = {
   ),
   [NotificationRuleEventType.OnCallDutyPolicy]: translationKey(
     "On-Call Policy Notification Rules",
+  ),
+  [NotificationRuleEventType.SecurityCase]: translationKey(
+    "Security Case Notification Rules",
   ),
 };
 
@@ -234,6 +274,12 @@ export const CONDITION_FIELD_WORDS: ReadonlyArray<string> = [
   translationKey("On Call Duty Policy Name"),
   translationKey("On Call Duty Policy Description"),
   translationKey("On Call Duty Policy Labels"),
+  translationKey("Security Case Title"),
+  translationKey("Security Case Description"),
+  translationKey("Security Case Priority"),
+  translationKey("Security Case Status"),
+  translationKey("Security Case Source"),
+  translationKey("Security Case Labels"),
 ];
 
 export const CONDITION_OPERATOR_WORDS: ReadonlyArray<string> = [
@@ -281,6 +327,10 @@ export const NOTIFICATION_RULES_CARD_DESCRIPTIONS: ByEventType = {
   [NotificationRuleEventType.OnCallDutyPolicy]: translationKey(
     "Each rule picks the on-call policies it is for, then posts their updates to channels you have, or creates a channel for each policy.",
   ),
+  // What there is to post about a case: SecurityCaseNotifications.
+  [NotificationRuleEventType.SecurityCase]: translationKey(
+    "Each rule picks the security cases it is for, then posts to channels you have when a case opens, is assigned or has a playbook step waiting for approval.",
+  ),
 };
 
 // The Destination step's field.
@@ -295,8 +345,30 @@ export const NOTIFICATION_RULE_DESTINATION_DESCRIPTION: string = translationKey(
   "Where updates are posted, and who joins the channel the rule creates.",
 );
 
+/*
+ * A rule that only posts (a security case's) creates no channel, so nobody
+ * joins one: the step is only where it posts.
+ */
+export const POSTS_ONLY_DESTINATION_DESCRIPTIONS: Readonly<
+  Record<WorkspaceType, string>
+> = {
+  [WorkspaceType.Slack]: translationKey("The channels the rule posts in."),
+  [WorkspaceType.MicrosoftTeams]: translationKey(
+    "The channels and chats the rule posts in.",
+  ),
+};
+
+export function getNotificationRuleDestinationDescription(data: {
+  eventType: NotificationRuleEventType;
+  workspaceType: WorkspaceType;
+}): string {
+  return canRuleCreateChannel(data.eventType)
+    ? NOTIFICATION_RULE_DESTINATION_DESCRIPTION
+    : POSTS_ONLY_DESTINATION_DESCRIPTIONS[data.workspaceType];
+}
+
 // The switch that creates a channel for each record.
-export const CREATE_CHANNEL_TITLES: ByEventType = {
+export const CREATE_CHANNEL_TITLES: ByChannelEventType = {
   [NotificationRuleEventType.Incident]: translationKey(
     "Create a channel for each incident",
   ),
@@ -320,7 +392,7 @@ export const CREATE_CHANNEL_TITLES: ByEventType = {
   ),
 };
 
-export const CREATE_CHANNEL_DESCRIPTIONS: ByEventType = {
+export const CREATE_CHANNEL_DESCRIPTIONS: ByChannelEventType = {
   [NotificationRuleEventType.Incident]: translationKey(
     "The first time an incident matches this rule, OneUptime creates its channel and posts the incident's updates there.",
   ),
@@ -390,7 +462,7 @@ export const TEAMS_WHO_JOINS_NOTE: string = translationKey(
 );
 
 // What happens to the channel when the record is over.
-export const ARCHIVE_CHANNEL_TITLES: ByEventType = {
+export const ARCHIVE_CHANNEL_TITLES: ByChannelEventType = {
   [NotificationRuleEventType.Incident]: translationKey(
     "Archive the channel when the incident is resolved",
   ),
@@ -511,6 +583,9 @@ export const NO_CONDITIONS_SENTENCES: ByEventType = {
   [NotificationRuleEventType.OnCallDutyPolicy]: translationKey(
     "Every on-call policy.",
   ),
+  [NotificationRuleEventType.SecurityCase]: translationKey(
+    "Every security case.",
+  ),
 };
 
 /*
@@ -518,7 +593,7 @@ export const NO_CONDITIONS_SENTENCES: ByEventType = {
  * example record's channel gets (ChannelNamePreview), as the workspace
  * shows it: #inc-42 in Slack, inc-42 in Microsoft Teams.
  */
-export const CREATES_CHANNEL_SENTENCES: ByEventType = {
+export const CREATES_CHANNEL_SENTENCES: ByChannelEventType = {
   [NotificationRuleEventType.Incident]: translationKey(
     "Creates a channel like {{channel}} for each incident.",
   ),
@@ -543,7 +618,7 @@ export const CREATES_CHANNEL_SENTENCES: ByEventType = {
 };
 
 // Without a name to show: the project's number prefixes are not known.
-export const CREATES_CHANNEL_WITHOUT_NAME_SENTENCES: ByEventType = {
+export const CREATES_CHANNEL_WITHOUT_NAME_SENTENCES: ByChannelEventType = {
   [NotificationRuleEventType.Incident]: translationKey(
     "Creates a channel for each incident.",
   ),
@@ -609,7 +684,7 @@ export const TEAMS_EVERYONE_WITHOUT_TEAM_SENTENCE: string = translationKey(
   "Everyone in the team can open the channel.",
 );
 
-export const ARCHIVES_SENTENCES: ByEventType = {
+export const ARCHIVES_SENTENCES: ByChannelEventType = {
   [NotificationRuleEventType.Incident]: translationKey(
     "Archives the channel when the incident is resolved.",
   ),
@@ -649,6 +724,28 @@ export const POSTS_IN_CHAT_SENTENCE: string = translationKey(
 export const NOTHING_CHOSEN_SENTENCE: string = translationKey(
   "Pick where this rule posts: existing channels, a channel of its own for each one, or both.",
 );
+
+// A rule that only posts has no channel of its own to offer.
+export const POSTS_ONLY_NOTHING_CHOSEN_SENTENCES: Readonly<
+  Record<WorkspaceType, string>
+> = {
+  [WorkspaceType.Slack]: translationKey(
+    "Name the channels this rule posts in.",
+  ),
+  [WorkspaceType.MicrosoftTeams]: translationKey(
+    "Pick where this rule posts: existing channels, chats, or both.",
+  ),
+};
+
+// What is still to choose, while the rule posts nowhere.
+export function getNothingChosenSentence(data: {
+  eventType: NotificationRuleEventType;
+  workspaceType: WorkspaceType;
+}): string {
+  return canRuleCreateChannel(data.eventType)
+    ? NOTHING_CHOSEN_SENTENCE
+    : POSTS_ONLY_NOTHING_CHOSEN_SENTENCES[data.workspaceType];
+}
 
 /*
  * What the summary needs besides the rule: the names of what it refers to,
@@ -691,7 +788,8 @@ export function getExistingChannelNames(value: unknown): Array<string> {
 /*
  * The sentences that say what a rule does, in the reader's language, in
  * the order the rule acts: its own channel and who joins it, then the
- * channels and chats it posts in.
+ * channels and chats it posts in. A rule that only posts (a security
+ * case's) never creates a channel, whatever it holds, so it says none.
  */
 export function getNotificationRuleSummary(
   input: NotificationRuleSummaryInput,
@@ -699,16 +797,21 @@ export function getNotificationRuleSummary(
   const rule: Partial<IncidentNotificationRule> = input.rule || {};
   const translator: Translator = input.translator;
   const sentences: Array<string> = [];
+  const channelEventType: ChannelRecordEventType | null = canRuleCreateChannel(
+    input.eventType,
+  )
+    ? input.eventType
+    : null;
 
-  if (rule.shouldCreateNewChannel) {
+  if (rule.shouldCreateNewChannel && channelEventType) {
     sentences.push(
       input.exampleChannelName
         ? translator.translateTemplate(
-            CREATES_CHANNEL_SENTENCES[input.eventType],
+            CREATES_CHANNEL_SENTENCES[channelEventType],
             { channel: input.exampleChannelName },
           )
         : translator.translateText(
-            CREATES_CHANNEL_WITHOUT_NAME_SENTENCES[input.eventType],
+            CREATES_CHANNEL_WITHOUT_NAME_SENTENCES[channelEventType],
           ) || "",
     );
 
@@ -727,7 +830,7 @@ export function getNotificationRuleSummary(
       // Slack only: OneUptime cannot archive a Microsoft Teams channel.
       if (rule.archiveChannelAutomatically) {
         sentences.push(
-          translator.translateText(ARCHIVES_SENTENCES[input.eventType]) || "",
+          translator.translateText(ARCHIVES_SENTENCES[channelEventType]) || "",
         );
       }
     }

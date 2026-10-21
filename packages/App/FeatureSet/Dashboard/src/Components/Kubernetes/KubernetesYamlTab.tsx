@@ -10,6 +10,9 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { fetchRawK8sObject } from "../../Pages/Kubernetes/Utils/KubernetesObjectFetcher";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
+import useClipboardCopy, {
+  ClipboardCopy,
+} from "Common/UI/Utils/UseClipboardCopy";
 
 export interface ComponentProps {
   clusterIdentifier: string;
@@ -145,7 +148,13 @@ const KubernetesYamlTab: FunctionComponent<ComponentProps> = (
   const [yamlContent, setYamlContent] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [copied, setCopied] = useState<boolean>(false);
+  /*
+   * Copy says "Copied!" once the YAML is on the clipboard and "Copy failed"
+   * when the browser refused. It threw on a page served over plain http,
+   * where the browser has no clipboard API (issue #5132), and said "Copied!"
+   * over a refused write.
+   */
+  const clipboard: ClipboardCopy = useClipboardCopy();
 
   useEffect(() => {
     const fetchData: () => Promise<void> = async (): Promise<void> => {
@@ -283,15 +292,19 @@ const KubernetesYamlTab: FunctionComponent<ComponentProps> = (
       description="Full resource specification as collected by the kubernetes-agent."
       buttons={[
         {
-          title: copied ? "Copied!" : "Copy",
+          title: clipboard.isCopied
+            ? "Copied!"
+            : clipboard.isFailed
+              ? "Copy failed"
+              : "Copy",
           buttonStyle: ButtonStyleType.NORMAL,
-          icon: IconProp.Copy,
+          icon: clipboard.isCopied
+            ? IconProp.Check
+            : clipboard.isFailed
+              ? IconProp.Alert
+              : IconProp.Copy,
           onClick: () => {
-            navigator.clipboard.writeText(yamlContent);
-            setCopied(true);
-            setTimeout(() => {
-              setCopied(false);
-            }, 2000);
+            void clipboard.copy(yamlContent);
           },
         },
       ]}

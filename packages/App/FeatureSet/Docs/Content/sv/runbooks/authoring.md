@@ -12,7 +12,7 @@ Du skriver ett runbook som en ordnad lista med steg på dess sida **Steg**. Den 
 ## Innan du börjar
 
 - **En roll som skriver runbooks.** Project Owner, Project Admin och Runbook Admin skapar runbooks och sparar deras steg. Med detaljerade behörigheter behöver du **Create Runbook** och **Edit Runbook**. Se [Behörigheter](/docs/runbooks/configuration#behörigheter).
-- **En Runner, för Bash-, SSH- och kubectl-steg.** De här stegen körs på en [Runner](/docs/runbooks/agents) i din egen infrastruktur, aldrig på OneUptime Worker. Installera en först. Ett JavaScript-steg körs på en [global Runner](/docs/runbooks/agents#globala-runners) om du inte väljer en av dina egna.
+- **En Runner, för Bash-, SSH- och kubectl-steg.** De här stegen körs på en [Runner](/docs/runbooks/agents) i din egen infrastruktur, aldrig på OneUptime Worker. Installera en först. Ett steg som inte väljer någon Runner körs på [projektets standard-Runner](/docs/runbooks/agents#projektets-standard-runner), om du har angett en; annars körs ett JavaScript-steg på en [global Runner](/docs/runbooks/agents#globala-runners).
 - **En hemlig variabel, för SSH- och kubectl-steg.** Den nyckel, det lösenord eller den kubeconfig som ett steg loggar in med är en hemlig [runbook-variabel](/docs/runbooks/variables). Project Owner och Project Admin skapar variabler, och Runbook Admin väljer dem i de steg den skriver. Ett kubectl-steg kan i stället använda Runnerns egen åtkomst.
 - **En LLM-leverantör, för AI-steg.** Se [LLM-leverantörer](/docs/ai/llm-provider).
 
@@ -64,7 +64,7 @@ Varje steg har de här fälten. Ett automatiserat steg visar sin **Titel** och i
 | [kubectl](#kubectl) | En Runner | En Runner och en kubeconfig-variabel eller Runnerns egen åtkomst |
 | [AI](#ai) | OneUptime Worker | En LLM-leverantör |
 
-I varje automatiserat steg nedan innehåller stegets **Fler fält** först **Kräv godkännande** och **Fortsätt vid fel**, sedan stegets egna inställningar - ett HTTP-anrops headers, ett SSH-stegs port och nyckelns lösenfras, ett AI-stegs leverantör och kontextbrytare - och sist **Beskrivning** och tidsgränserna.
+I varje automatiserat steg nedan innehåller stegets **Fler fält** först dess **Runner**, för ett steg som körs på en, sedan **Kräv godkännande** och **Fortsätt vid fel**, sedan stegets egna inställningar - ett HTTP-anrops headers, ett SSH-stegs port och nyckelns lösenfras, ett AI-stegs leverantör och kontextbrytare - och sist **Beskrivning** och tidsgränserna. Hopfällt nämner det stegets Runner, så att du ser var ett steg körs utan att öppna det.
 
 ### Manual
 
@@ -78,7 +78,7 @@ Ett stycke JavaScript som körs i en `isolated-vm`-sandlåda på en [runbook-age
 
 | Fält | Vad det gör | Standard |
 | --- | --- | --- |
-| **Runner** | Den Runner som kör steget: **Global Runner** eller en av dina egna. Bara den Runner du väljer får ta jobbet; vilken global Runner som helst får ta ett steg på **Global Runner**. | **Global Runner**, när det finns en |
+| **Runner** | Under **Fler fält**. Den Runner som kör steget: **Global Runner** eller en av dina egna. Bara den Runner du väljer får ta jobbet; vilken global Runner som helst får ta ett steg på **Global Runner**. | [Projektets standard-Runner](/docs/runbooks/agents#projektets-standard-runner), om du har angett en; annars **Global Runner**, när det finns en |
 | **Script** | Den JavaScript-kod som ska köras. Returnera ett värde med `return` för att registrera det; varje rad från `console.log` registreras också. Ett kastat fel får steget att misslyckas. | — |
 | **Tidsgräns för körning** | Hur länge Runnern låter koden köra innan den river sandlådan. En global Runner låter den köra i högst 5 minuter. | 30 sekunder |
 | **Tidsgräns för övertagande** | Hur länge Workern väntar på att Runnern tar jobbet. | 2 minuter |
@@ -117,7 +117,7 @@ Ett bash-skript som körs med `bash -c <script>` på en [runbook-agent](/docs/ru
 
 | Fält | Vad det gör | Standard |
 | --- | --- | --- |
-| **Runner** | Den Runner som kör steget. Bara den Runnern får ta jobbet. | — |
+| **Runner** | Under **Fler fält**. Den Runner som kör steget. Bara den Runnern får ta jobbet. Globala Runners kör bara JavaScript-steg. | Projektets standard-Runner, om du har angett en |
 | **Bash-skript** | Skriptet. Output (stdout och stderr) registreras upp till 50 KB, och en slutkod som inte är noll får steget att misslyckas. | — |
 | **Tidsgräns för körning** | Hur länge Runnern låter skriptet köra innan den dödar det med `SIGKILL`. Höj den för steg som av goda skäl tar minuter. | 30 sekunder |
 | **Tidsgräns för övertagande** | Hur länge Workern väntar på att Runnern tar jobbet. | 2 minuter |
@@ -146,7 +146,7 @@ Logga in på en maskin över SSH och kör ett bash-skript där. Runnern öppnar 
 
 | Fält | Vad det gör |
 | --- | --- |
-| **Runner** | Den Runner som öppnar anslutningen. Den måste kunna nå maskinen över nätverket. |
+| **Runner** | Under **Fler fält**. Den Runner som öppnar anslutningen. Den måste kunna nå maskinen över nätverket. Ett steg som inte väljer någon körs på projektets standard-Runner. |
 | **SSH till** | Användaren och maskinen, som du skulle skriva dem efter `ssh`: `deploy@10.0.4.21`. |
 | **Logga in med** | Den hemliga variabel som innehåller den privata nyckeln eller lösenordet; värdet visar vilket det är. Bara hemliga variabler erbjuds, och steget säger till när dess Runner inte får använda den valda. |
 | **Bash-skript** | Körs med `bash` på maskinen som den användare steget loggar in som. Utdata fångas upp till 50 KB, och en slutkod som inte är noll gör att steget misslyckas. |
@@ -168,7 +168,7 @@ Kör kubectl-kommandon mot ett kluster. Skriptet körs med bash på Runnern, som
 
 | Fält | Vad det gör |
 | --- | --- |
-| **Runner** | Den Runner som kör kubectl. Den måste kunna nå klustrets API-server. |
+| **Runner** | Under **Fler fält**. Den Runner som kör kubectl. Den måste kunna nå klustrets API-server. Ett steg som inte väljer någon körs på projektets standard-Runner. |
 | **Kubeconfig** | Den hemliga variabel som innehåller klustrets kubeconfig, eller **Runnerns egen åtkomst**: Runnerns egen kubeconfig, eller dess tjänstkonto när den körs i klustret. Runnern skriver en kubeconfig till en fil som bara den kan läsa, och tar bort den när skriptet slutar. |
 | **Script** | kubectl-kommandona. Utdata fångas upp till 50 KB, och en slutkod som inte är noll gör att steget misslyckas. |
 | **Tidsgräns för körning** | Hur länge Runnern låter skriptet köras innan den stoppar det med `SIGKILL`. Standard 30 sekunder. |
@@ -190,7 +190,7 @@ Be AI att analysera, sammanfatta eller besluta något mitt i körningen. Svaret 
 | Fält | Vad det gör |
 | --- | --- |
 | **Prompt** | Vad AI:n ska göra. Till exempel: "Gå igenom outputen från de föregående stegen och säg om det är säkert att fortsätta med åtgärden." |
-| **LLM provider** | Valfritt. **Project default** använder projektets standardleverantör. Lås en leverantör när steget behöver en viss modell, till exempel en självhostad modell för data som inte får lämna ditt nätverk. Se [LLM-leverantörer](/docs/ai/llm-provider). |
+| **LLM provider** | Valfritt. **Projektstandard** använder projektets standardleverantör. Lås en leverantör när steget behöver en viss modell, till exempel en självhostad modell för data som inte får lämna ditt nätverk. Se [LLM-leverantörer](/docs/ai/llm-provider). |
 | **Include previous step context** | När den är påslagen ser AI:n allt om de steg som kördes före det här: titel, typ, status, output och felmeddelanden. Den får upp till 4 000 tecken av varje stegs output. |
 | **Include trigger context** | När den är påslagen ser AI:n vad som startade körningen: den kopplade incidenten, larmet eller den schemalagda underhållshändelsen (beskrivning, allvarlighetsgrad, aktuellt tillstånd, berörda monitorer, grundorsak, tillståndstidslinje och publika anteckningar), eller vem som körde runbooket manuellt. |
 

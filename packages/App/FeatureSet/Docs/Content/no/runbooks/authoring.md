@@ -12,7 +12,7 @@ Du skriver et runbook som en ordnet liste med trinn på siden **Trinn**. Denne s
 ## Før du begynner
 
 - **En rolle som skriver runbooks.** Project Owner, Project Admin og Runbook Admin oppretter runbooks og lagrer trinnene deres. Med detaljerte tillatelser trenger du **Create Runbook** og **Edit Runbook**. Se [Tillatelser](/docs/runbooks/configuration#tillatelser).
-- **En Runner, for Bash-, SSH- og kubectl-trinn.** Disse trinnene kjører på en [Runner](/docs/runbooks/agents) i din egen infrastruktur, aldri på OneUptime Worker. Installer en først. Et JavaScript-trinn kjører på en [global Runner](/docs/runbooks/agents#globale-runnere) med mindre du velger en av dine egne.
+- **En Runner, for Bash-, SSH- og kubectl-trinn.** Disse trinnene kjører på en [Runner](/docs/runbooks/agents) i din egen infrastruktur, aldri på OneUptime Worker. Installer en først. Et trinn som ikke velger noen Runner, kjører på [prosjektets standard-Runner](/docs/runbooks/agents#prosjektets-standard-runner), hvis du har angitt en; ellers kjører et JavaScript-trinn på en [global Runner](/docs/runbooks/agents#globale-runnere).
 - **En hemmelig variabel, for SSH- og kubectl-trinn.** Nøkkelen, passordet eller kubeconfigen et trinn logger på med, er en hemmelig [runbook-variabel](/docs/runbooks/variables). Project Owner og Project Admin oppretter variabler, og Runbook Admin velger dem i trinnene den skriver. Et kubectl-trinn kan i stedet bruke Runnerens egen tilgang.
 - **En LLM-leverandør, for AI-trinn.** Se [LLM-leverandører](/docs/ai/llm-provider).
 
@@ -64,7 +64,7 @@ Hvert trinn har disse feltene. Et automatisert trinn viser **Tittel** og innstil
 | [kubectl](#kubectl) | En Runner | En Runner og en kubeconfig-variabel eller Runnerens egen tilgang |
 | [AI](#ai) | OneUptime Worker | En LLM-leverandør |
 
-I hvert automatisert trinn nedenfor inneholder trinnets **Flere felt** først **Krev godkjenning** og **Fortsett ved feil**, deretter trinnets egne innstillinger - headerne til et HTTP-kall, porten og passordfrasen for nøkkelen til et SSH-trinn, leverandøren og kontekstbryterne til et AI-trinn - og til slutt **Beskrivelse** og tidsavbruddene.
+I hvert automatisert trinn nedenfor inneholder trinnets **Flere felt** først **Runner**, for et trinn som kjører på en, deretter **Krev godkjenning** og **Fortsett ved feil**, deretter trinnets egne innstillinger - headerne til et HTTP-kall, porten og passordfrasen for nøkkelen til et SSH-trinn, leverandøren og kontekstbryterne til et AI-trinn - og til slutt **Beskrivelse** og tidsavbruddene. Sammenslått nevner det Runneren til trinnet, så du ser hvor et trinn kjører uten å åpne det.
 
 ### Manual
 
@@ -78,7 +78,7 @@ Et stykke JavaScript som kjører i en `isolated-vm`-sandkasse på en [runbook-ag
 
 | Felt | Hva det gjør | Standard |
 | --- | --- | --- |
-| **Runner** | Runneren som kjører trinnet: **Global Runner** eller en av dine egne. Bare Runneren du velger, kan ta jobben; enhver global Runner kan ta et trinn på **Global Runner**. | **Global Runner**, når det finnes en |
+| **Runner** | Under **Flere felt**. Runneren som kjører trinnet: **Global Runner** eller en av dine egne. Bare Runneren du velger, kan ta jobben; enhver global Runner kan ta et trinn på **Global Runner**. | [Prosjektets standard-Runner](/docs/runbooks/agents#prosjektets-standard-runner), hvis du har angitt en; ellers **Global Runner**, når det finnes en |
 | **Script** | JavaScript-koden som skal kjøre. Returner en verdi med `return` for å registrere den; hver linje fra `console.log` registreres også. En kastet feil får trinnet til å feile. | — |
 | **Tidsavbrudd for kjøring** | Hvor lenge Runneren lar koden kjøre før den river ned sandkassen. En global Runner lar den kjøre i høyst 5 minutter. | 30 sekunder |
 | **Tidsavbrudd for overtakelse** | Hvor lenge Workeren venter på at Runneren tar jobben. | 2 minutter |
@@ -117,7 +117,7 @@ Et bash-skript som kjøres med `bash -c <script>` på en [runbook-agent](/docs/r
 
 | Felt | Hva det gjør | Standard |
 | --- | --- | --- |
-| **Runner** | Runneren som kjører trinnet. Bare den Runneren kan ta jobben. | — |
+| **Runner** | Under **Flere felt**. Runneren som kjører trinnet. Bare den Runneren kan ta jobben. Globale Runnere kjører bare JavaScript-trinn. | Prosjektets standard-Runner, hvis du har angitt en |
 | **Bash-skript** | Skriptet. Output (stdout og stderr) registreres opptil 50 KB, og en exitkode som ikke er null, får trinnet til å feile. | — |
 | **Tidsavbrudd for kjøring** | Hvor lenge Runneren lar skriptet kjøre før den dreper det med `SIGKILL`. Øk den for trinn som med god grunn tar minutter. | 30 sekunder |
 | **Tidsavbrudd for overtakelse** | Hvor lenge Workeren venter på at Runneren tar jobben. | 2 minutter |
@@ -146,7 +146,7 @@ Logg på en maskin over SSH og kjør et bash-skript der. Runneren åpner forbind
 
 | Felt | Hva det gjør |
 | --- | --- |
-| **Runner** | Runneren som åpner forbindelsen. Den må kunne nå maskinen over nettverket. |
+| **Runner** | Under **Flere felt**. Runneren som åpner forbindelsen. Den må kunne nå maskinen over nettverket. Et trinn som ikke velger noen, kjører på prosjektets standard-Runner. |
 | **SSH til** | Brukeren og maskinen, slik du ville skrevet dem etter `ssh`: `deploy@10.0.4.21`. |
 | **Logg på med** | Den hemmelige variabelen som holder den private nøkkelen eller passordet; verdien viser hvilken det er. Bare hemmelige variabler tilbys, og trinnet sier fra når Runneren ikke får bruke den valgte. |
 | **Bash-skript** | Kjører med `bash` på maskinen som brukeren trinnet logger på som. Utdata fanges opp til 50 KB, og en avslutningskode som ikke er null, får trinnet til å feile. |
@@ -168,7 +168,7 @@ Kjør kubectl-kommandoer mot en klynge. Skriptet kjører med bash på Runneren, 
 
 | Felt | Hva det gjør |
 | --- | --- |
-| **Runner** | Runneren som kjører kubectl. Den må kunne nå klyngens API-server. |
+| **Runner** | Under **Flere felt**. Runneren som kjører kubectl. Den må kunne nå klyngens API-server. Et trinn som ikke velger noen, kjører på prosjektets standard-Runner. |
 | **Kubeconfig** | Den hemmelige variabelen som holder klyngens kubeconfig, eller **Runnerens egen tilgang**: Runnerens egen kubeconfig, eller tjenestekontoen når den kjører i klyngen. Runneren skriver en kubeconfig til en fil bare den kan lese, og fjerner den når skriptet avsluttes. |
 | **Script** | kubectl-kommandoene. Utdata fanges opp til 50 KB, og en avslutningskode som ikke er null, får trinnet til å feile. |
 | **Tidsavbrudd for kjøring** | Hvor lenge Runneren lar skriptet kjøre før den stopper det med `SIGKILL`. Standard 30 sekunder. |
@@ -190,7 +190,7 @@ Be AI om å analysere, oppsummere eller bestemme noe midt i kjøringen. Svaret b
 | Felt | Hva det gjør |
 | --- | --- |
 | **Prompt** | Hva AI-en skal gjøre. For eksempel: "Gå gjennom outputen fra de forrige trinnene, og si om det er trygt å fortsette med utbedringen." |
-| **LLM provider** | Valgfritt. **Project default** bruker prosjektets standardleverandør. Fest en leverandør når trinnet trenger en bestemt modell, for eksempel en selvhostet modell for data som ikke skal forlate nettverket ditt. Se [LLM-leverandører](/docs/ai/llm-provider). |
+| **LLM provider** | Valgfritt. **Prosjektstandard** bruker prosjektets standardleverandør. Fest en leverandør når trinnet trenger en bestemt modell, for eksempel en selvhostet modell for data som ikke skal forlate nettverket ditt. Se [LLM-leverandører](/docs/ai/llm-provider). |
 | **Include previous step context** | Når den er slått på, ser AI-en alt om trinnene som kjørte før dette: tittel, type, status, output og feilmeldinger. Den får opptil 4 000 tegn av hvert trinns output. |
 | **Include trigger context** | Når den er slått på, ser AI-en hva som startet kjøringen: den tilknyttede hendelsen, varselet eller den planlagte vedlikeholdshendelsen (beskrivelse, alvorlighetsgrad, nåværende tilstand, berørte monitorer, rotårsak, tilstandstidslinje og offentlige notater), eller hvem som kjørte runbooket manuelt. |
 

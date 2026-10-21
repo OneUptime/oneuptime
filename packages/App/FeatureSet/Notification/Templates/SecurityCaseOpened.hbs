@@ -1,0 +1,43 @@
+{{> Start this}}
+
+{{!--
+  A security case that opened, or rose, at the priority this person picked
+  on their New Security Case setting (SecurityCaseNotifications). Every case
+  value is written with a double stash (plainText, plainInfo, EmailTitle):
+  titles, entities and rule names come from detections, and so from
+  connected products and the events an attacker caused. The description is
+  the only HTML, and Markdown.convertToHTML wrote it.
+--}}
+{{> Logo this}}
+{{> EmailTitle title=emailTitle }}
+
+{{#if priorityBadgeText}}
+{{> SeverityBadge badgeText=priorityBadgeText badgeColor=priorityColor badgeTextColor=priorityTextColor }}
+{{/if}}
+
+{{> InfoBlock plainInfo=leadSentence }}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Case: " plainText=caseTitle }}
+{{> DetailBoxField title="Priority: " plainText=casePriority color=priorityColor textColor=priorityTextColor }}
+{{> DetailBoxField title="Status: " plainText=caseStatus }}
+{{> DetailBoxField title="Assigned To: " plainText=caseAssignee }}
+{{> DetailBoxField title="Source: " plainText=caseSource }}
+{{> DetailBoxField title="Entities: " plainText=caseEntities }}
+{{> DetailBoxField title="MITRE ATT&CK: " plainText=caseMitreTactics }}
+{{> DetailBoxField title="Project: " plainText=projectName }}
+{{> DetailBoxField title="Description: " blockText=caseDescription }}
+{{> DetailBoxEnd this }}
+
+{{> ButtonBlock buttonUrl=caseViewLink buttonText="View Case"}}
+
+{{> LinkBlock linkUrl=caseViewLink linkLabel="You can also copy and paste this link:"}}
+
+{{> TitleBlock title="Why am I receiving this email?"}}
+{{> InfoBlock plainInfo=reasonSentence }}
+
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

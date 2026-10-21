@@ -58,13 +58,26 @@ function makeCtx(): StepExecutionContext {
 
 /*
  * Where a step runs is decided by GlobalRunnerChoice, which reads, as
- * OneUptime, the Runner the step picked, the project's "Use global Runners"
- * switch and whether the server has a global Runner. Here the Runner a step
- * picked is always one of its project's own, the project uses global
- * Runners, and the server has none - so a step that picked no Runner is
- * refused as it always was. StepExecutorsGlobalRunner covers the rest.
+ * OneUptime, the Runner the step picked, the project's default Runner, the
+ * project's "Use global Runners" switch and whether the server has a global
+ * Runner. Here the Runner a step picked is always one of its project's own,
+ * the project has no default Runner (unless a test gives it one) and uses
+ * global Runners, and the server has none - so a step that picked no Runner
+ * is refused as it always was. StepExecutorsGlobalRunner covers the rest.
  */
+let projectDefaultRunner: Runner | null = null;
+
+// The project's default Runner, as RunnerService.findProjectDefaultRunner answers.
+const PROJECT_DEFAULT_RUNNER_ID: string =
+  "c1e10000-0000-4000-8000-0000000000d1";
+
 function stubRunnerChoiceFacts(): void {
+  projectDefaultRunner = null;
+  jest
+    .spyOn(RunnerService, "findProjectDefaultRunner")
+    .mockImplementation(async (): Promise<Runner | null> => {
+      return projectDefaultRunner;
+    });
   jest
     .spyOn(RunnerService, "findOneById")
     .mockImplementation(async (args: { id: ObjectID }): Promise<Runner> => {
@@ -288,13 +301,37 @@ describe("runSshStep", () => {
         expect(result.output).toBe("");
         // An SSH step never runs on a global Runner: it needs one of the project's own.
         expect(result.errorMessage).toBe(
-          "This SSH step has no Runner. SSH steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.",
+          "This SSH step has no Runner. SSH steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners.",
         );
         expect(enqueueSpy).not.toHaveBeenCalled();
-        expect(findSpy).not.toHaveBeenCalled();
+        /*
+         * It looked for a job of its own first, as any step that may run
+         * does: the project's default Runner could have run it.
+         */
+        expect(findSpy).toHaveBeenCalledTimes(1);
         expect(pollSpy).not.toHaveBeenCalled();
       },
     );
+
+    test("a step without a Runner runs on the project's default Runner when the project has one", async () => {
+      const { enqueueSpy } = stubDispatch();
+      const defaultRunner: Runner = new Runner();
+      defaultRunner._id = PROJECT_DEFAULT_RUNNER_ID;
+      projectDefaultRunner = defaultRunner;
+
+      const result: StepRunResult = await runSshStep(
+        makeSshStep(sshConfig({ agentId: "" })),
+        makeCtx(),
+      );
+
+      expect(result.success).toBe(true);
+      expect(
+        (firstCallArgs(enqueueSpy)["targetAgentId"] as ObjectID).toString(),
+      ).toBe(PROJECT_DEFAULT_RUNNER_ID);
+      expect(firstCallArgs(enqueueSpy)).not.toHaveProperty(
+        "runsOnGlobalRunner",
+      );
+    });
 
     test("a step missing everything reports the machine first, deterministically", async () => {
       const { enqueueSpy } = stubDispatch();
@@ -575,12 +612,29 @@ describe("runKubernetesStep", () => {
         expect(result.success).toBe(false);
         // A Kubernetes step never runs on a global Runner: it needs one of the project's own.
         expect(result.errorMessage).toBe(
-          "This Kubernetes step has no Runner. Kubernetes steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.",
+          "This Kubernetes step has no Runner. Kubernetes steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners.",
         );
         expect(enqueueSpy).not.toHaveBeenCalled();
         expect(pollSpy).not.toHaveBeenCalled();
       },
     );
+
+    test("a step without a Runner runs on the project's default Runner when the project has one", async () => {
+      const { enqueueSpy } = stubDispatch();
+      const defaultRunner: Runner = new Runner();
+      defaultRunner._id = PROJECT_DEFAULT_RUNNER_ID;
+      projectDefaultRunner = defaultRunner;
+
+      const result: StepRunResult = await runKubernetesStep(
+        makeK8sStep(k8sConfig({ agentId: "" })),
+        makeCtx(),
+      );
+
+      expect(result.success).toBe(true);
+      expect(
+        (firstCallArgs(enqueueSpy)["targetAgentId"] as ObjectID).toString(),
+      ).toBe(PROJECT_DEFAULT_RUNNER_ID);
+    });
 
     test("a step missing everything reports the script first, deterministically", async () => {
       const { enqueueSpy } = stubDispatch();

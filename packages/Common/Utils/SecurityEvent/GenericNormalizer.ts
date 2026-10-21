@@ -6,6 +6,7 @@ import OcsfSeverity, {
 } from "../../Types/SecurityEvent/OcsfSeverity";
 import {
   buildObservables,
+  buildProcessFields,
   contentHashEventUid,
   flattenPayload,
   parseEventTime,
@@ -134,6 +135,90 @@ const ID_FIELDS: Array<string> = [
   "alertId",
 ];
 
+/*
+ * The process fields are read off the flattened payload, where a nested
+ * `process: { command_line }` and a dotted "process.command_line" key are
+ * the same key - as are Falco's dotted output_fields ("proc.cmdline").
+ * Windows Security's NewProcessName and ParentProcessName hold full paths,
+ * so they are read as paths; a lowercase `image` is left alone, as it is a
+ * container's image as often as a process's. A plain `process` string is
+ * the command line last of all, as Splunk's CIM spells it.
+ */
+const PROCESS_NAME_FIELDS: Array<string> = [
+  "process_name",
+  "processName",
+  "process.name",
+  "proc.name",
+  "output_fields.proc.name",
+  "comm",
+];
+
+const PROCESS_PATH_FIELDS: Array<string> = [
+  "process_path",
+  "processPath",
+  "Image",
+  "NewProcessName",
+  "exe",
+  "executable",
+  "process.executable",
+  "process.path",
+  "proc.exepath",
+  "output_fields.proc.exepath",
+];
+
+const COMMAND_LINE_FIELDS: Array<string> = [
+  "command_line",
+  "commandLine",
+  "CommandLine",
+  "cmdline",
+  "cmd_line",
+  "process.command_line",
+  "proc.cmdline",
+  "output_fields.proc.cmdline",
+  "process",
+];
+
+const PARENT_PROCESS_NAME_FIELDS: Array<string> = [
+  "parent_process_name",
+  "parentProcessName",
+  "process.parent.name",
+  "proc.pname",
+  "output_fields.proc.pname",
+];
+
+const PARENT_PROCESS_PATH_FIELDS: Array<string> = [
+  "parent_process_path",
+  "parentProcessPath",
+  "ParentImage",
+  "parent_image",
+  "ParentProcessName",
+  "process.parent.executable",
+  "proc.pexepath",
+  "output_fields.proc.pexepath",
+];
+
+const PARENT_COMMAND_LINE_FIELDS: Array<string> = [
+  "parent_command_line",
+  "parentCommandLine",
+  "ParentCommandLine",
+  "parent_cmdline",
+  "process.parent.command_line",
+  "proc.pcmdline",
+  "output_fields.proc.pcmdline",
+];
+
+function readFirstFlat(flattened: JSONObject, keys: Array<string>): string {
+  for (const key of keys) {
+    const value: unknown = flattened[key];
+
+    if (typeof value === "string" && value.trim()) {
+      return value;
+    }
+  }
+
+  return "";
+}
+
 function readFirst(payload: JSONObject, fields: Array<string>): string {
   for (const field of fields) {
     const value: string = readString(payload, field);
@@ -169,6 +254,8 @@ export default class GenericNormalizer {
     const principalIp: string = readFirst(payload, SOURCE_IP_FIELDS);
     const targetIp: string = readFirst(payload, TARGET_IP_FIELDS);
 
+    const attributes: JSONObject = flattenPayload(payload);
+
     return {
       time: time || new Date(),
       eventUid: readFirst(payload, ID_FIELDS) || contentHashEventUid(payload),
@@ -191,6 +278,18 @@ export default class GenericNormalizer {
       principalHost,
       principalIp,
       principalProcess: readString(payload, "process"),
+      ...buildProcessFields({
+        process: {
+          name: readFirstFlat(attributes, PROCESS_NAME_FIELDS),
+          path: readFirstFlat(attributes, PROCESS_PATH_FIELDS),
+          commandLine: readFirstFlat(attributes, COMMAND_LINE_FIELDS),
+        },
+        parent: {
+          name: readFirstFlat(attributes, PARENT_PROCESS_NAME_FIELDS),
+          path: readFirstFlat(attributes, PARENT_PROCESS_PATH_FIELDS),
+          commandLine: readFirstFlat(attributes, PARENT_COMMAND_LINE_FIELDS),
+        },
+      }),
       targetUser: readString(payload, "target_user"),
       targetHost: readString(payload, "target_host"),
       targetIp,
@@ -202,7 +301,7 @@ export default class GenericNormalizer {
         principalIp,
         targetIp,
       ]),
-      attributes: flattenPayload(payload),
+      attributes,
     };
   }
 }

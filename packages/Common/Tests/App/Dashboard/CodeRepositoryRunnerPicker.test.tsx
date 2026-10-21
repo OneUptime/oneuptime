@@ -599,8 +599,15 @@ describe("what a repository's picker loads", () => {
     const runners: Array<{ name: string }> =
       await RunnerChoicesLoader.loadProjectRunners(new ObjectID(PROJECT_ID));
 
+    // The in-cluster Runner the Kubernetes agent chart installed included.
     expect(runners).toHaveLength(3);
-    expect(listCalls[0]!.select["hostInfo"]).toBeUndefined();
+    /*
+     * Read with what decides which of them may be the project's default
+     * Runner - the posture among it - for a step's picker as for a
+     * repository's.
+     */
+    expect(listCalls[0]!.select["isProjectDefault"]).toBe(true);
+    expect(listCalls[0]!.select["hostInfo"]).toBe(true);
   });
 });
 

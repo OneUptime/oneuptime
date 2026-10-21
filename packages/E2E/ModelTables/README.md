@@ -27,7 +27,16 @@ The pages:
 - `/dashboard/<project>/tables` - the gallery: every kind of column
   (`?table=kinds`), a table with many columns (`?table=wide`), a table drawn
   outside a card (`?table=plain`), and people, each name drawn beside a
-  picture and over an email (`?table=people`).
+  picture and over an email (`?table=people`);
+- `/dashboard/<project>/runbooks` - the Runbooks list of the maintainer's
+  screenshot of the gap under a card's title, in the real Runbooks layout
+  (its side menu and breadcrumbs) and as wide as the Dashboard draws it;
+- `/dashboard/<project>/card-headers` - every card header shape
+  (`Fixture/CardHeaders.js`): a table's toolbar header with a one-line, a
+  wrapped or no description, with no controls or only a status pill; the
+  default header; and the stacked header of an overview's one-third column
+  (Edit, a wrapped description, a title over two lines, a pill, buttons that
+  go under the title, no description, no actions).
 
 The suite (`ModelTables.spec.ts`) measures in Chromium what jsdom cannot:
 
@@ -73,6 +82,19 @@ The suite (`ModelTables.spec.ts`) measures in Chromium what jsdom cannot:
   height;
 - a drag-ordered list's grips sit on the rows' line, and the keyboard still
   moves a row.
+
+`CardHeaders.spec.ts` measures where a card's description sits under its
+title ("There's a lot of gap between the title of the card and the
+description of the card"): 9px under the title beside the controls (it was
+20px, a button row down), 6px where there are none, clear of the controls'
+foot, the controls centred on the title, every title at the card's padding
+(so cards side by side line up); the controls under the title when they do
+not fit beside it, the description staying 6px under the title and the
+controls following it - also as the window is resized across that width; a
+list that drops its description for its empty state keeping its title and
+controls where they were; the search opened without moving anything; a
+phone's header; and the dark theme - on the Runbooks, Incidents and Teams
+lists and every shape of the gallery, at 1440, 1280, 1024, 768 and 390px.
 
 `Fixture/Fixture.js` records every list read on
 `window.__fixture.listRequests`, every write on `window.__fixture.updates`,

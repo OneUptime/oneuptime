@@ -7,18 +7,22 @@ import ObjectID from "../../../../Types/ObjectID";
 import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
 import {
   ChosenRunnerKind,
+  GLOBAL_RUNNER_CHOICE_ID,
   RunnerChoiceDecision,
   RunnerChoiceRefusal,
+  RunnerDefaultOrderResult,
+  RunnerSource,
 } from "../../../../Types/Runner/RunnerChoice";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
- * The server side of the "global by default" rule: it reads the facts as
- * OneUptime - the Runner a step picked (held to the step's project), the
- * project's switch, whether the server has a global Runner - and asks the
- * rule. It reads only what decides the step: a custom pick needs neither the
- * switch nor the global Runners, and a step global Runners never run needs
- * no read at all.
+ * The server side of the one rule, in its default order: it reads the
+ * facts as OneUptime - the Runner a step picked (held to the step's
+ * project), the project's default Runner, the project's switch, whether the
+ * server has a global Runner - and asks the rule. It reads only what decides
+ * the step: a pick of the project's own needs nothing else, the project's
+ * default is read only for a step that picked none, and the switch and the
+ * global Runners only for a step that ends up on them.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -29,15 +33,19 @@ const OTHER_PROJECT_ID: ObjectID = new ObjectID(
 );
 const PROJECT_RUNNER_ID: string = "33333333-3333-4333-8333-333333333333";
 const GLOBAL_RUNNER_ID: string = "44444444-4444-4444-8444-444444444444";
+const DEFAULT_RUNNER_ID: string = "55555555-5555-4555-8555-555555555555";
 
 let runners: Map<string, Runner>;
 let usesGlobalRunners: boolean | undefined;
 let projectExists: boolean;
 let hasGlobalRunner: boolean;
+// The project's default Runner, as RunnerService.findProjectDefaultRunner answers.
+let defaultRunner: Runner | null;
 
 let findRunner: jest.SpyInstance;
 let findProject: jest.SpyInstance;
 let hasGlobal: jest.SpyInstance;
+let findDefault: jest.SpyInstance;
 
 function runner(data: {
   id: string;
@@ -64,6 +72,7 @@ beforeEach(() => {
   usesGlobalRunners = true;
   projectExists = true;
   hasGlobalRunner = true;
+  defaultRunner = null;
 
   findRunner = jest
     .spyOn(RunnerService, "findOneById")
@@ -93,6 +102,12 @@ beforeEach(() => {
     .mockImplementation(async (): Promise<boolean> => {
       return hasGlobalRunner;
     });
+
+  findDefault = jest
+    .spyOn(RunnerService, "findProjectDefaultRunner")
+    .mockImplementation(async (): Promise<Runner | null> => {
+      return defaultRunner;
+    });
 });
 
 afterEach(() => {
@@ -112,6 +127,8 @@ async function decide(
 
 describe("a step that picked a Runner", () => {
   test("one of its project's own: it runs there, and nothing else is read", async () => {
+    defaultRunner = runner({ id: DEFAULT_RUNNER_ID, projectId: PROJECT_ID });
+
     expect(await decide(RunbookStepType.Bash, PROJECT_RUNNER_ID)).toEqual({
       kind: "custom",
       runnerId: PROJECT_RUNNER_ID,
@@ -119,6 +136,8 @@ describe("a step that picked a Runner", () => {
 
     expect(findProject).not.toHaveBeenCalled();
     expect(hasGlobal).not.toHaveBeenCalled();
+    // A pick never follows the project's default: it is not even read.
+    expect(findDefault).not.toHaveBeenCalled();
   });
 
   test("the Runner is read as OneUptime, with whether it is global and whose it is", async () => {
@@ -180,10 +199,13 @@ describe("a step that picked a Runner", () => {
     );
   });
 
-  test("a global Runner: the step is on the global Runners, held to the project's switch", async () => {
+  test("a global Runner: the step picked the Global Runner, held to the project's switch, and the default is not read", async () => {
+    defaultRunner = runner({ id: DEFAULT_RUNNER_ID, projectId: PROJECT_ID });
+
     expect(await decide(RunbookStepType.JavaScript, GLOBAL_RUNNER_ID)).toEqual({
       kind: "global",
     });
+    expect(findDefault).not.toHaveBeenCalled();
 
     usesGlobalRunners = false;
 
@@ -210,7 +232,106 @@ describe("a step that picked a Runner", () => {
   });
 });
 
-describe("a step that picked no Runner", () => {
+describe("a step that picked the Global Runner itself", () => {
+  test("a JavaScript step runs on the global Runners, whatever the project's default, which is never read", async () => {
+    defaultRunner = runner({ id: DEFAULT_RUNNER_ID, projectId: PROJECT_ID });
+
+    expect(
+      await decide(RunbookStepType.JavaScript, GLOBAL_RUNNER_CHOICE_ID),
+    ).toEqual({ kind: "global" });
+    expect(findDefault).not.toHaveBeenCalled();
+    expect(findRunner).not.toHaveBeenCalled();
+    expect(findProject).toHaveBeenCalledTimes(1);
+    expect(hasGlobal).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([
+    RunbookStepType.Bash,
+    RunbookStepType.SSH,
+    RunbookStepType.Kubernetes,
+  ])(
+    "a %s step is refused - global Runners never run it - and nothing is read to say so",
+    async (stepType: string) => {
+      defaultRunner = runner({ id: DEFAULT_RUNNER_ID, projectId: PROJECT_ID });
+
+      const decision: RunnerChoiceDecision = await decide(
+        stepType,
+        GLOBAL_RUNNER_CHOICE_ID,
+      );
+
+      expect((decision as { refusal: RunnerChoiceRefusal }).refusal).toBe(
+        RunnerChoiceRefusal.NeedsOwnRunner,
+      );
+      expect((decision as { message: string }).message).toContain(
+        "picks the Global Runner",
+      );
+      expect(findRunner).not.toHaveBeenCalled();
+      expect(findDefault).not.toHaveBeenCalled();
+      expect(findProject).not.toHaveBeenCalled();
+      expect(hasGlobal).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a project that turned global Runners off: refused", async () => {
+    usesGlobalRunners = false;
+
+    expect(
+      (
+        (await decide(RunbookStepType.JavaScript, " Global ")) as {
+          refusal: RunnerChoiceRefusal;
+        }
+      ).refusal,
+    ).toBe(RunnerChoiceRefusal.ProjectTurnedGlobalRunnersOff);
+  });
+});
+
+describe("a step that picked no Runner, in a project with a default Runner", () => {
+  beforeEach(() => {
+    defaultRunner = runner({ id: DEFAULT_RUNNER_ID, projectId: PROJECT_ID });
+  });
+
+  test.each([
+    RunbookStepType.JavaScript,
+    RunbookStepType.Bash,
+    RunbookStepType.SSH,
+    RunbookStepType.Kubernetes,
+  ])(
+    "a %s step runs on the project's default Runner; the switch and the global Runners are not read",
+    async (stepType: string) => {
+      expect(await decide(stepType, "")).toEqual({
+        kind: "custom",
+        runnerId: DEFAULT_RUNNER_ID,
+        isProjectDefault: true,
+      });
+
+      expect(findDefault).toHaveBeenCalledTimes(1);
+      expect((findDefault.mock.calls[0]![0] as ObjectID).toString()).toBe(
+        PROJECT_ID.toString(),
+      );
+      expect(findRunner).not.toHaveBeenCalled();
+      expect(findProject).not.toHaveBeenCalled();
+      expect(hasGlobal).not.toHaveBeenCalled();
+    },
+  );
+
+  test("the default runs the step in a project that turned global Runners off, on a server with none", async () => {
+    usesGlobalRunners = false;
+    hasGlobalRunner = false;
+
+    expect((await decide(RunbookStepType.JavaScript, undefined)).kind).toBe(
+      "custom",
+    );
+  });
+});
+
+describe("a step that picked no Runner, in a project with no default Runner", () => {
+  test("the project's default is asked for, and its answer of none sends a JavaScript step to the global Runners", async () => {
+    expect(await decide(RunbookStepType.JavaScript, "")).toEqual({
+      kind: "global",
+    });
+    expect(findDefault).toHaveBeenCalledTimes(1);
+  });
+
   test("a JavaScript step of a project that uses global Runners, on a server that has one, runs on them", async () => {
     expect(await decide(RunbookStepType.JavaScript, "")).toEqual({
       kind: "global",
@@ -278,26 +399,94 @@ describe("a step that picked no Runner", () => {
     ).toBe(RunnerChoiceRefusal.NoGlobalRunner);
   });
 
+  /*
+   * What the picker hides, the server refuses: a Bash, SSH or kubectl step
+   * with no Runner and no project default never reaches a global Runner.
+   * Only the project's default is read to say so - it is what could have
+   * run the step.
+   */
   test.each([
     RunbookStepType.Bash,
     RunbookStepType.SSH,
     RunbookStepType.Kubernetes,
   ])(
-    "a %s step needs a Runner of its own, and nothing is read to say so",
+    "a %s step needs a Runner of its own: only the project's default is read to say so",
     async (stepType: string) => {
-      expect(
-        (
-          (await decide(stepType, "")) as {
-            refusal: RunnerChoiceRefusal;
-          }
-        ).refusal,
-      ).toBe(RunnerChoiceRefusal.NeedsOwnRunner);
+      const decision: RunnerChoiceDecision = await decide(stepType, "");
 
+      expect((decision as { refusal: RunnerChoiceRefusal }).refusal).toBe(
+        RunnerChoiceRefusal.NeedsOwnRunner,
+      );
+      expect((decision as { message: string }).message).toContain(
+        "make one the project's default Runner",
+      );
+
+      expect(findDefault).toHaveBeenCalledTimes(1);
       expect(findRunner).not.toHaveBeenCalled();
       expect(findProject).not.toHaveBeenCalled();
       expect(hasGlobal).not.toHaveBeenCalled();
     },
   );
+});
+
+describe("the default order, for any work that picks a Runner", () => {
+  test("work global Runners never run follows the project's default, and never asks for a global Runner", async () => {
+    defaultRunner = runner({ id: DEFAULT_RUNNER_ID, projectId: PROJECT_ID });
+
+    const result: RunnerDefaultOrderResult =
+      await GlobalRunnerChoice.decideByDefaultOrder({
+        projectId: PROJECT_ID,
+        chosenRunnerId: "",
+        canGlobalRunnersRunWork: false,
+      });
+
+    expect(result).toEqual({
+      source: RunnerSource.ProjectDefault,
+      runnerId: DEFAULT_RUNNER_ID,
+    });
+    expect(findProject).not.toHaveBeenCalled();
+    expect(hasGlobal).not.toHaveBeenCalled();
+  });
+
+  test("work global Runners never run, with no default, runs nowhere - and the global Runners are not asked", async () => {
+    expect(
+      await GlobalRunnerChoice.decideByDefaultOrder({
+        projectId: PROJECT_ID,
+        chosenRunnerId: undefined,
+        canGlobalRunnersRunWork: false,
+      }),
+    ).toEqual({
+      source: RunnerSource.None,
+      refusal: RunnerChoiceRefusal.NeedsOwnRunner,
+      pickedGlobalRunner: false,
+    });
+    expect(findProject).not.toHaveBeenCalled();
+    expect(hasGlobal).not.toHaveBeenCalled();
+  });
+
+  test("its own Runner wins over the project's default", async () => {
+    defaultRunner = runner({ id: DEFAULT_RUNNER_ID, projectId: PROJECT_ID });
+
+    expect(
+      await GlobalRunnerChoice.decideByDefaultOrder({
+        projectId: PROJECT_ID,
+        chosenRunnerId: PROJECT_RUNNER_ID,
+        canGlobalRunnersRunWork: false,
+      }),
+    ).toEqual({ source: RunnerSource.Picked, runnerId: PROJECT_RUNNER_ID });
+  });
+
+  test("findProjectDefaultRunnerId answers the default's id, or nothing", async () => {
+    expect(
+      await GlobalRunnerChoice.findProjectDefaultRunnerId(PROJECT_ID),
+    ).toBe("");
+
+    defaultRunner = runner({ id: DEFAULT_RUNNER_ID, projectId: PROJECT_ID });
+
+    expect(
+      await GlobalRunnerChoice.findProjectDefaultRunnerId(PROJECT_ID),
+    ).toBe(DEFAULT_RUNNER_ID);
+  });
 });
 
 describe("getChosenRunnerKind", () => {

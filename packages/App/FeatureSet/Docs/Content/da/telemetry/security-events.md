@@ -135,6 +135,12 @@ En generisk begivenhed læses ud fra almindelige feltnavne:
 | `className` | `event_type`, `category`, `type`, `action` |
 | `ruleName` | `rule`, `rule_name`, `signature`, `detection` |
 | `productName` | `product`, `product_name`, `source`, `log_source` |
+| `processName` | `process_name`, `process.name`, `proc.name`, `comm` |
+| `processPath` | `process_path`, `Image`, `NewProcessName`, `exe`, `process.executable` |
+| `processCommandLine` | `command_line`, `CommandLine`, `cmdline`, `process.command_line`, `proc.cmdline`, `process` |
+| `parentProcessName` | `parent_process_name`, `process.parent.name`, `proc.pname` |
+| `parentProcessPath` | `parent_process_path`, `ParentImage`, `ParentProcessName`, `process.parent.executable` |
+| `parentProcessCommandLine` | `parent_command_line`, `ParentCommandLine`, `process.parent.command_line`, `proc.pcmdline` |
 
 Et ord for alvorlighed bliver et OCSF-niveau: `info` læses som Informational, `warning` som Low, `error` som Medium, `alert` som Critical og `emergency` som Fatal.
 
@@ -179,7 +185,7 @@ Kortet **Dine logs**, øverst på **Connections**, gør de logs, du allerede sen
 | AWS Security Hub | Findings, som Detection og Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Begivenheder om login, MFA, konti og politikker | [Okta System Log](/docs/integrations/okta) |
 
-- Produktets egne advarsler på eller over **Open Cases From** (**High and above**, medmindre du vælger et andet niveau, eller **Aldrig**) åbner [sager](/docs/telemetry/security-cases), grupperet efter den bruger, vært eller adresse, de handler om.
+- Produktets egne advarsler på eller over **Open Cases From** (**Høj og højere**, medmindre du vælger et andet niveau, eller **Aldrig**) åbner [sager](/docs/telemetry/security-cases), grupperet efter den bruger, vært eller adresse, de handler om.
 - En forbindelse læser poster efter det tidspunkt, produktet oprettede dem, ikke efter tidspunktet for den aktivitet, de beskriver. En SIEM-regel, der kører hver time, opretter detektioner længe efter de begivenheder, den matchede, og de importeres alligevel.
 - Den første hentning kigger 24 timer tilbage, så en ny forbindelse viser nylige poster med det samme.
 - **Test forbindelse** i forbindelsens række tjekker adgangen til produktet, og at OneUptimes egne workers kører, og importerer intet. **Run now** henter med det samme.
@@ -194,6 +200,7 @@ Hver begivenhed gemmes med typede felter og kildens payload:
 | Alvorlighed | `severityName`, en af Unknown, Informational, Low, Medium, High, Critical, Fatal eller Other, og `severityId` |
 | Hvem gjorde det | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | Hvad det ramte | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
+| Processen | `processName`, `processPath` og `processCommandLine`: ved en processtart den proces, der startede, ellers den proces, der handlede. `parentProcessName`, `parentProcessPath` og `parentProcessCommandLine`: den proces, der startede den |
 | Kilde | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | Indhold | `message`, `mitreTactics`, `mitreTechniques` og `observables`: hver bruger, vært, IP-adresse, domæne og hash fra begivenheden |
 | Attributter | Hele kildens payload, fladet ud til nøgler med punktummer |
@@ -218,11 +225,11 @@ Søgefeltet taler det samme sprog som de andre telemetrioversigter (se [Søgesyn
 | `@<attribute>:*` | Attributten findes | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | Attributten indeholder teksten | `@finding_info.title:~ransom` |
 
-Et felt er enten et kort navn (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `observable`, `tactic`, `technique`) eller feltets eget navn, f.eks. `severityName` eller `principalHost`. Alle andre navne læses som en kildeattribut. `observable:<value>` finder hver begivenhed, der nævner en værdi, uanset hvilken side af aktiviteten den var på.
+Et felt er enten et kort navn (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`) eller feltets eget navn, f.eks. `severityName` eller `principalHost`. Alle andre navne læses som en kildeattribut. `observable:<value>` finder hver begivenhed, der nævner en værdi, uanset hvilken side af aktiviteten den var på.
 
 ### Facetter
 
-Sidebjælken tæller vinduets begivenheder efter **Kilde**, **Alvorlighed**, **Begivenhedsklasse**, **Category**, **Aktivitet**, **Status**, **Leverandør**, **Produkt**, **Detection Rule**, **Kildebruger** og **Kildevært**. Klik på en værdi for kun at beholde dens begivenheder, eller på minusset ved siden af for at udelade dem. Klik igen for at fortryde. Diagrammet og hver optælling beskriver præcis begivenhederne på listen.
+Sidebjælken tæller vinduets begivenheder efter **Kilde**, **Alvorlighed**, **Begivenhedsklasse**, **Category**, **Aktivitet**, **Status**, **Leverandør**, **Produkt**, **Detection Rule**, **Kildebruger**, **Kildevært**, **Proces** og **Overordnet proces**. Klik på en værdi for kun at beholde dens begivenheder, eller på minusset ved siden af for at udelade dem. Klik igen for at fortryde. Diagrammet og hver optælling beskriver præcis begivenhederne på listen.
 
 ### Korrelér
 
@@ -278,6 +285,7 @@ OneUptime kører den boolske kerne af Sigma:
 - Betingelser kombinerer selektioner med `and`, `or`, `not` og parenteser eller med `1 of selection_*`, `all of selection_*`, `any of them` og `all of them`.
 - Feltmodifikatorer: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` og `windash`. Tekst sammenlignes uden hensyn til store og små bogstaver, medmindre du tilføjer `cased`.
 - Et felt er et typet felt (`principalUser`), en almindelig Sigma-stavemåde af et (`CommandLine`, `src_ip`, `Hostname`) eller en hvilken som helst attributnøgle, stavet som i begivenheden (`threat.matched`).
+- `Image` og `CommandLine` læser den proces, som begivenheden handler om, ved en processtart den, der startede (`processPath`, `processCommandLine`), og `ParentImage` og `ParentCommandLine` den proces, der startede den (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` er den proces, der handlede, hvilket ved en processtart er den overordnede.
 - `level` angiver alvorligheden: `informational`, `low`, `medium`, `high` eller `critical`, og `medium`, når den mangler. ATT&CK-ID'er i `tags` (`attack.t1110`, `attack.ta0006`) udfylder fundets MITRE-felter.
 
 Aggregeringer som `| count() by principalIp > 5` afvises, når du gemmer: brug i stedet **Group By Field** og **Match Count Threshold**. `logsource` er kun informativ og indsnævrer intet: læg det filter i en selektion, f.eks. `className: Authentication`. En `timeframe` ignoreres, fordi regelens interval bestemmer dens vindue.

@@ -2,10 +2,13 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { RunbookVariableScope } from "Common/Types/Runbook/RunbookVariableReference";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
-import Clipboard from "Common/UI/Utils/Clipboard";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useClipboardCopy, {
+  ClipboardCopy,
+  ClipboardCopyStatus,
+} from "Common/UI/Utils/UseClipboardCopy";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import {
   RunbookVariableChoice,
   RunbookVariableChoices,
@@ -32,7 +35,19 @@ const RunbookVariableChips: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const [copied, setCopied] = useState<string>("");
+  /*
+   * A chip says "Copied!" once its reference is on the clipboard, and "Copy
+   * failed" when the browser refused it - it used to say nothing then.
+   */
+  const clipboard: ClipboardCopy = useClipboardCopy({ copiedForMs: 1500 });
+
+  let copyStatusText: string | undefined = "";
+
+  if (clipboard.isCopied) {
+    copyStatusText = translator.translateText("Copied!");
+  } else if (clipboard.isFailed) {
+    copyStatusText = translator.translateText("Copy failed");
+  }
 
   const variables: Array<RunbookVariableChoice> = props.choices.variables;
 
@@ -72,7 +87,9 @@ const RunbookVariableChips: FunctionComponent<ComponentProps> = (
       </div>
       <div className="flex flex-wrap gap-1.5">
         {shown.map((choice: RunbookVariableChoice) => {
-          const isCopied: boolean = copied === choice.reference;
+          const copyStatus: ClipboardCopyStatus = clipboard.statusOf(
+            choice.reference,
+          );
 
           return (
             <button
@@ -86,18 +103,10 @@ const RunbookVariableChips: FunctionComponent<ComponentProps> = (
               aria-label={translator.translateTemplate(COPY_REFERENCE_TITLE, {
                 reference: choice.reference,
               })}
-              onClick={async () => {
-                const succeeded: boolean = await Clipboard.copyToClipboard(
-                  choice.reference,
-                );
-
-                if (succeeded) {
-                  setCopied(choice.reference);
-                  setTimeout(() => {
-                    setCopied("");
-                  }, 1500);
-                }
+              onClick={() => {
+                void clipboard.copy(choice.reference, choice.reference);
               }}
+              data-copy-state={copyStatus}
               className="inline-flex max-w-full items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1 font-mono text-xs text-gray-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
             >
               <Icon
@@ -110,11 +119,18 @@ const RunbookVariableChips: FunctionComponent<ComponentProps> = (
                   ? `local.${choice.name}`
                   : choice.name}
               </span>
-              {isCopied ? (
-                <span className="font-sans text-[10px] text-indigo-700">
-                  {translator.translateText("Copied!")}
+              {copyStatus === ClipboardCopyStatus.Idle ? null : (
+                <span
+                  aria-hidden="true"
+                  className={`font-sans text-[10px] ${
+                    copyStatus === ClipboardCopyStatus.Failed
+                      ? "text-red-700"
+                      : "text-indigo-700"
+                  }`}
+                >
+                  {copyStatusText}
                 </span>
-              ) : null}
+              )}
             </button>
           );
         })}
@@ -127,6 +143,10 @@ const RunbookVariableChips: FunctionComponent<ComponentProps> = (
           </span>
         ) : null}
       </div>
+      {/* What the last copy did, said to a screen reader. */}
+      <span className="sr-only" role="status">
+        {copyStatusText}
+      </span>
     </div>
   );
 };

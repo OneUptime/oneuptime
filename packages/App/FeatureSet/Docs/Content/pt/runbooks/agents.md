@@ -1,10 +1,11 @@
 # Agentes de runbook
 
-Um **agente de runbook**, chamado de **Runner** no painel, é um pequeno processo auto-hospedado que executa as etapas JavaScript, Bash, SSH e kubectl dos seus runbooks **dentro da sua própria infraestrutura**. O Worker do OneUptime nunca executa seus scripts: ele os coloca na fila, e o Runner escolhido por quem escreveu a etapa assume cada um, executa e devolve o resultado. Esta página é para quem instala e opera Runners. Uma etapa JavaScript que não escolhe nenhum Runner roda, em vez disso, em um [Runner global](#runners-globais), um dos que o OneUptime executa para todos os projetos.
+Um **agente de runbook**, chamado de **Runner** no painel, é um pequeno processo auto-hospedado que executa as etapas JavaScript, Bash, SSH e kubectl dos seus runbooks **dentro da sua própria infraestrutura**. O Worker do OneUptime nunca executa seus scripts: ele os coloca na fila, e o Runner escolhido por quem escreveu a etapa assume cada um, executa e devolve o resultado. Esta página é para quem instala e opera Runners. Uma etapa que não escolhe nenhum Runner roda no [Runner padrão do projeto](#o-runner-padrão-do-projeto), se você definiu um; caso contrário, uma etapa JavaScript roda em um [Runner global](#runners-globais), um dos que o OneUptime executa para todos os projetos.
 
 :::cards
 - [Instalar um Runner](#instalar-um-runner): Do painel a um contêiner conectado, em cinco etapas.
 - [Apontar uma etapa para um Runner](#apontar-uma-etapa-para-um-runner): Ligar uma etapa ao Runner que deve executá-la.
+- [O Runner padrão do projeto](#o-runner-padrão-do-projeto): O Runner em que roda uma etapa que não escolhe nenhum.
 - [Runners globais](#runners-globais): Os Runners que o OneUptime executa para todos os projetos, e o que eles executam.
 - [Timeouts](#timeouts): Os timeouts de assunção e de execução, e como interagem.
 - [Variáveis de ambiente](#variáveis-de-ambiente): O que o contêiner lê ao iniciar.
@@ -33,7 +34,7 @@ flowchart TB
 1. Você cria um Runner no OneUptime. O OneUptime gera um ID e uma chave secreta para ele.
 2. Você executa o contêiner do Runner em um host dentro da sua infraestrutura, com esse ID, essa chave e a URL do seu OneUptime.
 3. O Runner pede trabalho ao OneUptime a cada 5 segundos e informa que está vivo a cada 60 segundos.
-4. Ao escrever uma etapa JavaScript, Bash, SSH ou kubectl, você escolhe o Runner em uma lista suspensa. A etapa fica ligada a esse Runner. Uma etapa JavaScript pode manter **Runner global**, que a lista suspensa escolhe para ela.
+4. Ao escrever uma etapa JavaScript, Bash, SSH ou kubectl, você escolhe o Runner em uma lista suspensa, em **Mais campos** da etapa. A etapa fica ligada a esse Runner. Uma etapa que não escolhe nenhum roda no Runner padrão do projeto, se você definiu um, e, caso contrário, uma etapa JavaScript roda em **Runner global**.
 5. Quando a etapa roda, o Worker coloca na fila um trabalho com `targetAgentId` apontando para esse Runner. Só esse Runner pode assumi-lo.
 6. O Runner executa o job localmente — `bash -c <script>` para Bash e kubectl, um sandbox `isolated-vm` para JavaScript, uma conexão SSH que executa o script com bash na máquina —, captura o resultado, oculta nele os segredos da etapa e o envia de volta. O Worker retoma o runbook com o resultado.
 
@@ -52,7 +53,7 @@ Com os Runners, essas etapas rodam em um host que você controla, e você decide
 
 ## Runners globais
 
-Runners globais são os Runners que o OneUptime executa para todos os projetos. Uma etapa JavaScript que não escolhe um Runner próprio roda em um deles, então você pode escrevê-la antes de instalar qualquer coisa. **Runbooks → Agentes de runbook** os lista em **Runners globais**, acima dos seus próprios Runners, e a lista suspensa **Runner** de uma etapa JavaScript oferece **Runner global** primeiro.
+Runners globais são os Runners que o OneUptime executa para todos os projetos. Uma etapa JavaScript que não escolhe um Runner próprio roda em um deles, a menos que o projeto tenha um [Runner padrão](#o-runner-padrão-do-projeto), então você pode escrevê-la antes de instalar qualquer coisa. **Runbooks → Agentes de runbook** os lista em **Runners globais**, acima dos seus próprios Runners, e a lista suspensa **Runner** de uma etapa JavaScript oferece **Runner global** primeiro, ou logo depois do Runner padrão do projeto. A lista suspensa de uma etapa Bash, SSH ou kubectl o mostra por último, esmaecido, com **Roda só etapas de JavaScript.** Essas etapas rodam em um Runner seu, dentro da sua rede, nunca em um que todos os projetos compartilham.
 
 | | Runner global | Seu próprio Runner |
 | --- | --- | --- |
@@ -69,7 +70,7 @@ Um Runner global executa as etapas de muitos projetos, então cada etapa fica se
 - Ele só recebe uma variável secreta quando o interruptor **Runners globais podem usá-lo** dela está ligado, e só para uma etapa do próprio projeto da variável. Ele nunca recebe uma credencial.
 - Um projeto roda no máximo três etapas por vez nos Runners globais, então nenhum projeto fica com eles só para si.
 
-Escolha um dos seus próprios Runners para uma etapa que precisa alcançar a sua rede, ou para manter a etapa em hosts que você controla. Para manter todas as etapas nos seus próprios Runners, desligue **Usar Runners globais** no fim de **Runbooks → Agentes de runbook**. Uma etapa JavaScript que não escolhe nenhum Runner passa então a falhar, dizendo isso, até escolher um dos seus; uma etapa que escolhe um dos seus Runners o mantém de qualquer forma. Um repositório de código que não escolhe nenhum Runner nas configurações dele em Código também trabalha em um Runner global, e precisa de um dos seus enquanto a opção estiver desligada; consulte [Código](/docs/ai/ai-agent#escolha-o-runner-do-repositório).
+Escolha um dos seus próprios Runners para uma etapa que precisa alcançar a sua rede, ou para manter a etapa em hosts que você controla. Para manter todas as etapas nos seus próprios Runners, desligue **Usar Runners globais** no fim de **Runbooks → Agentes de runbook**. Uma etapa JavaScript que não escolhe nenhum Runner passa então a rodar no Runner padrão do projeto ou, se não houver um, a falhar, dizendo isso, até escolher um dos seus; uma etapa que escolhe um dos seus Runners o mantém de qualquer forma. Um repositório de código que não escolhe nenhum Runner nas configurações dele em Código também trabalha em um Runner global, e precisa de um dos seus enquanto a opção estiver desligada; consulte [Código](/docs/ai/ai-agent#escolha-o-runner-do-repositório).
 
 ### De onde vêm os Runners globais
 
@@ -142,7 +143,7 @@ Nas **Etapas** do seu runbook, adicione uma etapa JavaScript, Bash, SSH ou kubec
 
 ### Escolher o Runner
 
-A lista **Runner** da etapa mostra todos os Runners do projeto e se cada um está conectado. Se o projeto ainda não tiver nenhum, a etapa avisa e indica **Runbooks › Runners**. A lista suspensa de uma etapa JavaScript também oferece **Runner global**, primeiro, e o escolhe até você escolher um dos seus.
+Abra **Mais campos** da etapa: a lista **Runner** dela mostra todos os Runners do projeto e se cada um está conectado, e a linha recolhida nomeia o Runner em que a etapa roda. Se o projeto ainda não tiver nenhum, a etapa avisa e indica **Runbooks › Runners**. A primeira opção é onde roda uma etapa que não escolhe nenhum Runner: o [Runner padrão do projeto](#o-runner-padrão-do-projeto), marcado como **Padrão do projeto**, ou, caso contrário, para uma etapa JavaScript, **Runner global**.
 
 ### Salvar as etapas
 
@@ -152,6 +153,26 @@ Clique em **Save Steps**. Quando uma execução chega à etapa, o Worker coloca 
 O Bash é executado com `bash -c`. O JavaScript roda em um sandbox `isolated-vm` no Runner, sem acesso ao sistema de arquivos nem a processos; ele pode chamar APIs HTTP públicas com `axios`, mas não endereços de uma rede privada. Uma etapa SSH ou kubectl entra com uma [variável de runbook](/docs/runbooks/variables) secreta, que precisa listar o Runner da etapa em **Seus Runners que podem usá-lo**.
 
 Precisa de mais de um Runner? Crie-os e aponte cada etapa para o adequado. Para ter redundância, rode um segundo Runner e divida as etapas entre os dois, ou mantenha um runbook de reserva cujas etapas apontem para o outro Runner.
+
+## O Runner padrão do projeto
+
+Um projeto pode tornar um dos seus próprios Runners o padrão, assim como torna uma configuração do Twilio a padrão. Toda etapa de runbook que não escolhe nenhum Runner passa então a rodar nele: as etapas Bash, SSH e kubectl, e as etapas JavaScript, que de outra forma rodariam em um Runner global.
+
+Para tornar um Runner o padrão, vá a **Runbooks → Agentes de runbook**, abra o menu **⋯** na linha do Runner, clique em **Definir como padrão do projeto** e confirme com **Tornar padrão do projeto**. Ou abra o Runner e, no cartão **Padrão do projeto** dele, ligue **Usar como padrão do projeto**. A lista marca o padrão como **Padrão do projeto**, ao lado do nome, e a lista suspensa **Runner** de uma etapa faz o mesmo, na primeira opção. Um projeto tem um só Runner padrão: tornar outro Runner o padrão o substitui. **Deixar de usar como padrão do projeto**, no mesmo menu, ou o interruptor na página do Runner, deixa de usá-lo.
+
+Onde roda uma etapa que não escolhe nenhum Runner:
+
+| O projeto | Uma etapa JavaScript | Uma etapa Bash, SSH ou kubectl |
+| --- | --- | --- |
+| Tem um Runner padrão | O Runner padrão | O Runner padrão |
+| Não tem, e usa Runners globais | Um Runner global | Em nenhum: a etapa falha, dizendo que não tem Runner |
+| Não tem, e não usa Runners globais | Em nenhum: a etapa falha, dizendo isso | Em nenhum: a etapa falha, dizendo que não tem Runner |
+
+Uma etapa que escolheu um Runner o mantém, seja qual for o padrão, e uma etapa JavaScript ainda pode escolher **Runner global** por conta própria. Definir um padrão não altera nenhuma etapa salva.
+
+O padrão é um dos Runners próprios do projeto que roda etapas de runbook: não um Runner global, não o Runner dentro do cluster que o agente do Kubernetes instalou, e não um com **Executa runbooks** desligado. Enquanto um Runner é o padrão, o **Executa runbooks** dele continua ligado. Quando o padrão não está conectado, a lista suspensa de uma etapa avisa, e uma etapa nele espera por ele, como por qualquer Runner, até o claim timeout dela acabar.
+
+Só as etapas de runbook usam o padrão. Um repositório de código escolhe o Runner dele nas configurações dele em Código, e uma regra de remediação automática escolhe o seu.
 
 ## Notas de operação
 

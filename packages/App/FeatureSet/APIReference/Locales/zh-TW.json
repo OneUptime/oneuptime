@@ -36,6 +36,7 @@
     "or": "或",
     "copy": "複製",
     "copied": "已複製!",
+    "copyFailed": "複製失敗",
     "copyCode": "複製程式碼",
     "copyRequest": "複製請求",
     "headers": "標頭",

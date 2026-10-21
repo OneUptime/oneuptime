@@ -147,6 +147,7 @@
       "copyHint": "Indsæt det i en hvilken som helst kalenderapp, der kan abonnere på en kalender via URL.",
       "copy": "Kopiér link",
       "copied": "Kopieret!",
+      "copyFailed": "Din browser lod ikke siden kopiere linket. Det er markeret ovenfor, så du selv kan kopiere det.",
       "done": "Færdig",
       "refreshNote": "Kalenderapps tjekker for ændringer efter deres egen plan, så det kan tage et par timer, før en opdatering vises."
     }

@@ -9,6 +9,10 @@ import SecurityPlaybookActions, {
 import SecurityPlaybookEngine, {
   SECURITY_PLAYBOOK_RUN_JOB,
 } from "../../../../Server/Utils/SecurityPlaybook/SecurityPlaybookEngine";
+import {
+  SECURITY_CASE_NOTIFICATION_JOB,
+  SecurityCaseNotificationKind,
+} from "../../../../Server/Utils/SecurityCase/SecurityCaseNotifications";
 import SecurityPlaybookTargets from "../../../../Server/Utils/SecurityPlaybook/SecurityPlaybookTargets";
 import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
 import SecurityPlaybookRun from "../../../../Models/DatabaseModels/SecurityPlaybookRun";
@@ -329,6 +333,66 @@ describe("SecurityPlaybookEngine.executeRun", () => {
         return item.eventType === SecurityCaseFeedEventType.ApprovalRequested;
       }),
     ).toBe(true);
+  });
+
+  test("asks the people who can approve, through a notification job", async () => {
+    useRun([
+      step(SecurityPlaybookActionType.SuspendOktaUser, {
+        requiresApproval: true,
+      }),
+    ]);
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    const jobs: Array<Array<unknown>> = spies.enqueue.mock.calls.filter(
+      (call: Array<unknown>): boolean => {
+        return call[2] === SECURITY_CASE_NOTIFICATION_JOB;
+      },
+    );
+
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]![3]).toEqual({
+      kind: SecurityCaseNotificationKind.ApprovalRequested,
+      projectId: PROJECT_ID.toString(),
+      securityCaseId: CASE_ID.toString(),
+      runId: RUN_ID.toString(),
+    });
+  });
+
+  test("a run cancelled as it stops for approval asks nobody", async () => {
+    useRun([
+      step(SecurityPlaybookActionType.SuspendOktaUser, {
+        requiresApproval: true,
+      }),
+    ]);
+
+    // Cancelled between the step's result and the move to Waiting for Approval.
+    spies.cas.mockImplementation(async (input: unknown) => {
+      const { data, expectedData } = input as {
+        data: Partial<RunState>;
+        expectedData: Partial<RunState>;
+      };
+
+      if (data.status === SecurityPlaybookRunStatus.WaitingForApproval) {
+        state.status = SecurityPlaybookRunStatus.Cancelled;
+        return false as never;
+      }
+
+      if (expectedData.status !== state.status) {
+        return false as never;
+      }
+
+      Object.assign(state, data);
+      return true as never;
+    });
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    expect(
+      spies.enqueue.mock.calls.filter((call: Array<unknown>): boolean => {
+        return call[2] === SECURITY_CASE_NOTIFICATION_JOB;
+      }),
+    ).toEqual([]);
   });
 
   test("carries on from an approved step", async () => {

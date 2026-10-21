@@ -135,6 +135,12 @@ Un evento genérico se lee por nombres de campo habituales:
 | `className` | `event_type`, `category`, `type`, `action` |
 | `ruleName` | `rule`, `rule_name`, `signature`, `detection` |
 | `productName` | `product`, `product_name`, `source`, `log_source` |
+| `processName` | `process_name`, `process.name`, `proc.name`, `comm` |
+| `processPath` | `process_path`, `Image`, `NewProcessName`, `exe`, `process.executable` |
+| `processCommandLine` | `command_line`, `CommandLine`, `cmdline`, `process.command_line`, `proc.cmdline`, `process` |
+| `parentProcessName` | `parent_process_name`, `process.parent.name`, `proc.pname` |
+| `parentProcessPath` | `parent_process_path`, `ParentImage`, `ParentProcessName`, `process.parent.executable` |
+| `parentProcessCommandLine` | `parent_command_line`, `ParentCommandLine`, `process.parent.command_line`, `proc.pcmdline` |
 
 Una palabra de gravedad se convierte en un nivel OCSF: `info` se lee como Informational, `warning` como Low, `error` como Medium, `alert` como Critical y `emergency` como Fatal.
 
@@ -179,7 +185,7 @@ La tarjeta **Tus registros**, en la parte superior de **Conexiones**, convierte 
 | AWS Security Hub | Findings, como Detection y Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Eventos de inicio de sesión, MFA, cuentas y políticas | [Okta System Log](/docs/integrations/okta) |
 
-- Las alertas propias del producto con un nivel igual o superior a **Open Cases From** (**High and above** salvo que elijas otro nivel, o **Nunca**) abren [casos](/docs/telemetry/security-cases), agrupadas por el usuario, host o dirección de los que tratan.
+- Las alertas propias del producto con un nivel igual o superior a **Open Cases From** (**Alta y superior** salvo que elijas otro nivel, o **Nunca**) abren [casos](/docs/telemetry/security-cases), agrupadas por el usuario, host o dirección de los que tratan.
 - Una conexión lee los registros según el momento en que el producto los creó, no según el momento de la actividad que describen. Una regla de SIEM que se ejecuta cada hora crea detecciones mucho después de los eventos que coincidieron, y aun así se importan.
 - La primera consulta mira 24 horas atrás, así que una conexión nueva muestra registros recientes de inmediato.
 - **Probar conexión**, en la fila de la conexión, comprueba el acceso al producto y que los workers propios de OneUptime están funcionando, y no importa nada. **Ejecutar ahora** consulta en el acto.
@@ -194,6 +200,7 @@ Cada evento se guarda con campos tipados y su payload de origen:
 | Gravedad | `severityName`, uno de Unknown, Informational, Low, Medium, High, Critical, Fatal u Other, y `severityId` |
 | Quién lo hizo | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | Qué tocó | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
+| El proceso | `processName`, `processPath` y `processCommandLine`: en el inicio de un proceso, el proceso que se inició; en otro caso, el proceso que actuó. `parentProcessName`, `parentProcessPath` y `parentProcessCommandLine`: el proceso que lo inició |
 | Origen | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | Contenido | `message`, `mitreTactics`, `mitreTechniques` y `observables`: cada usuario, host, dirección IP, dominio y hash extraído del evento |
 | Atributos | El payload de origen completo, aplanado en claves con puntos |
@@ -218,11 +225,11 @@ La barra de búsqueda habla el mismo lenguaje que los demás exploradores de tel
 | `@<attribute>:*` | El atributo está presente | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | El atributo contiene el texto | `@finding_info.title:~ransom` |
 
-Un campo es un nombre corto (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `observable`, `tactic`, `technique`) o el nombre propio del campo, como `severityName` o `principalHost`. Cualquier otro nombre se lee como atributo de origen. `observable:<value>` encuentra cada evento que menciona un valor, estuviera en el lado de la actividad que estuviera.
+Un campo es un nombre corto (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`) o el nombre propio del campo, como `severityName` o `principalHost`. Cualquier otro nombre se lee como atributo de origen. `observable:<value>` encuentra cada evento que menciona un valor, estuviera en el lado de la actividad que estuviera.
 
 ### Facetas
 
-La barra lateral cuenta los eventos de la ventana por **Origen**, **Gravedad**, **Clase de evento**, **Categoría**, **Actividad**, **Estado**, **Proveedor**, **Producto**, **Regla de detección**, **Usuario de origen** y **Host de origen**. Haz clic en un valor para quedarte solo con sus eventos, o en el signo menos de al lado para excluirlos. Haz clic de nuevo para deshacerlo. El gráfico y cada recuento describen exactamente los eventos de la lista.
+La barra lateral cuenta los eventos de la ventana por **Origen**, **Gravedad**, **Clase de evento**, **Categoría**, **Actividad**, **Estado**, **Proveedor**, **Producto**, **Regla de detección**, **Usuario de origen**, **Host de origen**, **Proceso** y **Proceso padre**. Haz clic en un valor para quedarte solo con sus eventos, o en el signo menos de al lado para excluirlos. Haz clic de nuevo para deshacerlo. El gráfico y cada recuento describen exactamente los eventos de la lista.
 
 ### Correlacionar
 
@@ -278,6 +285,7 @@ OneUptime ejecuta el núcleo booleano de Sigma:
 - Las condiciones combinan selecciones con `and`, `or`, `not` y paréntesis, o con `1 of selection_*`, `all of selection_*`, `any of them` y `all of them`.
 - Modificadores de campo: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` y `windash`. El texto se compara sin distinguir mayúsculas, salvo que añadas `cased`.
 - Un campo es un campo tipado (`principalUser`), una grafía Sigma habitual de uno (`CommandLine`, `src_ip`, `Hostname`) o cualquier clave de atributo, escrita como en el evento (`threat.matched`).
+- `Image` y `CommandLine` leen el proceso del que trata el evento, el que se inició en el inicio de un proceso (`processPath`, `processCommandLine`), y `ParentImage` y `ParentCommandLine` el proceso que lo inició (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` es el proceso que actuó, que en un inicio es el proceso padre.
 - `level` fija la gravedad: `informational`, `low`, `medium`, `high` o `critical`, y `medium` si falta. Los IDs de ATT&CK en `tags` (`attack.t1110`, `attack.ta0006`) rellenan los campos MITRE del hallazgo.
 
 Las agregaciones como `| count() by principalIp > 5` se rechazan al guardar: usa en su lugar **Campo de agrupación** y **Umbral de número de coincidencias**. `logsource` es solo informativo y no acota nada: pon ese filtro en una selección, como `className: Authentication`. Un `timeframe` se ignora, porque el intervalo de la regla fija su ventana.

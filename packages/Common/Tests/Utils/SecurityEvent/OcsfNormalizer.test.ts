@@ -206,3 +206,197 @@ describe("OcsfNormalizer", () => {
     });
   });
 });
+
+/*
+ * Sigma's Image and CommandLine read the process an event is about. In
+ * OCSF Process Activity that is `process`, and in a launch the actor's
+ * process is its parent - so the actor can never stand in for it. In every
+ * other class the actor's process is the one that acted, and the one the
+ * event is about.
+ */
+describe("OcsfNormalizer: the process an event is about", () => {
+  const POWERSHELL: JSONObject = {
+    pid: 6532,
+    name: "powershell.exe",
+    cmd_line: "powershell.exe -nop -enc JABzAD0A",
+    file: {
+      name: "powershell.exe",
+      path: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    },
+  };
+
+  const WORD: JSONObject = {
+    pid: 4120,
+    name: "WINWORD.EXE",
+    cmd_line: '"WINWORD.EXE" /n "C:\\Users\\alice\\invoice.docm"',
+    file: {
+      path: "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE",
+    },
+  };
+
+  test("a launch: the process that started, and the actor as its parent", () => {
+    const result: NormalizedSecurityEvent = OcsfNormalizer.normalize({
+      class_uid: 1007,
+      activity_id: 1,
+      actor: { process: WORD },
+      process: POWERSHELL,
+    });
+
+    expect(result.processName).toBe("powershell.exe");
+    expect(result.processPath).toBe(
+      "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    );
+    expect(result.processCommandLine).toBe("powershell.exe -nop -enc JABzAD0A");
+    expect(result.parentProcessName).toBe("WINWORD.EXE");
+    expect(result.parentProcessPath).toBe(
+      "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE",
+    );
+    expect(result.parentProcessCommandLine).toBe(
+      '"WINWORD.EXE" /n "C:\\Users\\alice\\invoice.docm"',
+    );
+    // principalProcess keeps the actor's name, as it always has.
+    expect(result.principalProcess).toBe("WINWORD.EXE");
+  });
+
+  test("a launch's parent is read from process.parent_process and the actor together", () => {
+    const result: NormalizedSecurityEvent = OcsfNormalizer.normalize({
+      class_uid: 1007,
+      activity_id: 1,
+      actor: { process: WORD },
+      process: {
+        ...POWERSHELL,
+        parent_process: { pid: 4120, name: "winword.exe" },
+      },
+    });
+
+    expect(result.parentProcessName).toBe("winword.exe");
+    expect(result.parentProcessPath).toBe(
+      "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE",
+    );
+    expect(result.parentProcessCommandLine).toBe(
+      '"WINWORD.EXE" /n "C:\\Users\\alice\\invoice.docm"',
+    );
+  });
+
+  test("a parent_process that names another process than the actor is not mixed with it", () => {
+    const result: NormalizedSecurityEvent = OcsfNormalizer.normalize({
+      class_uid: 1007,
+      activity_id: 1,
+      actor: { process: WORD },
+      process: {
+        ...POWERSHELL,
+        parent_process: { name: "explorer.exe", cmd_line: "explorer.exe" },
+      },
+    });
+
+    expect(result.parentProcessName).toBe("explorer.exe");
+    expect(result.parentProcessCommandLine).toBe("explorer.exe");
+    expect(result.parentProcessPath).toBe("");
+  });
+
+  test.each([
+    ["an open (activity_id 3)", { activity_id: 3 }],
+    ["an injection (activity_id 4)", { activity_id: 4 }],
+    ["a termination named only in words", { activity_name: "Terminate" }],
+  ])(
+    "%s: the actor acted on the process, it is not its parent",
+    (_name: string, activity: JSONObject) => {
+      const result: NormalizedSecurityEvent = OcsfNormalizer.normalize({
+        class_uid: 1007,
+        ...activity,
+        actor: {
+          process: {
+            name: "mimikatz.exe",
+            cmd_line: "mimikatz.exe sekurlsa::logonpasswords",
+          },
+        },
+        process: {
+          name: "lsass.exe",
+          file: { path: "C:\\Windows\\System32\\lsass.exe" },
+          parent_process: { name: "wininit.exe" },
+        },
+      });
+
+      expect(result.processName).toBe("lsass.exe");
+      expect(result.parentProcessName).toBe("wininit.exe");
+      expect(result.parentProcessCommandLine).toBe("");
+      expect(result.principalProcess).toBe("mimikatz.exe");
+    },
+  );
+
+  test("a Process Activity that does not name its process leaves it empty: the actor is never it", () => {
+    const result: NormalizedSecurityEvent = OcsfNormalizer.normalize({
+      class_uid: 1007,
+      activity_id: 1,
+      actor: { process: WORD },
+    });
+
+    expect(result.processName).toBe("");
+    expect(result.processCommandLine).toBe("");
+    expect(result.parentProcessName).toBe("WINWORD.EXE");
+  });
+
+  test("a Process Activity that names no activity is read as a launch", () => {
+    const result: NormalizedSecurityEvent = OcsfNormalizer.normalize({
+      class_uid: 1007,
+      actor: { process: WORD },
+      process: POWERSHELL,
+    });
+
+    expect(result.parentProcessName).toBe("WINWORD.EXE");
+  });
+
+  test("in any other class the actor's process is the one the event is about, with its own parent", () => {
+    const result: NormalizedSecurityEvent = OcsfNormalizer.normalize({
+      class_uid: 4001,
+      activity_id: 1,
+      actor: {
+        process: {
+          ...POWERSHELL,
+          parent_process: {
+            name: "cmd.exe",
+            cmd_line: "cmd.exe /c start powershell",
+            file: { path: "C:\\Windows\\System32\\cmd.exe" },
+          },
+        },
+      },
+      dst_endpoint: { ip: "203.0.113.7", port: 443 },
+    });
+
+    expect(result.processName).toBe("powershell.exe");
+    expect(result.processCommandLine).toBe("powershell.exe -nop -enc JABzAD0A");
+    expect(result.parentProcessName).toBe("cmd.exe");
+    expect(result.parentProcessPath).toBe("C:\\Windows\\System32\\cmd.exe");
+    expect(result.parentProcessCommandLine).toBe("cmd.exe /c start powershell");
+  });
+
+  test("a path is the file's path, or its folder and name joined", () => {
+    const result: NormalizedSecurityEvent = OcsfNormalizer.normalize({
+      class_uid: 1007,
+      activity_id: 1,
+      process: {
+        cmd_line: "/usr/bin/curl -s http://203.0.113.7/x",
+        file: { parent_folder: "/usr/bin", name: "curl" },
+      },
+    });
+
+    expect(result.processPath).toBe("/usr/bin/curl");
+    expect(result.processName).toBe("curl");
+  });
+
+  test("an event with no process names none", () => {
+    const result: NormalizedSecurityEvent = OcsfNormalizer.normalize({
+      class_uid: 3002,
+      actor: { user: { name: "alice" } },
+    });
+
+    expect([
+      result.processName,
+      result.processPath,
+      result.processCommandLine,
+      result.parentProcessName,
+      result.parentProcessPath,
+      result.parentProcessCommandLine,
+    ]).toEqual(["", "", "", "", "", ""]);
+  });
+});

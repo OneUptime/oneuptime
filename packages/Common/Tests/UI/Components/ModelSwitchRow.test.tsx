@@ -84,6 +84,7 @@ jest.mock("../../../UI/Utils/User", () => {
 import ModelSwitchRow, {
   ComponentProps,
   ModelSwitchConfirmation,
+  getModelSwitchConfirmationWarningTestId,
 } from "../../../UI/Components/ModelSwitch/ModelSwitchRow";
 import {
   announceModelSwitchSaved,
@@ -567,6 +568,54 @@ describe("ModelSwitchRow locks for what the record says (lockedReason)", () => {
 
     expect(updateByIdMock).toHaveBeenCalledTimes(1);
   });
+
+  /*
+   * A page that gives the reason as the switch's own line (a Runner that
+   * may not be the project default) shows it on a phone too, where a
+   * tooltip never opens: the reason is then said once - no help icon, and
+   * a screen reader hears it once.
+   */
+  test("a reason the switch's own line already gives is said once, with no help icon", () => {
+    permissionsForTest = [Permission.ProjectAdmin];
+    const reason: string = "This Runner does not run runbooks.";
+
+    render(
+      mcpRow({
+        lockedReason: reason,
+        getDescription: (): string => {
+          return reason;
+        },
+      }),
+    );
+
+    expect(theSwitch()).toHaveAttribute("aria-disabled", "true");
+    expect(theSwitch()).toHaveAccessibleDescription(reason);
+    expect(
+      (theSwitch().getAttribute("aria-describedby") || "").split(" "),
+    ).toHaveLength(1);
+    const row: HTMLElement = screen.getByTestId(`${TEST_ID}-row`);
+    expect(row.textContent?.split(reason)).toHaveLength(2);
+  });
+
+  test("a reason the line does not give stays behind the help icon", () => {
+    permissionsForTest = [Permission.ProjectAdmin];
+
+    render(
+      mcpRow({
+        lockedReason: "A private episode is never shown.",
+        getDescription: (): string => {
+          return "Answers AI clients that ask about this page.";
+        },
+      }),
+    );
+
+    expect(
+      (theSwitch().getAttribute("aria-describedby") || "").split(" "),
+    ).toHaveLength(2);
+    expect(theSwitch()).toHaveAccessibleDescription(
+      "Answers AI clients that ask about this page. A private episode is never shown.",
+    );
+  });
 });
 
 describe("ModelSwitchRow names the plan it needs", () => {
@@ -1002,6 +1051,50 @@ describe("ModelSwitchRow asks first where a flip can lock people out", () => {
     expect(theSwitch()).toHaveAttribute("aria-checked", "false");
     expect(theSwitch()).not.toHaveAttribute("aria-disabled");
     expect(onChange.mock.calls).toEqual([[true], [false]]);
+  });
+
+  /*
+   * What goes wrong if the change is made now is a warning of its own,
+   * under the description - not one more sentence run into it.
+   */
+  test("a confirmation's warning is drawn apart from its description", async () => {
+    render(
+      mcpRow({
+        getConfirmation: (): ModelSwitchConfirmation => {
+          return {
+            ...CONFIRM_ON,
+            warning: "Nobody has signed in with SSO yet.",
+          };
+        },
+      }),
+    );
+
+    await press();
+
+    const dialog: HTMLElement = screen.getByRole("dialog");
+    const warning: HTMLElement = within(dialog).getByTestId(
+      getModelSwitchConfirmationWarningTestId(TEST_ID),
+    );
+    expect(warning).toHaveTextContent("Nobody has signed in with SSO yet.");
+    expect(warning).toHaveAttribute("role", "alert");
+    expect(
+      within(dialog).getByTestId("confirm-modal-description").textContent,
+    ).toBe("People who sign in with a password will be signed out.");
+  });
+
+  test("a confirmation without a warning draws none", async () => {
+    render(mcpRow({ getConfirmation: askWhenTurningOn }));
+
+    await press();
+
+    expect(
+      within(screen.getByRole("dialog")).queryByTestId(
+        getModelSwitchConfirmationWarningTestId(TEST_ID),
+      ),
+    ).toBeNull();
+    expect(getModelSwitchConfirmationWarningTestId(undefined)).toBe(
+      "model-switch-confirm-warning",
+    );
   });
 
   test("the other way saves at once, with no dialog", async () => {
