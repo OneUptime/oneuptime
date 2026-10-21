@@ -45,6 +45,7 @@ flowchart TB
 | **Playbooks** | Playbooks | 在案例上自动或手动运行的步骤 |
 | **等待审批** | Playbooks | 等待有人批准或拒绝的剧本步骤 |
 | **剧本运行记录** | Playbooks | 每个剧本逐步做了什么 |
+| **Protected Entities** | Playbooks | 任何剧本都不会遏制的用户和主机 |
 | **Connections** | Connections | 您的日志、OneUptime 轮询的安全产品，以及它发送到的 SIEM |
 | **设置指南** | Connections | 发送事件的代码片段，已填好你的摄取密钥 |
 

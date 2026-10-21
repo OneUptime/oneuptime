@@ -45,6 +45,7 @@ flowchart TB
 | **Playbooks** | Playbooks | Trin, der kører på sager, af sig selv eller manuelt |
 | **Venter på godkendelse** | Playbooks | De playbook-trin, der venter på, at nogen godkender eller afviser dem |
 | **Playbook-kørsler** | Playbooks | Hvad hver playbook gjorde, trin for trin |
+| **Protected Entities** | Playbooks | De brugere og værter, som ingen playbook inddæmmer |
 | **Connections** | Connections | Dine logs, de sikkerhedsprodukter, OneUptime henter fra, og de SIEM'er, det sender til |
 | **Opsætningsvejledning** | Connections | Kodestykker til at sende begivenheder, udfyldt med din ingestion-nøgle |
 

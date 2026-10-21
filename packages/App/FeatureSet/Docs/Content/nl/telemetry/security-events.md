@@ -45,6 +45,7 @@ Open **Producten → Security Events**, onder **Observability**. Het menu heeft 
 | **Playbooks** | Playbooks | Stappen die op zaken draaien, vanzelf of met de hand |
 | **Wacht op goedkeuring** | Playbooks | De playbookstappen die wachten tot iemand ze goedkeurt of afwijst |
 | **Playbook-uitvoeringen** | Playbooks | Wat elk playbook deed, stap voor stap |
+| **Protected Entities** | Playbooks | De gebruikers en hosts die geen enkel playbook inperkt |
 | **Connections** | Connections | Uw logs, de beveiligingsproducten die OneUptime opvraagt en de SIEM's waarnaar het verstuurt |
 | **Installatiegids** | Connections | Snippets om gebeurtenissen te sturen, ingevuld met je ingestiesleutel |
 

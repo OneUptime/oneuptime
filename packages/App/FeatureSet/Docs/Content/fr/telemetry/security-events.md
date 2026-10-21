@@ -45,6 +45,7 @@ Ouvrez **Produits → Événements de sécurité**, sous **Observabilité**. Son
 | **Playbooks** | Playbooks | Des étapes qui s'exécutent sur les dossiers, d'elles-mêmes ou à la main |
 | **En attente d'approbation** | Playbooks | Les étapes de playbook qui attendent que quelqu'un les approuve ou les rejette |
 | **Exécutions de playbooks** | Playbooks | Ce que chaque playbook a fait, étape par étape |
+| **Protected Entities** | Playbooks | Les utilisateurs et les hôtes qu'aucun playbook ne confine |
 | **Connexions** | Connexions | Vos journaux, les produits de sécurité qu'interroge OneUptime et les SIEM auxquels il envoie |
 | **Guide de configuration** | Connexions | Des extraits pour envoyer des événements, remplis avec votre clé d'ingestion |
 

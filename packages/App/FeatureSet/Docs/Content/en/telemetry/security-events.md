@@ -45,6 +45,7 @@ Open **Products → Security Events**, under **Observability**. Its menu has a s
 | **Playbooks** | Playbooks | Steps that run on cases, by themselves or by hand |
 | **Waiting for Approval** | Playbooks | The playbook steps waiting for someone to approve or reject them |
 | **Playbook Runs** | Playbooks | What each playbook did, step by step |
+| **Protected Entities** | Playbooks | The users and hosts no playbook contains |
 | **Connections** | Connections | Your logs, the security products OneUptime polls, and the SIEMs it sends to |
 | **Setup Guide** | Connections | Snippets to send events, filled in with your ingestion key |
 
