@@ -2,6 +2,9 @@
 
 **Cloud Resources** lists the IaaS and PaaS resources in your AWS, Azure and Google Cloud accounts: virtual machines, disks, load balancers, buckets, managed databases, caches, queues, API gateways and the rest. Each one gets a page of its own, with its type, region and account, the provider's own ID for it, every metric the provider publishes about it, and owners and labels like every other resource in OneUptime. Find them under **Cloud → All Resources**.
 
+> [!TIP]
+> Rather not run a collector? [Connect a cloud account](/docs/telemetry/cloud-accounts) under **Cloud → Connect**, and OneUptime reads these metrics itself.
+
 :::cards
 - [Connect Azure](#connect-azure): Read every resource in a subscription from Azure Monitor.
 - [Connect AWS](#connect-aws): Poll CloudWatch, or stream it through Amazon Data Firehose.

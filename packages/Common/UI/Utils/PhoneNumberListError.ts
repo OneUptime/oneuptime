@@ -1,4 +1,6 @@
-import TwilioPhoneNumbers from "../../Types/CallAndSMS/TwilioPhoneNumbers";
+import TwilioPhoneNumbers, {
+  PHONE_NUMBER_LIST_EXAMPLE,
+} from "../../Types/CallAndSMS/TwilioPhoneNumbers";
 import Phone from "../../Types/Phone";
 import { translateTemplate, translationKey } from "./TranslateTemplate";
 
@@ -8,10 +10,13 @@ import { translateTemplate, translationKey } from "./TranslateTemplate";
  * project's settings or the Admin Dashboard's. The rule is the server's
  * (TwilioPhoneNumbers.getListError): entries separated by commas, each a
  * phone number with its country code, so a list a form lets through is one
- * the server stores. Said in the reader's language, naming the entry.
+ * the server stores. Said in the reader's language, naming the entry, with
+ * the server's example list ({{example}}: PHONE_NUMBER_LIST_EXAMPLE) - the
+ * one the SMS numbers field shows - rather than numbers of its own that
+ * every locale would have to repeat.
  */
 export const PHONE_NUMBER_LIST_ERROR: string = translationKey(
-  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like {{example}}.",
 );
 
 export const getPhoneNumberListError: (value: unknown) => string | null = (
@@ -27,6 +32,7 @@ export const getPhoneNumberListError: (value: unknown) => string | null = (
     } catch {
       return translateTemplate(PHONE_NUMBER_LIST_ERROR, {
         entry: `"${entry}"`,
+        example: PHONE_NUMBER_LIST_EXAMPLE,
       });
     }
   }

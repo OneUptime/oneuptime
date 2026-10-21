@@ -56,7 +56,7 @@ Voor een standaard voor de hele installatie kan een beheerder in plaats daarvan 
 
 ### Aparte nummers voor oproepen en sms
 
-Een Twilio-nummer kan bellen en sms versturen, of maar een van beide, en in sommige landen kan geen enkel nummer allebei. In Singapore bijvoorbeeld zijn nationale nummers (+65 3 of +65 6) alleen voor spraak, en hebben sms-berichten een mobiel nummer nodig (+65 8). Een configuratie, die van een project of die van de installatie, kan onder **Meer velden** nummers voor sms opgeven:
+Een Twilio-nummer kan bellen en sms versturen, of maar een van beide, en in sommige landen kan geen enkel nummer allebei: nationale nummers kunnen alleen voor spraak zijn, terwijl sms-berichten een mobiel nummer nodig hebben. Een configuratie, die van een project of die van de installatie, kan onder **Meer velden** nummers voor sms opgeven:
 
 | Veld | Wat ervandaan uitgaat |
 | --- | --- |
@@ -64,12 +64,12 @@ Een Twilio-nummer kan bellen en sms versturen, of maar een van beide, en in somm
 | **Twilio secundaire telefoonnummers** | Oproepen, en sms zolang er geen sms-nummers zijn opgegeven, naar ontvangers in het land van elk nummer |
 | **Twilio sms-telefoonnummers** | Elke sms, zodra ze zijn opgegeven: vanaf het nummer in het land van de ontvanger, anders vanaf het eerste |
 
-Vul voor Singapore het nationale nummer in als **Twilio primair telefoonnummer** en het mobiele nummer bij **Twilio sms-telefoonnummers**. Zodra een configuratie sms-nummers opgeeft, gaat er geen sms meer uit van haar andere nummers; geef dus elk nummer op dat sms moet versturen.
+Als uw nummer alleen kan bellen, houd het dan als **Twilio primair telefoonnummer** en vul een nummer dat sms kan versturen, zoals een mobiel nummer, in bij **Twilio sms-telefoonnummers**. Zodra een configuratie sms-nummers opgeeft, gaat er geen sms meer uit van haar andere nummers; geef dus elk nummer op dat sms moet versturen.
 
 Een configuratie zonder sms-nummers verstuurt sms, zoals voorheen, vanaf dezelfde nummers als oproepen. **Test-sms verzenden** en **Testoproep verzenden** gaan uit van het nummer waarvandaan een echte sms of oproep naar dezelfde ontvanger zou gaan. Als Twilio een sms weigert met fout 21606, kan het nummer geen sms versturen: voeg bij **Twilio sms-telefoonnummers** een nummer toe dat het wel kan.
 
 > [!NOTE]
-> In Singapore komt een sms van een nummer dat niet bij SGNIC is geregistreerd, of van een nummer buiten Singapore, binnen met de afzender `Likely-SCAM`. Registreer het mobiele nummer bij SGNIC en bij Twilio voordat u erop vertrouwt; zie [de sms-richtlijnen van Twilio voor Singapore](https://www.twilio.com/en-us/guidelines/sg/sms).
+> Welke nummers sms kunnen versturen, en of een afzender eerst geregistreerd moet worden, verschilt per land: waar registratie verplicht is, kan een sms van een niet-geregistreerd nummer worden geblokkeerd of als spam worden gemarkeerd. Controleer [de sms-richtlijnen van Twilio](https://www.twilio.com/en-us/guidelines/sms) voor elk land waarnaar u verstuurt voordat u op een nummer vertrouwt.
 
 ## 3. Configureer netwerktoegang
 

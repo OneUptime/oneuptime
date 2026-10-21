@@ -43,8 +43,16 @@ import { refusedValue } from "../../Utils/RefusedValue";
  */
 const PHONE_NUMBER_LIST_SEPARATOR: RegExp = /[,;\n]/;
 
-// What a list of numbers looks like, for the error that refuses one.
-export const PHONE_NUMBER_LIST_EXAMPLE: string = "+6581234567, +447700900123";
+/*
+ * What a list of numbers looks like: the example an empty Twilio SMS Phone
+ * Numbers field shows, on a project's Twilio config and on the Admin
+ * Dashboard's, and the one the error that refuses a list gives. Two numbers
+ * in two countries, each from a range kept for fiction - North America's
+ * 555-0100 to 555-0199 and the UK's 07700 900000 to 900999 - so a copied
+ * example texts nobody. Never one country's numbers: OneUptime is used
+ * worldwide, and which numbers can send SMS differs from country to country.
+ */
+export const PHONE_NUMBER_LIST_EXAMPLE: string = "+14155550123, +447700900123";
 
 /*
  * The field of the Notification service's answer to Send Test SMS and Send

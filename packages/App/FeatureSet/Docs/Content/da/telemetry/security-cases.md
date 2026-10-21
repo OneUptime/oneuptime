@@ -26,7 +26,7 @@ flowchart TB
     work --> close["Lukket med en konklusion"]
 ```
 
-Åbn **Produkter → Security Events → Security Cases**. Køen viser først de åbne sager; **Assigned to Me**, **Unassigned**, **Lukket** og **Alle** er de andre visninger.
+Åbn **Produkter → Security Events → Sikkerhedssager → Åbne sager** for køen. **Tildelt mig**, **Ikke tildelt**, **Lukkede sager** og **Alle sager** er sider for sig ved siden af, og hver viser de sager, navnet siger.
 
 ## Før du begynder
 
@@ -47,7 +47,7 @@ Hver af disse rettigheder kan også tildeles for sig, fra at oprette en sag til 
 | Detektionsregler | En regel matcher | **Open a Case on Match** i regelens trin **Ved match** |
 | Trusselsintelligens | En begivenhed nævner en kendt indikator | **Open a Case on Match** i feedets trin **Ved match** |
 | Forbundne produkter | En advarsel fra selve produktet importeres på eller over forbindelsens tærskel | **Open Cases From** sat til **Aldrig** i forbindelsens trin **Polling** |
-| Personer | Nogen åbner en fra **Security Cases** eller med **Open Case** i en begivenheds panel | Ingen |
+| Personer | Nogen åbner en fra **Sikkerhedssager** eller med **Open Case** i en begivenheds panel | Ingen |
 
 Alle kilder er slået til som standard. En forbindelse åbner sager for **High and above**, medmindre du vælger et andet niveau; advarslerne under det importeres stadig som begivenheder.
 
@@ -86,7 +86,7 @@ Sagens side har alt, hvad du skal bruge for at behandle den:
 - **Detections**: det, der blev udløst og åbnede sagen eller blev føjet til den, hvor ofte, og den seneste matchende begivenhed.
 - **Entiteter**: de brugere, værter og adresser, sagen handler om, med deres aktivitet på tværs af alle dine sikkerhedsbegivenheder de seneste 7 dage. Hver af dem åbnes i **Korrelér**.
 - **MITRE ATT&CK**: de taktikker og teknikker, som sagens detektioner knyttes til, hver med et link til sin side på attack.mitre.org.
-- **Playbook Runs**: hvad hver playbook gjorde på sagen, trin for trin, og de trin, der venter på godkendelse.
+- **Playbook-kørsler**: hvad hver playbook gjorde på sagen, trin for trin, og de trin, der venter på godkendelse.
 - **Noter** og **Tidslinje**: hvad teamet skrev, og alt, hvad der skete, med hvem der gjorde det.
 
 For at behandle flere sager på én gang vælger du dem i køen og bruger **Assign to Me**, **Change Status** eller **Change Priority**.
@@ -188,7 +188,7 @@ En e-mail eller et opslag uden egen besked sender en opsummering af sagen.
 
 ### Kørsler og godkendelser
 
-Hver kørsel vises på sin sag og under **Produkter → Security Events → Playbooks → Playbook Runs**, trin for trin:
+Hver kørsel vises på sin sag og under **Produkter → Security Events → Playbooks → Playbook-kørsler**, trin for trin:
 
 | Kørselsstatus | Betyder |
 | --- | --- |
@@ -199,7 +199,7 @@ Hver kørsel vises på sin sag og under **Produkter → Security Events → Play
 | Mislykkedes | Et trin mislykkedes, og kørslen stoppede |
 | Annulleret | Nogen annullerede den eller afviste et trin |
 
-Et trin, der venter på godkendelse, viser **Approve** og **Reject** på kørslen med en valgfri kommentar. En godkendelse fører kørslen videre fra det trin; en afvisning afslutter den. Beslutningen, hvem der traf den, og deres kommentar gemmes på trinnet og på sagens tidslinje. **Playbook Runs** viser først de kørsler, der venter på godkendelse, og menupunktet **Playbooks** tæller dem.
+Et trin, der venter på godkendelse, viser **Approve** og **Reject** på kørslen med en valgfri kommentar. En godkendelse fører kørslen videre fra det trin; en afvisning afslutter den. Beslutningen, hvem der traf den, og deres kommentar gemmes på trinnet og på sagens tidslinje. **Venter på godkendelse**, under **Playbooks** i menuen, viser de kørsler, der venter på en beslutning, og tæller dem; **Playbook-kørsler** viser hver kørsel.
 
 En kørsel, der holder op med at høre fra sin worker, f.eks. efter en genstart, bliver samlet op igen: en kørsel i kø sættes i kø igen efter 2 minutter, og en kørsel, der ikke har meldt noget i 30 minutter, markeres som mislykket.
 
@@ -207,7 +207,7 @@ En kørsel, der holder op med at høre fra sin worker, f.eks. efter en genstart,
 
 **Produkter → Security Events → Oversigt** er der, hvor produktet åbner:
 
-- De åbne sager, der er tildelt dig, de åbne sager, som ingen har taget, og de playbook-trin, der venter på godkendelse.
+- De åbne sager, der er tildelt dig, de åbne sager, som ingen har taget, og de playbook-trin, der venter på godkendelse; hvert tal åbner siden, der viser dem.
 - **Gennemsnitlig tid til kvittering**, **Gennemsnitlig tid til inddæmning** og **Gennemsnitlig tid til lukning** over de sager, der er åbnet inden for de seneste 30 dage: fra en sag åbnes, til nogen tager den (tildeler en person eller flytter den ud af Ny), til Contained og til Lukket. En sag, der stadig venter, tælles ikke med i et gennemsnit.
 - De sager, der er åbnet hver dag i 30 dage, efter prioritet, og de detektioner, der er rejst hver dag i 14 dage, efter kilde.
 - De åbne sager efter prioritet og efter status, konklusionerne fra de seneste 30 dage, ATT&CK-taktikkerne bag sagerne, de detektioner, der blev udløst oftest, og de entiteter, som flest fund nævner.

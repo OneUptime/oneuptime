@@ -45,7 +45,7 @@ flowchart LR
 | --- | --- | --- |
 | **Orígenes** | **Conexiones** | Sus registros, los productos de seguridad que consulta OneUptime y todo lo que envía |
 | **Detecciones** | **Detecciones** | Reglas Sigma y fuentes de inteligencia de amenazas que buscan amenazas en cada evento |
-| **Security Cases** | **Security Cases** | Lo que se encontró, agrupado por el usuario, el host o la dirección a la que se refiere |
+| **Casos de seguridad** | **Casos de seguridad** | Lo que se encontró, agrupado por el usuario, el host o la dirección a la que se refiere |
 | **Playbooks** | **Playbooks** | Pasos que se ejecutan en los casos nuevos: enriquecerlos, avisar, abrir un incidente o contener |
 
 La franja de la parte superior de **Vista general** muestra cada parte con sus cifras: los orígenes y sus eventos de las últimas 24 horas, las reglas activas, los casos abiertos y los playbooks que responden.
@@ -75,7 +75,7 @@ Su rol no puede añadir reglas de detección, playbooks ni el origen de registro
 :::
 
 :::details El ataque de prueba no abrió ningún caso
-Normalmente el caso se abre antes de que el botón responda; si la regla aún se está poniendo al día, lo indica y el caso se abre en menos de un minuto. Vuelva a mirar **Security Cases** y compruebe en **Detecciones** que la regla de fuerza bruta está activada.
+Normalmente el caso se abre antes de que el botón responda; si la regla aún se está poniendo al día, lo indica y el caso se abre en menos de un minuto. Vuelva a mirar **Casos de seguridad** y compruebe en **Detecciones** que la regla de fuerza bruta está activada.
 :::
 
 :::details Mis registros no generan ningún evento de seguridad

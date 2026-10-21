@@ -26,7 +26,7 @@ flowchart TB
     work --> close["Stängs med en bedömning"]
 ```
 
-Öppna **Produkter → Security Events → Security Cases**. Kön öppnas på de öppna ärendena; **Assigned to Me**, **Unassigned**, **Stängd** och **Alla** är de andra vyerna.
+Öppna **Produkter → Security Events → Säkerhetsärenden → Öppna ärenden** för kön. **Tilldelade mig**, **Ej tilldelad**, **Stängda ärenden** och **Alla ärenden** är egna sidor bredvid, och var och en listar de ärenden som namnet säger.
 
 ## Innan du börjar
 
@@ -47,7 +47,7 @@ Var och en av dessa behörigheter kan också ges för sig, från att skapa ett �
 | Detektionsregler | En regel träffar | **Open a Case on Match**, i regelns steg **Vid träff** |
 | Hotunderrättelser | En händelse nämner en känd indikator | **Open a Case on Match**, i flödets steg **Vid träff** |
 | Anslutna produkter | Ett larm från produkten själv importeras på eller över anslutningens tröskel | **Open Cases From** satt till **Aldrig**, i anslutningens steg **Polling** |
-| Personer | Någon öppnar ett från **Security Cases**, eller med **Open Case** i en händelses panel | Går inte |
+| Personer | Någon öppnar ett från **Säkerhetsärenden**, eller med **Open Case** i en händelses panel | Går inte |
 
 Alla källor är påslagna som standard. En anslutning öppnar ärenden för **High and above** om du inte väljer en annan nivå; larmen under den nivån importeras ändå som händelser.
 
@@ -86,7 +86,7 @@ Ett ärende går igenom fyra statusar. Det kan hoppa över en, till exempel när
 - **Detections**: det som löste ut och öppnade ärendet eller lades till i det, hur ofta, och den senaste händelsen som träffade.
 - **Entiteter**: användarna, värdarna och adresserna som ärendet handlar om, med deras aktivitet i alla dina säkerhetshändelser under de senaste 7 dagarna. Var och en öppnas i **Korrelera**.
 - **MITRE ATT&CK**: taktikerna och teknikerna som dess detektioner mappas till, var och en länkad till sin sida på attack.mitre.org.
-- **Playbook Runs**: vad varje playbook gjorde i ärendet, steg för steg, och stegen som väntar på godkännande.
+- **Playbook-körningar**: vad varje playbook gjorde i ärendet, steg för steg, och stegen som väntar på godkännande.
 - **Anteckningar** och **Tidslinje**: vad teamet skrev, och allt som hände, med vem som gjorde det.
 
 För att arbeta med flera ärenden samtidigt markerar du dem i kön och använder **Assign to Me**, **Change Status** eller **Change Priority**.
@@ -188,7 +188,7 @@ Ett mejl eller ett inlägg utan eget meddelande skickar en sammanfattning av är
 
 ### Körningar och godkännanden
 
-Varje körning listas, steg för steg, i sitt ärende och under **Produkter → Security Events → Playbooks → Playbook Runs**:
+Varje körning listas, steg för steg, i sitt ärende och under **Produkter → Security Events → Playbooks → Playbook-körningar**:
 
 | Körningsstatus | Betyder |
 | --- | --- |
@@ -199,7 +199,7 @@ Varje körning listas, steg för steg, i sitt ärende och under **Produkter → 
 | Failed | Ett steg misslyckades och körningen stoppades |
 | Cancelled | Någon avbröt den eller avvisade ett steg |
 
-Ett steg som väntar på godkännande visar **Approve** och **Reject** på körningen, med en valfri kommentar. Ett godkännande låter körningen fortsätta från det steget; ett avvisande avslutar den. Beslutet, vem som fattade det och kommentaren sparas på steget och på ärendets tidslinje. **Playbook Runs** öppnas på körningarna som väntar på godkännande, och menyposten **Playbooks** visar hur många de är.
+Ett steg som väntar på godkännande visar **Approve** och **Reject** på körningen, med en valfri kommentar. Ett godkännande låter körningen fortsätta från det steget; ett avvisande avslutar den. Beslutet, vem som fattade det och kommentaren sparas på steget och på ärendets tidslinje. **Väntar på godkännande**, under **Playbooks** i menyn, listar körningarna som väntar på ett beslut och räknar dem; **Playbook-körningar** listar varje körning.
 
 En körning vars worker slutar höra av sig, till exempel efter en omstart, tas upp igen: en köad körning läggs i kö på nytt efter 2 minuter, och en körning som inte har hörts av på 30 minuter markeras som misslyckad.
 
@@ -207,7 +207,7 @@ En körning vars worker slutar höra av sig, till exempel efter en omstart, tas 
 
 **Produkter → Security Events → Översikt** är där produkten öppnas:
 
-- De öppna ärenden som är tilldelade dig, de öppna ärenden som ingen har tagit sig an, och playbook-stegen som väntar på godkännande.
+- De öppna ärenden som är tilldelade dig, de öppna ärenden som ingen har tagit sig an, och playbook-stegen som väntar på godkännande; varje tal öppnar sidan som listar dem.
 - **Genomsnittlig tid till kvittering**, **Genomsnittlig tid till begränsning** och **Genomsnittlig tid till stängning**, över ärendena som öppnats under de senaste 30 dagarna: från att ett ärende öppnas till att någon tar sig an det (en person tilldelas, eller det flyttas ut ur New), till Contained och till Closed. Ett ärende som fortfarande väntar räknas inte in i något medelvärde.
 - Ärendena som öppnats varje dag i 30 dagar, efter prioritet, och detektionerna som skapats varje dag i 14 dagar, efter källa.
 - De öppna ärendena efter prioritet och efter status, bedömningarna från de senaste 30 dagarna, ATT&CK-taktikerna bakom ärendena, detektionerna som löste ut oftast, och entiteterna som nämns i flest fynd.

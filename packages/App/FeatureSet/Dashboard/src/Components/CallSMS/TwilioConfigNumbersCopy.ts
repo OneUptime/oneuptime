@@ -10,13 +10,18 @@ import {
  * Project Settings > Notifications > Notification Settings > Twilio Config.
  *
  * A Twilio number can make calls and send SMS, or only one of the two, and
- * in some countries no one number does both: in Singapore, national numbers
- * are voice-only and SMS need a mobile number. So a config can list Twilio
+ * in some countries no one number does both: national numbers can be
+ * voice-only while SMS need a mobile number. So a config can list Twilio
  * SMS Phone Numbers: once it does, every SMS goes out from one of them - the
  * one in the recipient's country, or else the first - and calls keep going
  * out from the primary and secondary numbers
  * (Common/Types/CallAndSMS/TwilioPhoneNumbers). Most configs need none, so
  * the list is under More fields, with the secondary numbers.
+ *
+ * The help names no country, and the field's example is no one country's
+ * number (PHONE_NUMBER_LIST_EXAMPLE): OneUptime is used worldwide, and which
+ * numbers can send SMS differs from country to country - the docs point to
+ * Twilio's SMS guidelines for each (self-hosted/twilio-integration).
  *
  * Kept free of React, so App/Tests can read these exact strings. Every
  * sentence is wrapped in translationKey() so npm run i18n:extract finds it;
@@ -48,7 +53,7 @@ export const TwilioConfigNumbersCopy: {
     "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.",
   ),
   smsPhoneNumbersDescription: translationKey(
-    "Numbers to send SMS from if yours can't (Singapore's national ones are voice-only). Each SMS uses the one in the recipient's country, or the first.",
+    "Numbers to send SMS from if yours can only make calls. Each SMS uses the one in the recipient's country, or the first.",
   ),
   secondaryPhoneNumbersDescription: translationKey(
     "Numbers to use instead of the primary one when they match the recipient's country code.",

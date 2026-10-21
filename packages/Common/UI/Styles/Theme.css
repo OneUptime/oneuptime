@@ -395,6 +395,14 @@ html.dark [class~="!border-gray-300"] {
   border-color: var(--ou-border-strong) !important;
 }
 
+/*
+ * A box's border while it has the focus - a table's opened search - is the
+ * strong border the hover rule below draws, not Tailwind's light gray-400.
+ */
+html.dark .border-gray-400 {
+  border-color: #64748b !important;
+}
+
 html.dark :is(
     [class~="hover:border-gray-200"],
     [class~="hover:border-gray-300"],

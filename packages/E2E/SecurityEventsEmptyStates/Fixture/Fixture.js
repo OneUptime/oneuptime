@@ -426,10 +426,17 @@ function StubPage(props) {
   );
 }
 
-// Every other Security Events page: the empty states link to some of them.
+/*
+ * Every other Security Events page, each an entry of the side menu: the
+ * empty states link to some of them.
+ */
 const STUB_TABS = [
   [PageMap.SECURITY_EVENTS_OVERVIEW, "Overview"],
-  [PageMap.SECURITY_CASES, "Cases"],
+  [PageMap.SECURITY_CASES, "Open Cases"],
+  [PageMap.SECURITY_CASES_ASSIGNED_TO_ME, "Assigned to Me"],
+  [PageMap.SECURITY_CASES_UNASSIGNED, "Unassigned"],
+  [PageMap.SECURITY_CASES_CLOSED, "Closed Cases"],
+  [PageMap.SECURITY_CASES_ALL, "All Cases"],
   [PageMap.SECURITY_EVENTS_CORRELATE, "Correlate"],
   [PageMap.SECURITY_EVENTS_ENTITIES, "Entities"],
   [PageMap.SECURITY_EVENTS_DETECTION_RULES, "Detection Rules"],
@@ -438,6 +445,7 @@ const STUB_TABS = [
   [PageMap.SECURITY_EVENTS_THREAT_INTEL, "Threat Intel"],
   [PageMap.SECURITY_EVENTS_MONITORS, "Monitors"],
   [PageMap.SECURITY_PLAYBOOKS, "Playbooks"],
+  [PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL, "Waiting for Approval"],
   [PageMap.SECURITY_PLAYBOOK_RUNS, "Playbook Runs"],
   [PageMap.SECURITY_EVENTS_DOCUMENTATION, "Setup Guide"],
 ];

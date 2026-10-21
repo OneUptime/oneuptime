@@ -106,6 +106,7 @@ const WIDEST_LABEL_LINE: Record<string, number> = {
   "telemetry/cloud-azure-container-apps": 24,
   "telemetry/cloud-other-platforms": 23,
   "telemetry/cloud-troubleshooting": 31,
+  "telemetry/cloud-accounts": 24,
   "telemetry/cloud-resources": 23,
 };
 

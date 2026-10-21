@@ -218,6 +218,7 @@ import LlmProviderSettings from "../../../../App/FeatureSet/AdminDashboard/src/P
 import AdminModelAPI from "../../../../App/FeatureSet/AdminDashboard/src/Utils/ModelAPI";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import LlmProvider from "../../../Models/DatabaseModels/LlmProvider";
+import { PHONE_NUMBER_LIST_EXAMPLE } from "../../../Types/CallAndSMS/TwilioPhoneNumbers";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ObjectID from "../../../Types/ObjectID";
 import { FormType, ModelField } from "../../../UI/Components/Forms/ModelForm";
@@ -256,6 +257,7 @@ function readLocale(locale: string): Locale {
 
 const ENGLISH: Locale = readLocale("en");
 const GERMAN: Locale = readLocale("de");
+const JAPANESE: Locale = readLocale("ja");
 
 // A page's nested entry ("pages.settings.callSms.editButton"), or a flat one.
 function text(locale: Locale, key: string): string {
@@ -546,6 +548,8 @@ describe("Settings > Call & SMS", () => {
    * Twilio number can make calls and send SMS, or only one of the two, and
    * Singapore's national numbers are voice-only - SMS there need a mobile
    * number. Folded with the extra numbers, as few installations need them.
+   * Their help names no country, and their empty field shows an example
+   * that is no one country's numbers: OneUptime is used worldwide.
    */
   describe("numbers for SMS", () => {
     const SMS_NUMBERS: string = "Twilio SMS Phone Numbers";
@@ -553,7 +557,9 @@ describe("Settings > Call & SMS", () => {
     const PRIMARY_HELP: string =
       "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.";
     const SMS_HELP: string =
-      "Numbers to send SMS from if yours can't (Singapore's national ones are voice-only). Each SMS uses the one in the recipient's country, or the first.";
+      "Numbers to send SMS from if yours can only make calls. Each SMS uses the one in the recipient's country, or the first.";
+    const LIST_ERROR: string =
+      "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like {{example}}.";
 
     async function openDialog(): Promise<HTMLElement> {
       const dialog: HTMLElement = await openEditDialog(editButton);
@@ -602,6 +608,57 @@ describe("Settings > Call & SMS", () => {
       expect(within(dialog).getByText(PRIMARY_HELP)).toBeVisible();
       // The SMS numbers say when they are needed, and what they change.
       expect(within(dialog).getByText(SMS_HELP)).toBeVisible();
+      // Empty, they show the server's example list: no one country's numbers.
+      expect(
+        within(dialog).getByLabelText(SMS_NUMBERS, { exact: false }),
+      ).toHaveAttribute("placeholder", PHONE_NUMBER_LIST_EXAMPLE);
+      expect(PHONE_NUMBER_LIST_EXAMPLE).toBe("+14155550123, +447700900123");
+    });
+
+    /*
+     * In the reader's language, the "(Optional)" after each title too: the
+     * Admin Dashboard's locales had no entry for it, so these titles read
+     * "Twilio SMS 電話番号 (Optional)" - the one English word in the form.
+     * It is worded as the Dashboard's Japanese locale words it.
+     */
+    test("say they are optional, and when the SMS numbers are needed, in the reader's language", async () => {
+      await renderWithLocale(<CallSmsSettings />, "ja");
+
+      const dialog: HTMLElement = await openEditDialog(
+        text(JAPANESE, "pages.settings.callSms.editButton"),
+      );
+
+      await waitFor(
+        () => {
+          expect(
+            label(dialog, text(JAPANESE, "Twilio Account SID")),
+          ).toBeVisible();
+        },
+        { timeout: WAIT_FOR_TIMEOUT },
+      );
+      await settle();
+
+      fireEvent.click(advancedHeader(dialog, text(JAPANESE, "More fields")));
+
+      expect(text(JAPANESE, "(Optional)")).toBe("（任意）");
+
+      for (const title of [SMS_NUMBERS, SECONDARY]) {
+        const drawn: HTMLElement = label(dialog, text(JAPANESE, title));
+
+        expect(drawn).toBeVisible();
+        expect(drawn).toHaveTextContent(text(JAPANESE, "(Optional)"));
+        expect(drawn).not.toHaveTextContent("(Optional)");
+      }
+
+      // The help in Japanese: when the numbers are needed, no country named.
+      expect(within(dialog).getByText(text(JAPANESE, SMS_HELP))).toBeVisible();
+      expect(text(JAPANESE, SMS_HELP)).not.toContain("シンガポール");
+      // The example list is numbers, the same in every language.
+      expect(
+        within(dialog).getByLabelText(text(JAPANESE, SMS_NUMBERS), {
+          exact: false,
+        }),
+      ).toHaveAttribute("placeholder", PHONE_NUMBER_LIST_EXAMPLE);
     });
 
     test("a Singapore setup is saved: SMS from the mobile number, calls from the national one", async () => {
@@ -644,7 +701,7 @@ describe("Settings > Call & SMS", () => {
         () => {
           expect(
             within(dialog).getByText(
-              '"mobile" is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.',
+              '"mobile" is not a phone number. Write each number with its country code and separate them with commas, like +14155550123, +447700900123.',
             ),
           ).toBeVisible();
         },
@@ -778,12 +835,20 @@ describe("Settings > Call & SMS", () => {
       }
 
       for (const placeholder of [
-        "+14155550100",
-        "+6581234567",
-        "+441234567890, +461234567890",
+        '"+14155550100"',
+        // The SMS numbers' example: the server's list, no one country's.
+        "PHONE_NUMBER_LIST_EXAMPLE",
+        '"+441234567890, +461234567890"',
       ]) {
-        expect(admin).toContain(`placeholder: "${placeholder}"`);
-        expect(dashboard).toContain(`placeholder: "${placeholder}"`);
+        expect(admin).toContain(`placeholder: ${placeholder},`);
+        expect(dashboard).toContain(`placeholder: ${placeholder},`);
+      }
+
+      // And the same help, naming no country.
+      expect(admin).toContain(`"${SMS_HELP}"`);
+      for (const source of [admin, dashboard]) {
+        expect(source).not.toContain("Singapore");
+        expect(source).not.toContain("+65");
       }
 
       // The Dashboard's help for the secondary numbers, and its words for them.
@@ -849,7 +914,7 @@ describe("Settings > Call & SMS", () => {
           SMS_NUMBERS,
           PRIMARY_HELP,
           SMS_HELP,
-          "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.",
+          LIST_ERROR,
           "pages.settings.callSms.smsSameAsCalls",
           "pages.settings.callSms.cardDescription",
           "Twilio Primary Phone Number",

@@ -61,6 +61,12 @@ export interface SessionReplayPlayability {
   tooltip: string;
   /* A short fact under the badge ("expires in 6d", "3 chunks missing"), or null. */
   detail: string | null;
+  /*
+   * The same fact in its parts, one line each where a list's narrow column
+   * draws it ("about 15s missing", "expires in 6d"): it is never broken
+   * mid-phrase. Empty when detail is null; detail is these joined by " - ".
+   */
+  detailLines: Array<string>;
   /* Whether the player has anything to show. Watch is offered only when true. */
   isWatchable: boolean;
 }
@@ -161,6 +167,7 @@ export function getSessionReplayPlayability(
       tooltip:
         "A session header was received but its footage never arrived, so the never-finalized sweep sealed the session. The signals and counts here are still accurate; there is nothing to play.",
       detail: null,
+      detailLines: [],
       isWatchable: false,
     };
   }
@@ -179,6 +186,7 @@ export function getSessionReplayPlayability(
       tooltip:
         "Every tab of this session has closed, so nothing more is being recorded. The footage plays now; duration, pages and signals are counted shortly, when the session is finalized.",
       detail: "finalizing",
+      detailLines: ["finalizing"],
       isWatchable: true,
     };
   }
@@ -191,6 +199,7 @@ export function getSessionReplayPlayability(
       tooltip:
         "This session has not been finalized yet and may still be recording: footage plays as it arrives. It reads Recording ended shortly after its last tab closes, and duration, pages and signals are counted when it is finalized - about 10 minutes after the last chunk when the browser went away without saying so.",
       detail: "live",
+      detailLines: ["live"],
       isWatchable: true,
     };
   }
@@ -212,6 +221,7 @@ export function getSessionReplayPlayability(
       tooltip:
         "No footage was stored for this session: its chunks were never uploaded, or they were refused before they could be saved. A session row expires together with its footage, so this is not an expired recording - the signals, device and page list here are accurate.",
       detail: null,
+      detailLines: [],
       isWatchable: false,
     };
   }
@@ -222,13 +232,18 @@ export function getSessionReplayPlayability(
     const missingSeconds: number =
       row.missingChunkCount * SESSION_REPLAY_ESTIMATED_CHUNK_SECONDS;
     const chunkWord: string = row.missingChunkCount === 1 ? "chunk" : "chunks";
+    const detailLines: Array<string> = [
+      `about ${missingSeconds}s missing`,
+      ...(expiry ? [expiry] : []),
+    ];
 
     return {
       kind: "partial",
       text: "Partial",
       severity: "warning",
       tooltip: `${row.missingChunkCount} ${chunkWord} of footage never arrived (about ${missingSeconds}s). The player skips the gaps and marks them on the timeline.`,
-      detail: `about ${missingSeconds}s missing${expiry ? ` - ${expiry}` : ""}`,
+      detail: detailLines.join(" - "),
+      detailLines: detailLines,
       isWatchable: true,
     };
   }
@@ -241,6 +256,7 @@ export function getSessionReplayPlayability(
       ? `Footage is stored and can be played back; it ${expiry} under this application's retention, and this row expires with it.`
       : "Footage is stored and can be played back.",
     detail: expiry,
+    detailLines: expiry ? [expiry] : [],
     isWatchable: true,
   };
 }

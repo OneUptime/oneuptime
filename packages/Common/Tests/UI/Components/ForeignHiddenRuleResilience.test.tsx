@@ -1011,11 +1011,16 @@ describe("Shared components under a foreign .hidden rule", () => {
   });
 
   describe("BaseModelTable header", () => {
+    /*
+     * The keycap keeps a 12px line of its own (leading-3): on the 15px line
+     * its 10px text inherited it stood 21px tall and made the search 39px
+     * beside its 38px buttons (TABLE_HEADER_SEARCH_KEY_HINT_CLASS_NAME).
+     */
     const SEARCH_KEYCAP_CHANGE: ClassChange = {
       before:
-        "hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex",
+        "hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium leading-3 text-gray-500 sm:inline-flex",
       after:
-        "max-sm:hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex",
+        "max-sm:hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium leading-3 text-gray-500 sm:inline-flex",
     };
 
     function makeProps(): BaseModelTableProps<Monitor> {
