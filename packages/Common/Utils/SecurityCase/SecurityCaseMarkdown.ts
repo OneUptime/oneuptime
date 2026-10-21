@@ -399,6 +399,13 @@ export function detectionRuleMatchMarkdown(data: {
   windowEnd: string;
   sampleMessage?: string | undefined;
   observables: Array<string>;
+  /*
+   * A correlation rule's match, in one sentence (CorrelationRuleMatcher):
+   * "Failed sign-ins (5+ events in 10 minutes), then Successful sign-in,
+   * 3 minutes apart". Its rule titles and values come from rules and events,
+   * so it is placed as escaped text.
+   */
+  correlationSummary?: string | undefined;
 }): MarkdownText {
   const parts: Array<MarkdownValue> = [];
 
@@ -409,6 +416,10 @@ export function detectionRuleMatchMarkdown(data: {
   parts.push(
     mdText`Detection rule **${data.ruleName}** matched ${String(data.matchCount)} security event${data.matchCount === 1 ? "" : "s"} between ${data.windowStart} and ${data.windowEnd}.`,
   );
+
+  if (data.correlationSummary) {
+    parts.push(mdText`What happened: ${data.correlationSummary}.`);
+  }
 
   if (data.distinctCount) {
     parts.push(

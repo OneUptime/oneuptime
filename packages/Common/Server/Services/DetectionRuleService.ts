@@ -4,13 +4,27 @@ import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import {
   DETECTION_EVALUATION_INTERVAL_MAX_IN_MINUTES,
   DETECTION_EVALUATION_INTERVAL_MIN_IN_MINUTES,
   DETECTION_MATCH_COUNT_THRESHOLD_MAX,
   DETECTION_MATCH_COUNT_THRESHOLD_MIN,
 } from "../../Types/SecurityEvent/DetectionFindingConstants";
-import SigmaRuleParser from "../../Utils/SecurityEvent/Sigma/SigmaRuleParser";
+import SigmaRule from "../../Types/SecurityEvent/SigmaRule";
+import {
+  DetectionRuleDefinition,
+  SigmaCorrelationStep,
+  SigmaRuleReferenceResolver,
+} from "../../Types/SecurityEvent/SigmaCorrelation";
+import SigmaRuleSetParser, {
+  detectionRuleHeader,
+} from "../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
+import {
+  SigmaRuleSource,
+  indexSigmaRules,
+} from "../../Utils/SecurityEvent/Sigma/SigmaRuleIndex";
 import SigmaClickhouseCompiler from "../Utils/SecurityEvent/Sigma/SigmaClickhouseCompiler";
 
 export class Service extends ProjectReferencesService<Model> {
@@ -22,13 +36,104 @@ export class Service extends ProjectReferencesService<Model> {
    * Parse AND compile at save time, so a rule that stores is a rule the
    * engine can evaluate — a YAML typo surfaces to the person editing it,
    * not as a cron-side lastError hours later.
+   *
+   * A correlation is checked whole: its type, its timespan and condition,
+   * every rule it reads - from its own YAML or, by Sigma id or name, from
+   * the project's other detection rules - and each of those rules compiled.
+   * Returns what was parsed.
    */
-  private validateSigmaRule(ruleYaml: string | undefined): void {
+  private async validateSigmaRule(data: {
+    ruleYaml: string | undefined;
+    // Where references to other rules are looked up; read only when the YAML names one it does not hold.
+    projectIds: () => Promise<Array<ObjectID>>;
+    excludeRuleId?: ObjectID | undefined;
+  }): Promise<DetectionRuleDefinition> {
+    const ruleYaml: string | undefined = data.ruleYaml;
+
     if (!ruleYaml || !ruleYaml.trim()) {
       throw new BadDataException("Sigma rule YAML is required.");
     }
 
-    SigmaClickhouseCompiler.compileYaml(ruleYaml);
+    let definition: DetectionRuleDefinition =
+      SigmaRuleSetParser.parse(ruleYaml);
+
+    if (
+      definition.kind === "correlation" &&
+      definition.unresolvedReferences.length > 0
+    ) {
+      const projectIds: Array<ObjectID> = await data.projectIds();
+
+      if (projectIds.length === 0) {
+        throw new BadDataException(
+          "A correlation that reads your other detection rules needs the project it belongs to.",
+        );
+      }
+
+      // Every project the write reaches must hold the rules it names.
+      for (const projectId of projectIds) {
+        definition = SigmaRuleSetParser.parse(ruleYaml, {
+          resolveReference: await this.loadProjectRules(
+            projectId,
+            data.excludeRuleId,
+          ),
+        });
+      }
+    }
+
+    for (const rule of Service.rulesOf(definition)) {
+      SigmaClickhouseCompiler.compile(rule);
+    }
+
+    return definition;
+  }
+
+  // Every Sigma rule a definition evaluates.
+  public static rulesOf(definition: DetectionRuleDefinition): Array<SigmaRule> {
+    if (definition.kind === "single") {
+      return [definition.rule];
+    }
+
+    return definition.steps.flatMap(
+      (step: SigmaCorrelationStep): Array<SigmaRule> => {
+        if (step.rule) {
+          return [step.rule];
+        }
+
+        return step.count ? step.count.rules : [];
+      },
+    );
+  }
+
+  // The project's single Sigma rules, by Sigma id and name (SigmaRuleIndex).
+  private async loadProjectRules(
+    projectId: ObjectID,
+    excludeRuleId: ObjectID | undefined,
+  ): Promise<SigmaRuleReferenceResolver> {
+    const rules: Array<Model> = await this.findAllBy({
+      query: {
+        projectId,
+      },
+      select: {
+        _id: true,
+        sigmaRuleYaml: true,
+      },
+      sort: {
+        _id: SortOrder.Ascending,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return indexSigmaRules(
+      rules.map((rule: Model): SigmaRuleSource => {
+        return {
+          id: rule._id?.toString(),
+          sigmaRuleYaml: rule.sigmaRuleYaml,
+        };
+      }),
+      { excludeRuleId: excludeRuleId?.toString() },
+    );
   }
 
   // undefined always passes: an omitted field means "keep the default".
@@ -74,7 +179,15 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
-    this.validateSigmaRule(createBy.data.sigmaRuleYaml);
+    const definition: DetectionRuleDefinition = await this.validateSigmaRule({
+      ruleYaml: createBy.data.sigmaRuleYaml,
+      projectIds: async (): Promise<Array<ObjectID>> => {
+        const projectId: ObjectID | undefined =
+          createBy.data.projectId ||
+          (createBy.props.tenantId as ObjectID | undefined);
+        return projectId ? [projectId] : [];
+      },
+    });
     this.validateEvaluationInterval(createBy.data.evaluationIntervalInMinutes);
     this.validateMatchCountThreshold(createBy.data.matchCountThreshold);
 
@@ -97,13 +210,11 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
-     * Default the rule name from the Sigma title so pasting a rule is a
-     * one-field operation.
+     * Default the rule name from the Sigma title - a correlation's own
+     * title - so pasting a rule is a one-field operation.
      */
     if (!createBy.data.name && createBy.data.sigmaRuleYaml) {
-      createBy.data.name = SigmaRuleParser.parse(
-        createBy.data.sigmaRuleYaml,
-      ).title;
+      createBy.data.name = detectionRuleHeader(definition).title;
     }
 
     return { createBy, carryForward: null };
@@ -115,7 +226,34 @@ export class Service extends ProjectReferencesService<Model> {
     await super.onBeforeUpdate(updateBy);
 
     if (updateBy.data.sigmaRuleYaml !== undefined) {
-      this.validateSigmaRule(updateBy.data.sigmaRuleYaml as string);
+      await this.validateSigmaRule({
+        ruleYaml: updateBy.data.sigmaRuleYaml as string,
+        /*
+         * A correlation naming other rules is checked against the rules of
+         * the project each written row is in - read with the rows the
+         * update writes, and the update held to them.
+         */
+        projectIds: async (): Promise<Array<ObjectID>> => {
+          const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+            updateBy,
+            {
+              _id: true,
+              projectId: true,
+            },
+          );
+
+          const ids: Map<string, ObjectID> = new Map();
+
+          for (const row of rows) {
+            if (row.projectId) {
+              ids.set(row.projectId.toString(), row.projectId);
+            }
+          }
+
+          return Array.from(ids.values());
+        },
+        excludeRuleId: Service.getOneRowIdNamedBy(updateBy.query) || undefined,
+      });
     }
 
     this.validateEvaluationInterval(

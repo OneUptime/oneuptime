@@ -13,6 +13,7 @@ import SigmaRule, {
   isSevereSigmaLevel,
 } from "../../../Types/SecurityEvent/SigmaRule";
 import {
+  DETECTION_CORRELATION_TYPE_ATTRIBUTE,
   DETECTION_DISTINCT_COUNT_ATTRIBUTE,
   DETECTION_EVALUATION_DELAY_IN_SECONDS,
   DETECTION_FINDING_CLASS_NAME,
@@ -25,9 +26,21 @@ import {
   DETECTION_RULE_ID_ATTRIBUTE,
   DETECTION_RULE_NAME_ATTRIBUTE,
   DETECTION_SIGMA_ID_ATTRIBUTE,
+  DETECTION_SUMMARY_ATTRIBUTE,
 } from "../../../Types/SecurityEvent/DetectionFindingConstants";
-import SigmaRuleParser from "../../../Utils/SecurityEvent/Sigma/SigmaRuleParser";
+import SigmaRuleSetParser, {
+  detectionRuleHeader,
+} from "../../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
+import {
+  DetectionRuleDefinition,
+  SigmaRuleReferenceResolver,
+} from "../../../Types/SecurityEvent/SigmaCorrelation";
 import MetricSeriesFingerprint from "../../../Utils/Metrics/MetricSeriesFingerprint";
+import CorrelationRuleMatcher, {
+  CorrelationMatchResult,
+} from "./Correlation/CorrelationRuleMatcher";
+import { CORRELATION_TEMPORAL_CANDIDATE_LIMIT } from "./Correlation/CorrelationQueries";
+import ProjectSigmaRules from "./Correlation/ProjectSigmaRules";
 import DetectionRuleService from "../../Services/DetectionRuleService";
 import OTelIngestService, {
   TelemetryServiceMetadata,
@@ -317,18 +330,10 @@ export default class DetectionRuleEvaluator {
     }
 
     const setupTest: DetectionRuleSetupTest | undefined = options.setupTest;
-    const parsedRule: SigmaRule = SigmaRuleParser.parse(rule.sigmaRuleYaml);
-    const ruleWhereFragment: Statement =
-      SigmaClickhouseCompiler.compile(parsedRule);
-
-    // A setup test reads only its own events.
-    const whereFragment: Statement = setupTest
-      ? SQL`(`
-          .append(ruleWhereFragment)
-          .append(") AND (")
-          .append(setupTest.restrictTo)
-          .append(")")
-      : ruleWhereFragment;
+    const definition: DetectionRuleDefinition =
+      await this.loadRuleDefinition(rule);
+    // What the findings, alerts and cases are written as: the rule, or the correlation.
+    const parsedRule: SigmaRule = detectionRuleHeader(definition);
 
     const endTime: Date = setupTest
       ? setupTest.endTime
@@ -358,44 +363,41 @@ export default class DetectionRuleEvaluator {
       startTime = setupTest.startTime;
     }
 
-    const groupByExpression: Statement | null = rule.groupByField
-      ? buildSigmaFieldExpression(rule.groupByField)
-      : null;
+    /*
+     * A correlation's groups come from its own reads (CorrelationRuleMatcher);
+     * a single rule's from its compiled condition, counted by the rule's
+     * Group By Field and threshold. Everything after reads them alike.
+     */
+    let matchedGroups: Array<DetectionMatchGroup>;
+    let readNotice: string | null = null;
 
-    const distinctCountExpression: Statement | null = rule.distinctCountField
-      ? buildSigmaDistinctCountExpression(rule.distinctCountField)
-      : null;
+    if (definition.kind === "correlation") {
+      const correlationResult: CorrelationMatchResult =
+        await CorrelationRuleMatcher.findMatches({
+          projectId: rule.projectId,
+          correlation: definition.correlation,
+          steps: definition.steps,
+          startTime,
+          endTime,
+          // One more than a run records, so it can tell "more than it reads".
+          maxGroups: DETECTION_MAX_FINDINGS_PER_EVALUATION + 1,
+          restrictTo: setupTest?.restrictTo,
+        });
 
-    const matchCountThreshold: number = this.effectiveThreshold(rule);
+      matchedGroups = correlationResult.groups;
 
-    const groups: Array<DetectionMatchGroup> =
-      await SecurityEventService.findDetectionMatches({
-        projectId: rule.projectId,
+      if (correlationResult.candidatesCapped) {
+        readNotice = `This run checked the ${CORRELATION_TEMPORAL_CANDIDATE_LIMIT} most recently active groups; the next runs check the rest.`;
+      }
+    } else {
+      matchedGroups = await this.findSingleRuleMatches({
+        rule,
+        parsedRule,
         startTime,
         endTime,
-        whereFragment,
-        groupByExpression,
-        distinctCountExpression,
-        minMatchCount: matchCountThreshold,
-        // One more than a run records, so it can tell "more than it reads".
-        maxGroups: DETECTION_MAX_FINDINGS_PER_EVALUATION + 1,
+        setupTest,
       });
-
-    /*
-     * The query's HAVING clause already enforces the threshold — this
-     * re-applies it (via the predicate exported next to that HAVING
-     * builder) so the firing contract does not depend on which side
-     * built the rows.
-     */
-    const matchedGroups: Array<DetectionMatchGroup> = groups.filter(
-      (row: DetectionMatchGroup): boolean => {
-        return doesGroupMeetDetectionThreshold({
-          group: row,
-          usesDistinctCount: Boolean(rule.distinctCountField),
-          minMatchCount: matchCountThreshold,
-        });
-      },
-    );
+    }
 
     /*
      * Every group is recorded; the ones with the highest counts open alerts
@@ -466,6 +468,10 @@ export default class DetectionRuleEvaluator {
           rule,
           parsedRule,
           matchedGroups: split.recorded,
+          correlationType:
+            definition.kind === "correlation"
+              ? definition.correlation.type
+              : undefined,
         });
         findingsWritten = findingEventUids.size;
       }
@@ -531,8 +537,11 @@ export default class DetectionRuleEvaluator {
         id: rule.id,
         data: {
           lastEvaluatedAt: endTime,
-          // The rule ran; an overflow is what its row should say about it.
-          lastError: overflowNotice as unknown as string,
+          /*
+           * The rule ran; an overflow, or a correlation that had more groups
+           * to check than one run reads, is what its row should say about it.
+           */
+          lastError: (overflowNotice || readNotice) as unknown as string,
           ...(split.recorded.length > 0 ? { lastMatchAt: endTime } : {}),
         },
         props: {
@@ -552,6 +561,101 @@ export default class DetectionRuleEvaluator {
       casesOpened,
       error: null,
     };
+  }
+
+  /*
+   * The rule's YAML, parsed: a single Sigma rule, or a correlation with the
+   * rules it reads resolved - from its own file, or from the project's other
+   * detection rules by their Sigma id or name (read only when the file names
+   * one it does not hold). A rule the YAML names that no longer exists is
+   * the rule's error, as every parse failure is.
+   */
+  public static async loadRuleDefinition(
+    rule: DetectionRule,
+  ): Promise<DetectionRuleDefinition> {
+    const definition: DetectionRuleDefinition = SigmaRuleSetParser.parse(
+      rule.sigmaRuleYaml || "",
+    );
+
+    if (
+      definition.kind === "single" ||
+      definition.unresolvedReferences.length === 0
+    ) {
+      return definition;
+    }
+
+    const resolveReference: SigmaRuleReferenceResolver =
+      await ProjectSigmaRules.load(rule.projectId!, {
+        excludeRuleId: rule.id || undefined,
+      });
+
+    return SigmaRuleSetParser.parse(rule.sigmaRuleYaml || "", {
+      resolveReference,
+    });
+  }
+
+  /*
+   * A single Sigma rule's groups: its compiled condition over the run's
+   * window, counted per value of its Group By Field (or Distinct Count
+   * Field), the groups that reach its threshold.
+   */
+  private static async findSingleRuleMatches(data: {
+    rule: DetectionRule;
+    parsedRule: SigmaRule;
+    startTime: Date;
+    endTime: Date;
+    setupTest: DetectionRuleSetupTest | undefined;
+  }): Promise<Array<DetectionMatchGroup>> {
+    const { rule, setupTest } = data;
+    const ruleWhereFragment: Statement = SigmaClickhouseCompiler.compile(
+      data.parsedRule,
+    );
+
+    // A setup test reads only its own events.
+    const whereFragment: Statement = setupTest
+      ? SQL`(`
+          .append(ruleWhereFragment)
+          .append(") AND (")
+          .append(setupTest.restrictTo)
+          .append(")")
+      : ruleWhereFragment;
+
+    const groupByExpression: Statement | null = rule.groupByField
+      ? buildSigmaFieldExpression(rule.groupByField)
+      : null;
+
+    const distinctCountExpression: Statement | null = rule.distinctCountField
+      ? buildSigmaDistinctCountExpression(rule.distinctCountField)
+      : null;
+
+    const matchCountThreshold: number = this.effectiveThreshold(rule);
+
+    const groups: Array<DetectionMatchGroup> =
+      await SecurityEventService.findDetectionMatches({
+        projectId: rule.projectId!,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        whereFragment,
+        groupByExpression,
+        distinctCountExpression,
+        minMatchCount: matchCountThreshold,
+        // One more than a run records, so it can tell "more than it reads".
+        maxGroups: DETECTION_MAX_FINDINGS_PER_EVALUATION + 1,
+      });
+
+    /*
+     * The query's HAVING clause already enforces the threshold — this
+     * re-applies it (via the predicate exported next to that HAVING
+     * builder) so the firing contract does not depend on which side
+     * built the rows.
+     */
+    return groups.filter((row: DetectionMatchGroup): boolean => {
+      return doesGroupMeetDetectionThreshold({
+        group: row,
+        usesDistinctCount: Boolean(rule.distinctCountField),
+        minMatchCount: matchCountThreshold,
+      });
+    });
   }
 
   /*
@@ -628,16 +732,31 @@ export default class DetectionRuleEvaluator {
 
     return data.matchedGroups.map(
       (matchGroup: DetectionMatchGroup): SecurityDetectionSignal => {
-        const groupEntities: Array<SecurityEntity> = matchGroup.groupValue
-          ? [
-              {
-                type:
-                  groupEntityType ||
-                  inferSecurityEntityType(matchGroup.groupValue),
-                value: matchGroup.groupValue,
+        /*
+         * A correlation groups by one to three fields, each typed by its
+         * own field; a single rule by its Group By Field.
+         */
+        const groupEntities: Array<SecurityEntity> = matchGroup.groupFields
+          ? matchGroup.groupFields.map(
+              (entry: { field: string; value: string }): SecurityEntity => {
+                return {
+                  type:
+                    securityEntityTypeForField(entry.field) ||
+                    inferSecurityEntityType(entry.value),
+                  value: entry.value,
+                };
               },
-            ]
-          : [];
+            )
+          : matchGroup.groupValue
+            ? [
+                {
+                  type:
+                    groupEntityType ||
+                    inferSecurityEntityType(matchGroup.groupValue),
+                  value: matchGroup.groupValue,
+                },
+              ]
+            : [];
 
         return {
           projectId: rule.projectId!,
@@ -650,17 +769,20 @@ export default class DetectionRuleEvaluator {
             ruleName: rule.name || parsedRule.title,
             ruleDescription: rule.description || parsedRule.description,
             matchCount: matchGroup.matchCount,
-            distinctCount: rule.distinctCountField
-              ? {
-                  field: rule.distinctCountField,
-                  count: matchGroup.distinctCount,
-                  threshold: this.effectiveThreshold(rule),
-                }
-              : undefined,
+            // A correlation counts by its own YAML; its summary says how.
+            distinctCount:
+              rule.distinctCountField && !matchGroup.summary
+                ? {
+                    field: rule.distinctCountField,
+                    count: matchGroup.distinctCount,
+                    threshold: this.effectiveThreshold(rule),
+                  }
+                : undefined,
             windowStart: OneUptimeDate.getDateAsFormattedString(data.startTime),
             windowEnd: OneUptimeDate.getDateAsFormattedString(data.endTime),
             sampleMessage: matchGroup.sampleMessage || undefined,
             observables: matchGroup.sampleObservables,
+            correlationSummary: matchGroup.summary,
           }).toString(),
           severity,
           eventCount: matchGroup.matchCount,
@@ -830,7 +952,9 @@ export default class DetectionRuleEvaluator {
       )} and ${OneUptimeDate.getDateAsFormattedString(data.endTime)}.`,
     );
 
-    if (rule.distinctCountField) {
+    if (matchGroup.summary) {
+      descriptionParts.push(`What happened: ${matchGroup.summary}.`);
+    } else if (rule.distinctCountField) {
       descriptionParts.push(
         `${matchGroup.distinctCount} distinct ${rule.distinctCountField} value${
           matchGroup.distinctCount === 1 ? "" : "s"
@@ -857,6 +981,8 @@ export default class DetectionRuleEvaluator {
     rule: DetectionRule;
     parsedRule: SigmaRule;
     matchedGroups: Array<DetectionMatchGroup>;
+    // A correlation rule's type, stamped on its findings so they can be told apart.
+    correlationType?: string | undefined;
   }): Promise<Map<string, string>> {
     const { rule, parsedRule, matchedGroups } = data;
     const projectId: ObjectID = rule.projectId!;
@@ -886,9 +1012,12 @@ export default class DetectionRuleEvaluator {
 
     const rows: Array<JSONObject> = matchedGroups.map(
       (matchGroup: DetectionMatchGroup): JSONObject => {
-        const distinctSuffix: string = rule.distinctCountField
-          ? `, ${matchGroup.distinctCount} distinct ${rule.distinctCountField}`
-          : "";
+        // A correlation's own sentence, or a single rule's distinct count.
+        const distinctSuffix: string = matchGroup.summary
+          ? `; ${matchGroup.summary}`
+          : rule.distinctCountField
+            ? `, ${matchGroup.distinctCount} distinct ${rule.distinctCountField}`
+            : "";
 
         const eventUid: string = `detection:${rule.id!.toString()}:${this.buildFingerprint(
           rule.id!,
@@ -896,6 +1025,20 @@ export default class DetectionRuleEvaluator {
         )}:${OneUptimeDate.getCurrentDateAsUnixNano()}`;
 
         eventUids.set(matchGroup.groupValue, eventUid);
+
+        /*
+         * What the finding is about, first in its observables: each value a
+         * correlation groups by, or a single rule's group value.
+         */
+        const groupObservables: Array<string> = matchGroup.groupFields
+          ? matchGroup.groupFields.map(
+              (entry: { field: string; value: string }): string => {
+                return entry.value;
+              },
+            )
+          : matchGroup.groupValue
+            ? [matchGroup.groupValue]
+            : [];
 
         const normalized: NormalizedSecurityEvent = {
           time: OneUptimeDate.getCurrentDate(),
@@ -926,25 +1069,31 @@ export default class DetectionRuleEvaluator {
           targetIp: "",
           targetPort: 0,
           targetResource: "",
-          observables: matchGroup.groupValue
-            ? [
-                matchGroup.groupValue,
-                ...matchGroup.sampleObservables.filter(
-                  (observable: string): boolean => {
-                    return observable !== matchGroup.groupValue;
-                  },
-                ),
-              ]
-            : matchGroup.sampleObservables,
+          observables: [
+            ...groupObservables,
+            ...matchGroup.sampleObservables.filter(
+              (observable: string): boolean => {
+                return !groupObservables.includes(observable);
+              },
+            ),
+          ],
           attributes: {
             [DETECTION_RULE_ID_ATTRIBUTE]: rule.id!.toString(),
             [DETECTION_RULE_NAME_ATTRIBUTE]: rule.name || parsedRule.title,
             [DETECTION_MATCH_COUNT_ATTRIBUTE]: String(matchGroup.matchCount),
-            ...(rule.distinctCountField
+            ...(rule.distinctCountField && !data.correlationType
               ? {
                   [DETECTION_DISTINCT_COUNT_ATTRIBUTE]: String(
                     matchGroup.distinctCount,
                   ),
+                }
+              : {}),
+            ...(data.correlationType
+              ? {
+                  [DETECTION_CORRELATION_TYPE_ATTRIBUTE]: data.correlationType,
+                  ...(matchGroup.summary
+                    ? { [DETECTION_SUMMARY_ATTRIBUTE]: matchGroup.summary }
+                    : {}),
                 }
               : {}),
             ...(matchGroup.groupValue

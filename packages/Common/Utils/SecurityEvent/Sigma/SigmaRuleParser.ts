@@ -345,7 +345,7 @@ function parseSelection(name: string, rawValue: JSONValue): SigmaSelection {
   );
 }
 
-function extractMitre(tags: Array<string>): {
+export function extractMitre(tags: Array<string>): {
   tactics: Array<string>;
   techniques: Array<string>;
 } {
@@ -409,8 +409,15 @@ export default class SigmaRuleParser {
       throw new BadDataException("Sigma rule: YAML must be a mapping.");
     }
 
-    const doc: JSONObject = loaded as JSONObject;
+    return this.parseDocument(loaded as JSONObject);
+  }
 
+  /*
+   * One Sigma rule document, already loaded from YAML: what parse() reads,
+   * and what SigmaRuleSetParser hands it for each rule of a correlation's
+   * file.
+   */
+  public static parseDocument(doc: JSONObject): SigmaRule {
     const detection: JSONValue = doc["detection"] as JSONValue;
 
     if (
