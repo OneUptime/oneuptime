@@ -6,9 +6,11 @@ import RunnerChoicesLoader, {
   GlobalRunnerRow,
 } from "../../../Components/Runner/RunnerChoices";
 import ProjectDefaultRunnerCopy, {
+  PROJECT_DEFAULT_NOT_CONNECTED_WARNING_TEST_ID,
   PROJECT_DEFAULT_REFUSAL_TEXT,
   getMakeDefaultConfirmDescription,
 } from "../../../Components/Runner/ProjectDefaultRunnerCopy";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import {
   ProjectDefaultRunnerRefusal,
   getProjectDefaultRunnerRefusal,
@@ -230,7 +232,11 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
       const description: { template: string; current?: string | undefined } =
         getMakeDefaultConfirmDescription(currentDefaultName);
 
-      // A Runner that is not connected is said to be, before it is the default.
+      /*
+       * A Runner that is not connected is said to be, before it is the
+       * default: a warning of its own under what moves, not one more
+       * sentence of it.
+       */
       const isConnected: boolean =
         getRunnerLiveStatus(defaultRunnerChange.runner.lastAlive) ===
         RunnerLiveStatus.Connected;
@@ -241,19 +247,9 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             ProjectDefaultRunnerCopy.makeDefaultConfirmTitle,
             { runner: name },
           )}
-          description={[
-            translator.translateTemplate(description.template, {
-              current: description.current || "",
-            }),
-            ...(isConnected
-              ? []
-              : [
-                  translator.translateTemplate(
-                    ProjectDefaultRunnerCopy.makeDefaultNotConnectedWarning,
-                    { runner: name },
-                  ),
-                ]),
-          ].join(" ")}
+          description={translator.translateTemplate(description.template, {
+            current: description.current || "",
+          })}
           submitButtonText={ProjectDefaultRunnerCopy.makeDefaultConfirmButton}
           submitButtonType={ButtonStyleType.PRIMARY}
           isLoading={isChangingDefault}
@@ -265,7 +261,18 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           onSubmit={() => {
             void saveDefaultRunnerChange();
           }}
-        />
+        >
+          {isConnected ? undefined : (
+            <Alert
+              type={AlertType.WARNING}
+              title={translator.translateTemplate(
+                ProjectDefaultRunnerCopy.makeDefaultNotConnectedWarning,
+                { runner: name },
+              )}
+              dataTestId={PROJECT_DEFAULT_NOT_CONNECTED_WARNING_TEST_ID}
+            />
+          )}
+        </ConfirmModal>
       );
     };
 

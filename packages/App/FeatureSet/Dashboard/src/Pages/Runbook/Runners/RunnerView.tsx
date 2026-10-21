@@ -149,6 +149,17 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
   }, [modelId.toString()]);
 
   /*
+   * The Runner that is the project's default now, when it is another one:
+   * named by the dialog that makes this one the default, and by the
+   * switch's line while it is off.
+   */
+  const otherDefaultName: string | undefined =
+    projectDefaultRunner &&
+    projectDefaultRunner.id.toLowerCase() !== modelId.toString().toLowerCase()
+      ? projectDefaultRunner.name
+      : undefined;
+
+  /*
    * Why this Runner may not be made the default, while it is not one: an
    * in-cluster Runner the Kubernetes agent chart installed, or one with
    * Runs Runbooks off. The default itself can always stop being one.
@@ -177,16 +188,13 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
       };
     }
 
-    const currentDefaultName: string | undefined =
-      projectDefaultRunner &&
-      projectDefaultRunner.id.toLowerCase() !== modelId.toString().toLowerCase()
-        ? projectDefaultRunner.name
-        : undefined;
-
     const description: { template: string; current?: string | undefined } =
-      getMakeDefaultConfirmDescription(currentDefaultName);
+      getMakeDefaultConfirmDescription(otherDefaultName);
 
-    // A Runner that is not connected is said to be, before it is the default.
+    /*
+     * A Runner that is not connected is said to be, before it is the
+     * default: a warning of its own under what moves.
+     */
     const isConnected: boolean =
       getRunnerLiveStatus(defaultCandidate?.lastAlive) ===
       RunnerLiveStatus.Connected;
@@ -196,21 +204,46 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
         ProjectDefaultRunnerCopy.makeDefaultConfirmTitle,
         { runner: name },
       ),
-      description: [
-        translator.translateTemplate(description.template, {
-          current: description.current || "",
-        }),
-        ...(isConnected
-          ? []
-          : [
-              translator.translateTemplate(
-                ProjectDefaultRunnerCopy.makeDefaultNotConnectedWarning,
-                { runner: name },
-              ),
-            ]),
-      ].join(" "),
+      description: translator.translateTemplate(description.template, {
+        current: description.current || "",
+      }),
       submitButtonText: ProjectDefaultRunnerCopy.makeDefaultConfirmButton,
+      ...(isConnected
+        ? {}
+        : {
+            warning: translator.translateTemplate(
+              ProjectDefaultRunnerCopy.makeDefaultNotConnectedWarning,
+              { runner: name },
+            ),
+          }),
     };
+  };
+
+  /*
+   * The switch's line. On: what it does. Off: why it is locked, on a Runner
+   * that may not be the default - said where it is read, not only in a
+   * tooltip - or where the steps that pick no Runner run now: on the Runner
+   * that is the default, named, or the general rule while there is none.
+   */
+  const getProjectDefaultSwitchDescription: (isOn: boolean) => string = (
+    isOn: boolean,
+  ): string => {
+    if (isOn) {
+      return ProjectDefaultRunnerCopy.switchOnDescription;
+    }
+
+    if (defaultRefusal) {
+      return PROJECT_DEFAULT_REFUSAL_TEXT[defaultRefusal];
+    }
+
+    if (otherDefaultName) {
+      return translator.translateTemplate(
+        ProjectDefaultRunnerCopy.switchOffDescriptionWithDefault,
+        { runner: otherDefaultName },
+      );
+    }
+
+    return ProjectDefaultRunnerCopy.switchOffDescription;
   };
 
   /*
@@ -347,48 +380,6 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
           ],
           modelId: modelId,
         }}
-      />
-
-      {/*
-       * Whether this Runner is the project's default: the steps that pick no
-       * Runner run on it. One switch that saves when it is flipped, asking
-       * first which steps move; locked, saying why, on a Runner that may not
-       * be the default.
-       */}
-      <ModelSwitchCard<Runner>
-        modelType={Runner}
-        modelId={modelId}
-        column="isProjectDefault"
-        cardTitle={ProjectDefaultRunnerCopy.switchCardTitle}
-        cardDescription={ProjectDefaultRunnerCopy.switchCardDescription}
-        title={ProjectDefaultRunnerCopy.switchTitle}
-        getDescription={(isOn: boolean): string => {
-          return isOn
-            ? ProjectDefaultRunnerCopy.switchOnDescription
-            : ProjectDefaultRunnerCopy.switchOffDescription;
-        }}
-        getConfirmation={getProjectDefaultConfirmation}
-        select={{
-          name: true,
-          canRunRunbooks: true,
-          hostInfo: true,
-          lastAlive: true,
-        }}
-        onLoaded={(item: Runner): void => {
-          setDefaultCandidate(item);
-        }}
-        onChange={(isOn: boolean): void => {
-          setIsProjectDefault(isOn);
-        }}
-        onSaved={(): void => {
-          readProjectDefaultRunner();
-        }}
-        lockedReason={
-          defaultRefusal
-            ? PROJECT_DEFAULT_REFUSAL_TEXT[defaultRefusal]
-            : undefined
-        }
-        dataTestId={RUNNER_PROJECT_DEFAULT_SWITCH_TEST_ID}
       />
 
       <CardModelDetail<Runner>
@@ -533,6 +524,45 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
           ],
           modelId: modelId,
         }}
+      />
+
+      {/*
+       * Whether this Runner is the project's default: the steps that pick no
+       * Runner run on it. After what the Runner is and how it is doing, as a
+       * setting of how the project uses it. One switch that saves when it is
+       * flipped, asking first which steps move; locked on a Runner that may
+       * not be the default, its line saying why.
+       */}
+      <ModelSwitchCard<Runner>
+        modelType={Runner}
+        modelId={modelId}
+        column="isProjectDefault"
+        cardTitle={ProjectDefaultRunnerCopy.switchCardTitle}
+        cardDescription={ProjectDefaultRunnerCopy.switchCardDescription}
+        title={ProjectDefaultRunnerCopy.switchTitle}
+        getDescription={getProjectDefaultSwitchDescription}
+        getConfirmation={getProjectDefaultConfirmation}
+        select={{
+          name: true,
+          canRunRunbooks: true,
+          hostInfo: true,
+          lastAlive: true,
+        }}
+        onLoaded={(item: Runner): void => {
+          setDefaultCandidate(item);
+        }}
+        onChange={(isOn: boolean): void => {
+          setIsProjectDefault(isOn);
+        }}
+        onSaved={(): void => {
+          readProjectDefaultRunner();
+        }}
+        lockedReason={
+          defaultRefusal
+            ? PROJECT_DEFAULT_REFUSAL_TEXT[defaultRefusal]
+            : undefined
+        }
+        dataTestId={RUNNER_PROJECT_DEFAULT_SWITCH_TEST_ID}
       />
 
       {/*

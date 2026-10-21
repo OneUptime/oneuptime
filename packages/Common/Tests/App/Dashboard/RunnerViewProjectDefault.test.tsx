@@ -46,6 +46,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import { ProjectDefaultRunnerRefusal } from "../../../Types/Runner/ProjectDefaultRunner";
+import { getModelSwitchConfirmationWarningTestId } from "../../../UI/Components/ModelSwitch/ModelSwitchRow";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import User from "../../../UI/Utils/User";
@@ -58,10 +59,13 @@ import { goTo, PROJECT_ID } from "./SideMenuHarness";
  * Runner is from its page: one card, "Project Default", whose one switch
  * saves the moment it is flipped (ModelSwitchCard). It asks first, saying
  * which steps move - from the Global Runner, or from the Runner that is the
- * default now - and that the Runner is not connected when it is not. A
- * Runner that may not be the default (the Kubernetes agent chart's
- * in-cluster Runner, Runs Runbooks off) shows the switch locked, saying
- * why; the default itself can always stop being one.
+ * default now - and, as a warning of its own, that the Runner is not
+ * connected when it is not. Off, its line names the Runner that is the
+ * default now. A Runner that may not be the default (the Kubernetes agent
+ * chart's in-cluster Runner, Runs Runbooks off) shows the switch locked,
+ * its line saying why; the default itself can always stop being one. The
+ * card follows Runner Status: what the Runner is and how it is doing come
+ * first, then how the project uses it.
  */
 
 const WAIT: { timeout: number } = { timeout: 20000 };
@@ -216,7 +220,7 @@ function card(): HTMLElement {
 }
 
 describe("the Project Default card on a Runner's page", () => {
-  test("comes right after Runner Details, saying what the default does, its switch off for a Runner that is not the default", async () => {
+  test("comes after Runner Details and Runner Status, saying what the default does, its switch off and naming the default for a Runner that is not it", async () => {
     const control: HTMLElement = await openRunnerView(OFFICE_ID);
 
     await waitFor(() => {
@@ -226,7 +230,13 @@ describe("the Project Default card on a Runner's page", () => {
     expect(card()).toHaveTextContent(
       ProjectDefaultRunnerCopy.switchCardDescription,
     );
-    expect(card()).toHaveTextContent(
+    // Off: where the steps that pick no Runner run now - on the default, named.
+    await waitFor(() => {
+      expect(card()).toHaveTextContent(
+        "Runbook steps that pick no Runner run on prod-eu-west-1, the project default.",
+      );
+    }, WAIT);
+    expect(card()).not.toHaveTextContent(
       ProjectDefaultRunnerCopy.switchOffDescription,
     );
     expect(
@@ -243,12 +253,35 @@ describe("the Project Default card on a Runner's page", () => {
       .closest('[data-testid="card"]') as HTMLElement;
 
     expect(
-      details.compareDocumentPosition(card()) &
+      details.compareDocumentPosition(status) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      card().compareDocumentPosition(status) & Node.DOCUMENT_POSITION_FOLLOWING,
+      status.compareDocumentPosition(card()) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+
+    // And before the setup command, once the Runner is read.
+    const setup: HTMLElement = (
+      await screen.findByText("Setup Instructions", { exact: true }, WAIT)
+    ).closest('[data-testid="card"]') as HTMLElement;
+
+    expect(
+      card().compareDocumentPosition(setup) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("with no default in the project, its line says where the steps that pick no Runner run", async () => {
+    rows.get(PROD_ID)!.isProjectDefault = false;
+
+    const control: HTMLElement = await openRunnerView(OFFICE_ID);
+
+    await waitFor(() => {
+      expect(control).toHaveAttribute("aria-checked", "false");
+    }, WAIT);
+    expect(card()).toHaveTextContent(
+      ProjectDefaultRunnerCopy.switchOffDescription,
+    );
+    expect(card()).not.toHaveTextContent("the project default.");
   });
 
   test("is on for the project's default Runner", async () => {
@@ -313,12 +346,42 @@ describe("the Project Default card on a Runner's page", () => {
 
     const dialog: HTMLElement = await screen.findByRole("dialog", {}, WAIT);
 
-    expect(dialog).toHaveTextContent(
-      ProjectDefaultRunnerCopy.makeDefaultConfirmDescription,
+    expect(
+      within(dialog).getByTestId("confirm-modal-description").textContent,
+    ).toBe(ProjectDefaultRunnerCopy.makeDefaultConfirmDescription);
+
+    // Not connected: a warning of its own, under what moves.
+    const warning: HTMLElement = within(dialog).getByTestId(
+      getModelSwitchConfirmationWarningTestId(
+        RUNNER_PROJECT_DEFAULT_SWITCH_TEST_ID,
+      ),
     );
-    expect(dialog).toHaveTextContent(
+
+    expect(warning).toHaveTextContent(
       "office-runner is not connected right now, so the steps that run on it fail until it is.",
     );
+    expect(warning).toHaveAttribute("role", "alert");
+  });
+
+  test("a connected Runner's dialog has no warning", async () => {
+    const control: HTMLElement = await openRunnerView(OFFICE_ID);
+
+    await waitFor(() => {
+      expect(control).toHaveAttribute("aria-checked", "false");
+    }, WAIT);
+
+    fireEvent.click(control);
+
+    const dialog: HTMLElement = await screen.findByRole("dialog", {}, WAIT);
+
+    expect(dialog).not.toHaveTextContent("not connected");
+    expect(
+      within(dialog).queryByTestId(
+        getModelSwitchConfirmationWarningTestId(
+          RUNNER_PROJECT_DEFAULT_SWITCH_TEST_ID,
+        ),
+      ),
+    ).toBeNull();
   });
 
   test("turning it off asks first, saying where the steps go, then clears this Runner's column", async () => {
@@ -390,7 +453,17 @@ describe("the Project Default card on a Runner's page", () => {
 
       expect(screen.queryByRole("dialog")).toBeNull();
       expect(writes).toEqual([]);
-      expect(PROJECT_DEFAULT_REFUSAL_TEXT[refusal]).toMatch(/\.$/);
+
+      /*
+       * Why, where it is read - the switch's line - not only in a tooltip
+       * a phone never shows; and said once.
+       */
+      expect(control).toHaveAccessibleDescription(
+        PROJECT_DEFAULT_REFUSAL_TEXT[refusal],
+      );
+      expect(card()).not.toHaveTextContent(
+        "Runbook steps that pick no Runner run on prod-eu-west-1, the project default.",
+      );
     },
   );
 

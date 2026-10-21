@@ -24,6 +24,8 @@
  *                            Variables page or the first Runner of the
  *                            project's own (custom=1 or more);
  *                            the default is Runbooks -> Runners
+ *   - runner=2               page=runner opens the second Runner of the
+ *                            project's own (office-runner; custom=2)
  *   - picks=0                no code repository picks that Runner
  *                            (by default one does: checkout-service)
  *   - global=<n>             how many global Runners the server has: 0, 1
@@ -122,6 +124,7 @@ const defaultRunnerIndex = Math.min(
 const javaScriptPick = params.get("jspick") === "global" ? "global" : "";
 const bashPick = params.get("bashpick") === "global" ? "global" : "";
 const officeRunsRunbooks = params.get("norunbooks") !== "1";
+const runnerPageIndex = params.get("runner") === "2" ? 1 : 0;
 
 const wait = (ms) => {
   return new Promise((resolve) => {
@@ -537,7 +540,7 @@ const target = {
   runners: `/dashboard/${PROJECT_ID}/runbooks/runners`,
   steps: `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}/steps`,
   variables: `/dashboard/${PROJECT_ID}/runbooks/settings/variables`,
-  runner: `/dashboard/${PROJECT_ID}/runbooks/runners/${CUSTOM_RUNNER_IDS[0]}`,
+  runner: `/dashboard/${PROJECT_ID}/runbooks/runners/${CUSTOM_RUNNER_IDS[runnerPageIndex]}`,
 }[page];
 
 if (target && window.location.pathname !== target) {

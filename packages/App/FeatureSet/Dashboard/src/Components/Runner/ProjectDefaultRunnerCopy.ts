@@ -55,8 +55,8 @@ export const ProjectDefaultRunnerCopy: {
   stopDefaultConfirmDescription: string;
   stopDefaultConfirmButton: string;
   /*
-   * After the Custom Runners card's description: what the default is for,
-   * and that one can be made.
+   * After the Custom Runners card's description, while none of them is the
+   * default: that one can be made the default, where, and what it does.
    */
   customCardSentence: string;
   // The card of the one switch on a Runner's own page.
@@ -65,6 +65,11 @@ export const ProjectDefaultRunnerCopy: {
   switchTitle: string;
   switchOnDescription: string;
   switchOffDescription: string;
+  /*
+   * The switch's line while it is off and another Runner is the default
+   * ({{runner}}): where the steps that pick no Runner run now.
+   */
+  switchOffDescriptionWithDefault: string;
 } = {
   pillText: PROJECT_DEFAULT_TAG,
   setDefaultTitle: translationKey("Set as Project Default"),
@@ -90,7 +95,7 @@ export const ProjectDefaultRunnerCopy: {
   ),
   stopDefaultConfirmButton: translationKey("Stop Using as Default"),
   customCardSentence: translationKey(
-    "Make one the project default, and the steps that pick no Runner run on it.",
+    "Make one the project default from its ⋯ menu, and the steps that pick no Runner run on it.",
   ),
   switchCardTitle: translationKey("Project Default"),
   switchCardDescription: translationKey(
@@ -103,7 +108,18 @@ export const ProjectDefaultRunnerCopy: {
   switchOffDescription: translationKey(
     "Runbook steps that pick no Runner run on the project's default Runner, or on the Global Runner when there is none.",
   ),
+  switchOffDescriptionWithDefault: translationKey(
+    "Runbook steps that pick no Runner run on {{runner}}, the project default.",
+  ),
 };
+
+/*
+ * The warning, in the dialog that makes a Runner the default, that the
+ * Runner is not connected (makeDefaultNotConnectedWarning): drawn apart
+ * from what moves, so it is not read as one more sentence of it.
+ */
+export const PROJECT_DEFAULT_NOT_CONNECTED_WARNING_TEST_ID: string =
+  "project-default-not-connected-warning";
 
 /*
  * Why a Runner cannot be the project default, where the Dashboard offers to

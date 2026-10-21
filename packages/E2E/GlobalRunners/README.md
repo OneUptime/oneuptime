@@ -53,9 +53,12 @@ The suite drives the pages the way a person does:
   Global Runner next, whose pick saves `"global"`; a default that is not
   connected (`&default=2`) is said so; Runbooks › Runners marks the default
   with a pill, and Set as Project Default / Stop Using as Project Default in
-  a Runner's ⋯ menu ask first, saying which steps move; a Runner with Runs
+  a Runner's ⋯ menu ask first, saying which steps move, with a Runner that
+  is not connected said so in a warning of its own; a Runner with Runs
   Runbooks off (`&norunbooks=1`) cannot be made the default; a Runner's own
-  page has a Project Default card whose switch asks, then saves;
+  page has a Project Default card, after Runner Status, whose switch asks,
+  then saves - on office-runner's page (`&runner=2`) its line names the
+  Runner that is the default now, or says why it is locked;
 - a JavaScript step on Global Runner offers the timeout range it gets (1–300
   seconds) and says a longer one is cut short, and one of the project's own
   the hour it had; with no global Runner connected, the picker says the step

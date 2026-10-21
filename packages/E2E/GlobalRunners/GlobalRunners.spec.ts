@@ -39,6 +39,8 @@ const OFFICE_RUNNER_ID: string = "40000000-0000-4000-8000-0000000000d2";
 
 const RUNNERS_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/runners`;
 const RUNNER_PAGE: string = `${RUNNERS_PAGE}/${PROD_RUNNER_ID}`;
+// office-runner's own page (the fixture's runner=2).
+const OFFICE_RUNNER_PAGE: string = `${RUNNERS_PAGE}/${OFFICE_RUNNER_ID}`;
 const CHECKOUT_REPOSITORY_ID: string = "90000000-0000-4000-8000-000000000c01";
 const STEPS_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}/steps`;
 const VARIABLES_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/settings/variables`;
@@ -894,10 +896,13 @@ test.describe("a project with a default Runner", () => {
     await expect(dialog).toContainText(
       "Make office-runner the project default?",
     );
-    await expect(dialog).toContainText(
+    await expect(dialog.getByTestId("confirm-modal-description")).toHaveText(
       "Runbook steps that pick no Runner will run on it instead of prod-eu-west-1.",
     );
-    await expect(dialog).toContainText(
+    // Not connected: a warning of its own, under what moves.
+    await expect(
+      dialog.getByTestId("project-default-not-connected-warning"),
+    ).toHaveText(
       "office-runner is not connected right now, so the steps that run on it fail until it is.",
     );
     await screenshot(page, "runners-make-default-dialog");
@@ -982,6 +987,17 @@ test.describe("a project with a default Runner", () => {
     await expect(card(page, "Project Default")).toContainText(
       "The project's default Runner runs the runbook steps that pick no Runner of their own, in place of the Global Runner.",
     );
+    // After what the Runner is and how it is doing, before its setup command.
+    const titles: Array<string> = await headings(page).allInnerTexts();
+    expect(titles.indexOf("Runner Status")).toBeGreaterThan(
+      titles.indexOf("Runner Details"),
+    );
+    expect(titles.indexOf("Project Default")).toBeGreaterThan(
+      titles.indexOf("Runner Status"),
+    );
+    expect(titles.indexOf("Setup Instructions")).toBeGreaterThan(
+      titles.indexOf("Project Default"),
+    );
     await screenshot(page, "runner-page-project-default");
 
     await control.click();
@@ -999,6 +1015,62 @@ test.describe("a project with a default Runner", () => {
         data: { isProjectDefault: true },
       },
     ]);
+  });
+
+  test("while another Runner is the default, a Runner's page names it, and making this one the default warns it is not connected", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(
+      `${OFFICE_RUNNER_PAGE}?page=runner&runner=2&custom=2&default=1`,
+    );
+
+    const projectDefault: Locator = card(page, "Project Default");
+    const control: Locator = page.getByTestId("runner-project-default-switch");
+    await expect(control).toHaveAttribute("aria-checked", "false");
+    await expect(projectDefault).toContainText(
+      "Runbook steps that pick no Runner run on prod-eu-west-1, the project default.",
+    );
+
+    await control.click();
+    const dialog: Locator = page.getByTestId("modal");
+    await expect(dialog.getByTestId("confirm-modal-description")).toHaveText(
+      "Runbook steps that pick no Runner will run on it instead of prod-eu-west-1.",
+    );
+    await expect(
+      dialog.getByTestId("runner-project-default-switch-confirm-warning"),
+    ).toHaveText(
+      "office-runner is not connected right now, so the steps that run on it fail until it is.",
+    );
+    await screenshot(page, "runner-page-make-default-dialog");
+
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(control).toHaveAttribute("aria-checked", "false");
+    expect((await recorded(page)).updates).toEqual([]);
+  });
+
+  test("a Runner with Runs Runbooks off: its page's switch is locked, and its line says why", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(
+      `${OFFICE_RUNNER_PAGE}?page=runner&runner=2&custom=2&norunbooks=1`,
+    );
+
+    const control: Locator = page.getByTestId("runner-project-default-switch");
+    await expect(control).toHaveAttribute("aria-disabled", "true");
+    // Said where it is read, not only in the tooltip a phone never shows.
+    await expect(card(page, "Project Default")).toContainText(
+      "This Runner does not run runbooks. Turn on Runs Runbooks for it first.",
+    );
+
+    await control.click({ force: true });
+    await expect(page.getByTestId("modal")).toHaveCount(0);
+    expect((await recorded(page)).updates).toEqual([]);
+    await screenshot(page, "runner-page-project-default-locked");
   });
 
   test("a phone, dark: the default's pill and the Runners list stay on the screen", async ({

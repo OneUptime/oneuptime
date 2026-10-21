@@ -38,6 +38,7 @@ jest.mock("../../../UI/Utils/Analytics", () => {
 import RunnersPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/Runners";
 import GlobalRunnersCopy from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/GlobalRunnersCopy";
 import ProjectDefaultRunnerCopy, {
+  PROJECT_DEFAULT_NOT_CONNECTED_WARNING_TEST_ID,
   PROJECT_DEFAULT_REFUSAL_TEXT,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/ProjectDefaultRunnerCopy";
 import { GLOBAL_RUNNERS_ROUTE } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerChoices";
@@ -415,10 +416,24 @@ describe("Set as Project Default", () => {
       "Make office-runner the project default?",
     );
     expect(
-      within(dialog).getByTestId("confirm-modal-description"),
-    ).toHaveTextContent(
-      "Runbook steps that pick no Runner will run on it instead of prod-eu-west-1. office-runner is not connected right now, so the steps that run on it fail until it is.",
+      within(dialog).getByTestId("confirm-modal-description").textContent,
+    ).toBe(
+      "Runbook steps that pick no Runner will run on it instead of prod-eu-west-1.",
     );
+    /*
+     * The Runner is not connected: said as a warning of its own, under what
+     * moves - not run into its sentence.
+     */
+    const warning: HTMLElement = within(dialog).getByTestId(
+      PROJECT_DEFAULT_NOT_CONNECTED_WARNING_TEST_ID,
+    );
+    expect(warning).toHaveTextContent(
+      "office-runner is not connected right now, so the steps that run on it fail until it is.",
+    );
+    expect(warning).toHaveAttribute("role", "alert");
+    expect(
+      within(dialog).getByTestId("confirm-modal-description").contains(warning),
+    ).toBe(false);
     // Nothing is written until it is confirmed.
     expect(runnerWrites).toEqual([]);
 
@@ -471,9 +486,12 @@ describe("Set as Project Default", () => {
     expect(
       within(dialog).getByTestId("confirm-modal-description"),
     ).toHaveTextContent(ProjectDefaultRunnerCopy.makeDefaultConfirmDescription);
+    expect(dialog).not.toHaveTextContent("not connected");
     expect(
-      within(dialog).getByTestId("confirm-modal-description"),
-    ).not.toHaveTextContent("not connected");
+      within(dialog).queryByTestId(
+        PROJECT_DEFAULT_NOT_CONNECTED_WARNING_TEST_ID,
+      ),
+    ).toBeNull();
   });
 
   test("Cancel writes nothing", async () => {
