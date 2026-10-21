@@ -1194,7 +1194,9 @@ test.describe("a repository's settings", () => {
     await expect(modal).toBeHidden();
     await expect
       .poll(async () => {
-        return (await recorded(page)).settings.at(-1);
+        const settings: Array<Record<string, unknown>> = (await recorded(page))
+          .settings;
+        return settings[settings.length - 1];
       })
       .toMatchObject({ maxOpenFixPullRequests: 2 });
     await expect(pullRequests).toContainText("Up to 2 open at once");
