@@ -594,9 +594,13 @@ export default class ProjectCallSMSConfig extends BaseModel {
   @TableColumn({
     type: TableColumnType.LongText,
     title: "Twilio SMS Phone Numbers",
+    /*
+     * As GlobalConfig's says it: no country named, and an example that is no
+     * one country's number (TwilioPhoneNumbers.PHONE_NUMBER_LIST_EXAMPLE).
+     */
     description:
-      "Comma-separated numbers to send SMS from, for phone numbers that can only make calls: in Singapore, for example, national numbers are voice-only and SMS need a mobile number. Once set, every SMS goes out from the one in the recipient's country, or else the first. Leave it empty to send SMS from the same numbers as calls.",
-    example: "+6581234567",
+      "Comma-separated numbers to send SMS from, for phone numbers that can only make calls. Once set, every SMS goes out from the one in the recipient's country, or else the first. Leave it empty to send SMS from the same numbers as calls.",
+    example: "+14155550123, +447700900123",
   })
   @Column({
     type: ColumnType.LongText,

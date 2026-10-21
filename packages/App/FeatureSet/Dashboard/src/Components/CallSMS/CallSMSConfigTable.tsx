@@ -36,6 +36,7 @@ import TwilioConfigNumbersCopy, {
   getTwilioConfigNumbersForExport,
 } from "./TwilioConfigNumbersCopy";
 import { getPhoneNumberListError } from "Common/UI/Utils/PhoneNumberListError";
+import { PHONE_NUMBER_LIST_EXAMPLE } from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
 import TwilioConfigPhoneNumbers from "./TwilioConfigPhoneNumbers";
 import TwilioTestSendCopy, {
   getTestSendFromPhoneNumber,
@@ -72,8 +73,8 @@ const FIRST_CONFIG_INITIAL_VALUES: FormValues<ProjectCallSMSConfig> = {
 /*
  * The numbers few configs need, folded under More fields at the end of the
  * Twilio step: numbers to send SMS from, for numbers that can only make
- * calls (Singapore's national numbers are voice-only), and the numbers for
- * recipients in other countries (TwilioConfigNumbersCopy).
+ * calls (in some countries, national numbers are voice-only), and the
+ * numbers for recipients in other countries (TwilioConfigNumbersCopy).
  */
 const moreNumbersSection: FormFieldCollapsibleSection<ProjectCallSMSConfig> =
   getAdvancedFormSection<ProjectCallSMSConfig>();
@@ -459,7 +460,8 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             required: false,
             collapsibleSection: moreNumbersSection,
             description: TwilioConfigNumbersCopy.smsPhoneNumbersDescription,
-            placeholder: "+6581234567",
+            // A list, as the error under the field shows it: no one country's.
+            placeholder: PHONE_NUMBER_LIST_EXAMPLE,
             customValidation: (
               values: FormValues<ProjectCallSMSConfig>,
             ): string | null => {

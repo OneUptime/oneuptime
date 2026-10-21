@@ -12,14 +12,15 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getPhoneNumberListError } from "Common/UI/Utils/PhoneNumberListError";
+import { PHONE_NUMBER_LIST_EXAMPLE } from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 
 /*
  * The numbers few installations need, folded under More fields below the
  * three values the Twilio console shows together: numbers to send SMS from,
- * for numbers that can only make calls (in Singapore, national numbers are
- * voice-only and SMS need a mobile number), and the numbers bought for
+ * for numbers that can only make calls (in some countries, national numbers
+ * are voice-only and SMS need a mobile number), and the numbers bought for
  * other countries. Once SMS numbers are listed, every SMS goes out from one
  * of them (Common/Types/CallAndSMS/TwilioPhoneNumbers), as on a project's
  * own Twilio config.
@@ -27,7 +28,8 @@ import { useTranslation } from "react-i18next";
  * Its fields carry the titles, help and examples of the Dashboard's Twilio
  * Config form (CallSMSConfigTable), so the docs' one table of what goes
  * out from which field reads the same for the server's config as for a
- * project's.
+ * project's. Like the Dashboard's, the help names no country and the
+ * example is no one country's number: OneUptime is used worldwide.
  */
 const advancedSection: FormFieldCollapsibleSection<GlobalConfig> =
   getAdvancedFormSection<GlobalConfig>();
@@ -125,8 +127,9 @@ const Settings: FunctionComponent = (): ReactElement => {
             required: false,
             collapsibleSection: advancedSection,
             description:
-              "Numbers to send SMS from if yours can't (Singapore's national ones are voice-only). Each SMS uses the one in the recipient's country, or the first.",
-            placeholder: "+6581234567",
+              "Numbers to send SMS from if yours can only make calls. Each SMS uses the one in the recipient's country, or the first.",
+            // A list, as the error under the field gives it: no one country's.
+            placeholder: PHONE_NUMBER_LIST_EXAMPLE,
             customValidation: (
               values: FormValues<GlobalConfig>,
             ): string | null => {

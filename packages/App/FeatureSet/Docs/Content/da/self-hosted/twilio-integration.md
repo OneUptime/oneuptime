@@ -56,7 +56,7 @@ For en standard for hele installationen kan en administrator i stedet åbne **Ad
 
 ### Separate numre til opkald og SMS
 
-Et Twilio-nummer kan foretage opkald og sende SMS, eller kun det ene af dem, og i nogle lande kan intet nummer begge dele. I Singapore er nationale numre (+65 3 eller +65 6) for eksempel kun til tale, og SMS kræver et mobilnummer (+65 8). En konfiguration, et projekts eller installationens, kan angive numre til SMS under **Flere felter**:
+Et Twilio-nummer kan foretage opkald og sende SMS, eller kun det ene af dem, og i nogle lande kan intet nummer begge dele: nationale numre kan være kun til tale, mens SMS kræver et mobilnummer. En konfiguration, et projekts eller installationens, kan angive numre til SMS under **Flere felter**:
 
 | Felt | Hvad der sendes fra det |
 | --- | --- |
@@ -64,12 +64,12 @@ Et Twilio-nummer kan foretage opkald og sende SMS, eller kun det ene af dem, og 
 | **Twilio sekundære telefonnumre** | Opkald, og SMS, så længe der ikke er angivet SMS-numre, til modtagere i hvert nummers land |
 | **Twilio SMS-telefonnumre** | Hver SMS, når de er angivet: fra nummeret i modtagerens land, ellers fra det første |
 
-For Singapore skal du angive det nationale nummer som **Twilio primært telefonnummer** og mobilnummeret under **Twilio SMS-telefonnumre**. Så snart en konfiguration angiver SMS-numre, sendes ingen SMS fra dens andre numre, så angiv alle de numre, der skal sende SMS.
+Hvis dit nummer kun kan foretage opkald, så behold det som **Twilio primært telefonnummer**, og angiv et nummer, der kan sende SMS, for eksempel et mobilnummer, under **Twilio SMS-telefonnumre**. Så snart en konfiguration angiver SMS-numre, sendes ingen SMS fra dens andre numre, så angiv alle de numre, der skal sende SMS.
 
 En konfiguration uden SMS-numre sender SMS fra de samme numre som opkald, som hidtil. **Send test-SMS** og **Send testopkald** går ud fra det nummer, en rigtig SMS eller et rigtigt opkald til samme modtager ville gå ud fra. Hvis Twilio afviser en SMS med fejl 21606, kan nummeret ikke sende SMS: tilføj et, der kan, under **Twilio SMS-telefonnumre**.
 
 > [!NOTE]
-> I Singapore kommer en SMS fra et nummer, der ikke er registreret hos SGNIC, eller fra et nummer uden for Singapore, frem med afsenderen `Likely-SCAM`. Registrer mobilnummeret hos SGNIC og hos Twilio, før du regner med det; se [Twilios SMS-retningslinjer for Singapore](https://www.twilio.com/en-us/guidelines/sg/sms).
+> Hvilke numre der kan sende SMS, og om en afsender først skal registreres, varierer fra land til land: hvor registrering kræves, kan en SMS fra et uregistreret nummer blive blokeret eller markeret som spam. Før du regner med et nummer, så tjek [Twilios SMS-retningslinjer](https://www.twilio.com/en-us/guidelines/sms) for hvert land, du sender til.
 
 ## 3. Konfigurer netværksadgang
 

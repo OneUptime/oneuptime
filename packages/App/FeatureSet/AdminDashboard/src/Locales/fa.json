@@ -1011,9 +1011,9 @@
   "Docker Compose guide": "راهنمای Docker Compose",
   "Kubernetes guide": "راهنمای Kubernetes",
   "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "تماس‌ها از این شماره برقرار می‌شوند و پیامک‌ها هم، مگر اینکه در «فیلدهای بیشتر» شماره‌های تلفن پیامک اضافه کنید.",
-  "Numbers to send SMS from if yours can't (Singapore's national ones are voice-only). Each SMS uses the one in the recipient's country, or the first.": "شماره‌هایی برای فرستادن پیامک، اگر شماره‌های شما نمی‌توانند (شماره‌های ملی سنگاپور فقط صوتی هستند). هر پیامک از شماره کشور گیرنده فرستاده می‌شود و اگر نباشد، از نخستین شماره.",
+  "Numbers to send SMS from if yours can only make calls. Each SMS uses the one in the recipient's country, or the first.": "شماره‌هایی برای فرستادن پیامک، اگر شماره‌های شما فقط می‌توانند تماس برقرار کنند. هر پیامک از شماره کشور گیرنده فرستاده می‌شود و اگر نباشد، از نخستین شماره.",
   "Twilio SMS Phone Numbers": "شماره‌های تلفن پیامک Twilio",
-  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} شماره تلفن نیست. هر شماره را با کد کشورش بنویسید و شماره‌ها را با ویرگول جدا کنید، مانند +6581234567, +447700900123.",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like {{example}}.": "{{entry}} شماره تلفن نیست. هر شماره را با کد کشورش بنویسید و شماره‌ها را با ویرگول جدا کنید، مانند {{example}}.",
   "Twilio Primary Phone Number": "شماره تلفن اصلی Twilio",
   "Twilio Secondary Phone Numbers": "شماره‌های تلفن دوم Twilio",
   "Numbers to use instead of the primary one when they match the recipient's country code.": "شماره‌هایی که وقتی با کد کشور گیرنده مطابقت داشته باشند به‌جای شماره اصلی استفاده می‌شوند."

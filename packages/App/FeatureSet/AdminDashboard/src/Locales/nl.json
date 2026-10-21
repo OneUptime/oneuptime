@@ -1011,9 +1011,9 @@
   "Docker Compose guide": "Docker Compose-handleiding",
   "Kubernetes guide": "Kubernetes-handleiding",
   "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "Oproepen gaan uit van dit nummer, en sms-berichten ook, tenzij u onder Meer velden sms-telefoonnummers toevoegt.",
-  "Numbers to send SMS from if yours can't (Singapore's national ones are voice-only). Each SMS uses the one in the recipient's country, or the first.": "Nummers om sms vanaf te verzenden als die van u dat niet kunnen (in Singapore zijn nationale nummers alleen voor spraak). Elke sms gaat uit van het nummer in het land van de ontvanger, anders van het eerste.",
+  "Numbers to send SMS from if yours can only make calls. Each SMS uses the one in the recipient's country, or the first.": "Nummers om sms vanaf te verzenden als die van u alleen kunnen bellen. Elke sms gaat uit van het nummer in het land van de ontvanger, anders van het eerste.",
   "Twilio SMS Phone Numbers": "Twilio sms-telefoonnummers",
-  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} is geen telefoonnummer. Schrijf elk nummer met de landcode en scheid de nummers met komma's, zoals +6581234567, +447700900123.",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like {{example}}.": "{{entry}} is geen telefoonnummer. Schrijf elk nummer met de landcode en scheid de nummers met komma's, zoals {{example}}.",
   "Twilio Primary Phone Number": "Twilio primair telefoonnummer",
   "Twilio Secondary Phone Numbers": "Twilio secundaire telefoonnummers",
   "Numbers to use instead of the primary one when they match the recipient's country code.": "Nummers die in plaats van het hoofdnummer worden gebruikt als ze overeenkomen met de landcode van de ontvanger."

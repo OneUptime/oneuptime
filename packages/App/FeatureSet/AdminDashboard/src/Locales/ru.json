@@ -1011,9 +1011,9 @@
   "Docker Compose guide": "Руководство по Docker Compose",
   "Kubernetes guide": "Руководство по Kubernetes",
   "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "Звонки идут с этого номера, и SMS тоже, если в разделе «Дополнительные поля» не добавлены номера телефонов для SMS.",
-  "Numbers to send SMS from if yours can't (Singapore's national ones are voice-only). Each SMS uses the one in the recipient's country, or the first.": "Номера для отправки SMS, если ваши не могут (в Сингапуре национальные номера только голосовые). Каждое SMS уходит с номера страны получателя, а если такого нет — с первого.",
+  "Numbers to send SMS from if yours can only make calls. Each SMS uses the one in the recipient's country, or the first.": "Номера для отправки SMS, если ваши могут только звонить. Каждое SMS уходит с номера страны получателя, а если такого нет — с первого.",
   "Twilio SMS Phone Numbers": "Номера телефонов Twilio для SMS",
-  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} — не номер телефона. Укажите каждый номер с кодом страны и разделите номера запятыми, например +6581234567, +447700900123.",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like {{example}}.": "{{entry}} — не номер телефона. Укажите каждый номер с кодом страны и разделите номера запятыми, например {{example}}.",
   "Twilio Primary Phone Number": "Основной номер телефона Twilio",
   "Twilio Secondary Phone Numbers": "Дополнительные номера телефонов Twilio",
   "Numbers to use instead of the primary one when they match the recipient's country code.": "Номера, которые используются вместо основного, если совпадает код страны получателя."
