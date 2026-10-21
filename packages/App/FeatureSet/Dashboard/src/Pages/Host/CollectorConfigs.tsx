@@ -203,21 +203,29 @@ const CollectorConfigs: FunctionComponent<
               return (
                 <li
                   key={osType}
-                  className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                  /*
+                   * On a phone the button goes under the name (a Button is
+                   * as wide as its row there), instead of squeezing the name
+                   * into a column a word wide.
+                   */
+                  className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+                  data-testid={`host-collector-default-row-${osType}`}
                 >
                   <span className="text-sm text-gray-900">
                     {translator.translateText(DEFAULT_CONFIG_NAMES[osType])}
                   </span>
-                  <Button
-                    title="View config"
-                    icon={IconProp.Code}
-                    buttonStyle={ButtonStyleType.NORMAL}
-                    buttonSize={ButtonSize.Small}
-                    dataTestId={`host-collector-default-${osType}`}
-                    onClick={() => {
-                      setDefaultShown(osType);
-                    }}
-                  />
+                  <div className="sm:flex-none [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0">
+                    <Button
+                      title="View config"
+                      icon={IconProp.Code}
+                      buttonStyle={ButtonStyleType.NORMAL}
+                      buttonSize={ButtonSize.Small}
+                      dataTestId={`host-collector-default-${osType}`}
+                      onClick={() => {
+                        setDefaultShown(osType);
+                      }}
+                    />
+                  </div>
                 </li>
               );
             },

@@ -136,7 +136,8 @@ const HostConnectionWatch: FunctionComponent<ComponentProps> = (
         data-testid="host-connection-waiting"
       >
         <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75 motion-reduce:animate-none" />
+          {/* The dot's own indigo: a mid-tone reads the same in the dark theme. */}
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-500 opacity-75 motion-reduce:animate-none" />
           <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-indigo-500" />
         </span>
         {translator.translateTemplate(

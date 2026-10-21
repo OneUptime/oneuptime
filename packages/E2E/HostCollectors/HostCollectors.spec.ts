@@ -1128,6 +1128,20 @@ test("on a phone the pages fit", async ({ page }: { page: Page }) => {
   expect(await scrollsSideways(page)).toBe(false);
   await screenshot(page, "collector-config-phone");
 
+  // OneUptime's defaults: each View config under its name, not beside it.
+  await open(page, CONFIGS);
+  const linuxDefault: Locator = page.getByTestId(
+    "host-collector-default-row-linux",
+  );
+  const nameBox: { y: number; height: number } = (await linuxDefault
+    .getByText("OneUptime default for Linux", { exact: true })
+    .boundingBox())!;
+  const viewBox: { y: number } = (await page
+    .getByTestId("host-collector-default-linux")
+    .boundingBox())!;
+  expect(viewBox.y).toBeGreaterThanOrEqual(nameBox.y + nameBox.height - 1);
+  expect(await scrollsSideways(page)).toBe(false);
+
   await open(page, HOSTS);
   // A failed config is the one thing in a row that asks for action: shown on a phone too.
   await expect(

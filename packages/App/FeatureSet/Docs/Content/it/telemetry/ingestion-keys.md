@@ -67,7 +67,7 @@ Una chiave **Browser** chiede le sue **Allowed Origins** al passaggio successivo
 Fate clic su **Crea chiave di ingestione**. Si apre la pagina della chiave: copiate la sua **Chiave segreta** e datela ai vostri mittenti.
 :::
 
-La **Guida alla configurazione** di ogni prodotto inizia con **Choose an ingestion key**, che elenca le chiavi che quella guida può usare e ne crea una sul posto. Gli snippet della guida contengono poi quella chiave.
+La **Guida alla configurazione** di ogni prodotto inizia con **Scegli una chiave di ingestione**, che elenca le chiavi che quella guida può usare e ne crea una sul posto. Gli snippet della guida contengono poi quella chiave.
 
 ## Inviare telemetria con la chiave
 

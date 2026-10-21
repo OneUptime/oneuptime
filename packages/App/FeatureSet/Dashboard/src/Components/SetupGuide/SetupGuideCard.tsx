@@ -118,6 +118,14 @@ export interface ComponentProps {
   isBare?: boolean | undefined;
 }
 
+/*
+ * The first step of every guide, in the reader's language. The docs'
+ * Ingestion Keys page names it (TelemetryAdminDocsFacts reads it here).
+ */
+export const SETUP_GUIDE_KEY_STEP_TITLE: string = translationKey(
+  "Choose an ingestion key",
+);
+
 const DEFAULT_KEY_STEP_DESCRIPTION: string = translationKey(
   "The agent sends data to your project with this key. Pick an existing key or create a new one — the commands below update to use it.",
 );
@@ -228,9 +236,7 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
 
   const steps: Array<SetupGuideStepView> = [
     {
-      title:
-        translator.translateText("Choose an ingestion key") ||
-        "Choose an ingestion key",
+      title: translate(SETUP_GUIDE_KEY_STEP_TITLE),
       description: translate(
         keyStep.description ||
           props.keyStepDescription ||
