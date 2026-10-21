@@ -499,6 +499,71 @@ jest.mock(
   },
 );
 
+/*
+ * The Workspace section's pages: the security cases' Slack and Microsoft
+ * Teams rules, and the page that connects either (every product's).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/WorkspaceConnectionSlack",
+  () => {
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
+
+    return {
+      __esModule: true,
+      default: (props: { view?: string | undefined }) => {
+        return ReactModule.createElement("div", {
+          "data-testid": "security-page",
+          "data-page": "WorkspaceConnectionSlack",
+          "data-view": props.view || "",
+        });
+      },
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/WorkspaceConnectionMicrosoftTeams",
+  () => {
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
+
+    return {
+      __esModule: true,
+      default: (props: { view?: string | undefined }) => {
+        return ReactModule.createElement("div", {
+          "data-testid": "security-page",
+          "data-page": "WorkspaceConnectionMicrosoftTeams",
+          "data-view": props.view || "",
+        });
+      },
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceConnectionsOverview",
+  () => {
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
+
+    return {
+      __esModule: true,
+      // The pages each tile's next step opens, so a test can say which they are.
+      default: (props: { slackPage: string; microsoftTeamsPage: string }) => {
+        return ReactModule.createElement("div", {
+          "data-testid": "security-page",
+          "data-page": "WorkspaceConnections",
+          "data-view": `${props.slackPage} ${props.microsoftTeamsPage}`,
+        });
+      },
+    };
+  },
+);
+
 import SecurityEventsRoutes from "../../../../App/FeatureSet/Dashboard/src/Routes/SecurityEventsRoutes";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -595,6 +660,19 @@ const ADDRESSES: Array<[string, string, string, boolean]> = [
   ["/playbook-runs/all", "PlaybookRuns", "all", true],
   ["/connections", "Connections", "", true],
   ["/documentation", "Documentation", "", true],
+  ["/workspace-connection-slack", "WorkspaceConnectionSlack", "", true],
+  [
+    "/workspace-connection-microsoft-teams",
+    "WorkspaceConnectionMicrosoftTeams",
+    "",
+    true,
+  ],
+  [
+    "/workspace-connections",
+    "WorkspaceConnections",
+    "SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS",
+    true,
+  ],
 ];
 
 describe("every Security Events address", () => {

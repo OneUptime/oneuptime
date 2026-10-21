@@ -2,11 +2,14 @@ import PageMap from "../PageMap";
 import RouteMap, { RouteUtil } from "../RouteMap";
 import {
   SECURITY_EVENTS_LANDING_PAGE,
+  SECURITY_EVENTS_WORKSPACE_PAGES,
   SecurityEventsMenuItem,
   SecurityEventsMenuSection,
   getSecurityEventsMenuItems,
   getSecurityEventsMenuSectionFor,
   getSecurityEventsPageTrail,
+  getSecurityEventsWorkspacePages,
+  isSecurityEventsWorkspacePage,
 } from "../SecurityEventsNavigation";
 import { BuildBreadcrumbLinksByTitles } from "./Helper";
 import Route from "Common/Types/API/Route";
@@ -16,16 +19,18 @@ import Link from "Common/Types/Link";
  * Each Security Events page's trail names it as the side menu does: the
  * product, the page's section, and the page - Project > Security Events >
  * Security Cases > Assigned to Me. A page named like its section
- * (Overview, Events, Playbooks, Connections) is not named twice. The trails
- * are read from the menu (SecurityEventsNavigation.ts), so a page renamed
- * or moved there is named the same here.
+ * (Overview, Events, Playbooks, Workspace, Connections) is not named twice.
+ * The trails are read from the menu (SecurityEventsNavigation.ts), so a page
+ * renamed or moved there is named the same here.
  *
  * Each crumb opens what its name says, as the menus do: Security Events
  * opens the product where the Products menu opens it, the Overview, and a
  * section opens its first page - Security Cases its Open Cases, Playbooks
- * its playbooks. Following the address instead would have sent Security
- * Events to the raw events, and Playbooks on a run's page to the runs
- * waiting for approval. The crumb of the page you are on is not a link.
+ * its playbooks. Workspace, whose entries depend on what the project has
+ * connected, opens the page that shows Slack and Microsoft Teams side by
+ * side. Following the address instead would have sent Security Events to
+ * the raw events, and Playbooks on a run's page to the runs waiting for
+ * approval. The crumb of the page you are on is not a link.
  */
 
 // The two pages that open on their own, under the section their lists are in.
@@ -40,7 +45,10 @@ const DETAIL_TRAILS: Array<[PageMap, Array<string>]> = [
   ],
 ];
 
-// The pages with a trail of their own: every menu page, a case and a playbook.
+/*
+ * The pages with a trail of their own: every menu page, the Workspace
+ * section's, a case and a playbook.
+ */
 export function getSecurityEventsBreadcrumbPages(): Array<PageMap> {
   return [
     ...getSecurityEventsMenuItems().map(
@@ -48,6 +56,7 @@ export function getSecurityEventsBreadcrumbPages(): Array<PageMap> {
         return item.page;
       },
     ),
+    ...getSecurityEventsWorkspacePages(),
     ...DETAIL_TRAILS.map(([page]: [PageMap, Array<string>]): PageMap => {
       return page;
     }),
@@ -84,6 +93,20 @@ function getSectionOf(page: PageMap): SecurityEventsMenuSection | undefined {
   }
 }
 
+/*
+ * The page a section's crumb opens: its first page, or, for Workspace, the
+ * page that shows both workspaces, which every project can open.
+ */
+function getSectionLandingOf(page: PageMap): PageMap | undefined {
+  if (isSecurityEventsWorkspacePage(page)) {
+    return SECURITY_EVENTS_WORKSPACE_PAGES.connect;
+  }
+
+  const section: SecurityEventsMenuSection | undefined = getSectionOf(page);
+
+  return section?.items[0]?.page;
+}
+
 function routeOf(page: PageMap): Route {
   return RouteUtil.populateRouteParams(RouteMap[page] as Route);
 }
@@ -108,7 +131,7 @@ export function getSecurityEventsBreadcrumbs(
     return undefined;
   }
 
-  const section: SecurityEventsMenuSection | undefined = getSectionOf(page);
+  const sectionLanding: PageMap | undefined = getSectionLandingOf(page);
 
   return links.map((link: Link, index: number): Link => {
     const isLast: boolean = index === links.length - 1;
@@ -119,8 +142,8 @@ export function getSecurityEventsBreadcrumbs(
     }
 
     // The section: its first page.
-    if (index === 2 && !isLast && section?.items[0]) {
-      return { ...link, to: routeOf(section.items[0].page) };
+    if (index === 2 && !isLast && sectionLanding) {
+      return { ...link, to: routeOf(sectionLanding) };
     }
 
     return link;

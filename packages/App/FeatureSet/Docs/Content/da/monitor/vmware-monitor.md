@@ -260,7 +260,7 @@ Sendes kun for klynger med vSAN, værterne i dem og VM'erne på en vSAN-datastor
 | `vcenter.vm.vsan.throughput`        | `By/s`            | VM'ens vSAN-gennemløb, efter `direction`                                                                                                        |
 
 > [!NOTE]
-> En VM's strømtilstand er ikke en metrik. Receiveren sender kun `vcenter.vm.cpu.*` for tændte VM'er, så OneUptime skelner **Powered on** fra **Powered off** ud fra, om der kom CPU-data i samme indsamling som VM'ens hukommelses- og diskdata; vCenterets side **Virtual Machines** viser resultatet. For at advare om slukkede værter eller om, hvor mange VM'er der kører, bruger du attributten `power_state` på `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` eller `vcenter.cluster.vm.count`.
+> En VM's strømtilstand er ikke en metrik. Receiveren sender kun `vcenter.vm.cpu.*` for tændte VM'er, så OneUptime skelner **Powered on** fra **Powered off** ud fra, om der kom CPU-data i samme indsamling som VM'ens hukommelses- og diskdata; vCenterets side **Virtuelle maskiner** viser resultatet. For at advare om slukkede værter eller om, hvor mange VM'er der kører, bruger du attributten `power_state` på `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` eller `vcenter.cluster.vm.count`.
 
 ## Overvågningskriterier
 

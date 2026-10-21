@@ -1,0 +1,40 @@
+{{> Start this}}
+
+{{!--
+  A security case assigned to this person, or to a team they are on
+  (SecurityCaseNotifications). Case values are written with a double stash;
+  the description is the only HTML, and Markdown.convertToHTML wrote it.
+--}}
+{{> Logo this}}
+{{> EmailTitle title=emailTitle }}
+
+{{#if priorityBadgeText}}
+{{> SeverityBadge badgeText=priorityBadgeText badgeColor=priorityColor badgeTextColor=priorityTextColor }}
+{{/if}}
+
+{{> InfoBlock plainInfo=leadSentence }}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Case: " plainText=caseTitle }}
+{{> DetailBoxField title="Priority: " plainText=casePriority color=priorityColor textColor=priorityTextColor }}
+{{> DetailBoxField title="Status: " plainText=caseStatus }}
+{{> DetailBoxField title="Assigned To: " plainText=caseAssignee }}
+{{> DetailBoxField title="Source: " plainText=caseSource }}
+{{> DetailBoxField title="Entities: " plainText=caseEntities }}
+{{> DetailBoxField title="MITRE ATT&CK: " plainText=caseMitreTactics }}
+{{> DetailBoxField title="Project: " plainText=projectName }}
+{{> DetailBoxField title="Description: " blockText=caseDescription }}
+{{> DetailBoxEnd this }}
+
+{{> ButtonBlock buttonUrl=caseViewLink buttonText="View Case"}}
+
+{{> LinkBlock linkUrl=caseViewLink linkLabel="You can also copy and paste this link:"}}
+
+{{> TitleBlock title="Why am I receiving this email?"}}
+{{> InfoBlock plainInfo=reasonSentence }}
+
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

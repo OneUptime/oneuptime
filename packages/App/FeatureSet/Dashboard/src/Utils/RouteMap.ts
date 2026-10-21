@@ -781,6 +781,12 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   [PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL]: "playbook-runs",
   [PageMap.SECURITY_PLAYBOOK_RUNS]: "playbook-runs/all",
   [PageMap.SECURITY_PROTECTED_ENTITIES]: "protected-entities",
+  // Workspace, at the addresses every product's Workspace pages have.
+  [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK]:
+    "workspace-connection-slack",
+  [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
+    "workspace-connection-microsoft-teams",
+  [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS]: "workspace-connections",
 };
 
 // Metrics product routes
@@ -6754,6 +6760,28 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SECURITY_PROTECTED_ENTITIES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_PROTECTED_ENTITIES]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[
+        PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK
+      ]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[
+        PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+      ]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS]
     }`,
   ),
 

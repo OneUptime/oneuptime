@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 32062,
-    "untranslated": 3674
+    "keys": 32602,
+    "untranslated": 3659
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -89,6 +89,7 @@
     "Bytes",
     "CPU / Mem",
     "CPU Ready",
+    "CPU Ready {{percent}}",
     "CPU.*high",
     "CSS",
     "Chad",

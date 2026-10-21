@@ -81,6 +81,10 @@ import {
   WHO_JOINS_SECTION_TITLE,
 } from "./NotificationRuleCopy";
 import NotificationRuleSummary from "./NotificationRuleSummary";
+import {
+  canRuleCreateChannel,
+  ChannelRecordEventType,
+} from "./NotificationRuleOwnChannel";
 
 /*
  * Which half of a rule this form edits. The rule wizard asks the two on
@@ -218,6 +222,16 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
   const isTeams: boolean = props.workspaceType === WorkspaceType.MicrosoftTeams;
 
   /*
+   * The kind of record, when a rule for it can create a channel of its own.
+   * A security case rule cannot (NotificationRuleOwnChannel): it only posts.
+   */
+  const channelEventType: ChannelRecordEventType | null = canRuleCreateChannel(
+    props.eventType,
+  )
+    ? props.eventType
+    : null;
+
+  /*
    * When the rule fires: its conditions, then - once there are two to
    * combine - whether all of them must be met or any one is enough
    * (isFilterConditionNeeded). With one condition, All and Any fire on the
@@ -309,7 +323,8 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
    * Where it posts, and the channel it creates. Posting to channels people
    * already have comes first: the one switch most rules need. A channel of
    * the record's own follows, with who joins it - the people the record
-   * has, as they join it - and, folded, the prefix of its name.
+   * has, as they join it - and, folded, the prefix of its name. A rule that
+   * only posts (a security case's) asks where it posts and nothing more.
    */
   let destinationFields: Array<Field<NotificationRulesType>> = [
     {
@@ -517,96 +532,99 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
   const channelNameSection: FormFieldCollapsibleSection<NotificationRulesType> =
     getAdvancedFormSection<NotificationRulesType>({ id: "channel-name" });
 
-  destinationFields = destinationFields.concat([
-    {
-      field: {
-        shouldCreateNewChannel: true,
+  // A channel of the record's own, and who joins it: only where it can have one.
+  if (channelEventType) {
+    destinationFields = destinationFields.concat([
+      {
+        field: {
+          shouldCreateNewChannel: true,
+        },
+        title: CREATE_CHANNEL_TITLES[channelEventType],
+        description: CREATE_CHANNEL_DESCRIPTIONS[channelEventType],
+        fieldType: FormFieldSchemaType.Toggle,
+        showHorizontalRuleAbove: true,
+        required: false,
       },
-      title: CREATE_CHANNEL_TITLES[props.eventType],
-      description: CREATE_CHANNEL_DESCRIPTIONS[props.eventType],
-      fieldType: FormFieldSchemaType.Toggle,
-      showHorizontalRuleAbove: true,
-      required: false,
-    },
-    {
-      field: {
-        teamToCreateChannelIn: true,
+      {
+        field: {
+          teamToCreateChannelIn: true,
+        },
+        title: TEAM_TITLE,
+        description: NEW_CHANNEL_TEAM_DESCRIPTION,
+        fieldType: FormFieldSchemaType.Dropdown,
+        placeholder: TEAM_PLACEHOLDER,
+        required: true,
+        showIf: (formValue: FormValues<NotificationRulesType>) => {
+          return createsChannel(formValue) && isTeams;
+        },
+        dropdownOptions: teamOptions,
       },
-      title: TEAM_TITLE,
-      description: NEW_CHANNEL_TEAM_DESCRIPTION,
-      fieldType: FormFieldSchemaType.Dropdown,
-      placeholder: TEAM_PLACEHOLDER,
-      required: true,
-      showIf: (formValue: FormValues<NotificationRulesType>) => {
-        return createsChannel(formValue) && isTeams;
+      /*
+       * Slack only: OneUptime cannot archive a Microsoft Teams channel
+       * (MicrosoftTeams.archiveChannels), so the switch would do nothing there.
+       */
+      {
+        field: {
+          archiveChannelAutomatically: true,
+        },
+        title: ARCHIVE_CHANNEL_TITLES[channelEventType],
+        fieldType: FormFieldSchemaType.Toggle,
+        required: false,
+        showIf: (formValue: FormValues<NotificationRulesType>): boolean => {
+          return createsChannel(formValue) && !isTeams;
+        },
       },
-      dropdownOptions: teamOptions,
-    },
-    /*
-     * Slack only: OneUptime cannot archive a Microsoft Teams channel
-     * (MicrosoftTeams.archiveChannels), so the switch would do nothing there.
-     */
-    {
-      field: {
-        archiveChannelAutomatically: true,
+      /*
+       * Optional: without a prefix, a channel is named after its record -
+       * inc-42 for incident INC-42 - and a prefix goes in front of that name,
+       * prod-inc-42. Folded under More fields: most rules need none, and the
+       * summary under the step names the channel either way. The preview
+       * under the field shows the name as it is typed, worked out as the
+       * server names channels (WorkspaceChannelName), and describes the field
+       * to a screen reader. The placeholder shows the usual shape of a
+       * prefix: a word and a hyphen.
+       */
+      {
+        field: {
+          newChannelTemplateName: true,
+        },
+        title: "Channel Name Prefix",
+        showIf: createsChannel,
+        required: false,
+        description: CHANNEL_NAME_PREFIX_DESCRIPTIONS[channelEventType],
+        fieldType: FormFieldSchemaType.Text,
+        placeholder: "e.g. prod-",
+        disableSpellCheck: true,
+        dataTestId: "channel-name-prefix",
+        ariaDescribedby: channelNamePreviewId,
+        collapsibleSection: channelNameSection,
+        getFooterElement: (
+          formValue: FormValues<NotificationRulesType>,
+        ): ReactElement => {
+          return (
+            <ChannelNamePreview
+              id={channelNamePreviewId}
+              workspaceType={props.workspaceType}
+              eventType={props.eventType}
+              prefix={
+                (formValue as CreateNewChannelNotificationRuleType)
+                  .newChannelTemplateName
+              }
+              numberPrefixes={props.numberPrefixes}
+              exampleRecordName={props.exampleRecordName}
+              dataTestId="channel-name-prefix-preview"
+            />
+          );
+        },
       },
-      title: ARCHIVE_CHANNEL_TITLES[props.eventType],
-      fieldType: FormFieldSchemaType.Toggle,
-      required: false,
-      showIf: (formValue: FormValues<NotificationRulesType>): boolean => {
-        return createsChannel(formValue) && !isTeams;
-      },
-    },
-    /*
-     * Optional: without a prefix, a channel is named after its record -
-     * inc-42 for incident INC-42 - and a prefix goes in front of that name,
-     * prod-inc-42. Folded under More fields: most rules need none, and the
-     * summary under the step names the channel either way. The preview
-     * under the field shows the name as it is typed, worked out as the
-     * server names channels (WorkspaceChannelName), and describes the field
-     * to a screen reader. The placeholder shows the usual shape of a
-     * prefix: a word and a hyphen.
-     */
-    {
-      field: {
-        newChannelTemplateName: true,
-      },
-      title: "Channel Name Prefix",
-      showIf: createsChannel,
-      required: false,
-      description: CHANNEL_NAME_PREFIX_DESCRIPTIONS[props.eventType],
-      fieldType: FormFieldSchemaType.Text,
-      placeholder: "e.g. prod-",
-      disableSpellCheck: true,
-      dataTestId: "channel-name-prefix",
-      ariaDescribedby: channelNamePreviewId,
-      collapsibleSection: channelNameSection,
-      getFooterElement: (
-        formValue: FormValues<NotificationRulesType>,
-      ): ReactElement => {
-        return (
-          <ChannelNamePreview
-            id={channelNamePreviewId}
-            workspaceType={props.workspaceType}
-            eventType={props.eventType}
-            prefix={
-              (formValue as CreateNewChannelNotificationRuleType)
-                .newChannelTemplateName
-            }
-            numberPrefixes={props.numberPrefixes}
-            exampleRecordName={props.exampleRecordName}
-            dataTestId="channel-name-prefix-preview"
-          />
-        );
-      },
-    },
-    /*
-     * Who joins the channel, under a heading of its own, last: the fold
-     * above it is the channel's, so it sits with the channel's switches,
-     * not under who joins.
-     */
-    ...whoJoinsFields,
-  ]);
+      /*
+       * Who joins the channel, under a heading of its own, last: the fold
+       * above it is the channel's, so it sits with the channel's switches,
+       * not under who joins.
+       */
+      ...whoJoinsFields,
+    ]);
+  }
 
   const isDestination: boolean =
     props.part === NotificationRuleFormPart.Destination;

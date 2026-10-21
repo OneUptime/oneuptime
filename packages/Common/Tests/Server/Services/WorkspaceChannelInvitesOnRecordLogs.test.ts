@@ -132,7 +132,11 @@ const RECORD_CHANNEL: NotificationRuleWorkspaceChannel = {
 
 const LINK: URL = URL.fromString("https://oneuptime.example/record/1");
 
-type RecordField = keyof NotificationFor;
+/*
+ * The records a channel is created for and its log rows are filed under. A
+ * security case has neither: its rules only post to channels that exist.
+ */
+type RecordField = Exclude<keyof NotificationFor, "securityCaseId">;
 
 const RECORD_FIELDS: Array<RecordField> = [
   "incidentId",

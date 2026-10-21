@@ -178,7 +178,7 @@ SLO 小部件可以在 [公开仪表板](/docs/dashboards/sharing) 上使用。�
 | **Docker Swarm** | **节点**、**服务** | Docker Swarm 代理 |
 | **Podman** | **主机**、**容器**、**镜像**、**网络**、**卷** | Podman 代理 |
 | **Proxmox** | **节点**、**Guests** | Proxmox 代理 |
-| **VMware** | **主机**、**Virtual Machines** | VMware 代理，或你连接的 vCenter |
+| **VMware** | **主机**、**虚拟机** | VMware 代理，或你连接的 vCenter |
 | **Ceph** | 以按状态着色的墙显示的 **OSDs** ，以及 **Pools** | Ceph 代理 |
 | **存储阵列** | **卷**，以及以按状态着色的墙显示的 **Hardware** | Storage Array 代理 |
 

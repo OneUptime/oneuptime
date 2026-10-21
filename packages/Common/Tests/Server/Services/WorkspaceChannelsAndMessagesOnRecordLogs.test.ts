@@ -100,7 +100,11 @@ const OPS_CHANNEL: WorkspaceChannel = {
 
 const THREAD_ID: string = "1700000000.000100";
 
-type RecordField = keyof NotificationFor;
+/*
+ * The records a channel is created for and its log rows are filed under. A
+ * security case has neither: its rules only post to channels that exist.
+ */
+type RecordField = Exclude<keyof NotificationFor, "securityCaseId">;
 
 interface RecordCase {
   field: RecordField;

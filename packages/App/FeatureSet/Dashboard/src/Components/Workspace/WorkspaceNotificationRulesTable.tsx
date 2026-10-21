@@ -73,8 +73,8 @@ import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import { WorkspaceChannelNumberPrefixes } from "Common/Utils/Workspace/WorkspaceChannelName";
 import NotificationRuleInvites from "Common/Types/Workspace/NotificationRules/NotificationRuleInvites";
 import {
+  getNotificationRuleDestinationDescription,
   NOTIFICATION_RULE_CONDITIONS_TITLES,
-  NOTIFICATION_RULE_DESTINATION_DESCRIPTION,
   NOTIFICATION_RULE_DESTINATION_TITLES,
   NOTIFICATION_RULES_CARD_DESCRIPTIONS,
   NOTIFICATION_RULES_CARD_TITLE,
@@ -83,6 +83,7 @@ import {
   VIDEO_CALL_STEP_DESCRIPTIONS,
   VIDEO_CALL_STEP_TITLE,
 } from "./NotificationRuleForm/NotificationRuleCopy";
+import { canRuleCreateChannel } from "./NotificationRuleForm/NotificationRuleOwnChannel";
 
 /*
  * How each step of the rule wizard opens: with its question as a heading
@@ -725,12 +726,20 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
          * owners (NotificationRuleInvites.getNewRuleSwitches). The boxes are
          * ticked from the start; they count only once the rule creates a
          * channel.
+         *
+         * A rule that can only post (a security case's: it creates no
+         * channel) starts posting to channels the project has, the one
+         * destination every such rule needs: its step opens on the channels
+         * to name.
          */
         createInitialValues={{
           notificationRule: {
             filterCondition: FilterCondition.All,
             filters: [],
             ...NotificationRuleInvites.getNewRuleSwitches(props.eventType),
+            ...(canRuleCreateChannel(props.eventType)
+              ? {}
+              : { shouldPostToExistingChannel: true }),
           },
         }}
         isCreateable={true}
@@ -852,7 +861,11 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             title: NOTIFICATION_RULE_DESTINATION_TITLES[props.workspaceType],
             sectionTitle:
               NOTIFICATION_RULE_DESTINATION_TITLES[props.workspaceType],
-            sectionDescription: NOTIFICATION_RULE_DESTINATION_DESCRIPTION,
+            // Where it posts, and - for a rule that creates one - who joins its channel.
+            sectionDescription: getNotificationRuleDestinationDescription({
+              eventType: props.eventType,
+              workspaceType: props.workspaceType,
+            }),
             ...STEP_HEADING,
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,

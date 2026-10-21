@@ -75,7 +75,7 @@ flowchart TB
 | 欄位 | 索引標籤 | 作用 |
 | --- | --- | --- |
 | **vCenter** | 全部 | 必填。把每個查詢限定到 `resource.vmware.vcenter.name`。 |
-| **Datacenter** | Custom Metric、進階 | 選填。一個資料中心：`resource.vcenter.datacenter.name`。每個序列都帶有它。 |
+| **資料中心** | Custom Metric、進階 | 選填。一個資料中心：`resource.vcenter.datacenter.name`。每個序列都帶有它。 |
 | **叢集** | Custom Metric、進階 | 選填。一個叢集：`resource.vcenter.cluster.name`。比對叢集自身的序列，以及其中的主機、VM 和資源集區的序列；獨立的 ESXi 主機沒有叢集。 |
 | **ESXi Host** | Custom Metric、進階 | 選填。一台 ESXi 主機：`resource.vcenter.host.name`。比對主機自身的序列 **以及** 它執行的每個 VM 的序列，因為 VM 帶有其主機的名稱。 |
 | **Virtual Machine** | Custom Metric、進階 | 選填。一個 VM：`resource.vcenter.vm.name`。VM 名稱不一定唯一：當兩個 VM 同名時，請再加上一台主機或一個叢集。 |
@@ -127,11 +127,11 @@ OneUptime 為常見的 VMware 問題提供 23 個範本，**Quick Setup** 會提
 | Datastore Capacity Warning | Datastore | Warning | `vcenter.datastore.disk.utilization`，依 `resource.vcenter.datastore.name` 取 Avg | 高於 80%：一個提前的警告，因為精簡磁碟和快照會很快用完剩餘空間 | 達到或低於 72% |
 | Datastore Capacity Critical | Datastore | 嚴重 | `vcenter.datastore.disk.utilization`，依資料存放區取 Avg | 高於 90%：寫滿的資料存放區會暫停每個在其上有磁碟的 VM | 達到或低於 81% |
 | Cluster Host Not Effective | 叢集 | 嚴重 | `vcenter.cluster.host.count` 篩選到 `effective = false`，依 `resource.vcenter.cluster.name` 取 Max | 高於 0：某台主機處於維護模式、已中斷連線或沒有回應，因此叢集以低於其設計容量的容量運作 | 恢復為 0 |
-| Datacenter Hosts Unhealthy | Datacenter | 嚴重 | `vcenter.datacenter.host.count` 篩選到 `status = red`，依 `resource.vcenter.datacenter.name` 取 Max | 高於 0：某台主機有嚴重警報，例如硬體感測器、遺失的儲存路徑或 HA 代理程式錯誤 | 恢復為 0 |
-| Datacenter Hosts Degraded | Datacenter | Warning | `vcenter.datacenter.host.count` 篩選到 `status = yellow`，依資料中心取 Max | 高於 0：某台主機有警告層級警報 | 恢復為 0 |
-| Datacenter Hosts Powered Off | Datacenter | Warning | `vcenter.datacenter.host.count` 篩選到 `power_state = off`，依資料中心取 Max | 高於 0：某台主機已關機——它當機了、斷電了，或被 DPM 置於待命狀態 | 恢復為 0 |
-| Datacenter VMs Unhealthy | Datacenter | Warning | `vcenter.datacenter.vm.count` 篩選到 `status = red`，依資料中心取 Max | 高於 0：某個 VM 有嚴重警報，例如 HA 重新啟動失敗、遺失的資料存放區或遺失的 Tools 活動訊號 | 恢復為 0 |
-| Datacenter Clusters Unhealthy | Datacenter | 嚴重 | `vcenter.datacenter.cluster.count` 篩選到 `status = red`，依資料中心取 Max | 高於 0：某個叢集有嚴重警報，例如 HA 容錯移轉資源不足、HA 選舉失敗或嚴重的 vSAN 健康狀態檢查 | 恢復為 0 |
+| Datacenter Hosts Unhealthy | 資料中心 | 嚴重 | `vcenter.datacenter.host.count` 篩選到 `status = red`，依 `resource.vcenter.datacenter.name` 取 Max | 高於 0：某台主機有嚴重警報，例如硬體感測器、遺失的儲存路徑或 HA 代理程式錯誤 | 恢復為 0 |
+| Datacenter Hosts Degraded | 資料中心 | Warning | `vcenter.datacenter.host.count` 篩選到 `status = yellow`，依資料中心取 Max | 高於 0：某台主機有警告層級警報 | 恢復為 0 |
+| Datacenter Hosts Powered Off | 資料中心 | Warning | `vcenter.datacenter.host.count` 篩選到 `power_state = off`，依資料中心取 Max | 高於 0：某台主機已關機——它當機了、斷電了，或被 DPM 置於待命狀態 | 恢復為 0 |
+| Datacenter VMs Unhealthy | 資料中心 | Warning | `vcenter.datacenter.vm.count` 篩選到 `status = red`，依資料中心取 Max | 高於 0：某個 VM 有嚴重警報，例如 HA 重新啟動失敗、遺失的資料存放區或遺失的 Tools 活動訊號 | 恢復為 0 |
+| Datacenter Clusters Unhealthy | 資料中心 | 嚴重 | `vcenter.datacenter.cluster.count` 篩選到 `status = red`，依資料中心取 Max | 高於 0：某個叢集有嚴重警報，例如 HA 容錯移轉資源不足、HA 選舉失敗或嚴重的 vSAN 健康狀態檢查 | 恢復為 0 |
 | vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`，依叢集取 Avg | 高於 20 000 µs (20 ms)：vSAN 資料存放區上每個 VM 的儲存都變慢。在沒有 vSAN 的叢集上保持靜默 | 達到或低於 18 000 µs |
 | vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`，依叢集取 Max | 高於 0：某個磁碟群組跟不上，vSAN 正在減慢其用戶端的 I/O | 恢復為 0 |
 | Resource Pool Memory Swapped | 叢集 | Warning | `vcenter.resource_pool.memory.swapped`，依 `resource.vcenter.resource_pool.inventory_path` 取 Max | 高於 0：資源集區的 VM 正從主機置換空間取得記憶體，通常是因為資源集區的記憶體限制或配額過低 | 恢復為 0 |
@@ -260,7 +260,7 @@ OneUptime 為常見的 VMware 問題提供 23 個範本，**Quick Setup** 會提
 | `vcenter.vm.vsan.throughput` | `By/s` | VM 的 vSAN 輸送量，依 `direction` |
 
 > [!NOTE]
-> VM 的電源狀態不是一個指標。接收器只為已開機的 VM 傳送 `vcenter.vm.cpu.*`，因此 OneUptime 根據 CPU 資料是否與 VM 的記憶體和磁碟資料在同一次收集中送達，來區分 **Powered on** 和 **Powered off**；vCenter 的 **Virtual Machines** 頁面會顯示結果。若要針對已關機的主機或正在執行的 VM 數量發出警示，請使用 `power_state` 屬性，它位於 `vcenter.datacenter.host.count`、`vcenter.datacenter.vm.count` 或 `vcenter.cluster.vm.count` 上。
+> VM 的電源狀態不是一個指標。接收器只為已開機的 VM 傳送 `vcenter.vm.cpu.*`，因此 OneUptime 根據 CPU 資料是否與 VM 的記憶體和磁碟資料在同一次收集中送達，來區分 **Powered on** 和 **Powered off**；vCenter 的 **虛擬機器** 頁面會顯示結果。若要針對已關機的主機或正在執行的 VM 數量發出警示，請使用 `power_state` 屬性，它位於 `vcenter.datacenter.host.count`、`vcenter.datacenter.vm.count` 或 `vcenter.cluster.vm.count` 上。
 
 ## 監控條件
 
