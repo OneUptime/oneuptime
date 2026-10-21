@@ -76,7 +76,7 @@ export const ARCHIVABLE_VALUE_COPY: Record<
   },
   [ArchivableValueType.MonitorStatus]: {
     archiveMessage: translationKey(
-      "Nobody can pick an archived status for a monitor, a criteria or a status change again. Monitors in it stay in it until their status changes, and it stays in their history. You can unarchive it at any time.",
+      "Nobody can pick an archived status for a monitor, its criteria or a status change again. Monitors in it stay in it until their status changes, and it stays in their history. You can unarchive it at any time.",
     ),
     archivedTitle: translationKey("Archived Monitor Statuses"),
     archivedDescription: translationKey(

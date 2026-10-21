@@ -7,11 +7,13 @@ import AlertState from "../../../Models/DatabaseModels/AlertState";
 import IncidentRole from "../../../Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
+import IncidentTemplate from "../../../Models/DatabaseModels/IncidentTemplate";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import Team from "../../../Models/DatabaseModels/Team";
+import ObjectID from "../../../Types/ObjectID";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -195,5 +197,135 @@ describe("the ids a saved record names", () => {
     circular["self"] = circular;
 
     expect(ArchivedValuePicker.getIdsNamedIn(circular, [LIVE])).toEqual([]);
+  });
+});
+
+/*
+ * A new record made from another one - a Duplicate - takes only the values a
+ * new record may have: an archived label (state, status) stays with the
+ * record it is on. The server would refuse the copy for it.
+ */
+describe("a new record made from another one", () => {
+  const LIVE_LABEL: string = "5e000000-0000-4000-8000-0000000000a1";
+  const ARCHIVED_LABEL: string = "5e000000-0000-4000-8000-0000000000a2";
+  const SEVERITY: string = "5e000000-0000-4000-8000-0000000000b1";
+
+  const label: (id: string, isArchived: boolean) => Label = (
+    id: string,
+    isArchived: boolean,
+  ): Label => {
+    const value: Label = new Label();
+    value._id = id;
+    value.name = id === LIVE_LABEL ? "payments" : "legacy-db";
+    value.isArchived = isArchived;
+    return value;
+  };
+
+  test("the original is read with the archive switch beside every value it copies", () => {
+    expect(
+      ArchivedValuePicker.getCopySelect(Monitor, {
+        description: true,
+        monitorSteps: true,
+        labels: true,
+      }),
+    ).toEqual({
+      description: true,
+      monitorSteps: true,
+      labels: { _id: true, isArchived: true },
+    });
+  });
+
+  test("a relation's own columns stay beside the switch, a single relation too", () => {
+    expect(
+      ArchivedValuePicker.getCopySelect(IncidentTemplate, {
+        incidentSeverity: { name: true },
+        labels: { _id: true, color: true },
+      }),
+    ).toEqual({
+      incidentSeverity: { name: true, _id: true, isArchived: true },
+      labels: { _id: true, color: true, isArchived: true },
+    });
+  });
+
+  test("relations to records that are never archived values are read as asked", () => {
+    expect(
+      ArchivedValuePicker.getCopySelect(IncidentTemplate, {
+        onCallDutyPolicies: true,
+        templateName: true,
+      }),
+    ).toEqual({ onCallDutyPolicies: true, templateName: true });
+  });
+
+  test("an archived label is left behind; the others are kept as the plain select read them", () => {
+    const original: Monitor = new Monitor();
+    original.description = "Checkout API";
+    original.labels = [label(LIVE_LABEL, false), label(ARCHIVED_LABEL, true)];
+
+    const copy: Monitor = ArchivedValuePicker.withoutArchivedValues(original, {
+      description: true,
+      labels: true,
+    });
+
+    expect(copy.description).toBe("Checkout API");
+    expect(
+      (copy.labels || []).map((value: Label): string => {
+        return value._id?.toString() || "";
+      }),
+    ).toEqual([LIVE_LABEL]);
+    // Its id alone, as a plain "labels: true" reads it: sent as before.
+    expect(copy.labels![0]).toBeInstanceOf(Label);
+    expect(copy.labels![0]!.isArchived).toBeUndefined();
+    expect(copy.labels![0]!.name).toBeUndefined();
+  });
+
+  test("an archived single value is taken off, with its id column", () => {
+    const severity: IncidentSeverity = new IncidentSeverity();
+    severity._id = SEVERITY;
+    severity.isArchived = true;
+
+    const original: IncidentTemplate = new IncidentTemplate();
+    original.templateName = "Payments outage";
+    original.incidentSeverity = severity;
+    original.incidentSeverityId = new ObjectID(SEVERITY);
+
+    const copy: IncidentTemplate = ArchivedValuePicker.withoutArchivedValues(
+      original,
+      { templateName: true, incidentSeverity: true, incidentSeverityId: true },
+    );
+
+    expect(copy.templateName).toBe("Payments outage");
+    expect(copy.incidentSeverity).toBeUndefined();
+    expect(copy.incidentSeverityId).toBeUndefined();
+  });
+
+  test("a live single value is kept as its id", () => {
+    const severity: IncidentSeverity = new IncidentSeverity();
+    severity._id = SEVERITY;
+    severity.isArchived = false;
+
+    const original: IncidentTemplate = new IncidentTemplate();
+    original.incidentSeverity = severity;
+
+    const copy: IncidentTemplate = ArchivedValuePicker.withoutArchivedValues(
+      original,
+      { incidentSeverity: true },
+    );
+
+    expect(copy.incidentSeverity).toBeInstanceOf(IncidentSeverity);
+    expect(copy.incidentSeverity!._id?.toString()).toBe(SEVERITY);
+    expect(copy.incidentSeverity!.isArchived).toBeUndefined();
+  });
+
+  test("a record with none of them is copied untouched", () => {
+    const original: Monitor = new Monitor();
+    original.description = "No labels";
+
+    const copy: Monitor = ArchivedValuePicker.withoutArchivedValues(original, {
+      description: true,
+      labels: true,
+    });
+
+    expect(copy.description).toBe("No labels");
+    expect(copy.labels).toBeUndefined();
   });
 });

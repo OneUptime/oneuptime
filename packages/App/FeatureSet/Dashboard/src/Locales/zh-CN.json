@@ -32795,7 +32795,7 @@
   "Nobody can pick an archived state for a maintenance event again. Events in it stay in it and move on as usual, and it stays in their history and in filters. You can unarchive it at any time.": "任何人都无法再为维护事件选择已归档的状态。处于该状态的事件会保持该状态并照常推进，该状态也会保留在历史记录和过滤器中。您可以随时取消归档。",
   "Nobody can pick an archived state for an alert or an episode again. Alerts in it stay in it and move on as usual, and it stays in their history and in filters. You can unarchive it at any time.": "任何人都无法再为警报或片段选择已归档的状态。处于该状态的警报会保持该状态并照常推进，该状态也会保留在历史记录和过滤器中。您可以随时取消归档。",
   "Nobody can pick an archived state for an incident or an episode again. Incidents in it stay in it and move on as usual, and it stays in their history and in filters. You can unarchive it at any time.": "任何人都无法再为事件或片段选择已归档的状态。处于该状态的事件会保持该状态并照常推进，该状态也会保留在历史记录和过滤器中。您可以随时取消归档。",
-  "Nobody can pick an archived status for a monitor, a criteria or a status change again. Monitors in it stay in it until their status changes, and it stays in their history. You can unarchive it at any time.": "任何人都无法再为监视器、条件或状态更改选择已归档的状态。处于该状态的监视器会保持该状态直到其状态改变，该状态也会保留在历史记录中。您可以随时取消归档。",
+  "Nobody can pick an archived status for a monitor, its criteria or a status change again. Monitors in it stay in it until their status changes, and it stays in their history. You can unarchive it at any time.": "任何人都无法再为监视器、条件或状态更改选择已归档的状态。处于该状态的监视器会保持该状态直到其状态改变，该状态也会保留在历史记录中。您可以随时取消归档。",
   "OneUptime treats a monitor in this status as down, so it can't be archived.": "OneUptime 将处于此状态的监视器视为宕机，因此无法归档。",
   "Removed from": "将从中移除的项目",
   "Resolving an alert moves it to this state, so it can't be archived.": "解决警报会将其移至此状态，因此无法归档。",

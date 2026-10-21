@@ -209,7 +209,11 @@ const toAlertForPrefill: ToAlertForPrefillFunction = (
     dockerHosts: (alert.dockerHosts || []).map(toNamedResource),
     podmanHosts: (alert.podmanHosts || []).map(toNamedResource),
     services: (alert.services || []).map(toNamedResource),
-    labelIds: (alert.labels || [])
+    /*
+     * An archived label stays on the alert: nobody can pick it for the new
+     * incident, and the server would refuse the incident for it.
+     */
+    labelIds: ArchivedValuePicker.getLiveValues(alert.labels || [])
       .map((label: Label): string => {
         return label._id?.toString() || "";
       })
@@ -755,7 +759,8 @@ const IncidentCreate: FunctionComponent<
         dockerHosts: { _id: true, name: true },
         podmanHosts: { _id: true, name: true },
         services: { _id: true, name: true },
-        labels: { _id: true },
+        // With the archive switch: an archived label is not carried over.
+        labels: { _id: true, isArchived: true },
       },
       sort: {},
     });

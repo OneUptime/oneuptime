@@ -32795,7 +32795,7 @@
   "Nobody can pick an archived state for a maintenance event again. Events in it stay in it and move on as usual, and it stays in their history and in filters. You can unarchive it at any time.": "任何人都無法再為維護事件選擇已封存的狀態。處於該狀態的事件會維持該狀態並照常推進，該狀態也會保留在歷程記錄和篩選器中。您可以隨時取消封存。",
   "Nobody can pick an archived state for an alert or an episode again. Alerts in it stay in it and move on as usual, and it stays in their history and in filters. You can unarchive it at any time.": "任何人都無法再為警示或片段選擇已封存的狀態。處於該狀態的警示會維持該狀態並照常推進，該狀態也會保留在歷程記錄和篩選器中。您可以隨時取消封存。",
   "Nobody can pick an archived state for an incident or an episode again. Incidents in it stay in it and move on as usual, and it stays in their history and in filters. You can unarchive it at any time.": "任何人都無法再為事件或片段選擇已封存的狀態。處於該狀態的事件會維持該狀態並照常推進，該狀態也會保留在歷程記錄和篩選器中。您可以隨時取消封存。",
-  "Nobody can pick an archived status for a monitor, a criteria or a status change again. Monitors in it stay in it until their status changes, and it stays in their history. You can unarchive it at any time.": "任何人都無法再為監測器、條件或狀態變更選擇已封存的狀態。處於該狀態的監測器會維持該狀態直到其狀態改變，該狀態也會保留在歷程記錄中。您可以隨時取消封存。",
+  "Nobody can pick an archived status for a monitor, its criteria or a status change again. Monitors in it stay in it until their status changes, and it stays in their history. You can unarchive it at any time.": "任何人都無法再為監測器、條件或狀態變更選擇已封存的狀態。處於該狀態的監測器會維持該狀態直到其狀態改變，該狀態也會保留在歷程記錄中。您可以隨時取消封存。",
   "OneUptime treats a monitor in this status as down, so it can't be archived.": "OneUptime 會將處於此狀態的監測器視為停機，因此無法封存。",
   "Removed from": "將從中移除的項目",
   "Resolving an alert moves it to this state, so it can't be archived.": "解決警示會將其移至此狀態，因此無法封存。",

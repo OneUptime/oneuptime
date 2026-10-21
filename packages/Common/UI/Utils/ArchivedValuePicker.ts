@@ -1,6 +1,9 @@
 import { ARCHIVED_VALUE_TAG } from "../Components/ArchivedTag/ArchivedTagCopy";
 import type { DropdownOption } from "../Components/Dropdown/Dropdown";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Select from "../../Types/BaseDatabase/Select";
+import { TableColumnMetadata } from "../../Types/Database/TableColumn";
+import TableColumnType from "../../Types/Database/TableColumnType";
 import {
   ARCHIVED_COLUMN,
   isArchivableValueTable,
@@ -202,4 +205,145 @@ export default class ArchivedValuePicker {
 
     return named;
   }
+
+  /*
+   * A NEW RECORD MADE FROM ANOTHER ONE - a Duplicate - takes only the values
+   * a new record may have. An archived label (state, status) stays with the
+   * record it is on and is never copied onto the new one: the server would
+   * refuse the copy for it, and nobody could pick it there anyway.
+   *
+   * getCopySelect is the select the original is read with: the archive
+   * switch beside the id of every value it copies. withoutArchivedValues
+   * then takes the archived ones off what was read, keeping each other
+   * value as the plain select would have read it - its id - so the copy is
+   * sent as it always was.
+   */
+  public static getCopySelect<T extends BaseModel>(
+    modelType: { new (): T },
+    select: Select<T>,
+  ): Select<T> {
+    const copySelect: Record<string, unknown> = {
+      ...(select as Record<string, unknown>),
+    };
+
+    for (const relation of getArchivableRelations(new modelType(), select)) {
+      const columnSelect: unknown = copySelect[relation.column];
+
+      copySelect[relation.column] = {
+        ...(columnSelect && typeof columnSelect === "object"
+          ? (columnSelect as Record<string, unknown>)
+          : {}),
+        _id: true,
+        [ARCHIVED_COLUMN]: true,
+      };
+    }
+
+    return copySelect as Select<T>;
+  }
+
+  public static withoutArchivedValues<T extends BaseModel>(
+    item: T,
+    select: Select<T>,
+  ): T {
+    for (const relation of getArchivableRelations(item, select)) {
+      const value: unknown = item.getValue(relation.column);
+
+      if (Array.isArray(value)) {
+        item.setValue(
+          relation.column,
+          ArchivedValuePicker.getLiveValues(value).map(
+            (kept: unknown): BaseModel => {
+              return toIdOnly(kept, relation.modelType);
+            },
+          ) as never,
+        );
+        continue;
+      }
+
+      if (value && ArchivedValuePicker.isArchived(value)) {
+        item.removeValue(relation.column);
+
+        if (relation.idColumn) {
+          item.removeValue(relation.idColumn);
+        }
+
+        continue;
+      }
+
+      if (value && typeof value === "object") {
+        item.setValue(
+          relation.column,
+          toIdOnly(value, relation.modelType) as never,
+        );
+      }
+    }
+
+    return item;
+  }
 }
+
+// A relation of a model, as a select reads it, to values that can be archived.
+interface ArchivableRelation {
+  column: string;
+  // A single relation's ID column ("changeMonitorStatusToId").
+  idColumn?: string | undefined;
+  modelType: ModelType;
+}
+
+const getArchivableRelations: (
+  model: BaseModel,
+  select: unknown,
+) => Array<ArchivableRelation> = (
+  model: BaseModel,
+  select: unknown,
+): Array<ArchivableRelation> => {
+  const relations: Array<ArchivableRelation> = [];
+
+  for (const column of Object.keys((select as Record<string, unknown>) || {})) {
+    let metadata: TableColumnMetadata | undefined = undefined;
+
+    try {
+      metadata = model.getTableColumnMetadata(column);
+    } catch {
+      // Not a column of the model: copied as it always was.
+      continue;
+    }
+
+    if (
+      !metadata ||
+      (metadata.type !== TableColumnType.Entity &&
+        metadata.type !== TableColumnType.EntityArray) ||
+      !metadata.modelType ||
+      !ArchivedValuePicker.isArchivableValueModel(metadata.modelType)
+    ) {
+      continue;
+    }
+
+    relations.push({
+      column: column,
+      idColumn: metadata.manyToOneRelationColumn,
+      modelType: metadata.modelType,
+    });
+  }
+
+  return relations;
+};
+
+// A value as a plain select reads it: a model of its kind with its id.
+const toIdOnly: (value: unknown, modelType: ModelType) => BaseModel = (
+  value: unknown,
+  modelType: ModelType,
+): BaseModel => {
+  const record: Record<string, unknown> = (value || {}) as Record<
+    string,
+    unknown
+  >;
+  const id: unknown = record["_id"] || record["id"];
+  const model: BaseModel = new modelType();
+
+  if (id) {
+    model._id = id.toString();
+  }
+
+  return model;
+};
