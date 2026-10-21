@@ -1,9 +1,21 @@
-import { getPageSEO, PageSEOData } from "../Utils/PageSEO";
+import PageSEOConfig, { getPageSEO, PageSEOData } from "../Utils/PageSEO";
 import {
   Reseller,
+  Resellers,
   ResellersPageContent,
   getResellersPageContent,
 } from "../Utils/Resellers";
+import {
+  CLOUD_MARKETPLACES_SECTION_ID,
+  CloudMarketplaceCard,
+  CloudMarketplaceEntries,
+  CloudMarketplaceEntry,
+  CloudMarketplaceProduct,
+  CloudMarketplaceProducts,
+  CloudMarketplacesContent,
+  getCloudMarketplacesContent,
+} from "../Utils/CloudMarketplaces";
+import CloudMarketplace from "Common/Types/Marketplace/CloudMarketplace";
 import {
   RESELLER_INQUIRY_HONEYPOT_FIELD,
   RESELLER_INQUIRY_PATH,
@@ -21,10 +33,11 @@ import path from "path";
  * THE RESELLERS PAGE, RENDERED.
  *
  * The real template with the locals Routes.ts hands it: what the page says
- * and links to, the resellers by region (and no region at all), the form's
- * fields as the server's rules have them, the hidden field only a program
- * fills in - and then the form's own script, run in jsdom against the page,
- * sending the form and showing what the server answers.
+ * and links to, the resellers by region (and no region at all), the cloud
+ * marketplaces after them (every listing, public or not, and none), the
+ * form's fields as the server's rules have them, the hidden field only a
+ * program fills in - and then the form's own script, run in jsdom against
+ * the page, sending the form and showing what the server answers.
  */
 
 const VIEWS_ROOT: string = path.join(__dirname, "..", "Views");
@@ -584,6 +597,551 @@ describe("the resellers by region, drawn from other lists", () => {
     expect(card?.querySelector("script")).toBeNull();
     expect(card?.querySelector("img")).toBeNull();
     expect(card?.textContent).toContain(hostile);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The cloud marketplaces: not resellers, so a section of their own.
+ * ---------------------------------------------------------------------------
+ */
+
+// The cards and rows of the cloud marketplaces section.
+function marketplaceCardsIn(container: ParentNode): Array<Element> {
+  return Array.from(
+    container.querySelectorAll('[data-testid="cloud-marketplace-card"]'),
+  );
+}
+
+function marketplaceCardNamed(container: ParentNode, name: string): Element {
+  const card: Element | undefined = marketplaceCardsIn(container).find(
+    (element: Element): boolean => {
+      return textOf(element.querySelector("h3")) === name;
+    },
+  );
+
+  expect(card).toBeDefined();
+
+  return card!;
+}
+
+function listingRowsOf(card: Element): Array<Element> {
+  return Array.from(
+    card.querySelectorAll('[data-testid="cloud-marketplace-listing"]'),
+  );
+}
+
+function rowOf(card: Element, product: CloudMarketplaceProduct): Element {
+  const row: Element | undefined = listingRowsOf(card).find(
+    (element: Element): boolean => {
+      return element.getAttribute("data-product") === product;
+    },
+  );
+
+  expect(row).toBeDefined();
+
+  return row!;
+}
+
+// Every listing address the list has, in its order.
+function listedAddresses(
+  entries: ReadonlyArray<CloudMarketplaceEntry> = CloudMarketplaceEntries,
+): Array<string> {
+  return entries.flatMap((entry: CloudMarketplaceEntry): Array<string> => {
+    return CloudMarketplaceProducts.map(
+      (product: CloudMarketplaceProduct): string | null => {
+        return entry.listingUrls[product];
+      },
+    ).filter((url: string | null): url is string => {
+      return url !== null;
+    });
+  });
+}
+
+function withListings(
+  listingUrls: (
+    entry: CloudMarketplaceEntry,
+  ) => Record<CloudMarketplaceProduct, string | null>,
+): Array<CloudMarketplaceEntry> {
+  return CloudMarketplaceEntries.map(
+    (entry: CloudMarketplaceEntry): CloudMarketplaceEntry => {
+      return { ...entry, listingUrls: listingUrls(entry) };
+    },
+  );
+}
+
+describe("the cloud marketplaces section", () => {
+  let page: Document;
+  let section: HTMLElement;
+  const content: CloudMarketplacesContent = getCloudMarketplacesContent();
+
+  beforeAll(async () => {
+    page = documentOf(await renderPage());
+    section = page.getElementById(CLOUD_MARKETPLACES_SECTION_ID)!;
+  });
+
+  test("is a section of its own, named by its heading", () => {
+    expect(section).not.toBeNull();
+    expect(section.tagName).toBe("SECTION");
+
+    const heading: HTMLElement | null = page.getElementById(
+      section.getAttribute("aria-labelledby") || "",
+    );
+
+    expect(heading?.tagName).toBe("H2");
+    expect(textOf(heading)).toBe("Buy through your cloud marketplace");
+    expect(textOf(heading?.nextElementSibling)).toBe(
+      "Buy OneUptime with the cloud account you already have, and pay for it on your cloud bill.",
+    );
+  });
+
+  test("comes after the resellers and before the form, and is not part of the list of resellers", () => {
+    const list: HTMLElement = page.getElementById("resellers-list")!;
+    const form: HTMLElement = page.getElementById("become-a-reseller")!;
+    const following: number =
+      page.defaultView!.Node.DOCUMENT_POSITION_FOLLOWING;
+
+    expect(list.compareDocumentPosition(section) & following).toBeTruthy();
+    expect(section.compareDocumentPosition(form) & following).toBeTruthy();
+    expect(list.contains(section)).toBe(false);
+    // A marketplace is not a reseller, and a reseller is not a marketplace.
+    expect(marketplaceCardsIn(list)).toHaveLength(0);
+    expect(
+      section.querySelectorAll('[data-testid="reseller-card"]'),
+    ).toHaveLength(0);
+    expect(
+      section.querySelectorAll('[data-testid="reseller-region"]'),
+    ).toHaveLength(0);
+  });
+
+  test("leaves the page's outline in reading order: one title, then the resellers, the marketplaces and the form", () => {
+    expect(
+      Array.from(page.querySelectorAll("h1")).map((heading: Element) => {
+        return textOf(heading);
+      }),
+    ).toEqual(["Buy OneUptime from a partner near you"]);
+    expect(
+      Array.from(page.querySelectorAll("main h2")).map((heading: Element) => {
+        return textOf(heading);
+      }),
+    ).toEqual([
+      "Our resellers",
+      "Buy through your cloud marketplace",
+      "Become a reseller",
+    ]);
+    // Each marketplace is a heading under the section's.
+    expect(
+      Array.from(section.querySelectorAll("h3")).map((heading: Element) => {
+        return textOf(heading);
+      }),
+    ).toEqual(
+      content.marketplaces.map((card: CloudMarketplaceCard) => {
+        return card.name;
+      }),
+    );
+  });
+
+  test("is offered from the hero as a quiet third way, under the two buttons", () => {
+    const line: Element | null = page.querySelector(
+      '#resellers-hero [data-testid="resellers-hero-marketplaces"]',
+    );
+    const link: HTMLAnchorElement | null = line?.querySelector("a") || null;
+
+    expect(link?.getAttribute("href")).toBe(
+      `#${CLOUD_MARKETPLACES_SECTION_ID}`,
+    );
+    // What a screen reader says: the arrow is decoration.
+    expect(textOf(link?.querySelector("span:not([aria-hidden])"))).toBe(
+      "Or buy through your cloud marketplace",
+    );
+    expect(link?.querySelector('[aria-hidden="true"]')?.textContent).toBe("↓");
+
+    // Under the buttons, and not a button itself.
+    const buttons: Element | null =
+      page.querySelector('#resellers-hero a[href="#resellers-list"]')
+        ?.parentElement || null;
+
+    expect(buttons?.nextElementSibling).toBe(line);
+    expect(link?.className).not.toContain("rounded-lg");
+    expect(
+      Array.from(page.querySelectorAll("#resellers-hero a")).map(
+        (anchor: Element) => {
+          return anchor.getAttribute("href");
+        },
+      ),
+    ).toEqual(["#resellers-list", "#become-a-reseller", "#cloud-marketplaces"]);
+  });
+
+  test("says what each product is once, beside the marketplaces", () => {
+    const points: Element = section.querySelector(
+      '[data-testid="cloud-marketplace-products"]',
+    )!;
+
+    expect(
+      Array.from(points.querySelectorAll("dt")).map((term: Element) => {
+        return textOf(term);
+      }),
+    ).toEqual(["OneUptime Cloud", "OneUptime Enterprise"]);
+
+    const [cloud, enterprise] = Array.from(points.querySelectorAll("dd"));
+
+    expect(textOf(cloud)).toBe(
+      "We run it for you, at the prices on our pricing page.",
+    );
+    expect(cloud?.querySelector("a")?.getAttribute("href")).toBe("/pricing");
+    expect(textOf(enterprise)).toBe(
+      "You run it in your own Kubernetes cluster, for $0.10 per user per hour, with no license key to activate. How it works",
+    );
+    expect(enterprise?.querySelector("a")?.getAttribute("href")).toBe(
+      "/docs/installation/cloud-marketplaces",
+    );
+  });
+
+  test("shows every marketplace in the list's order, each under an anchor of its own", () => {
+    expect(
+      marketplaceCardsIn(section).map((card: Element) => {
+        return [card.id, textOf(card.querySelector("h3"))];
+      }),
+    ).toEqual([
+      ["aws-marketplace", "AWS Marketplace"],
+      ["microsoft-marketplace", "Microsoft Marketplace"],
+      ["google-cloud-marketplace", "Google Cloud Marketplace"],
+    ]);
+  });
+
+  test("gives a marketplace with a public listing a row for each product, in one order", () => {
+    for (const name of ["AWS Marketplace", "Microsoft Marketplace"]) {
+      const card: Element = marketplaceCardNamed(section, name);
+
+      expect(
+        listingRowsOf(card).map((row: Element) => {
+          return row.getAttribute("data-product");
+        }),
+      ).toEqual(["cloud", "enterprise"]);
+    }
+
+    expect(
+      textOf(
+        rowOf(marketplaceCardNamed(section, "AWS Marketplace"), "cloud")
+          .firstElementChild,
+      ),
+    ).toBe("OneUptime Cloud Hosted by OneUptime");
+    expect(
+      textOf(
+        rowOf(
+          marketplaceCardNamed(section, "Microsoft Marketplace"),
+          "enterprise",
+        ).firstElementChild,
+      ),
+    ).toBe("OneUptime Enterprise Self-hosted on Azure Kubernetes Service");
+  });
+
+  test("links each public listing in a new tab, says where to a screen reader, and reports the click", () => {
+    for (const card of content.marketplaces) {
+      for (const listing of card.listings) {
+        if (!listing.listingUrl) {
+          continue;
+        }
+
+        const link: HTMLAnchorElement | null = rowOf(
+          marketplaceCardNamed(section, card.name),
+          listing.product,
+        ).querySelector("a");
+
+        expect(link?.getAttribute("href")).toBe(listing.listingUrl);
+        expect(link?.getAttribute("target")).toBe("_blank");
+        expect((link?.getAttribute("rel") || "").split(" ").sort()).toEqual([
+          "noopener",
+          "noreferrer",
+        ]);
+        expect(link?.getAttribute("data-ou-cta")).toBe("cta_cloud_marketplace");
+        expect(textOf(link)).toBe(
+          `View listing (opens ${listing.productName} on ${card.name} in a new tab)`,
+        );
+        expect(link?.querySelector(".sr-only")?.textContent).toBe(
+          `(opens ${listing.label} in a new tab)`,
+        );
+      }
+    }
+  });
+
+  test("names AWS's and Microsoft's listings as the marketplaces link them", () => {
+    expect(
+      rowOf(marketplaceCardNamed(section, "AWS Marketplace"), "cloud")
+        .querySelector("a")
+        ?.getAttribute("href"),
+    ).toBe("https://aws.amazon.com/marketplace/pp/prodview-ttfnc3eqofayw");
+    expect(
+      ["cloud", "enterprise"].map((product: string) => {
+        return rowOf(
+          marketplaceCardNamed(section, "Microsoft Marketplace"),
+          product as CloudMarketplaceProduct,
+        )
+          .querySelector("a")
+          ?.getAttribute("href");
+      }),
+    ).toEqual([
+      "https://marketplace.microsoft.com/en-us/product/oneupitme.oneuptime-cloud",
+      "https://marketplace.microsoft.com/en-us/product/oneupitme.oneuptime-enterprise",
+    ]);
+  });
+
+  test("says Coming soon for a listing that is not public yet, and links nowhere", () => {
+    const row: Element = rowOf(
+      marketplaceCardNamed(section, "AWS Marketplace"),
+      "enterprise",
+    );
+
+    expect(textOf(row)).toBe(
+      "OneUptime Enterprise Self-hosted on Amazon EKS Coming soon",
+    );
+    expect(row.querySelector("a")).toBeNull();
+    expect(
+      textOf(
+        row.querySelector('[data-testid="cloud-marketplace-coming-soon"]'),
+      ),
+    ).toBe("Coming soon");
+  });
+
+  test("draws a marketplace with no public listing as one line: its name and Coming soon", () => {
+    const card: Element = marketplaceCardNamed(
+      section,
+      "Google Cloud Marketplace",
+    );
+
+    expect(textOf(card)).toBe("Google Cloud Marketplace Coming soon");
+    expect(listingRowsOf(card)).toHaveLength(0);
+    expect(card.querySelector("a")).toBeNull();
+    expect(
+      card.querySelectorAll('[data-testid="cloud-marketplace-coming-soon"]'),
+    ).toHaveLength(1);
+  });
+
+  test("links only the listings the list names and the site's own pages", () => {
+    const hrefs: Array<string> = Array.from(section.querySelectorAll("a")).map(
+      (link: HTMLAnchorElement) => {
+        return link.getAttribute("href") || "";
+      },
+    );
+    const external: Array<string> = hrefs.filter((href: string): boolean => {
+      return !href.startsWith("/");
+    });
+    const internal: Array<string> = hrefs.filter((href: string): boolean => {
+      return href.startsWith("/");
+    });
+
+    expect(external).toEqual(listedAddresses());
+    expect(internal).toEqual([
+      "/pricing",
+      "/docs/installation/cloud-marketplaces",
+      "/enterprise/demo",
+    ]);
+    // Every page it links is one the site serves.
+    expect(PageSEOConfig["/pricing"]?.canonicalPath).toBe("/pricing");
+    expect(PageSEOConfig["/enterprise/demo"]?.canonicalPath).toBe(
+      "/enterprise/demo",
+    );
+  });
+
+  test("offers a private offer for annual pricing or a volume discount, booked with the team", () => {
+    const note: Element | null = section.querySelector(
+      '[data-testid="cloud-marketplaces-private-offer"]',
+    );
+
+    expect(textOf(note)).toBe(
+      "Need annual pricing or a volume discount? Talk to our team about a private offer, which you accept on your marketplace.",
+    );
+    expect(note?.querySelector("a")?.getAttribute("href")).toBe(
+      "/enterprise/demo",
+    );
+    // After the cards, as the buy-direct note follows the resellers.
+    const cards: Array<Element> = marketplaceCardsIn(section);
+
+    expect(
+      cards[cards.length - 1]!.compareDocumentPosition(note!) &
+        page.defaultView!.Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("stacks the cards one under another, as the resellers are, so none is squeezed", () => {
+    const list: Element | null =
+      marketplaceCardsIn(section)[0]?.parentElement || null;
+
+    expect(list?.tagName).toBe("UL");
+    expect(list?.getAttribute("role")).toBe("list");
+    expect(list?.className).toContain("space-y-4");
+    expect(list?.className).not.toContain("grid-cols");
+  });
+
+  test("lets a row's words wrap before its button moves, on a phone too", () => {
+    for (const row of Array.from(
+      section.querySelectorAll('[data-testid="cloud-marketplace-listing"]'),
+    )) {
+      const classes: Array<string> = row.className.split(" ");
+
+      expect(classes).toEqual(
+        expect.arrayContaining(["flex", "items-center", "justify-between"]),
+      );
+      // The words may shrink and wrap...
+      expect(row.firstElementChild?.className.split(" ")).toContain("min-w-0");
+      // ...the button or the label never does.
+      expect(row.lastElementChild?.className.split(" ")).toContain("flex-none");
+    }
+  });
+
+  test("sits in the band of the ways to buy, below a line, scrolled to clear of the top", () => {
+    const classes: Array<string> = section.className.split(" ");
+
+    expect(classes).toEqual(
+      expect.arrayContaining(["bg-gray-50", "border-t", "scroll-mt-8"]),
+    );
+    expect(page.getElementById("resellers-list")?.className).toContain(
+      "bg-gray-50",
+    );
+  });
+});
+
+describe("the cloud marketplaces section, drawn from other lists", () => {
+  test("with no listing public, the page shows neither the section nor the hero's link, and the rest as it was", async () => {
+    const page: Document = documentOf(
+      await renderPage(
+        getResellersPageContent({
+          inquiryInbox: INBOX,
+          cloudMarketplaces: withListings(() => {
+            return { cloud: null, enterprise: null };
+          }),
+        }),
+      ),
+    );
+
+    expect(page.getElementById(CLOUD_MARKETPLACES_SECTION_ID)).toBeNull();
+    expect(
+      page.querySelector('[data-testid="resellers-hero-marketplaces"]'),
+    ).toBeNull();
+    expect(page.querySelector('a[href="#cloud-marketplaces"]')).toBeNull();
+    expect(marketplaceCardsIn(page)).toHaveLength(0);
+    // The resellers and the form are untouched.
+    expect(page.querySelectorAll('[data-testid="reseller-card"]').length).toBe(
+      Resellers.length,
+    );
+    expect(page.getElementById("reseller-inquiry-form")).not.toBeNull();
+    expect(
+      Array.from(page.querySelectorAll("main h2")).map((heading: Element) => {
+        return textOf(heading);
+      }),
+    ).toEqual(["Our resellers", "Become a reseller"]);
+  });
+
+  test("with every listing public, every row links and nothing says Coming soon", async () => {
+    const entries: Array<CloudMarketplaceEntry> = withListings(
+      (entry: CloudMarketplaceEntry) => {
+        return {
+          cloud: `https://example.com/${entry.marketplace}/cloud`,
+          enterprise: `https://example.com/${entry.marketplace}/enterprise`,
+        };
+      },
+    );
+    const page: Document = documentOf(
+      await renderPage(
+        getResellersPageContent({
+          inquiryInbox: INBOX,
+          cloudMarketplaces: entries,
+        }),
+      ),
+    );
+    const section: HTMLElement = page.getElementById(
+      CLOUD_MARKETPLACES_SECTION_ID,
+    )!;
+
+    expect(
+      section.querySelectorAll('[data-testid="cloud-marketplace-coming-soon"]'),
+    ).toHaveLength(0);
+    expect(
+      section.querySelectorAll('[data-testid="cloud-marketplace-listing"] a'),
+    ).toHaveLength(6);
+    expect(
+      Array.from(section.querySelectorAll('a[target="_blank"]')).map(
+        (link: Element) => {
+          return link.getAttribute("href");
+        },
+      ),
+    ).toEqual(listedAddresses(entries));
+    expect(
+      textOf(
+        rowOf(
+          marketplaceCardNamed(section, "Google Cloud Marketplace"),
+          "enterprise",
+        ).firstElementChild,
+      ),
+    ).toBe("OneUptime Enterprise Self-hosted on Google Kubernetes Engine");
+  });
+
+  test("with one product public on a marketplace, the other product's row says Coming soon", async () => {
+    const page: Document = documentOf(
+      await renderPage(
+        getResellersPageContent({
+          inquiryInbox: INBOX,
+          cloudMarketplaces: withListings((entry: CloudMarketplaceEntry) => {
+            return entry.marketplace === CloudMarketplace.GoogleCloud
+              ? { cloud: null, enterprise: "https://example.com/gke" }
+              : { cloud: null, enterprise: null };
+          }),
+        }),
+      ),
+    );
+    const section: HTMLElement = page.getElementById(
+      CLOUD_MARKETPLACES_SECTION_ID,
+    )!;
+    const google: Element = marketplaceCardNamed(
+      section,
+      "Google Cloud Marketplace",
+    );
+
+    expect(listingRowsOf(google)).toHaveLength(2);
+    expect(textOf(rowOf(google, "cloud"))).toBe(
+      "OneUptime Cloud Hosted by OneUptime Coming soon",
+    );
+    expect(
+      rowOf(google, "enterprise").querySelector("a")?.getAttribute("href"),
+    ).toBe("https://example.com/gke");
+    // The others have none, so each is one line.
+    for (const name of ["AWS Marketplace", "Microsoft Marketplace"]) {
+      expect(textOf(marketplaceCardNamed(section, name))).toBe(
+        `${name} Coming soon`,
+      );
+    }
+    // One public listing is enough for the hero to offer the section.
+    expect(page.querySelector('a[href="#cloud-marketplaces"]')).not.toBeNull();
+  });
+
+  test("writes the list's values as text and as attribute values, whatever they hold", async () => {
+    const hostile: string = '<img src=x onerror="window.hacked = 1">';
+    const address: string = 'https://example.com/"onmouseover="window.hacked=1';
+    const page: Document = documentOf(
+      await renderPage(
+        getResellersPageContent({
+          inquiryInbox: INBOX,
+          cloudMarketplaces: [
+            {
+              marketplace: CloudMarketplace.AWS,
+              kubernetesService: hostile,
+              listingUrls: { cloud: address, enterprise: null },
+            },
+          ],
+        }),
+      ),
+    );
+    const section: HTMLElement = page.getElementById(
+      CLOUD_MARKETPLACES_SECTION_ID,
+    )!;
+    const link: HTMLAnchorElement | null = section.querySelector(
+      '[data-testid="cloud-marketplace-listing"] a',
+    );
+
+    expect(section.querySelector("img")).toBeNull();
+    expect(section.textContent).toContain(`Self-hosted on ${hostile}`);
+    expect(link?.getAttribute("href")).toBe(address);
+    expect(link?.hasAttribute("onmouseover")).toBe(false);
   });
 });
 

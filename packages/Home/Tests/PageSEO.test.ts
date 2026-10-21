@@ -346,4 +346,17 @@ describe("the Resellers page entry", () => {
     expect(`${seo!.title} ${seo!.description}`).not.toMatch(/SLEXN|Korea/);
     expect(seo!.description).toContain("become one");
   });
+
+  test("says a buyer can also pay on their cloud bill, naming no marketplace, so it stays true as listings go public", () => {
+    expect(seo!.description).toBe(
+      "Buy OneUptime through a reseller in your country, or apply to become one. Or buy it on your cloud marketplace and pay on your cloud bill.",
+    );
+    expect(`${seo!.title} ${seo!.description}`).not.toMatch(
+      /AWS|Amazon|Azure|Microsoft|Google/,
+    );
+    // "One" is still a reseller: the marketplaces come after it.
+    expect(seo!.description.indexOf("become one")).toBeLessThan(
+      seo!.description.indexOf("cloud marketplace"),
+    );
+  });
 });
