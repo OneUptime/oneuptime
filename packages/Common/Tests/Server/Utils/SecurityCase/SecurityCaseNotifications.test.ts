@@ -1213,6 +1213,6 @@ describe("what the messages say", () => {
       }),
     ).toBe(true);
     expect(isSetupTestCase({ groupingKey: "entity:198.51.100.7" })).toBe(false);
-    expect(isSetupTestCase({ groupingKey: undefined })).toBe(false);
+    expect(isSetupTestCase({})).toBe(false);
   });
 });
