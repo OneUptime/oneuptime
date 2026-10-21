@@ -240,6 +240,15 @@
                 color: #4ade80;
             }
 
+            .code-copy-btn.copy-failed {
+                color: #fca5a5;
+            }
+
+            .copy-link-btn.copy-failed {
+                color: #dc2626;
+                border-color: #fca5a5;
+            }
+
             .code-copy-btn svg {
                 width: 14px;
                 height: 14px;
@@ -988,6 +997,60 @@
                         'markdown': 'Markdown', 'md': 'Markdown', 'plaintext': 'Text'
                     };
 
+                    /*
+                     * Text onto the clipboard, resolving whether it got there
+                     * (the website's copy of Common/UI/Utils/Clipboard.ts,
+                     * issue #5132): the async clipboard, then - when that is
+                     * missing or refuses (an unfocused document) - the older
+                     * copy command. A button says Copied only when this
+                     * resolves true, and Copy failed otherwise.
+                     */
+                    function copyWithCommand(text) {
+                        if (typeof document.execCommand !== 'function' || !document.body) {
+                            return false;
+                        }
+                        var focused = document.activeElement;
+                        var scratch = document.createElement('textarea');
+                        scratch.value = text;
+                        scratch.setAttribute('readonly', '');
+                        scratch.setAttribute('aria-hidden', 'true');
+                        scratch.setAttribute('tabindex', '-1');
+                        scratch.style.position = 'fixed';
+                        scratch.style.top = '0';
+                        scratch.style.left = '-9999px';
+                        scratch.style.opacity = '0';
+                        scratch.style.fontSize = '16px';
+                        document.body.appendChild(scratch);
+                        try {
+                            scratch.select();
+                            scratch.setSelectionRange(0, text.length);
+                            return document.execCommand('copy') === true;
+                        } catch (error) {
+                            return false;
+                        } finally {
+                            document.body.removeChild(scratch);
+                            if (focused && focused !== document.body && typeof focused.focus === 'function') {
+                                focused.focus();
+                            }
+                        }
+                    }
+
+                    function copyText(text) {
+                        var useCommand = function() {
+                            return copyWithCommand(text);
+                        };
+                        try {
+                            if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                                return navigator.clipboard.writeText(text).then(function() {
+                                    return true;
+                                }, useCommand);
+                            }
+                        } catch (error) {
+                            /* Refused outright: the older command may still copy. */
+                        }
+                        return Promise.resolve(useCommand());
+                    }
+
                     // Add copy button and language label to code blocks
                     function codeBlockHeaders() {
                         var codeBlocks = document.querySelectorAll('.blog-body pre');
@@ -1022,18 +1085,33 @@
                             var copyBtn = document.createElement('button');
                             copyBtn.className = 'code-copy-btn';
                             copyBtn.setAttribute('aria-label', 'Copy code');
+                            // What it says after a copy is said to a screen reader too.
+                            copyBtn.setAttribute('aria-live', 'polite');
                             var copyIcon = '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
                             var checkIcon = '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>';
+                            var alertIcon = '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>';
+                            var resetTimer = null;
                             copyBtn.innerHTML = copyIcon + '<span>Copy</span>';
                             copyBtn.addEventListener('click', function(){
                                 var text = codeEl.textContent || '';
-                                navigator.clipboard.writeText(text).then(function(){
-                                    copyBtn.classList.add('copied');
-                                    copyBtn.innerHTML = checkIcon + '<span>Copied!</span>';
-                                    setTimeout(function(){
-                                        copyBtn.classList.remove('copied');
+                                copyText(text).then(function(copied){
+                                    clearTimeout(resetTimer);
+                                    copyBtn.classList.toggle('copied', copied);
+                                    copyBtn.classList.toggle('copy-failed', !copied);
+                                    copyBtn.innerHTML = copied
+                                        ? checkIcon + '<span>Copied!</span>'
+                                        : alertIcon + '<span>Copy failed</span>';
+                                    if(!copied){
+                                        // The code, selected where it is, to copy by hand.
+                                        var selection = window.getSelection && window.getSelection();
+                                        if(selection){
+                                            selection.selectAllChildren(codeEl);
+                                        }
+                                    }
+                                    resetTimer = setTimeout(function(){
+                                        copyBtn.classList.remove('copied', 'copy-failed');
                                         copyBtn.innerHTML = copyIcon + '<span>Copy</span>';
-                                    }, 2000);
+                                    }, copied ? 2000 : 4000);
                                 });
                             });
                             header.appendChild(copyBtn);
@@ -1331,17 +1409,25 @@
                     function copyLinkButtons() {
                         var copyLinkBtns = document.querySelectorAll('.copy-link-btn');
                         copyLinkBtns.forEach(function(btn) {
+                            var resetTimer = null;
                             btn.addEventListener('click', function() {
                                 var url = btn.dataset.url || window.location.href;
-                                navigator.clipboard.writeText(url).then(function() {
+                                copyText(url).then(function(copied) {
                                     var icon = btn.querySelector('.copy-link-icon');
                                     var check = btn.querySelector('.copy-link-check');
-                                    if(icon) icon.classList.add('hidden');
-                                    if(check) check.classList.remove('hidden');
-                                    setTimeout(function() {
+                                    clearTimeout(resetTimer);
+                                    if(copied) {
+                                        if(icon) icon.classList.add('hidden');
+                                        if(check) check.classList.remove('hidden');
+                                    }
+                                    btn.classList.toggle('copy-failed', !copied);
+                                    btn.setAttribute('title', copied ? 'Link copied' : 'Copy failed');
+                                    resetTimer = setTimeout(function() {
                                         if(icon) icon.classList.remove('hidden');
                                         if(check) check.classList.add('hidden');
-                                    }, 2000);
+                                        btn.classList.remove('copy-failed');
+                                        btn.setAttribute('title', 'Copy link');
+                                    }, copied ? 2000 : 4000);
                                 });
                             });
                         });

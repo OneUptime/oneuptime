@@ -36,6 +36,7 @@
     "or": "eller",
     "copy": "Kopiér",
     "copied": "Kopieret!",
+    "copyFailed": "Kopiering mislykkedes",
     "copyCode": "Kopiér kode",
     "copyRequest": "Kopiér anmodning",
     "headers": "Headers",

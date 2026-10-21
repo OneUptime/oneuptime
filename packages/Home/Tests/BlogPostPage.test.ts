@@ -275,6 +275,13 @@ interface OpenOptions {
    * mermaid build ("missing").
    */
   mermaid?: "build" | "missing";
+  /*
+   * The async clipboard: takes the text (the default), refuses it (an
+   * unfocused document), or is not there at all.
+   */
+  clipboard?: "accepts" | "refuses" | "missing";
+  // What document.execCommand("copy") answers; left out, there is none.
+  copyCommand?: boolean;
 }
 
 /*
@@ -349,12 +356,42 @@ const openPost: (
       });
       Object.defineProperty(window.navigator, "clipboard", {
         configurable: true,
-        value: {
-          writeText: (text: string): Promise<void> => {
-            copied.push(text);
-            return Promise.resolve();
-          },
-        },
+        value:
+          options.clipboard === "missing"
+            ? undefined
+            : {
+                writeText: (text: string): Promise<void> => {
+                  if (options.clipboard === "refuses") {
+                    return Promise.reject(
+                      new window.DOMException(
+                        "Document is not focused.",
+                        "NotAllowedError",
+                      ),
+                    );
+                  }
+                  copied.push(text);
+                  return Promise.resolve();
+                },
+              },
+      });
+      Object.defineProperty(window.document, "execCommand", {
+        configurable: true,
+        writable: true,
+        value:
+          options.copyCommand === undefined
+            ? undefined
+            : (command: string): boolean => {
+                const field: HTMLTextAreaElement | null =
+                  window.document.querySelector(
+                    "textarea[aria-hidden='true']",
+                  );
+                if (command === "copy" && options.copyCommand && field) {
+                  copied.push(
+                    field.value.slice(field.selectionStart, field.selectionEnd),
+                  );
+                }
+                return Boolean(options.copyCommand);
+              },
       });
       if (options.failResizeListeners) {
         const addEventListener: typeof window.addEventListener =
@@ -471,6 +508,104 @@ describe("a blog post without an h2 heading", () => {
 
     expect(page.errors).toEqual([]);
     expect(page.document.getElementById("floating-toc")).toBeNull();
+  });
+
+  /*
+   * Issue #5132's class of bug: the copy buttons called
+   * navigator.clipboard.writeText and said nothing when it refused (an
+   * unfocused document). They copy through the page's copy of
+   * Common/UI/Utils/Clipboard.ts now - the async clipboard, then the older
+   * copy command - and say Copied! only when one of them took the text,
+   * Copy failed otherwise.
+   */
+  describe("copying, when the clipboard says no", () => {
+    function firstCodeCopyButton(page: OpenedPost): HTMLElement {
+      return page.document.querySelector(
+        ".blog-body pre .code-copy-btn",
+      ) as HTMLElement;
+    }
+
+    test("a code block's Copy says Copied! once the code is on the clipboard", async () => {
+      const page: OpenedPost = await openPost(BODY_WITHOUT_H2);
+
+      click(page, firstCodeCopyButton(page));
+      await settle();
+
+      expect(page.copied).toEqual(['echo "hello"']);
+      expect(firstCodeCopyButton(page).textContent).toBe("Copied!");
+      expect(firstCodeCopyButton(page).classList.contains("copied")).toBe(
+        true,
+      );
+    });
+
+    test("a refused write falls back to the copy command, and only then says Copied!", async () => {
+      const page: OpenedPost = await openPost(BODY_WITHOUT_H2, {
+        clipboard: "refuses",
+        copyCommand: true,
+      });
+
+      click(page, firstCodeCopyButton(page));
+      await settle();
+
+      expect(page.copied).toEqual(['echo "hello"']);
+      expect(firstCodeCopyButton(page).textContent).toBe("Copied!");
+    });
+
+    test("refused both ways it says Copy failed - it used to say nothing - and selects the code", async () => {
+      const page: OpenedPost = await openPost(BODY_WITHOUT_H2, {
+        clipboard: "refuses",
+        copyCommand: false,
+      });
+
+      click(page, firstCodeCopyButton(page));
+      await settle();
+
+      expect(page.copied).toEqual([]);
+      expect(firstCodeCopyButton(page).textContent).toBe("Copy failed");
+      expect(firstCodeCopyButton(page).classList.contains("copy-failed")).toBe(
+        true,
+      );
+      expect(firstCodeCopyButton(page).getAttribute("aria-live")).toBe(
+        "polite",
+      );
+      expect(page.window.getSelection()?.toString()).toBe('echo "hello"');
+      expect(page.errors).toEqual([]);
+    });
+
+    test("with no clipboard API it copies through the copy command", async () => {
+      const page: OpenedPost = await openPost(BODY_WITHOUT_H2, {
+        clipboard: "missing",
+        copyCommand: true,
+      });
+
+      click(page, firstCodeCopyButton(page));
+      await settle();
+
+      expect(page.copied).toEqual(['echo "hello"']);
+      expect(firstCodeCopyButton(page).textContent).toBe("Copied!");
+      expect(page.errors).toEqual([]);
+    });
+
+    test("Copy link says Copy failed when nothing could copy", async () => {
+      const page: OpenedPost = await openPost(BODY_WITHOUT_H2, {
+        clipboard: "missing",
+      });
+      const button: Element = page.document.querySelector(
+        ".copy-link-btn",
+      ) as Element;
+
+      click(page, button);
+      await settle();
+
+      expect(page.copied).toEqual([]);
+      expect(button.getAttribute("title")).toBe("Copy failed");
+      expect(button.classList.contains("copy-failed")).toBe(true);
+      // No tick over a link that was not copied.
+      expect(
+        button.querySelector(".copy-link-check")?.classList.contains("hidden"),
+      ).toBe(true);
+      expect(page.errors).toEqual([]);
+    });
   });
 
   test("labels each code block and gives it a copy button", async () => {
@@ -603,7 +738,17 @@ describe("a blog post without an h2 heading", () => {
     click(page, buttons[0] as Element);
 
     expect(page.copied).toEqual([POST_URL]);
+
+    await settle();
+
+    expect(buttons[0]!.getAttribute("title")).toBe("Link copied");
+    expect(
+      buttons[0]!.querySelector(".copy-link-check")?.classList.contains(
+        "hidden",
+      ),
+    ).toBe(false);
   });
+
 
   test("opens the validation report and loads it once", async () => {
     const page: OpenedPost = await openPost(BODY_WITHOUT_H2);

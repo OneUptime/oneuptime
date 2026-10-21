@@ -4273,6 +4273,10 @@ html.dark .docs-theme-toggle .docs-icon-light {
   color: var(--docs-tip);
   border-color: var(--docs-tip);
 }
+.docs-page-action.is-copy-failed {
+  color: var(--docs-danger);
+  border-color: var(--docs-danger);
+}
 .docs-page-action svg {
   width: 0.875rem;
   height: 0.875rem;
@@ -4681,6 +4685,9 @@ html.dark .docs-theme-toggle .docs-icon-light {
 }
 .docs-code__copy.is-copied {
   color: #4ade80;
+}
+.docs-code__copy.is-copy-failed {
+  color: #fca5a5;
 }
 .docs-code__copy svg {
   width: 0.875rem;

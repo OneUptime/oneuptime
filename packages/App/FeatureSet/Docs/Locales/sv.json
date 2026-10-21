@@ -17,6 +17,7 @@
     "backToTop": "Till toppen",
     "copy": "Kopiera",
     "copied": "Kopierad",
+    "copyFailed": "Kopieringen misslyckades",
     "copyCode": "Kopiera kod",
     "diagramNotDrawn": "Det gick inte att rita det här diagrammet.",
     "searchHintNavigate": "för att navigera",

@@ -17,6 +17,7 @@
     "backToTop": "Наверх",
     "copy": "Копировать",
     "copied": "Скопировано",
+    "copyFailed": "Не удалось скопировать",
     "copyCode": "Копировать код",
     "diagramNotDrawn": "Не удалось построить эту диаграмму.",
     "searchHintNavigate": "для навигации",
