@@ -3662,9 +3662,7 @@ describe("isSessionReplayHandheldDevice", () => {
     renderTable();
 
     const rows: Array<HTMLElement> = await waitForRows(3);
-    const iconOf: (row: HTMLElement) => string = (
-      row: HTMLElement,
-    ): string => {
+    const iconOf: (row: HTMLElement) => string = (row: HTMLElement): string => {
       const device: HTMLElement = within(row)
         .getByTestId("session-row-user")
         .closest("td") as HTMLElement;

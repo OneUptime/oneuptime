@@ -415,16 +415,18 @@ test.describe("the session list's header", () => {
     await pill.focus();
     await page.keyboard.press("Shift");
 
-    const focusStyle: () => Promise<{ outline: string; ring: string }> =
-      async (): Promise<{ outline: string; ring: string }> => {
-        return pill.evaluate(
-          (element: Element): { outline: string; ring: string } => {
-            const style: CSSStyleDeclaration = getComputedStyle(element);
+    const focusStyle: () => Promise<{
+      outline: string;
+      ring: string;
+    }> = async (): Promise<{ outline: string; ring: string }> => {
+      return pill.evaluate(
+        (element: Element): { outline: string; ring: string } => {
+          const style: CSSStyleDeclaration = getComputedStyle(element);
 
-            return { outline: style.outlineColor, ring: style.boxShadow };
-          },
-        );
-      };
+          return { outline: style.outlineColor, ring: style.boxShadow };
+        },
+      );
+    };
 
     /*
      * Not the browser's black outline (Tailwind's outline-none leaves a
