@@ -1395,6 +1395,63 @@ describe("CodeEditor — Copy", () => {
     expect(document.activeElement).toBe(getInput());
   });
 
+  test("a read-only editor selects all of its text when the copy is refused, to copy by hand", async () => {
+    const value: string = '{"apiKey": "kept-out-of-the-clipboard"}';
+
+    Object.defineProperty(navigator, "clipboard", {
+      value: undefined,
+      configurable: true,
+    });
+
+    render(<CodeEditor type={CodeType.JSON} value={value} readOnly={true} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("code-editor-copy-button"));
+    });
+
+    expect(screen.getByTestId("code-editor-copy-button")).toHaveTextContent(
+      "Copy failed",
+    );
+    expect(document.activeElement).toBe(getInput());
+    expect(selectionOf()).toEqual([0, value.length]);
+  });
+
+  test("an editor being edited keeps its caret when the copy is refused: the next key must not replace the document", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      value: undefined,
+      configurable: true,
+    });
+
+    render(<CodeEditor type={CodeType.JSON} value="[1, 2]" />);
+
+    focusInput();
+    setSelection(1, 1);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("code-editor-copy-button"));
+    });
+
+    expect(screen.getByTestId("code-editor-copy-button")).toHaveTextContent(
+      "Copy failed",
+    );
+    expect(selectionOf()).toEqual([1, 1]);
+    expect(getInput().value).toBe("[1, 2]");
+  });
+
+  test("a read-only editor whose copy works leaves the selection alone", async () => {
+    render(<CodeEditor type={CodeType.JSON} value="[1, 2]" readOnly={true} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("code-editor-copy-button"));
+    });
+
+    expect(writeText).toHaveBeenCalledWith("[1, 2]");
+    expect(screen.getByTestId("code-editor-copy-button")).toHaveTextContent(
+      "Copied",
+    );
+    expect(document.activeElement).not.toBe(getInput());
+  });
+
   test("there is nothing to copy from an empty editor", () => {
     render(<CodeEditor type={CodeType.JSON} value="" />);
 

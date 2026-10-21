@@ -36,6 +36,7 @@ import {
   describeYamlSyntaxError,
 } from "../../../Types/Code/YamlSyntax";
 import IconProp from "../../../Types/Icon/IconProp";
+import Clipboard from "../../Utils/Clipboard";
 import {
   PluralTemplate,
   translatableTerm,
@@ -714,7 +715,21 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
   type HandleCopyFunction = () => void;
 
   const handleCopy: HandleCopyFunction = (): void => {
-    void clipboard.copy(textareaRef.current?.value ?? text);
+    const textarea: HTMLTextAreaElement | null = textareaRef.current;
+
+    void clipboard
+      .copy(textarea?.value ?? text)
+      .then((hasCopied: boolean): void => {
+        /*
+         * A refused copy is said on the button and to a screen reader. A
+         * read-only editor also selects its text, to copy by hand; one being
+         * edited does not, since a selection of the whole document would be
+         * replaced by the next key pressed.
+         */
+        if (!hasCopied && readOnly) {
+          Clipboard.selectForManualCopy(textarea);
+        }
+      });
   };
 
   type HandleKeyDownFunction = (

@@ -413,6 +413,10 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
         return !isToolActionAwaitingApproval(action);
       },
     );
+    // What this answer's Copy last did: Idle unless it was copied last.
+    const copyStatus: ClipboardCopyStatus = answerClipboard.statusOf(
+      message.id,
+    );
 
     /*
      * What the answer has already done. It is listed under a stopped or a
@@ -613,32 +617,27 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
                 copyAnswer(message);
               }}
               data-testid="investigation-conversation-copy-answer"
-              data-copy-state={answerClipboard.statusOf(message.id)}
+              data-copy-state={copyStatus}
               className={`-ml-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                answerClipboard.statusOf(message.id) ===
-                ClipboardCopyStatus.Failed
+                copyStatus === ClipboardCopyStatus.Failed
                   ? "text-red-600"
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >
               <Icon
                 icon={
-                  answerClipboard.statusOf(message.id) ===
-                  ClipboardCopyStatus.Copied
+                  copyStatus === ClipboardCopyStatus.Copied
                     ? IconProp.Check
-                    : answerClipboard.statusOf(message.id) ===
-                        ClipboardCopyStatus.Failed
+                    : copyStatus === ClipboardCopyStatus.Failed
                       ? IconProp.Alert
                       : IconProp.Copy
                 }
                 className="h-3.5 w-3.5"
               />
               <span aria-live="polite">
-                {answerClipboard.statusOf(message.id) ===
-                ClipboardCopyStatus.Copied
+                {copyStatus === ClipboardCopyStatus.Copied
                   ? translator.translateText("Copied")
-                  : answerClipboard.statusOf(message.id) ===
-                      ClipboardCopyStatus.Failed
+                  : copyStatus === ClipboardCopyStatus.Failed
                     ? translator.translateText("Copy failed")
                     : translator.translateText("Copy")}
               </span>
