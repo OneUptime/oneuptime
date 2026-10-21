@@ -533,7 +533,7 @@ describe("the Proxmox, Ceph, VMware and Storage Array guides say the sign follow
    * All vCenters no longer opens on the Agent Version: the column starts
    * hidden ("We dont need to show these column in vmware"), and Customize
    * Columns turns it on. So the guide sends readers to the vCenter's
-   * Overview for the sign, and to no list that does not show it.
+   * Overview for the sign, not to a list that no longer shows it by default.
    */
   test.each(LANGUAGES)(
     "%s VMware: the sign is on the vCenter's Overview, and the guide no longer points to the All vCenters list",
