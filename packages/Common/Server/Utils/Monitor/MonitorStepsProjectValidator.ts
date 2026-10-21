@@ -13,6 +13,18 @@ import UserService from "../../Services/UserService";
 import ProjectScopedReferenceValidator, {
   ProjectScopedReference,
 } from "../Database/ProjectScopedReferenceValidator";
+import ArchivedValueCheck, {
+  ArchivedValueNamed,
+} from "../Database/ArchivedValueCheck";
+import QueryHelper from "../../Types/Database/QueryHelper";
+import Query from "../../Types/Database/Query";
+import Select from "../../Types/Database/Select";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import {
+  ARCHIVABLE_VALUES,
+  ArchivableValueDefinition,
+  ArchivableValueType,
+} from "../../../Utils/ArchivableValues";
 import MonitorStepsReferenceExtractor, {
   MonitorStepsReference,
   MonitorStepsReferenceModel,
@@ -107,6 +119,21 @@ const SERVICE_BY_MODEL: Record<
   },
 };
 
+/*
+ * The references in monitorSteps that name a value that can be archived
+ * (Common/Utils/ArchivableValues), by the kind of value.
+ */
+const ARCHIVABLE_REFERENCE_MODELS: Partial<
+  Record<MonitorStepsReferenceModel, ArchivableValueType>
+> = {
+  [MonitorStepsReferenceModel.MonitorStatus]: ArchivableValueType.MonitorStatus,
+  [MonitorStepsReferenceModel.IncidentSeverity]:
+    ArchivableValueType.IncidentSeverity,
+  [MonitorStepsReferenceModel.AlertSeverity]: ArchivableValueType.AlertSeverity,
+  [MonitorStepsReferenceModel.Label]: ArchivableValueType.Label,
+  [MonitorStepsReferenceModel.IncidentRole]: ArchivableValueType.IncidentRole,
+};
+
 export default class MonitorStepsProjectValidator {
   public static async validateMonitorStepsBelongToProject(data: {
     monitorSteps: MonitorSteps | JSONObject | undefined;
@@ -118,6 +145,13 @@ export default class MonitorStepsProjectValidator {
      * carries, so all of them must exist.
      */
     alreadyStoredMonitorSteps?: MonitorSteps | JSONObject | undefined | null;
+    /*
+     * Who is writing. A person's or an API key's write may not introduce an
+     * archived value the monitor would use (refuseIntroducedArchivedValues);
+     * OneUptime's own writes and a workflow's keep what they were set up with.
+     * Omitted, nothing is checked for being archived.
+     */
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<void> {
     if (!data.monitorSteps || !data.projectId) {
       return;
@@ -214,6 +248,89 @@ export default class MonitorStepsProjectValidator {
         },
       ),
     });
+
+    if (data.props && ArchivedValueCheck.isCheckedWrite(data.props)) {
+      await MonitorStepsProjectValidator.refuseIntroducedArchivedValues({
+        projectId: data.projectId,
+        references: introduced,
+      });
+    }
+  }
+
+  /*
+   * NOBODY PICKS AN ARCHIVED VALUE FOR A MONITOR'S CRITERIA
+   * (ArchivedValueCheck): a status, severity, label or incident role this
+   * write introduces that the monitor would use - an operative reference -
+   * is refused when it is archived. What the monitor already holds is not
+   * introduced, so a monitor keeps an archived value through every later
+   * edit and keeps opening incidents with it; a reference the monitor does
+   * not use (a status kept while "change status" is off) is left alone.
+   */
+  public static async refuseIntroducedArchivedValues(data: {
+    projectId: ObjectID;
+    references: Array<MonitorStepsReference>;
+  }): Promise<void> {
+    const idsByType: Map<ArchivableValueType, Set<string>> = new Map();
+
+    for (const reference of data.references) {
+      const type: ArchivableValueType | undefined =
+        ARCHIVABLE_REFERENCE_MODELS[reference.model];
+
+      if (
+        !type ||
+        !reference.isOperative ||
+        !ObjectID.isValidUUID(reference.id)
+      ) {
+        continue;
+      }
+
+      const ids: Set<string> = idsByType.get(type) || new Set<string>();
+      ids.add(reference.id.trim().toLowerCase());
+      idsByType.set(type, ids);
+    }
+
+    const archived: Array<ArchivedValueNamed> = [];
+
+    for (const [type, ids] of idsByType) {
+      const definition: ArchivableValueDefinition = ARCHIVABLE_VALUES[type];
+      const model: MonitorStepsReferenceModel | undefined = (
+        Object.keys(ARCHIVABLE_REFERENCE_MODELS) as Array<MonitorStepsReferenceModel>
+      ).find((candidate: MonitorStepsReferenceModel): boolean => {
+        return ARCHIVABLE_REFERENCE_MODELS[candidate] === type;
+      });
+
+      if (!model) {
+        continue;
+      }
+
+      const rows: Array<DatabaseBaseModel> = await SERVICE_BY_MODEL[
+        model
+      ].findBy({
+        query: {
+          _id: QueryHelper.any(Array.from(ids)),
+          projectId: data.projectId,
+          isArchived: true,
+        } as unknown as Query<DatabaseBaseModel>,
+        select: {
+          _id: true,
+          name: true,
+        } as unknown as Select<DatabaseBaseModel>,
+        skip: 0,
+        limit: ids.size,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      for (const row of rows) {
+        archived.push({
+          definition: definition,
+          name: (row.getColumnValue("name") || "").toString(),
+        });
+      }
+    }
+
+    ArchivedValueCheck.refuseValues(archived);
   }
 
   /*

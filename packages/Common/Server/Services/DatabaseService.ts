@@ -152,6 +152,12 @@ import {
   normalizeReferenceId,
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceRefusal";
+import ArchivedValueCheck, {
+  ArchivableValueColumn,
+  ArchivableValuePick,
+  ArchivedPick,
+  ArchivedValueRow,
+} from "../Utils/Database/ArchivedValueCheck";
 import CreateScopePermission from "../Types/Database/Permissions/CreateScopePermission";
 import RelationNames from "../Utils/Database/RelationNames";
 import ListOrderMaintainer, {
@@ -2812,6 +2818,213 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     props: DatabaseCommonInteractionProps,
   ): boolean {
     return this.checksReferencesInProject() && !props.ignoreHooks;
+  }
+
+  /*
+   * A PERSON NEVER PICKS AN ARCHIVED VALUE (ArchivedValueCheck): a create a
+   * person or an API key makes that sets an archived state, severity,
+   * monitor status, label or incident role is refused, naming each and
+   * where to unarchive it. Only values of the record's own project are
+   * named; an id of another project's is the project reference check's.
+   */
+  private async refuseArchivedValuesOnCreate(data: {
+    picks: Array<ArchivableValuePick>;
+    record: TBaseModel;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    if (data.picks.length === 0) {
+      return;
+    }
+
+    const projectId: ObjectID | null = this.getRecordProjectId(
+      data.record,
+      data.props,
+    );
+
+    if (!projectId) {
+      return;
+    }
+
+    const archivedPicks: Array<ArchivedPick> =
+      await ArchivedValueCheck.findArchivedPicks({
+        picks: data.picks,
+        findArchived: DatabaseService.findArchivedValues,
+      });
+
+    const project: string = projectId.toString().trim().toLowerCase();
+
+    ArchivedValueCheck.refuse(
+      archivedPicks.filter((archivedPick: ArchivedPick): boolean => {
+        return archivedPick.row.projectId === project;
+      }),
+    );
+  }
+
+  /*
+   * And an update that picks one a row it writes does not already have:
+   * sending back what a record holds - an edit form re-sends every field,
+   * Terraform the whole resource - picks nothing new, so a record keeps an
+   * archived value through every later edit. The rows are the rows the
+   * update writes, read only when it picks an archived value at all, and
+   * the update is held to them (findRowsAndHoldUpdateToThem).
+   */
+  private async refuseArchivedValuesOnUpdate(
+    updateBy: UpdateBy<TBaseModel>,
+    picks: Array<ArchivableValuePick>,
+  ): Promise<void> {
+    if (picks.length === 0) {
+      return;
+    }
+
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+
+    if (!tenantColumn) {
+      return;
+    }
+
+    const archivedPicks: Array<ArchivedPick> =
+      await ArchivedValueCheck.findArchivedPicks({
+        picks: picks,
+        findArchived: DatabaseService.findArchivedValues,
+      });
+
+    if (archivedPicks.length === 0) {
+      return;
+    }
+
+    const columns: Array<ArchivableValueColumn> = [];
+
+    for (const archivedPick of archivedPicks) {
+      if (!columns.includes(archivedPick.pick.column)) {
+        columns.push(archivedPick.pick.column);
+      }
+    }
+
+    /*
+     * One list at a time: a read that selects several many-to-many lists
+     * joins them all and returns a row for every combination of their ids.
+     * The first read is the rows the update writes; the rest are read by
+     * those rows' ids and merged into them.
+     */
+    const [firstColumn, ...otherColumns] = columns;
+
+    const rows: Array<TBaseModel> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        ...ArchivedValueCheck.getHeldSelect([firstColumn!]),
+        [tenantColumn]: true,
+      } as Select<TBaseModel>,
+    );
+
+    const rowIds: Array<string> = DatabaseService.getRowIds(rows);
+
+    for (const column of otherColumns) {
+      if (rowIds.length === 0) {
+        break;
+      }
+
+      const others: Array<TBaseModel> = await this.findBy({
+        query: {
+          _id: DatabaseService.idsCondition(rowIds),
+        } as Query<TBaseModel>,
+        select: ArchivedValueCheck.getHeldSelect([
+          column,
+        ]) as Select<TBaseModel>,
+        limit: rowIds.length,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      for (const other of others) {
+        const row: TBaseModel | undefined = rows.find(
+          (candidate: TBaseModel): boolean => {
+            return (
+              (candidate._id || candidate.id)?.toString() ===
+              (other._id || other.id)?.toString()
+            );
+          },
+        );
+
+        if (!row) {
+          continue;
+        }
+
+        if (column.isList) {
+          row.setColumnValue(column.column, other.getColumnValue(column.column));
+        } else if (column.idColumn) {
+          row.setColumnValue(
+            column.idColumn,
+            other.getColumnValue(column.idColumn),
+          );
+        }
+      }
+    }
+
+    ArchivedValueCheck.refuse(
+      ArchivedValueCheck.getArchivedPicksNotHeld({
+        archivedPicks: archivedPicks,
+        rows: rows,
+        getRowProjectId: (row: unknown): string => {
+          return (
+            (row as TBaseModel).getColumnValue(tenantColumn)?.toString() || ""
+          );
+        },
+      }),
+    );
+  }
+
+  // The plain services the archived values are read through, one per model.
+  private static archivedValueLookupServices: Map<
+    unknown,
+    DatabaseService<BaseModel>
+  > = new Map();
+
+  /*
+   * The archived values among `ids` of one value table, with their names and
+   * projects: one read as OneUptime, through a plain service with no hooks.
+   */
+  private static async findArchivedValues(data: {
+    modelType: { new (): BaseModel };
+    ids: Array<string>;
+  }): Promise<Array<ArchivedValueRow>> {
+    if (data.ids.length === 0) {
+      return [];
+    }
+
+    let service: DatabaseService<BaseModel> | undefined =
+      DatabaseService.archivedValueLookupServices.get(data.modelType);
+
+    if (!service) {
+      service = new DatabaseService<BaseModel>(data.modelType);
+      DatabaseService.archivedValueLookupServices.set(data.modelType, service);
+    }
+
+    const rows: Array<BaseModel> = await service.findBy({
+      query: {
+        _id: DatabaseService.idsCondition(data.ids),
+        isArchived: true,
+      } as Query<BaseModel>,
+      select: {
+        _id: true,
+        name: true,
+        projectId: true,
+      } as Select<BaseModel>,
+      limit: data.ids.length,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return rows.map((row: BaseModel): ArchivedValueRow => {
+      return {
+        id: (row._id || row.id || "").toString(),
+        name: (row.getColumnValue("name") || "").toString(),
+        projectId: (row.getColumnValue("projectId") || "").toString(),
+      };
+    });
   }
 
   /*
@@ -5527,6 +5740,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       await this.checkCreateBeforeHooks(createBy);
 
     /*
+     * The archived values the caller picks, read off what they sent before
+     * any hook adds to it, and refused once their permission to create the
+     * record is checked (refuseArchivedValuesOnCreate).
+     */
+    const archivedValuePicks: Array<ArchivableValuePick> =
+      ArchivedValueCheck.isCheckedWrite(createBy.props)
+        ? ArchivedValueCheck.getPicks(this.model, createBy.data)
+        : [];
+
+    /*
      * The create's one OnCreate, from here to its end: the object
      * onBeforeCreate hands back is the very one onCreatePermitted,
      * onCreateSuccess and onCreateError are handed (see create), so whatever
@@ -5598,6 +5821,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       record: data,
       props: _createdBy.props,
       checkedParentIds: checkedParentIds,
+    });
+
+    // No archived value the caller picked. See the helper.
+    await this.refuseArchivedValuesOnCreate({
+      picks: archivedValuePicks,
+      record: data,
+      props: _createdBy.props,
     });
 
     /*
@@ -8971,6 +9201,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       // One reference, one value, whichever name it is sent under. See the helper.
       this.assertRelationNamesAgree(updateBy.data, updateBy.props);
 
+      /*
+       * The archived values the caller picks, read off what they sent before
+       * any hook adds to it, and refused once their permission to write the
+       * rows is checked (refuseArchivedValuesOnUpdate).
+       */
+      const archivedValuePicks: Array<ArchivableValuePick> =
+        ArchivedValueCheck.isCheckedWrite(updateBy.props)
+          ? ArchivedValueCheck.getPicks(this.model, updateBy.data)
+          : [];
+
       // The parent, records and labels the update names, should it name any.
       const namedRecords: UpdateNamedRecords | null =
         this.getUpdateNamedRecords(updateBy);
@@ -9080,6 +9320,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         await this.onBeforeUpdateUniqueCheck(beforeUpdateBy);
         await this.onUpdatePermitted(beforeUpdateBy);
       }
+
+      // No archived value the caller picked that a row does not have. See the helper.
+      await this.refuseArchivedValuesOnUpdate(
+        beforeUpdateBy,
+        archivedValuePicks,
+      );
 
       const data: PartialEntity<TBaseModel> =
         (await this.sanitizeCreateOrUpdate(

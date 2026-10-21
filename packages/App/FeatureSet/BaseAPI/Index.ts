@@ -1,4 +1,6 @@
 import BaseAPI from "Common/Server/API/BaseAPI";
+// The values records pick from: BaseAPI, and what uses one. See the class.
+import ArchivableValueAPI from "Common/Server/API/ArchivableValueAPI";
 import BaseAnalyticsAPI from "Common/Server/API/BaseAnalyticsAPI";
 import BillingAPI from "Common/Server/API/BillingAPI";
 import BillingInvoiceAPI from "Common/Server/API/BillingInvoiceAPI";
@@ -2061,7 +2063,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<AlertState, AlertStateServiceType>(
+      new ArchivableValueAPI<AlertState, AlertStateServiceType>(
         AlertState,
         AlertStateService,
       ).getRouter(),
@@ -2536,7 +2538,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<AlertSeverity, AlertSeverityServiceType>(
+      new ArchivableValueAPI<AlertSeverity, AlertSeverityServiceType>(
         AlertSeverity,
         AlertSeverityService,
       ).getRouter(),
@@ -3861,7 +3863,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<MonitorStatus, MonitorStatusServiceType>(
+      new ArchivableValueAPI<MonitorStatus, MonitorStatusServiceType>(
         MonitorStatus,
         MonitorStatusService,
       ).getRouter(),
@@ -4094,7 +4096,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentState, IncidentStateServiceType>(
+      new ArchivableValueAPI<IncidentState, IncidentStateServiceType>(
         IncidentState,
         IncidentStateService,
       ).getRouter(),
@@ -4102,7 +4104,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
+      new ArchivableValueAPI<
         ScheduledMaintenanceState,
         ScheduledMaintenanceStateServiceType
       >(
@@ -4390,7 +4392,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentSeverity, IncidentSeverityServiceType>(
+      new ArchivableValueAPI<IncidentSeverity, IncidentSeverityServiceType>(
         IncidentSeverity,
         IncidentSeverityService,
       ).getRouter(),
@@ -4398,7 +4400,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentRole, IncidentRoleServiceType>(
+      new ArchivableValueAPI<IncidentRole, IncidentRoleServiceType>(
         IncidentRole,
         IncidentRoleService,
       ).getRouter(),
@@ -4596,7 +4598,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<Label, LabelServiceType>(Label, LabelService).getRouter(),
+      new ArchivableValueAPI<Label, LabelServiceType>(
+        Label,
+        LabelService,
+      ).getRouter(),
     );
 
     app.use(
