@@ -207,6 +207,9 @@ const SESSION_REPLAY_USER_ROW_ACTIONS: Array<
   },
 ];
 
+// A short column's second line: broken evenly where it must break.
+export const SESSION_REPLAY_USERS_SUBLINE_CLASS_NAME: string = "text-balance";
+
 function getUserRollupCells(
   row: SessionReplayUserRollup,
   context: UserRowContext,
@@ -285,8 +288,14 @@ function getUserRollupCells(
     );
   }
 
+  /*
+   * The person's cell is a one-column grid (a minmax(0, 1fr) track adds
+   * nothing to the column's minimum width): a long name or device line ends
+   * in "..." where the column does rather than widening the table past its
+   * card.
+   */
   return [
-    <div key="0">
+    <div key="0" className="grid grid-cols-1">
       <div className="flex min-w-0 items-center gap-3">
         <SessionReplayUserAvatar
           initials={user.initials}
@@ -313,7 +322,15 @@ function getUserRollupCells(
       >
         {row.sessionCount}
       </div>
-      <div className="text-xs text-gray-500">
+      {/*
+       * The short columns' second lines break evenly where they must ("first
+       * seen 12 / minutes ago"), never leaving one word on a line of its own
+       * ("first seen 12 minutes / ago").
+       */}
+      <div
+        className={`text-xs text-gray-500 ${SESSION_REPLAY_USERS_SUBLINE_CLASS_NAME}`}
+        data-testid="session-user-first-seen"
+      >
         {row.liveSessionCount > 0
           ? `${row.liveSessionCount} live`
           : firstSeen
@@ -329,7 +346,9 @@ function getUserRollupCells(
           data-testid="session-user-last-seen"
         >
           {OneUptimeDate.fromNow(lastSeen)}
-          <span className="mt-0.5 block text-xs text-gray-500">
+          <span
+            className={`mt-0.5 block text-xs text-gray-500 ${SESSION_REPLAY_USERS_SUBLINE_CLASS_NAME}`}
+          >
             {OneUptimeDate.getDateAsLocalFormattedString(lastSeen)}
           </span>
         </time>
@@ -457,6 +476,14 @@ function getUserRollupRowProps(
   return attributes;
 }
 
+/*
+ * The floor of the rollup's short columns, below the table's 10rem, so the
+ * six columns fit a laptop's card at 1280px: Signals used to go under the
+ * sticky Actions column there. Their words wrap.
+ */
+export const SESSION_REPLAY_USERS_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME: string =
+  "min-w-[7rem]";
+
 const SESSION_REPLAY_USER_COLUMNS: Columns<SessionReplayUsersTableRow> = [
   {
     title: "User",
@@ -467,6 +494,9 @@ const SESSION_REPLAY_USER_COLUMNS: Columns<SessionReplayUsersTableRow> = [
   {
     title: "Sessions",
     key: "sessionCount",
+    wrapContent: true,
+    wrapMaxWidthClassName: "max-w-48",
+    contentClassName: SESSION_REPLAY_USERS_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME,
     headerTooltip: RUM_REPLAY_USERS_METRIC_DESCRIPTIONS.sessions,
   },
   {
@@ -474,6 +504,7 @@ const SESSION_REPLAY_USER_COLUMNS: Columns<SessionReplayUsersTableRow> = [
     key: "lastSeenUnixMs",
     wrapContent: true,
     wrapMaxWidthClassName: "max-w-48",
+    contentClassName: SESSION_REPLAY_USERS_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME,
     headerTooltip: RUM_REPLAY_USERS_METRIC_DESCRIPTIONS.lastSeen,
   },
   {
@@ -486,6 +517,7 @@ const SESSION_REPLAY_USER_COLUMNS: Columns<SessionReplayUsersTableRow> = [
     key: "errorCount",
     wrapContent: true,
     wrapMaxWidthClassName: "max-w-56",
+    contentClassName: SESSION_REPLAY_USERS_SHORT_COLUMN_MIN_WIDTH_CLASS_NAME,
     headerTooltip: RUM_REPLAY_USERS_METRIC_DESCRIPTIONS.signals,
   },
   { title: "Actions", key: "lastSessionId", type: FieldType.Actions },
@@ -497,6 +529,7 @@ const SESSION_REPLAY_USER_COLUMNS: Columns<SessionReplayUsersTableRow> = [
       type?: FieldType;
       wrapContent?: boolean;
       wrapMaxWidthClassName?: string;
+      contentClassName?: string;
       /* What the column's numbers mean, in an (i) beside the header. */
       headerTooltip?: string;
     },
@@ -661,7 +694,11 @@ const SessionReplayUsersTable: FunctionComponent<
       >
         <p className="text-sm font-semibold text-red-800">{error.title}</p>
         <p className="mt-1 text-sm text-red-700">{error.detail}</p>
-        <div className="mt-3 flex gap-2">
+        {/*
+         * Button's own left margin (md:ml-3, a dialog footer's) put Retry
+         * 12px right of the words above it.
+         */}
+        <div className="mt-3 flex flex-wrap gap-2 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
           <Button
             title="Retry"
             icon={IconProp.Refresh}

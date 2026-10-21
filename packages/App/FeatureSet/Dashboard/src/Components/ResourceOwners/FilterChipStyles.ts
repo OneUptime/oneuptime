@@ -25,9 +25,15 @@ export const FACET_FILTER_BAR_CLASS_NAME: string =
  * The pill: shape, border, fill and hover. The colours come from below.
  * Never wider than the place it is given (max-w-full): a dropdown chip's
  * place is never wider than the bar (FILTER_CHIP_PLACE_CLASSES).
+ *
+ * It hangs from the top of its line (align-top), so a chip with a value
+ * stands where an empty one does. On the line's baseline, a chip whose
+ * value is cut short ("Browser · Chrome", truncate) sat 1px below its
+ * neighbours and made its place - and the whole chips row - 1px taller
+ * the moment a filter was picked.
  */
 export const FILTER_CHIP_BOX_CLASSES: string =
-  "relative inline-flex max-w-full rounded-full border transition-all";
+  "relative inline-flex max-w-full rounded-full border align-top transition-all";
 
 /*
  * The chip's own button covers the whole pill: its -1px margin and clear 1px
