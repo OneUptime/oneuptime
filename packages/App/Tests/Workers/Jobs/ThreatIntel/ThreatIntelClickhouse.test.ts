@@ -7,13 +7,8 @@ import ClickhouseDatabase, {
   ClickhouseClient,
 } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import { ClickHouseSettings } from "Common/Server/Services/AnalyticsDatabaseService";
-import { TelemetryServiceMetadata } from "Common/Server/Services/OpenTelemetryIngestService";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
-import { FeedPollResult } from "Common/Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelFeedPoller";
-import { TaxiiObjectsPage } from "Common/Server/Utils/SecurityEvent/ThreatIntel/TaxiiClient";
-import { ThreatIntelMatchResult } from "Common/Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelMatcher";
-import { EnrichmentResult } from "Common/Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelEnricher";
 import AnalyticsTableEngine from "Common/Types/AnalyticsDatabase/AnalyticsTableEngine";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
@@ -92,7 +87,9 @@ jest.mock("Common/Server/Utils/Logger", () => {
 });
 
 import logger from "Common/Server/Utils/Logger";
-import OTelIngestService from "Common/Server/Services/OpenTelemetryIngestService";
+import OTelIngestService, {
+  TelemetryServiceMetadata,
+} from "Common/Server/Services/OpenTelemetryIngestService";
 import SecurityEventService from "Common/Server/Services/SecurityEventService";
 import ThreatIntelFeedService from "Common/Server/Services/ThreatIntelFeedService";
 import ThreatIntelIndicatorService, {
@@ -100,10 +97,18 @@ import ThreatIntelIndicatorService, {
   IndicatorMatchGroup,
   StoredIndicatorVersion,
 } from "Common/Server/Services/ThreatIntelIndicatorService";
-import ThreatIntelEnricher from "Common/Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelEnricher";
-import ThreatIntelFeedPoller from "Common/Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelFeedPoller";
-import ThreatIntelMatcher from "Common/Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelMatcher";
-import TaxiiClient from "Common/Server/Utils/SecurityEvent/ThreatIntel/TaxiiClient";
+import ThreatIntelEnricher, {
+  EnrichmentResult,
+} from "Common/Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelEnricher";
+import ThreatIntelFeedPoller, {
+  FeedPollResult,
+} from "Common/Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelFeedPoller";
+import ThreatIntelMatcher, {
+  ThreatIntelMatchResult,
+} from "Common/Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelMatcher";
+import TaxiiClient, {
+  TaxiiObjectsPage,
+} from "Common/Server/Utils/SecurityEvent/ThreatIntel/TaxiiClient";
 
 const endpoint: string | undefined = process.env["TEST_CLICKHOUSE_URL"];
 
