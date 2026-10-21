@@ -172,10 +172,11 @@ describe("registry wiring", () => {
     const navigation: string = readSquashed(
       "App/FeatureSet/Dashboard/src/Utils/SecurityEventsNavigation.ts",
     );
-    // A tab beside Detection Rules, under the Detections menu entry.
+    // A page of its own in the Detections section, after the Rule Library.
     expect(navigation).toContain(
-      '{ page: PageMap.SECURITY_EVENTS_THREAT_INTEL, title: "Threat Intel" }',
+      '{ page: PageMap.SECURITY_EVENTS_RULE_LIBRARY, title: "Rule Library", icon: IconProp.SquareStack3D, }, { page: PageMap.SECURITY_EVENTS_THREAT_INTEL, title: "Threat Intel", icon: IconProp.Bug, },',
     );
+    expect(navigation).toContain('title: "Detections", startsCollapsed: true,');
     expect(
       readSquashed(
         "App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Layout.tsx",

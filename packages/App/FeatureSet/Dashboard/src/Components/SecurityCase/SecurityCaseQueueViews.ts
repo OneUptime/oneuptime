@@ -1,3 +1,4 @@
+import PageMap from "../../Utils/PageMap";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
@@ -10,12 +11,19 @@ import SecurityCaseStatus, {
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * The questions an analyst asks of the case queue, as views along its top.
- * Open is where a shift starts; Mine and Unassigned split it between "what
- * am I on" and "what has nobody picked up"; Closed is the record of what
- * was decided.
+ * The questions an analyst asks of the case queue, each a page of its own
+ * under Security Cases in the side menu. Open Cases is where a shift
+ * starts; Assigned to Me and Unassigned split it between "what am I on" and
+ * "what has nobody picked up"; Closed Cases is the record of what was
+ * decided; All Cases is every case, to search.
  *
- * React-free so each view's query is pinned in a plain test.
+ * They were views along the top of one queue, switched by buttons. Each is
+ * now a page with its own address, its own name in the menu, the
+ * breadcrumbs and Search, and a list that fits its question: the columns
+ * and filters that mean something for those cases, sorted the way they are
+ * read, and an empty state that says what an empty list means.
+ *
+ * React-free so each page's query and list are pinned in a plain test.
  */
 
 export type SecurityCaseQueueViewKey =
@@ -25,53 +33,256 @@ export type SecurityCaseQueueViewKey =
   | "closed"
   | "all";
 
+// The case list's columns, in the order they are drawn.
+export type SecurityCaseQueueColumn =
+  | "case"
+  | "priority"
+  | "status"
+  | "verdict"
+  | "assignee"
+  | "team"
+  | "labels"
+  | "lastDetection"
+  | "closed";
+
+// The case list's filters, in the order they are offered.
+export type SecurityCaseQueueFilter =
+  | "title"
+  | "priority"
+  | "status"
+  | "verdict"
+  | "labels"
+  | "opened"
+  | "closed";
+
+export type SecurityCaseQueueSort = "lastDetectedAt" | "closedAt";
+
 export interface SecurityCaseQueueView {
   key: SecurityCaseQueueViewKey;
+  // The page, and its entry in the side menu.
+  page: PageMap;
+  // The page's name: its menu entry, card title, breadcrumb and Search.
   title: string;
+  // What the list holds, under the card's title.
   description: string;
+  // What an empty list says: a headline, then what it means.
   emptyMessage: string;
   icon: IconProp;
+  /*
+   * An empty list here is good news - nothing open, nothing left for
+   * nobody - drawn with a green check, as Active Incidents is, and with no
+   * Open button under it: opening a case is not the answer to "all clear".
+   */
+  isEmptyGoodNews: boolean;
+  /*
+   * Whether the page offers Open Security Case: the lists a case opened by
+   * hand lands in (it opens unassigned). Assigned to Me, Unassigned and
+   * Closed Cases are lists to work, not to add to.
+   */
+  canOpenCase: boolean;
+  /*
+   * Whether Assign to Me is among the actions on the cases selected: the
+   * lists cases are taken on from. Not Assigned to Me, where every case is
+   * yours already, nor Closed Cases, where nobody works a case any more.
+   */
+  canAssignToMe: boolean;
+  columns: ReadonlyArray<SecurityCaseQueueColumn>;
+  // Columns the list draws only once someone turns them on.
+  hiddenColumns: ReadonlyArray<SecurityCaseQueueColumn>;
+  filters: ReadonlyArray<SecurityCaseQueueFilter>;
+  sortBy: SecurityCaseQueueSort;
 }
+
+// What an open case's list draws.
+const OPEN_COLUMNS: ReadonlyArray<SecurityCaseQueueColumn> = [
+  "case",
+  "priority",
+  "status",
+  "assignee",
+  "labels",
+  "lastDetection",
+];
+
+// No open case has a verdict yet: an open list is filtered by where it stands instead.
+const OPEN_FILTERS: ReadonlyArray<SecurityCaseQueueFilter> = [
+  "title",
+  "priority",
+  "status",
+  "labels",
+  "opened",
+];
+
+const withoutColumn: (
+  columns: ReadonlyArray<SecurityCaseQueueColumn>,
+  column: SecurityCaseQueueColumn,
+) => Array<SecurityCaseQueueColumn> = (
+  columns: ReadonlyArray<SecurityCaseQueueColumn>,
+  column: SecurityCaseQueueColumn,
+): Array<SecurityCaseQueueColumn> => {
+  return columns.filter((candidate: SecurityCaseQueueColumn): boolean => {
+    return candidate !== column;
+  });
+};
 
 export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
   {
     key: "open",
+    page: PageMap.SECURITY_CASES,
     title: translationKey("Open Cases"),
-    description: translationKey("Every case that is not closed."),
+    description: translationKey(
+      "Every case that is not closed yet, the latest detection first. Pick one up, work it, and close it with a verdict.",
+    ),
     emptyMessage: translationKey(
       "No open cases. New ones appear here as detections fire.",
     ),
     icon: IconProp.ShieldExclamation,
+    isEmptyGoodNews: true,
+    canOpenCase: true,
+    canAssignToMe: true,
+    columns: OPEN_COLUMNS,
+    hiddenColumns: ["labels"],
+    filters: OPEN_FILTERS,
+    sortBy: "lastDetectedAt",
   },
   {
     key: "mine",
+    page: PageMap.SECURITY_CASES_ASSIGNED_TO_ME,
     title: translationKey("Assigned to Me"),
-    description: translationKey("Open cases assigned to you."),
-    emptyMessage: translationKey("No open cases are assigned to you."),
+    description: translationKey(
+      "The open cases assigned to you, the latest detection first.",
+    ),
+    emptyMessage: translationKey(
+      "No open cases are assigned to you. Pick up one that nobody has taken yet.",
+    ),
     icon: IconProp.User,
+    isEmptyGoodNews: false,
+    canOpenCase: false,
+    canAssignToMe: false,
+    // Every case here is yours: no Assignee column saying so on each row.
+    columns: withoutColumn(OPEN_COLUMNS, "assignee"),
+    hiddenColumns: ["labels"],
+    filters: OPEN_FILTERS,
+    sortBy: "lastDetectedAt",
   },
   {
     key: "unassigned",
+    page: PageMap.SECURITY_CASES_UNASSIGNED,
     title: translationKey("Unassigned"),
-    description: translationKey("Open cases nobody has picked up yet."),
+    description: translationKey(
+      "Open cases nobody has picked up yet. Assign one to yourself to take it on.",
+    ),
     emptyMessage: translationKey("Every open case has someone on it."),
-    icon: IconProp.UserGroup,
+    // The tray of cases waiting to be picked up; a team draws as UserGroup.
+    icon: IconProp.Inbox,
+    isEmptyGoodNews: true,
+    canOpenCase: false,
+    // Taking a case on is what this page is for.
+    canAssignToMe: true,
+    /*
+     * No case here has a person on it, so an Assignee column would say
+     * Unassigned on every row. A case handed to a team waits here too, and
+     * its Team says which team.
+     */
+    columns: ["case", "priority", "status", "team", "labels", "lastDetection"],
+    hiddenColumns: ["labels"],
+    filters: OPEN_FILTERS,
+    sortBy: "lastDetectedAt",
   },
   {
+    /*
+     * The record of what was decided: each case by its verdict and when it
+     * closed, the latest first. Every case here is Closed, so there is no
+     * Status to show or to filter by.
+     */
     key: "closed",
-    title: translationKey("Closed"),
-    description: translationKey("Cases closed with a verdict."),
-    emptyMessage: translationKey("No closed cases yet."),
+    page: PageMap.SECURITY_CASES_CLOSED,
+    title: translationKey("Closed Cases"),
+    description: translationKey(
+      "Cases closed with a verdict, the most recently closed first.",
+    ),
+    emptyMessage: translationKey(
+      "No closed cases yet. A case moves here when it is closed with a verdict.",
+    ),
     icon: IconProp.CheckCircle,
+    isEmptyGoodNews: false,
+    canOpenCase: false,
+    canAssignToMe: false,
+    columns: ["case", "priority", "verdict", "assignee", "labels", "closed"],
+    hiddenColumns: ["labels"],
+    filters: ["title", "priority", "verdict", "labels", "opened", "closed"],
+    sortBy: "closedAt",
   },
   {
     key: "all",
-    title: translationKey("All"),
-    description: translationKey("Every case, open or closed."),
-    emptyMessage: translationKey("No cases yet."),
-    icon: IconProp.List,
+    page: PageMap.SECURITY_CASES_ALL,
+    title: translationKey("All Cases"),
+    description: translationKey(
+      "Every case, open or closed. A case groups the detections about one user, host or address as they fire.",
+    ),
+    emptyMessage: translationKey(
+      "No cases yet. Cases open as detections fire, or open one yourself.",
+    ),
+    icon: IconProp.RectangleStack,
+    isEmptyGoodNews: false,
+    canOpenCase: true,
+    canAssignToMe: true,
+    columns: [
+      "case",
+      "priority",
+      "status",
+      "verdict",
+      "assignee",
+      "labels",
+      "lastDetection",
+    ],
+    hiddenColumns: ["verdict", "labels"],
+    filters: ["title", "priority", "status", "verdict", "labels", "opened"],
+    sortBy: "lastDetectedAt",
   },
 ];
+
+export const SECURITY_CASE_QUEUE_VIEW_KEYS: ReadonlyArray<SecurityCaseQueueViewKey> =
+  SECURITY_CASE_QUEUE_VIEWS.map(
+    (view: SecurityCaseQueueView): SecurityCaseQueueViewKey => {
+      return view.key;
+    },
+  );
+
+// A view by its key; Open Cases for anything else.
+export function getSecurityCaseQueueView(
+  key: SecurityCaseQueueViewKey | undefined,
+): SecurityCaseQueueView {
+  return (
+    SECURITY_CASE_QUEUE_VIEWS.find((view: SecurityCaseQueueView): boolean => {
+      return view.key === key;
+    }) || SECURITY_CASE_QUEUE_VIEWS[0]!
+  );
+}
+
+// The view a page lists, if the page is one of the case queue's.
+export function getSecurityCaseQueueViewForPage(
+  page: PageMap | undefined,
+): SecurityCaseQueueView | undefined {
+  return SECURITY_CASE_QUEUE_VIEWS.find(
+    (view: SecurityCaseQueueView): boolean => {
+      return view.page === page;
+    },
+  );
+}
+
+/*
+ * Who "me" is, for Assigned to Me: the person signed in. Nobody signed in -
+ * no id, or an empty one - reads as nobody's cases, not everybody's.
+ */
+export function getSecurityCaseAssigneeForMe(
+  currentUserId: ObjectID | undefined,
+): ObjectID {
+  if (!currentUserId || !currentUserId.toString()) {
+    return ObjectID.getZeroObjectID();
+  }
+
+  return currentUserId;
+}
 
 export function getSecurityCaseQueueQuery(
   view: SecurityCaseQueueViewKey,
@@ -87,8 +298,7 @@ export function getSecurityCaseQueueQuery(
     case "mine":
       return {
         ...open,
-        // Nobody signed in reads as nobody's cases, not everybody's.
-        assignedToUserId: currentUserId || ObjectID.getZeroObjectID(),
+        assignedToUserId: getSecurityCaseAssigneeForMe(currentUserId),
       } as Query<SecurityCase>;
     case "unassigned":
       return {
@@ -101,4 +311,18 @@ export function getSecurityCaseQueueQuery(
     default:
       return {};
   }
+}
+
+/*
+ * The statuses a list's Status filter offers: an open list only the open
+ * ones, so it never offers Closed, which would empty it.
+ */
+export function getSecurityCaseQueueStatusOptions(
+  view: SecurityCaseQueueViewKey,
+): ReadonlyArray<SecurityCaseStatus> {
+  if (view === "open" || view === "mine" || view === "unassigned") {
+    return OPEN_SECURITY_CASE_STATUSES;
+  }
+
+  return [...OPEN_SECURITY_CASE_STATUSES, SecurityCaseStatus.Closed];
 }

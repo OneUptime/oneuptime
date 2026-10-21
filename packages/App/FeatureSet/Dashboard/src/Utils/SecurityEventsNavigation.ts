@@ -4,132 +4,192 @@ import IconProp from "Common/Types/Icon/IconProp";
 /*
  * The Security Events menu, as data.
  *
- * Security reads as one story, left to right, and the menu is that story:
+ * Security reads as one story, top to bottom, and each part of it is a
+ * section of the menu holding its pages:
  *
  *   Overview         what needs you now, and setting Security up
- *   Security Cases   what was found, grouped into things to look into
- *   Events           every security event, to search and investigate
- *   Detections       the rules and threat intel that find threats in them
- *   Playbooks        what responds when a case opens
- *   Connections      where events come from, and where they are sent
+ *   Security Cases   what was found, grouped into things to look into:
+ *                    Open Cases, Assigned to Me, Unassigned, Closed Cases
+ *                    and All Cases
+ *   Events           every security event, how they connect, and who or
+ *                    what they name: Events, Entities, Correlate
+ *   Detections       what finds threats in them: Detection Rules, the Rule
+ *                    Library, Threat Intel and ATT&CK Coverage
+ *   Playbooks        what responds when a case opens: Playbooks, the runs
+ *                    Waiting for Approval, and every Playbook Run
+ *   Connections      where events come from and where they are sent:
+ *                    Connections, and the Setup Guide
  *
- * Six entries, no sections to open or close. The pages that belong
- * together sit behind one entry as tabs across the top of the page
- * (SECURITY_EVENTS_TAB_GROUPS): Events with Entities and Correlate,
- * Detections with the Rule Library, Threat Intel and ATT&CK Coverage,
- * Playbooks with their runs, Connections with the setup guide. The menu
- * entry stays lit on every page of its group.
+ * Every page has its own entry, address and name. The maintainer asked
+ * for this in place of the tabs a page used to carry across its top (and
+ * the views along the top of the case queue and the runs): "Can we create
+ * side menu sections instead and have different pages for these things?"
  *
- * Kept free of React so the menu - its order, its titles and the pages
- * each entry stands for - is pinned in a plain test, and the docs that
- * describe it are held to it.
+ * Detections and Connections are set up once and visited rarely, so they
+ * start folded to their titles; each opens by itself on its own pages.
+ *
+ * Kept free of React so the menu - its sections, their order, the pages
+ * and their names - is pinned in a plain test, and the breadcrumbs, Search
+ * and docs that name the pages are held to it.
  */
 
-export type SecurityEventsMenuBadge = "openCases" | "runsWaitingForApproval";
+/*
+ * A live count beside an entry: what is waiting for somebody. Each counts
+ * what its own page lists (SecurityEventsBadgeCount.ts).
+ */
+export type SecurityEventsMenuBadge =
+  | "openCases"
+  | "myOpenCases"
+  | "runsWaitingForApproval";
 
 export interface SecurityEventsMenuItem {
   page: PageMap;
   title: string;
   icon: IconProp;
-  // A live count beside the title: what is waiting for somebody.
   badge?: SecurityEventsMenuBadge | undefined;
 }
 
-export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuItem> = [
-  {
-    page: PageMap.SECURITY_EVENTS_OVERVIEW,
-    title: "Overview",
-    icon: IconProp.ChartBar,
-  },
-  {
-    page: PageMap.SECURITY_CASES,
-    title: "Security Cases",
-    icon: IconProp.ShieldExclamation,
-    badge: "openCases",
-  },
-  {
-    page: PageMap.SECURITY_EVENTS,
-    title: "Events",
-    icon: IconProp.List,
-  },
-  {
-    page: PageMap.SECURITY_EVENTS_DETECTION_RULES,
-    title: "Detections",
-    icon: IconProp.ShieldCheck,
-  },
-  {
-    page: PageMap.SECURITY_PLAYBOOKS,
-    title: "Playbooks",
-    icon: IconProp.Bolt,
-    badge: "runsWaitingForApproval",
-  },
-  {
-    page: PageMap.SECURITY_EVENTS_CONNECTIONS,
-    title: "Connections",
-    icon: IconProp.Link,
-  },
-];
-
-export interface SecurityEventsTab {
-  page: PageMap;
+export interface SecurityEventsMenuSection {
   title: string;
+  items: Array<SecurityEventsMenuItem>;
   /*
-   * The count the menu entry shows, on the tab where those things are: the
-   * runs waiting for an approval are counted beside Playbooks and listed
-   * under Playbook Runs, so that tab carries the number too.
+   * Folded to its title until someone opens it, or is on one of its pages:
+   * set up once, revisited rarely.
    */
-  badge?: SecurityEventsMenuBadge | undefined;
+  startsCollapsed?: boolean | undefined;
 }
 
-/*
- * Pages behind one menu entry, as tabs: the entry's own page first. A page
- * is in at most one group.
- */
-export interface SecurityEventsTabGroup {
-  menuPage: PageMap;
-  tabs: Array<SecurityEventsTab>;
-}
-
-export const SECURITY_EVENTS_TAB_GROUPS: Array<SecurityEventsTabGroup> = [
+export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
   {
-    menuPage: PageMap.SECURITY_EVENTS,
-    tabs: [
-      { page: PageMap.SECURITY_EVENTS, title: "Events" },
-      { page: PageMap.SECURITY_EVENTS_ENTITIES, title: "Entities" },
-      { page: PageMap.SECURITY_EVENTS_CORRELATE, title: "Correlate" },
+    title: "Overview",
+    items: [
+      {
+        page: PageMap.SECURITY_EVENTS_OVERVIEW,
+        title: "Overview",
+        icon: IconProp.ChartBar,
+      },
     ],
   },
   {
-    menuPage: PageMap.SECURITY_EVENTS_DETECTION_RULES,
-    tabs: [
+    // The case queue, one page per question asked of it (SecurityCaseQueueViews.ts).
+    title: "Security Cases",
+    items: [
+      {
+        page: PageMap.SECURITY_CASES,
+        title: "Open Cases",
+        icon: IconProp.ShieldExclamation,
+        badge: "openCases",
+      },
+      {
+        page: PageMap.SECURITY_CASES_ASSIGNED_TO_ME,
+        title: "Assigned to Me",
+        icon: IconProp.User,
+        badge: "myOpenCases",
+      },
+      {
+        page: PageMap.SECURITY_CASES_UNASSIGNED,
+        title: "Unassigned",
+        icon: IconProp.Inbox,
+      },
+      {
+        page: PageMap.SECURITY_CASES_CLOSED,
+        title: "Closed Cases",
+        icon: IconProp.CheckCircle,
+      },
+      {
+        page: PageMap.SECURITY_CASES_ALL,
+        title: "All Cases",
+        icon: IconProp.RectangleStack,
+      },
+    ],
+  },
+  {
+    title: "Events",
+    items: [
+      {
+        page: PageMap.SECURITY_EVENTS,
+        title: "Events",
+        icon: IconProp.List,
+      },
+      {
+        page: PageMap.SECURITY_EVENTS_ENTITIES,
+        title: "Entities",
+        icon: IconProp.Fingerprint,
+      },
+      {
+        page: PageMap.SECURITY_EVENTS_CORRELATE,
+        title: "Correlate",
+        // Connected points: Graph draws the same bars as Overview's ChartBar.
+        icon: IconProp.Share,
+      },
+    ],
+  },
+  {
+    title: "Detections",
+    startsCollapsed: true,
+    items: [
       {
         page: PageMap.SECURITY_EVENTS_DETECTION_RULES,
         title: "Detection Rules",
+        icon: IconProp.ShieldCheck,
       },
-      { page: PageMap.SECURITY_EVENTS_RULE_LIBRARY, title: "Rule Library" },
-      { page: PageMap.SECURITY_EVENTS_THREAT_INTEL, title: "Threat Intel" },
+      {
+        page: PageMap.SECURITY_EVENTS_RULE_LIBRARY,
+        title: "Rule Library",
+        icon: IconProp.SquareStack3D,
+      },
+      {
+        page: PageMap.SECURITY_EVENTS_THREAT_INTEL,
+        title: "Threat Intel",
+        icon: IconProp.Bug,
+      },
       {
         page: PageMap.SECURITY_EVENTS_ATTACK_COVERAGE,
         title: "ATT&CK Coverage",
+        icon: IconProp.TableCells,
       },
     ],
   },
   {
-    menuPage: PageMap.SECURITY_PLAYBOOKS,
-    tabs: [
-      { page: PageMap.SECURITY_PLAYBOOKS, title: "Playbooks" },
+    /*
+     * Open, unlike the other sections set up once: a run held for an
+     * approval does nothing until somebody decides, and its count must be
+     * in sight.
+     */
+    title: "Playbooks",
+    items: [
+      {
+        page: PageMap.SECURITY_PLAYBOOKS,
+        title: "Playbooks",
+        icon: IconProp.Bolt,
+      },
+      {
+        page: PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL,
+        title: "Waiting for Approval",
+        icon: IconProp.PauseCircle,
+        badge: "runsWaitingForApproval",
+      },
       {
         page: PageMap.SECURITY_PLAYBOOK_RUNS,
         title: "Playbook Runs",
-        badge: "runsWaitingForApproval",
+        icon: IconProp.Play,
       },
     ],
   },
   {
-    menuPage: PageMap.SECURITY_EVENTS_CONNECTIONS,
-    tabs: [
-      { page: PageMap.SECURITY_EVENTS_CONNECTIONS, title: "Connections" },
-      { page: PageMap.SECURITY_EVENTS_DOCUMENTATION, title: "Setup Guide" },
+    title: "Connections",
+    startsCollapsed: true,
+    items: [
+      {
+        page: PageMap.SECURITY_EVENTS_CONNECTIONS,
+        title: "Connections",
+        icon: IconProp.Link,
+      },
+      {
+        page: PageMap.SECURITY_EVENTS_DOCUMENTATION,
+        title: "Setup Guide",
+        icon: IconProp.Book,
+      },
     ],
   },
 ];
@@ -156,41 +216,33 @@ export const SECURITY_EVENTS_REDIRECTED_PAGES: Array<PageMap> = [
 export const SECURITY_EVENTS_LANDING_PAGE: PageMap =
   PageMap.SECURITY_EVENTS_OVERVIEW;
 
-export function getSecurityEventsTabGroup(
+// Every entry of the menu, in menu order.
+export function getSecurityEventsMenuItems(): Array<SecurityEventsMenuItem> {
+  return SECURITY_EVENTS_MENU.flatMap(
+    (section: SecurityEventsMenuSection): Array<SecurityEventsMenuItem> => {
+      return section.items;
+    },
+  );
+}
+
+// The section a page sits in, if the menu lists it.
+export function getSecurityEventsMenuSectionFor(
   page: PageMap | undefined,
-): SecurityEventsTabGroup | undefined {
+): SecurityEventsMenuSection | undefined {
   if (!page) {
     return undefined;
   }
 
-  return SECURITY_EVENTS_TAB_GROUPS.find(
-    (group: SecurityEventsTabGroup): boolean => {
-      return group.tabs.some((tab: SecurityEventsTab): boolean => {
-        return tab.page === page;
+  return SECURITY_EVENTS_MENU.find(
+    (section: SecurityEventsMenuSection): boolean => {
+      return section.items.some((item: SecurityEventsMenuItem): boolean => {
+        return item.page === page;
       });
     },
   );
 }
 
-// The pages a menu entry stands for: its own, and its group's tabs.
-export function getSecurityEventsMenuItemPages(
-  item: SecurityEventsMenuItem,
-): Array<PageMap> {
-  const group: SecurityEventsTabGroup | undefined =
-    SECURITY_EVENTS_TAB_GROUPS.find((candidate: SecurityEventsTabGroup) => {
-      return candidate.menuPage === item.page;
-    });
-
-  if (!group) {
-    return [item.page];
-  }
-
-  return group.tabs.map((tab: SecurityEventsTab): PageMap => {
-    return tab.page;
-  });
-}
-
-// The menu entry a page sits under, if it is in the menu at all.
+// A page's entry in the menu, if it has one.
 export function getSecurityEventsMenuItemFor(
   page: PageMap | undefined,
 ): SecurityEventsMenuItem | undefined {
@@ -198,9 +250,33 @@ export function getSecurityEventsMenuItemFor(
     return undefined;
   }
 
-  return SECURITY_EVENTS_MENU.find((item: SecurityEventsMenuItem): boolean => {
-    return getSecurityEventsMenuItemPages(item).includes(page);
-  });
+  return getSecurityEventsMenuItems().find(
+    (item: SecurityEventsMenuItem): boolean => {
+      return item.page === page;
+    },
+  );
+}
+
+/*
+ * Where a page is, as its breadcrumbs say it: the product, the page's
+ * section, and the page as the menu names it. A page named like its section
+ * (Overview, Events, Playbooks, Connections) is not named twice.
+ */
+export function getSecurityEventsPageTrail(
+  page: PageMap,
+): Array<string> | undefined {
+  const section: SecurityEventsMenuSection | undefined =
+    getSecurityEventsMenuSectionFor(page);
+  const item: SecurityEventsMenuItem | undefined =
+    getSecurityEventsMenuItemFor(page);
+
+  if (!section || !item) {
+    return undefined;
+  }
+
+  return section.title === item.title
+    ? ["Security Events", item.title]
+    : ["Security Events", section.title, item.title];
 }
 
 const ROOT_SEGMENT: string = "security-events";

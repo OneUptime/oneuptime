@@ -9,9 +9,11 @@ import path from "path";
  * theme - a white tile on a slate page - and nothing fails.
  *
  * So these read the sources of what this overhaul added to Security - the
- * Overview's pipeline, Get started, All quiet and the test attack; the page
- * tabs; "Your logs" and "Send to your SIEM" on Connections; the Rule
- * Library's recommended marks - and every component they import from their
+ * Overview's pipeline, Get started, All quiet and the test attack; the
+ * runs pages (Waiting for Approval, Playbook Runs), which took the place of
+ * the tabs and views along the tops of pages; "Your logs" and "Send to your
+ * SIEM" on Connections; the Rule Library's recommended marks - and every
+ * component they import from their
  * own folders, and hold every colour class to what Theme.css remaps. The
  * walk follows .ts helpers too: a colour kept in a data module is still
  * drawn. Rendering is covered in Common/Tests/App/Dashboard and the browser
@@ -32,6 +34,7 @@ const ENTRY_FILES: Array<string> = [
   "Pages/SecurityEvents/Connections.tsx",
   "Pages/SecurityEvents/RuleLibrary.tsx",
   "Pages/SecurityEvents/Layout.tsx",
+  "Pages/SecurityEvents/PlaybookRuns.tsx",
 ];
 
 // What the walk must reach, so a renamed import cannot quietly shrink it.
@@ -41,7 +44,6 @@ const MUST_REACH: Array<string> = [
   "Components/SecurityOverview/SecurityAllQuiet.tsx",
   "Components/SecurityOverview/SecuritySetupTest.tsx",
   "Components/SecurityOverview/SecuritySetupModel.ts",
-  "Components/SecurityEvents/SecurityEventsPageTabs.tsx",
   "Components/SecurityEvents/SecurityLogsSourceCard.tsx",
   "Components/SecurityEvents/SecurityEventDestinationsTable.tsx",
   "Components/SecurityEvents/SecurityEventDestinationFormModal.tsx",

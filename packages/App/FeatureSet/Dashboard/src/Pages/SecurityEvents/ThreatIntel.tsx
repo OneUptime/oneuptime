@@ -74,7 +74,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   /*
-   * Same reseller-telemetry gate as every other Security Events tab —
+   * Same reseller-telemetry gate as every other Security Events page —
    * indicators enrich and match telemetry-billed security events, so a
    * plan without telemetry features has nothing for them to act on.
    */
@@ -104,10 +104,8 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
 
   return (
     /*
-     * The page's own vertical rhythm. `Page` only wraps its children in
-     * `space-y-6` on the side-menu branch, and this product moved its
-     * destinations into header tabs — so without this the How-it-works card
-     * and the table under it sit flush against each other.
+     * The page's own vertical rhythm: without it the How-it-works card and
+     * the table under it sit flush against each other.
      */
     <div className="space-y-6">
       <SecurityEventsHowItWorksCard guide={ThreatIntelGuide} />
@@ -128,8 +126,6 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
         sortBy="name"
         sortOrder={SortOrder.Ascending}
         cardProps={{
-          // Its search and buttons drop under the title beside the side menu.
-          headerLayout: "stacked",
           title: "Threat Intel Feeds",
           description:
             "STIX/TAXII 2.1 feed subscriptions. Indicators are polled on an interval, enrich incoming events with threat.* attributes, and matches open deduplicated alerts — the same machinery as Sigma detection rules.",
@@ -554,8 +550,6 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
         isCreateable={false}
         isViewable={false}
         cardProps={{
-          // Its search and buttons drop under the title beside the side menu.
-          headerLayout: "stacked",
           title: "Indicators",
           description:
             "Indicators from the feeds above. An indicator can briefly appear twice, and expired or revoked ones stay listed for a while but are never matched.",

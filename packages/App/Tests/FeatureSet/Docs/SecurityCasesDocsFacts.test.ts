@@ -1,6 +1,7 @@
 import { DocsHeading, readPage, scanMarkdown } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
 import { SECURITY_CASE_QUEUE_VIEWS } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
+import { SECURITY_PLAYBOOK_RUN_VIEWS } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunViews";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
@@ -122,17 +123,44 @@ function codeSpans(text: string): Array<string> {
 describe("Security Cases and Playbooks docs", () => {
   const page: string = englishPage();
 
-  it("opens the queue where the menu puts it, with the views the queue offers", () => {
+  it("opens the queue where the menu puts it, with the queue's other pages beside it", () => {
     expect(page).toContain(
-      "Open **Products → Security Events → Security Cases**. The queue opens on the open cases; **Assigned to Me**, **Unassigned**, **Closed** and **All** are the other views.",
+      "Open **Products → Security Events → Security Cases → Open Cases** for the queue. **Assigned to Me**, **Unassigned**, **Closed Cases** and **All Cases** are pages of their own beside it, each listing the cases its name says.",
     );
     expect(
       SECURITY_CASE_QUEUE_VIEWS.map((view: { title: string }): string => {
         return view.title;
       }),
-    ).toEqual(["Open Cases", "Assigned to Me", "Unassigned", "Closed", "All"]);
+    ).toEqual([
+      "Open Cases",
+      "Assigned to Me",
+      "Unassigned",
+      "Closed Cases",
+      "All Cases",
+    ]);
     expect(source(`${DASHBOARD}/Utils/SecurityEventsNavigation.ts`)).toContain(
       'title: "Security Cases",',
+    );
+    expect(page).not.toContain("are the other views");
+  });
+
+  it("names the runs held for a decision as the page that lists them, and every run", () => {
+    expect(
+      SECURITY_PLAYBOOK_RUN_VIEWS.map((view: { title: string }): string => {
+        return view.title;
+      }),
+    ).toEqual(["Waiting for Approval", "Playbook Runs"]);
+    expect(page).toContain(
+      "**Waiting for Approval**, under **Playbooks** in the menu, lists the runs held for a decision and counts them; **Playbook Runs** lists every run.",
+    );
+    expect(page).toContain(
+      "under **Products → Security Events → Playbooks → Playbook Runs**, step by step:",
+    );
+  });
+
+  it("says each of the overview's counts opens the page that lists them", () => {
+    expect(section(page, "The overview")).toContain(
+      "- The open cases assigned to you, the open cases nobody has picked up, and the playbook steps waiting for approval, each opening the page that lists them.",
     );
   });
 

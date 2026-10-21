@@ -27,11 +27,11 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Utils/SecurityEventsMonitorPrefill";
 import {
   SECURITY_EVENTS_MENU,
-  SECURITY_EVENTS_TAB_GROUPS,
   SecurityEventsMenuItem,
-  SecurityEventsTab,
-  SecurityEventsTabGroup,
+  SecurityEventsMenuSection,
+  getSecurityEventsMenuSectionFor,
 } from "../../../FeatureSet/Dashboard/src/Utils/SecurityEventsNavigation";
+import PageMap from "../../../FeatureSet/Dashboard/src/Utils/PageMap";
 import {
   SECURITY_EVENTS,
   THREAT_INTELLIGENCE,
@@ -471,35 +471,25 @@ describe("the Security Events page", () => {
       "category: observabilityCategory",
     );
     expect(page).toContain(
-      "Open **Products → Security Events**, under **Observability**. Its menu:",
+      "Open **Products → Security Events**, under **Observability**. Its menu has a section for each part of Security, and a page of its own for each thing in it:",
     );
   });
 
-  it("names every page, and the menu entry it sits under, in the order the product draws them", () => {
-    /*
-     * Each menu entry, then the pages behind it as the tabs list them: a
-     * page of its own (Overview, Security Cases) is the entry's own title.
-     */
+  it("names every page, and the menu section it sits in, in the order the product draws them", () => {
+    // Every page of every section, as the side menu lists them: no tabs.
     const expected: Array<[string, string]> = SECURITY_EVENTS_MENU.flatMap(
-      (item: SecurityEventsMenuItem): Array<[string, string]> => {
-        const group: SecurityEventsTabGroup | undefined =
-          SECURITY_EVENTS_TAB_GROUPS.find(
-            (candidate: SecurityEventsTabGroup): boolean => {
-              return candidate.menuPage === item.page;
-            },
-          );
-
-        return group
-          ? group.tabs.map((tab: SecurityEventsTab): [string, string] => {
-              return [`**${tab.title}**`, item.title];
-            })
-          : [[`**${item.title}**`, item.title]];
+      (section: SecurityEventsMenuSection): Array<[string, string]> => {
+        return section.items.map(
+          (item: SecurityEventsMenuItem): [string, string] => {
+            return [`**${item.title}**`, section.title];
+          },
+        );
       },
     );
 
     expect(
-      SECURITY_EVENTS_MENU.map((item: SecurityEventsMenuItem): string => {
-        return item.title;
+      SECURITY_EVENTS_MENU.map((section: SecurityEventsMenuSection): string => {
+        return section.title;
       }),
     ).toEqual([
       "Overview",
@@ -516,8 +506,21 @@ describe("the Security Events page", () => {
         },
       ),
     ).toEqual(expected);
+    expect(page).not.toContain("as tabs across the top of the page");
+  });
+
+  it("names the sections that start folded, as the menu folds them", () => {
+    expect(
+      SECURITY_EVENTS_MENU.filter(
+        (section: SecurityEventsMenuSection): boolean => {
+          return Boolean(section.startsCollapsed);
+        },
+      ).map((section: SecurityEventsMenuSection): string => {
+        return section.title;
+      }),
+    ).toEqual(["Detections", "Connections"]);
     expect(page).toContain(
-      "The pages behind one menu entry open as tabs across the top of the page.",
+      "**Detections** and **Connections**, set up once, stay folded until you open them.",
     );
   });
 
@@ -1232,20 +1235,17 @@ describe("the Security Events page", () => {
     expect(steps[5]).toContain(
       "**Write Detection Finding on Match** (on) and how matches are counted",
     );
-    // Detections opens on Detection Rules, its first tab.
+    // Detection Rules is a page of the Detections section, its first.
     expect(
-      SECURITY_EVENTS_TAB_GROUPS.find(
-        (group: SecurityEventsTabGroup): boolean => {
-          return group.tabs[0]?.title === "Detection Rules";
-        },
-      )?.menuPage,
-    ).toBe(
-      SECURITY_EVENTS_MENU.find((item: SecurityEventsMenuItem): boolean => {
-        return item.title === "Detections";
-      })?.page,
-    );
+      getSecurityEventsMenuSectionFor(PageMap.SECURITY_EVENTS_DETECTION_RULES)
+        ?.title,
+    ).toBe("Detections");
+    expect(
+      getSecurityEventsMenuSectionFor(PageMap.SECURITY_EVENTS_DETECTION_RULES)
+        ?.items[0]?.title,
+    ).toBe("Detection Rules");
     expect(page).toContain(
-      "Open **Products → Security Events → Detections** and click **Create Detection Rule**.",
+      "Open **Products → Security Events → Detections → Detection Rules** and click **Create Detection Rule**.",
     );
   });
 
@@ -1748,10 +1748,14 @@ describe("the Security Events page", () => {
     );
   });
 
-  it("names the Setup Guide tab, where the snippets carry the reader's own key", () => {
+  it("names the Setup Guide page, where the snippets carry the reader's own key", () => {
     expect(source("setupGuide")).toContain("/security-events/v1/ingest");
+    expect(
+      getSecurityEventsMenuSectionFor(PageMap.SECURITY_EVENTS_DOCUMENTATION)
+        ?.title,
+    ).toBe("Connections");
     expect(page).toContain(
-      "The **Setup Guide** tab has these snippets with your own host and key filled in.",
+      "The **Setup Guide** page, under **Connections**, has these snippets with your own host and key filled in.",
     );
   });
 });
@@ -1795,19 +1799,10 @@ describe("the Threat Intelligence page", () => {
   }
 
   it("opens the feeds from Products → Security Events → Detections → Threat Intel", () => {
-    const detections: SecurityEventsTabGroup | undefined =
-      SECURITY_EVENTS_TAB_GROUPS.find(
-        (group: SecurityEventsTabGroup): boolean => {
-          return group.tabs.some((tab: SecurityEventsTab): boolean => {
-            return tab.title === "Threat Intel";
-          });
-        },
-      );
-
+    // Threat Intel is a page of the Detections section.
     expect(
-      SECURITY_EVENTS_MENU.find((item: SecurityEventsMenuItem): boolean => {
-        return item.page === detections?.menuPage;
-      })?.title,
+      getSecurityEventsMenuSectionFor(PageMap.SECURITY_EVENTS_THREAT_INTEL)
+        ?.title,
     ).toBe("Detections");
     expect(page).toContain(
       "Open **Products → Security Events → Detections → Threat Intel**.",

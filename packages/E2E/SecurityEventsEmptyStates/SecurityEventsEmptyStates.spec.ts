@@ -2842,7 +2842,7 @@ test.describe("security events empty state", () => {
     expect(await borderColor(wayInCard(page, "send"))).toBe(GRAY_200_RGB);
   });
 
-  test("Read the setup guide opens the Documentation tab, and back returns", async ({
+  test("Read the setup guide opens the Setup Guide page, and back returns", async ({
     page,
   }: {
     page: Page;

@@ -25,12 +25,16 @@ flowchart TB
     monitors --> act
 ```
 
-Open **Producten → Security Events**, onder **Observability**. Het menu:
+Open **Producten → Security Events**, onder **Observability**. Het menu heeft een sectie voor elk deel van beveiliging, en een eigen pagina voor alles daarin:
 
-| Pagina | Menu-item | Waarvoor het dient |
+| Pagina | Sectie | Waarvoor het dient |
 | --- | --- | --- |
 | **Overzicht** | Overzicht | Hoe beveiliging is ingericht, wat er nu iemand nodig heeft en hoe snel zaken worden afgehandeld |
-| **Security Cases** | Security Cases | De wachtrij van wat is gedetecteerd, gegroepeerd naar waar het over gaat |
+| **Open zaken** | Beveiligingszaken | De wachtrij: elke zaak die nog niet gesloten is, gegroepeerd naar waar het over gaat |
+| **Aan mij toegewezen** | Beveiligingszaken | De open zaken die aan jou zijn toegewezen |
+| **Niet toegewezen** | Beveiligingszaken | De open zaken die nog niemand heeft opgepakt |
+| **Gesloten zaken** | Beveiligingszaken | De zaken die met een oordeel zijn gesloten, de nieuwste eerst |
+| **Alle zaken** | Beveiligingszaken | Elke zaak, open of gesloten |
 | **Gebeurtenissen** | Gebeurtenissen | Elke gebeurtenis zoeken en filteren, en er een openen om al haar velden te zien |
 | **Entiteiten** | Gebeurtenissen | De gebruikers, hosts en adressen die je bevindingen het vaakst noemen |
 | **Correleren** | Gebeurtenissen | Een grafiek van de gebeurtenissen die een host, een gebruiker of een IP-adres delen |
@@ -39,11 +43,12 @@ Open **Producten → Security Events**, onder **Observability**. Het menu:
 | **Threat Intel** | Detections | STIX/TAXII-feeds van bekende kwaadaardige indicatoren |
 | **ATT&CK Coverage** | Detections | De technieken van MITRE ATT&CK die je regels dekken |
 | **Playbooks** | Playbooks | Stappen die op zaken draaien, vanzelf of met de hand |
-| **Playbook Runs** | Playbooks | Wat elk playbook deed, en de stappen die op goedkeuring wachten |
+| **Wacht op goedkeuring** | Playbooks | De playbookstappen die wachten tot iemand ze goedkeurt of afwijst |
+| **Playbook-uitvoeringen** | Playbooks | Wat elk playbook deed, stap voor stap |
 | **Connections** | Connections | Uw logs, de beveiligingsproducten die OneUptime opvraagt en de SIEM's waarnaar het verstuurt |
 | **Installatiegids** | Connections | Snippets om gebeurtenissen te sturen, ingevuld met je ingestiesleutel |
 
-De pagina's achter één menu-item openen als tabbladen boven aan de pagina. Nieuw met beveiliging? [Aan de slag met beveiliging](/docs/telemetry/security-getting-started) richt het in met twee klikken.
+**Detections** en **Connections**, die je één keer instelt, blijven ingeklapt tot je ze opent. Nieuw met beveiliging? [Aan de slag met beveiliging](/docs/telemetry/security-getting-started) richt het in met twee klikken.
 
 ## Voordat je begint
 
@@ -152,7 +157,7 @@ Om beveiligingslogs te sturen die je al verzamelt, zoals auditd, syslog of Falco
     Retry_Limit      5
 ```
 
-Het tabblad **Installatiegids** bevat deze snippets, met je eigen host en sleutel ingevuld.
+De pagina **Installatiegids**, onder **Connections**, bevat deze snippets, met je eigen host en sleutel ingevuld.
 
 ### Beveiligingsgebeurtenissen in uw logs vinden
 
@@ -238,7 +243,7 @@ flowchart TB
 ### Een regel aanmaken
 
 :::steps
-1. Open **Producten → Security Events → Detections** en klik op **Detection Rule aanmaken**.
+1. Open **Producten → Security Events → Detections → Detection Rules** en klik op **Detection Rule aanmaken**.
 2. Plak in **Sigma Rule** de YAML van de regel in **Sigma Rule (YAML)**. Die wordt bij het opslaan geparst, dus een fout verschijnt in het formulier.
 3. De **Naam** vult zich met de `title` van de regel: typ eroverheen om de regel anders te noemen. Een nieuwe regel draait; **Ingeschakeld** staat in zijn bewerkformulier.
 4. Laat in **Bij overeenkomst** de optie **Open a Case on Match** aan staan om de matches van de regel te bundelen tot zaken, op de waarde waarop de regel groepeert.

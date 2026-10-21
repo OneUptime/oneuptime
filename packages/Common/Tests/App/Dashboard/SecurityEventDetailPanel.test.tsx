@@ -349,7 +349,7 @@ describe("JSON", () => {
 });
 
 describe("correlating an observable", () => {
-  test("deep-links to the Correlate tab seeded with the observable", () => {
+  test("deep-links to the Correlate page seeded with the observable", () => {
     const navigate: MockFunction = getJestMockFunction();
     jest
       .spyOn(Navigation, "navigate")
