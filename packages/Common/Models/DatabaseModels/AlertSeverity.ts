@@ -11,6 +11,7 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
+import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import EnableMCP from "../../Types/Database/EnableMCP";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import ColorField from "../../Types/Database/ColorField";
@@ -83,6 +84,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   update: true,
   read: true,
 })
+@EnableAuditLog()
 @CrudApiEndpoint(new Route("/alert-severity"))
 @SlugifyColumn("name", "slug")
 @TableMetadata({
@@ -538,4 +540,159 @@ export default class AlertSeverity extends BaseModel {
     type: ColumnType.SmallNumber,
   })
   public order?: number = undefined;
+
+  /*
+   * Archiving retires a value without touching a record that has it: it
+   * stays on them, and nobody can pick it again (Common/Utils/ArchivableValues;
+   * the server refuses it in ArchivedValueCheck). No permission of its own:
+   * archiving is an update, so it is gated by Edit.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.AlertAdmin,
+      Permission.CreateAlertSeverity,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
+      Permission.ReadAlertSeverity,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.AlertAdmin,
+      Permission.EditAlertSeverity,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    canReadOnRelationQuery: true,
+    title: "Is Archived",
+    description:
+      "Archived severities stay on the alerts and episodes that have them, but can't be picked again. A project keeps at least one severity that is not archived.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isArchived?: boolean = undefined;
+
+  /*
+   * Stamped server-side from the `isArchived` write (see
+   * DatabaseService.stampSwitchAttribution), which is why these are read-only
+   * to the client: "who archived this and when" cannot be spoofed.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
+      Permission.ReadAlertSeverity,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Archived At",
+    description:
+      "When this alert severity was archived. Empty while it is not archived.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public archivedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
+      Permission.ReadAlertSeverity,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "archivedByUserId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "Archived by User",
+    description:
+      "Relation to User who archived this object (if this object was archived by a User)",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "archivedByUserId" })
+  public archivedByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
+      Permission.ReadAlertSeverity,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Archived by User ID",
+    description:
+      "User ID who archived this object (if this object was archived by a User)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public archivedByUserId?: ObjectID = undefined;
 }

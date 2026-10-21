@@ -154,6 +154,8 @@ import { AddSecurityProtectedEntity1805600000000 } from "./1805600000000-AddSecu
 import { AddAIRunHandedBackCount1805650000000 } from "./1805650000000-AddAIRunHandedBackCount";
 import { AddSecurityCaseNotifications1805700000000 } from "./1805700000000-AddSecurityCaseNotifications";
 import { AddRunnerProjectDefault1805720000000 } from "./1805720000000-AddRunnerProjectDefault";
+import { AddArchiveToValues1805760000000 } from "./1805760000000-AddArchiveToValues";
+import { AddArchiveToValuesUserKeys1805770000000 } from "./1805770000000-AddArchiveToValuesUserKeys";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1510,4 +1512,6 @@ export default [
   AddAIRunHandedBackCount1805650000000,
   AddSecurityCaseNotifications1805700000000,
   AddRunnerProjectDefault1805720000000,
+  AddArchiveToValues1805760000000,
+  AddArchiveToValuesUserKeys1805770000000,
 ];
