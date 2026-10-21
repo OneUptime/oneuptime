@@ -150,12 +150,12 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
     search: string,
   ): boolean => {
     const englishTitle: string = title || "";
+    const drawnTitle: string =
+      translator.translateText(englishTitle) || englishTitle;
 
-    return [translator.translateText(englishTitle), englishTitle].some(
-      (name: string): boolean => {
-        return name.toLowerCase().includes(search);
-      },
-    );
+    return [drawnTitle, englishTitle].some((name: string): boolean => {
+      return name.toLowerCase().includes(search);
+    });
   };
 
   const shownEntries: Array<CustomizableColumn<TBaseModel>> = useMemo(() => {
