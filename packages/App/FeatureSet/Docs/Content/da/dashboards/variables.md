@@ -105,7 +105,7 @@ Sidens link bærer hver variabels valg som `?var-<name>=<value>`, med flere vær
 https://oneuptime.com/dashboard/<project-id>/dashboards/<dashboard-id>?var-service=payments
 ```
 
-Linket bærer kun variablerne. Tidsintervallet starter ved den seneste time ved hvert besøg, så fortæl dem, du sender det til, hvilket stykke tid de skal se på, eller zoom ind, når de har åbnet det.
+Linket bærer også det tidsinterval og den automatiske opdatering, du har valgt, som `range` og `refresh`, så dem, du sender det til, ser det samme som dig. [Send et link](/docs/dashboards/sharing#send-et-link) nævner deres værdier.
 
 ## Et eksempel: ét dashboard til hver tjeneste
 

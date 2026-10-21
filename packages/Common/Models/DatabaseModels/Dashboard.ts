@@ -635,8 +635,13 @@ export default class Dashboard extends BaseModel {
     required: true,
     type: TableColumnType.JSON,
     title: "Dashboard View Config",
-    description: "Configuration of Dashboard View",
-    example: { components: [], layout: "grid" },
+    description:
+      "The dashboard's widgets and variables, and the time range (timeRange, such as Past 1 Day) and auto-refresh (refreshInterval, such as 1m) it opens on. See the DashboardViewConfig data type.",
+    example: {
+      components: [],
+      timeRange: "Past 1 Day",
+      refreshInterval: "1m",
+    },
   })
   @Column({
     nullable: false,

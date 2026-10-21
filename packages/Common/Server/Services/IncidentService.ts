@@ -165,6 +165,7 @@ import IncidentTemplateService from "./IncidentTemplateService";
 import IncidentTemplate from "../../Models/DatabaseModels/IncidentTemplate";
 import AIService, { AILogResponse } from "./AIService";
 import AIIncidentInvestigationRunner from "../Utils/AI/SRE/IncidentInvestigationRunner";
+import InvestigationRuleWait from "../Utils/AI/SRE/InvestigationRuleWait";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import IncidentAIContextBuilder, {
   AIGenerationContext,
@@ -5562,6 +5563,33 @@ ${incidentSeverity.name}
               } as LogAttributes,
             );
           }
+        }
+
+        /*
+         * While an investigation rule makes OneUptime AI wait before it
+         * investigates the incident (issue #5074), the wait follows what
+         * the rules read: its severity, labels, monitors, title and
+         * description. A severity raised to one whose rule waits less
+         * starts the investigation sooner. Never throws, and reads nothing
+         * more when the update changed none of them.
+         */
+        const changedMonitors: UpdateCarryForward[string] | undefined = (
+          onUpdate.carryForward as UpdateCarryForward | undefined
+        )?.[incidentId.toString()];
+
+        if (
+          isSeverityChanged ||
+          fieldChanges.labels ||
+          fieldChanges.textColumns.includes("title") ||
+          fieldChanges.textColumns.includes("description") ||
+          (changedMonitors?.monitorsAdded?.length || 0) > 0 ||
+          (changedMonitors?.monitorsRemoved?.length || 0) > 0
+        ) {
+          await InvestigationRuleWait.onSubjectChanged({
+            lane: "Incident",
+            projectId: projectId,
+            subjectId: incidentId,
+          });
         }
 
         const carryForward: UpdateCarryForward | undefined =

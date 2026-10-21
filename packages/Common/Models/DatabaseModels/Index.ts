@@ -217,6 +217,9 @@ import OnCallDutyPolicyScheduleCalendarFeed from "./OnCallDutyPolicyScheduleCale
 import ProjectOnCallCalendarFeed from "./ProjectOnCallCalendarFeed";
 // The team's calendar link for scheduled maintenance
 import ScheduledMaintenanceCalendarFeed from "./ScheduledMaintenanceCalendarFeed";
+// Calendars from outside the project, drawn on the maintenance calendar
+import ScheduledMaintenanceExternalCalendar from "./ScheduledMaintenanceExternalCalendar";
+import ScheduledMaintenanceExternalCalendarEvent from "./ScheduledMaintenanceExternalCalendarEvent";
 import UserOnCallShiftReminder from "./UserOnCallShiftReminder";
 import UserOnCallShiftReminderLog from "./UserOnCallShiftReminderLog";
 
@@ -376,6 +379,7 @@ import AutoRemediationSuggestion from "./AutoRemediationSuggestion";
 import AutoRemediationDecision from "./AutoRemediationDecision";
 import AIInvestigationRule from "./AIInvestigationRule";
 import AIPostmortemRule from "./AIPostmortemRule";
+import ExternalMcpServer from "./ExternalMcpServer";
 
 import UserTotpAuth from "./UserTotpAuth";
 import UserTwoFactorBackupCode from "./UserTwoFactorBackupCode";
@@ -798,6 +802,7 @@ const AllModelTypes: Array<{
   AutoRemediationDecision,
   AIInvestigationRule,
   AIPostmortemRule,
+  ExternalMcpServer,
   Runner,
   RunnerJob,
   RunnerOwnerTeam,
@@ -891,6 +896,8 @@ const AllModelTypes: Array<{
   OnCallDutyPolicyScheduleCalendarFeed,
   ProjectOnCallCalendarFeed,
   ScheduledMaintenanceCalendarFeed,
+  ScheduledMaintenanceExternalCalendar,
+  ScheduledMaintenanceExternalCalendarEvent,
   UserOnCallCalendarFeed,
   UserOnCallShiftReminder,
   UserOnCallShiftReminderLog,

@@ -191,6 +191,12 @@ const KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
     why: "Reads a few days of an AI provider account's usage, or counts a company AI tool's newest chats, as whoever may change the connection; imports nothing and sends nobody a message.",
   },
   {
+    file: "packages/Common/Server/API/ExternalMcpServerAPI.ts",
+    path: "/test",
+    rule: "check",
+    why: "Connects to an outside MCP server and lists its tools, as whoever may change the server (findOneUpdatableById); calls none of them and sends nobody a message.",
+  },
+  {
     file: "packages/Common/Server/API/KubernetesClusterAiAccessAPI.ts",
     path: "/kubernetes-cluster/ai-access/test",
     rule: "check",

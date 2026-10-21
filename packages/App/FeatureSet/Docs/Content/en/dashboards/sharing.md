@@ -46,7 +46,8 @@ The choice is stored in three columns, which the API and Terraform read and writ
 A public dashboard:
 
 - Always opens for reading. Visitors can't edit it, and never see its edit controls.
-- Includes the variables you've added. Visitors pick from the same pickers your team uses, and can change the time range, zoom, turn on auto-refresh and go full screen.
+- Includes the variables you've added. Visitors pick from the same pickers your team uses, and can change the time range, zoom, turn on auto-refresh and go full screen. It opens on the dashboard's default time range and auto-refresh, and each visitor's browser remembers their own picks.
+- Lets visitors [sort its lists and tables](/docs/dashboards/widgets#sorting-lists-and-tables) by clicking a column header, as your team does. Each visitor's browser remembers their own sort, and OneUptime sorts the whole list itself, only ever by one of the widget's own columns.
 - Uses the branding you set on the dashboard's **Branding** page: page title, description, logo, theme, favicon.
 - Lets each visitor switch between the light and the dark dashboard, with a sun or moon button in its toolbar; [Theme](#theme) says how.
 
@@ -197,7 +198,7 @@ To give an embedded dashboard your site's look, add `?theme=light` or `?theme=da
 
 ## Sending a link
 
-The public link opens the dashboard on its saved defaults. To send a link that opens on a particular value, add the variable to it as `?var-<name>=<value>`, as the address bar does when a visitor picks a value; several values are separated by commas. The time range is not part of the link: every visit starts at the past hour. To open the dashboard in a theme, add `theme=light`, `theme=dark` or `theme=system`, as [Embedding](#embedding) describes.
+The public link opens the dashboard on its saved defaults. To send a link that opens on a particular value, add the variable to it as `?var-<name>=<value>`, as the address bar does when a visitor picks a value; several values are separated by commas. To open it on a time range or an auto-refresh of its own, add `range` and `refresh` the same way: `?range=1d&refresh=1m` opens on the past day, refreshing every minute, as a wall screen might. `range` takes `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` or `3mo`, and `refresh` takes `off`, `5s`, `10s`, `30s`, `1m`, `5m` or `15m`. They win over the dashboard's defaults and the visitor's own picks, and visitors can still change them. To open the dashboard in a theme, add `theme=light`, `theme=dark` or `theme=system`, as [Embedding](#embedding) describes.
 
 ## Next steps
 

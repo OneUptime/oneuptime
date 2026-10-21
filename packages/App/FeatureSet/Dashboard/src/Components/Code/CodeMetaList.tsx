@@ -18,6 +18,9 @@ export interface ComponentProps {
  * Lovelace · 2 hours ago · PR #418" - with a dot between them, so the facts
  * read apart rather than as one run-on sentence. Screen readers skip the
  * dots. Each fact stays whole: a narrow screen wraps the line between facts.
+ * A fact longer than a whole line (a long repository's name) is held to the
+ * line's width, so one that truncates itself ends in "…" rather than being
+ * cut off at the edge.
  *
  * The dot sits in the gap before each fact but the first. The list is pulled
  * left by one gap inside a box that clips, so a fact that starts a line -
@@ -38,7 +41,7 @@ const CodeMetaList: FunctionComponent<ComponentProps> = (
           return (
             <span
               key={item.key || index}
-              className="relative ml-3 inline-flex items-center whitespace-nowrap"
+              className="relative ml-3 inline-flex min-w-0 max-w-[calc(100%_-_0.75rem)] items-center whitespace-nowrap"
             >
               {index > 0 ? (
                 <span

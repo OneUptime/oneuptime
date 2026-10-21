@@ -10,7 +10,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import StorageArrayResource from "Common/Models/DatabaseModels/StorageArrayResource";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -52,11 +52,11 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Volume", widthPct: "26%" },
-  { label: "Used / Provisioned", widthPct: "22%" },
+  { label: "Volume", widthPct: "26%", sortKey: "name" },
+  { label: "Used / Provisioned", widthPct: "22%", sortKey: "used" },
   { label: "Latency (R / W)", widthPct: "20%" },
   { label: "IOPS", widthPct: "12%" },
-  { label: "Array", widthPct: "20%" },
+  { label: "Array", widthPct: "20%", sortKey: "array" },
 ];
 
 /*
@@ -261,7 +261,8 @@ const DashboardStorageArrayVolumeListComponentElement: FunctionComponent<
       maxRows={args.maxRows || 25}
       query={query}
       select={BASE_SELECT}
-      sort={{ name: SortOrder.Ascending }}
+      componentType={DashboardComponentType.StorageArrayVolumeList}
+      widgetProps={props}
       refreshTick={props.refreshTick}
       variables={props.variables}
       attributeToColumn={ATTRIBUTE_TO_COLUMN}

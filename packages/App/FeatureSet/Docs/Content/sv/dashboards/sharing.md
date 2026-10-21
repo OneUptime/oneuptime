@@ -46,7 +46,8 @@ Valet lagras i tre kolumner, som API:et och Terraform läser och skriver som tid
 En offentlig instrumentpanel:
 
 - Öppnas alltid för läsning. Besökare kan inte redigera den och ser aldrig dess redigeringskontroller.
-- Innehåller variablerna som du har lagt till. Besökare väljer i samma väljare som ditt team använder, och kan ändra tidsintervallet, zooma, slå på automatisk uppdatering och gå till helskärm.
+- Innehåller variablerna som du har lagt till. Besökare väljer i samma väljare som ditt team använder, och kan ändra tidsintervallet, zooma, slå på automatisk uppdatering och gå till helskärm. Den öppnas med instrumentpanelens standardtidsintervall och standard för automatisk uppdatering, och varje besökares webbläsare kommer ihåg besökarens egna val.
+- Låter besökare [sortera dess listor och tabeller](/docs/dashboards/widgets#sortera-listor-och-tabeller) genom att klicka på en kolumnrubrik, så som ditt team gör. Varje besökares webbläsare kommer ihåg deras egen sortering, och OneUptime sorterar själv hela listan, alltid bara efter en av widgetens egna kolumner.
 - Använder varumärket som du anger på instrumentpanelens sida **Varumärke**: sidtitel, beskrivning, logotyp, tema, favicon.
 - Låter varje besökare växla mellan den ljusa och den mörka instrumentpanelen med en sol- eller månknapp i dess verktygsfält; [Tema](#tema) förklarar hur.
 
@@ -197,7 +198,7 @@ För att ge en inbäddad instrumentpanel din webbplats utseende lägger du till 
 
 ## Skicka en länk
 
-Den offentliga länken öppnar instrumentpanelen med dess sparade standardvärden. För att skicka en länk som öppnas på ett visst värde lägger du till variabeln i den som `?var-<name>=<value>`, på samma sätt som adressfältet gör när en besökare väljer ett värde; flera värden åtskiljs med kommatecken. Tidsintervallet är inte en del av länken: varje besök börjar på den senaste timmen. För att öppna instrumentpanelen i ett tema lägger du till `theme=light`, `theme=dark` eller `theme=system`, som [Inbäddning](#inbäddning) beskriver.
+Den offentliga länken öppnar instrumentpanelen med dess sparade standardvärden. För att skicka en länk som öppnas på ett visst värde lägger du till variabeln i den som `?var-<name>=<value>`, på samma sätt som adressfältet gör när en besökare väljer ett värde; flera värden åtskiljs med kommatecken. För att öppna den med ett eget tidsintervall eller en egen automatisk uppdatering lägger du till `range` och `refresh` på samma sätt: `?range=1d&refresh=1m` öppnas på det senaste dygnet och uppdateras varje minut, så som en väggskärm kan behöva. `range` tar `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` eller `3mo`, och `refresh` tar `off`, `5s`, `10s`, `30s`, `1m`, `5m` eller `15m`. De går före instrumentpanelens standarder och besökarens egna val, och besökare kan fortfarande ändra dem. För att öppna instrumentpanelen i ett tema lägger du till `theme=light`, `theme=dark` eller `theme=system`, som [Inbäddning](#inbäddning) beskriver.
 
 ## Nästa steg
 

@@ -119,13 +119,6 @@ export interface UseResourceOwnersOptions {
    */
   extraFacets?: Array<ResourceFacet> | undefined;
   /**
-   * Drawn at the right end of the bar, after Clear all: a control that
-   * changes how the records below are shown rather than which ones - the
-   * List | Calendar switch of the scheduled maintenance events. The card's
-   * header has no room for it beside the search and the Create button.
-   */
-  filterBarEnd?: ReactElement | undefined;
-  /**
    * When set, the current facet selections are mirrored into the URL query
    * string under this key (typically the table's `saveFilterProps.tableId`).
    * This keeps facets alive when navigating to a detail page and back, and
@@ -1685,18 +1678,9 @@ const useResourceOwners: <TResource extends BaseModel>(
             {translator.translateText("Clear all")}
           </button>
         )}
-        {options.filterBarEnd ? (
-          <div
-            className={`flex items-center ${hasActiveFilters ? "" : "ml-auto"}`}
-            data-testid="filter-bar-end"
-          >
-            {options.filterBarEnd}
-          </div>
-        ) : null}
       </div>
     );
   }, [
-    options.filterBarEnd,
     loadOwners,
     resolveOwners,
     loadLabelsForChip,

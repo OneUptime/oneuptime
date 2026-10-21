@@ -34,5 +34,6 @@ export const DASHBOARD_VIEW_CONFIG_EXAMPLE: JSONObject = {
   _type: "DashboardViewConfig",
   components: [DASHBOARD_COMPONENT_EXAMPLE],
   heightInDashboardUnits: 60,
+  timeRange: "Past 1 Day",
   refreshInterval: "1m",
 };

@@ -33,7 +33,7 @@ stateDiagram-v2
     Cancelled --> [*]
 ```
 
-Une nouvelle exécution est **Planifié** jusqu'à ce qu'un Worker la prenne en charge et la marque **En cours d'exécution**. Elle se met en pause en **En attente de votre part** sur une étape Manual, ou après une étape qui exige une approbation, et retourne dans la file dès que quelqu'un agit. Une exécution qui attend une personne n'expire jamais. Elle se termine en **Achevé**, **Échec** ou **Annulé**.
+Une nouvelle exécution est **Planifié** jusqu'à ce qu'un Worker la prenne en charge et la marque **En cours d'exécution**. Elle se met en pause en **En attente de votre part** sur une étape Manual, ou avant une étape qui exige une approbation, et retourne dans la file dès que quelqu'un agit. Une exécution qui attend une personne n'expire jamais. Elle se termine en **Achevé**, **Échec** ou **Annulé**.
 
 ## Lancer une exécution
 
@@ -64,18 +64,19 @@ Lancer une exécution demande Project Owner, Project Admin, Project Member, Runb
 
 Ouvrez n'importe quelle exécution pour voir sa checklist. Le haut de la page montre le **Statut** de l'exécution, son **Progress** (étapes faites sur le total), **Démarrée** (quand elle a commencé) et **Déclenché par** (ce qui l'a lancée). Chaque étape affiche :
 
-- **Pastille de statut** — En attente, En cours d'exécution, En attente de votre part, Terminé, Ignoré, Échec ou Annulé.
+- **Pastille de statut** — En attente, En cours d'exécution, En attente de votre part, En attente d'approbation, Terminé, Ignoré, Échec ou Annulé.
 - **Titre et description** — copiés depuis le runbook au moment de l'exécution.
 - **Sortie** (repliable) — stdout, valeurs de retour, réponses HTTP, ou la réponse de l'IA.
 - **Message d'erreur** si l'étape a échoué.
-- Sur l'étape attendue par l'exécution : **Marquer comme terminé** (une étape Manual) ou **Approuver et continuer** (une étape avec **Exiger une approbation**), et **Ignorer**.
+- Sur l'étape attendue par l'exécution : **Marquer comme terminé** (une étape Manual) ou **Approuver et exécuter** (une étape avec **Exiger une approbation**, qui ne s'est pas encore exécutée), et **Ignorer**.
+- **Approuvé par** sur une étape qui a attendu une approbation, une fois qu'elle s'est exécutée.
 - Pendant la pause, **Ignorer** sur les étapes automatisées suivantes qui n'exigent pas d'approbation.
 
 Tant que l'exécution est en cours, la page s'actualise toute seule toutes les 30 secondes. Cliquez sur **Actualiser** pour voir l'état le plus récent tout de suite.
 
 ## Terminer, approuver et ignorer des étapes
 
-Seule l'étape attendue par l'exécution peut être marquée comme terminée, approuvée ou ignorée pour faire continuer l'exécution. Une étape Manual ou une étape avec **Exiger une approbation** ne peut pas être cochée ni ignorée avant que l'exécution l'atteigne — son rôle est d'arrêter l'exécution, elle n'accepte donc une décision qu'une fois l'exécution arrivée là (pour une approbation, une fois que l'étape s'est exécutée et que vous voyez sa sortie).
+Seule l'étape attendue par l'exécution peut être marquée comme terminée, approuvée ou ignorée pour faire continuer l'exécution. Une étape Manual ou une étape avec **Exiger une approbation** ne peut pas être cochée ni ignorée avant que l'exécution l'atteigne — son rôle est d'arrêter l'exécution, elle n'accepte donc une décision qu'une fois l'exécution arrivée là. Une étape avec **Exiger une approbation** attend avant de s'exécuter, alors lisez d'abord ce que les étapes précédentes ont trouvé : **Approuver et exécuter** l'exécute, **Ignorer** l'empêche de s'exécuter, et dans les deux cas l'exécution continue. Une exécution démarrée avant que les approbations passent sur l'étape qu'elles protègent attend plutôt après une telle étape, une fois qu'elle s'est exécutée : **Approuver et continuer** fait continuer cette exécution.
 
 Pendant la pause, vous pouvez aussi ignorer une étape automatisée suivante qui n'exige pas d'approbation, pour qu'elle ne s'exécute pas quand l'exécution reprend. L'exécution reste en pause sur l'étape qui vous attend. Ignorer n'est pas possible pendant que des étapes s'exécutent — attendez la pause, ou annulez l'exécution. Chaque étape enregistre qui l'a terminée ou ignorée.
 
@@ -145,7 +146,7 @@ Le message indique "No runbook agent picked up this step before the wait window 
 :::
 
 :::details L'exécution attend depuis des heures
-Une exécution qui attend une personne n'expire jamais. Ouvrez-la et agissez sur l'étape marquée **En attente de votre part**, ou cliquez sur **Annuler l'exécution**.
+Une exécution qui attend une personne n'expire jamais. Ouvrez-la et agissez sur l'étape marquée **En attente de votre part** ou **En attente d'approbation**, ou cliquez sur **Annuler l'exécution**.
 :::
 
 :::details Une étape indique qu'elle a pu s'exécuter partiellement

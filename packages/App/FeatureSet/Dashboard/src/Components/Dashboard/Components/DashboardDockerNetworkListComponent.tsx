@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import DashboardDockerNetworkListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardDockerNetworkListComponent";
@@ -17,7 +18,13 @@ import DashboardResourceList from "../Utils/DashboardResourceList";
 import DockerResource from "Common/Models/DatabaseModels/DockerResource";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import Select from "Common/Types/BaseDatabase/Select";
+import Sort from "Common/Types/BaseDatabase/Sort";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
+import { JSONObject } from "Common/Types/JSON";
+import useDashboardListWidgetSort, {
+  DashboardListWidgetSort,
+} from "../Utils/UseDashboardListWidgetSort";
 import Query from "Common/Types/BaseDatabase/Query";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -28,9 +35,9 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Network", widthPct: "40%" },
-  { label: "Driver / Scope", widthPct: "30%" },
-  { label: "Host", widthPct: "30%" },
+  { label: "Network", widthPct: "40%", sortKey: "name" },
+  { label: "Driver / Scope", widthPct: "30%", sortKey: "driver" },
+  { label: "Host", widthPct: "30%", sortKey: "host" },
 ];
 
 const DashboardDockerNetworkListComponentElement: FunctionComponent<
@@ -39,6 +46,10 @@ const DashboardDockerNetworkListComponentElement: FunctionComponent<
   const [networks, setNetworks] = useState<Array<DockerResource>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const widgetSort: DashboardListWidgetSort = useDashboardListWidgetSort(
+    props,
+    DashboardComponentType.DockerNetworkList,
+  );
 
   const args: DashboardDockerNetworkListComponent["arguments"] =
     props.component.arguments;
@@ -49,7 +60,15 @@ const DashboardDockerNetworkListComponentElement: FunctionComponent<
 
   const dockerHostIdsKey: string = (dockerHostIds || []).join(",");
 
+  /*
+   * Only the newest read may draw: a viewer clicking through a column's
+   * sorts starts a read per click, and an older, slower one must not
+   * replace the order they ended on.
+   */
+  const readSequenceRef: React.MutableRefObject<number> = useRef<number>(0);
+
   const fetchNetworks: () => Promise<void> = useCallback(async () => {
+    const readSequence: number = ++readSequenceRef.current;
     setIsLoading(true);
 
     const projectId: ReturnType<typeof ProjectUtil.getCurrentProjectId> =
@@ -80,12 +99,13 @@ const DashboardDockerNetworkListComponentElement: FunctionComponent<
             {
               componentId: props.componentId,
               variables: props.variables,
+              viewerSort: widgetSort.viewerPick,
             },
           ),
           query: query,
           limit: maxRows,
           skip: 0,
-          select: {
+          select: widgetSort.withSortSelect({
             _id: true,
             name: true,
             state: true,
@@ -93,20 +113,33 @@ const DashboardDockerNetworkListComponentElement: FunctionComponent<
             dockerHost: {
               name: true,
             },
-          },
-          sort: {
-            name: SortOrder.Ascending,
-          },
+          } as JSONObject) as Select<DockerResource>,
+          // The viewer's pick, else the widget's own sort, else by name.
+          sort: widgetSort.modelSort as Sort<DockerResource>,
         });
+
+      if (readSequence !== readSequenceRef.current) {
+        return;
+      }
 
       setNetworks(listResult.data);
       setError(null);
     } catch (err: unknown) {
+      if (readSequence !== readSequenceRef.current) {
+        return;
+      }
+
       setError(API.getFriendlyErrorMessage(err as Error));
     }
 
     setIsLoading(false);
-  }, [maxRows, dockerHostIdsKey, props.componentId, props.variables]);
+  }, [
+    maxRows,
+    dockerHostIdsKey,
+    props.componentId,
+    props.variables,
+    widgetSort.sortKey,
+  ]);
 
   useEffect(() => {
     fetchNetworks();
@@ -167,6 +200,7 @@ const DashboardDockerNetworkListComponentElement: FunctionComponent<
       emptyIcon={IconProp.Globe}
       viewMode={viewMode}
       honeycombTiles={honeycombTiles}
+      sort={widgetSort.listSort}
     >
       {rows}
     </DashboardResourceListBase>

@@ -209,6 +209,8 @@ import OnCallDutyPolicyScheduleCalendarFeedService from "./OnCallDutyPolicySched
 import ProjectOnCallCalendarFeedService from "./ProjectOnCallCalendarFeedService";
 // The team's calendar link for scheduled maintenance
 import ScheduledMaintenanceCalendarFeedService from "./ScheduledMaintenanceCalendarFeedService";
+import ScheduledMaintenanceExternalCalendarService from "./ScheduledMaintenanceExternalCalendarService";
+import ScheduledMaintenanceExternalCalendarEventService from "./ScheduledMaintenanceExternalCalendarEventService";
 import UserOnCallShiftReminderService from "./UserOnCallShiftReminderService";
 import UserOnCallShiftReminderLogService from "./UserOnCallShiftReminderLogService";
 // On-Call Duty
@@ -426,6 +428,7 @@ import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
 import ServiceLevelObjectiveBurnRateRuleService from "./ServiceLevelObjectiveBurnRateRuleService";
 import LlmCostBudgetService from "./LlmCostBudgetService";
 import LlmObservabilityConnectionService from "./LlmObservabilityConnectionService";
+import ExternalMcpServerService from "./ExternalMcpServerService";
 import LlmModelPriceService from "./LlmModelPriceService";
 import ServiceLevelObjectiveOwnerUserService from "./ServiceLevelObjectiveOwnerUserService";
 import ServiceLevelObjectiveOwnerTeamService from "./ServiceLevelObjectiveOwnerTeamService";
@@ -824,6 +827,8 @@ const services: Array<BaseService> = [
   OnCallDutyPolicyScheduleCalendarFeedService,
   ProjectOnCallCalendarFeedService,
   ScheduledMaintenanceCalendarFeedService,
+  ScheduledMaintenanceExternalCalendarService,
+  ScheduledMaintenanceExternalCalendarEventService,
   UserOnCallShiftReminderService,
   UserOnCallShiftReminderLogService,
   OnCallDutyPolicyScheduleLayerService,
@@ -918,6 +923,7 @@ const services: Array<BaseService> = [
   ServiceLevelObjectiveBurnRateRuleService,
   LlmCostBudgetService,
   LlmObservabilityConnectionService,
+  ExternalMcpServerService,
   LlmModelPriceService,
   ServiceLevelObjectiveOwnerUserService,
   ServiceLevelObjectiveOwnerTeamService,

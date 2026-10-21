@@ -135,6 +135,7 @@ import "./Jobs/ScheduledMaintenance/SendNotificationToSubscribers";
 import "./Jobs/ScheduledMaintenance/ScheduleRecurringEvents";
 import "./Jobs/ScheduledMaintenance/SendSubscriberRemindersOnEventScheduled";
 import "./Jobs/ScheduledMaintenance/KeepCurrentStateConsistent";
+import "./Jobs/ScheduledMaintenance/RefreshExternalCalendars";
 
 // Scheduled Event Owners
 import "./Jobs/ScheduledMaintenanceOwners/SendCreatedResourceNotification";
@@ -256,6 +257,7 @@ import "./Jobs/AIAgent/ReportGitHubRunOutcomes";
 import "./Jobs/AIChat/TimeoutStuckRuns";
 import "./Jobs/AIChat/ProcessQueuedInvestigations";
 import "./Jobs/AIChat/InvestigateAfterDailyLimitReset";
+import "./Jobs/AIChat/InvestigateAfterRuleWait";
 
 // Auto-remediation — settle Planning suggestions whose plan run died.
 import "./Jobs/AutoRemediation/SettleStrandedSuggestions";

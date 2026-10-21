@@ -20,7 +20,7 @@ Konfigurationen af vedligeholdelse findes i **Planlagt vedligeholdelse**, ikke i
 | **Etiketregler**   | Tilføjer etiketter til matchende begivenheder.                         |
 | **Reminder Rules** | Minder ejerne om begivenheden med et interval, indtil den er fuldført. |
 
-Sektionen **Indstillinger** rummer **Begivenhedsstatus**, som er beskrevet på [Vedligeholdelsestilstande](/docs/scheduled-maintenance/states), **Begivenhedsskabeloner**, som er beskrevet på [Skabeloner og tilbagevendende begivenheder](/docs/scheduled-maintenance/templates), og derefter **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger** og **Nummerering**, som er beskrevet nedenfor.
+Sektionen **Indstillinger** rummer **Begivenhedsstatus**, som er beskrevet på [Vedligeholdelsestilstande](/docs/scheduled-maintenance/states), **Begivenhedsskabeloner**, som er beskrevet på [Skabeloner og tilbagevendende begivenheder](/docs/scheduled-maintenance/templates), og derefter **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger**, **Kalenderindstillinger** og **Nummerering**. **Kalenderindstillinger** er beskrevet på [Vedligeholdelseskalender](/docs/scheduled-maintenance/calendar#eksterne-kalendere), resten nedenfor.
 
 Sektionen **Arbejdsområde** rummer de Slack- og Microsoft Teams-regler, der poster begivenheder i kanaler. Se [Slack](/docs/workspace-connections/slack#notifikationsregler) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams#notifikationsregler).
 

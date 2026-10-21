@@ -6,6 +6,7 @@ A widget is one tile on a dashboard. This page lists every widget of the **Add W
 - [Which widget should I use?](#which-widget-should-i-use): Pick by the question the tile answers.
 - [Charts and numbers](#charts-and-numbers): Chart, Value, Gauge and Table, from a metric query.
 - [Logs, traces and security](#logs-traces-and-security): Volume charts, live streams and lists.
+- [Sorting lists and tables](#sorting-lists-and-tables): Sort by a column, and set the order everyone sees.
 - [When a widget can't be shown](#when-a-widget-cant-be-shown): What a broken widget shows, and how to fix it.
 :::
 
@@ -198,6 +199,33 @@ A site only appears if it has coordinates. Add latitude and longitude on the sit
 ## External data sources
 
 The External Data Sources group draws a **Chart**, a **Value**, a **Gauge** or a **Table** from a system that OneUptime does not own: Prometheus, PostgreSQL, MySQL, SQL Server, ClickHouse, Loki, Elasticsearch or any REST API. You connect the system once, then write each widget's query in that system's own language. [External Data Sources](/docs/dashboards/data-sources) shows how.
+
+## Sorting lists and tables
+
+Click a column's header to sort a list or a table by it: a first click sorts it as the table below says, the next click the other way, and the one after puts the widget back in its own order. On the column the widget is already sorted by, a click turns it the other way. An arrow marks the column the rows are sorted by.
+
+| Column | First click | Next click |
+| --- | --- | --- |
+| A status, state or severity | Worst first | Best first |
+| A time | Newest first | Oldest first |
+| A number | Highest first | Lowest first |
+| Text | A to Z | Z to A |
+
+Worst follows your project's own order: a monitor status by its priority, an incident's or alert's severity and state by the order you keep them in, and a resource that is down, not ready or powered off before a healthy one. A pod's phase sorts Failed, then Unknown, then Pending, then Running and Succeeded. An SLO's SLI and error budget, and a Proxmox guest's VMID, sort lowest first.
+
+The whole list is sorted, not only the rows on screen: a list that shows 25 rows, sorted worst first, shows the 25 worst of all of them. Rows that tie keep the widget's own order. A column a list can't be sorted by as a whole, such as a security event's message, has no sort.
+
+### Your own sort
+
+Your sort is yours alone: your browser remembers it for that widget on that dashboard, so a refresh or a wall screen's reboot keeps it, and nobody else sees it. The click that puts the widget back in its own order forgets your sort, and the widget then follows its own order, even when an editor changes it later.
+
+### The order everyone sees
+
+To set the order a widget opens in for everyone, edit it and pick the order under **Sort**, or click a column header in its **Live Preview**, then click **Save Changes**. You see the new order at once; a viewer who sorted the widget their own way keeps their sort.
+
+The dashboard templates open their lists of hosts, nodes, pods, Swarm services and network devices worst first.
+
+Through the API and Terraform, the order is the widget's `arguments.sort`: a column and a direction, such as `status:desc`. A list widget refuses a column it doesn't have, and the error lists the sorts it has.
 
 ## On a public dashboard
 

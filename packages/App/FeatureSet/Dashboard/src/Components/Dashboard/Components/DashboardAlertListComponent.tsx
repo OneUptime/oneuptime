@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import DashboardAlertListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardAlertListComponent";
@@ -17,7 +18,10 @@ import DashboardResourceList from "../Utils/DashboardResourceList";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import Select from "Common/Types/BaseDatabase/Select";
+import Sort from "Common/Types/BaseDatabase/Sort";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
+import { JSONObject } from "Common/Types/JSON";
 import {
   DashboardDateTime,
   getDashboardDateTime,
@@ -41,17 +45,20 @@ import Color from "Common/Types/Color";
 import { getSeverityPillProps } from "../Utils/SeverityPillStyle";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useDashboardListWidgetSort, {
+  DashboardListWidgetSort,
+} from "../Utils/UseDashboardListWidgetSort";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardAlertListComponent;
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Title", widthPct: "40%" },
-  { label: "State", widthPct: "17%" },
-  { label: "Severity", widthPct: "15%" },
+  { label: "Title", widthPct: "40%", sortKey: "title" },
+  { label: "State", widthPct: "17%", sortKey: "state" },
+  { label: "Severity", widthPct: "15%", sortKey: "severity" },
   // Wider than the other columns because it carries a date *and* a time.
-  { label: "Created", widthPct: "28%" },
+  { label: "Created", widthPct: "28%", sortKey: "created" },
 ];
 
 const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
@@ -61,6 +68,10 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
   const [alerts, setAlerts] = useState<Array<Alert>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const widgetSort: DashboardListWidgetSort = useDashboardListWidgetSort(
+    props,
+    DashboardComponentType.AlertList,
+  );
 
   const maxRows: number = props.component.arguments.maxRows || 25;
   const viewMode: ResourceListViewMode =
@@ -80,7 +91,15 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
   const monitorIdsKey: string = (monitorIds || []).join(",");
   const labelIdsKey: string = (labelIds || []).join(",");
 
+  /*
+   * Only the newest read may draw: a viewer clicking through a column's
+   * sorts starts a read per click, and an older, slower one must not
+   * replace the order they ended on.
+   */
+  const readSequenceRef: React.MutableRefObject<number> = useRef<number>(0);
+
   const fetchAlerts: () => Promise<void> = useCallback(async () => {
+    const readSequence: number = ++readSequenceRef.current;
     setIsLoading(true);
 
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -175,11 +194,12 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
         requestOptions: DashboardResourceList.getRequestOptions("alert", {
           componentId: props.componentId,
           variables: props.variables,
+          viewerSort: widgetSort.viewerPick,
         }),
         query: query,
         limit: maxRows,
         skip: 0,
-        select: {
+        select: widgetSort.withSortSelect({
           _id: true,
           title: true,
           createdAt: true,
@@ -191,15 +211,22 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
             name: true,
             color: true,
           },
-        },
-        sort: {
-          createdAt: SortOrder.Descending,
-        },
+        } as JSONObject) as Select<Alert>,
+        // The viewer's pick, else the widget's own sort, else newest first.
+        sort: widgetSort.modelSort as Sort<Alert>,
       });
+
+      if (readSequence !== readSequenceRef.current) {
+        return;
+      }
 
       setAlerts(listResult.data);
       setError(null);
     } catch (err: unknown) {
+      if (readSequence !== readSequenceRef.current) {
+        return;
+      }
+
       setError(API.getFriendlyErrorMessage(err as Error));
     }
 
@@ -213,6 +240,7 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
     labelIdsKey,
     props.componentId,
     props.variables,
+    widgetSort.sortKey,
   ]);
 
   useEffect(() => {
@@ -342,6 +370,7 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
       emptyIcon={IconProp.Alert}
       viewMode={viewMode}
       honeycombTiles={honeycombTiles}
+      sort={widgetSort.listSort}
     >
       {rows}
     </DashboardResourceListBase>

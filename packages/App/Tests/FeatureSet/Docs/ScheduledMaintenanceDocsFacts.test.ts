@@ -560,10 +560,17 @@ describe("the Scheduled Maintenance menu, as the overview draws it", () => {
       maintenanceMenu().map((menuSection: MenuSection): string => {
         return menuSection.title;
       }),
-    ).toEqual(["Overview", "Workspace", "Rules", "Settings", "Developer"]);
+    ).toEqual([
+      "Overview",
+      "Calendar",
+      "Workspace",
+      "Rules",
+      "Settings",
+      "Developer",
+    ]);
   });
 
-  it("says Overview is open and the rest start folded, and what Developer holds", () => {
+  it("says Overview and Calendar are open and the rest start folded, and what Developer holds", () => {
     const menu: Array<MenuSection> = maintenanceMenu();
     const open: Array<string> = openSections(menu, MAINTENANCE_MENU_SOURCE);
     const folded: Array<string> = menu
@@ -574,9 +581,9 @@ describe("the Scheduled Maintenance menu, as the overview draws it", () => {
         return !open.includes(title);
       });
 
-    expect(open).toEqual(["Overview"]);
+    expect(open).toEqual(["Overview", "Calendar"]);
     expect(where).toContain(
-      `**Overview** is open; ${listed(folded)} start folded, and a section opens by itself when you are on one of its pages.`,
+      `${listed(open)} are open; ${listed(folded)} start folded, and a section opens by itself when you are on one of its pages.`,
     );
     expect(where).toContain(
       `**Developer** holds ${listed(developerSection().items)}, for managing maintenance from code.`,
@@ -2919,6 +2926,7 @@ describe("where maintenance settings live", () => {
       "Note Templates",
       "Custom Fields",
       "Measurements",
+      "Calendar Settings",
       "Numbering",
     ]);
     expect(
@@ -2946,7 +2954,9 @@ describe("where maintenance settings live", () => {
     });
     const routeMap: string = readDashboardSource("Utils/RouteMap.ts");
 
-    expect(keys.length).toBe(10);
+    // Four Rules pages and seven Settings pages, Calendar Settings among them.
+    expect(keys.length).toBe(11);
+    expect(keys).toContain("SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR");
 
     for (const key of keys) {
       const route: string =

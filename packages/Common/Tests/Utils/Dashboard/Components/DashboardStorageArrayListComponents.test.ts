@@ -769,8 +769,21 @@ describe("Storage Array dashboard template", () => {
     /*
      * The template helpers grew an attribute filter and additional chart
      * queries for this template. Both are written only when asked for, so no
-     * other template's stored widgets change shape.
+     * other template's stored widgets change shape - but the charts that ask
+     * for an extra query on purpose, each with the metrics it adds: the
+     * Incident and Alert templates' "MTTR and MTTA Over Time" draw MTTA on
+     * MTTR's axes, as the title promises (#5110).
      */
+    const askedForExtraQueries: Record<string, Array<string>> = {
+      [`${DashboardTemplateType.Incident}: MTTR and MTTA Over Time`]: [
+        "oneuptime.incident.time-to-acknowledge",
+      ],
+      [`${DashboardTemplateType.Alert}: MTTR and MTTA Over Time`]: [
+        "oneuptime.alert.time-to-acknowledge",
+      ],
+    };
+    const seen: Array<string> = [];
+
     for (const type of Object.values(DashboardTemplateType)) {
       if (
         type === DashboardTemplateType.StorageArray ||
@@ -783,10 +796,29 @@ describe("Storage Array dashboard template", () => {
 
       for (const component of other?.components || []) {
         const args: Record<string, unknown> = argsOf(component);
-        expect({ type, extraQueries: args["metricQueryConfigs"] }).toEqual({
-          type,
-          extraQueries: undefined,
-        });
+        const chart: string = `${type}: ${titleOf(component)}`;
+        const extraQueries: Array<Record<string, unknown>> | undefined = args[
+          "metricQueryConfigs"
+        ] as Array<Record<string, unknown>> | undefined;
+
+        expect({
+          chart,
+          extraQueryMetrics: extraQueries?.map(
+            (query: Record<string, unknown>): unknown => {
+              return (
+                (
+                  query["metricQueryData"] as
+                    | Record<string, unknown>
+                    | undefined
+                )?.["filterData"] as Record<string, unknown> | undefined
+              )?.["metricName"];
+            },
+          ),
+        }).toEqual({ chart, extraQueryMetrics: askedForExtraQueries[chart] });
+
+        if (askedForExtraQueries[chart]) {
+          seen.push(chart);
+        }
 
         const queryConfig: Record<string, unknown> | undefined = args[
           "metricQueryConfig"
@@ -806,5 +838,8 @@ describe("Storage Array dashboard template", () => {
         }).toEqual({ type, hasAttributes: false });
       }
     }
+
+    // A chart listed here that no longer asks is named, so the list cannot go stale.
+    expect(seen.sort()).toEqual(Object.keys(askedForExtraQueries).sort());
   });
 });

@@ -175,9 +175,20 @@ describe("the menu the paths are held to, read from its source", () => {
       "Notifications",
       ["Notification Settings", "Notification Logs", "Mobile Apps"],
     ],
+    /*
+     * External MCP Servers - the servers OneUptime AI uses - beside LLM
+     * Providers; MCP Server, OneUptime's own, stays last.
+     */
     [
       "AI",
-      ["AI Features", "LLM Providers", "AI Credits", "AI Logs", "MCP Server"],
+      [
+        "AI Features",
+        "LLM Providers",
+        "External MCP Servers",
+        "AI Credits",
+        "AI Logs",
+        "MCP Server",
+      ],
     ],
     /*
      * Importing from another tool is done once, when a project starts: it
@@ -697,10 +708,6 @@ describe("every Project Settings path OneUptime writes is one a reader can follo
     [
       "App/FeatureSet/Dashboard/src/Pages/Teams/View/Members.tsx",
       ["Project Settings > Security > SCIM"],
-    ],
-    [
-      "App/FeatureSet/Dashboard/src/Pages/Runbook/View/Steps.tsx",
-      ["Project Settings > AI > LLM Providers"],
     ],
     [
       "App/FeatureSet/Dashboard/src/Components/MicrosoftTeams/MicrosoftTeamsIntegrationDocumentation.tsx",

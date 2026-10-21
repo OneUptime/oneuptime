@@ -114,6 +114,7 @@ import AlertOwnerRuleEngineService from "./AlertOwnerRuleEngineService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
 import AutoRemediationRuleEngineService from "./AutoRemediationRuleEngineService";
 import AIAlertInvestigationRunner from "../Utils/AI/SRE/AlertInvestigationRunner";
+import InvestigationRuleWait from "../Utils/AI/SRE/InvestigationRuleWait";
 import IncidentFollowUpCheck from "../Utils/AI/SRE/IncidentFollowUpCheck";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import AlertPrivacyRuleEngineService from "./AlertPrivacyRuleEngineService";
@@ -2254,6 +2255,28 @@ ${alertSeverity.name}
               } as LogAttributes,
             );
           }
+        }
+
+        /*
+         * While an investigation rule makes OneUptime AI wait before it
+         * investigates the alert (issue #5074), the wait follows what the
+         * rules read: its severity, labels, monitor, title and description.
+         * A severity raised to one whose rule waits less starts the
+         * investigation sooner. Never throws, and reads nothing more when
+         * the update changed none of them.
+         */
+        if (
+          isSeverityChanged ||
+          fieldChanges.labels ||
+          fieldChanges.textColumns.includes("title") ||
+          fieldChanges.textColumns.includes("description") ||
+          monitorChange
+        ) {
+          await InvestigationRuleWait.onSubjectChanged({
+            lane: "Alert",
+            projectId: projectId,
+            subjectId: alertId,
+          });
         }
 
         if (shouldAddAlertFeed) {

@@ -6,6 +6,7 @@ Un widget è un riquadro di una dashboard. Questa pagina elenca ogni widget del 
 - [Quale widget usare?](#quale-widget-usare): Scegli in base alla domanda a cui risponde il riquadro.
 - [Grafici e numeri](#grafici-e-numeri): Grafico, Valore, Indicatore e Tabella, da una query di metriche.
 - [Log, tracce e sicurezza](#log-tracce-e-sicurezza): Grafici dei volumi, flussi in tempo reale ed elenchi.
+- [Ordinare elenchi e tabelle](#ordinare-elenchi-e-tabelle): Ordina per una colonna e scegli l'ordine che vedono tutti.
 - [Quando un widget non può essere mostrato](#quando-un-widget-non-può-essere-mostrato): Che cosa mostra un widget rotto, e come sistemarlo.
 :::
 
@@ -198,6 +199,33 @@ Un sito compare solo se ha delle coordinate. Aggiungi latitudine e longitudine s
 ## Fonti di dati esterne
 
 Il gruppo Fonti di dati esterne disegna un **Grafico**, un **Valore**, un **Indicatore** o una **Tabella** da un sistema che non appartiene a OneUptime: Prometheus, PostgreSQL, MySQL, SQL Server, ClickHouse, Loki, Elasticsearch o qualsiasi API REST. Colleghi il sistema una volta, poi scrivi la query di ogni widget nel linguaggio di quel sistema. [Fonti di dati esterne](/docs/dashboards/data-sources) spiega come.
+
+## Ordinare elenchi e tabelle
+
+Fai clic sull'intestazione di una colonna per ordinare un elenco o una tabella in base a essa: un primo clic ordina come indica la tabella qui sotto, il clic successivo al contrario, e quello dopo riporta il widget al suo ordine. Sulla colonna in base a cui il widget è già ordinato, un clic inverte l'ordine. Una freccia indica la colonna in base a cui sono ordinate le righe.
+
+| Colonna | Primo clic | Clic successivo |
+| --- | --- | --- |
+| Uno stato o una gravità | Prima i peggiori | Prima i migliori |
+| Un orario | Prima i più recenti | Prima i meno recenti |
+| Un numero | Prima i più alti | Prima i più bassi |
+| Testo | Dalla A alla Z | Dalla Z alla A |
+
+Il peggiore segue l'ordine del tuo progetto: lo stato di un monitor in base alla sua priorità, la gravità e lo stato di un incidente o di un avviso in base all'ordine in cui li tieni, e una risorsa inattiva, non pronta o spenta prima di una sana. La fase di un pod ordina Failed, poi Unknown, poi Pending, poi Running e Succeeded. Lo SLI e il budget di errore di uno SLO, e il VMID di un guest Proxmox, ordinano prima i più bassi.
+
+Viene ordinato l'intero elenco, non solo le righe sullo schermo: un elenco che mostra 25 righe, ordinato con i peggiori prima, mostra i 25 peggiori di tutti. Le righe a pari merito mantengono l'ordine del widget. Una colonna in base a cui un elenco non può essere ordinato per intero, come il messaggio di un evento di sicurezza, non ordina.
+
+### Il tuo ordinamento
+
+Il tuo ordinamento è solo tuo: il tuo browser lo ricorda per quel widget su quella dashboard, così un ricaricamento o il riavvio di uno schermo a parete lo mantengono, e nessun altro lo vede. Il clic che riporta il widget al suo ordine dimentica il tuo ordinamento, e il widget segue poi il suo ordine, anche quando un editor lo cambia in seguito.
+
+### L'ordine che vedono tutti
+
+Per scegliere l'ordine in cui un widget si apre per tutti, modificalo e scegli l'ordine in **Ordina**, oppure fai clic sull'intestazione di una colonna nella sua **Live Preview**, poi fai clic su **Salva modifiche**. Vedi subito il nuovo ordine; chi ha ordinato il widget a modo suo mantiene il proprio ordinamento.
+
+I modelli di dashboard aprono i loro elenchi di host, nodi, pod, servizi Swarm e dispositivi di rete con i peggiori prima.
+
+Tramite l'API e Terraform, l'ordine è l'`arguments.sort` del widget: una colonna e una direzione, per esempio `status:desc`. Un widget elenco rifiuta una colonna che non ha, e l'errore elenca gli ordinamenti che ha.
 
 ## Su una dashboard pubblica
 

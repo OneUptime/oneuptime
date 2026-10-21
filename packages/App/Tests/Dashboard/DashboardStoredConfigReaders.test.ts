@@ -125,6 +125,10 @@ const KNOWN_FILES: Record<string, KnownFile> = {
     role: "handed-a-read-config",
     why: "layout utilities over a config already read",
   },
+  "Common/Utils/Dashboard/DashboardWidgetSorts.ts": {
+    role: "handed-a-read-config",
+    why: "checks each widget's sort in the config DashboardService's write check read, through StoredDashboardViewConfig.getComponentEntries",
+  },
   "Common/Models/DatabaseModels/Dashboard.ts": {
     role: "other",
     why: "the column itself",
@@ -137,6 +141,14 @@ const KNOWN_FILES: Record<string, KnownFile> = {
   "Common/Types/DataSource/DataSourceQueryConfig.ts": {
     role: "other",
     why: "names where its queries are stored",
+  },
+  "Common/Types/Dashboard/DashboardTimeRange.ts": {
+    role: "other",
+    why: "names dashboardViewConfig.timeRange in the refusal of a write it cannot open on",
+  },
+  "Common/Types/Dashboard/DashboardAutoRefresh.ts": {
+    role: "other",
+    why: "names dashboardViewConfig.refreshInterval in the refusal of a write it cannot open with",
   },
   "App/FeatureSet/Dashboard/src/Pages/Dashboards/View/Settings.tsx": {
     role: "other",

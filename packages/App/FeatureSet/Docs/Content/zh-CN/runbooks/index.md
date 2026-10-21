@@ -142,7 +142,7 @@ Runbooks:    [DB primary failover]
 某个监视器打开了事件 `INC-4821 · db-primary connection timeout`。规则匹配，执行开始：
 
 - 步骤 1（JavaScript）在你为它选择的 Runner 上运行。返回值（例如 `{ lagMs: 412 }`）会被记录。 未选择 Runner 的步骤会在全局 Runner 上运行。
-- 步骤 2（Manual）暂停执行，执行显示 **等待您处理** 。值班人员查看仪表板并点击 **Mark complete** 。
+- 步骤 2（Manual）暂停执行，执行显示 **等待您处理** 。值班人员查看仪表板并点击 **标记完成** 。
 - 步骤 3（HTTP request）运行，`POST` 的响应被记录。
 - 步骤 4（Manual）再次暂停执行，直到有人完成它。
 - 步骤 5（HTTP request）运行，执行变为 **已完成** 。
@@ -158,7 +158,7 @@ Runbooks:    [DB primary failover]
 - **清除缓存**：一次 HTTP 请求，然后一个 Manual 步骤“确认缓存命中率正在恢复”。
 - **影响客户的事件**：Manual“在状态页面发布更新”，用 HTTP 请求通知支持团队，用 JavaScript 获取受影响账户的列表。
 - **计划维护前的预检**：对指标做快照，与相关方确认变更窗口（Manual），在负载均衡器上开启维护模式（HTTP request）。
-- **先诊断，再修复**：Bash 步骤收集诊断信息，开启了 **需要批准** 的 AI 步骤阅读这些信息并推荐修复方案，只有在人员批准后，kubectl 步骤才会重启工作负载。
+- **先诊断，再修复**：Bash 步骤收集诊断信息，AI 步骤阅读这些信息并推荐修复方案，开启了 **需要批准** 的 kubectl 步骤只有在人员批准后才会重启工作负载。
 - **始终运行的例行检查**：一条没有条件的规则，在每个事件上记录系统状态，供事后复盘使用。
 
 ## Runbook 与 OneUptime 其他功能的关系

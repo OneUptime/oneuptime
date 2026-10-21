@@ -31,6 +31,7 @@ import {
 } from "./DocsTranslationChecks";
 import { otherChangesItems } from "./UpgradingDocsNotes";
 import { PermissionHelper } from "Common/Types/Permission";
+import { APPROVAL_AFTER_LAST_STEP_TITLE } from "Common/Types/Runbook/RunbookStepApproval";
 import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -56,11 +57,11 @@ import path from "path";
  * Other names stay in English on purpose, each list with its reason below:
  * roles and permissions, plans, the Slack, Microsoft Teams and mobile app
  * buttons, the workflow builder, metric names, the names people give their
- * own states, settings that no longer exist, the rules the upgrade adds,
- * product names and what a script or the server prints. A bold word that is
- * a Dashboard label by coincidence is PROSE; the page's own bold leads are
- * PROSE_LEADS. A new bold word on the English page fails "know every bold
- * word" until it is put in one of the lists.
+ * own states, settings that no longer exist, the rules and the runbook step
+ * the upgrade adds, product names and what a script or the server prints.
+ * A bold word that is a Dashboard label by coincidence is PROSE; the page's
+ * own bold leads are PROSE_LEADS. A new bold word on the English page fails
+ * "know every bold word" until it is put in one of the lists.
  *
  * A link into another page keeps its English anchor's place: where the
  * other page is translated in the English shape, the link names the heading
@@ -166,6 +167,13 @@ const RULES_THE_UPGRADE_ADDS: Array<string> = [
   "Fix every alert with OneUptime AI",
 ];
 
+/*
+ * The title of the Manual step the upgrade adds at the end of a runbook whose
+ * last step asked for approval after it ran: a step's title, which every
+ * Dashboard shows as it was written.
+ */
+const STEPS_THE_UPGRADE_ADDS: Array<string> = [APPROVAL_AFTER_LAST_STEP_TITLE];
+
 // Products and components, by their names.
 const PRODUCT_NAMES: Array<string> = [
   "OneUptime Enterprise Edition",
@@ -202,6 +210,7 @@ const KEPT_IN_ENGLISH: Array<string> = [
   ...METRIC_NAMES,
   ...REMOVED_SETTINGS,
   ...RULES_THE_UPGRADE_ADDS,
+  ...STEPS_THE_UPGRADE_ADDS,
   ...PRODUCT_NAMES,
   ...SCRIPT_OUTPUT,
   ...ADMIN_DRAWN_IN_ENGLISH,
@@ -361,6 +370,7 @@ const PROSE_LEADS: Array<string> = [
   "Every install runs a global Runner of its own.",
   "Runbook secrets and the credentials runbook steps used are runbook variables.",
   "A code repository picks its Runner, and Runners lose their AI code fix switch.",
+  "A runbook step asks for approval before it runs.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",
   "Mirror the image, or opt out, if your upgrades wait.",

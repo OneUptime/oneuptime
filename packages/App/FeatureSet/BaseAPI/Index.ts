@@ -587,6 +587,7 @@ import DetectionRuleService, {
 } from "Common/Server/Services/DetectionRuleService";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
 import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityConnectionAPI";
+import ExternalMcpServerAPI from "Common/Server/API/ExternalMcpServerAPI";
 import SecurityEventDestinationAPI from "Common/Server/API/SecurityEventDestinationAPI";
 import SecurityLogSourceService, {
   Service as SecurityLogSourceServiceType,
@@ -1005,6 +1006,9 @@ import ProjectOnCallCalendarFeedService, {
 import ScheduledMaintenanceCalendarFeedService, {
   Service as ScheduledMaintenanceCalendarFeedServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceCalendarFeedService";
+import ScheduledMaintenanceExternalCalendarEventService, {
+  Service as ScheduledMaintenanceExternalCalendarEventServiceType,
+} from "Common/Server/Services/ScheduledMaintenanceExternalCalendarEventService";
 import UserOnCallShiftReminderService, {
   Service as UserOnCallShiftReminderServiceType,
 } from "Common/Server/Services/UserOnCallShiftReminderService";
@@ -1502,6 +1506,7 @@ import McpOAuthGrant from "Common/Models/DatabaseModels/McpOAuthGrant";
 import OnCallDutyPolicyScheduleCalendarFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
 import ProjectOnCallCalendarFeed from "Common/Models/DatabaseModels/ProjectOnCallCalendarFeed";
 import ScheduledMaintenanceCalendarFeed from "Common/Models/DatabaseModels/ScheduledMaintenanceCalendarFeed";
+import ScheduledMaintenanceExternalCalendarEvent from "Common/Models/DatabaseModels/ScheduledMaintenanceExternalCalendarEvent";
 import UserOnCallShiftReminder from "Common/Models/DatabaseModels/UserOnCallShiftReminder";
 import UserOnCallShiftReminderLog from "Common/Models/DatabaseModels/UserOnCallShiftReminderLog";
 import UserNotificationEmailRollupItem from "Common/Models/DatabaseModels/UserNotificationEmailRollupItem";
@@ -1725,6 +1730,7 @@ import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
 import ScheduledMaintenanceCalendarAPI from "Common/Server/API/ScheduledMaintenanceCalendarAPI";
+import ScheduledMaintenanceExternalCalendarAPI from "Common/Server/API/ScheduledMaintenanceExternalCalendarAPI";
 import OnCallScheduleTimelineAPI from "Common/Server/API/OnCallScheduleTimelineAPI";
 import WorkspaceChannelLinkAPI from "Common/Server/API/WorkspaceChannelLinkAPI";
 import WorkspaceChannelMembersAPI from "Common/Server/API/WorkspaceChannelMembersAPI";
@@ -3287,6 +3293,12 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new LlmObservabilityConnectionAPI().getRouter(),
+    );
+
+    // External MCP servers OneUptime AI may use, and their connection test.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new ExternalMcpServerAPI().getRouter(),
     );
 
     // LlmModelPrice
@@ -5413,6 +5425,30 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         ScheduledMaintenanceCalendarFeed,
         ScheduledMaintenanceCalendarFeedService,
+      ).getRouter(),
+    );
+
+    /*
+     * Calendars from outside the project, drawn on the maintenance
+     * calendar (Calendar Settings): their CRUD routes and Read now
+     * (/scheduled-maintenance-external-calendar/:id/read-now). Their link is
+     * write-only (read [] on the column). Their events are written by the
+     * Workers alone - every write list is empty - and this router serves the
+     * calendar page's reads of them.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new ScheduledMaintenanceExternalCalendarAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ScheduledMaintenanceExternalCalendarEvent,
+        ScheduledMaintenanceExternalCalendarEventServiceType
+      >(
+        ScheduledMaintenanceExternalCalendarEvent,
+        ScheduledMaintenanceExternalCalendarEventService,
       ).getRouter(),
     );
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 31872,
-    "untranslated": 16692
+    "keys": 32062,
+    "untranslated": 16683
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -12,6 +12,7 @@
     "Alarm",
     "App",
     "Apps",
+    "Branch",
     "Budget",
     "Capture",
     "Chats",
@@ -50,6 +51,7 @@
     "Pull request #{{number}}",
     "Record",
     "Records",
+    "Repository",
     "Runbook: {{name}}",
     "Runner",
     "Runtime",
@@ -88,6 +90,7 @@
     "{{count}} incident",
     "{{count}} open pull requests",
     "{{count}} product",
+    "{{count}} repository",
     "{{count}} samples",
     "{{field}} is {{value}}",
     "{{tokens}} tokens"

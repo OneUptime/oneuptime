@@ -210,7 +210,7 @@ You do not have permissions to create Incident Internal Note. It is read through
 
 #### 存放憑證的設定
 
-存放憑證的設定——SMTP 伺服器、電話和簡訊提供者、Runbook 憑證、SNMP 憑證、視訊通話連線、API 金鑰——只能由可以讀取該類設定的呼叫者指定：狀態頁面的 `smtpConfig` 和 `callSmsConfig`、來電策略的 `projectCallSMSConfig`、Kubernetes 叢集的 `aiAccessCredential`、網路裝置或站點的 `snmpCredentialProfile`、事件或警示的視訊通話 `videoCallConnection`、API 金鑰權限的 `apiKey`，以及 Runbook SSH 和 Kubernetes 步驟的 `credentialId`。在沒有讀取該類設定的權限時指定其中之一——或使用被不帶標籤之封鎖所移除的權限——無論用哪個名稱，都會以同樣的 `400` 被拒絕；保留記錄已指定之設定的變更不會被檢查。來電策略的號碼搜尋和已擁有號碼清單，需要對其所指定的電話和簡訊設定有同樣的讀取權限。
+存放憑證的設定——SMTP 伺服器、電話和簡訊提供者、Runbook 憑證、SNMP 憑證、視訊通話連線、API 金鑰、外部 MCP 伺服器——只能由可以讀取該類設定的呼叫者指定：狀態頁面的 `smtpConfig` 和 `callSmsConfig`、來電策略的 `projectCallSMSConfig`、Kubernetes 叢集的 `aiAccessCredential`、網路裝置或站點的 `snmpCredentialProfile`、事件或警示的視訊通話 `videoCallConnection`、API 金鑰權限的 `apiKey`、調查規則或自動補救規則的 `externalMcpServers`，以及 Runbook SSH 和 Kubernetes 步驟的 `credentialId`。在沒有讀取該類設定的權限時指定其中之一——或使用被不帶標籤之封鎖所移除的權限——無論用哪個名稱，都會以同樣的 `400` 被拒絕；保留記錄已指定之設定的變更不會被檢查。來電策略的號碼搜尋和已擁有號碼清單，需要對其所指定的電話和簡訊設定有同樣的讀取權限。
 
 #### 建立時的標籤和擁有者
 

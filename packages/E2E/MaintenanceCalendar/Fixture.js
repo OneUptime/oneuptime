@@ -2,6 +2,8 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import {
   BrowserRouter,
+  Route,
+  Routes,
   useLocation,
   useNavigate,
   useParams,
@@ -10,15 +12,21 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import "Common/UI/Styles/Theme.css";
 import ScheduledMaintenancesPage from "../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/ScheduledMaintenanceEvents";
-import {
-  ScheduledMaintenanceView,
-  scheduledMaintenanceViewChoice,
-} from "../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceViewChoice";
+import ScheduledMaintenanceCalendarPage from "../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Calendar";
+import ScheduledMaintenanceCalendarSettings from "../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceCalendarSettings";
+import ScheduledMaintenanceSideMenu from "../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/SideMenu";
+import { PREVIOUS_VIEW_STORAGE_KEY } from "../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceView";
+import { getHiddenCalendarsStorageKey } from "../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/MaintenanceCalendarOverlays";
 import DE from "../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import JA from "../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceCalendarFeed from "Common/Models/DatabaseModels/ScheduledMaintenanceCalendarFeed";
+import ScheduledMaintenanceExternalCalendar from "Common/Models/DatabaseModels/ScheduledMaintenanceExternalCalendar";
+import ScheduledMaintenanceExternalCalendarEvent from "Common/Models/DatabaseModels/ScheduledMaintenanceExternalCalendarEvent";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import { normalizeExternalCalendarLink } from "Common/Types/ScheduledMaintenance/ExternalCalendar";
+import { ModelAPIHttpResponse } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Project from "Common/Models/DatabaseModels/Project";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -36,12 +44,20 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 
 /*
- * The fixture page: the real Scheduled Maintenance > Events page, with the
- * API answered from an in-page store (window.__maintenanceCalendarFixture)
+ * The fixture page: the real Scheduled Maintenance pages - All Events, the
+ * Maintenance Calendar and Calendar Settings, beside the real side menu -
+ * with the API answered from an in-page store (window.__maintenanceCalendarFixture)
  * the specs read - every request, every copy to the clipboard - and drive.
  *
- *   ?view=     list (default) | calendar: the view the page opens on, as a
- *              reader's earlier choice leaves it (ScheduledMaintenanceViewChoice)
+ *   ?page=     calendar (default) | list | settings: the page it opens on
+ *   ?previousView=   calendar | list: what the old List | Calendar switch
+ *              left in the reader's browser (ScheduledMaintenanceView)
+ *   ?external= the calendars from outside the project: none (default) |
+ *              some (two shown, one off) | failing (one of them could not be
+ *              read) | waiting (one never read yet) | many (520 events of
+ *              theirs in October, past what one period asks for)
+ *   ?hidden=   ids of external calendars the reader has hidden, by comma
+ *   ?readNow=  fail: Read now is refused, as for a calendar read a moment ago
  *   ?events=   month (default: October 2026, see EVENTS) | none | many (60
  *              events on the 22nd, past what a cell shows) | error (the first
  *              read of the calendar fails, Try again reads the month)
@@ -68,10 +84,30 @@ if (params.get("theme") === "dark") {
   document.documentElement.classList.add("dark");
 }
 
-if (params.get("view") === "calendar") {
-  scheduledMaintenanceViewChoice.write(ScheduledMaintenanceView.Calendar);
-} else if (params.get("view") === "list") {
-  scheduledMaintenanceViewChoice.write(ScheduledMaintenanceView.List);
+const pageScenario = ["list", "settings"].includes(params.get("page"))
+  ? params.get("page")
+  : "calendar";
+const externalScenario = params.get("external") || "none";
+const readNowScenario = params.get("readNow") || "ok";
+
+window.localStorage.removeItem(PREVIOUS_VIEW_STORAGE_KEY);
+
+if (params.get("previousView")) {
+  window.localStorage.setItem(
+    PREVIOUS_VIEW_STORAGE_KEY,
+    params.get("previousView"),
+  );
+}
+
+if (params.get("hidden")) {
+  window.localStorage.setItem(
+    getHiddenCalendarsStorageKey("10000000-0000-4000-8000-000000000001"),
+    JSON.stringify(params.get("hidden").split(",")),
+  );
+} else {
+  window.localStorage.removeItem(
+    getHiddenCalendarsStorageKey("10000000-0000-4000-8000-000000000001"),
+  );
 }
 
 await i18next.use(initReactI18next).init({
@@ -207,6 +243,165 @@ function monthEvents() {
   });
 }
 
+/*
+ * The calendars from outside the project (Calendar Settings): a holidays
+ * calendar of all-day events, a change-freeze calendar of timed ones, and
+ * another project's calendar that is turned off - whose events must never
+ * be asked for. Their links are never in here: the server never returns one.
+ */
+const EXTERNAL_IDS = {
+  holidays: "50000000-0000-4000-8000-000000000001",
+  freezes: "50000000-0000-4000-8000-000000000002",
+  payments: "50000000-0000-4000-8000-000000000003",
+  fresh: "50000000-0000-4000-8000-000000000004",
+};
+
+function externalCalendars(scenario) {
+  if (scenario === "none") {
+    return [];
+  }
+
+  if (scenario === "waiting") {
+    return [
+      {
+        _id: EXTERNAL_IDS.fresh,
+        name: "Team offsite",
+        color: "#0284c7",
+        calendarHost: "p52-caldav.icloud.com",
+        isEnabled: true,
+        refreshIntervalInMinutes: 60,
+        lastReadAt: null,
+        lastReadError: null,
+        lastReadHttpStatus: null,
+        eventCount: 0,
+        hasMoreEvents: false,
+      },
+    ];
+  }
+
+  return [
+    {
+      _id: EXTERNAL_IDS.holidays,
+      name: "Public holidays",
+      color: "#0d9488",
+      calendarHost: "calendar.google.com",
+      isEnabled: true,
+      refreshIntervalInMinutes: 1440,
+      lastReadAt: ago(20 * 60 * 1000),
+      lastReadError: null,
+      lastReadHttpStatus: null,
+      eventCount: scenario === "many" ? 2000 : 3,
+      hasMoreEvents: scenario === "many",
+    },
+    {
+      _id: EXTERNAL_IDS.freezes,
+      name: "Change freezes",
+      color: "#d97706",
+      calendarHost: "outlook.office365.com",
+      isEnabled: true,
+      refreshIntervalInMinutes: 60,
+      lastReadAt:
+        scenario === "failing" ? ago(26 * 60 * 60 * 1000) : ago(5 * 60 * 1000),
+      lastReadError: scenario === "failing" ? "NotFound" : null,
+      lastReadHttpStatus: scenario === "failing" ? 404 : null,
+      eventCount: 3,
+      hasMoreEvents: false,
+    },
+    {
+      _id: EXTERNAL_IDS.payments,
+      name: "Payments project",
+      color: "#db2777",
+      calendarHost: "oneuptime.example.com",
+      isEnabled: false,
+      refreshIntervalInMinutes: 60,
+      lastReadAt: ago(3 * 24 * 60 * 60 * 1000),
+      lastReadError: null,
+      lastReadHttpStatus: null,
+      eventCount: 1,
+      hasMoreEvents: false,
+    },
+  ];
+}
+
+// Their events, in UTC: all-day holidays, and timed freezes.
+function externalEvents(scenario) {
+  if (scenario === "none" || scenario === "waiting") {
+    return [];
+  }
+
+  const events = [
+    {
+      calendarId: EXTERNAL_IDS.holidays,
+      title: "Founders' Day",
+      startsAt: "2026-10-05T00:00:00.000Z",
+      endsAt: "2026-10-06T00:00:00.000Z",
+      isAllDay: true,
+    },
+    {
+      calendarId: EXTERNAL_IDS.holidays,
+      title: "Autumn break",
+      startsAt: "2026-10-26T00:00:00.000Z",
+      endsAt: "2026-10-28T00:00:00.000Z",
+      isAllDay: true,
+    },
+    {
+      calendarId: EXTERNAL_IDS.holidays,
+      title: "St Andrew's Day",
+      startsAt: "2026-11-30T00:00:00.000Z",
+      endsAt: "2026-12-01T00:00:00.000Z",
+      isAllDay: true,
+    },
+    {
+      calendarId: EXTERNAL_IDS.freezes,
+      title: "Payments release window",
+      startsAt: "2026-10-15T14:00:00.000Z",
+      endsAt: "2026-10-15T16:00:00.000Z",
+      isAllDay: false,
+    },
+    {
+      calendarId: EXTERNAL_IDS.freezes,
+      title: "Network team on site",
+      startsAt: "2026-10-21T09:00:00.000Z",
+      endsAt: "2026-10-21T10:30:00.000Z",
+      isAllDay: false,
+    },
+    {
+      calendarId: EXTERNAL_IDS.freezes,
+      title: "Quarter-end change freeze",
+      startsAt: "2026-10-29T00:00:00.000Z",
+      endsAt: "2026-10-31T18:00:00.000Z",
+      isAllDay: false,
+    },
+    {
+      calendarId: EXTERNAL_IDS.payments,
+      title: "Payments: database failover",
+      startsAt: "2026-10-20T20:00:00.000Z",
+      endsAt: "2026-10-20T22:00:00.000Z",
+      isAllDay: false,
+    },
+  ];
+
+  if (scenario === "many") {
+    for (let index = 0; index < 520; index++) {
+      const day = 1 + (index % 28);
+      events.push({
+        calendarId: EXTERNAL_IDS.holidays,
+        title: `Shift ${index + 1}`,
+        startsAt: `2026-10-${String(day).padStart(2, "0")}T0${index % 9}:00:00.000Z`,
+        endsAt: `2026-10-${String(day).padStart(2, "0")}T0${(index % 9) + 1}:00:00.000Z`,
+        isAllDay: false,
+      });
+    }
+  }
+
+  return events.map((event, index) => {
+    return {
+      _id: `51000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+      ...event,
+    };
+  });
+}
+
 // The links' tokens, in the order they are minted: 43 characters, as the server's.
 const TOKENS = [
   "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_AbCd0",
@@ -218,6 +413,10 @@ const TOKENS = [
 const store = {
   events: eventsScenario === "none" ? [] : monthEvents(),
   feed: feedStatus(feedScenario),
+  externalCalendars: externalCalendars(externalScenario),
+  externalEvents: externalEvents(externalScenario),
+  // The links the settings page wrote, by calendar id: never read back.
+  externalLinks: {},
 };
 
 const state = {
@@ -507,6 +706,70 @@ ModelAPI.getList = async (options) => {
     return { data: data, count: data.length, skip: 0, limit: options.limit };
   }
 
+  if (tableName === "ScheduledMaintenanceExternalCalendar") {
+    state.requests.push({
+      kind: "external-calendars",
+      query: describeQuery(options.query),
+      select: Object.keys(options.select || {}),
+    });
+
+    const matching = store.externalCalendars
+      .filter((calendar) => {
+        if (options.query && options.query.isEnabled === true) {
+          return calendar.isEnabled;
+        }
+        return true;
+      })
+      .sort((first, second) => {
+        return first.name.localeCompare(second.name);
+      });
+
+    const skip = Number(options.skip || 0);
+    const limit = Number(options.limit || 10);
+
+    return {
+      data: matching.slice(skip, skip + limit).map(toExternalCalendarModel),
+      count: matching.length,
+      skip: skip,
+      limit: limit,
+    };
+  }
+
+  if (tableName === "ScheduledMaintenanceExternalCalendarEvent") {
+    const ids =
+      options.query &&
+      options.query.scheduledMaintenanceExternalCalendarId instanceof Includes
+        ? options.query.scheduledMaintenanceExternalCalendarId.values.map(
+            (id) => {
+              return id.toString();
+            },
+          )
+        : [];
+
+    state.requests.push({
+      kind: "external-events",
+      calendarIds: ids,
+      query: describeQuery({
+        startsAt: options.query && options.query.startsAt,
+        endsAt: options.query && options.query.endsAt,
+      }),
+      limit: options.limit,
+    });
+
+    const matching = store.externalEvents.filter((event) => {
+      return ids.includes(event.calendarId) && inRange(event, options.query);
+    });
+
+    const limit = Number(options.limit || 10);
+
+    return {
+      data: matching.slice(0, limit).map(toExternalEventModel),
+      count: matching.length,
+      skip: 0,
+      limit: limit,
+    };
+  }
+
   state.requests.push({ kind: "other", tableName: tableName });
 
   return { data: [], count: 0, skip: 0, limit: options.limit };
@@ -524,9 +787,124 @@ ModelAPI.getCount = async (options) => {
 
 ModelAPI.count = ModelAPI.getCount;
 
-ModelAPI.getItem = async () => {
+ModelAPI.getItem = async (options) => {
+  if (
+    new options.modelType().tableName === "ScheduledMaintenanceExternalCalendar"
+  ) {
+    state.requests.push({
+      kind: "external-calendar-item",
+      select: Object.keys(options.select || {}),
+    });
+
+    const calendar = store.externalCalendars.find((item) => {
+      return item._id === options.id.toString();
+    });
+
+    return calendar ? toExternalCalendarModel(calendar) : null;
+  }
+
   return null;
 };
+
+ModelAPI.createOrUpdate = async (options) => {
+  const tableName = new options.modelType().tableName;
+  // What the form sends, as the API would receive it (a Color as its JSON).
+  const json = options.modelType.toJSON(options.model, options.modelType);
+
+  state.requests.push({
+    kind: "save",
+    tableName: tableName,
+    formType: String(options.formType),
+    data: JSON.parse(JSON.stringify(json)),
+  });
+
+  if (tableName !== "ScheduledMaintenanceExternalCalendar") {
+    return new ModelAPIHttpResponse(200, json, {});
+  }
+
+  const link = normalizeExternalCalendarLink(
+    options.model.calendarUrl ? options.model.calendarUrl.toString() : "",
+  );
+
+  const existing = options.model._id
+    ? store.externalCalendars.find((item) => {
+        return item._id === options.model._id.toString();
+      })
+    : null;
+
+  if (existing) {
+    existing.name = options.model.name || existing.name;
+    if (options.model.color) {
+      existing.color = options.model.color.toString();
+    }
+    if (options.model.refreshIntervalInMinutes) {
+      existing.refreshIntervalInMinutes = Number(
+        options.model.refreshIntervalInMinutes,
+      );
+    }
+    return new ModelAPIHttpResponse(200, toExternalCalendarModel(existing), {});
+  }
+
+  const created = {
+    _id: `52000000-0000-4000-8000-${String(store.externalCalendars.length + 1).padStart(12, "0")}`,
+    name: options.model.name || "",
+    color: options.model.color ? options.model.color.toString() : "#4f46e5",
+    calendarHost: "url" in link ? link.host : "",
+    isEnabled: true,
+    refreshIntervalInMinutes: Number(
+      options.model.refreshIntervalInMinutes || 60,
+    ),
+    lastReadAt: null,
+    lastReadError: null,
+    lastReadHttpStatus: null,
+    eventCount: 0,
+    hasMoreEvents: false,
+  };
+
+  store.externalCalendars.push(created);
+  store.externalLinks[created._id] = "url" in link ? link.url : "";
+
+  return new ModelAPIHttpResponse(200, toExternalCalendarModel(created), {});
+};
+
+ModelAPI.deleteItem = async (options) => {
+  state.requests.push({
+    kind: "delete",
+    tableName: new options.modelType().tableName,
+    id: options.id.toString(),
+  });
+
+  store.externalCalendars = store.externalCalendars.filter((item) => {
+    return item._id !== options.id.toString();
+  });
+};
+
+function toExternalCalendarModel(item) {
+  const model = new ScheduledMaintenanceExternalCalendar();
+  model._id = item._id;
+  model.name = item.name;
+  model.color = new Color(item.color);
+  model.calendarHost = item.calendarHost;
+  model.isEnabled = item.isEnabled;
+  model.refreshIntervalInMinutes = item.refreshIntervalInMinutes;
+  model.lastReadAt = item.lastReadAt ? new Date(item.lastReadAt) : undefined;
+  model.lastReadError = item.lastReadError || undefined;
+  model.lastReadHttpStatus = item.lastReadHttpStatus || undefined;
+  model.eventCount = item.eventCount;
+  model.hasMoreEvents = item.hasMoreEvents;
+  return model;
+}
+
+function toExternalEventModel(item) {
+  const model = new ScheduledMaintenanceExternalCalendarEvent();
+  model._id = item._id;
+  model.scheduledMaintenanceExternalCalendarId = new ObjectID(item.calendarId);
+  model.title = item.title;
+  model.startsAt = new Date(item.startsAt);
+  model.endsAt = new Date(item.endsAt);
+  model.isAllDay = item.isAllDay;
+  return model;
+}
 
 ModelAPI.updateById = async (args) => {
   state.requests.push({
@@ -541,6 +919,29 @@ ModelAPI.updateById = async (args) => {
     typeof args.data.isEnabled === "boolean"
   ) {
     store.feed.isEnabled = args.data.isEnabled;
+  }
+
+  if (args.modelType === ScheduledMaintenanceExternalCalendar) {
+    const calendar = store.externalCalendars.find((item) => {
+      return item._id === args.id.toString();
+    });
+
+    if (calendar && typeof args.data.isEnabled === "boolean") {
+      calendar.isEnabled = args.data.isEnabled;
+    }
+
+    if (calendar && typeof args.data.calendarUrl === "string") {
+      const link = normalizeExternalCalendarLink(args.data.calendarUrl);
+
+      if ("url" in link) {
+        store.externalLinks[calendar._id] = link.url;
+        calendar.calendarHost = link.host;
+        calendar.lastReadAt = null;
+        calendar.lastReadError = null;
+        calendar.lastReadHttpStatus = null;
+        calendar.eventCount = 0;
+      }
+    }
   }
 
   return new HTTPResponse(200, {}, {});
@@ -631,6 +1032,36 @@ API.post = async (options) => {
     return new HTTPResponse(200, toWire(store.feed), {});
   }
 
+  if (path.endsWith("/read-now")) {
+    if (readNowScenario === "fail") {
+      return new HTTPErrorResponse(
+        400,
+        {
+          message:
+            "This calendar was read a moment ago. Try again in a few seconds.",
+        },
+        {},
+      );
+    }
+
+    const id = path.split("/").slice(-2)[0];
+    const calendar = store.externalCalendars.find((item) => {
+      return item._id === id;
+    });
+
+    if (calendar) {
+      calendar.lastReadAt = new Date().toISOString();
+      calendar.lastReadError = null;
+      calendar.lastReadHttpStatus = null;
+      calendar.eventCount =
+        store.externalEvents.filter((event) => {
+          return event.calendarId === id;
+        }).length || 12;
+    }
+
+    return new HTTPResponse(200, calendar ? { _id: id } : {}, {});
+  }
+
   return new HTTPResponse(200, { data: [], count: 0 }, {});
 };
 
@@ -647,7 +1078,7 @@ function Frame(props) {
           className="max-md:hidden md:block w-56 lg:w-64 flex-shrink-0"
           data-testid="fixture-side-menu"
         >
-          <div className="h-64 rounded-xl border border-dashed border-gray-200" />
+          <ScheduledMaintenanceSideMenu project={project} />
         </div>
         <div
           className="flex-1 min-w-0 space-y-6 pb-10"
@@ -660,36 +1091,75 @@ function Frame(props) {
   );
 }
 
-function Shell() {
+const PAGE_PROPS = {
+  currentProject: project,
+  hasPaymentMethod: true,
+};
+
+/*
+ * The pages by their real addresses, under the real route's project
+ * parameter: All Events, the Maintenance Calendar and Calendar Settings.
+ * Anything else under scheduled-maintenance-events is where a block, the +
+ * or a link took the reader: the page's address says it.
+ */
+function Page() {
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(useLocation());
   Navigation.setParams(useParams());
 
-  if (window.location.pathname.includes("/scheduled-maintenance-events/")) {
-    // Where a block or the + took the reader: the page's address says it.
-    return (
-      <Frame>
-        <div data-testid="fixture-navigated">{window.location.pathname}</div>
-      </Frame>
-    );
-  }
+  const pathname = useLocation().pathname;
+  const base = `/dashboard/${PROJECT_ID}/scheduled-maintenance-events`;
 
-  return (
-    <Frame>
+  let page;
+
+  if (pathname === base || pathname === `${base}/`) {
+    page = (
       <ScheduledMaintenancesPage
         pageRoute={Navigation.getCurrentRoute()}
-        currentProject={project}
-        hasPaymentMethod={true}
+        {...PAGE_PROPS}
       />
-    </Frame>
+    );
+  } else if (pathname === `${base}/calendar`) {
+    page = (
+      <ScheduledMaintenanceCalendarPage
+        pageRoute={Navigation.getCurrentRoute()}
+        {...PAGE_PROPS}
+      />
+    );
+  } else if (pathname === `${base}/settings/calendar`) {
+    page = (
+      <ScheduledMaintenanceCalendarSettings
+        pageRoute={Navigation.getCurrentRoute()}
+        {...PAGE_PROPS}
+      />
+    );
+  } else {
+    page = <div data-testid="fixture-navigated">{pathname}</div>;
+  }
+
+  return <Frame key={pathname}>{page}</Frame>;
+}
+
+function Shell() {
+  return (
+    <Routes>
+      <Route path="/dashboard/:projectId/*" element={<Page />} />
+    </Routes>
   );
 }
 
 if (!window.location.pathname.startsWith("/dashboard/")) {
+  const suffix =
+    pageScenario === "list"
+      ? ""
+      : pageScenario === "settings"
+        ? "/settings/calendar"
+        : "/calendar";
+
   window.history.replaceState(
     {},
     "",
-    `/dashboard/${PROJECT_ID}/scheduled-maintenance-events${window.location.search}`,
+    `/dashboard/${PROJECT_ID}/scheduled-maintenance-events${suffix}${window.location.search}`,
   );
 }
 

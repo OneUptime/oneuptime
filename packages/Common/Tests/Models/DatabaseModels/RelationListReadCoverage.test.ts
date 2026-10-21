@@ -359,6 +359,8 @@ const CREDENTIAL_SETTINGS: Record<string, string> = {
     "A video call provider's authorization: an incident or alert video call that names one starts its meeting through it.",
   ApiKey:
     "An API key is itself a credential: a permission row that names one grants that key what it lists.",
+  ExternalMcpServer:
+    "An outside MCP server's sign-in (a bearer token, header values or an OAuth client secret): an investigation or auto remediation rule that names one lets OneUptime AI use that server's tools with it.",
 };
 
 // The references to them, each held to the read of the table it names.

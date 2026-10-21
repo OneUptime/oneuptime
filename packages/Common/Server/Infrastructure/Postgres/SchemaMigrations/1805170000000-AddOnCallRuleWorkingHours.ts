@@ -17,10 +17,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * constant default is added without rewriting a row. The other columns are
  * nullable, and empty on every rule and run there is.
  */
-export class AddOnCallRuleWorkingHours1805000000000
+export class AddOnCallRuleWorkingHours1805170000000
   implements MigrationInterface
 {
-  public name: string = "AddOnCallRuleWorkingHours1805000000000";
+  public name: string = "AddOnCallRuleWorkingHours1805170000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

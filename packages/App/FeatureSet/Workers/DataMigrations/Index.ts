@@ -145,6 +145,7 @@ import HideImagesOfHiddenRecordNotes from "./HideImagesOfHiddenRecordNotes";
 import HideImagesOfScheduledAnnouncements from "./HideImagesOfScheduledAnnouncements";
 import RemoveProjectAccessOfFormerMembers from "./RemoveProjectAccessOfFormerMembers";
 import AddMissingIdsToMonitorSteps from "./AddMissingIdsToMonitorSteps";
+import MoveRunbookApprovalsBeforeTheirSteps from "./MoveRunbookApprovalsBeforeTheirSteps";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -784,6 +785,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new BackfillFirstPagedAt(),
+  /*
+   * A runbook step's approval moved to the step it guards ("Require approval
+   * before running this step"): every stored runbook's approval after step
+   * N becomes an approval before step N+1, and one after the last step a
+   * Manual step at the end, so each runs exactly as it did. Runs already
+   * started keep their own copy of the steps. Postgres-only and idempotent;
+   * no ordering requirement, so it sits above
+   * MoveRunbookSecretsAndCredentialsToVariables, which keeps its place right
+   * before the last slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new MoveRunbookApprovalsBeforeTheirSteps(),
   /*
    * Runbook variables took the place of runbook secrets and of the
    * credentials runbook steps used: every secret becomes a secret global

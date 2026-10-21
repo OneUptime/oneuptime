@@ -1,6 +1,6 @@
 # Código
 
-Código es donde le pides a OneUptime AI que trabaje en tus repositorios, como se lo pedirías a un agente de programación: corregir un bug, escribir tests, explicar el código, hacer un cambio. Se abre en tus repositorios conectados; la página de un repositorio tiene sus tareas y el cuadro donde pides; la página de una tarea es una conversación en la que puedes responder. OneUptime también inicia tareas por su cuenta, a partir de excepciones, trazas e investigaciones. Un [Runner](/docs/runbooks/agents) clona el repositorio, escribe el cambio en una rama nueva, lo compila y lo prueba, y abre un pull request. Una persona revisa y fusiona cada uno: el Runner puede subir ramas y abrir pull requests, nada más.
+Código es donde le pides a OneUptime AI que trabaje en tus repositorios, como se lo pedirías a un agente de programación: corregir un bug, escribir tests, explicar el código, hacer un cambio. Se abre en el cuadro donde pides, con el repositorio y la rama elegidos en él y todas las tareas debajo; la página de una tarea es una conversación en la que puedes responder. OneUptime también inicia tareas por su cuenta, a partir de excepciones, trazas e investigaciones. Un [Runner](/docs/runbooks/agents) clona el repositorio, escribe el cambio en una rama nueva, lo compila y lo prueba, y abre un pull request. Una persona revisa y fusiona cada uno: el Runner puede subir ramas y abrir pull requests, nada más.
 
 :::cards
 - [Pedirle a la IA en un repositorio](#pedirle-a-la-ia-en-un-repositorio): Una petición con tus propias palabras, con el contexto que necesita.
@@ -18,13 +18,17 @@ Código es donde le pides a OneUptime AI que trabaje en tus repositorios, como s
 ## Pedirle a la IA en un repositorio
 
 :::steps
-### Abre un repositorio
+### Abre Código
 
-Abre **Productos → Código**. Ahí están los repositorios del proyecto, cada uno con las tareas en las que trabaja la IA, las que te esperan y sus pull requests abiertos. Si todavía no hay ninguno, ofrece **Conectar GitHub** (consulta [Antes de empezar](#antes-de-empezar)).
+Abre **Productos → Código**. Se abre en **¿Qué debe hacer la IA?**: el cuadro donde pides, con todas las tareas debajo, las más recientes primero. Si todavía no hay ningún repositorio, ofrece en su lugar **Conectar GitHub** (consulta [Antes de empezar](#antes-de-empezar)). **Repositorios**, en su menú lateral, muestra los repositorios conectados, y la página de cada repositorio tiene el mismo cuadro para ese repositorio.
+
+### Elige el repositorio y la rama
+
+El cuadro empieza en el repositorio que elegiste la última vez. Elige otro en su fila inferior y, al lado, la rama de la que parte la tarea: la rama principal del repositorio, marcada como **Predeterminado**, hasta que elijas otra. La IA crea su rama a partir de la que elijas y abre su pull request hacia ella.
 
 ### Di lo que quieres
 
-En la página del repositorio, escribe el cambio, el bug o la pregunta con tus propias palabras. Un repositorio que aún no tiene tareas sugiere algunas en **Prueba a pedir**.
+Escribe el cambio, el bug o la pregunta con tus propias palabras. Mientras no se haya pedido nada, Código sugiere algunas en **Prueba a pedir**.
 
 ### Añade contexto
 
@@ -51,7 +55,7 @@ Una petición lleva como máximo 10 elementos de contexto. Los tokens, claves, c
 
 ## La conversación de una tarea
 
-La página de una tarea es una conversación: lo que se pidió y el contexto añadido, y luego el turno de la IA: los pasos que da a medida que los da (los archivos que leyó y editó, lo que buscó, los comandos que ejecutó), su respuesta, los archivos que cambió con su diff, y el pull request. La parte de arriba de la página dice cómo va la tarea:
+La página de una tarea es una conversación: lo que se pidió y el contexto añadido, y luego el turno de la IA: los pasos que da a medida que los da (los archivos que leyó y editó, lo que buscó, los comandos que ejecutó), su respuesta, los archivos que cambió con su diff, y el pull request. La parte de arriba de la página dice dónde trabaja la tarea (su repositorio y la rama de la que partió), cuántas líneas cambió, con un botón a su pull request, y cómo va la tarea:
 
 | Estado | Qué significa |
 | --- | --- |
@@ -62,7 +66,7 @@ La página de una tarea es una conversación: lo que se pidió y el contexto añ
 | **Fallido** | El turno no pudo terminar, y dice por qué. **Volver a intentar** pide lo mismo otra vez. |
 | **Detenido** | Alguien la detuvo. **Volver a intentar** pide lo mismo otra vez. |
 
-Para seguir, escribe en el cuadro de abajo: responde a la IA, añade contexto o pide cambios. Cada respuesta es el siguiente turno de la misma tarea: trabaja en la misma rama y sube al mismo pull request mientras siga abierto. Una tarea hace un turno cada vez, así que el cuadro espera mientras la IA trabaja. El **Registro** de cada turno es la constancia literal de lo que hizo.
+Para seguir, escribe en el cuadro de abajo, que sigue a la vista mientras la conversación se desplaza: responde a la IA, añade contexto o pide cambios. Cada respuesta es el siguiente turno de la misma tarea: trabaja en la misma rama y sube al mismo pull request mientras siga abierto. Una tarea hace un turno cada vez, así que el cuadro espera mientras la IA trabaja. El **Registro** de cada turno es la constancia literal de lo que hizo.
 
 Quien puede leer un repositorio lee sus tareas. Pedirle algo a la IA, responder y detener una tarea requieren permiso para editar el repositorio, y también ver el diff de un cambio: los demás ven qué archivos cambiaron. Las tareas que OneUptime inicia por su cuenta (abajo) también están en su repositorio, como conversaciones en las que puedes responder.
 
@@ -80,10 +84,10 @@ flowchart TB
     P --> H["Una persona lo revisa<br/>y lo fusiona"]
 ```
 
-1. Haces clic en **Iniciar tarea** en un repositorio, o en **Corregir con IA** en una excepción sin resolver, u otro botón o disparador inicia una tarea (consulta [Dónde empiezan las tareas de corrección](#dónde-empiezan-las-tareas-de-corrección)).
+1. Haces clic en **Iniciar tarea** en Código, o en **Corregir con IA** en una excepción sin resolver, u otro botón o disparador inicia una tarea (consulta [Dónde empiezan las tareas de corrección](#dónde-empiezan-las-tareas-de-corrección)).
 2. La tarea se pone en cola en su repositorio, y el Runner que elige el repositorio la toma: uno de tus Runners, o un Runner global cuando no elige ninguno (consulta [Elige el Runner del repositorio](#elige-el-runner-del-repositorio)).
 3. El Runner obtiene el contexto de la tarea. Para una petición, son sus palabras, el contexto añadido y la conversación hasta ahora; para una excepción, su tipo, su mensaje y su stack trace.
-4. Clona el repositorio en un espacio de trabajo propio y crea una rama. Una corrección de una excepción se llama `oneuptime-fix-exception-` seguido de los primeros caracteres del id de la ejecución. Una respuesta trabaja, en cambio, en la rama del pull request abierto de la tarea.
+4. Clona el repositorio en un espacio de trabajo propio y crea una rama. Una corrección de una excepción se llama `oneuptime-fix-exception-` seguido de los primeros caracteres del id de la ejecución. Una petición parte de la rama elegida cuando se hizo, y su pull request se abre hacia ella. Una respuesta trabaja, en cambio, en la rama del pull request abierto de la tarea.
 5. Un agente de código, impulsado por el proveedor de LLM de tu proyecto, lee el código y escribe el cambio. El servidor de OneUptime hace las llamadas al LLM, así que el Runner nunca tiene la clave de API de tu proveedor, y cada llamada se mide y aparece en los registros de IA. Una corrección de una excepción, de una traza lenta o de un incidente también lee datos de producción mientras trabaja: las excepciones, las trazas, los logs y las métricas de los servicios del repositorio (consulta [Telemetría de producción en una corrección](#telemetría-de-producción-en-una-corrección)).
 6. Si el repositorio tiene comandos de verificación, un Runner propio compila y prueba el cambio antes de hacer ningún commit, y devuelve un fallo al agente de código para que lo repare (consulta [Verificación antes del pull request](#verificación-antes-del-pull-request)).
 7. El Runner hace el commit, sube la rama, abre el pull request (para una petición, solo si cambió código) y borra el espacio de trabajo.
@@ -177,7 +181,7 @@ Hasta que un despliegue la entrega, la corrección indica **Fusionado, esperando
 
 ## Antes de empezar
 
-Una tarea necesita tres cosas. La página de un repositorio en Código y la página **Asistencia de IA** de la excepción comprueban las tres antes de ofrecer empezar, y dicen qué falta.
+Una tarea necesita tres cosas. El cuadro de peticiones de Código y la página **Asistencia de IA** de la excepción comprueban las tres antes de ofrecer empezar, y dicen qué falta.
 
 | Qué | OneUptime Cloud | Autoalojado |
 | --- | --- | --- |
@@ -263,7 +267,7 @@ Todo lo demás coincide con el botón:
 ## Cuando una corrección falla
 
 :::details La ejecución falla
-No se pudo aplicar la corrección, no se pudo acceder al repositorio o falló la llamada al LLM. La conversación de la tarea, y la página desde la que se inició, muestran el motivo y ofrecen volver a intentarlo. El **Registro** del turno tiene el registro completo de la ejecución.
+No se pudo aplicar la corrección, no se pudo acceder al repositorio o a la rama de la que partía una petición, o falló la llamada al LLM. La conversación de la tarea, y la página desde la que se inició, muestran el motivo y ofrecen volver a intentarlo. El **Registro** del turno tiene el registro completo de la ejecución.
 :::
 
 :::details El Runner se detiene en mitad de una ejecución

@@ -78,6 +78,15 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "LLM Providers",
       "View Provider",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVERS, [
+      "Project",
+      "Settings",
+      "External MCP Servers",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVER_VIEW,
+      ["Project", "Settings", "External MCP Servers", "View MCP Server"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_FEATURES, [
       "Project",
       "Settings",

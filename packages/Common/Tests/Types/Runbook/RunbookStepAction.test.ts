@@ -552,3 +552,215 @@ describe("either action", () => {
     },
   );
 });
+
+/*
+ * A step that asks for approval before it runs (requireApprovalBeforeRunning):
+ * the run stops before it, with nothing of it run. Approving it (Complete)
+ * lets it run; skipping it keeps it from running. Like a Manual step, it is
+ * a stop for a person, so nobody approves or skips it before the run
+ * reaches it.
+ */
+describe("a step that asks for approval before it runs", () => {
+  function pausedBeforeApproval(): Array<RunbookStepExecutionState> {
+    return [
+      state(
+        makeStep("diagnose", RunbookStepType.Bash),
+        RunbookStepExecutionStatus.Completed,
+      ),
+      state(
+        makeStep("restart", RunbookStepType.Kubernetes, {
+          title: "Restart checkout",
+          requireApprovalBeforeRunning: true,
+        }),
+        RunbookStepExecutionStatus.WaitingForUser,
+      ),
+      state(
+        makeStep("notify", RunbookStepType.HttpRequest, {
+          title: "Post to Slack",
+        }),
+        RunbookStepExecutionStatus.Pending,
+      ),
+    ];
+  }
+
+  test("the run waits on it before it runs", () => {
+    expect(
+      getStepAwaitingUser({
+        executionStatus: RunbookExecutionStatus.WaitingForManualStep,
+        stepExecutions: pausedBeforeApproval(),
+      })?.step.id,
+    ).toBe("restart");
+  });
+
+  test("approving it (Complete) is allowed, and resumes the run so it runs", () => {
+    expect(
+      decide(
+        RunbookStepAction.Complete,
+        RunbookExecutionStatus.WaitingForManualStep,
+        pausedBeforeApproval(),
+        "restart",
+      ),
+    ).toEqual({ allowed: true, resumesExecution: true });
+  });
+
+  test("skipping it is allowed, and resumes the run without it", () => {
+    expect(
+      decide(
+        RunbookStepAction.Skip,
+        RunbookExecutionStatus.WaitingForManualStep,
+        pausedBeforeApproval(),
+        "restart",
+      ),
+    ).toEqual({ allowed: true, resumesExecution: true });
+  });
+
+  test("a later plain step can be skipped ahead of time while the run waits for the approval", () => {
+    expect(
+      decide(
+        RunbookStepAction.Skip,
+        RunbookExecutionStatus.WaitingForManualStep,
+        pausedBeforeApproval(),
+        "notify",
+      ),
+    ).toEqual({ allowed: true, resumesExecution: false });
+  });
+
+  test("REGRESSION: a later one cannot be approved before the run reaches it", () => {
+    const stepExecutions: Array<RunbookStepExecutionState> = [
+      state(
+        makeStep("check", RunbookStepType.Manual, {
+          title: "Check the dashboards",
+        }),
+        RunbookStepExecutionStatus.WaitingForUser,
+      ),
+      state(
+        makeStep("restart", RunbookStepType.Kubernetes, {
+          title: "Restart checkout",
+          requireApprovalBeforeRunning: true,
+        }),
+        RunbookStepExecutionStatus.Pending,
+      ),
+    ];
+
+    const reason: string = reasonOf(
+      decide(
+        RunbookStepAction.Complete,
+        RunbookExecutionStatus.WaitingForManualStep,
+        stepExecutions,
+        "restart",
+      ),
+    );
+
+    expect(reason).toContain(
+      'Step "Restart checkout" has not been reached yet',
+    );
+    expect(reason).toContain('waiting on "Check the dashboards"');
+  });
+
+  test("REGRESSION: a later one cannot be skipped ahead of time - its stop would go with it", () => {
+    const stepExecutions: Array<RunbookStepExecutionState> = [
+      state(
+        makeStep("check", RunbookStepType.Manual, {
+          title: "Check the dashboards",
+        }),
+        RunbookStepExecutionStatus.WaitingForUser,
+      ),
+      state(
+        makeStep("restart", RunbookStepType.Kubernetes, {
+          title: "Restart checkout",
+          requireApprovalBeforeRunning: true,
+        }),
+        RunbookStepExecutionStatus.Pending,
+      ),
+      state(
+        makeStep("scale", RunbookStepType.Kubernetes, {
+          title: "Scale up",
+        }),
+        RunbookStepExecutionStatus.Pending,
+      ),
+    ];
+
+    expect(
+      reasonOf(
+        decide(
+          RunbookStepAction.Skip,
+          RunbookExecutionStatus.WaitingForManualStep,
+          stepExecutions,
+          "restart",
+        ),
+      ),
+    ).toBe(
+      'Step "Restart checkout" needs approval before it runs, so it can only be approved or skipped once the execution reaches it. This execution is waiting on "Check the dashboards".',
+    );
+  });
+
+  test("once approved and queued to run, nothing more can be done to it", () => {
+    const stepExecutions: Array<RunbookStepExecutionState> =
+      pausedBeforeApproval();
+    stepExecutions[1] = {
+      ...stepExecutions[1]!,
+      status: RunbookStepExecutionStatus.Pending,
+      approvedAt: "2026-10-20T10:00:00.000Z",
+      approvedByUserId: "30000000-0000-4000-8000-0000000000c1",
+    };
+
+    for (const action of [RunbookStepAction.Complete, RunbookStepAction.Skip]) {
+      expect(
+        decide(
+          action,
+          RunbookExecutionStatus.Scheduled,
+          stepExecutions,
+          "restart",
+        ).allowed,
+      ).toBe(false);
+    }
+  });
+
+  test("while it runs after the approval, it cannot be skipped", () => {
+    const stepExecutions: Array<RunbookStepExecutionState> =
+      pausedBeforeApproval();
+    stepExecutions[1] = {
+      ...stepExecutions[1]!,
+      status: RunbookStepExecutionStatus.Running,
+      approvedAt: "2026-10-20T10:00:00.000Z",
+    };
+
+    expect(
+      decide(
+        RunbookStepAction.Skip,
+        RunbookExecutionStatus.Running,
+        stepExecutions,
+        "restart",
+      ).allowed,
+    ).toBe(false);
+  });
+
+  test("the flag on a Manual step changes nothing: it is a manual step", () => {
+    const stepExecutions: Array<RunbookStepExecutionState> = [
+      state(
+        makeStep("check", RunbookStepType.Manual, {
+          title: "Check the dashboards",
+        }),
+        RunbookStepExecutionStatus.WaitingForUser,
+      ),
+      state(
+        makeStep("l2", RunbookStepType.Manual, {
+          title: "L2 approval",
+          requireApprovalBeforeRunning: true,
+        }),
+        RunbookStepExecutionStatus.Pending,
+      ),
+    ];
+
+    expect(
+      reasonOf(
+        decide(
+          RunbookStepAction.Skip,
+          RunbookExecutionStatus.WaitingForManualStep,
+          stepExecutions,
+          "l2",
+        ),
+      ),
+    ).toContain('Step "L2 approval" is a manual step');
+  });
+});

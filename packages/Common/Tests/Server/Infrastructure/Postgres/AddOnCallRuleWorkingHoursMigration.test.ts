@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddOnCallRuleWorkingHours1805000000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805000000000-AddOnCallRuleWorkingHours";
+import { AddOnCallRuleWorkingHours1805170000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805170000000-AddOnCallRuleWorkingHours";
 import AlertEpisodeOnCallRule from "../../../../Models/DatabaseModels/AlertEpisodeOnCallRule";
 import AlertOnCallRule from "../../../../Models/DatabaseModels/AlertOnCallRule";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -17,7 +17,8 @@ import OnCallRuleWhenToPage from "../../../../Types/OnCallDutyPolicy/OnCallRuleW
  * The migration behind holding an on-call rule's page until working hours:
  * on each of the four on-call rules, when it pages (whenToPage), its working
  * hours and their time zone; on an execution log, when a run that waits
- * starts paging (pagingStartsAt).
+ * starts paging (pagingStartsAt), and why it started early
+ * (pagingStartedEarlyReason).
  *
  * The statements are EXECUTED against a fake QueryRunner rather than read as
  * text, so up() and down() are told apart. Nothing is backfilled: every
@@ -30,7 +31,7 @@ import OnCallRuleWhenToPage from "../../../../Types/OnCallDutyPolicy/OnCallRuleW
  * left to generate once it has run.)
  */
 
-const MIGRATION_TIMESTAMP: string = "1805000000000";
+const MIGRATION_TIMESTAMP: string = "1805170000000";
 const MIGRATION_BASE_NAME: string = "AddOnCallRuleWorkingHours";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 
@@ -54,7 +55,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddOnCallRuleWorkingHours1805000000000();
+    new AddOnCallRuleWorkingHours1805170000000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -65,7 +66,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddOnCallRuleWorkingHours1805000000000", () => {
+describe("AddOnCallRuleWorkingHours1805170000000", () => {
   test("adds when to page, working hours and their time zone to each on-call rule", async () => {
     const up: Array<string> = await statementsOf("up");
 
@@ -122,7 +123,7 @@ describe("AddOnCallRuleWorkingHours1805000000000", () => {
     });
 
     expect(registered).toContain(MIGRATION_CLASS_NAME);
-    expect(new AddOnCallRuleWorkingHours1805000000000().name).toBe(
+    expect(new AddOnCallRuleWorkingHours1805170000000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
     expect(

@@ -1093,12 +1093,34 @@ describe("Zooming Into a Time Range docs: what zooms, and how far", () => {
   });
 
   it("dashboards zoom through the board's own range, in both dashboard shells", () => {
+    /*
+     * Each shell keeps its range in the shared viewer settings (issue
+     * #5080), which hold the board's zoom through useDashboardTimeRangeZoom.
+     */
     for (const shell of [
       `${DASHBOARD_SRC}/Components/Dashboard/DashboardView.tsx`,
       `${PUBLIC_DASHBOARD_SRC}/Pages/DashboardView/DashboardViewPage.tsx`,
     ]) {
-      expect(readCode(shell)).toContain("useDashboardTimeRangeZoom(");
+      expect(readCode(shell)).toContain("useDashboardViewerSettings(");
+      expect(readCode(shell)).toContain("viewerSettings.timeRangeZoom");
     }
+
+    expect(
+      fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "..",
+          "Common",
+          "UI",
+          "Utils",
+          "UseDashboardViewerSettings.ts",
+        ),
+        "utf8",
+      ),
+    ).toContain("useDashboardTimeRangeZoom(");
 
     expect(readSection(ZOOM_PAGE, "Where it works")).toContain(
       "[dashboards](/docs/dashboards/authoring), where a drag retimes the whole dashboard.",

@@ -33,7 +33,7 @@ stateDiagram-v2
     Cancelled --> [*]
 ```
 
-Una ejecución nueva está **Programado** hasta que un Worker la toma y la marca como **En ejecución**. Se pausa como **Esperándote** en un paso Manual, o después de un paso que necesita aprobación, y vuelve a la cola en cuanto alguien actúa. Una ejecución que espera a una persona nunca caduca. Termina como **Completado**, **Fallido** o **Cancelado**.
+Una ejecución nueva está **Programado** hasta que un Worker la toma y la marca como **En ejecución**. Se pausa como **Esperándote** en un paso Manual, o antes de un paso que necesita aprobación, y vuelve a la cola en cuanto alguien actúa. Una ejecución que espera a una persona nunca caduca. Termina como **Completado**, **Fallido** o **Cancelado**.
 
 ## Iniciar una ejecución
 
@@ -64,18 +64,19 @@ Iniciar una ejecución requiere Project Owner, Project Admin, Project Member, Ru
 
 Abre cualquier ejecución para ver su lista de comprobación. La parte superior de la página muestra el **Estado** de la ejecución, su **Progreso** (pasos hechos sobre el total), **Iniciado** (cuándo empezó) y **Activado por** (qué la inició). Cada paso muestra:
 
-- **Indicador de estado** — Pendiente, En ejecución, Esperándote, Hecho, Omitido, Fallido o Cancelado.
+- **Indicador de estado** — Pendiente, En ejecución, Esperándote, Esperando aprobación, Hecho, Omitido, Fallido o Cancelado.
 - **Título y descripción** — copiados del runbook en el momento de la ejecución.
 - **Salida** (plegable) — stdout, valores de retorno, respuestas HTTP o la respuesta de la IA.
 - **Mensaje de error** si el paso falló.
-- En el paso que espera la ejecución: **Marcar como completado** (un paso Manual) o **Aprobar y continuar** (un paso con **Requerir aprobación**), y **Omitir**.
+- En el paso que espera la ejecución: **Marcar como completado** (un paso Manual) o **Aprobar y ejecutar** (un paso con **Requerir aprobación**, que aún no se ha ejecutado), y **Omitir**.
+- **Aprobado por** en un paso que esperó una aprobación, una vez que se ha ejecutado.
 - Mientras la ejecución está en pausa, **Omitir** en los pasos automatizados posteriores que no requieren aprobación.
 
 Mientras la ejecución está en curso, la página se actualiza sola cada 30 segundos. Haz clic en **Actualizar** para ver el estado más reciente al instante.
 
 ## Completar, aprobar y omitir pasos
 
-Solo el paso que espera la ejecución se puede marcar como completado, aprobar u omitir para que la ejecución continúe. Un paso Manual o un paso con **Requerir aprobación** no se puede marcar ni omitir antes de que la ejecución llegue a él: su función es detener la ejecución, así que solo acepta una decisión cuando la ejecución está allí (en el caso de una aprobación, cuando el paso ya se ha ejecutado y puedes ver su salida).
+Solo el paso que espera la ejecución se puede marcar como completado, aprobar u omitir para que la ejecución continúe. Un paso Manual o un paso con **Requerir aprobación** no se puede marcar ni omitir antes de que la ejecución llegue a él: su función es detener la ejecución, así que solo acepta una decisión cuando la ejecución está allí. Un paso con **Requerir aprobación** espera antes de ejecutarse, así que lee primero lo que encontraron los pasos anteriores: **Aprobar y ejecutar** lo ejecuta, **Omitir** impide que se ejecute y, en ambos casos, la ejecución continúa. Una ejecución iniciada antes de que las aprobaciones pasaran al paso que protegen espera, en cambio, después de ese paso, una vez que se ha ejecutado: **Aprobar y continuar** deja que esa ejecución continúe.
 
 Mientras la ejecución está en pausa, también puedes omitir un paso automatizado posterior que no requiere aprobación, para que no se ejecute cuando la ejecución continúe. La ejecución sigue en pausa en el paso que te espera. No se puede omitir mientras hay pasos ejecutándose: espera a que la ejecución se pause o cancélala. Cada paso registra quién lo completó u omitió.
 
@@ -145,7 +146,7 @@ El mensaje dice "No runbook agent picked up this step before the wait window exp
 :::
 
 :::details La ejecución lleva horas esperando
-Una ejecución que espera a una persona nunca caduca. Ábrela y actúa en el paso marcado como **Esperándote**, o haz clic en **Cancelar ejecución**.
+Una ejecución que espera a una persona nunca caduca. Ábrela y actúa en el paso marcado como **Esperándote** o **Esperando aprobación**, o haz clic en **Cancelar ejecución**.
 :::
 
 :::details Un paso dice que puede haberse ejecutado en parte

@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import DashboardTraceListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardTraceListComponent";
@@ -24,7 +25,11 @@ import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import Sort from "Common/Types/BaseDatabase/Sort";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
+import useDashboardListWidgetSort, {
+  DashboardListWidgetSort,
+} from "../Utils/UseDashboardListWidgetSort";
 import {
   DashboardDateTime,
   getDashboardDateTime,
@@ -43,11 +48,11 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Span Name", widthPct: "32%" },
-  { label: "Duration", widthPct: "18%" },
-  { label: "Status", widthPct: "15%" },
+  { label: "Span Name", widthPct: "32%", sortKey: "name" },
+  { label: "Duration", widthPct: "18%", sortKey: "duration" },
+  { label: "Status", widthPct: "15%", sortKey: "status" },
   // Wider than the other columns because it carries a date *and* a time.
-  { label: "Time", widthPct: "35%" },
+  { label: "Time", widthPct: "35%", sortKey: "time" },
 ];
 
 const HONEYCOMB_LEGEND: Array<HoneycombLegendItem> =
@@ -81,6 +86,10 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
   const [spans, setSpans] = useState<Array<Span>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const widgetSort: DashboardListWidgetSort = useDashboardListWidgetSort(
+    props,
+    DashboardComponentType.TraceList,
+  );
 
   const maxRows: number = props.component.arguments.maxRows || 50;
   const statusFilter: string | undefined =
@@ -88,7 +97,15 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
   const viewMode: ResourceListViewMode =
     props.component.arguments.viewMode === "honeycomb" ? "honeycomb" : "list";
 
+  /*
+   * Only the newest read may draw: a viewer clicking through a column's
+   * sorts starts a read per click, and an older, slower one must not
+   * replace the order they ended on.
+   */
+  const readSequenceRef: React.MutableRefObject<number> = useRef<number>(0);
+
   const fetchTraces: () => Promise<void> = useCallback(async () => {
+    const readSequence: number = ++readSequenceRef.current;
     setIsLoading(true);
 
     const startAndEndDate: InBetween<Date> =
@@ -131,18 +148,26 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
             kind: true,
             primaryEntityId: true,
           },
-          sort: {
-            startTime: SortOrder.Descending,
-          },
+          // The viewer's pick, else the widget's own sort, else newest first.
+          sort: widgetSort.modelSort as Sort<Span>,
           requestOptions: DashboardResourceList.getRequestOptions("span", {
             componentId: props.componentId,
             variables: props.variables,
+            viewerSort: widgetSort.viewerPick,
           }),
         });
+
+      if (readSequence !== readSequenceRef.current) {
+        return;
+      }
 
       setSpans(listResult.data);
       setError(null);
     } catch (err: unknown) {
+      if (readSequence !== readSequenceRef.current) {
+        return;
+      }
+
       setError(API.getFriendlyErrorMessage(err as Error));
     }
 
@@ -153,6 +178,7 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
     maxRows,
     props.componentId,
     props.variables,
+    widgetSort.sortKey,
   ]);
 
   useEffect(() => {
@@ -248,6 +274,7 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
       viewMode={viewMode}
       honeycombTiles={honeycombTiles}
       honeycombLegend={HONEYCOMB_LEGEND}
+      sort={widgetSort.listSort}
     >
       {rows}
     </DashboardResourceListBase>

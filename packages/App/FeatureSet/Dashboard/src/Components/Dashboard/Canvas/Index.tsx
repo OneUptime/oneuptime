@@ -47,6 +47,11 @@ export interface ComponentProps {
   dashboardStartAndEndDate: RangeStartAndEndDateTime;
   refreshTick?: number | undefined;
   chartSyncId?: string | undefined;
+  /*
+   * The dashboard on the board: a viewer's sort of each list or table
+   * widget is remembered per widget on it.
+   */
+  dashboardId?: string | undefined;
   variables?: Array<DashboardVariable> | undefined;
   /*
    * Board-wide drag-to-zoom, owned by the dashboard shell above this
@@ -311,6 +316,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           isSelected={isSelected}
           refreshTick={props.refreshTick}
           chartSyncId={props.chartSyncId}
+          dashboardId={props.dashboardId}
           variables={props.variables}
           onDashboardTimeRangeSelect={props.onDashboardTimeRangeSelect}
           onDashboardTimeRangeReset={props.onDashboardTimeRangeReset}

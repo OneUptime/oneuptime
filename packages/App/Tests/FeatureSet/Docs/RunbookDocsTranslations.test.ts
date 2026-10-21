@@ -18,6 +18,7 @@ import {
   listItemCount,
   navTitle,
   prose,
+  strayMarkers,
   tableShape,
 } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
@@ -369,6 +370,12 @@ describe.each(LANGUAGES)("%s runbook pages", (language: string) => {
       expect(inlineCode(readPage(language, entry.page))).toEqual(
         inlineCode(english),
       );
+    });
+
+    it("draws every bold and italic span, with no asterisks or underscores left on the page", async () => {
+      expect(
+        await strayMarkers(readPage(language, entry.page), language),
+      ).toEqual([]);
     });
 
     it("has the English page's headings, tables and list items", () => {

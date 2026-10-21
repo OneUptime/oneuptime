@@ -43,12 +43,54 @@ import {
   NEW_DASHBOARD_THEME,
   getDashboardThemeProblem,
 } from "../../Types/Dashboard/DashboardTheme";
+import {
+  DASHBOARD_TIME_RANGE_FIELD,
+  getDashboardTimeRangeProblem,
+} from "../../Types/Dashboard/DashboardTimeRange";
+import {
+  DASHBOARD_AUTO_REFRESH_FIELD,
+  getDashboardAutoRefreshProblem,
+} from "../../Types/Dashboard/DashboardAutoRefresh";
+import { getDashboardWidgetSortsProblem } from "../../Utils/Dashboard/DashboardWidgetSorts";
+
+// The dashboard column that holds its widgets, variables and defaults.
+export const DASHBOARD_VIEW_CONFIG_COLUMN: string = "dashboardViewConfig";
 
 /*
- * Refuses a dashboard write holding a theme no reader of it can use
- * (checkCreateBeforeReferences, checkUpdateBeforeReferences): one of Light,
- * Dark or System, spelled exactly so (Types/Dashboard/DashboardTheme), or
- * nothing at all, which is the light page.
+ * Why a write's dashboardViewConfig cannot be saved, or null when it can:
+ * its default time range and auto-refresh must each be one a dashboard can
+ * open on (Types/Dashboard/DashboardTimeRange, DashboardAutoRefresh), and
+ * each list or table widget's own sort one the widget can be sorted by
+ * (Utils/Dashboard/DashboardWidgetSorts), or left out. The config is read
+ * the way every reader reads it (StoredDashboardViewConfig.unwrap: an
+ * envelope, JSON text), and nothing else in it is looked at: a config is
+ * stored as it is sent.
+ */
+export const getDashboardViewConfigProblem: (
+  dashboardViewConfig: unknown,
+) => string | null = (dashboardViewConfig: unknown): string | null => {
+  if (dashboardViewConfig === undefined || dashboardViewConfig === null) {
+    return null;
+  }
+
+  const stored: JSONObject =
+    StoredDashboardViewConfig.unwrap(dashboardViewConfig);
+
+  return (
+    getDashboardTimeRangeProblem(stored[DASHBOARD_TIME_RANGE_FIELD]) ||
+    getDashboardAutoRefreshProblem(stored[DASHBOARD_AUTO_REFRESH_FIELD]) ||
+    getDashboardWidgetSortsProblem(stored)
+  );
+};
+
+/*
+ * Refuses a dashboard write holding a value no reader of it can use
+ * (checkCreateBeforeReferences, checkUpdateBeforeReferences): a theme that
+ * is not Light, Dark or System, spelled exactly so (Types/Dashboard/
+ * DashboardTheme), and a dashboardViewConfig whose default time range or
+ * auto-refresh is none a dashboard can open on, or with a widget sort its
+ * widget cannot be sorted by. Nothing at all is fine for each: the light
+ * page, the past hour, no auto-refresh, each widget's own order.
  */
 export const assertDashboardWriteValues: (
   data: Record<string, unknown>,
@@ -59,6 +101,14 @@ export const assertDashboardWriteValues: (
 
   if (themeProblem) {
     throw new BadDataException(themeProblem);
+  }
+
+  const viewConfigProblem: string | null = getDashboardViewConfigProblem(
+    data[DASHBOARD_VIEW_CONFIG_COLUMN],
+  );
+
+  if (viewConfigProblem) {
+    throw new BadDataException(viewConfigProblem);
   }
 };
 

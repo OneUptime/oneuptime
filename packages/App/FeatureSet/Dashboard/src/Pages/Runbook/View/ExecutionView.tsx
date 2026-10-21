@@ -26,8 +26,20 @@ import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecution";
 import {
   decideRunbookStepAction,
+  getStepAwaitingUser,
   RunbookStepAction,
 } from "Common/Types/Runbook/RunbookStepAction";
+import {
+  RunbookStepWait,
+  getRunbookStepWait,
+} from "Common/Types/Runbook/RunbookStepApproval";
+import {
+  APPROVED_BY_LABEL,
+  APPROVE_TO_RUN_NOTE,
+  getRunWaitingTemplate,
+  getWaitingStepButtonTitle,
+  getWaitingStepStatusLabel,
+} from "../../../Components/Runbook/RunbookExecutionWaitCopy";
 import User from "Common/Models/DatabaseModels/User";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Alert from "Common/Models/DatabaseModels/Alert";
@@ -329,6 +341,9 @@ const ExecutionView: FunctionComponent<
       if (s.completedByUserId) {
         userIdsToFetch.add(s.completedByUserId);
       }
+      if (s.approvedByUserId) {
+        userIdsToFetch.add(s.approvedByUserId);
+      }
     }
     if (userIdsToFetch.size === 0) {
       return;
@@ -599,20 +614,42 @@ const ExecutionView: FunctionComponent<
     isTerminal(execStatus) && Boolean(execution.runbookId);
 
   const pollSeconds: number = Math.round(POLL_INTERVAL_MS / 1000);
+
+  /*
+   * The step the run waits on, and why: the card names it - the step a
+   * person ticks off, the step that runs once someone approves it, or (in
+   * a run started before approvals moved) the step that ran and waits.
+   */
+  const awaitingStep: RunbookStepExecutionState | undefined =
+    getStepAwaitingUser({
+      executionStatus: execStatus,
+      stepExecutions: steps,
+    });
+  const awaitingWait: RunbookStepWait | undefined =
+    getRunbookStepWait(awaitingStep);
+
+  // Before the person who approved a step that waited for approval.
+  const approvedByLabel: string | undefined =
+    translator.translateText(APPROVED_BY_LABEL);
+
   const cardDescription: string =
-    execStatus === RunbookExecutionStatus.WaitingForManualStep
-      ? "Waiting on a manual step. Tick it off below to continue."
-      : execStatus === RunbookExecutionStatus.Running
-        ? `Steps are running. This page refreshes every ${pollSeconds} seconds — or hit Refresh now.`
-        : execStatus === RunbookExecutionStatus.Completed
-          ? "All steps completed successfully."
-          : execStatus === RunbookExecutionStatus.Failed
-            ? "A step failed and stopped the run. Review the error below, then re-run the runbook when you've fixed it."
-            : execStatus === RunbookExecutionStatus.Cancelled
-              ? "This execution was cancelled."
-              : execution.startedAt
-                ? "Continuing — queued to pick up where it paused."
-                : "Scheduled — waiting to start.";
+    awaitingStep && awaitingWait
+      ? translator.translateTemplate(getRunWaitingTemplate(awaitingWait), {
+          title: awaitingStep.step.title || "",
+        })
+      : execStatus === RunbookExecutionStatus.WaitingForManualStep
+        ? "Waiting on a manual step. Tick it off below to continue."
+        : execStatus === RunbookExecutionStatus.Running
+          ? `Steps are running. This page refreshes every ${pollSeconds} seconds — or hit Refresh now.`
+          : execStatus === RunbookExecutionStatus.Completed
+            ? "All steps completed successfully."
+            : execStatus === RunbookExecutionStatus.Failed
+              ? "A step failed and stopped the run. Review the error below, then re-run the runbook when you've fixed it."
+              : execStatus === RunbookExecutionStatus.Cancelled
+                ? "This execution was cancelled."
+                : execution.startedAt
+                  ? "Continuing — queued to pick up where it paused."
+                  : "Scheduled — waiting to start.";
 
   const cardButtons: Array<CardButtonSchema> = [];
 
@@ -652,13 +689,28 @@ const ExecutionView: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * Stacked: the run's name and its buttons share the first line, and
+       * what the run waits on runs under both, across the card - beside two
+       * buttons in the narrower card a tablet or the side menu leaves, it was
+       * squeezed into a column a word wide.
+       */}
       <Card
         title={execution.runbookNameSnapshot || "Runbook Execution"}
         description={cardDescription}
         buttons={cardButtons}
+        headerLayout="stacked"
       >
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+          {/*
+           * Four tiles across where the card is wide enough for a date on
+           * one line, two by two below that, and one above another on a
+           * phone, where two side by side cut a status or a date in pieces.
+           */}
+          <div
+            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6"
+            data-testid="runbook-execution-tiles"
+          >
             <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
               <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">
                 {translator.translateText("Status")}
@@ -805,14 +857,21 @@ const ExecutionView: FunctionComponent<
               <ul className="space-y-3">
                 {steps.map(
                   (stepExec: RunbookStepExecutionState, idx: number) => {
-                    const stepVisual: StatusVisual =
-                      STEP_STATUS_VISUAL[stepExec.status];
-                    const isWaiting: boolean =
-                      stepExec.status ===
-                      RunbookStepExecutionStatus.WaitingForUser;
-                    const isWaitingForApproval: boolean =
-                      isWaiting &&
-                      stepExec.step.type !== RunbookStepType.Manual;
+                    /*
+                     * Why the run waits on this step, if it does: a Manual
+                     * step is "Waiting for you", a step that asks for
+                     * approval "Waiting for approval" - before it runs, or
+                     * (a run started before approvals moved) after it ran.
+                     */
+                    const wait: RunbookStepWait | undefined =
+                      getRunbookStepWait(stepExec);
+                    const stepVisual: StatusVisual = wait
+                      ? {
+                          ...STEP_STATUS_VISUAL[stepExec.status],
+                          label: getWaitingStepStatusLabel(wait),
+                        }
+                      : STEP_STATUS_VISUAL[stepExec.status];
+                    const isWaiting: boolean = wait !== undefined;
                     /*
                      * Offer only what the API accepts: completing the step
                      * the run is paused on, skipping it, or skipping a later
@@ -830,6 +889,12 @@ const ExecutionView: FunctionComponent<
                       stepExecutions: steps,
                       stepId: stepExec.step.id,
                     }).allowed;
+                    /*
+                     * What moves the run on from the step it waits on: Mark
+                     * complete, Approve and run, or Approve & continue.
+                     */
+                    const waitingStepButtonTitle: string =
+                      getWaitingStepButtonTitle(wait || RunbookStepWait.Manual);
                     return (
                       <li key={stepExec.step.id} className="relative pl-12">
                         {/* Timeline dot */}
@@ -858,8 +923,22 @@ const ExecutionView: FunctionComponent<
                               : "border-gray-200"
                           }`}
                         >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0 flex-1">
+                          {/*
+                           * The step, and the buttons that move the run on:
+                           * beside its words where the card has room for
+                           * both, and under them, at the card's right edge,
+                           * where it has not - decided by the card's own
+                           * width, not the screen's, so a narrow card (a
+                           * tablet, the side menu open, a long label in the
+                           * reader's language) never squeezes the words into
+                           * a column a word wide. The words keep at least
+                           * 16rem; the buttons wrap under them first.
+                           */}
+                          <div className="flex flex-wrap items-start gap-3">
+                            <div
+                              className="min-w-0 grow basis-64"
+                              data-testid={`runbook-execution-step-${idx}-words`}
+                            >
                               <div className="flex flex-wrap items-center gap-2 mb-1">
                                 <span className="text-xs text-gray-400 font-medium">
                                   {translator.translateTemplate(
@@ -887,18 +966,152 @@ const ExecutionView: FunctionComponent<
                                   />
                                 </div>
                               )}
+                              {wait === RunbookStepWait.ApprovalToRun && (
+                                // A div: the icon draws a div of its own.
+                                <div
+                                  className="mt-2 flex items-center gap-1.5 text-sm text-amber-800"
+                                  data-testid={`runbook-execution-step-${idx}-approve-to-run`}
+                                >
+                                  <Icon
+                                    icon={IconProp.Lock}
+                                    size={SizeProp.Smaller}
+                                    className="h-3.5 w-3.5 shrink-0 text-amber-600"
+                                  />
+                                  <span>
+                                    {translator.translateText(
+                                      APPROVE_TO_RUN_NOTE,
+                                    )}
+                                  </span>
+                                </div>
+                              )}
+                              {/*
+                               * When the step ran, and who approved it or
+                               * ticked it off - with its words, so where the
+                               * buttons wrap under the words they come last,
+                               * after everything there is to read.
+                               */}
+                              {(stepExec.startedAt ||
+                                stepExec.completedAt ||
+                                stepExec.completedByUserId ||
+                                stepExec.approvedByUserId) && (
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mt-2 items-center">
+                                  {/*
+                                   * Who approved a step that asked for approval
+                                   * before it ran, first: it is why the step ran.
+                                   */}
+                                  {stepExec.approvedByUserId && (
+                                    <span
+                                      className="inline-flex items-center gap-1"
+                                      data-testid={`runbook-execution-step-${idx}-approved-by`}
+                                    >
+                                      {/* Kept on one line beside the person, as a phone narrows it. */}
+                                      <span className="whitespace-nowrap">
+                                        {approvedByLabel}
+                                      </span>
+                                      {stepUsers.get(
+                                        stepExec.approvedByUserId,
+                                      ) ? (
+                                        <UserElement
+                                          user={
+                                            stepUsers.get(
+                                              stepExec.approvedByUserId,
+                                            ) as User
+                                          }
+                                        />
+                                      ) : (
+                                        <span className="font-mono text-gray-400">
+                                          {stepExec.approvedByUserId.slice(
+                                            0,
+                                            8,
+                                          )}
+                                        </span>
+                                      )}
+                                    </span>
+                                  )}
+                                  {stepExec.startedAt && (
+                                    <span>
+                                      {translator.translateTemplate(
+                                        "Started {{date}}",
+                                        {
+                                          date: OneUptimeDate.getDateAsLocalFormattedString(
+                                            new Date(stepExec.startedAt),
+                                          ),
+                                        },
+                                      )}
+                                    </span>
+                                  )}
+                                  {stepExec.completedAt && (
+                                    <span>
+                                      {translator.translateTemplate(
+                                        "Finished {{date}}",
+                                        {
+                                          date: OneUptimeDate.getDateAsLocalFormattedString(
+                                            new Date(stepExec.completedAt),
+                                          ),
+                                        },
+                                      )}
+                                    </span>
+                                  )}
+                                  {stepExec.completedByUserId &&
+                                    (stepExec.status ===
+                                      RunbookStepExecutionStatus.Completed ||
+                                      stepExec.status ===
+                                        RunbookStepExecutionStatus.Skipped) && (
+                                      <span className="inline-flex items-center gap-1">
+                                        <span className="whitespace-nowrap">
+                                          {stepExec.status ===
+                                          RunbookStepExecutionStatus.Skipped
+                                            ? translator.translateText(
+                                                "Skipped by",
+                                              )
+                                            : translator.translateText(
+                                                "Completed by",
+                                              )}
+                                        </span>
+                                        {stepUsers.get(
+                                          stepExec.completedByUserId,
+                                        ) ? (
+                                          <UserElement
+                                            user={
+                                              stepUsers.get(
+                                                stepExec.completedByUserId,
+                                              ) as User
+                                            }
+                                          />
+                                        ) : (
+                                          <span className="font-mono text-gray-400">
+                                            {stepExec.completedByUserId.slice(
+                                              0,
+                                              8,
+                                            )}
+                                          </span>
+                                        )}
+                                      </span>
+                                    )}
+                                </div>
+                              )}
                             </div>
-                            <div className="flex-shrink-0 flex items-center gap-2">
+                            {/*
+                             * On a phone the waiting step's buttons take the
+                             * card's width, as a dialog's do: the one that
+                             * moves the run on fills a line of its own, and
+                             * Skip sits centred under it - so however long
+                             * their words are in the reader's language, they
+                             * stay inside the card. A later step's lone Skip
+                             * keeps to the card's right edge.
+                             */}
+                            <div
+                              className="ml-auto flex flex-wrap items-center justify-end gap-2 empty:hidden max-sm:w-full"
+                              data-testid={`runbook-execution-step-${idx}-actions`}
+                            >
                               {canComplete && (
                                 <Button
-                                  title={
-                                    isWaitingForApproval
-                                      ? "Approve & continue"
-                                      : "Mark complete"
-                                  }
+                                  title={waitingStepButtonTitle}
                                   buttonStyle={ButtonStyleType.PRIMARY}
                                   buttonSize={ButtonSize.Small}
                                   icon={IconProp.Check}
+                                  // Full width on a phone (Button's own), its own width beside the step.
+                                  className="sm:w-auto"
                                   onClick={() => {
                                     void completeStep(stepExec.step.id);
                                   }}
@@ -911,6 +1124,11 @@ const ExecutionView: FunctionComponent<
                                   buttonStyle={ButtonStyleType.OUTLINE}
                                   buttonSize={ButtonSize.Small}
                                   icon={IconProp.ChevronRight}
+                                  className={
+                                    canComplete
+                                      ? "max-sm:ml-0 max-sm:w-full max-sm:justify-center"
+                                      : undefined
+                                  }
                                   onClick={() => {
                                     void skipStep(stepExec.step.id);
                                   }}
@@ -919,66 +1137,6 @@ const ExecutionView: FunctionComponent<
                               )}
                             </div>
                           </div>
-
-                          {(stepExec.startedAt ||
-                            stepExec.completedAt ||
-                            stepExec.completedByUserId) && (
-                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mt-2 items-center">
-                              {stepExec.startedAt && (
-                                <span>
-                                  {translator.translateTemplate(
-                                    "Started {{date}}",
-                                    {
-                                      date: OneUptimeDate.getDateAsLocalFormattedString(
-                                        new Date(stepExec.startedAt),
-                                      ),
-                                    },
-                                  )}
-                                </span>
-                              )}
-                              {stepExec.completedAt && (
-                                <span>
-                                  {translator.translateTemplate(
-                                    "Finished {{date}}",
-                                    {
-                                      date: OneUptimeDate.getDateAsLocalFormattedString(
-                                        new Date(stepExec.completedAt),
-                                      ),
-                                    },
-                                  )}
-                                </span>
-                              )}
-                              {stepExec.completedByUserId &&
-                                (stepExec.status ===
-                                  RunbookStepExecutionStatus.Completed ||
-                                  stepExec.status ===
-                                    RunbookStepExecutionStatus.Skipped) && (
-                                  <span className="inline-flex items-center gap-1">
-                                    {stepExec.status ===
-                                    RunbookStepExecutionStatus.Skipped
-                                      ? translator.translateText("Skipped by")
-                                      : translator.translateText(
-                                          "Completed by",
-                                        )}
-                                    {stepUsers.get(
-                                      stepExec.completedByUserId,
-                                    ) ? (
-                                      <UserElement
-                                        user={
-                                          stepUsers.get(
-                                            stepExec.completedByUserId,
-                                          ) as User
-                                        }
-                                      />
-                                    ) : (
-                                      <span className="font-mono text-gray-400">
-                                        {stepExec.completedByUserId.slice(0, 8)}
-                                      </span>
-                                    )}
-                                  </span>
-                                )}
-                            </div>
-                          )}
 
                           {stepExec.errorMessage && (
                             <div className="mt-3 rounded-md bg-rose-50 border border-rose-200 text-rose-800 px-3 py-2 text-xs flex items-start gap-2">

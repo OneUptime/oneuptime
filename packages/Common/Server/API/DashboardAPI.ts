@@ -118,6 +118,12 @@ import InBetween from "../../Types/BaseDatabase/InBetween";
 import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import { applyAlertSelfPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
 import { STORAGE_ARRAY_HARDWARE_WIDGET_KINDS } from "../../Utils/Dashboard/Components/DashboardStorageArrayResourceListShared";
+import { DASHBOARD_WIDGET_SORT_REQUEST_FIELD } from "../../Types/Dashboard/DashboardWidgetSort";
+import {
+  DashboardWidgetListReadStep,
+  getDashboardWidgetListReadSteps,
+  readDashboardWidgetListInSteps,
+} from "../../Utils/Dashboard/DashboardWidgetSorts";
 import FileOwnership from "../Utils/File/FileOwnership";
 
 /*
@@ -2333,6 +2339,13 @@ export default class DashboardAPI extends BaseAPI<
         dashboardViewConfig: DashboardAPI.getStoredViewConfig(dashboard),
         requestedVariables: req.body ? req.body["variables"] : undefined,
         requestedQuery,
+        /*
+         * A viewer's sort from a header click: the policy takes it only
+         * when it names one of the widget's own sortable columns.
+         */
+        requestedSort: req.body
+          ? req.body[DASHBOARD_WIDGET_SORT_REQUEST_FIELD]
+          : undefined,
       });
 
     const requestedResourceType: string = req.params["resourceType"] as string;
@@ -2388,15 +2401,39 @@ export default class DashboardAPI extends BaseAPI<
      */
     query["projectId"] = dashboard.projectId;
 
+    /*
+     * One read for most orders. A status the database cannot order by its
+     * meaning (a pod's phase, a storage component's status) is read rank by
+     * rank, worst first, each read the same query narrowed to its rank,
+     * until the list has its rows (DashboardWidgetSorts). Every read keeps
+     * the project scope set above.
+     */
+    const steps: Array<DashboardWidgetListReadStep> = policy.sortChoice
+      ? getDashboardWidgetListReadSteps({
+          componentType: widget["componentType"],
+          choice: policy.sortChoice,
+          query,
+        })
+      : [{ query, sort: policy.sort }];
+
     const list: Array<BaseModel | AnalyticsDataModel> =
-      await config.service.findBy({
-        query: query,
-        select: policy.select,
-        sort: policy.sort,
+      await readDashboardWidgetListInSteps<BaseModel | AnalyticsDataModel>({
+        steps,
         limit: policy.limit,
-        skip: 0,
-        props: {
-          isRoot: true,
+        read: (
+          step: DashboardWidgetListReadStep,
+          limit: number,
+        ): Promise<Array<BaseModel | AnalyticsDataModel>> => {
+          return config.service.findBy({
+            query: { ...step.query, projectId: dashboard.projectId },
+            select: policy.select,
+            sort: step.sort,
+            limit: limit,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
         },
       });
 

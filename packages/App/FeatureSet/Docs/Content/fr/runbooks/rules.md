@@ -157,7 +157,7 @@ Vérifiez, dans l'ordre :
 - La règle est **Activé**.
 - Chaque runbook a **Exécuter ce runbook** activé, sur sa page **Paramètres**, et au moins une étape enregistrée.
 - L'incident ou l'alerte n'a pas été créé déjà résolu.
-- L'exécution du runbook n'est pas simplement en attente : ouvrez-la depuis la page **Runbooks** de l'événement. Une étape Manual ou une approbation affiche **En attente de votre part**.
+- L'exécution du runbook n'est pas simplement en attente : ouvrez-la depuis la page **Runbooks** de l'événement. Une étape Manual affiche **En attente de votre part**, et une étape qui exige une approbation **En attente d'approbation**.
 :::
 
 :::details Une règle ne correspond jamais

@@ -10,7 +10,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import VMwareResource from "Common/Models/DatabaseModels/VMwareResource";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -48,12 +48,12 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Virtual Machine", widthPct: "28%" },
-  { label: "Power", widthPct: "16%" },
-  { label: "CPU", widthPct: "12%" },
-  { label: "Memory", widthPct: "12%" },
-  { label: "Host", widthPct: "16%" },
-  { label: "vCenter", widthPct: "16%" },
+  { label: "Virtual Machine", widthPct: "28%", sortKey: "name" },
+  { label: "Power", widthPct: "16%", sortKey: "power" },
+  { label: "CPU", widthPct: "12%", sortKey: "cpu" },
+  { label: "Memory", widthPct: "12%", sortKey: "memory" },
+  { label: "Host", widthPct: "16%", sortKey: "host" },
+  { label: "vCenter", widthPct: "16%", sortKey: "vcenter" },
 ];
 
 /*
@@ -356,7 +356,8 @@ const DashboardVMwareVirtualMachineListComponentElement: FunctionComponent<
       maxRows={args.maxRows || 25}
       query={query}
       select={BASE_SELECT}
-      sort={{ name: SortOrder.Ascending }}
+      componentType={DashboardComponentType.VMwareVirtualMachineList}
+      widgetProps={props}
       refreshTick={props.refreshTick}
       variables={props.variables}
       attributeToColumn={ATTRIBUTE_TO_COLUMN}

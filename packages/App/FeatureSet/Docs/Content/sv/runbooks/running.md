@@ -33,7 +33,7 @@ stateDiagram-v2
     Cancelled --> [*]
 ```
 
-En ny körning är **Schemalagd** tills en Worker tar den och markerar den som **Körs**. Den pausar som **Väntar på dig** vid ett Manual-steg, eller efter ett steg som kräver godkännande, och går tillbaka till kön så snart någon agerar. En körning som väntar på en person löper aldrig ut. Den avslutas som **Slutförd**, **Misslyckades** eller **Avbruten**.
+En ny körning är **Schemalagd** tills en Worker tar den och markerar den som **Körs**. Den pausar som **Väntar på dig** vid ett Manual-steg, eller före ett steg som kräver godkännande, och går tillbaka till kön så snart någon agerar. En körning som väntar på en person löper aldrig ut. Den avslutas som **Slutförd**, **Misslyckades** eller **Avbruten**.
 
 ## Starta en körning
 
@@ -64,18 +64,19 @@ För att starta en körning krävs Project Owner, Project Admin, Project Member,
 
 Öppna en körning för att se dess checklista. Högst upp på sidan visas körningens **Status**, dess **Progress** (klara steg av alla steg), **Startade** (när den började) och **Utlöst av** (vad som startade den). Varje steg visar:
 
-- **Statusmärke** — Väntar, Körs, Väntar på dig, Klar, Hoppade över, Misslyckades eller Avbruten.
+- **Statusmärke** — Väntar, Körs, Väntar på dig, Väntar på godkännande, Klar, Hoppade över, Misslyckades eller Avbruten.
 - **Titel och beskrivning** — kopierade från runbooket när körningen startade.
 - **Output** (kan fällas ihop) — stdout, returvärden, HTTP-svar eller AI:ns svar.
 - **Felmeddelande**, om steget misslyckades.
-- På det steg körningen väntar på: **Mark complete** (ett Manual-steg) eller **Approve & continue** (ett steg med **Kräv godkännande**) och **Hoppa över**.
+- På det steg körningen väntar på: **Markera som klar** (ett Manual-steg) eller **Godkänn och kör** (ett steg med **Kräv godkännande**, som inte har körts än) och **Hoppa över**.
+- **Godkänt av** på ett steg som väntade på godkännande, när det har körts.
 - Medan körningen är pausad, **Hoppa över** på senare automatiserade steg som inte kräver godkännande.
 
 Medan körningen pågår uppdateras sidan av sig själv var 30:e sekund. Klicka på **Uppdatera** för att se det senaste tillståndet direkt.
 
 ## Slutför, godkänn och hoppa över steg
 
-Bara det steg som körningen väntar på kan slutföras, godkännas eller hoppas över så att körningen fortsätter. Ett Manual-steg eller ett steg med **Kräv godkännande** kan inte bockas av eller hoppas över innan körningen når det: deras uppgift är att stoppa körningen, så de tar emot ett beslut först när körningen är där (för ett godkännande: när steget har körts och du kan se dess output).
+Bara det steg som körningen väntar på kan slutföras, godkännas eller hoppas över så att körningen fortsätter. Ett Manual-steg eller ett steg med **Kräv godkännande** kan inte bockas av eller hoppas över innan körningen når det: deras uppgift är att stoppa körningen, så de tar emot ett beslut först när körningen är där. Ett steg med **Kräv godkännande** väntar innan det körs, så läs först vad stegen före det hittade: **Godkänn och kör** kör det, **Hoppa över** hindrar att det körs, och hur som helst fortsätter körningen. En körning som startade innan godkännanden flyttade till steget de skyddar väntar i stället efter ett sådant steg, när det har körts: **Godkänn och fortsätt** låter den körningen fortsätta.
 
 Medan körningen är pausad kan du också hoppa över ett senare automatiserat steg som inte kräver godkännande, så att det inte körs när körningen fortsätter. Körningen förblir pausad vid det steg som väntar på dig. Du kan inte hoppa över medan steg körs: vänta tills körningen pausar, eller avbryt den. Varje steg registrerar vem som slutförde eller hoppade över det.
 
@@ -95,7 +96,7 @@ Det klassiska förloppet:
 | # | Steg | Vad som händer |
 | --- | --- | --- |
 | 1 | Bash: registrera systemets tillstånd | Körs på sin Runner så snart körningen startar. |
-| 2 | Manual: "Informera kunderna med bannern på statussidan." | Körningen pausar tills någon klickar på **Mark complete**. |
+| 2 | Manual: "Informera kunderna med bannern på statussidan." | Körningen pausar tills någon klickar på **Markera som klar**. |
 | 3 | HTTP request: larma DBA:n via PagerDuty | Körs på Workern. |
 | 4 | Manual: "Bekräfta att den sekundära databasen nu är primär." | Körningen pausar igen. |
 | 5 | HTTP request: skicka klartecknet till en Slack-webhook | Körs, och körningen är **Slutförd**. |
@@ -145,7 +146,7 @@ Meddelandet lyder "No runbook agent picked up this step before the wait window e
 :::
 
 :::details Körningen har väntat i timmar
-En körning som väntar på en person löper aldrig ut. Öppna den och agera på steget som visar **Väntar på dig**, eller klicka på **Avbryt körning**.
+En körning som väntar på en person löper aldrig ut. Öppna den och agera på steget som visar **Väntar på dig** eller **Väntar på godkännande**, eller klicka på **Avbryt körning**.
 :::
 
 :::details Ett steg säger att det kanske har körts delvis
