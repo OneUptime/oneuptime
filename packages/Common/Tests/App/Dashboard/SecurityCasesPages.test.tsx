@@ -1,0 +1,762 @@
+import "@testing-library/jest-dom";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import {
+  act,
+  cleanup,
+  configure,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import * as React from "react";
+import { ReactElement } from "react";
+import { MemoryRouter } from "react-router-dom";
+import { PROJECT_ID, goTo, routeFor } from "./SideMenuHarness";
+
+/*
+ * The case queue's pages: Open Cases, Assigned to Me, Unassigned, Closed
+ * Cases and All Cases, each a page of its own under Security Cases in the
+ * side menu. They were views switched by buttons along the top of one
+ * list; the maintainer asked for "different pages for these things".
+ *
+ * Each real page is rendered with its ModelTable captured, so what the page
+ * asks the server for and how it draws its list are pinned: the query, the
+ * sort, the columns and filters fitted to its question, whether it offers
+ * Open Security Case, its bulk actions and its empty state. Then the
+ * production ModelTable is drawn with those props, to see the list a person
+ * sees: no view buttons, the empty state each page says, and Assigned to
+ * Me's way forward to Unassigned.
+ */
+
+configure({ asyncUtilTimeout: 15000 });
+
+jest.setTimeout(120000);
+
+// The person signed in, whose cases Assigned to Me lists.
+const ME: string = "80000000-0000-4000-8000-000000000001";
+
+interface CapturedColumn {
+  title: string;
+  field: Record<string, unknown>;
+  isHiddenByDefault?: boolean | undefined;
+}
+
+interface CapturedFilter {
+  title: string;
+  field: Record<string, unknown>;
+  filterDropdownOptions?: Array<{ label: string; value: unknown }> | undefined;
+}
+
+interface CapturedEmptyStateAction {
+  title: string;
+  onClick: () => void;
+  dataTestId?: string | undefined;
+}
+
+interface CapturedTable {
+  id?: string | undefined;
+  query: Record<string, unknown>;
+  sortBy?: string | undefined;
+  sortOrder?: string | undefined;
+  columns: Array<CapturedColumn>;
+  filters: Array<CapturedFilter>;
+  isCreateable?: boolean | undefined;
+  createVerb?: string | undefined;
+  userPreferencesKey?: string | undefined;
+  viewPageRoute?: { toString: () => string } | undefined;
+  noItemsMessage?: unknown;
+  topContent?: unknown;
+  emptyState?:
+    | {
+        isAllClear?: boolean | undefined;
+        actions?: Array<CapturedEmptyStateAction> | undefined;
+      }
+    | undefined;
+  cardProps?: { title?: unknown; description?: unknown } | undefined;
+  bulkActions?: { buttons: Array<unknown> } | undefined;
+  [key: string]: unknown;
+}
+
+let capturedTables: Array<CapturedTable> = [];
+// How often the page's table was mounted and taken down: a new page, a new table.
+let tableMounts: number = 0;
+let tableUnmounts: number = 0;
+
+jest.mock("react-i18next", () => {
+  return {
+    useTranslation: () => {
+      return {
+        t: (value: string): string => {
+          return value;
+        },
+      };
+    },
+  };
+});
+
+jest.mock("../../../UI/Utils/Permission", () => {
+  return {
+    __esModule: true,
+    default: {
+      // A project owner: may open, change and delete cases.
+      getAllPermissions: (): Array<unknown> => {
+        return ["ProjectOwner"];
+      },
+      getProjectPermissions: (): null => {
+        return null;
+      },
+      getGlobalPermissions: (): { globalPermissions: Array<unknown> } => {
+        return { globalPermissions: ["Public", "User", "CurrentUser"] };
+      },
+    },
+  };
+});
+
+jest.mock("../../../UI/Utils/User", () => {
+  const ObjectIDType: typeof import("../../../Types/ObjectID").default = (
+    jest.requireActual("../../../Types/ObjectID") as {
+      default: typeof import("../../../Types/ObjectID").default;
+    }
+  ).default;
+
+  return {
+    __esModule: true,
+    default: {
+      isMasterAdmin: (): boolean => {
+        return false;
+      },
+      getUserId: (): unknown => {
+        return new ObjectIDType("80000000-0000-4000-8000-000000000001");
+      },
+      getName: (): string => {
+        return "Maya Chen";
+      },
+      getEmail: (): string => {
+        return "maya@acme-commerce.example";
+      },
+    },
+  };
+});
+
+// Captured, not drawn: each test draws the production table itself.
+jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
+  return {
+    __esModule: true,
+    default: (props: CapturedTable) => {
+      capturedTables.push(props);
+      React.useEffect(() => {
+        tableMounts++;
+
+        return () => {
+          tableUnmounts++;
+        };
+      }, []);
+      return <div data-testid="captured-model-table" />;
+    },
+  };
+});
+
+import SecurityCasesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Cases";
+import {
+  SECURITY_CASE_QUEUE_VIEWS,
+  SecurityCaseQueueView,
+  SecurityCaseQueueViewKey,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
+import {
+  VIEW_UNASSIGNED_CASES,
+  VIEW_UNASSIGNED_CASES_TEST_ID,
+  getSecurityCasesTablePreferencesKey,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCasesTable";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
+import Route from "../../../Types/API/Route";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import IsNull from "../../../Types/BaseDatabase/IsNull";
+import ListResult from "../../../Types/BaseDatabase/ListResult";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import ObjectID from "../../../Types/ObjectID";
+import SecurityCasePriority from "../../../Types/SecurityCase/SecurityCasePriority";
+import SecurityCaseStatus, {
+  OPEN_SECURITY_CASE_STATUSES,
+} from "../../../Types/SecurityCase/SecurityCaseStatus";
+import SecurityCaseVerdict from "../../../Types/SecurityCase/SecurityCaseVerdict";
+import API from "../../../UI/Utils/API/API";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "../../../UI/Utils/Navigation";
+import ProjectUtil from "../../../UI/Utils/Project";
+
+type RealModelTableType = (props: Record<string, unknown>) => ReactElement;
+
+const RealModelTable: RealModelTableType = (
+  jest.requireActual("../../../UI/Components/ModelTable/ModelTable") as {
+    default: RealModelTableType;
+  }
+).default;
+
+const PAGE_PROPS: PageComponentProps = {
+  pageRoute: new Route(`/dashboard/${PROJECT_ID}/security-events/cases`),
+  currentProject: null,
+  hasPaymentMethod: true,
+} as unknown as PageComponentProps;
+
+const CLOSED_CASE_ID: string = "20000000-0000-4000-8000-000000000135";
+
+// The rows the list is answered with, when a test gives it any.
+let listedRows: Array<SecurityCase> = [];
+let listRequests: Array<{ query: Record<string, unknown>; sort: unknown }> =
+  [];
+
+function viewOf(key: SecurityCaseQueueViewKey): SecurityCaseQueueView {
+  const view: SecurityCaseQueueView | undefined =
+    SECURITY_CASE_QUEUE_VIEWS.find(
+      (candidate: SecurityCaseQueueView): boolean => {
+        return candidate.key === key;
+      },
+    );
+
+  if (!view) {
+    throw new Error(`No case queue view ${key}.`);
+  }
+
+  return view;
+}
+
+async function capture(
+  view: SecurityCaseQueueViewKey | undefined,
+): Promise<CapturedTable> {
+  capturedTables = [];
+
+  await act(async () => {
+    render(
+      <MemoryRouter>
+        <SecurityCasesPage {...PAGE_PROPS} view={view} />
+      </MemoryRouter>,
+    );
+  });
+
+  const table: CapturedTable | undefined =
+    capturedTables[capturedTables.length - 1];
+
+  if (!table) {
+    throw new Error("The page rendered no table.");
+  }
+
+  cleanup();
+
+  return table;
+}
+
+function titlesOf(items: Array<{ title: string }>): Array<string> {
+  return items.map((item: { title: string }): string => {
+    return item.title;
+  });
+}
+
+function bulkTitles(table: CapturedTable): Array<string> {
+  return (table.bulkActions?.buttons || [])
+    .filter((button: unknown): boolean => {
+      return typeof button === "object" && button !== null;
+    })
+    .map((button: unknown): string => {
+      return (button as { title: string }).title;
+    });
+}
+
+async function drawTable(table: CapturedTable): Promise<void> {
+  await act(async () => {
+    render(
+      <MemoryRouter>
+        <RealModelTable
+          {...(table as unknown as Record<string, unknown>)}
+          disableUrlState={true}
+        />
+      </MemoryRouter>,
+    );
+  });
+}
+
+function closedCase(): SecurityCase {
+  const row: SecurityCase = new SecurityCase();
+  row._id = CLOSED_CASE_ID;
+  row.caseNumberWithPrefix = "CASE-135";
+  row.title = "Repeated MFA push denials for a sales account";
+  row.priority = SecurityCasePriority.Low;
+  row.status = SecurityCaseStatus.Closed;
+  row.verdict = SecurityCaseVerdict.BenignPositive;
+  row.closedAt = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+  row.lastDetectedAt = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+  row.detectionCount = 2;
+  row.entities = [];
+  return row;
+}
+
+beforeEach(() => {
+  capturedTables = [];
+  listedRows = [];
+  listRequests = [];
+  goTo(`/dashboard/${PROJECT_ID}/security-events/cases`);
+  window.localStorage.clear();
+
+  jest
+    .spyOn(ProjectUtil, "getCurrentProjectId")
+    .mockReturnValue(new ObjectID(PROJECT_ID));
+  jest
+    .spyOn(ModelAPI, "getList")
+    .mockImplementation(
+      async (options: {
+        modelType: { new (): BaseModel };
+        query: Record<string, unknown>;
+        sort: unknown;
+        skip?: number;
+        limit?: number;
+      }): Promise<ListResult<BaseModel>> => {
+        const isCases: boolean = options.modelType === SecurityCase;
+
+        if (isCases) {
+          listRequests.push({ query: options.query, sort: options.sort });
+        }
+
+        const data: Array<BaseModel> = isCases ? listedRows : [];
+
+        return {
+          data,
+          count: data.length,
+          skip: options.skip || 0,
+          limit: options.limit || 10,
+        } as ListResult<BaseModel>;
+      },
+    );
+  jest.spyOn(ModelAPI, "getItem").mockResolvedValue(null as never);
+  jest.spyOn(ModelAPI, "count").mockResolvedValue(0 as never);
+  jest.spyOn(API, "get").mockResolvedValue({ data: {} } as never);
+  jest.spyOn(API, "post").mockResolvedValue({ data: {} } as never);
+});
+
+afterEach(() => {
+  cleanup();
+  jest.restoreAllMocks();
+});
+
+describe("each case page asks for its own cases", () => {
+  test("Open Cases: every status but Closed, in the project", async () => {
+    const table: CapturedTable = await capture("open");
+    const status: Includes = table.query["status"] as Includes;
+
+    expect(table.query["projectId"]).toEqual(new ObjectID(PROJECT_ID));
+    expect(status).toBeInstanceOf(Includes);
+    expect(status.values).toEqual([...OPEN_SECURITY_CASE_STATUSES]);
+    expect(table.query["assignedToUserId"]).toBeUndefined();
+  });
+
+  test("Assigned to Me: the open cases of the person signed in", async () => {
+    const table: CapturedTable = await capture("mine");
+
+    expect(table.query["assignedToUserId"]).toEqual(new ObjectID(ME));
+    expect((table.query["status"] as Includes).values).toEqual([
+      ...OPEN_SECURITY_CASE_STATUSES,
+    ]);
+  });
+
+  test("Unassigned: the open cases with no person on them", async () => {
+    const table: CapturedTable = await capture("unassigned");
+
+    expect(table.query["assignedToUserId"]).toBeInstanceOf(IsNull);
+    expect((table.query["status"] as Includes).values).toEqual([
+      ...OPEN_SECURITY_CASE_STATUSES,
+    ]);
+  });
+
+  test("Closed Cases: the closed ones; All Cases: every case", async () => {
+    const closed: CapturedTable = await capture("closed");
+    const all: CapturedTable = await capture("all");
+
+    expect(closed.query).toEqual({
+      projectId: new ObjectID(PROJECT_ID),
+      status: SecurityCaseStatus.Closed,
+    });
+    expect(all.query).toEqual({ projectId: new ObjectID(PROJECT_ID) });
+  });
+
+  test("a page without a view is Open Cases, the queue's old address", async () => {
+    const table: CapturedTable = await capture(undefined);
+
+    expect(table.cardProps?.title).toBe("Open Cases");
+    expect((table.query["status"] as Includes).values).toEqual([
+      ...OPEN_SECURITY_CASE_STATUSES,
+    ]);
+  });
+});
+
+describe("each case page draws the list its question needs", () => {
+  test.each(
+    SECURITY_CASE_QUEUE_VIEWS.map(
+      (view: SecurityCaseQueueView): [string, SecurityCaseQueueView] => {
+        return [view.key, view];
+      },
+    ),
+  )(
+    "%s: its name and what it holds head the card",
+    async (_key: string, queueView: SecurityCaseQueueView) => {
+      const table: CapturedTable = await capture(queueView.key);
+
+      expect(table.cardProps?.title).toBe(queueView.title);
+      expect(table.cardProps?.description).toBe(queueView.description);
+      expect(table.noItemsMessage).toBe(queueView.emptyMessage);
+      // The views along the top of the list are gone: each is a page.
+      expect(table.topContent).toBeUndefined();
+      expect(table.id).toBe("security-cases-table");
+      expect(table.userPreferencesKey).toBe(
+        getSecurityCasesTablePreferencesKey(queueView.key),
+      );
+      // A row opens the case's own page, from every one of them.
+      expect(table.viewPageRoute?.toString()).toBe(
+        routeFor(PageMap.SECURITY_CASES),
+      );
+    },
+  );
+
+  test("the open lists sort by the latest detection; the closed one by when each closed", async () => {
+    const sorts: Array<[string, unknown, unknown]> = [];
+
+    for (const view of SECURITY_CASE_QUEUE_VIEWS) {
+      const table: CapturedTable = await capture(view.key);
+      sorts.push([view.key, table.sortBy, table.sortOrder]);
+    }
+
+    expect(sorts).toEqual([
+      ["open", "lastDetectedAt", SortOrder.Descending],
+      ["mine", "lastDetectedAt", SortOrder.Descending],
+      ["unassigned", "lastDetectedAt", SortOrder.Descending],
+      ["closed", "closedAt", SortOrder.Descending],
+      ["all", "lastDetectedAt", SortOrder.Descending],
+    ]);
+  });
+
+  test("columns: no Assignee on Assigned to Me, the verdict and when it closed on Closed Cases", async () => {
+    const columns: Record<string, Array<string>> = {};
+    const hidden: Record<string, Array<string>> = {};
+
+    for (const view of SECURITY_CASE_QUEUE_VIEWS) {
+      const table: CapturedTable = await capture(view.key);
+      columns[view.key] = titlesOf(table.columns);
+      hidden[view.key] = titlesOf(
+        table.columns.filter((column: CapturedColumn): boolean => {
+          return Boolean(column.isHiddenByDefault);
+        }),
+      );
+    }
+
+    expect(columns).toEqual({
+      open: [
+        "Case",
+        "Priority",
+        "Status",
+        "Assignee",
+        "Labels",
+        "Last Detection",
+      ],
+      mine: ["Case", "Priority", "Status", "Labels", "Last Detection"],
+      unassigned: [
+        "Case",
+        "Priority",
+        "Status",
+        "Assignee",
+        "Labels",
+        "Last Detection",
+      ],
+      closed: ["Case", "Priority", "Verdict", "Assignee", "Labels", "Closed"],
+      all: [
+        "Case",
+        "Priority",
+        "Status",
+        "Verdict",
+        "Assignee",
+        "Labels",
+        "Last Detection",
+      ],
+    });
+    expect(hidden).toEqual({
+      open: ["Labels"],
+      mine: ["Labels"],
+      unassigned: ["Labels"],
+      closed: ["Labels"],
+      all: ["Verdict", "Labels"],
+    });
+  });
+
+  test("filters: an open list by where its cases stand, the closed one by verdict and when it closed", async () => {
+    const filters: Record<string, Array<string>> = {};
+
+    for (const view of SECURITY_CASE_QUEUE_VIEWS) {
+      const table: CapturedTable = await capture(view.key);
+      filters[view.key] = titlesOf(table.filters);
+    }
+
+    expect(filters).toEqual({
+      open: ["Title", "Priority", "Status", "Labels", "Opened"],
+      mine: ["Title", "Priority", "Status", "Labels", "Opened"],
+      unassigned: ["Title", "Priority", "Status", "Labels", "Opened"],
+      closed: ["Title", "Priority", "Verdict", "Labels", "Opened", "Closed"],
+      all: ["Title", "Priority", "Status", "Verdict", "Labels", "Opened"],
+    });
+  });
+
+  test("an open list's Status filter offers only the open statuses; All Cases offers Closed too", async () => {
+    const statusOptions: (table: CapturedTable) => Array<unknown> = (
+      table: CapturedTable,
+    ): Array<unknown> => {
+      const filter: CapturedFilter | undefined = table.filters.find(
+        (candidate: CapturedFilter): boolean => {
+          return candidate.title === "Status";
+        },
+      );
+
+      return (filter?.filterDropdownOptions || []).map(
+        (option: { value: unknown }): unknown => {
+          return option.value;
+        },
+      );
+    };
+
+    expect(statusOptions(await capture("open"))).toEqual([
+      ...OPEN_SECURITY_CASE_STATUSES,
+    ]);
+    expect(statusOptions(await capture("unassigned"))).toEqual([
+      ...OPEN_SECURITY_CASE_STATUSES,
+    ]);
+    expect(statusOptions(await capture("all"))).toEqual([
+      ...OPEN_SECURITY_CASE_STATUSES,
+      SecurityCaseStatus.Closed,
+    ]);
+  });
+
+  test("Open Security Case on the lists a new case lands in: Open Cases and All Cases", async () => {
+    const creatable: Record<string, boolean> = {};
+
+    for (const view of SECURITY_CASE_QUEUE_VIEWS) {
+      const table: CapturedTable = await capture(view.key);
+      creatable[view.key] = Boolean(table.isCreateable);
+      expect(table.createVerb).toBe("Open");
+    }
+
+    expect(creatable).toEqual({
+      open: true,
+      mine: false,
+      unassigned: false,
+      closed: false,
+      all: true,
+    });
+  });
+
+  test("bulk actions: no Assign to Me where every case is already yours", async () => {
+    expect(bulkTitles(await capture("mine"))).toEqual([
+      "Change Status",
+      "Change Priority",
+    ]);
+
+    for (const key of ["open", "unassigned", "closed", "all"]) {
+      expect(bulkTitles(await capture(key as SecurityCaseQueueViewKey))).toEqual(
+        ["Assign to Me", "Change Status", "Change Priority"],
+      );
+    }
+  });
+
+  test("an empty Open Cases or Unassigned is good news; Assigned to Me points at Unassigned", async () => {
+    const goodNews: Record<string, boolean> = {};
+
+    for (const view of SECURITY_CASE_QUEUE_VIEWS) {
+      const table: CapturedTable = await capture(view.key);
+      goodNews[view.key] = Boolean(table.emptyState?.isAllClear);
+    }
+
+    expect(goodNews).toEqual({
+      open: true,
+      mine: false,
+      unassigned: true,
+      closed: false,
+      all: false,
+    });
+
+    const mine: CapturedTable = await capture("mine");
+    const actions: Array<CapturedEmptyStateAction> =
+      mine.emptyState?.actions || [];
+
+    expect(titlesOf(actions)).toEqual([VIEW_UNASSIGNED_CASES]);
+    expect(actions[0]?.dataTestId).toBe(VIEW_UNASSIGNED_CASES_TEST_ID);
+
+    for (const key of ["open", "unassigned", "closed", "all"]) {
+      const table: CapturedTable = await capture(
+        key as SecurityCaseQueueViewKey,
+      );
+      expect(table.emptyState?.actions).toBeUndefined();
+    }
+  });
+
+  test("Assigned to Me's way forward opens Unassigned", async () => {
+    const navigate: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {
+        // Recorded, not followed.
+      });
+    const mine: CapturedTable = await capture("mine");
+
+    mine.emptyState?.actions?.[0]?.onClick();
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(String(navigate.mock.calls[0]?.[0])).toBe(
+      routeFor(PageMap.SECURITY_CASES_UNASSIGNED),
+    );
+  });
+});
+
+describe("the list a person sees", () => {
+  test("has no row of view buttons above it, on any page", async () => {
+    for (const view of SECURITY_CASE_QUEUE_VIEWS) {
+      const table: CapturedTable = await capture(view.key);
+
+      await drawTable(table);
+      await screen.findByTestId("table-empty-state");
+
+      expect(
+        document.querySelectorAll('[data-testid^="security-case-view-"]'),
+      ).toHaveLength(0);
+      expect(document.querySelectorAll("button[aria-pressed]")).toHaveLength(
+        0,
+      );
+
+      cleanup();
+    }
+  });
+
+  test("an empty Open Cases says all is clear, with no button to open one", async () => {
+    await drawTable(await capture("open"));
+
+    const empty: HTMLElement = await screen.findByTestId("table-empty-state");
+
+    expect(empty).toHaveAttribute("data-empty-state-kind", "all-clear");
+    expect(screen.getByTestId("table-empty-state-title")).toHaveTextContent(
+      "No open cases",
+    );
+    expect(
+      screen.getByTestId("table-empty-state-description"),
+    ).toHaveTextContent("New ones appear here as detections fire.");
+    expect(screen.queryByTestId("empty-table-create-button")).toBeNull();
+  });
+
+  test("an empty Assigned to Me says so, and its one button opens Unassigned", async () => {
+    const navigate: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {
+        // Recorded, not followed.
+      });
+
+    await drawTable(await capture("mine"));
+
+    const empty: HTMLElement = await screen.findByTestId("table-empty-state");
+
+    expect(empty).toHaveAttribute("data-empty-state-kind", "empty");
+    expect(screen.getByTestId("table-empty-state-title")).toHaveTextContent(
+      "No open cases are assigned to you",
+    );
+    expect(screen.queryByTestId("empty-table-create-button")).toBeNull();
+
+    fireEvent.click(screen.getByTestId(VIEW_UNASSIGNED_CASES_TEST_ID));
+
+    expect(String(navigate.mock.calls[0]?.[0])).toBe(
+      routeFor(PageMap.SECURITY_CASES_UNASSIGNED),
+    );
+  });
+
+  test("an empty All Cases offers to open a case", async () => {
+    await drawTable(await capture("all"));
+
+    await screen.findByTestId("table-empty-state");
+
+    expect(screen.getByTestId("table-empty-state-title")).toHaveTextContent(
+      "No cases yet",
+    );
+    expect(screen.getByTestId("empty-table-create-button")).toHaveTextContent(
+      "Open Security Case",
+    );
+  });
+
+  test("Closed Cases asks for the closed cases, latest closed first, and draws each by its verdict", async () => {
+    listedRows = [closedCase()];
+
+    await drawTable(await capture("closed"));
+
+    await screen.findByText("Repeated MFA push denials for a sales account");
+
+    expect(listRequests[0]?.query["status"]).toBe(SecurityCaseStatus.Closed);
+    expect(listRequests[0]?.sort).toEqual({ closedAt: SortOrder.Descending });
+    expect(screen.getAllByText("Benign Positive").length).toBeGreaterThan(0);
+    expect(screen.getByRole("columnheader", { name: /Verdict/ })).toBeVisible();
+    expect(screen.getByRole("columnheader", { name: /Closed/ })).toBeVisible();
+    expect(
+      screen.queryByRole("columnheader", { name: /Status/ }),
+    ).toBeNull();
+  });
+
+  test("going from one case page to the next starts the list afresh: a new table, not the last one's", async () => {
+    /*
+     * Both pages are the same component at the same place in the layout,
+     * so without a key React would keep the first page's table - its
+     * columns, filters and page - for the second.
+     */
+    tableMounts = 0;
+    tableUnmounts = 0;
+
+    const rendered: ReturnType<typeof render> = render(
+      <MemoryRouter>
+        <SecurityCasesPage {...PAGE_PROPS} view="open" />
+      </MemoryRouter>,
+    );
+    const first: CapturedTable = capturedTables[capturedTables.length - 1]!;
+
+    expect([tableMounts, tableUnmounts]).toEqual([1, 0]);
+
+    rendered.rerender(
+      <MemoryRouter>
+        <SecurityCasesPage {...PAGE_PROPS} view="closed" />
+      </MemoryRouter>,
+    );
+
+    const second: CapturedTable = capturedTables[capturedTables.length - 1]!;
+
+    expect(first.cardProps?.title).toBe("Open Cases");
+    expect(second.cardProps?.title).toBe("Closed Cases");
+    expect(second.query["status"]).toBe(SecurityCaseStatus.Closed);
+
+    await waitFor(() => {
+      expect([tableMounts, tableUnmounts]).toEqual([2, 1]);
+    });
+    expect(screen.getAllByTestId("captured-model-table")).toHaveLength(1);
+  });
+});
+
+describe("the queue's view of a page", () => {
+  test("every case page is one of the queue's views, by its page", () => {
+    expect(
+      SECURITY_CASE_QUEUE_VIEWS.map((view: SecurityCaseQueueView): string => {
+        return view.page;
+      }),
+    ).toEqual([
+      PageMap.SECURITY_CASES,
+      PageMap.SECURITY_CASES_ASSIGNED_TO_ME,
+      PageMap.SECURITY_CASES_UNASSIGNED,
+      PageMap.SECURITY_CASES_CLOSED,
+      PageMap.SECURITY_CASES_ALL,
+    ]);
+    expect(viewOf("closed").title).toBe("Closed Cases");
+  });
+});

@@ -619,6 +619,54 @@ describe("a project with Security set up", () => {
     expect(stage("cases")).toHaveTextContent("Waiting for a person");
   });
 
+  test("each count opens the page that lists exactly what it counts", async () => {
+    /*
+     * The queue's views and the runs' views are pages of their own: the
+     * cases assigned to you open Assigned to Me, the ones nobody has
+     * picked up open Unassigned, the held steps open Waiting for Approval.
+     */
+    answerStatus(status({ ...SET_UP, openCases: 3 }));
+    answerOverview(
+      overview(
+        {
+          openCases: 3,
+          unassignedOpenCases: 2,
+          casesOpenedInWindow: 5,
+          detectionsInWindow: 9,
+          openByPriority: { [SecurityCasePriority.Medium]: 3 },
+        },
+        { myOpenCases: 1, runsWaitingForApproval: 1 },
+      ),
+    );
+    await renderPage();
+
+    const tile: (words: string) => HTMLElement | null = (
+      words: string,
+    ): HTMLElement | null => {
+      return screen.getByText(words).closest("a");
+    };
+
+    await screen.findByText("open case assigned to you");
+
+    expect(tile("open case assigned to you")).toHaveAttribute(
+      "href",
+      routeFor(PageMap.SECURITY_CASES_ASSIGNED_TO_ME),
+    );
+    expect(tile("open cases nobody has picked up")).toHaveAttribute(
+      "href",
+      routeFor(PageMap.SECURITY_CASES_UNASSIGNED),
+    );
+    expect(tile("playbook step waiting for approval")).toHaveAttribute(
+      "href",
+      routeFor(PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL),
+    );
+    // The cases stage still opens the queue itself, at its old address.
+    expect(within(stage("cases")).getByRole("link")).toHaveAttribute(
+      "href",
+      routeFor(PageMap.SECURITY_CASES),
+    );
+  });
+
   test("urgent cases read on the pipeline, and the figures below keep to the timings instead of counting the open cases a third time", async () => {
     answerStatus(status({ ...SET_UP, openCases: 4 }));
     answerOverview(

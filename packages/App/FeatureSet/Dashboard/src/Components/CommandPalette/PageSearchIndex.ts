@@ -1697,7 +1697,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           {
             page: PageMap.SECURITY_EVENTS_CORRELATE,
             title: "Correlate",
-            icon: IconProp.Graph,
+            icon: IconProp.Share,
           },
         ],
       },

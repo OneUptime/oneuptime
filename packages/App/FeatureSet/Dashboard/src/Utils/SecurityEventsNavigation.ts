@@ -119,7 +119,8 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
       {
         page: PageMap.SECURITY_EVENTS_CORRELATE,
         title: "Correlate",
-        icon: IconProp.Graph,
+        // Connected points: Graph draws the same bars as Overview's ChartBar.
+        icon: IconProp.Share,
       },
     ],
   },

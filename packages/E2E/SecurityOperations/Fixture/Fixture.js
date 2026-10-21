@@ -53,6 +53,8 @@ import SecurityPlaybooksPage from "../../../App/FeatureSet/Dashboard/src/Pages/S
 import SecurityPlaybookViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/PlaybookView";
 import SecurityPlaybookRunsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/PlaybookRuns";
 import { SECURITY_PLAYBOOK_TEMPLATES } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookTemplates";
+import { SECURITY_CASE_QUEUE_VIEWS } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
+import { SECURITY_PLAYBOOK_RUN_VIEWS } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunViews";
 import RouteMap, {
   SecurityEventsRoutePath,
 } from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -1783,15 +1785,24 @@ function StubPage(props) {
   );
 }
 
-// The menu's pages this fixture renders, and the ones it stubs.
+/*
+ * The menu's pages this fixture renders, and the ones it stubs. The case
+ * queue's five pages and the two runs pages are one page component each,
+ * mounted once per page with the list it shows, as
+ * Routes/SecurityEventsRoutes.tsx mounts them.
+ */
 const PAGES = [
   [PageMap.SECURITY_EVENTS_OVERVIEW, SecurityOverviewPage],
-  [PageMap.SECURITY_CASES, SecurityCasesPage],
+  ...SECURITY_CASE_QUEUE_VIEWS.map((view) => {
+    return [view.page, SecurityCasesPage, view.key];
+  }),
   [PageMap.SECURITY_EVENTS_ENTITIES, SecurityEntitiesPage],
   [PageMap.SECURITY_EVENTS_RULE_LIBRARY, RuleLibraryPage],
   [PageMap.SECURITY_EVENTS_ATTACK_COVERAGE, AttackCoveragePage],
   [PageMap.SECURITY_PLAYBOOKS, SecurityPlaybooksPage],
-  [PageMap.SECURITY_PLAYBOOK_RUNS, SecurityPlaybookRunsPage],
+  ...SECURITY_PLAYBOOK_RUN_VIEWS.map((view) => {
+    return [view.page, SecurityPlaybookRunsPage, view.key];
+  }),
 ];
 const STUB_PAGES = [
   [PageMap.SECURITY_EVENTS, "Events"],
@@ -1845,12 +1856,18 @@ function FixtureApp() {
             path={RouteMap[PageMap.SECURITY_EVENTS].toString()}
             element={<FixtureLayout />}
           >
-            {PAGES.map(([pageKey, Page]) => {
+            {PAGES.map(([pageKey, Page, view]) => {
               return (
                 <Route
                   key={pageKey}
                   path={SecurityEventsRoutePath[pageKey]}
-                  element={<Page {...pageProps(pageKey)} />}
+                  element={
+                    view ? (
+                      <Page {...pageProps(pageKey)} key={view} view={view} />
+                    ) : (
+                      <Page {...pageProps(pageKey)} />
+                    )
+                  }
                 />
               );
             })}

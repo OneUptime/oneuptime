@@ -629,7 +629,7 @@ curl -X POST "${ingestUrl}?format=udm" \\
           </li>
           <li className="flex items-start gap-2">
             <Icon
-              icon={IconProp.Graph}
+              icon={IconProp.Share}
               className="w-4 h-4 text-indigo-500 flex-shrink-0 mt-0.5"
             />
             <span>

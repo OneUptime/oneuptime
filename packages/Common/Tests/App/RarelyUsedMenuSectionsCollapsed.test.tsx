@@ -251,6 +251,15 @@ const EVERYDAY_SECTION_TITLES: ReadonlyArray<string> = [
   "Datastores",
   // Where an exception is dug into (an exception's own page).
   "Investigate",
+  /*
+   * Security Events: the case queue's pages (Open Cases, Assigned to Me,
+   * Unassigned...), the events and how they connect, and the playbooks
+   * with the runs held for an approval - whose count must stay in sight.
+   * Its Detections and Connections, set up once, fold.
+   */
+  "Security Cases",
+  "Events",
+  "Playbooks",
 ];
 
 /*
