@@ -17,6 +17,7 @@
     "backToTop": "Tilbage til toppen",
     "copy": "Kopiér",
     "copied": "Kopieret",
+    "copyFailed": "Kopiering mislykkedes",
     "copyCode": "Kopiér kode",
     "diagramNotDrawn": "Dette diagram kunne ikke tegnes.",
     "searchHintNavigate": "for at navigere",

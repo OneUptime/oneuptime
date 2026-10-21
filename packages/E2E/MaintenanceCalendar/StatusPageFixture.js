@@ -145,14 +145,46 @@ const RESOURCES = [
 const state = { requests: [], copied: [] };
 window.__statusPageCalendarFixture = state;
 
-Object.defineProperty(navigator, "clipboard", {
-  configurable: true,
-  value: {
-    writeText: async (text) => {
-      state.copied.push(text);
+/*
+ * The clipboard (issue #5132):
+ *
+ *   (default)          a stand-in the specs read (state.copied);
+ *   ?clipboard=browser the browser's own, untouched: none at all on a page
+ *                      served over plain http from a name that is not
+ *                      localhost, the real one on localhost - the specs read
+ *                      the system clipboard from a second page;
+ *   ?clipboard=refused both ways of copying refuse, as a locked-down browser
+ *                      does: the async write and the older copy command.
+ */
+const clipboardMode = params.get("clipboard");
+
+if (clipboardMode === "refused") {
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: {
+      writeText: async () => {
+        throw new DOMException("Write permission denied.", "NotAllowedError");
+      },
     },
-  },
-});
+  });
+
+  const execCommand = document.execCommand.bind(document);
+  document.execCommand = (command, ...rest) => {
+    if (String(command).toLowerCase() === "copy") {
+      return false;
+    }
+    return execCommand(command, ...rest);
+  };
+} else if (clipboardMode !== "browser") {
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: {
+      writeText: async (text) => {
+        state.copied.push(text);
+      },
+    },
+  });
+}
 
 function answer(events) {
   return new HTTPResponse(

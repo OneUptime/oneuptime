@@ -147,6 +147,7 @@
       "copyHint": "Collez-le dans n'importe quelle application de calendrier capable de s'abonner à un calendrier par URL.",
       "copy": "Copier le lien",
       "copied": "Copié !",
+      "copyFailed": "Votre navigateur n'a pas autorisé cette page à copier le lien. Il est sélectionné ci-dessus pour que vous puissiez le copier vous-même.",
       "done": "Terminé",
       "refreshNote": "Les applications de calendrier vérifient les changements à leur propre rythme : une mise à jour peut mettre quelques heures à apparaître."
     }

@@ -1475,5 +1475,80 @@ describe("ReplayHeader", () => {
       expect(await copyTextToClipboard("hello")).toBe(true);
       expect(writeText).toHaveBeenCalledWith("hello");
     });
+
+    /*
+     * Issue #5132: it is the product's one clipboard writer now, so a
+     * plain-http install - no navigator.clipboard - copies through the
+     * browser's older copy command before the read-only field is offered.
+     */
+    it("copies through the browser's copy command where there is no clipboard API", async () => {
+      setClipboard(null);
+
+      const descriptor: PropertyDescriptor | undefined =
+        Object.getOwnPropertyDescriptor(document, "execCommand");
+      let copied: string = "";
+
+      Object.defineProperty(document, "execCommand", {
+        configurable: true,
+        writable: true,
+        value: (command: string): boolean => {
+          const field: HTMLTextAreaElement | null = document.querySelector(
+            "textarea[aria-hidden='true']",
+          );
+          copied = command === "copy" ? field?.value || "" : "";
+          return true;
+        },
+      });
+
+      try {
+        expect(await copyTextToClipboard(MOMENT_URL)).toBe(true);
+        expect(copied).toBe(MOMENT_URL);
+      } finally {
+        if (descriptor) {
+          Object.defineProperty(document, "execCommand", descriptor);
+        } else {
+          Reflect.deleteProperty(document, "execCommand");
+        }
+      }
+    });
+
+    it("the Link button announces a copy made through the copy command, with no field to copy by hand", async () => {
+      setClipboard(null);
+
+      const descriptor: PropertyDescriptor | undefined =
+        Object.getOwnPropertyDescriptor(document, "execCommand");
+
+      Object.defineProperty(document, "execCommand", {
+        configurable: true,
+        writable: true,
+        value: (): boolean => {
+          return true;
+        },
+      });
+
+      try {
+        const ref: React.RefObject<ReplayHeaderHandle> =
+          React.createRef<ReplayHeaderHandle>();
+
+        render(<ReplayHeader ref={ref} {...makeProps()} />);
+
+        await act(async (): Promise<void> => {
+          ref.current?.copyUrl(MOMENT_URL);
+          await Promise.resolve();
+          await Promise.resolve();
+        });
+
+        expect(screen.getByTestId("replay-copy-link-status")).toHaveTextContent(
+          "Link copied to the clipboard.",
+        );
+        expect(screen.queryByTestId("replay-copy-link-fallback")).toBeNull();
+      } finally {
+        if (descriptor) {
+          Object.defineProperty(document, "execCommand", descriptor);
+        } else {
+          Reflect.deleteProperty(document, "execCommand");
+        }
+      }
+    });
   });
 });

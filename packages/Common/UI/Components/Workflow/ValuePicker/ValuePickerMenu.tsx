@@ -15,7 +15,10 @@
 
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
-import Clipboard from "../../../Utils/Clipboard";
+import useClipboardCopy, {
+  ClipboardCopy,
+  ClipboardCopyStatus,
+} from "../../../Utils/UseClipboardCopy";
 import {
   ChildrenState,
   ChildrenStatus,
@@ -58,9 +61,6 @@ import React, {
  */
 export const NOTE_REFRESH_INTERVAL_MS: number = 3000;
 export const NOTE_REFRESH_MAX_MS: number = 10 * 60 * 1000;
-
-// How long "Copied!" stays on a note's Copy button.
-const COPIED_FEEDBACK_MS: number = 2000;
 
 /*
  * How long the steps that cannot be used are kept in view after they are
@@ -386,18 +386,12 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
       };
     }, [refreshSourceIds, picker.refreshSource]);
 
-    const [copiedNoteKey, setCopiedNoteKey] = useState<string | null>(null);
-    const copiedTimerRef: React.MutableRefObject<ReturnType<
-      typeof setTimeout
-    > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    useEffect(() => {
-      return () => {
-        if (copiedTimerRef.current) {
-          clearTimeout(copiedTimerRef.current);
-        }
-      };
-    }, []);
+    /*
+     * A note's Copy says "Copied!" once the text is on the clipboard, and
+     * "Copy failed" when the browser refused it - it used to say nothing
+     * then, which read as a button that does nothing.
+     */
+    const noteClipboard: ClipboardCopy = useClipboardCopy();
 
     type CopyNoteTextFunction = (key: string, text: string) => Promise<void>;
 
@@ -405,20 +399,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
       key: string,
       text: string,
     ): Promise<void> => {
-      // A refused clipboard says nothing, rather than a "Copied!" that lies.
-      if (!(await Clipboard.copyToClipboard(text))) {
-        return;
-      }
-
-      setCopiedNoteKey(key);
-
-      if (copiedTimerRef.current) {
-        clearTimeout(copiedTimerRef.current);
-      }
-
-      copiedTimerRef.current = setTimeout((): void => {
-        setCopiedNoteKey(null);
-      }, COPIED_FEEDBACK_MS);
+      await noteClipboard.copy(text, key);
     };
 
     // Start from the top whenever what is listed changes.
@@ -900,8 +881,22 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
         return null;
       }
 
-      const isCopied: boolean = copiedNoteKey === section.key;
+      const copyStatus: ClipboardCopyStatus = noteClipboard.statusOf(
+        section.key,
+      );
+      const isCopied: boolean = copyStatus === ClipboardCopyStatus.Copied;
+      const isCopyFailed: boolean = copyStatus === ClipboardCopyStatus.Failed;
       const copyText: string | undefined = note.copyText;
+
+      let copyButtonText: string | undefined = translator.translateText(
+        note.copyLabel || "Copy",
+      );
+
+      if (isCopied) {
+        copyButtonText = translator.translateText("Copied!");
+      } else if (isCopyFailed) {
+        copyButtonText = translator.translateText("Copy failed");
+      }
 
       return (
         <div
@@ -945,9 +940,12 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                   className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-medium ${
                     isCopied
                       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-100"
+                      : isCopyFailed
+                        ? "border-red-200 bg-red-50 text-red-700"
+                        : "border-gray-200 bg-white text-gray-700 hover:bg-gray-100"
                   }`}
                   data-testid="value-picker-note-copy"
+                  data-copy-state={copyStatus}
                   onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
                     // The focus stays in the search box, or the field.
                     event.preventDefault();
@@ -958,12 +956,16 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                   }}
                 >
                   <Icon
-                    icon={isCopied ? IconProp.Check : IconProp.Copy}
+                    icon={
+                      isCopied
+                        ? IconProp.Check
+                        : isCopyFailed
+                          ? IconProp.Alert
+                          : IconProp.Copy
+                    }
                     className="h-3.5 w-3.5"
                   />
-                  {translator.translateText(
-                    isCopied ? "Copied!" : note.copyLabel || "Copy",
-                  )}
+                  <span aria-live="polite">{copyButtonText}</span>
                 </button>
               ) : null}
               {note.waitingText ? (

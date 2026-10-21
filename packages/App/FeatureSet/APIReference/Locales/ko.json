@@ -36,6 +36,7 @@
     "or": "또는",
     "copy": "복사",
     "copied": "복사됨!",
+    "copyFailed": "복사 실패",
     "copyCode": "코드 복사",
     "copyRequest": "요청 복사",
     "headers": "헤더",

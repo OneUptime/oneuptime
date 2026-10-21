@@ -36,6 +36,7 @@
     "or": "または",
     "copy": "コピー",
     "copied": "コピーしました!",
+    "copyFailed": "コピーに失敗しました",
     "copyCode": "コードをコピー",
     "copyRequest": "リクエストをコピー",
     "headers": "ヘッダー",
