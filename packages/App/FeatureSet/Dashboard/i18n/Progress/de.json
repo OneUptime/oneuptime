@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 32432,
-    "untranslated": 4876
+    "keys": 32602,
+    "untranslated": 4875
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -124,6 +124,7 @@
     "Cluster",
     "Code",
     "Code Challenge",
+    "Collector",
     "Commit",
     "Common Name",
     "Community Edition",
@@ -496,6 +497,7 @@
     "Vanuatu",
     "Variable",
     "Version",
+    "Version {{number}}",
     "Vertical Pod Autoscalers",
     "Viewport",
     "Vitals",

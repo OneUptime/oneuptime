@@ -731,6 +731,11 @@ const DocsNav: NavGroup[] = [
     title: "Infrastructure Agents",
     section: "Observability",
     links: [
+      // Adding a host in one command, and the configs OneUptime sends it.
+      {
+        title: "Hosts",
+        url: "/docs/telemetry/hosts",
+      },
       {
         title: "Host OpenTelemetry Collector",
         url: "/docs/telemetry/host-otel-collector",

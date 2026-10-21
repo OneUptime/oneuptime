@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 32432,
-    "untranslated": 16557
+    "keys": 32602,
+    "untranslated": 16546
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -16,6 +16,7 @@
     "CPU Ready {{percent}}",
     "Chats",
     "CloudWatch Metric Streams",
+    "Collector",
     "Diagram",
     "Embedding",
     "Failover",
@@ -57,6 +58,7 @@
     "Tokens",
     "Total",
     "Tunnel",
+    "Version {{number}}",
     "Workspaces",
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",

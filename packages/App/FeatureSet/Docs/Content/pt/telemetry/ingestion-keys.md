@@ -67,7 +67,7 @@ Uma chave **Browser** pede as suas **Allowed Origins** na etapa seguinte, **Conf
 Clique em **Criar chave de ingestão**. A página da chave abre: copie a **Chave secreta** e entregue-a aos seus remetentes.
 :::
 
-O **Guia de configuração** de cada produto começa com **Choose an ingestion key**, que lista as chaves que esse guia pode usar e cria uma ali mesmo. Os trechos do guia passam então a levar essa chave.
+O **Guia de configuração** de cada produto começa com **Escolha uma chave de ingestão**, que lista as chaves que esse guia pode usar e cria uma ali mesmo. Os trechos do guia passam então a levar essa chave.
 
 ## Enviar telemetria com a chave
 

@@ -1728,6 +1728,12 @@ enum Permission {
   EditHostOwnerUser = "EditHostOwnerUser",
   ReadHostOwnerUser = "ReadHostOwnerUser",
 
+  // Collector Configs: the config OneUptime sends to the hosts it manages.
+  CreateHostCollectorConfig = "CreateHostCollectorConfig",
+  DeleteHostCollectorConfig = "DeleteHostCollectorConfig",
+  EditHostCollectorConfig = "EditHostCollectorConfig",
+  ReadHostCollectorConfig = "ReadHostCollectorConfig",
+
   CreateServerlessFunction = "CreateServerlessFunction",
   DeleteServerlessFunction = "DeleteServerlessFunction",
   EditServerlessFunction = "EditServerlessFunction",
@@ -11853,6 +11859,47 @@ export class PermissionHelper {
         title: "Read Host User Owner",
         description:
           "This permission can read Host User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateHostCollectorConfig,
+        title: "Create Collector Config",
+        description:
+          "This permission can create Collector Configs, which OneUptime sends to the hosts it manages.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteHostCollectorConfig,
+        title: "Delete Collector Config",
+        description:
+          "This permission can delete Collector Configs of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditHostCollectorConfig,
+        title: "Edit Collector Config",
+        description:
+          "This permission can edit Collector Configs, and with them what the hosts they apply to collect.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadHostCollectorConfig,
+        title: "Read Collector Config",
+        description:
+          "This permission can read Collector Configs and their versions in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

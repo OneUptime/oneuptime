@@ -324,6 +324,8 @@ const REFERENCED_AS_A_WHOLE_TABLE: Record<string, string> = {
   Domain: PROJECT_SETTING,
   SecurityPlaybook:
     "Every Security role reads the project's playbooks, and a run names the playbook it was started from; the reference check refuses another project's playbook.",
+  HostCollectorConfig:
+    "Every member reads the project's Collector Configs, and a host names the one picked for it; the reference check refuses another project's config.",
   UserCall: NOTIFICATION_METHOD,
   UserEmail: NOTIFICATION_METHOD,
   UserMicrosoftTeams: NOTIFICATION_METHOD,

@@ -352,16 +352,22 @@ jobs:
           # tiles, a cloud connected from its tile with a test, the list's
           # status and actions, at a laptop's and a phone's width, in the dark
           # theme and in Japanese, Chromium only) joined them on 2026-10-21,
-          # the lightest group by far. VMware Host Page (about a minute with
-          # its bundle locally: an ESXi host's page inside its vCenter - its
-          # Overview, tabs and states - at a laptop's and a phone's width, in
-          # dark mode and German, Chromium only) joined them the same day.
+          # the lightest group by far, and Host Collectors (about 2 minutes
+          # with its bundle locally: Add Host's one command and the host
+          # connecting, Collector Configs and their versions, a host's
+          # Collector page, at a laptop's and a phone's width, dark and
+          # German, Chromium only) the same day. VMware Host Page (about a
+          # minute with its bundle locally: an ESXi host's page inside its
+          # vCenter - its Overview, tabs and states - at a laptop's and a
+          # phone's width, in dark mode and German, Chromium only) joined
+          # them the same day too.
           - group: 8
             browsers: chromium
             suites: >-
               test-dashboard-time-range-ui
               test-dashboard-widget-sort-ui
               test-cloud-connect-ui
+              test-host-collectors-ui
               test-vmware-host-page-ui
     steps:
       - uses: actions/checkout@v4
@@ -543,6 +549,8 @@ jobs:
             output/playwright/dashboard-widget-sort-ui/test-results
             output/playwright/cloud-connect-ui/*.png
             output/playwright/cloud-connect-ui/test-results
+            output/playwright/host-collectors-ui/*.png
+            output/playwright/host-collectors-ui/test-results
             output/playwright/vmware-host-page-ui/*.png
             output/playwright/vmware-host-page-ui/test-results
           retention-days: 7

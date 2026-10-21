@@ -518,6 +518,8 @@ export const HostRoutePath: Dictionary<string> = {
   [PageMap.HOST_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.HOST_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.HOST_ARCHIVED]: `archived`,
+  [PageMap.HOST_COLLECTOR_CONFIGS]: `collector-configs`,
+  [PageMap.HOST_COLLECTOR_CONFIG_VIEW]: `collector-configs/${RouteParams.ModelID}`,
 };
 
 export const ServerlessRoutePath: Dictionary<string> = {
@@ -5261,6 +5263,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.HOST_ARCHIVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/host/${
       HostRoutePath[PageMap.HOST_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.HOST_COLLECTOR_CONFIGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_COLLECTOR_CONFIGS]
+    }`,
+  ),
+
+  [PageMap.HOST_COLLECTOR_CONFIG_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_COLLECTOR_CONFIG_VIEW]
     }`,
   ),
 

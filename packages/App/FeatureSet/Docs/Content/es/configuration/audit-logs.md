@@ -91,6 +91,7 @@ Los monitores, incidentes, alertas, páginas de estado, SLO y muchos otros recur
 | Claves de API | `API Key` |
 | Clientes MCP que conectan las personas | `MCP Client Authorization` |
 | Elementos del inventario | `Inventory Item` |
+| Configuraciones del recolector | `Collector Config` |
 | vCenter | `vCenter` |
 | Capturas de paquetes, y sus descargas | `Packet Capture` |
 | Casos de seguridad y playbooks | `Security Case`, `Security Playbook` |

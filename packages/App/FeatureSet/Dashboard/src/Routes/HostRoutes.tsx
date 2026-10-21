@@ -10,6 +10,8 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import Hosts from "../Pages/Host/Hosts";
 import HostArchived from "../Pages/Host/Archived";
 import HostDocumentation from "../Pages/Host/Documentation";
+import HostCollectorConfigs from "../Pages/Host/CollectorConfigs";
+import HostCollectorConfigView from "../Pages/Host/CollectorConfigView";
 import HostSettingsOwnerRules from "../Pages/Host/Settings/OwnerRules";
 import HostSettingsLabelRules from "../Pages/Host/Settings/LabelRules";
 import HostOverview from "../Pages/Host/View/Overview";
@@ -35,7 +37,7 @@ import HostFeed from "../Pages/Host/View/Feed";
 import HostAuditLogs from "../Pages/Host/View/AuditLogs";
 import HostSettings from "../Pages/Host/View/Settings";
 import HostDelete from "../Pages/Host/View/Delete";
-import HostViewDocumentation from "../Pages/Host/View/Documentation";
+import HostViewCollector from "../Pages/Host/View/Collector";
 import HostLabelRule from "Common/Models/DatabaseModels/HostLabelRule";
 import HostOwnerRule from "Common/Models/DatabaseModels/HostOwnerRule";
 import HostModel from "Common/Models/DatabaseModels/Host";
@@ -102,6 +104,24 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
                 RouteMap[PageMap.HOST_SETTINGS_LABEL_RULE_VIEW] as Route
               }
               ruleViewModelType={HostLabelRule}
+            />
+          }
+        />
+        <PageRoute
+          path={HostRoutePath[PageMap.HOST_COLLECTOR_CONFIGS] || ""}
+          element={
+            <HostCollectorConfigs
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_COLLECTOR_CONFIGS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={HostRoutePath[PageMap.HOST_COLLECTOR_CONFIG_VIEW] || ""}
+          element={
+            <HostCollectorConfigView
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_COLLECTOR_CONFIG_VIEW] as Route}
             />
           }
         />
@@ -369,7 +389,7 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_DOCUMENTATION)}
           element={
-            <HostViewDocumentation
+            <HostViewCollector
               {...props}
               pageRoute={RouteMap[PageMap.HOST_VIEW_DOCUMENTATION] as Route}
             />

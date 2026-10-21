@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 32432,
-    "untranslated": 9551
+    "keys": 32602,
+    "untranslated": 9547
   },
   "sameAsEnglish": [
     " incidents",
@@ -359,6 +359,8 @@
     "Variable",
     "Variables",
     "Version",
+    "Version {{number}}",
+    "Versions",
     "Vertical Pod Autoscalers",
     "Volume",
     "Volumes",

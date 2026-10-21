@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 32432,
-    "untranslated": 16616
+    "keys": 32602,
+    "untranslated": 16604
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -21,6 +21,7 @@
     "Client",
     "Cloud",
     "CloudWatch Metric Streams",
+    "Collector",
     "Component",
     "Context",
     "Details",

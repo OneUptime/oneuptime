@@ -274,6 +274,7 @@
     "Fluent Bit": "Fluent Bit",
     "Fluentd": "Fluentd",
     "Syslog": "Syslog",
+    "Hosts": "میزبان‌ها",
     "Host OpenTelemetry Collector": "کالکتور OpenTelemetry روی میزبان",
     "Kubernetes Agent": "عامل Kubernetes",
     "Docker Agent": "عامل Docker",
