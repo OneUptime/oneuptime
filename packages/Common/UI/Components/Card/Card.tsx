@@ -33,9 +33,10 @@ export interface CardButtonSchema {
  * Where a card's actions go. Whatever the layout, what a card offers - Edit,
  * Create, the ⋯ menu, a status badge, a picker - sits at the RIGHT edge of
  * the header, on the title's line ("Why are edit buttons not on the right?").
- * When it does not fit there it moves onto the next line, still at the right
- * edge. It is never centred, and never put under the description at the
- * left.
+ * When it does not fit there it moves onto a line of its own, still at the
+ * right edge - in the stacked and toolbar headers after the description,
+ * which stays right under the title. It is never centred across the header,
+ * and never put at the left.
  *
  * How the header shares its width:
  *
