@@ -84,6 +84,7 @@ import NotFoundException from "../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "0193c0de-a91c-4aaa-8bbb-000000000001",
@@ -103,6 +104,10 @@ const USAGE: Array<ArchivableValueUsageItem> = [
   },
 ];
 
+/*
+ * A signed-in person, as CommonAPI hands their request on: with their
+ * project's plan, which billing checks a write permission against.
+ */
 function personWith(
   permissions: Array<Permission>,
 ): DatabaseCommonInteractionProps {
@@ -110,6 +115,8 @@ function personWith(
     userId: USER_ID,
     userType: UserType.User,
     tenantId: PROJECT_ID,
+    currentPlan: PlanType.Growth,
+    isSubscriptionUnpaid: false,
     userTenantAccessPermission: {
       [PROJECT_ID.toString()]: {
         _type: "UserTenantAccessPermission",
