@@ -1,6 +1,7 @@
 import ComponentProps from "../Pages/PageComponentProps";
 import PodmanLayout from "../Pages/Podman/Layout";
 import PodmanHostViewLayout from "../Pages/Podman/View/Layout";
+import PodmanHostTopology from "../Pages/Podman/View/Topology";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, PodmanRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -133,6 +134,16 @@ const PodmanRoutes: FunctionComponent<ComponentProps> = (
             <PodmanHostOverview
               {...props}
               pageRoute={RouteMap[PageMap.PODMAN_HOST_VIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.PODMAN_HOST_VIEW_TOPOLOGY)}
+          element={
+            <PodmanHostTopology
+              {...props}
+              pageRoute={RouteMap[PageMap.PODMAN_HOST_VIEW_TOPOLOGY] as Route}
             />
           }
         />

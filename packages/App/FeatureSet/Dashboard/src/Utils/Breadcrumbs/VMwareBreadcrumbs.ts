@@ -15,6 +15,12 @@ export function getVMwareBreadcrumbs(path: string): Array<Link> | undefined {
       "VMware",
       "View vCenter",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.VMWARE_VCENTER_VIEW_TOPOLOGY, [
+      "Project",
+      "VMware",
+      "View vCenter",
+      "Topology",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.VMWARE_VCENTER_VIEW_HOSTS, [
       "Project",
       "VMware",

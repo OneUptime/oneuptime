@@ -15,6 +15,12 @@ export function getPodmanBreadcrumbs(path: string): Array<Link> | undefined {
       "Podman",
       "View Host",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_TOPOLOGY, [
+      "Project",
+      "Podman",
+      "View Host",
+      "Topology",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_CONTAINERS, [
       "Project",
       "Podman",
