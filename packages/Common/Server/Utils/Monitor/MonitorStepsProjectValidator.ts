@@ -294,7 +294,9 @@ export default class MonitorStepsProjectValidator {
     for (const [type, ids] of idsByType) {
       const definition: ArchivableValueDefinition = ARCHIVABLE_VALUES[type];
       const model: MonitorStepsReferenceModel | undefined = (
-        Object.keys(ARCHIVABLE_REFERENCE_MODELS) as Array<MonitorStepsReferenceModel>
+        Object.keys(
+          ARCHIVABLE_REFERENCE_MODELS,
+        ) as Array<MonitorStepsReferenceModel>
       ).find((candidate: MonitorStepsReferenceModel): boolean => {
         return ARCHIVABLE_REFERENCE_MODELS[candidate] === type;
       });

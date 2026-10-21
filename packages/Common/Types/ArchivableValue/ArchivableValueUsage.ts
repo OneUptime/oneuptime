@@ -93,8 +93,7 @@ export default class ArchivableValueUsage {
         tableName: record["tableName"] as string,
         title: record["title"] as string,
         singularTitle:
-          typeof record["singularTitle"] === "string" &&
-          record["singularTitle"]
+          typeof record["singularTitle"] === "string" && record["singularTitle"]
             ? (record["singularTitle"] as string)
             : (record["title"] as string),
         count: count,

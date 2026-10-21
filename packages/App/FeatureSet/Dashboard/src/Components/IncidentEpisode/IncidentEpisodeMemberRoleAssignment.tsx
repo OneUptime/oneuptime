@@ -130,24 +130,26 @@ const IncidentEpisodeMemberRoleAssignment: FunctionComponent<ComponentProps> = (
           rolesResult.data as Array<IncidentRole>
         )
           .filter((role: IncidentRole): boolean => {
-            return !role.isArchived || heldRoleIds.has(role.id?.toString() || "");
+            return (
+              !role.isArchived || heldRoleIds.has(role.id?.toString() || "")
+            );
           })
           .map((role: IncidentRole): MemberRole => {
-          const memberRole: MemberRole = {
-            id: role.id!,
-            name: role.name || "Unknown Role",
-            color: role.color || Color.fromString("#6b7280"),
-            isPrimaryRole: role.isPrimaryRole || false,
-            canAssignMultipleUsers: role.canAssignMultipleUsers || false,
-            isArchived: Boolean(role.isArchived),
-          };
+            const memberRole: MemberRole = {
+              id: role.id!,
+              name: role.name || "Unknown Role",
+              color: role.color || Color.fromString("#6b7280"),
+              isPrimaryRole: role.isPrimaryRole || false,
+              canAssignMultipleUsers: role.canAssignMultipleUsers || false,
+              isArchived: Boolean(role.isArchived),
+            };
 
-          if (role.roleIcon) {
-            memberRole.icon = role.roleIcon;
-          }
+            if (role.roleIcon) {
+              memberRole.icon = role.roleIcon;
+            }
 
-          return memberRole;
-        });
+            return memberRole;
+          });
 
         // Transform assigned members
         const transformedMembers: Array<AssignedMember> = (

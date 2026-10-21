@@ -64,7 +64,11 @@ import LabelService, {
 } from "../../../Server/Services/LabelService";
 import MonitorService from "../../../Server/Services/MonitorService";
 import ArchivableValueUsage from "../../../Server/Utils/Database/ArchivableValueUsage";
-import { ExpressRequest, ExpressResponse } from "../../../Server/Utils/Express";
+import {
+  ExpressRequest,
+  ExpressResponse,
+  NextFunction,
+} from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "../../../Models/DatabaseModels/Label";
@@ -169,11 +173,6 @@ function labelsApi(): ArchivableValueAPI<Label, LabelServiceType> {
 async function askUsage(id: string = LABEL_ID): Promise<void> {
   labelsApi();
 
-  const route: { handlerFunction: Function } = mockRouter.match(
-    "POST",
-    `/label/:id${ARCHIVABLE_VALUE_USAGE_ROUTE}`,
-  ) as unknown as { handlerFunction: Function };
-
   const request: ExpressRequest = {
     params: { id },
     body: {},
@@ -189,9 +188,13 @@ async function askUsage(id: string = LABEL_ID): Promise<void> {
 
   let failure: unknown = null;
 
-  await route.handlerFunction(request, response, (error: unknown) => {
+  const next: NextFunction = ((error: unknown): void => {
     failure = error;
-  });
+  }) as NextFunction;
+
+  await mockRouter
+    .match("POST", `/label/:id${ARCHIVABLE_VALUE_USAGE_ROUTE}`)
+    .handlerFunction(request, response, next);
 
   if (failure) {
     throw failure;
@@ -203,12 +206,9 @@ describe("the usage route", () => {
     labelsApi();
 
     for (const method of ["POST", "GET"]) {
-      const route: { middlewares: Array<unknown> } = mockRouter.match(
-        method,
-        "/label/:id/usage",
-      ) as unknown as { middlewares: Array<unknown> };
-
-      expect(route.middlewares).toEqual([UserMiddleware.getUserMiddleware]);
+      expect(mockRouter.match(method, "/label/:id/usage").middlewares).toEqual([
+        UserMiddleware.getUserMiddleware,
+      ]);
     }
   });
 

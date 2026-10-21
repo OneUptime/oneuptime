@@ -90,8 +90,10 @@ const endsWithOneOf: (value: string, endings: Array<string>) => boolean = (
 };
 
 // Text with letters in it: "{{count}}+" reads the same everywhere.
+const LETTER: RegExp = /\p{L}/u;
+
 const hasWords: (text: string) => boolean = (text: string): boolean => {
-  return /\p{L}/u.test(text.replace(PLACEHOLDER, ""));
+  return LETTER.test(text.replace(PLACEHOLDER, ""));
 };
 
 // Under an archived role a person still holds, in the role picker.

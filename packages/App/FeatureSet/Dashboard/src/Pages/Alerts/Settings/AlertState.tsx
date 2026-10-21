@@ -39,10 +39,12 @@ const AlertStatesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   // Archive and Unarchive, and the folded Archived section. See the hook.
-  const archive: ArchivableValues<AlertState> = useArchivableValues<AlertState>({
-    modelType: AlertState,
-    type: ArchivableValueType.AlertState,
-  });
+  const archive: ArchivableValues<AlertState> = useArchivableValues<AlertState>(
+    {
+      modelType: AlertState,
+      type: ArchivableValueType.AlertState,
+    },
+  );
 
   // The rows on the page, which "Counts as" is worked out from.
   const [rows, setRows] = useState<Array<AlertState>>([]);

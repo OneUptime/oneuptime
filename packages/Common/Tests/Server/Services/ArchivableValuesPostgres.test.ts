@@ -135,9 +135,7 @@ describePostgres("the archive migrations on tables that hold values", () => {
   let database: DataSource;
   let queryRunner: QueryRunner;
 
-  const columnsOf: (
-    table: string,
-  ) => Promise<
+  const columnsOf: (table: string) => Promise<
     Array<{
       column_name: string;
       is_nullable: string;

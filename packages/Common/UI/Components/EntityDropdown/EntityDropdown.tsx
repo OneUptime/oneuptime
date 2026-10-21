@@ -362,13 +362,10 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
    * (ArchivedValuePicker); a value a record already has is read by its id
    * below, archived or not.
    */
-  const pickerQuery: Record<string, unknown> = ArchivedValuePicker.getPickerQuery(
-    modelType,
-    props.query,
-  );
-  const baseQueryRef: React.MutableRefObject<Record<string, unknown>> = useRef<
-    Record<string, unknown>
-  >(pickerQuery);
+  const pickerQuery: Record<string, unknown> =
+    ArchivedValuePicker.getPickerQuery(modelType, props.query);
+  const baseQueryRef: React.MutableRefObject<Record<string, unknown>> =
+    useRef<Record<string, unknown>>(pickerQuery);
   baseQueryRef.current = pickerQuery;
   const baseQueryKey: string = JSON.stringify(pickerQuery);
   const hasLabelsAutoDetected: boolean = useMemo(() => {

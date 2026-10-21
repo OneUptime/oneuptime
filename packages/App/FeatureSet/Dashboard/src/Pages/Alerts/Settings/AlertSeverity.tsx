@@ -25,10 +25,11 @@ const AlertSeveritiesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   // Archive and Unarchive, and the folded Archived section. See the hook.
-  const archive: ArchivableValues<AlertSeverity> = useArchivableValues<AlertSeverity>({
-    modelType: AlertSeverity,
-    type: ArchivableValueType.AlertSeverity,
-  });
+  const archive: ArchivableValues<AlertSeverity> =
+    useArchivableValues<AlertSeverity>({
+      modelType: AlertSeverity,
+      type: ArchivableValueType.AlertSeverity,
+    });
 
   return (
     <Fragment>

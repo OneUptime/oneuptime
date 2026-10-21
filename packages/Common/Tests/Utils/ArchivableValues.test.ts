@@ -60,9 +60,13 @@ const getRowId: (row: unknown) => string = (row: unknown): string => {
 
 describe("the archivable values", () => {
   test("are the eight values records pick from, each once", () => {
-    expect(ARCHIVABLE_VALUE_DEFINITIONS.map((d) => d.type).sort()).toEqual(
-      Object.values(ArchivableValueType).sort(),
-    );
+    expect(
+      ARCHIVABLE_VALUE_DEFINITIONS.map(
+        (definition: ArchivableValueDefinition): ArchivableValueType => {
+          return definition.type;
+        },
+      ).sort(),
+    ).toEqual(Object.values(ArchivableValueType).sort());
     expect(new Set(ARCHIVABLE_VALUE_TABLE_NAMES).size).toBe(8);
   });
 

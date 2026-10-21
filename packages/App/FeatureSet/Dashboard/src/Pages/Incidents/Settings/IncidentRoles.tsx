@@ -44,10 +44,11 @@ const IncidentRoles: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   // Archive and Unarchive, and the folded Archived section. See the hook.
-  const archive: ArchivableValues<IncidentRole> = useArchivableValues<IncidentRole>({
-    modelType: IncidentRole,
-    type: ArchivableValueType.IncidentRole,
-  });
+  const archive: ArchivableValues<IncidentRole> =
+    useArchivableValues<IncidentRole>({
+      modelType: IncidentRole,
+      type: ArchivableValueType.IncidentRole,
+    });
 
   /*
    * Which of the listed roles are primary, so the form can leave Allow

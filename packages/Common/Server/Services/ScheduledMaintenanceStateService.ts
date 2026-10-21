@@ -46,7 +46,8 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
     // Never created archived if it is a built-in one. See ArchivableValueGuard.
     await ArchivableValueGuard.beforeCreate({
       service: this,
-      definition: ARCHIVABLE_VALUES[ArchivableValueType.ScheduledMaintenanceState],
+      definition:
+        ARCHIVABLE_VALUES[ArchivableValueType.ScheduledMaintenanceState],
       createBy: createBy,
     });
 
@@ -96,7 +97,8 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
     // A built-in state is never archived. See ArchivableValueGuard.
     await ArchivableValueGuard.beforeUpdate({
       service: this,
-      definition: ARCHIVABLE_VALUES[ArchivableValueType.ScheduledMaintenanceState],
+      definition:
+        ARCHIVABLE_VALUES[ArchivableValueType.ScheduledMaintenanceState],
       updateBy: updateBy,
     });
 

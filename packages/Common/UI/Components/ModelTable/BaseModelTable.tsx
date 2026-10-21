@@ -5522,9 +5522,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                   disabled: isDeleteAlternativeRunning,
                   onClick: () => {
                     if (deleteConfirmation.alternative) {
-                      void runDeleteAlternative(
-                        deleteConfirmation.alternative,
-                      );
+                      void runDeleteAlternative(deleteConfirmation.alternative);
                     }
                   },
                 }

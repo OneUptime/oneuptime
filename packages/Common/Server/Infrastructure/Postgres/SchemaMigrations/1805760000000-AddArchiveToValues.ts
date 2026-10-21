@@ -106,8 +106,12 @@ export class AddArchiveToValues1805760000000 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "AlertState" DROP COLUMN "archivedByUserId"`,
     );
-    await queryRunner.query(`ALTER TABLE "AlertState" DROP COLUMN "archivedAt"`);
-    await queryRunner.query(`ALTER TABLE "AlertState" DROP COLUMN "isArchived"`);
+    await queryRunner.query(
+      `ALTER TABLE "AlertState" DROP COLUMN "archivedAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "AlertState" DROP COLUMN "isArchived"`,
+    );
     await queryRunner.query(
       `ALTER TABLE "IncidentState" DROP COLUMN "archivedByUserId"`,
     );
@@ -135,7 +139,9 @@ export class AddArchiveToValues1805760000000 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "MonitorStatus" DROP COLUMN "isArchived"`,
     );
-    await queryRunner.query(`ALTER TABLE "Label" DROP COLUMN "archivedByUserId"`);
+    await queryRunner.query(
+      `ALTER TABLE "Label" DROP COLUMN "archivedByUserId"`,
+    );
     await queryRunner.query(`ALTER TABLE "Label" DROP COLUMN "archivedAt"`);
     await queryRunner.query(`ALTER TABLE "Label" DROP COLUMN "isArchived"`);
     await queryRunner.query(

@@ -339,7 +339,8 @@ const runAction: (
   item: BaseModel,
 ): Promise<void> => {
   await act(async () => {
-    await action.onClick(
+    // Typed as returning nothing; the archive actions are async, so wait.
+    const clicked: unknown = action.onClick(
       item,
       () => {
         // done
@@ -348,6 +349,8 @@ const runAction: (
         throw error;
       },
     );
+
+    await Promise.resolve(clicked);
   });
 };
 

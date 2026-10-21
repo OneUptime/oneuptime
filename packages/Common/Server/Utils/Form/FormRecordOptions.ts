@@ -61,7 +61,11 @@ export default class FormRecordOptions {
         const severities: Array<IncidentSeverity> =
           await IncidentSeverityService.findBy({
             // A choice a submitter makes: never an archived value.
-            query: { projectId: data.projectId, isArchived: false, ...idFilter },
+            query: {
+              projectId: data.projectId,
+              isArchived: false,
+              ...idFilter,
+            },
             select: { _id: true, name: true, color: true, order: true },
             sort: { order: SortOrder.Ascending },
             limit: LIMIT_PER_PROJECT,

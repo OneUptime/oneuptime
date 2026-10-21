@@ -299,7 +299,10 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         );
 
         // Use the first (highest priority) live severity as default for templates
-        if (liveIncidentSeverities.length > 0 && liveIncidentSeverities[0]?._id) {
+        if (
+          liveIncidentSeverities.length > 0 &&
+          liveIncidentSeverities[0]?._id
+        ) {
           setDefaultIncidentSeverityId(
             new ObjectID(liveIncidentSeverities[0]._id),
           );

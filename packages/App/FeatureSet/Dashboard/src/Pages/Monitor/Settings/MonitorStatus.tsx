@@ -34,10 +34,11 @@ const MonitorStatusesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   // Archive and Unarchive, and the folded Archived section. See the hook.
-  const archive: ArchivableValues<MonitorStatus> = useArchivableValues<MonitorStatus>({
-    modelType: MonitorStatus,
-    type: ArchivableValueType.MonitorStatus,
-  });
+  const archive: ArchivableValues<MonitorStatus> =
+    useArchivableValues<MonitorStatus>({
+      modelType: MonitorStatus,
+      type: ArchivableValueType.MonitorStatus,
+    });
 
   return (
     <Fragment>

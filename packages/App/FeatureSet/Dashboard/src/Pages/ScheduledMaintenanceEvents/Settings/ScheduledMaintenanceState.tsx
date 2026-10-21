@@ -41,10 +41,11 @@ const ScheduledMaintenanceStatesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   // Archive and Unarchive, and the folded Archived section. See the hook.
-  const archive: ArchivableValues<ScheduledMaintenanceState> = useArchivableValues<ScheduledMaintenanceState>({
-    modelType: ScheduledMaintenanceState,
-    type: ArchivableValueType.ScheduledMaintenanceState,
-  });
+  const archive: ArchivableValues<ScheduledMaintenanceState> =
+    useArchivableValues<ScheduledMaintenanceState>({
+      modelType: ScheduledMaintenanceState,
+      type: ArchivableValueType.ScheduledMaintenanceState,
+    });
 
   // The rows on the page, which "Counts as" is worked out from.
   const [rows, setRows] = useState<Array<ScheduledMaintenanceState>>([]);

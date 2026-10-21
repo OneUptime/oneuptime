@@ -1250,7 +1250,9 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           stateFieldKey="scheduledMaintenanceStateId"
           stateOptions={DropdownUtil.getDropdownOptionsFromEntityArray({
             // Archived states are never offered as one to move to.
-            array: ArchivedValuePicker.getLiveValues(scheduledMaintenanceStates),
+            array: ArchivedValuePicker.getLiveValues(
+              scheduledMaintenanceStates,
+            ),
             labelField: "name",
             valueField: "_id",
           })}

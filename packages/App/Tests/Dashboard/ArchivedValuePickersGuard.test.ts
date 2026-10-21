@@ -127,6 +127,8 @@ const SETTINGS_PAGES: Record<ArchivableValueType, string> = {
     "Pages/Incidents/Settings/IncidentRoles.tsx",
 };
 
+const SOURCE_FILE: RegExp = /\.(ts|tsx)$/;
+
 const listSources: (directory: string) => Array<string> = (
   directory: string,
 ): Array<string> => {
@@ -137,7 +139,7 @@ const listSources: (directory: string) => Array<string> = (
 
     if (entry.isDirectory()) {
       files.push(...listSources(full));
-    } else if (/\.(ts|tsx)$/.test(entry.name)) {
+    } else if (SOURCE_FILE.test(entry.name)) {
       files.push(full);
     }
   }
