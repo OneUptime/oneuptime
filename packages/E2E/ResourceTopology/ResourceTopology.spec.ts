@@ -373,14 +373,36 @@ test.describe("a vCenter's Topology page", () => {
       "resource-topology-card-vmware.host:",
     ).first();
     await expect(host).toBeVisible();
-    const outer: { x: number; y: number; width: number; height: number } =
-      await boxOf(box);
-    const inner: { x: number; y: number; width: number; height: number } =
-      await boxOf(host);
-    expect(inner.x).toBeGreaterThanOrEqual(outer.x);
-    expect(inner.x + inner.width).toBeLessThanOrEqual(
-      outer.x + outer.width + 1,
-    );
+    /*
+     * Both read in one frame: the map is still framing the opened cluster,
+     * and two reads a frame apart see two different zooms.
+     */
+    await expect
+      .poll(async (): Promise<boolean> => {
+        return await host.evaluate(
+          (element: Element, outerId: string): boolean => {
+            const outer: Element | null = document.querySelector(
+              `[data-testid="${outerId}"]`,
+            );
+
+            if (!outer) {
+              return false;
+            }
+
+            const inner: DOMRect = element.getBoundingClientRect();
+            const around: DOMRect = outer.getBoundingClientRect();
+
+            return (
+              inner.left >= around.left &&
+              inner.right <= around.right + 1 &&
+              inner.top >= around.top &&
+              inner.bottom <= around.bottom + 1
+            );
+          },
+          `resource-topology-box-${cluster}`,
+        );
+      })
+      .toBe(true);
 
     await byTestId(page, `resource-topology-close-${cluster}`).click();
     await expect(box).toHaveCount(0);
