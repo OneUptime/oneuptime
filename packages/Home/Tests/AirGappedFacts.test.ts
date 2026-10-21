@@ -50,7 +50,8 @@ const CHART_HELPERS: string = `${CHART}/templates/_helpers.tpl`;
 const CHART_CONFIGURATION: string = `${CHART}/docs/configuration.md`;
 const AIR_GAPPED_VALUES_FILE: string = "HelmChart/Tests/air-gapped-values.yaml";
 const AIR_GAPPED_SUITE: string = "HelmChart/Tests/suites/air-gapped.sh";
-const ENVIRONMENT_CONFIG: string = "packages/Common/Server/EnvironmentConfig.ts";
+const ENVIRONMENT_CONFIG: string =
+  "packages/Common/Server/EnvironmentConfig.ts";
 const UPDATE_CHECK_JOB: string =
   "packages/App/FeatureSet/Workers/Jobs/InstanceUpdate/CheckForNewVersion.ts";
 const SIGN_UP_API: string =
@@ -174,11 +175,17 @@ describe("the values the page shows are the values the chart is tested with", ()
 
   test("the suite checks each thing the caption under the values promises", () => {
     // "every image comes from your registry"
-    expectFileToSay(AIR_GAPPED_SUITE, "every image of every workload comes from");
+    expectFileToSay(
+      AIR_GAPPED_SUITE,
+      "every image of every workload comes from",
+    );
     // "every pod gets the pull secret"
     expectFileToSay(AIR_GAPPED_SUITE, "gets the ${PULL_SECRET} pull secret");
     // "the update check is off"
-    expectFileToSay(AIR_GAPPED_SUITE, "the app is told the update check is off");
+    expectFileToSay(
+      AIR_GAPPED_SUITE,
+      "the app is told the update check is off",
+    );
     // "no probe is given a public nameserver"
     expectFileToSay(
       AIR_GAPPED_SUITE,
@@ -192,7 +199,10 @@ describe("the values the page shows are the values the chart is tested with", ()
       "image:\n  registry: docker.io\n  repository: oneuptime",
     );
     expectFileToSay(CHART_VALUES, "    repository: postgres\n");
-    expectFileToSay(CHART_VALUES, "    repository: clickhouse/clickhouse-server\n");
+    expectFileToSay(
+      CHART_VALUES,
+      "    repository: clickhouse/clickhouse-server\n",
+    );
     expectFileToSay(CHART_VALUES, "    repository: valkey/valkey\n");
     expectFileToSay(CHART_VALUES, "updateCheck:\n  disabled: false\n  url:");
     expectFileToSay(CHART_VALUES, "# imagePullSecrets:");
@@ -274,7 +284,10 @@ describe("step 1: mirror the images", () => {
   });
 
   test("image.tag pins a release, as the chart's docs ask for production", () => {
-    expectFileToSay(CHART_CONFIGURATION, "Docker image tag. Pin this in production");
+    expectFileToSay(
+      CHART_CONFIGURATION,
+      "Docker image tag. Pin this in production",
+    );
     expect(AirGappedSteps[0]!.settings).toEqual([
       "image.registry",
       "image.tag",
@@ -873,7 +886,11 @@ describe("the questions buyers ask", () => {
       repoFile("package.json"),
     ).scripts;
 
-    expectTextToSay("npm run update", scripts["update"]!, "docker compose pull");
+    expectTextToSay(
+      "npm run update",
+      scripts["update"]!,
+      "docker compose pull",
+    );
     expect(scripts["start"]).not.toContain("docker compose pull");
     expect(faqAnswer("Can we run it with Docker Compose?")).toContain(
       "Docker Compose names its images as Docker Hub does and pulls them when it updates",

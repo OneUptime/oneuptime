@@ -91,19 +91,26 @@ describe("the air-gapped page's routes", () => {
     expect(body).not.toBeNull();
     expect(body).toContain("res.render(`${ViewsPath}/air-gapped`");
     expect(body).toContain("airGapped: getAirGappedContent()");
-    expect(body).toContain('getSEOForPath(\n          "/enterprise/air-gapped"');
+    expect(body).toContain(
+      'getSEOForPath(\n          "/enterprise/air-gapped"',
+    );
     expect(body).toContain("enableGoogleTagManager: GoogleTagManagerEnabled");
   });
 
-  test.each(AIR_GAPPED_SHORT_PATHS.map((shortPath: string) => {
-    return [shortPath];
-  }))("%s redirects permanently to the page, keeping the query", (shortPath: string) => {
-    const body: string | null = bodyOfGetRoute(shortPath);
+  test.each(
+    AIR_GAPPED_SHORT_PATHS.map((shortPath: string) => {
+      return [shortPath];
+    }),
+  )(
+    "%s redirects permanently to the page, keeping the query",
+    (shortPath: string) => {
+      const body: string | null = bodyOfGetRoute(shortPath);
 
-    expect(body).toContain(
-      'redirectPreservingQuery(req, res, "/enterprise/air-gapped", 301);',
-    );
-  });
+      expect(body).toContain(
+        'redirectPreservingQuery(req, res, "/enterprise/air-gapped", 301);',
+      );
+    },
+  );
 
   test("the short addresses are what buyers type", () => {
     expect(AIR_GAPPED_SHORT_PATHS).toEqual(["/air-gapped", "/airgapped"]);
@@ -132,9 +139,9 @@ describe("the air-gapped page's routes", () => {
       '} else if (pagePath === "/enterprise/air-gapped") {\n        markdown = generateAirGappedMarkdown(homeUrl, getAirGappedContent());',
     );
     // Checked before the generic SEO-entry branch, which would win otherwise.
-    expect(handler.indexOf('pagePath === "/enterprise/air-gapped"')).toBeLessThan(
-      handler.indexOf("PageSEOConfig[pagePath]"),
-    );
+    expect(
+      handler.indexOf('pagePath === "/enterprise/air-gapped"'),
+    ).toBeLessThan(handler.indexOf("PageSEOConfig[pagePath]"));
   });
 });
 
@@ -169,9 +176,12 @@ describe("/enterprise/air-gapped.md", () => {
 
   test("has the page's sections, in the page's order", () => {
     expect(
-      Array.from(markdown().matchAll(SECOND_LEVEL_HEADING), (match: RegExpMatchArray): string => {
-        return match[1]!;
-      }),
+      Array.from(
+        markdown().matchAll(SECOND_LEVEL_HEADING),
+        (match: RegExpMatchArray): string => {
+          return match[1]!;
+        },
+      ),
     ).toEqual([
       "Who it's for",
       "What runs inside your network",
@@ -188,17 +198,19 @@ describe("/enterprise/air-gapped.md", () => {
   test("numbers the four steps with the settings each uses", () => {
     const md: string = markdown();
 
-    getAirGappedContent().steps.forEach((step: AirGappedStep, index: number) => {
-      const settings: string = step.settings
-        .map((setting: string): string => {
-          return `\`${setting}\``;
-        })
-        .join(", ");
+    getAirGappedContent().steps.forEach(
+      (step: AirGappedStep, index: number) => {
+        const settings: string = step.settings
+          .map((setting: string): string => {
+            return `\`${setting}\``;
+          })
+          .join(", ");
 
-      expect(md).toContain(
-        `${index + 1}. **${step.title}**: ${step.description} (${settings})`,
-      );
-    });
+        expect(md).toContain(
+          `${index + 1}. **${step.title}**: ${step.description} (${settings})`,
+        );
+      },
+    );
   });
 
   test("carries the values.yaml exactly as the page shows it, and the signing key", () => {
@@ -282,7 +294,10 @@ describe("/enterprise/air-gapped.md", () => {
   });
 
   test("normalizes a trailing slash on the home URL", () => {
-    const md: string = markdown(getAirGappedContent(), "https://oneuptime.com/");
+    const md: string = markdown(
+      getAirGappedContent(),
+      "https://oneuptime.com/",
+    );
 
     expect(md).toContain(
       "Canonical page: https://oneuptime.com/enterprise/air-gapped\n",

@@ -290,9 +290,11 @@ describe("the air-gapped page", () => {
   test("labels every section with its own heading", () => {
     const sections: Array<Element> = all(main, "section[id]");
 
-    expect(sections.map((section: Element): string => {
-      return section.id;
-    })).toEqual([
+    expect(
+      sections.map((section: Element): string => {
+        return section.id;
+      }),
+    ).toEqual([
       "air-gapped-hero",
       "who-its-for",
       "inside",
@@ -332,9 +334,7 @@ describe("the air-gapped page", () => {
       }
     });
 
-    expect(
-      all(main, "h2").map(textOf),
-    ).toEqual([
+    expect(all(main, "h2").map(textOf)).toEqual([
       "For networks that stay closed",
       "Everything runs inside your network",
       "Four steps to an air-gapped install",
@@ -422,9 +422,9 @@ describe("the air-gapped page", () => {
       '#step-bring-in-chart [data-testid="air-gapped-signing-key"]',
     )!;
 
-    expect(
-      all(key, "p.ag-code span").map(textOf),
-    ).toEqual(content.signingKey.fingerprintHalves);
+    expect(all(key, "p.ag-code span").map(textOf)).toEqual(
+      content.signingKey.fingerprintHalves,
+    );
 
     const link: Element | null = key.querySelector("a");
 
@@ -527,9 +527,11 @@ describe("the air-gapped page", () => {
     expect(
       all(section, '[data-testid="air-gapped-ai-option"]').map(textOf),
     ).toEqual(
-      content.ai.options.map((option: { title: string; description: string }) => {
-        return `${option.title} ${option.description}`;
-      }),
+      content.ai.options.map(
+        (option: { title: string; description: string }) => {
+          return `${option.title} ${option.description}`;
+        },
+      ),
     );
     expect(section.querySelector("pre")?.textContent).toBe(
       AIR_GAPPED_LLM_PROVIDER_ENV,
@@ -585,14 +587,16 @@ describe("the air-gapped page", () => {
       expect(question.hasAttribute("open")).toBe(false);
     }
 
-    const faqSchema: { mainEntity: Array<Record<string, unknown>> } =
-      all(page, 'script[type="application/ld+json"]')
-        .map((script: Element) => {
-          return JSON.parse(script.textContent || "{}");
-        })
-        .find((schema: Record<string, unknown>) => {
-          return schema["@type"] === "FAQPage";
-        });
+    const faqSchema: { mainEntity: Array<Record<string, unknown>> } = all(
+      page,
+      'script[type="application/ld+json"]',
+    )
+      .map((script: Element) => {
+        return JSON.parse(script.textContent || "{}");
+      })
+      .find((schema: Record<string, unknown>) => {
+        return schema["@type"] === "FAQPage";
+      });
 
     expect(faqSchema.mainEntity).toEqual(
       content.faqs.map((faq: AirGappedFaq) => {
@@ -639,10 +643,7 @@ describe("the air-gapped page", () => {
   });
 
   test("tags every link to the booking, so each click counts", () => {
-    const toBooking: Array<Element> = all(
-      page,
-      'a[href="#plan-your-install"]',
-    );
+    const toBooking: Array<Element> = all(page, 'a[href="#plan-your-install"]');
 
     expect(toBooking.length).toBeGreaterThan(0);
 
@@ -743,9 +744,9 @@ describe("the pages and menus that lead to the air-gapped page", () => {
       "/enterprise/air-gapped",
       "/enterprise/demo",
     ]);
-    expect(
-      textOf(menu.querySelector('a[href="/enterprise/air-gapped"]')),
-    ).toBe("Air-Gapped Run it with no internet connection");
+    expect(textOf(menu.querySelector('a[href="/enterprise/air-gapped"]'))).toBe(
+      "Air-Gapped Run it with no internet connection",
+    );
   });
 
   test("is in the footer's Solutions column, after Self-Hosted", () => {
@@ -807,7 +808,7 @@ describe("the pages and menus that lead to the air-gapped page", () => {
         homeUrl: HOME_URL,
       }),
     );
-    const residency: Element | undefined = all(overview, "h3")
+    const residency: Element | null | undefined = all(overview, "h3")
       .find((heading: Element): boolean => {
         return textOf(heading) === "Custom Data Residency";
       })

@@ -522,7 +522,9 @@ describe("SelfHosted content model", () => {
       "“Notify me about security patches and new releases” ticked",
     );
     expect(answer).toContain("untick it on an air-gapped network");
-    expect(answer).toContain("Activated with an offline license token, it never calls us.");
+    expect(answer).toContain(
+      "Activated with an offline license token, it never calls us.",
+    );
   });
 
   test("shared responsibility ships single sign-on in both editions, and SCIM and audit logs in the Enterprise Edition", () => {

@@ -674,7 +674,9 @@ export function generateAirGappedMarkdown(
   lines.push("");
   lines.push("## Learn More");
   lines.push("");
-  lines.push(`- [Self-hosted deployment](${baseUrl}/enterprise/self-hosted.md)`);
+  lines.push(
+    `- [Self-hosted deployment](${baseUrl}/enterprise/self-hosted.md)`,
+  );
   lines.push(
     `- [Self-hosted architecture](${absoluteLink(baseUrl, content.docs.architecture)})`,
   );
