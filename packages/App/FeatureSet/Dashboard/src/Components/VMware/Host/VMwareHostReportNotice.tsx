@@ -46,18 +46,18 @@ const VMwareHostReportNotice: FunctionComponent<ComponentProps> = (
         className="mb-6"
         dataTestId="vmware-host-report-notice"
         type={AlertType.WARNING}
-        strongTitle={translator.translateTemplate(
-          "No new data from vCenter since {{time}}",
-          {
-            time: props.lastReportAt
-              ? OneUptimeDate.fromNow(props.lastReportAt)
-              : tx("its last report"),
-          },
-        )}
+        strongTitle={
+          props.lastReportAt
+            ? translator.translateTemplate(
+                "vCenter last reported this host {{time}}",
+                { time: OneUptimeDate.fromNow(props.lastReportAt) },
+              )
+            : tx("vCenter stopped reporting this host")
+        }
         title={
           <span>
             {tx(
-              "The numbers on this page stop there. The host may be disconnected from vCenter, in maintenance mode or powered off, or the vCenter stopped reporting.",
+              "Its numbers stop there. The host may be disconnected from vCenter, in maintenance mode or powered off - or the vCenter itself stopped reporting.",
             )}{" "}
             <Link to={props.vcenterRoute} className={LINK_CLASS_NAME}>
               {tx("Check the vCenter")}

@@ -706,6 +706,31 @@ const store = {
   PodmanHost: [],
   KubernetesCluster: [],
   MetricType: [],
+  /*
+   * What the vCenter's Recommendations page reads to build a monitor and
+   * fill its create panel: the project's statuses and severities, and no
+   * on-call policies or labels yet.
+   */
+  MonitorStatus: [
+    {
+      _id: uuid("55000000", 1),
+      name: "Operational",
+      isOperationalState: true,
+      isOfflineState: false,
+      priority: 1,
+    },
+    {
+      _id: uuid("55000000", 2),
+      name: "Offline",
+      isOperationalState: false,
+      isOfflineState: true,
+      priority: 2,
+    },
+  ],
+  IncidentSeverity: [criticalIncident],
+  AlertSeverity: [warningAlert],
+  OnCallDutyPolicy: [],
+  Label: [],
 };
 
 function rows(modelType, query) {

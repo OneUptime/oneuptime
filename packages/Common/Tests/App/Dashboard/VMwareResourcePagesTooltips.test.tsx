@@ -35,6 +35,11 @@ const mockGetListCalls: Array<ListRequest> = [];
 let mockVCenter: unknown = null;
 let mockRowsByKind: Record<string, Array<unknown>> = {};
 let mockAggregateData: Array<Record<string, unknown>> = [];
+/*
+ * Per metric name, for a page that reads several metrics and must get each
+ * its own answer (the ESXi host's Overview); otherwise mockAggregateData.
+ */
+let mockAggregateByMetric: Record<string, Array<Record<string, unknown>>> = {};
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -57,8 +62,13 @@ jest.mock("../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
   return {
     __esModule: true,
     default: {
-      aggregate: (): Promise<unknown> => {
-        return Promise.resolve({ data: mockAggregateData });
+      aggregate: (request: {
+        aggregateBy: { query: Record<string, unknown> };
+      }): Promise<unknown> => {
+        const name: string = String(request.aggregateBy.query["name"]);
+        return Promise.resolve({
+          data: mockAggregateByMetric[name] || mockAggregateData,
+        });
       },
     },
   };
@@ -133,6 +143,7 @@ beforeEach(() => {
   mockVCenter = vcenterModel();
   mockRowsByKind = {};
   mockAggregateData = [];
+  mockAggregateByMetric = {};
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
     .mockReturnValue(new ObjectID(PROJECT_ID));
@@ -165,6 +176,12 @@ async function waitForInfo(label: string): Promise<void> {
 }
 
 describe("VMware ESXi host detail", () => {
+  /*
+   * The host's page is an Overview of tiles, charts, cards and tables,
+   * like the host page outside VMware. Every number on it carries an (i)
+   * saying what it is and over which window; the identity rows of its
+   * Details card (names, ids, dates) carry none.
+   */
   const EXTERNAL_ID: string = "host/dc1/esx01";
 
   function host(fields: Record<string, unknown>): unknown {
@@ -172,58 +189,138 @@ describe("VMware ESXi host detail", () => {
       kind: "Host",
       externalId: EXTERNAL_ID,
       name: "esx01",
+      hostName: "esx01",
       datacenterName: "dc1",
       clusterName: "cl1",
+      cpuCapacityMhz: 48000,
+      maxMemoryBytes: 256 * GIB,
       metricsUpdatedAt: new Date(),
       lastSeenAt: new Date(),
       ...fields,
     });
   }
 
-  test("CPU and memory carry their explanations; identity fields do not", async () => {
-    mockRowsByKind["Host"] = [
-      host({
-        latestCpuPercent: 37.5,
-        latestCpuMhz: 12000,
-        cpuCapacityMhz: 48000,
-        latestMemoryBytes: 64 * GIB,
-        maxMemoryBytes: 256 * GIB,
-        latestMemoryPercent: 25,
+  function minutesAgo(minutes: number): Date {
+    return new Date(Date.now() - minutes * 60 * 1000);
+  }
+
+  // The host's own series and one device of each kind.
+  function reportingMetrics(): void {
+    mockAggregateByMetric = {
+      "vcenter.host.cpu.utilization": [
+        { timestamp: minutesAgo(2), value: 37.5 },
+      ],
+      "vcenter.host.memory.utilization": [
+        { timestamp: minutesAgo(2), value: 25 },
+      ],
+      "vcenter.host.network.throughput": [
+        {
+          timestamp: minutesAgo(2),
+          value: 100,
+          attributes: { object: "vmnic0", direction: "received" },
+        },
+      ],
+      "vcenter.host.disk.throughput": [
+        {
+          timestamp: minutesAgo(2),
+          value: 10,
+          attributes: { object: "naa.1", direction: "read" },
+        },
+      ],
+      "vcenter.host.disk.latency.max": [
+        { timestamp: minutesAgo(2), value: 4, attributes: { object: "" } },
+      ],
+    };
+  }
+
+  test("every tile, chart, card and table number explains itself; identity rows do not", async () => {
+    mockRowsByKind["Host"] = [host({})];
+    mockRowsByKind["VirtualMachine"] = [
+      inventoryRow({
+        kind: "VirtualMachine",
+        externalId: "vm/1",
+        name: "web-01",
+        hostName: "esx01",
+        isPoweredOn: true,
+        latestCpuPercent: 40,
+        metricsUpdatedAt: new Date(),
       }),
     ];
+    reportingMetrics();
     openAt(detailUrl("hosts", EXTERNAL_ID));
 
     render(<HostDetail {...PAGE_PROPS} />);
-    await waitForInfo("CPU");
+    await waitForInfo("Busiest virtual machines");
+    await waitForInfo("Received");
 
     expect(await explainedLabels()).toEqual([
       ["CPU", D.hostCpu],
-      ["Memory (Used / Capacity)", D.hostMemory],
+      ["Memory", D.hostMemory],
+      ["Disk latency", D.hostPageDiskLatency],
+      ["Network", D.hostPageNetwork],
+      ["CPU", D.hostPageCpuChart],
+      ["Memory", D.hostPageMemoryChart],
+      ["Disk latency", D.hostPageDiskLatencyChart],
+      ["Network", D.hostPageNetworkChart],
+      ["Busiest virtual machines", D.hostPageBusiestVirtualMachines],
+      ["Received", D.hostPageAdapterThroughput],
+      ["Packets", D.hostPageAdapterPackets],
+      ["Errors", D.hostPageAdapterErrors],
+      ["Drops", D.hostPageAdapterDrops],
+      ["Read", D.hostPageDeviceThroughput],
+      ["Read latency", D.hostPageDeviceLatency],
+      ["CPU capacity", D.hostCpuCapacity],
     ]);
-    expect(
-      screen.getByText("37.5% (12.00 GHz of 48.00 GHz)"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("37.5%")).toBeInTheDocument();
     expectNoInfoOn([
-      "Host Name",
+      "Host name",
       "vCenter",
       "Datacenter",
       "Cluster",
-      "External ID",
-      "Metrics Updated",
-      "Last Seen",
+      "Virtual machines",
+      "Metrics updated",
+      "Inventory ID",
+      "Sent",
+      "Write",
+      "Write latency",
     ]);
   });
 
-  test("a host that reports capacity but no usage explains its CPU Capacity instead", async () => {
-    mockRowsByKind["Host"] = [host({ cpuCapacityMhz: 48000 })];
+  test("a host with no metrics yet still explains its tiles and charts; nothing more", async () => {
+    mockRowsByKind["Host"] = [host({ metricsUpdatedAt: undefined })];
     openAt(detailUrl("hosts", EXTERNAL_ID));
 
     render(<HostDetail {...PAGE_PROPS} />);
-    await waitForInfo("CPU Capacity");
+    await waitForInfo("CPU capacity");
 
+    // No VMs, no device counters: no busiest-VMs list and no device tables.
     expect(await explainedLabels()).toEqual([
-      ["CPU Capacity", D.hostCpuCapacity],
+      ["CPU", D.hostCpu],
+      ["Memory", D.hostMemory],
+      ["Disk latency", D.hostPageDiskLatency],
+      ["Network", D.hostPageNetwork],
+      ["CPU", D.hostPageCpuChart],
+      ["Memory", D.hostPageMemoryChart],
+      ["Disk latency", D.hostPageDiskLatencyChart],
+      ["Network", D.hostPageNetworkChart],
+      ["CPU capacity", D.hostCpuCapacity],
     ]);
+  });
+
+  test("an (i) in a table header is a button of its own, outside the header's text", async () => {
+    mockRowsByKind["Host"] = [host({})];
+    reportingMetrics();
+    openAt(detailUrl("hosts", EXTERNAL_ID));
+
+    render(<HostDetail {...PAGE_PROPS} />);
+    await waitForInfo("Received");
+
+    for (const button of infoButtons()) {
+      expectNotNested(button);
+    }
+    expect(await explanationOnFocus(infoButtonsFor("Read latency")[0]!)).toBe(
+      D.hostPageDeviceLatency,
+    );
   });
 });
 
