@@ -3,7 +3,14 @@ import ShortcutKey from "../ShortcutKey/ShortcutKey";
 import { useIsCardSection } from "./CardSurface";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  MutableRefObject,
+  ReactElement,
+  useCallback,
+  useRef,
+  useState,
+} from "react";
 
 export interface CardButtonSchema {
   title: string;
@@ -26,9 +33,10 @@ export interface CardButtonSchema {
  * Where a card's actions go. Whatever the layout, what a card offers - Edit,
  * Create, the ⋯ menu, a status badge, a picker - sits at the RIGHT edge of
  * the header, on the title's line ("Why are edit buttons not on the right?").
- * When it does not fit there it moves onto the next line, still at the right
- * edge. It is never centred, and never put under the description at the
- * left.
+ * When it does not fit there it moves onto a line of its own, still at the
+ * right edge - in the stacked and toolbar headers after the description,
+ * which stays right under the title. It is never centred across the header,
+ * and never put at the left.
  *
  * How the header shares its width:
  *
@@ -41,7 +49,11 @@ export interface CardButtonSchema {
  * page, or a card whose header holds a row of controls). Beside the actions
  * the description would be squeezed into a column a word or two wide, so the
  * title and the actions share the first line and the description runs under
- * both, across the card's whole width.
+ * both, across the card's whole width - right under the title, as it is in
+ * a card with no actions: the controls are centred on the title's line and
+ * reach past it rather than pushing the description a button row down, and
+ * the title stays at the card's padding, level with its neighbours'
+ * (CARD_HEADER_TITLE_LINE_CLASS_NAMES).
  *
  * "toolbar" is the stacked header for a card as wide as the page whose
  * actions are a row of controls - a table's search, its saved views, its
@@ -163,6 +175,157 @@ export const CARD_HEADER_ACTION_CLASS_NAME: string =
   "flex items-center [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
 
 /*
+ * The first line of the stacked and toolbar headers: the title and the
+ * actions side by side while they fit, the actions on the next line - at
+ * the right edge - when they do not. On a phone the two are centred on each
+ * other. CARD_HEADER_TITLE_LINE_CLASS_NAMES says how they meet from md up.
+ */
+export const CARD_HEADER_TITLE_ROW_CLASS_NAME: string =
+  "flex flex-wrap items-center gap-x-4 gap-y-2";
+
+/*
+ * How far a header's controls reach past its title's line, from md up, on
+ * each side: they are 38px tall (Button's normal size, and every control in
+ * a table's header - TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME), the title's
+ * line 24px (CARD_TITLE_CLASS_NAME's leading-6), so 7px above it and 7px
+ * below it when they are centred on the title.
+ */
+export const CARD_HEADER_CONTROL_HEIGHT_IN_PX: number = 38;
+
+export const CARD_TITLE_LINE_HEIGHT_IN_PX: number = 24;
+
+export const CARD_HEADER_CONTROL_OVERHANG_IN_PX: number =
+  (CARD_HEADER_CONTROL_HEIGHT_IN_PX - CARD_TITLE_LINE_HEIGHT_IN_PX) / 2;
+
+/*
+ * Air between the controls' foot and a description that runs under them
+ * (the description's letters start another 6px down its line).
+ */
+export const CARD_DESCRIPTION_CLEARANCE_IN_PX: number = 2;
+
+/*
+ * "There's a lot of gap between the title of the card and the description
+ * of the card." In the stacked and toolbar headers the description follows
+ * the first line, and that line was as tall as the controls on it: the
+ * title hung from its top and the description came 20px under the title -
+ * a button row's height - where a card with no controls has 6px. From md
+ * up (a phone does not show the description) the first line is now the
+ * title's own line:
+ *
+ *   - the title stays where every card's title is, at the card's padding,
+ *     so the titles of cards side by side line up whatever their headers
+ *     hold;
+ *   - the actions are centred on the title's line (md:items-center) and
+ *     reach as far above it as below it (md:-my-[7px] for 38px controls),
+ *     so the line is no taller than the title. Centring their margin box
+ *     centres the actions themselves whatever their height: a 38px search
+ *     or Edit, a 32px segmented control, a status pill or a small link;
+ *   - the description follows that line by the 7px the controls hang down
+ *     and 2px of air (CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME): 9px under
+ *     the title, and clear of the controls wherever it runs under them.
+ *
+ * A long title that breaks over two lines has the actions centred on both.
+ *
+ * Without a description nothing follows the first line, so the controls'
+ * foot must stay in it - the card's body never moves up under them: they
+ * hang only above the line (md:-mt-[7px]) and the title's block takes the
+ * same 7px under it (CARD_HEADER_TITLE_BLOCK_OVER_NOTHING_CLASS_NAME), so
+ * both stay centred and the title stays where it is with a description.
+ * That matters where a description comes and goes: a table drops its own
+ * while its empty state says it, and its title and controls do not move.
+ *
+ * When the actions do not fit beside the title (a list with a side menu at
+ * 1024px, two buttons in an overview's one-third column) they go to a line
+ * of their own, and a description that followed them sat a button row or
+ * two under its title (48px on the Runbooks list at 1024px, 98px at 768px).
+ * There the description joins the title's block instead, 6px under the
+ * title as in a card with no actions, and the actions follow it, at the
+ * right edge, hanging past nothing (overActions; see
+ * cardHeaderActionsAreUnderTitle). Where they go is the browser's to say -
+ * it depends on the title, the controls and the language - so the card
+ * reads it from the drawn header.
+ */
+export const CARD_HEADER_TITLE_LINE_CLASS_NAMES: {
+  // The title and the actions side by side.
+  besideActions: string;
+  // The title with no actions beside it (or actions with no title).
+  alone: string;
+  /*
+   * The title and its description as one block, over actions that went to
+   * a line of their own.
+   */
+  overActions: string;
+} = {
+  besideActions: "md:items-center",
+  alone: "md:items-start",
+  overActions: "md:items-start",
+};
+
+/*
+ * The actions beside the title, from md up: as far above its line as below
+ * it, so they are centred on it (CARD_HEADER_CONTROL_OVERHANG_IN_PX each
+ * way for 38px controls).
+ */
+export const CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES: {
+  // A description follows the line: the actions hang over it too.
+  overDescription: string;
+  // Nothing follows the line: the actions' foot stays in it.
+  overNothing: string;
+} = {
+  overDescription: "md:-my-[7px]",
+  overNothing: "md:-mt-[7px]",
+};
+
+/*
+ * With nothing under the line, the title's block takes as much room under
+ * it as the actions reach above it, so the two stay centred on each other.
+ */
+export const CARD_HEADER_TITLE_BLOCK_OVER_NOTHING_CLASS_NAME: string =
+  "md:mb-[7px]";
+
+/*
+ * Whether a stacked or toolbar header's actions went to a line of their own
+ * under the title's block: their top below its middle (beside it, they are
+ * centred on its line). Null while the header is not drawn (no size: a
+ * hidden card, or a test's DOM without layout), when it cannot say.
+ *
+ * Where the actions go does not depend on the description: from md up the
+ * title's block wraps by its flex-basis (half the line, or 12rem in the
+ * toolbar), never by its words, so moving the description into the block
+ * cannot change the answer.
+ */
+export const cardHeaderActionsAreUnderTitle: (
+  titleBlock: Element,
+  actions: Element,
+) => boolean | null = (
+  titleBlock: Element,
+  actions: Element,
+): boolean | null => {
+  const titleBox: DOMRect = titleBlock.getBoundingClientRect();
+  const actionsBox: DOMRect = actions.getBoundingClientRect();
+
+  if (titleBox.height === 0 || actionsBox.height === 0) {
+    return null;
+  }
+
+  return actionsBox.top > (titleBox.top + titleBox.bottom) / 2;
+};
+
+/*
+ * The description under a card's title. A card with no controls beside its
+ * title (and the default header, where the controls stand beside the
+ * description) puts it 6px under the title; the stacked and toolbar headers
+ * with actions beside the title put it 9px under it - the controls'
+ * overhang and the clearance - out of their way (see
+ * CARD_HEADER_TITLE_LINE_CLASS_NAMES). Hidden on a phone.
+ */
+export const CARD_DESCRIPTION_CLASS_NAME: string =
+  "mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed";
+
+export const CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME: string =
+  "mt-[9px] text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed";
+
+/*
  * A card's frame on a page: a white box with a border, rounded corners and a
  * shadow, and a gap under it for the next card.
  */
@@ -272,21 +435,123 @@ const Card: FunctionComponent<ComponentProps> = (
       </h2>
     );
 
+  const hasDescription: boolean = Boolean(translatedDescription);
+
+  /*
+   * A stacked or toolbar header with a title, actions and a description
+   * reads where the browser put its actions: beside the title, or on a line
+   * of their own under it. In the second case the description joins the
+   * title's block, so it is not a button row or two under its title
+   * (CARD_HEADER_TITLE_LINE_CLASS_NAMES, overActions). The first line is
+   * read once it is drawn - before the browser paints it - and again
+   * whenever its size changes: the window, the language, a table's search
+   * opening or a button coming in.
+   */
+  const readsActionsLine: boolean =
+    isStacked && hasActions && hasDescription && Boolean(translatedTitle);
+  const [actionsUnderTitle, setActionsUnderTitle] = useState<boolean>(false);
+  const titleRowObserver: MutableRefObject<ResizeObserver | null> =
+    useRef<ResizeObserver | null>(null);
+
+  const watchTitleRow: (titleRow: HTMLDivElement | null) => void = useCallback(
+    (titleRow: HTMLDivElement | null): void => {
+      titleRowObserver.current?.disconnect();
+      titleRowObserver.current = null;
+
+      if (!titleRow || !readsActionsLine) {
+        return;
+      }
+
+      const read: () => void = (): void => {
+        const parts: Array<Element> = Array.from(titleRow.children);
+        const titleBlock: Element | undefined = parts.find(
+          (part: Element): boolean => {
+            return (
+              part.getAttribute("data-testid") === "card-header-title-block"
+            );
+          },
+        );
+        const actions: Element | undefined = parts.find(
+          (part: Element): boolean => {
+            return part.getAttribute("data-testid") === "card-header-actions";
+          },
+        );
+
+        if (!titleBlock || !actions) {
+          return;
+        }
+
+        const isUnderTitle: boolean | null = cardHeaderActionsAreUnderTitle(
+          titleBlock,
+          actions,
+        );
+
+        if (isUnderTitle !== null) {
+          setActionsUnderTitle(isUnderTitle);
+        }
+      };
+
+      read();
+
+      if (typeof ResizeObserver === "undefined") {
+        return;
+      }
+
+      const observer: ResizeObserver = new ResizeObserver(read);
+      observer.observe(titleRow);
+      titleRowObserver.current = observer;
+    },
+    [readsActionsLine],
+  );
+
+  const isDescriptionInTitleBlock: boolean =
+    readsActionsLine && actionsUnderTitle;
+
+  /*
+   * From md up, actions beside a stacked or toolbar header's title are
+   * centred on its line, reaching above and below it
+   * (CARD_HEADER_TITLE_LINE_CLASS_NAMES); on a line of their own, or with
+   * no title to sit beside, they hang past nothing.
+   */
+  const centresActionsOnTitle: boolean =
+    isStacked &&
+    hasActions &&
+    Boolean(titleElement) &&
+    !isDescriptionInTitleBlock;
+
+  /*
+   * In the stacked and toolbar headers the description follows the line the
+   * title shares with the actions; there it keeps clear of the controls'
+   * foot. Over actions on a line of their own, and in the default header, it
+   * is in the title's block, 6px under the title.
+   */
   const descriptionElement: ReactElement | false | "" | undefined =
     translatedDescription && (
       <p
         data-testid="card-description"
-        className="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed"
+        className={
+          centresActionsOnTitle
+            ? CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME
+            : CARD_DESCRIPTION_CLASS_NAME
+        }
       >
         {translatedDescription}
       </p>
     );
 
+  const stackedActionsClassName: string = centresActionsOnTitle
+    ? ` ${
+        hasDescription
+          ? CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES.overDescription
+          : CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES.overNothing
+      }`
+    : "";
+
   const actionsElement: ReactElement | null = hasActions ? (
     <div
       data-testid="card-header-actions"
       className={`${CARD_HEADER_ACTIONS_CLASS_NAME}${
-        isStacked ? "" : " md:flex-shrink-0"
+        isStacked ? stackedActionsClassName : " md:flex-shrink-0"
       }${isToolbar ? ` ${CARD_HEADER_TOOLBAR_FILL_CLASS_NAME}` : ""}`}
     >
       {props.rightElement && (
@@ -300,11 +565,32 @@ const Card: FunctionComponent<ComponentProps> = (
    * The title and the actions share one line that wraps: side by side while
    * the actions leave the title its share, the actions on the next line - at
    * the right edge - when they do not (see the title block's class above).
-   * On a phone the two are centred on each other; from md up their tops are
-   * level, as in the default header. The description is not on that line,
-   * so its length cannot push the actions off it: it runs under both, across
-   * the card's whole width.
+   * On a phone the two are centred on each other; from md up the actions
+   * are centred on the title's line and the line is no taller than the
+   * title, so a description follows the title, not the controls
+   * (CARD_HEADER_TITLE_LINE_CLASS_NAMES). The description is not on that
+   * line, so its length cannot push the actions off it: it runs under both,
+   * across the card's whole width - unless the actions went under the
+   * title, when it joins the title's block, before them.
    */
+  const titleLineClassName: string = isDescriptionInTitleBlock
+    ? CARD_HEADER_TITLE_LINE_CLASS_NAMES.overActions
+    : centresActionsOnTitle
+      ? CARD_HEADER_TITLE_LINE_CLASS_NAMES.besideActions
+      : CARD_HEADER_TITLE_LINE_CLASS_NAMES.alone;
+
+  const titleBlockShareClassName: string = actionsElement
+    ? isToolbar
+      ? CARD_HEADER_TOOLBAR_TITLE_BLOCK_CLASS_NAME
+      : CARD_HEADER_STACKED_TITLE_BLOCK_CLASS_NAME
+    : "w-full min-w-0";
+
+  // With nothing under the line, the title keeps level with the actions' middle.
+  const stackedTitleBlockClassName: string =
+    centresActionsOnTitle && !hasDescription
+      ? `${titleBlockShareClassName} ${CARD_HEADER_TITLE_BLOCK_OVER_NOTHING_CLASS_NAME}`
+      : titleBlockShareClassName;
+
   const stackedHeader: ReactElement = (
     <div
       data-testid="card-header"
@@ -313,26 +599,22 @@ const Card: FunctionComponent<ComponentProps> = (
       {(titleElement || actionsElement) && (
         <div
           data-testid="card-header-title-row"
-          className="flex flex-wrap items-center gap-x-4 gap-y-2 md:items-start"
+          ref={watchTitleRow}
+          className={`${CARD_HEADER_TITLE_ROW_CLASS_NAME} ${titleLineClassName}`}
         >
           {titleElement && (
             <div
               data-testid="card-header-title-block"
-              className={
-                actionsElement
-                  ? isToolbar
-                    ? CARD_HEADER_TOOLBAR_TITLE_BLOCK_CLASS_NAME
-                    : CARD_HEADER_STACKED_TITLE_BLOCK_CLASS_NAME
-                  : "w-full min-w-0"
-              }
+              className={stackedTitleBlockClassName}
             >
               {titleElement}
+              {isDescriptionInTitleBlock && descriptionElement}
             </div>
           )}
           {actionsElement}
         </div>
       )}
-      {descriptionElement}
+      {!isDescriptionInTitleBlock && descriptionElement}
     </div>
   );
 

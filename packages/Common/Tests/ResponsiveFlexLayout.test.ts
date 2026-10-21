@@ -100,6 +100,35 @@ describe("resolveFlex", () => {
     ).toBe("flex-start");
   });
 
+  test("an item's own align-self: auto until a utility sets it, by screen", () => {
+    const className: string = "flex items-center md:self-start";
+
+    expect(resolveFlex("flex", PHONE_WIDTH_IN_PX, "align-self")).toBe("auto");
+    expect(resolveFlex(className, PHONE_WIDTH_IN_PX, "align-self")).toBe(
+      "auto",
+    );
+    expect(resolveFlex(className, TABLET_WIDTH_IN_PX, "align-self")).toBe(
+      "flex-start",
+    );
+    expect(resolveFlex(className, LAPTOP_WIDTH_IN_PX, "align-self")).toBe(
+      "flex-start",
+    );
+    // align-items is the container's, and align-self does not read it.
+    expect(resolveFlex(className, LAPTOP_WIDTH_IN_PX, "align-items")).toBe(
+      "center",
+    );
+    expect(
+      resolveFlex("self-end lg:self-center", LAPTOP_WIDTH_IN_PX, "align-self"),
+    ).toBe("center");
+    expect(
+      resolveFlex("self-end lg:self-center", TABLET_WIDTH_IN_PX, "align-self"),
+    ).toBe("flex-end");
+    // Inside one screen Tailwind 3.4.5 emits self-center after self-start.
+    expect(
+      resolveFlex("self-center self-start", PHONE_WIDTH_IN_PX, "align-self"),
+    ).toBe("center");
+  });
+
   test("isRowAtWidth reads the direction of an element", () => {
     const element: HTMLDivElement = document.createElement("div");
     element.className = "flex flex-col lg:flex-row";
