@@ -712,6 +712,41 @@ describe("MonitorRecommendations seeds its selection from the URL", () => {
     expect(initialSelection.trimStart()).toMatch(/^\(\): Set<string> => \{/);
   });
 
+  test("the first ticked card is brought into view once the list is drawn, once", () => {
+    /*
+     * The page opened at the scroll position the link was clicked from (an
+     * ESXi host's "Turn on N alerts" sits far down the host's page), with
+     * the ticked cards out of sight. The browser suite VMwareHostPage checks
+     * the card is in view; this pins how.
+     */
+    const effect: string = PAGE_CODE.split(
+      "const hasShownLinkedSelection",
+    )[1]!.split("if (isLoading) {")[0]!;
+
+    expect(PAGE_CODE.split("const hasShownLinkedSelection").length).toBe(2);
+    expect(effect).toContain(
+      squash(
+        "if (isLoading || hasShownLinkedSelection.current) { return; } hasShownLinkedSelection.current = true;",
+      ),
+    );
+    // What the link ticked: nothing can be ticked by hand before the list.
+    expect(effect).toContain(
+      "const linked: Set<string> = selectedRecommendationIds;",
+    );
+    expect(effect).toContain('firstCard.scrollIntoView({ block: "center" });');
+    expect(effect).toContain("}, [isLoading]);");
+    /*
+     * Cards are matched by comparing their own ids: no selector is built
+     * from the address, which a pasted link could fill with anything.
+     */
+    expect(effect).not.toContain("Navigation.getQueryStringByName(");
+    expect(effect).toContain(
+      squash(
+        'return linked.has( (card.getAttribute("data-testid") || "").slice(prefix.length), );',
+      ),
+    );
+  });
+
   test("what is counted and created is still the selectable ones only", () => {
     expect(PAGE_CODE).toContain(
       squash(

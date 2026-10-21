@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import fs from "fs";
 import i18next from "i18next";
@@ -7,7 +14,24 @@ import path from "path";
 import React, { ReactElement } from "react";
 import { initReactI18next } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
+// The Metrics tab's charts: what they are handed is what is checked.
+const mockMetricsTabProps: Array<Record<string, unknown>> = [];
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Infrastructure/ResourceMetricsTab",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: Record<string, unknown>): ReactElement => {
+        mockMetricsTabProps.push(props);
+        return <div data-testid="metrics-tab" />;
+      },
+    };
+  },
+);
+
 import VMwareHostHero from "../../../../App/FeatureSet/Dashboard/src/Components/VMware/Host/VMwareHostHero";
+import VMwareHostMetricsTab from "../../../../App/FeatureSet/Dashboard/src/Components/VMware/Host/VMwareHostMetricsTab";
 import VMwareHostReportNotice from "../../../../App/FeatureSet/Dashboard/src/Components/VMware/Host/VMwareHostReportNotice";
 import { VMwareHostReportState } from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/VMwareHostData";
 import Route from "../../../Types/API/Route";
@@ -238,6 +262,17 @@ const PART_SENTENCES: Record<string, Array<string>> = {
     "Shipping ESXi syslog",
     "Turn on the VMware agent's syslog listener",
   ],
+  "Components/VMware/Host/VMwareHostMetricsTab.tsx": [
+    "CPU Utilization",
+    "CPU, memory, network, disk throughput, disk latency and NIC errors for this ESXi host over the selected time range.",
+    "Disk Latency (max)",
+    "Disk Throughput",
+    "Host Metrics: {{hostName}}",
+    "Memory Usage",
+    "Network Packet Drops",
+    "Network Packet Errors",
+    "Network Throughput",
+  ],
   /*
    * Shared parts the host page draws, whose words were English in every
    * language until its review: an empty chart, and the refresh control.
@@ -389,6 +424,54 @@ describe("an ESXi host's page in every language", () => {
       expect(stillEnglish).toEqual([]);
     },
   );
+});
+
+describe("the Metrics tab in the reader's language", () => {
+  test("hands its charts their titles and legends in German", async () => {
+    await readIn("de");
+    mockMetricsTabProps.length = 0;
+
+    renderInRouter(
+      <VMwareHostMetricsTab
+        hostName="esx01.acme.example"
+        attributes={{ "resource.vcenter.host.name": "esx01.acme.example" }}
+      />,
+    );
+
+    const german: Record<string, string> = readLocale("de");
+    const configs: Array<{
+      metricAliasData: { title: string; legend: string };
+    }> = mockMetricsTabProps[mockMetricsTabProps.length - 1]![
+      "queryConfigs"
+    ] as Array<{ metricAliasData: { title: string; legend: string } }>;
+
+    /*
+     * The charts draw a title as they are handed it: English titles stayed
+     * English in every language although every locale words them.
+     */
+    expect(
+      configs.map((config: { metricAliasData: { title: string } }) => {
+        return config.metricAliasData.title;
+      }),
+    ).toEqual(
+      [
+        "CPU Utilization",
+        "Memory Usage",
+        "Network Throughput",
+        "Disk Throughput",
+        "Disk Latency (max)",
+        "Network Packet Errors",
+        "Network Packet Drops",
+      ].map((title: string): string => {
+        expect(german[title]).not.toBe(title);
+        return german[title]!;
+      }),
+    );
+    expect(configs[1]!.metricAliasData.legend).toBe(german["Memory"]);
+    expect(
+      screen.getByText("Host-Metriken: esx01.acme.example"),
+    ).toBeInTheDocument();
+  });
 });
 
 describe("a time inside a sentence", () => {

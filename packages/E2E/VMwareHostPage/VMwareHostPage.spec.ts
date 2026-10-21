@@ -621,6 +621,16 @@ test.describe("from the host to what it needs", () => {
         page.getByTestId(`recommendation-card-select-${id}`),
       ).toHaveAttribute("aria-pressed", "true");
     }
+    /*
+     * ...and in view: the click came from far down the host's page, and the
+     * page opened at that scroll position, on the datacenter cards, with
+     * the ticked host alerts out of sight above.
+     */
+    await expect(
+      page.getByTestId(
+        "recommendation-card-VMware:vmware-host-disk-latency-high",
+      ),
+    ).toBeInViewport();
     await expect(page.getByText("3 monitors selected")).toBeVisible();
     // Nothing else is picked for them.
     await expect(
@@ -630,6 +640,73 @@ test.describe("from the host to what it needs", () => {
     ).toHaveAttribute("aria-pressed", "false");
 
     await screenshot(page, "turn-on-alerts-recommendations");
+  });
+
+  test("on a phone, Turn on 3 alerts lands on them, with a selection bar that reads", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openHost(page, "alerts=some");
+
+    await page.getByTestId("vmware-host-alerts-turn-on").click();
+    await expect(page).toHaveURL((url: URL): boolean => {
+      return url.pathname === `${VCENTER_PATH}/recommendations`;
+    });
+
+    await expect(
+      page.getByTestId(
+        "recommendation-card-VMware:vmware-host-disk-latency-high",
+      ),
+    ).toBeInViewport();
+
+    /*
+     * The bar's count and Clear share a line, and Create has the next one
+     * to itself: all on one line, the count was a column one word wide -
+     * "monitors" ran under Clear - and Create wrapped onto three lines.
+     */
+    const bar: Locator = page.getByTestId("recommendations-selection-bar");
+    const count: Locator = bar.getByText("3 monitors selected");
+    await expect(count).toBeVisible();
+
+    interface Box {
+      left: number;
+      right: number;
+      top: number;
+      bottom: number;
+      height: number;
+    }
+
+    const boxOf: (locator: Locator) => Promise<Box> = async (
+      locator: Locator,
+    ): Promise<Box> => {
+      return await locator.evaluate((element: Element): Box => {
+        const box: DOMRect = element.getBoundingClientRect();
+        return {
+          left: box.left,
+          right: box.right,
+          top: box.top,
+          bottom: box.bottom,
+          height: box.height,
+        };
+      });
+    };
+
+    const countBox: Box = await boxOf(count);
+    const clearBox: Box = await boxOf(
+      bar.getByRole("button", { name: "Clear" }),
+    );
+    const createBox: Box = await boxOf(
+      bar.getByRole("button", { name: "Create 3 Selected Monitors" }),
+    );
+
+    expect(countBox.height).toBeLessThanOrEqual(24);
+    expect(countBox.right).toBeLessThanOrEqual(clearBox.left);
+    expect(createBox.top).toBeGreaterThanOrEqual(clearBox.bottom);
+    // Its label on one line.
+    expect(createBox.height).toBeLessThanOrEqual(48);
+    await expectNoSidewaysScroll(page);
   });
 
   test("View all 7 virtual machines opens the host's own list of them", async ({

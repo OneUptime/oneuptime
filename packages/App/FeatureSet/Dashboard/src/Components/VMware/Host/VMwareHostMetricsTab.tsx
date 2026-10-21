@@ -33,18 +33,26 @@ const VMwareHostMetricsTab: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+
+  /*
+   * The charts draw their titles and legends as given, so they are handed
+   * the reader's words: every locale has them, and they were English in all.
+   */
+  const tx: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
   const hostName: string = props.hostName;
   const idAttributes: Record<string, string> = props.attributes;
 
   const cpuQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "host_cpu",
-      title: "CPU Utilization",
+      title: tx("CPU Utilization"),
       description: translator.translateTemplate(
         "vcenter.host.cpu.utilization for ESXi host {{hostName}} — already a percentage, no transform applied.",
         { hostName: hostName },
       ),
-      legend: "CPU",
+      legend: tx("CPU"),
       legendUnit: "%",
     },
     metricQueryData: {
@@ -63,12 +71,12 @@ const VMwareHostMetricsTab: FunctionComponent<ComponentProps> = (
   const memoryQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "host_memory",
-      title: "Memory Usage",
+      title: tx("Memory Usage"),
       description: translator.translateTemplate(
         "vcenter.host.memory.usage for ESXi host {{hostName}} (reported in MiB, shown in bytes).",
         { hostName: hostName },
       ),
-      legend: "Memory",
+      legend: tx("Memory"),
       legendUnit: "",
     },
     metricQueryData: {
@@ -97,12 +105,12 @@ const VMwareHostMetricsTab: FunctionComponent<ComponentProps> = (
   const networkQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "host_network",
-      title: "Network Throughput",
+      title: tx("Network Throughput"),
       description: translator.translateTemplate(
         "vcenter.host.network.throughput per direction and NIC for ESXi host {{hostName}}.",
         { hostName: hostName },
       ),
-      legend: "Network",
+      legend: tx("Network"),
       legendUnit: "",
     },
     metricQueryData: {
@@ -127,12 +135,12 @@ const VMwareHostMetricsTab: FunctionComponent<ComponentProps> = (
   const diskThroughputQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "host_disk_throughput",
-      title: "Disk Throughput",
+      title: tx("Disk Throughput"),
       description: translator.translateTemplate(
         "vcenter.host.disk.throughput per direction and disk for ESXi host {{hostName}}.",
         { hostName: hostName },
       ),
-      legend: "Disk",
+      legend: tx("Disk"),
       legendUnit: "",
     },
     metricQueryData: {
@@ -157,12 +165,12 @@ const VMwareHostMetricsTab: FunctionComponent<ComponentProps> = (
   const diskLatencyQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "host_disk_latency",
-      title: "Disk Latency (max)",
+      title: tx("Disk Latency (max)"),
       description: translator.translateTemplate(
         "vcenter.host.disk.latency.max per disk for ESXi host {{hostName}}. Sustained values above ~20-50 ms point at storage contention.",
         { hostName: hostName },
       ),
-      legend: "Latency",
+      legend: tx("Latency"),
       legendUnit: "ms",
     },
     metricQueryData: {
@@ -181,12 +189,12 @@ const VMwareHostMetricsTab: FunctionComponent<ComponentProps> = (
   const packetErrorQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "host_packet_errors",
-      title: "Network Packet Errors",
+      title: tx("Network Packet Errors"),
       description: translator.translateTemplate(
         "vcenter.host.network.packet.error.rate for ESXi host {{hostName}} — anything above zero deserves a look at the physical NIC / switch port.",
         { hostName: hostName },
       ),
-      legend: "Errors",
+      legend: tx("Errors"),
       legendUnit: "/s",
     },
     metricQueryData: {
@@ -205,12 +213,12 @@ const VMwareHostMetricsTab: FunctionComponent<ComponentProps> = (
   const packetDropQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "host_packet_drops",
-      title: "Network Packet Drops",
+      title: tx("Network Packet Drops"),
       description: translator.translateTemplate(
         "vcenter.host.network.packet.drop.rate for ESXi host {{hostName}}.",
         { hostName: hostName },
       ),
-      legend: "Drops",
+      legend: tx("Drops"),
       legendUnit: "/s",
     },
     metricQueryData: {
