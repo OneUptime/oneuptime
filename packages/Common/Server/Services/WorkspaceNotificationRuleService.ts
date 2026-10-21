@@ -67,7 +67,15 @@ import AlertEpisodeService from "./AlertEpisodeService";
 import ProjectService from "./ProjectService";
 import Project from "../../Models/DatabaseModels/Project";
 import SecurityCase from "../../Models/DatabaseModels/SecurityCase";
+import SecurityPlaybook from "../../Models/DatabaseModels/SecurityPlaybook";
 import SecurityCaseService from "./SecurityCaseService";
+import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import Query from "../Types/Database/Query";
+import UpdateBy from "../Types/Database/UpdateBy";
+import CallerPermission from "../Utils/Permission/CallerPermission";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import FeedMarkdown, {
   mdText,
@@ -204,9 +212,99 @@ const LATER_CHANNEL_RECORD_WORDS: Record<NotificationRuleEventType, string> = {
   [NotificationRuleEventType.SecurityCase]: "security case",
 };
 
+/*
+ * Who may set up a Security Case rule: the roles that may create a security
+ * playbook (SecurityPlaybook's create permissions). A Security Case rule
+ * posts every case it matches - its title, entities and link - to the
+ * channels it names, as a playbook's Post to Slack step does, and a case is
+ * the investigation trail of a possible breach, which most of a project may
+ * not read. Without this a Project Member, who may set up the other rules,
+ * could post every security case to a channel of theirs.
+ */
+export const SECURITY_CASE_RULE_PERMISSION_MESSAGE: string =
+  "A Security Case rule posts security cases to Slack and Microsoft Teams, so it takes a role that may set up security playbooks, such as Project Owner, Project Admin or Security Admin.";
+
 export class Service extends DatabaseService<WorkspaceNotificationRule> {
   public constructor() {
     super(WorkspaceNotificationRule);
+  }
+
+  private assertMaySetUpSecurityCaseRules(
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    if (
+      !CallerPermission.holdsAnyOf(
+        props,
+        new SecurityPlaybook().getCreatePermissions(),
+        { projectId: props.tenantId },
+      )
+    ) {
+      throw new NotAuthorizedException(SECURITY_CASE_RULE_PERMISSION_MESSAGE);
+    }
+  }
+
+  // Whether a write's query reaches a Security Case rule.
+  private async reachesSecurityCaseRule(
+    query: Query<WorkspaceNotificationRule>,
+  ): Promise<boolean> {
+    return (
+      (
+        await this.countBy({
+          query: {
+            ...query,
+            eventType: NotificationRuleEventType.SecurityCase,
+          },
+          props: {
+            isRoot: true,
+          },
+        })
+      ).toNumber() > 0
+    );
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<WorkspaceNotificationRule>,
+  ): Promise<OnCreate<WorkspaceNotificationRule>> {
+    if (createBy.data.eventType === NotificationRuleEventType.SecurityCase) {
+      this.assertMaySetUpSecurityCaseRules(createBy.props);
+    }
+
+    return { createBy, carryForward: undefined };
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<WorkspaceNotificationRule>,
+  ): Promise<OnUpdate<WorkspaceNotificationRule>> {
+    if (
+      !updateBy.props.isRoot &&
+      ((updateBy.data as unknown as Record<string, unknown>)["eventType"] ===
+        NotificationRuleEventType.SecurityCase ||
+        (await this.reachesSecurityCaseRule(updateBy.query)))
+    ) {
+      this.assertMaySetUpSecurityCaseRules(updateBy.props);
+    }
+
+    return { updateBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<WorkspaceNotificationRule>,
+  ): Promise<OnDelete<WorkspaceNotificationRule>> {
+    if (
+      !deleteBy.props.isRoot &&
+      (await this.reachesSecurityCaseRule(deleteBy.query))
+    ) {
+      this.assertMaySetUpSecurityCaseRules(deleteBy.props);
+    }
+
+    return { deleteBy, carryForward: null };
   }
 
   @CaptureSpan()
@@ -308,7 +406,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     let createdChannels: NotificationRuleWorkspaceChannel[] = [];
 
-    if ((notificationRule as IncidentNotificationRule).shouldCreateNewChannel) {
+    if (
+      rule.eventType !== NotificationRuleEventType.SecurityCase &&
+      (notificationRule as IncidentNotificationRule).shouldCreateNewChannel
+    ) {
       /*
        * A channel of its own, named as the rule names a record's, with a few
        * random letters for the record: prod-abcde, or test-abcde for a rule
