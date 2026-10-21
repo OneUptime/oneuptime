@@ -243,6 +243,310 @@ describe("Subscribe to calendar, on the Scheduled Events page", () => {
   });
 });
 
+/*
+ * Issue #5132: on a status page served over plain http - a self-hosted
+ * install reached by a LAN hostname - the browser has no navigator.clipboard.
+ * Copy link awaited navigator.clipboard?.writeText(...), which then resolves
+ * to undefined without copying anything, and said "Copied!" all the same.
+ *
+ * It copies through Clipboard.copyToClipboard now: the async clipboard, then
+ * the browser's older copy command. "Copied!" only when one of them took the
+ * link; otherwise the dialog says the browser did not let it copy, and the
+ * link is left selected in its field, to copy by hand.
+ */
+describe("Copy link copies, or says it could not (issue #5132)", () => {
+  const originalExecCommand: PropertyDescriptor | undefined =
+    Object.getOwnPropertyDescriptor(document, "execCommand");
+
+  type ExecCommand = (command: string) => boolean;
+
+  function setClipboard(
+    writeText: ((text: string) => Promise<void>) | null,
+  ): void {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: writeText ? { writeText } : undefined,
+    });
+  }
+
+  function setExecCommand(execCommand: ExecCommand | undefined): void {
+    Object.defineProperty(document, "execCommand", {
+      configurable: true,
+      writable: true,
+      value: execCommand,
+    });
+  }
+
+  // The legacy copy, recording what it was handed: the scratch field's text.
+  function recordingExecCommand(
+    result: boolean,
+    copied: Array<string>,
+  ): ExecCommand {
+    return (command: string): boolean => {
+      const field: HTMLTextAreaElement | null = document.querySelector(
+        "textarea[aria-hidden='true']",
+      );
+
+      if (command === "copy" && field) {
+        copied.push(
+          field.value.slice(field.selectionStart, field.selectionEnd),
+        );
+      }
+
+      return result;
+    };
+  }
+
+  function refusingWrite(): (text: string) => Promise<void> {
+    return async (): Promise<void> => {
+      throw new DOMException("Document is not focused.", "NotAllowedError");
+    };
+  }
+
+  function openSubscribe(): void {
+    setLocation("/scheduled-events");
+    render(<SubscribeToCalendarButton />);
+    fireEvent.click(screen.getByTestId("maintenance-calendar-subscribe"));
+  }
+
+  async function clickCopy(): Promise<void> {
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("maintenance-calendar-copy"));
+    });
+  }
+
+  function linkField(): HTMLInputElement {
+    return screen.getByTestId("maintenance-calendar-url") as HTMLInputElement;
+  }
+
+  function httpsLink(): string {
+    return `${window.location.origin}/maintenance.ics`;
+  }
+
+  function expectLinkSelectedToCopyByHand(): void {
+    expect(document.activeElement).toBe(linkField());
+    expect(linkField().selectionStart).toBe(0);
+    expect(linkField().selectionEnd).toBe(httpsLink().length);
+  }
+
+  beforeEach(() => {
+    setExecCommand(undefined);
+  });
+
+  afterEach(() => {
+    if (originalExecCommand) {
+      Object.defineProperty(document, "execCommand", originalExecCommand);
+    } else {
+      setExecCommand(undefined);
+    }
+  });
+
+  test("the bug: with no clipboard and no copy command it never says Copied!", async () => {
+    setClipboard(null);
+    openSubscribe();
+
+    await clickCopy();
+
+    expect(screen.getByTestId("maintenance-calendar-copy")).not.toHaveTextContent(
+      CALENDAR_WORDS["copied"]!,
+    );
+    expect(screen.getByTestId("maintenance-calendar-copy")).toHaveTextContent(
+      CALENDAR_WORDS["copy"]!,
+    );
+    expect(screen.getByTestId("maintenance-calendar-copy-failed")).toHaveTextContent(
+      CALENDAR_WORDS["copyFailed"]!,
+    );
+    expectLinkSelectedToCopyByHand();
+  });
+
+  test("on a plain-http page (no navigator.clipboard) the browser's copy command copies the link, and only then Copied!", async () => {
+    const copied: Array<string> = [];
+
+    setClipboard(null);
+    setExecCommand(recordingExecCommand(true, copied));
+    openSubscribe();
+
+    await clickCopy();
+
+    expect(copied).toEqual([httpsLink()]);
+    expect(screen.getByTestId("maintenance-calendar-copy")).toHaveTextContent(
+      CALENDAR_WORDS["copied"]!,
+    );
+    expect(
+      screen.queryByTestId("maintenance-calendar-copy-failed"),
+    ).not.toBeInTheDocument();
+    // The scratch field the command copied from is gone again.
+    expect(document.querySelector("textarea[aria-hidden='true']")).toBeNull();
+  });
+
+  test("a clipboard that refuses the write (document not focused) falls back to the copy command", async () => {
+    const copied: Array<string> = [];
+
+    setClipboard(refusingWrite());
+    setExecCommand(recordingExecCommand(true, copied));
+    openSubscribe();
+
+    await clickCopy();
+
+    expect(copied).toEqual([httpsLink()]);
+    expect(screen.getByTestId("maintenance-calendar-copy")).toHaveTextContent(
+      CALENDAR_WORDS["copied"]!,
+    );
+  });
+
+  test("refused both ways: says so, and the link is selected in its field to copy by hand", async () => {
+    const copied: Array<string> = [];
+
+    setClipboard(refusingWrite());
+    setExecCommand(recordingExecCommand(false, copied));
+    openSubscribe();
+
+    await clickCopy();
+
+    expect(copied).toEqual([httpsLink()]);
+    expect(screen.getByTestId("maintenance-calendar-copy")).not.toHaveTextContent(
+      CALENDAR_WORDS["copied"]!,
+    );
+    expect(screen.getByTestId("maintenance-calendar-copy-failed")).toHaveTextContent(
+      CALENDAR_WORDS["copyFailed"]!,
+    );
+    expectLinkSelectedToCopyByHand();
+  });
+
+  test("a copy command that throws is a failure too, not an error", async () => {
+    setClipboard(null);
+    setExecCommand((): boolean => {
+      throw new Error("Not supported");
+    });
+    openSubscribe();
+
+    await clickCopy();
+
+    expect(
+      screen.getByTestId("maintenance-calendar-copy-failed"),
+    ).toBeInTheDocument();
+  });
+
+  test("the failure is said in a status region that is there before it, so a screen reader hears it", async () => {
+    setClipboard(null);
+    openSubscribe();
+
+    const region: HTMLElement = screen.getByTestId(
+      "maintenance-calendar-copy-status",
+    );
+
+    expect(region).toHaveAttribute("role", "status");
+    expect(region).toBeEmptyDOMElement();
+
+    await clickCopy();
+
+    expect(screen.getByTestId("maintenance-calendar-copy-status")).toBe(region);
+    expect(region).toHaveTextContent(CALENDAR_WORDS["copyFailed"]!);
+  });
+
+  test("the failure stays while it is read, and a copy that then works replaces it with Copied!", async () => {
+    jest.useFakeTimers();
+    setClipboard(null);
+    openSubscribe();
+
+    await clickCopy();
+
+    act(() => {
+      jest.advanceTimersByTime(60 * 1000);
+    });
+
+    expect(
+      screen.getByTestId("maintenance-calendar-copy-failed"),
+    ).toBeInTheDocument();
+
+    const copied: Array<string> = [];
+    setExecCommand(recordingExecCommand(true, copied));
+
+    await clickCopy();
+
+    expect(copied).toEqual([httpsLink()]);
+    expect(
+      screen.queryByTestId("maintenance-calendar-copy-failed"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("maintenance-calendar-copy")).toHaveTextContent(
+      CALENDAR_WORDS["copied"]!,
+    );
+  });
+
+  test("never says Copied! before the clipboard has taken the link", async () => {
+    let finishWrite: () => void = (): void => {};
+
+    setClipboard((): Promise<void> => {
+      return new Promise<void>((resolve: () => void) => {
+        finishWrite = resolve;
+      });
+    });
+    openSubscribe();
+
+    await clickCopy();
+
+    // Still in flight: nothing is claimed.
+    expect(screen.getByTestId("maintenance-calendar-copy")).toHaveTextContent(
+      CALENDAR_WORDS["copy"]!,
+    );
+
+    await act(async () => {
+      finishWrite();
+    });
+
+    expect(screen.getByTestId("maintenance-calendar-copy")).toHaveTextContent(
+      CALENDAR_WORDS["copied"]!,
+    );
+  });
+
+  test("a keyboard reader stays on Copy link after the browser's copy command, inside the dialog", async () => {
+    setClipboard(null);
+    // As browsers do: selecting the scratch field moves the focus to it.
+    setExecCommand((): boolean => {
+      (
+        document.querySelector(
+          "textarea[aria-hidden='true']",
+        ) as HTMLTextAreaElement | null
+      )?.focus();
+      return true;
+    });
+    openSubscribe();
+
+    const button: HTMLElement = screen.getByTestId("maintenance-calendar-copy");
+    button.focus();
+
+    await clickCopy();
+
+    expect(document.activeElement).toBe(button);
+    expect(
+      screen.getByTestId("maintenance-calendar-subscribe-dialog"),
+    ).toContainElement(document.activeElement as HTMLElement);
+  });
+
+  test("closing the dialog while a copy is in flight is quiet", async () => {
+    let finishWrite: () => void = (): void => {};
+
+    setClipboard((): Promise<void> => {
+      return new Promise<void>((resolve: () => void) => {
+        finishWrite = resolve;
+      });
+    });
+    openSubscribe();
+
+    await clickCopy();
+    fireEvent.click(screen.getByText(CALENDAR_WORDS["done"]!));
+
+    await expect(
+      act(async () => {
+        finishWrite();
+      }),
+    ).resolves.toBeUndefined();
+    expect(
+      screen.queryByTestId("maintenance-calendar-subscribe-dialog"),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe("Add to calendar, on an event's page", () => {
   function renderEvent(): void {
     render(

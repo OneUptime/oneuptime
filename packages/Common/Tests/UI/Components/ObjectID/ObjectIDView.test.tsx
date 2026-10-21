@@ -174,6 +174,73 @@ describe("ObjectIDView", () => {
     expect(jest.getTimerCount()).toBe(0);
   });
 
+  /*
+   * Issue #5132: a pill that could not copy said nothing at all - a click
+   * that seemed to do nothing. It says Copy failed now, turns red, and
+   * selects the ID so it can be copied by hand.
+   */
+  test("a refused copy says Copy failed and selects the ID, to copy by hand", async () => {
+    installClipboard(
+      jest.fn<(text: string) => Promise<void>>(async (): Promise<void> => {
+        throw new DOMException("Clipboard denied", "NotAllowedError");
+      }),
+    );
+    render(<ObjectIDView objectId={PROJECT_ID} />);
+
+    await act(async () => {
+      fireEvent.click(pill());
+    });
+
+    expect(box()).toHaveClass("bg-red-50");
+    expect(pill()).toHaveAttribute("data-copy-state", "failed");
+    expect(screen.getByRole("status")).toHaveTextContent("Copy failed");
+    expect(window.getSelection()?.toString()).toBe(PROJECT_ID);
+
+    // Long enough to read, then the pill is a pill again.
+    await act(async () => {
+      jest.advanceTimersByTime(4000);
+    });
+
+    expect(box()).not.toHaveClass("bg-red-50");
+    expect(box()).toHaveClass("bg-gray-50");
+    window.getSelection()?.removeAllRanges();
+  });
+
+  test("on a plain-http page (no clipboard API) it copies through the browser's copy command", async () => {
+    installClipboard(undefined);
+    const execCommand: ReturnType<
+      typeof jest.fn<(command: string) => boolean>
+    > = jest.fn<(command: string) => boolean>((): boolean => {
+      return true;
+    });
+    Object.defineProperty(document, "execCommand", {
+      value: execCommand,
+      configurable: true,
+      writable: true,
+    });
+    render(<ObjectIDView objectId={PROJECT_ID} />);
+
+    await act(async () => {
+      fireEvent.click(pill());
+    });
+
+    expect(execCommand).toHaveBeenCalledWith("copy");
+    expect(box()).toHaveClass("bg-green-50");
+    expect(screen.getByRole("status")).toHaveTextContent("Copied!");
+  });
+
+  test("its name stays the ID while it says what the copy did", async () => {
+    installClipboard(undefined);
+    render(<ObjectIDView objectId={PROJECT_ID} />);
+
+    await act(async () => {
+      fireEvent.click(pill());
+    });
+
+    // pill() finds it by that name.
+    expect(pill()).toHaveAttribute("aria-label", PROJECT_ID);
+  });
+
   test("leaving the page while it is green leaves no timer behind", async () => {
     installClipboard(
       jest.fn<(text: string) => Promise<void>>(async (): Promise<void> => {}),

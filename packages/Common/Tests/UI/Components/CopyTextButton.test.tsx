@@ -139,6 +139,164 @@ describe("CopyTextButton", () => {
       "Copied!",
     );
   });
+
+  /*
+   * Issue #5132: a button that cannot copy says so. It used to say nothing,
+   * which reads as a button that does nothing - or, worse, as a copy that
+   * worked.
+   */
+  test("says Copy failed, in red, when the browser refuses both ways", async () => {
+    installClipboard(
+      jest.fn<(text: string) => Promise<void>>(async (): Promise<void> => {
+        throw new DOMException("Clipboard denied", "NotAllowedError");
+      }),
+    );
+    installExecCommand((): boolean => {
+      return false;
+    });
+
+    render(<CopyTextButton textToBeCopied="trace-4bf92f35" />);
+    await clickCopy();
+
+    const button: HTMLElement = screen.getByRole("button", { name: "Copy" });
+
+    expect(button).toHaveTextContent("Copy failed");
+    expect(button).toHaveAttribute("data-copy-state", "failed");
+    expect(button).toHaveClass("text-red-600");
+    expect(button).toHaveAttribute("title", "Copy failed");
+  });
+
+  test("says Copy failed when there is no clipboard API and no copy command", async () => {
+    installClipboard(undefined);
+
+    render(<CopyTextButton textToBeCopied="trace-4bf92f35" />);
+    await clickCopy();
+
+    expect(screen.getByRole("button", { name: "Copy" })).toHaveTextContent(
+      "Copy failed",
+    );
+  });
+
+  test("Copy failed stays long enough to read, then the button reads Copy again", async () => {
+    installClipboard(undefined);
+
+    render(<CopyTextButton textToBeCopied="trace-4bf92f35" />);
+    await clickCopy();
+
+    await act(async () => {
+      jest.advanceTimersByTime(3990);
+    });
+
+    expect(screen.getByRole("button", { name: "Copy" })).toHaveTextContent(
+      "Copy failed",
+    );
+
+    await act(async () => {
+      jest.advanceTimersByTime(20);
+    });
+
+    const button: HTMLElement = screen.getByRole("button", { name: "Copy" });
+
+    expect(button).not.toHaveTextContent("Copy failed");
+    expect(button).toHaveTextContent("Copy");
+    expect(button).toHaveAttribute("data-copy-state", "idle");
+  });
+
+  test("pressing it again after a failure tries again, and says Copied! when that works", async () => {
+    installClipboard(undefined);
+
+    render(<CopyTextButton textToBeCopied="trace-4bf92f35" />);
+    await clickCopy();
+
+    const writeText: WriteTextMock = jest.fn<(text: string) => Promise<void>>(
+      async (): Promise<void> => {},
+    );
+    installClipboard(writeText);
+    await clickCopy();
+
+    expect(writeText).toHaveBeenCalledWith("trace-4bf92f35");
+    expect(screen.getByRole("button", { name: "Copy" })).toHaveTextContent(
+      "Copied!",
+    );
+  });
+
+  test("never says Copied! before the clipboard has taken the text", async () => {
+    let finishWrite: () => void = (): void => {};
+    installClipboard(
+      jest.fn<(text: string) => Promise<void>>((): Promise<void> => {
+        return new Promise<void>((resolve: () => void) => {
+          finishWrite = resolve;
+        });
+      }),
+    );
+
+    render(<CopyTextButton textToBeCopied="trace-4bf92f35" />);
+    await clickCopy();
+
+    expect(screen.getByRole("button", { name: "Copy" })).not.toHaveTextContent(
+      "Copied!",
+    );
+
+    await act(async () => {
+      finishWrite();
+    });
+
+    expect(screen.getByRole("button", { name: "Copy" })).toHaveTextContent(
+      "Copied!",
+    );
+  });
+
+  test("an icon-only button says what happened to a screen reader, without words on screen", async () => {
+    installClipboard(undefined);
+
+    render(
+      <CopyTextButton textToBeCopied="trace-4bf92f35" iconOnly={true} />,
+    );
+
+    const button: HTMLElement = screen.getByRole("button", { name: "Copy" });
+    const said: HTMLElement = button.querySelector(
+      "[aria-live='polite']",
+    ) as HTMLElement;
+
+    expect(said).toHaveClass("sr-only");
+    expect(said).toBeEmptyDOMElement();
+
+    await clickCopy();
+
+    expect(said).toHaveTextContent("Copy failed");
+    expect(button).toHaveAttribute("data-copy-state", "failed");
+  });
+
+  test("an icon-only button announces a copy that worked too", async () => {
+    installClipboard(
+      jest.fn<(text: string) => Promise<void>>(async (): Promise<void> => {}),
+    );
+
+    render(
+      <CopyTextButton textToBeCopied="trace-4bf92f35" iconOnly={true} />,
+    );
+    await clickCopy();
+
+    expect(
+      screen
+        .getByRole("button", { name: "Copy" })
+        .querySelector("[aria-live='polite']"),
+    ).toHaveTextContent("Copied!");
+  });
+
+  test("the label is announced as it changes", async () => {
+    installClipboard(undefined);
+
+    render(<CopyTextButton textToBeCopied="trace-4bf92f35" />);
+
+    const label: HTMLElement = screen.getByText("Copy");
+
+    expect(label).toHaveAttribute("aria-live", "polite");
+
+    await clickCopy();
+
+    expect(label).toHaveTextContent("Copy failed");
+  });
 });
 
 /*
