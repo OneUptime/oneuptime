@@ -28,15 +28,26 @@ import {
 import {
   DEFAULT_HOST_ADD_OPTION,
   HOST_ADD_OPTIONS,
+  HOST_ADD_PLACEHOLDER_NOTE,
+  HostAddOption,
   getHostAddCommand,
   getHostAddGuide,
   getHostAddOptionForOsType,
+  getHostAddOptions,
   resolveHostAddOption,
 } from "../../FeatureSet/Dashboard/src/Components/HostCollector/HostCollectorGuide";
 import {
   HOST_COLLECTOR_CONFIG_OS_CHOICES,
+  HOST_COLLECTOR_CONFIG_SYSTEM_CREATE_DESCRIPTION,
+  HOST_COLLECTOR_CONFIG_SYSTEM_EDIT_DESCRIPTION,
   describeHostCollectorConfigTarget,
+  getHostCollectorConfigFormFields,
 } from "../../FeatureSet/Dashboard/src/Components/HostCollector/HostCollectorConfigForm";
+import {
+  COMMAND_WORD_KEPT_WHOLE_MAX_LENGTH,
+  CommandDisplayPart,
+  splitCommandForDisplay,
+} from "../../FeatureSet/Dashboard/src/Components/SetupGuide/CommandDisplay";
 import { SETUP_GUIDE_API_KEY_PLACEHOLDER } from "../../FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import {
   HostCollectorConfigStatus,
@@ -218,6 +229,18 @@ describe("where a host's collector stands", () => {
     expect(tones[HostCollectorState.Running]).toBe("success");
     expect(tones[HostCollectorState.Failed]).toBe("danger");
     expect(tones[HostCollectorState.NotManaged]).toBe("neutral");
+    expect(tones[HostCollectorState.Unhealthy]).toBe("warning");
+    expect(tones[HostCollectorState.Silent]).toBe("warning");
+  });
+
+  test("a collector connected and starting says Starting, as the list's Status column does", () => {
+    const view: ReturnType<typeof getHostCollectorStateView> =
+      getHostCollectorStateView({ collectorInstanceUid: "u" }, NOW);
+
+    expect(view.state).toBe(HostCollectorState.Waiting);
+    expect(view.label).toBe("Starting");
+    // Not "Connecting": the supervisor has connected, or there would be no host.
+    expect(view.tone).toBe("info");
   });
 
   test("the sentence for each state names the config, and is a Dashboard string", () => {
@@ -559,6 +582,39 @@ describe("a config's Versions list", () => {
 });
 
 describe("Create Collector Config", () => {
+  test("asks for a name, a system and labels; the name needs no description beside its placeholder", () => {
+    const fields: ReturnType<typeof getHostCollectorConfigFormFields> =
+      getHostCollectorConfigFormFields();
+
+    expect(
+      fields.map((field: { title?: string | undefined }): string => {
+        return field.title || "";
+      }),
+    ).toEqual(["Name", "System", "Host Labels"]);
+    expect(fields[0]!.placeholder).toBe("Web servers");
+    expect(fields[0]!.description).toBeUndefined();
+    expect(fields[2]!.required).toBe(false);
+  });
+
+  test("creating, the system says where config.yaml starts; editing, that config.yaml stays", () => {
+    expect(getHostCollectorConfigFormFields()[1]!.description).toBe(
+      HOST_COLLECTOR_CONFIG_SYSTEM_CREATE_DESCRIPTION,
+    );
+    expect(
+      getHostCollectorConfigFormFields({ isEditing: false })[1]!.description,
+    ).toBe(HOST_COLLECTOR_CONFIG_SYSTEM_CREATE_DESCRIPTION);
+    expect(
+      getHostCollectorConfigFormFields({ isEditing: true })[1]!.description,
+    ).toBe(HOST_COLLECTOR_CONFIG_SYSTEM_EDIT_DESCRIPTION);
+
+    for (const key of [
+      HOST_COLLECTOR_CONFIG_SYSTEM_CREATE_DESCRIPTION,
+      HOST_COLLECTOR_CONFIG_SYSTEM_EDIT_DESCRIPTION,
+    ]) {
+      expect(DASHBOARD_EN[key]).toBe(key);
+    }
+  });
+
   test("asks for Linux, Windows, macOS or any system, Linux first", () => {
     expect(
       HOST_COLLECTOR_CONFIG_OS_CHOICES.map(
@@ -603,15 +659,85 @@ describe("the Add Host guide", () => {
   const URL: string = "https://oneuptime.example.com";
   const KEY: string = "a1b2c3d4-0000-4000-8000-00000000f00d";
 
-  test("offers Linux, Windows and macOS, and Kubernetes apart, Linux first", () => {
+  test("offers Linux, Windows and macOS, Linux first: a cluster's nodes are not a system to pick", () => {
     expect(
       HOST_ADD_OPTIONS.map((option: { key: string }): string => {
         return option.key;
       }),
-    ).toEqual(["linux", "windows", "darwin", "kubernetes"]);
+    ).toEqual(["linux", "windows", "darwin"]);
     expect(DEFAULT_HOST_ADD_OPTION).toBe("linux");
     expect(resolveHostAddOption("nonsense")).toBe("linux");
     expect(resolveHostAddOption("darwin")).toBe("darwin");
+    // A link to an old Kubernetes choice opens on Linux, not on a guide that is gone.
+    expect(resolveHostAddOption("kubernetes")).toBe("linux");
+  });
+
+  test("a host whose system OneUptime knows gets only that system's command", () => {
+    const keys: (
+      osType: HostCollectorOsType | null | undefined,
+    ) => Array<HostAddOption> = (
+      osType: HostCollectorOsType | null | undefined,
+    ): Array<HostAddOption> => {
+      return getHostAddOptions(osType).map(
+        (option: { key: HostAddOption }): HostAddOption => {
+          return option.key;
+        },
+      );
+    };
+
+    expect(keys(HostCollectorOsType.Linux)).toEqual(["linux"]);
+    expect(keys(HostCollectorOsType.Windows)).toEqual(["windows"]);
+    expect(keys(HostCollectorOsType.MacOS)).toEqual(["darwin"]);
+    // Unknown, or not one system: the reader picks.
+    expect(keys(null)).toEqual(["linux", "windows", "darwin"]);
+    expect(keys(undefined)).toEqual(["linux", "windows", "darwin"]);
+    expect(keys(HostCollectorOsType.Any)).toEqual([
+      "linux",
+      "windows",
+      "darwin",
+    ]);
+  });
+
+  test("the key step is only the picker, and the command wraps: it carries the URL and the key", () => {
+    for (const option of [
+      "linux",
+      "windows",
+      "darwin",
+    ] as Array<HostAddOption>) {
+      const guide: ReturnType<typeof getHostAddGuide> = getHostAddGuide({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        option,
+      });
+
+      expect(guide.keyStep?.hideValues).toBe(true);
+      expect(guide.wrapLongLines).toBe(true);
+      expect(DASHBOARD_EN[guide.keyStep!.description!]).toBeDefined();
+    }
+  });
+
+  test("what each run step says is a Dashboard string, handing over or not", () => {
+    for (const option of [
+      "linux",
+      "windows",
+      "darwin",
+    ] as Array<HostAddOption>) {
+      for (const replaceExisting of [false, true]) {
+        const step: ReturnType<typeof getHostAddGuide>["steps"][number] =
+          getHostAddGuide({
+            oneuptimeUrl: URL,
+            apiKey: KEY,
+            option,
+            replaceExisting,
+          }).steps[0]!;
+
+        expect(DASHBOARD_EN[step.title]).toBeDefined();
+        expect(DASHBOARD_EN[step.description!]).toBe(step.description);
+        expect(step.description).toContain(
+          option === "windows" ? "PowerShell" : "sudo",
+        );
+      }
+    }
   });
 
   test("opens on a host's own system", () => {
@@ -675,9 +801,23 @@ describe("the Add Host guide", () => {
       option: "linux",
     });
 
-    expect(guide.steps[0]!.markdown).toContain(
-      `Pick an ingestion key in step 1 to fill in \`${SETUP_GUIDE_API_KEY_PLACEHOLDER}\`.`,
+    // A note under the command, in the reader's language - not in its code.
+    expect(guide.steps[0]!.note).toBe(HOST_ADD_PLACEHOLDER_NOTE);
+    expect(guide.steps[0]!.markdown).not.toContain("Pick an ingestion key");
+    expect(guide.steps[0]!.markdown).toContain(SETUP_GUIDE_API_KEY_PLACEHOLDER);
+    // The note names the placeholder the command holds.
+    expect(HOST_ADD_PLACEHOLDER_NOTE).toContain(
+      `\`${SETUP_GUIDE_API_KEY_PLACEHOLDER}\``,
     );
+    expect(DASHBOARD_EN[HOST_ADD_PLACEHOLDER_NOTE]).toBe(
+      HOST_ADD_PLACEHOLDER_NOTE,
+    );
+
+    // A key picked: no note.
+    expect(
+      getHostAddGuide({ oneuptimeUrl: URL, apiKey: KEY, option: "linux" })
+        .steps[0]!.note,
+    ).toBeUndefined();
   });
 
   test("a host set up by hand is handed over with the command that stops the old collector", () => {
@@ -693,15 +833,87 @@ describe("the Add Host guide", () => {
       "It also stops the collector installed by hand (otelcol-contrib)",
     );
   });
+});
 
-  test("Kubernetes is the Kubernetes agent's guide", () => {
-    const guide: ReturnType<typeof getHostAddGuide> = getHostAddGuide({
-      oneuptimeUrl: URL,
-      apiKey: KEY,
-      option: "kubernetes",
-    });
+describe("a command on screen", () => {
+  function join(parts: Array<CommandDisplayPart>): string {
+    return parts
+      .map((part: CommandDisplayPart): string => {
+        return part.text;
+      })
+      .join("");
+  }
 
-    expect(JSON.stringify(guide)).toContain("helm");
-    expect(JSON.stringify(guide)).not.toContain("install.sh");
+  function keptWhole(command: string): Array<string> {
+    return splitCommandForDisplay(command)
+      .filter((part: CommandDisplayPart): boolean => {
+        return part.isKeptWhole;
+      })
+      .map((part: CommandDisplayPart): string => {
+        return part.text;
+      });
+  }
+
+  test("is the command, character for character", () => {
+    for (const command of [
+      "sudo systemctl status oneuptime-collector",
+      "curl -fsSL https://oneuptime.example.com/docs/static/scripts/host-collector/install.sh | sudo sh -s -- --uninstall",
+      "Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'oneuptime-collector' } -MaxEvents 50 | Format-List TimeCreated, Message",
+      "  two  spaces\tand a tab\nand a line  ",
+      "",
+      " ",
+    ]) {
+      expect(join(splitCommandForDisplay(command))).toBe(command);
+    }
+  });
+
+  test("keeps every word of a line whole, so it breaks only at a space", () => {
+    expect(keptWhole("sudo sh -s -- --uninstall")).toEqual([
+      "sudo",
+      "sh",
+      "-s",
+      "--",
+      "--uninstall",
+    ]);
+    expect(keptWhole("sudo journalctl -u oneuptime-collector -n 50")).toContain(
+      "oneuptime-collector",
+    );
+    // Spaces are where a line may break: never kept whole.
+    expect(
+      splitCommandForDisplay("a  b").map((part: CommandDisplayPart): string => {
+        return `${part.text}:${part.isKeptWhole}`;
+      }),
+    ).toEqual(["a:true", "  :false", "b:true"]);
+  });
+
+  test("lets a word longer than a phone's line break where it must", () => {
+    const address: string =
+      "https://oneuptime.example.com/docs/static/scripts/host-collector/install.sh";
+
+    expect(address.length).toBeGreaterThan(COMMAND_WORD_KEPT_WHOLE_MAX_LENGTH);
+    expect(keptWhole(`curl -fsSL ${address}`)).toEqual(["curl", "-fsSL"]);
+    expect(
+      keptWhole("x".repeat(COMMAND_WORD_KEPT_WHOLE_MAX_LENGTH)),
+    ).toHaveLength(1);
+    expect(
+      keptWhole("x".repeat(COMMAND_WORD_KEPT_WHOLE_MAX_LENGTH + 1)),
+    ).toHaveLength(0);
+  });
+
+  test("is split quickly, however long the command", () => {
+    for (const command of [
+      "a ".repeat(200000),
+      "-".repeat(400000),
+      " \t\n".repeat(130000),
+    ]) {
+      expect(
+        fastestRun({
+          run: (): number => {
+            return splitCommandForDisplay(command).length;
+          },
+          limitInMs: 2000,
+        }).inMs,
+      ).toBeLessThan(2000);
+    }
   });
 });

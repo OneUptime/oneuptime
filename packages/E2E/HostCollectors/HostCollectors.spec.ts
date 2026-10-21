@@ -57,6 +57,9 @@ function configPage(configId: string): string {
   return `${CONFIGS}/${configId}`;
 }
 
+// A version's dialog: "Created · Sam Patel · Oct 18 2026, 11:21 AM GMT".
+const VERSION_DIALOG_DESCRIPTION: RegExp = /^Created · .+ · .+\d/;
+
 // HOST_CONNECTION_POLL_INTERVAL_MS: how often the last step looks.
 const WATCH_MS: number = 5_000;
 
@@ -318,6 +321,35 @@ test("Add Host gives the one command for the host's system, with the project's k
   await expect(addHost.getByText("Wait for the host")).toBeVisible();
   await dialogScreenshot(page, "add-host-linux");
 
+  /*
+   * The key step is only the picker: the command carries the URL and the
+   * key, so the URL/token box would only push it down.
+   */
+  await expect(page.getByTestId("setup-guide-step-1")).toContainText(
+    "Hosts key",
+  );
+  await expect(addHost.getByText("OneUptime URL")).toHaveCount(0);
+  await expect(addHost.getByText("Ingestion Token")).toHaveCount(0);
+
+  /*
+   * The command wraps in its box instead of scrolling sideways: it is read
+   * whole - its address and its key - before it is run.
+   */
+  const commandBlock: Locator = page
+    .getByTestId("setup-guide-step-2")
+    .locator("pre")
+    .first();
+  expect(
+    await commandBlock.evaluate((element: Element): string => {
+      return getComputedStyle(element).whiteSpace;
+    }),
+  ).toBe("pre-wrap");
+  expect(
+    await commandBlock.evaluate((element: Element): boolean => {
+      return element.scrollWidth <= element.clientWidth + 1;
+    }),
+  ).toBe(true);
+
   await page.getByTestId("setup-guide-option-windows").click();
   await expect(
     addHost.getByText("In PowerShell, run as administrator.", {
@@ -328,12 +360,24 @@ test("Add Host gives the one command for the host's system, with the project's k
     addHost.getByText(WINDOWS_COMMAND, { exact: false }),
   ).toBeVisible();
 
-  // A cluster's nodes are monitored by the Kubernetes agent instead.
-  await page.getByTestId("setup-guide-option-kubernetes").click();
+  /*
+   * A cluster's nodes are not a fourth system to pick: one line under the
+   * three says the Kubernetes agent monitors them, and where to set it up.
+   */
+  await expect(page.getByTestId("setup-guide-option-kubernetes")).toHaveCount(
+    0,
+  );
+  await expect(addHost.getByRole("radio")).toHaveCount(3);
+  const kubernetes: Locator = page.getByTestId("add-host-kubernetes-note");
+  await expect(kubernetes).toContainText(
+    "Kubernetes nodes are monitored by the Kubernetes agent instead.",
+  );
   await expect(
-    addHost.getByText("helm", { exact: false }).first(),
-  ).toBeVisible();
-  await expect(addHost.getByText("Wait for the host")).toHaveCount(0);
+    kubernetes.getByRole("link", { name: "Set up the Kubernetes agent" }),
+  ).toHaveAttribute(
+    "href",
+    new RegExp(`/dashboard/${PROJECT_ID}/kubernetes/documentation$`),
+  );
 });
 
 test("the last step waits for the host and says when it connected; the list shows it starting", async ({
@@ -370,13 +414,17 @@ test("the last step waits for the host and says when it connected; the list show
   await addHost.getByRole("button", { name: "Done" }).click();
   await expect(dialog(page)).toHaveCount(0);
 
-  // Registered, its first metrics on the way: starting, not disconnected.
+  /*
+   * Registered, its first metrics on the way: starting, not disconnected -
+   * its status and its collector both, until the first data and the
+   * collector's first report a minute later.
+   */
   const newHost: Locator = row(card(page, "Hosts"), "web-09");
   await expect(newHost).toBeVisible();
-  await expect(newHost.getByText("Starting", { exact: true })).toBeVisible();
-  await expect(
-    newHost.getByTestId("host-collector-state-waiting"),
-  ).toBeVisible();
+  await expect(newHost.getByText("Starting", { exact: true })).toHaveCount(2);
+  await expect(newHost.getByTestId("host-collector-state-waiting")).toHaveText(
+    "Starting",
+  );
 });
 
 test("the list says where each host's collector stands and which config it runs", async ({
@@ -400,9 +448,10 @@ test("the list says where each host's collector stands and which config it runs"
   await expect(
     windows.getByTestId("host-collector-state-unhealthy"),
   ).toContainText("Collector error");
-  await expect(
-    windows.getByText("OneUptime default for Windows", { exact: true }),
-  ).toBeVisible();
+  // "OneUptime default": the OS column beside it names the system.
+  await expect(windows.getByTestId("host-collector-config-label")).toHaveText(
+    "OneUptime default",
+  );
 
   // Installed by hand: nothing OneUptime manages, a quiet dash.
   const legacy: Locator = row(hosts, "legacy-01");
@@ -482,6 +531,10 @@ test("Collector Configs lists who each config is for, and OneUptime's defaults",
   await open(page, CONFIGS);
 
   const configs: Locator = card(page, "Collector Configs");
+  // Who each config is for; the hosts that run it are on its own page.
+  await expect(
+    configs.getByRole("columnheader", { name: "Applies to" }),
+  ).toBeVisible();
   const web: Locator = row(configs, "Web servers");
   await expect(web).toContainText("Linux hosts with env:production");
   await expect(web).toContainText("Version 2");
@@ -520,6 +573,15 @@ test("a new Collector Config asks for a name, a system and labels, then opens on
     "Create Collector Config",
   ).click();
   const form: Locator = dialog(page);
+  await expect(
+    form.getByText(
+      "Its config.yaml starts as OneUptime's default for this system. Edit it on the config's page.",
+    ),
+  ).toBeVisible();
+  // The placeholder says what a name is: no description under it.
+  await expect(
+    form.getByText("What the hosts it is for have in common."),
+  ).toHaveCount(0);
   await form.getByRole("textbox", { name: /^Name/ }).fill("Database servers");
   await expect(form.getByRole("radio", { name: /^Linux/ })).toBeChecked();
   await form.getByRole("button", { name: "Create" }).click();
@@ -559,9 +621,22 @@ test("a config's page: who it is for, its config.yaml, every version and the hos
 
   const details: Locator = card(page, "Collector Config");
   await expect(details).toContainText("Web servers");
+  await expect(details).toContainText("Applies to");
   await expect(page.getByTestId("host-collector-config-target")).toHaveText(
     "Linux hosts with env:production",
   );
+  // Its labels are in that sentence: not repeated beside it.
+  await expect(details.getByText("Host Labels", { exact: true })).toHaveCount(
+    0,
+  );
+
+  // Editing it: changing the system leaves its config.yaml as it is.
+  await headerButton(details, "Edit Collector Config").click();
+  await expect(
+    dialog(page).getByText("Changing it does not change config.yaml."),
+  ).toBeVisible();
+  await dialog(page).getByRole("button", { name: "Cancel" }).click();
+  await expect(dialog(page)).toHaveCount(0);
 
   await expect(page.getByTestId("host-collector-config-version")).toHaveText(
     "2",
@@ -652,6 +727,8 @@ test("Put back sends an older version again, as the next version", async ({
   // Read it first: the version's own dialog puts it back.
   await versionRow(versions, 1).getByRole("button", { name: "View" }).click();
   const view: Locator = dialog(page);
+  // What changed, who saved it and when: the row it was opened from.
+  await expect(view.getByText(VERSION_DIALOG_DESCRIPTION)).toBeVisible();
   await expect(
     page.getByTestId("host-collector-config-version-yaml"),
   ).toContainText("collection_interval: 30s");
@@ -745,17 +822,89 @@ test("a managed host: its collector's state, its config and the commands on the 
   // Nothing failed: nothing to try again.
   await expect(headerButton(collector, "Try again")).toHaveCount(0);
 
+  // When it last reported, in words, with the date and time on hover.
+  const lastReport: Locator = page.getByTestId("host-collector-last-report");
+  await expect(lastReport).toHaveText(/^\d+ minutes? ago$/);
+  expect(await lastReport.getAttribute("title")).toMatch(/\d/);
+
+  // Where what it collects is changed: a link, from the sentence that says so.
+  await expect(
+    collector
+      .getByTestId("card-description")
+      .getByRole("link", { name: "Collector Configs" }),
+  ).toHaveAttribute("href", new RegExp(`${CONFIGS}$`));
+
   const onHost: Locator = card(page, "On the host");
-  await expect(onHost).toContainText(
-    "sudo systemctl status oneuptime-collector",
-  );
-  await expect(onHost).toContainText(
-    "sudo journalctl -u oneuptime-collector -n 50",
-  );
-  await expect(onHost).toContainText(
-    `curl -fsSL ${ONEUPTIME_URL}/docs/static/scripts/host-collector/install.sh | sudo sh -s -- --uninstall`,
-  );
+  const uninstall: string = `curl -fsSL ${ONEUPTIME_URL}/docs/static/scripts/host-collector/install.sh | sudo sh -s -- --uninstall`;
+  for (const [item, command] of [
+    ["status", "sudo systemctl status oneuptime-collector"],
+    ["logs", "sudo journalctl -u oneuptime-collector -n 50"],
+    ["restart", "sudo systemctl restart oneuptime-collector"],
+    ["uninstall", uninstall],
+  ] as Array<[string, string]>) {
+    const line: Locator = page
+      .getByTestId(`host-collector-on-host-${item}`)
+      .getByTestId("copyable-command");
+    // On screen as written, character for character.
+    expect(await line.locator("code").textContent()).toBe(command);
+    await expect(line.getByRole("button")).toBeVisible();
+  }
+
+  /*
+   * A long command breaks only at a space: every word short enough for a
+   * line is drawn whole, never "sh -" / "s" or "oneuptime-" / "collector".
+   */
+  const brokenWords: Array<string> = await page
+    .getByTestId("host-collector-on-host-uninstall")
+    .locator("code")
+    .evaluate((code: Element): Array<string> => {
+      const kept: Array<string> = Array.from(code.querySelectorAll("span")).map(
+        (span: Element): string => {
+          return getComputedStyle(span).whiteSpace === "nowrap"
+            ? span.textContent || ""
+            : "";
+        },
+      );
+      return (code.textContent || "")
+        .split(" ")
+        .filter((word: string): boolean => {
+          return word.length > 0 && word.length <= 32 && !kept.includes(word);
+        });
+    });
+  expect(brokenWords).toEqual([]);
   await screenshot(page, "host-collector-running");
+
+  /*
+   * Update it, or change its labels: the install command for this host,
+   * of its own system - no system to pick - waiting for its new collector.
+   */
+  await onHost
+    .getByRole("button", { name: "Show the install command" })
+    .click();
+  const install: Locator = dialog(page);
+  await expect(
+    install.getByText("Run the install command again", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    install.getByText(
+      "Run it on web-01 to update its collector or change its labels. The host keeps its place and its history in OneUptime.",
+    ),
+  ).toBeVisible();
+  await expect(install.getByRole("radio")).toHaveCount(0);
+  await expect(page.getByTestId("add-host-kubernetes-note")).toHaveCount(0);
+  await expect(install.getByText(LINUX_COMMAND, { exact: true })).toBeVisible();
+  await expect(page.getByTestId("host-connection-waiting")).toContainText(
+    "Waiting for the new collector to connect. This step updates by itself.",
+  );
+  await dialogScreenshot(page, "host-collector-install-command");
+
+  // The command ran on web-01: the dialog says so, and the page reads it again.
+  await register(page, "web-01");
+  await page.clock.runFor(WATCH_MS + 1);
+  await expect(page.getByTestId("connected-host-name")).toHaveText("web-01");
+  await install.getByRole("button", { name: "Done" }).click();
+  await expect(dialog(page)).toHaveCount(0);
+  await expect(page.getByTestId("host-collector-state-waiting")).toBeVisible();
 });
 
 test("Change config picks a config for this host, and Automatic gives it back to the list", async ({
@@ -832,6 +981,12 @@ test("a config that failed: why, what the host reported, and Try again", async (
   await expect(error).toContainText(
     "Collector failed to start with the new config",
   );
+  // Red, as its pill: a config that did not start.
+  await expect(error).toHaveAttribute("data-tone", "danger");
+  // The version it runs is not the one that failed, and says so.
+  await expect(page.getByTestId("host-collector-config-version")).toHaveText(
+    "1, the last that worked here",
+  );
   await screenshot(page, "host-collector-failed");
 
   await headerButton(collector, "Try again").click();
@@ -858,6 +1013,11 @@ test("a collector error on a Windows host running OneUptime's default", async ({
   await expect(page.getByTestId("host-collector-error")).toContainText(
     "failed to export metrics",
   );
+  // Amber, as its pill: the collector runs, and reports an error.
+  await expect(page.getByTestId("host-collector-error")).toHaveAttribute(
+    "data-tone",
+    "warning",
+  );
   await expect(page.getByTestId("host-collector-config-name")).toHaveText(
     "OneUptime default for Windows",
   );
@@ -883,6 +1043,10 @@ test("a host set up by hand: the one command hands it over, and the manual guide
   await expect(
     page.getByText(`${LINUX_COMMAND} --replace-existing`, { exact: true }),
   ).toBeVisible();
+  // Its system is known: only its command, no system to pick.
+  await expect(
+    page.getByTestId("setup-guide").first().getByRole("radio"),
+  ).toHaveCount(0);
   // The manual guide stays one click away.
   const manual: Locator = page.getByTestId("host-manual-guide");
   await expect(manual).toContainText("Install the collector yourself");
@@ -955,12 +1119,88 @@ test("on a phone the pages fit", async ({ page }: { page: Page }) => {
   await screenshot(page, "collector-config-phone");
 
   await open(page, HOSTS);
+  // A failed config is the one thing in a row that asks for action: shown on a phone too.
+  await expect(
+    card(page, "Hosts").getByTestId("host-collector-state-failed"),
+  ).toBeVisible();
   await headerButton(card(page, "Hosts"), "Add Host").click();
   await expect(
     dialog(page).getByText("Run this command on the host"),
   ).toBeVisible();
   expect(await scrollsSideways(page)).toBe(false);
   await dialogScreenshot(page, "add-host-phone");
+
+  /*
+   * The host connected: the sentence keeps the width of the box, and View
+   * host goes under it, lined up with it, instead of squeezing it into a
+   * column a word or two wide.
+   */
+  await register(page, "web-09.eu-central-1.compute.internal");
+  await page.clock.runFor(WATCH_MS + 1);
+  const connected: Locator = page.getByTestId("host-connection-connected");
+  await expect(connected).toBeVisible();
+  const sentence: Locator = connected.getByText(
+    "is connected. Its metrics and logs arrive within a minute.",
+    { exact: false },
+  );
+  const link: Locator = connected.getByRole("link", { name: "View host" });
+  const sentenceBox: { x: number; y: number; width: number; height: number } =
+    (await sentence.boundingBox())!;
+  const linkBox: { x: number; y: number; width: number; height: number } =
+    (await link.boundingBox())!;
+  expect(sentenceBox.width).toBeGreaterThan(200);
+  expect(linkBox.y).toBeGreaterThanOrEqual(
+    sentenceBox.y + sentenceBox.height - 1,
+  );
+  expect(Math.abs(linkBox.x - sentenceBox.x)).toBeLessThanOrEqual(1);
+  await dialogScreenshot(page, "add-host-connected-phone", connected);
+});
+
+test("in German, Add Host is German throughout", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await open(page, HOSTS, "lang=de");
+  await headerButton(card(page, "Hosts"), "Host hinzufügen").click();
+  const addHost: Locator = dialog(page);
+
+  await expect(page.getByTestId("add-host-kubernetes-note")).toContainText(
+    "Kubernetes-Knoten überwacht stattdessen der Kubernetes-Agent.",
+  );
+  // Each step, as a screen reader says it too.
+  for (const [number, title] of [
+    [1, "Aufnahmeschlüssel auswählen"],
+    [2, "Diesen Befehl auf dem Host ausführen"],
+    [3, "Auf den Host warten"],
+  ] as Array<[number, string]>) {
+    await expect(
+      addHost.getByRole("heading", { name: `Schritt ${number}: ${title}` }),
+    ).toBeVisible();
+  }
+  for (const text of [
+    "Was läuft auf dem Host?",
+    "Neuer Schlüssel",
+    "Als Benutzer, der sudo verwenden darf. Es dauert etwa eine Minute.",
+    "Warten, bis sich der Host verbindet. Dieser Schritt aktualisiert sich selbst.",
+    "Erweitert",
+    "Fehlerbehebung",
+    "6 Themen",
+  ]) {
+    await expect(addHost.getByText(text, { exact: true })).toBeVisible();
+  }
+  await expect(
+    addHost.getByRole("link", { name: "Kubernetes-Agent einrichten" }),
+  ).toBeVisible();
+
+  await page.getByTestId("setup-guide-option-windows").click();
+  await expect(
+    addHost.getByText(
+      "In PowerShell, als Administrator ausgeführt. Es dauert etwa eine Minute.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await dialogScreenshot(page, "add-host-de");
 });
 
 test("in German, the Collector page and a config's versions are translated", async ({
@@ -969,6 +1209,20 @@ test("in German, the Collector page and a config's versions are translated", asy
   page: Page;
 }) => {
   await open(page, collectorPage(DB_01_ID), "lang=de");
+  await expect(page.getByTestId("host-collector-config-version")).toHaveText(
+    "1, die letzte, die hier funktioniert hat",
+  );
+  await expect(page.getByTestId("host-collector-last-report")).toHaveText(
+    /^vor \d+ Minuten?$/,
+  );
+  await expect(
+    card(page, "Collector")
+      .getByTestId("card-description")
+      .getByRole("link", { name: "Collector-Konfigurationen" }),
+  ).toBeVisible();
+  await expect(card(page, "Auf dem Host")).toContainText(
+    "Installationsbefehl anzeigen",
+  );
   await expect(page.getByTestId("host-collector-state")).toContainText(
     "Web servers ist auf diesem Host nicht gestartet. Der Host führt die letzte Konfiguration aus, die dort funktioniert hat.",
   );

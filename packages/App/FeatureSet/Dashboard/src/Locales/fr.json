@@ -21385,7 +21385,7 @@
   "Status page not found.": "Page de statut introuvable.",
   "Status pages you archived. They are offline, send nothing to their subscribers, and are hidden from the Status Pages list. Select status pages to unarchive them.": "Status pages you archived. They are offline, send nothing to their subscribers, and are hidden from the Status Pages list. Select status pages to unarchive them.",
   "Step {{current}} of {{total}}": "Step {{current}} of {{total}}",
-  "Step {{number}}:": "Step {{number}}:",
+  "Step {{number}}:": "Étape {{number}} :",
   "Step {{number}}: {{fields}}": "Step {{number}}: {{fields}}",
   "Stop sending data, or delete the key, and the charge stops.": "Stop sending data, or delete the key, and the charge stops.",
   "Structured frames were not recorded for the latest occurrence.": "Structured frames were not recorded for the latest occurrence.",
