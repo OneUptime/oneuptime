@@ -759,11 +759,25 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   [PageMap.SECURITY_EVENTS_ENTITIES]: "entities",
   [PageMap.SECURITY_EVENTS_RULE_LIBRARY]: "rule-library",
   [PageMap.SECURITY_EVENTS_ATTACK_COVERAGE]: "attack-coverage",
+  /*
+   * The case queue's pages. The open cases keep the queue's old address, so
+   * a link to it lands where it always did; the others sit beside a case's
+   * own page (cases/:id), which react-router ranks below these words.
+   */
   [PageMap.SECURITY_CASES]: "cases",
+  [PageMap.SECURITY_CASES_ASSIGNED_TO_ME]: "cases/assigned-to-me",
+  [PageMap.SECURITY_CASES_UNASSIGNED]: "cases/unassigned",
+  [PageMap.SECURITY_CASES_CLOSED]: "cases/closed",
+  [PageMap.SECURITY_CASES_ALL]: "cases/all",
   [PageMap.SECURITY_CASE_VIEW]: `cases/${RouteParams.ModelID}`,
   [PageMap.SECURITY_PLAYBOOKS]: "playbooks",
   [PageMap.SECURITY_PLAYBOOK_VIEW]: `playbooks/${RouteParams.ModelID}`,
-  [PageMap.SECURITY_PLAYBOOK_RUNS]: "playbook-runs",
+  /*
+   * The runs waiting for an approval keep the runs page's old address (it
+   * opened on them); every run is one level down, as every case is.
+   */
+  [PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL]: "playbook-runs",
+  [PageMap.SECURITY_PLAYBOOK_RUNS]: "playbook-runs/all",
 };
 
 // Metrics product routes
@@ -6666,6 +6680,30 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SECURITY_CASES_ASSIGNED_TO_ME]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASES_ASSIGNED_TO_ME]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASES_UNASSIGNED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASES_UNASSIGNED]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASES_CLOSED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASES_CLOSED]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASES_ALL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASES_ALL]
+    }`,
+  ),
+
   [PageMap.SECURITY_CASE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW]
@@ -6681,6 +6719,14 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SECURITY_PLAYBOOK_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_PLAYBOOK_VIEW]
+    }`,
+  ),
+
+  [PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[
+        PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL
+      ]
     }`,
   ),
 

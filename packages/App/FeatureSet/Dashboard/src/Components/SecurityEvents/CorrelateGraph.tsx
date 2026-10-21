@@ -1206,7 +1206,7 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
         title="Correlate"
         dataTestId="security-events-correlate-button"
         buttonStyle={ButtonStyleType.PRIMARY}
-        icon={IconProp.Graph}
+        icon={IconProp.Share}
         disabled={!hasDraftToApply || isLoading}
         onClick={applyDraft}
       />
@@ -1397,7 +1397,7 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
       >
         <EmptyState
           id="security-events-correlate-empty"
-          icon={IconProp.Graph}
+          icon={IconProp.Share}
           paddingClassName="px-4 py-12"
           title="Correlate security events"
           description="Search for a host, user, or IP address, or switch to Conditions to combine fields with AND or OR."

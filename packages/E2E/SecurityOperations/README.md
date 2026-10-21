@@ -2,17 +2,22 @@
 
 An offline harness for the Security Events SOC pages, on a month of synthetic security work:
 
-| Page            | Route (from `RouteMap`)                                                     | Production components                                                                      |
-| --------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Overview        | `SECURITY_EVENTS_OVERVIEW` `/dashboard/:projectId/security-events/overview` | `Pages/SecurityEvents/{Layout,Overview}`, `SecurityOverview/*`                             |
-| Security Cases  | `SECURITY_CASES` `.../security-events/cases`                                | `Pages/SecurityEvents/Cases`, `SecurityCasesTable` inside `ModelTable`                     |
-| A case          | `SECURITY_CASE_VIEW` `.../security-events/cases/:id`                        | `Pages/SecurityEvents/CaseView`, `SecurityCase/*`, `EventNotes`, `SecurityPlaybookRunCard` |
-| Entities        | `SECURITY_EVENTS_ENTITIES` `.../security-events/entities`                   | `Pages/SecurityEvents/Entities`                                                            |
-| Rule Library    | `SECURITY_EVENTS_RULE_LIBRARY` `.../security-events/rule-library`           | `Pages/SecurityEvents/RuleLibrary`                                                         |
-| ATT&CK Coverage | `SECURITY_EVENTS_ATTACK_COVERAGE` `.../security-events/attack-coverage`     | `Pages/SecurityEvents/AttackCoverage`                                                      |
-| Playbooks       | `SECURITY_PLAYBOOKS` `.../security-events/playbooks`                        | `Pages/SecurityEvents/Playbooks`                                                           |
-| A playbook      | `SECURITY_PLAYBOOK_VIEW` `.../security-events/playbooks/:id`                | `Pages/SecurityEvents/PlaybookView`, `SecurityPlaybookStepsEditor`                         |
-| Playbook Runs   | `SECURITY_PLAYBOOK_RUNS` `.../security-events/playbook-runs`                | `Pages/SecurityEvents/PlaybookRuns`                                                        |
+| Page                 | Route (from `RouteMap`)                                                           | Production components                                                                      |
+| -------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Overview             | `SECURITY_EVENTS_OVERVIEW` `/dashboard/:projectId/security-events/overview`       | `Pages/SecurityEvents/{Layout,Overview}`, `SecurityOverview/*`                             |
+| Open Cases           | `SECURITY_CASES` `.../security-events/cases`                                      | `Pages/SecurityEvents/Cases`, `SecurityCasesTable` inside `ModelTable`                     |
+| Assigned to Me       | `SECURITY_CASES_ASSIGNED_TO_ME` `.../security-events/cases/assigned-to-me`        | the same, with the list `SecurityCaseQueueViews` gives the page                            |
+| Unassigned           | `SECURITY_CASES_UNASSIGNED` `.../security-events/cases/unassigned`                | the same                                                                                   |
+| Closed Cases         | `SECURITY_CASES_CLOSED` `.../security-events/cases/closed`                        | the same                                                                                   |
+| All Cases            | `SECURITY_CASES_ALL` `.../security-events/cases/all`                              | the same                                                                                   |
+| A case               | `SECURITY_CASE_VIEW` `.../security-events/cases/:id`                              | `Pages/SecurityEvents/CaseView`, `SecurityCase/*`, `EventNotes`, `SecurityPlaybookRunCard` |
+| Entities             | `SECURITY_EVENTS_ENTITIES` `.../security-events/entities`                         | `Pages/SecurityEvents/Entities`                                                            |
+| Rule Library         | `SECURITY_EVENTS_RULE_LIBRARY` `.../security-events/rule-library`                 | `Pages/SecurityEvents/RuleLibrary`                                                         |
+| ATT&CK Coverage      | `SECURITY_EVENTS_ATTACK_COVERAGE` `.../security-events/attack-coverage`           | `Pages/SecurityEvents/AttackCoverage`                                                      |
+| Playbooks            | `SECURITY_PLAYBOOKS` `.../security-events/playbooks`                              | `Pages/SecurityEvents/Playbooks`                                                           |
+| A playbook           | `SECURITY_PLAYBOOK_VIEW` `.../security-events/playbooks/:id`                      | `Pages/SecurityEvents/PlaybookView`, `SecurityPlaybookStepsEditor`                         |
+| Waiting for Approval | `SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL` `.../security-events/playbook-runs` | `Pages/SecurityEvents/PlaybookRuns`, with the runs `SecurityPlaybookRunViews` gives it     |
+| Playbook Runs        | `SECURITY_PLAYBOOK_RUNS` `.../security-events/playbook-runs/all`                  | the same                                                                                   |
 
 `Fixture/server.js` bundles the production layout (breadcrumbs, the Security Events side menu) and
 the pages with esbuild, serves them with the same Tailwind build, `tailwind.config`, Inter font and
@@ -43,7 +48,7 @@ Stubbed:
   (`*.example` domains, documentation IP ranges).
 - Realtime: nothing pushes changes.
 - The menu's other pages (Events, Correlate, Detection Rules, Threat Intel, Connections, Setup
-  Guide) render a small stub page, inside the real layout and its tabs.
+  Guide) render a small stub page, inside the real layout and its side menu.
 
 The clock is pinned: the spec fixes the browser clock to `2026-10-14T12:00:00Z`, and the month of
 history is laid out from it with a seeded generator, so every run draws the same pages.
@@ -74,21 +79,26 @@ that list is not empty.
   A new project sets Security up from Get started in two clicks - Turn on recommended, then Send a
   test attack, whose case opens - in light, dark and on a phone; a project set up and quiet reads All
   quiet and charts nothing.
-- **The case queue**: the open cases, each with what raised it and what it is about; the views
-  (unassigned, mine, closed); at 1440 every column fits the card beside the side menu; at 1024 and
-  390 nothing runs off the page and the header's search stays inside the card.
+- **The case pages**: Open Cases, each case with what raised it and what it is about; each page
+  from the side menu lists what its name says (Unassigned names the team a case was handed to,
+  Assigned to Me has no Assignee column, Closed Cases reads by verdict and when each closed); at
+  1280 each list's title, search and buttons share one line with the description under them; at
+  1440 every column fits the card beside the side menu; at 1024 and 390 nothing runs off the page
+  and the header's search stays inside the card.
 - **A case**: header, status steps, detections, the held run with Approve and Reject, timeline,
   entities, ATT&CK and notes; approving the held step posts the decision with its comment and the
   run finishes; a Security Viewer cannot decide it; dark theme and a phone.
 - **Playbooks**: the list (steps, status, trigger and minimum priority) fits its card; a playbook's
-  settings read in full; its steps and latest runs; the runs page opens on the runs waiting for
-  approval and lists every run under All Runs.
+  settings read in full; its steps and latest runs; Waiting for Approval, at the runs page's old
+  address, lists the run held for a decision, and Playbook Runs every run; an empty runs page says
+  what it is for in its empty state only.
 - **Detections**: ATT&CK coverage counts what the enabled rules cover and its matrix scrolls inside
   its card; the rule library marks the rules the project has and the recommended ones, filters to
   them and adds the missing ones in one click, its description running under its two buttons the
-  card's whole width; the pages behind Detections are tabs, each its own
-  address, with the menu entry lit on every one; the side menu is six entries; entities ranks what
-  the findings name.
+  card's whole width, and narrows by one select beside its search; Detections is a section of
+  pages, each its own address and entry; the side menu is six sections of pages, the ones set up
+  once folded, and on a phone it names the section and the page; entities ranks what the findings
+  name.
 - **Every page at 1280, 1024, 768 and 390**: none scrolls sideways.
 
 Every test pins the clock and puts up a network fence that aborts anything leaving the fixture
@@ -107,10 +117,13 @@ Playwright reuses a server already listening on port 4234 outside CI. If one fro
 might be running, stop it first or run with `CI=1`.
 
 Screenshots (2x) land in `output/playwright/security-operations-ui/`, named `*-synthetic.png`
-because everything in them is fabricated: `overview-desktop`, `overview-dark`, `overview-empty`,
-`cases-desktop`, `cases-tablet`, `cases-mobile`, `case-desktop`, `case-dark`, `case-mobile`,
-`playbooks-desktop`, `playbook-desktop`, `playbook-runs-desktop`, `attack-coverage-desktop`,
-`rule-library-desktop` and `entities-desktop`.
+because everything in them is fabricated: among them `overview-desktop`, `overview-dark`,
+`side-menu-desktop`, `side-menu-dark`, `side-menu-mobile`, `cases-desktop`, `cases-tablet`,
+`cases-mobile`, each case page at 1280 in both themes and at 390 (`cases-open-1280-light`,
+`cases-unassigned-1280-dark`, `cases-closed-390-light` and the rest), `case-desktop`, `case-dark`,
+`case-mobile`, `playbooks-desktop`, `playbook-desktop`, `playbook-runs-waiting-desktop`,
+`playbook-runs-desktop`, `playbook-runs-empty`, `attack-coverage-desktop`, `rule-library-desktop`,
+`rule-library-category-*` and `entities-desktop`.
 
 ## Poke at it by hand
 

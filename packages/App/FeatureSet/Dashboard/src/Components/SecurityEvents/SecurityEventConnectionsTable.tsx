@@ -173,12 +173,6 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
         sortBy="name"
         sortOrder={SortOrder.Ascending}
         cardProps={{
-          /*
-           * The header holds a row of controls (search, Add connection, the
-           * menu), wider than the title's share beside the side menu at
-           * tablet widths: stacked lets them drop under the title.
-           */
-          headerLayout: "stacked",
           title: "Your security tools",
           description:
             "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta and Google SecOps.",

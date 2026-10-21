@@ -1,6 +1,12 @@
 import PageComponentProps from "../PageComponentProps";
 import AppLink from "../../Components/AppLink/AppLink";
 import SecurityPlaybookRunCard from "../../Components/SecurityPlaybook/SecurityPlaybookRunCard";
+import {
+  PLAYBOOK_RUNS_PAGE_LIMIT,
+  SecurityPlaybookRunView,
+  SecurityPlaybookRunViewKey,
+  getSecurityPlaybookRunView,
+} from "../../Components/SecurityPlaybook/SecurityPlaybookRunViews";
 import useSecurityPlaybookRuns, {
   UseSecurityPlaybookRunsResult,
 } from "../../Components/SecurityPlaybook/useSecurityPlaybookRuns";
@@ -8,124 +14,102 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import Route from "Common/Types/API/Route";
-import Includes from "Common/Types/BaseDatabase/Includes";
-import Query from "Common/Types/BaseDatabase/Query";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import SecurityPlaybookRunStatus from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import Icon from "Common/UI/Components/Icon/Icon";
+import TableEmptyState, {
+  TableEmptyStateAction,
+  TableEmptyStateKind,
+} from "Common/UI/Components/Table/TableEmptyState";
+import Navigation from "Common/UI/Utils/Navigation";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 
-type RunView = "waiting" | "active" | "all";
+// Playbook Runs' way forward when no playbook has run: the playbooks.
+export const VIEW_PLAYBOOKS: string = translationKey("View Playbooks");
+export const VIEW_PLAYBOOKS_TEST_ID: string =
+  "security-playbook-runs-view-playbooks";
 
-interface RunViewDefinition {
-  key: RunView;
-  title: string;
-  icon: IconProp;
-  emptyText: string;
-  query: Query<SecurityPlaybookRun>;
+export interface ComponentProps extends PageComponentProps {
+  /*
+   * Which of the two runs pages this is (SecurityPlaybookRunViews.ts): the
+   * runs waiting for an approval, or every run. The runs waiting when not
+   * given.
+   */
+  view?: SecurityPlaybookRunViewKey | undefined;
 }
 
-export const PLAYBOOK_RUN_VIEWS: Array<RunViewDefinition> = [
-  {
-    key: "waiting",
-    title: translationKey("Waiting for Approval"),
-    icon: IconProp.Pause,
-    emptyText: translationKey("No step is waiting for approval."),
-    query: { status: SecurityPlaybookRunStatus.WaitingForApproval },
-  },
-  {
-    key: "active",
-    title: translationKey("Running"),
-    icon: IconProp.Play,
-    emptyText: translationKey("No playbook is running right now."),
-    query: {
-      status: new Includes([
-        SecurityPlaybookRunStatus.Queued,
-        SecurityPlaybookRunStatus.Running,
-        SecurityPlaybookRunStatus.WaitingForApproval,
-      ]),
-    } as Query<SecurityPlaybookRun>,
-  },
-  {
-    key: "all",
-    title: translationKey("All Runs"),
-    icon: IconProp.List,
-    emptyText: translationKey("No playbook has run yet."),
-    query: {},
-  },
-];
-
 /*
- * Every playbook run in the project, newest first - with the approvals
- * waiting on someone first of all, since a run held for approval does
- * nothing until it gets one.
+ * The playbook runs of the project, newest first, as two pages under
+ * Playbooks: Waiting for Approval, the runs a step holds until a person
+ * decides - they do nothing until somebody does - and Playbook Runs, every
+ * run, to read back what each playbook did.
  */
-const SecurityPlaybookRunsPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const SecurityPlaybookRunsPage: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
-  const [view, setView] = useState<RunView>("waiting");
-  const definition: RunViewDefinition =
-    PLAYBOOK_RUN_VIEWS.find((item: RunViewDefinition): boolean => {
-      return item.key === view;
-    }) || PLAYBOOK_RUN_VIEWS[0]!;
+  const view: SecurityPlaybookRunView = getSecurityPlaybookRunView(props.view);
 
   const runs: UseSecurityPlaybookRunsResult = useSecurityPlaybookRuns({
-    query: definition.query,
-    queryKey: view,
-    limit: 50,
+    query: view.query,
+    queryKey: view.key,
+    limit: PLAYBOOK_RUNS_PAGE_LIMIT,
   });
+
+  const emptyActions: Array<TableEmptyStateAction> = view.isEmptyGoodNews
+    ? []
+    : [
+        {
+          title: VIEW_PLAYBOOKS,
+          icon: IconProp.Bolt,
+          dataTestId: VIEW_PLAYBOOKS_TEST_ID,
+          onClick: (): void => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.SECURITY_PLAYBOOKS] as Route,
+              ),
+            );
+          },
+        },
+      ];
+
+  /*
+   * While the list is empty its empty state says what the page is for, so
+   * the card leaves its own description out - the same thing twice, a few
+   * lines apart, as a table's empty state does (BaseModelTable).
+   */
+  const isEmptyStateShown: boolean =
+    !runs.error && !runs.isLoading && runs.runs.length === 0;
 
   return (
     <Card
-      title="Playbook Runs"
-      description="Every playbook run, with each step and what it did. A step that needs approval holds its run here until someone approves or rejects it."
-      // The views drop under the title beside the side menu.
-      headerLayout="stacked"
-      rightElement={
-        <div className="flex flex-wrap items-center gap-1">
-          {PLAYBOOK_RUN_VIEWS.map((item: RunViewDefinition): ReactElement => {
-            const isActive: boolean = item.key === view;
-
-            return (
-              <button
-                key={item.key}
-                type="button"
-                aria-pressed={isActive}
-                data-testid={`security-playbook-runs-view-${item.key}`}
-                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  isActive
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                }`}
-                onClick={() => {
-                  setView(item.key);
-                }}
-              >
-                <Icon icon={item.icon} className="h-3.5 w-3.5" />
-                {translator.translateText(item.title)}
-              </button>
-            );
-          })}
-        </div>
-      }
+      title={view.title}
+      description={isEmptyStateShown ? undefined : view.description}
     >
       {runs.error ? (
         <ErrorMessage message={runs.error} />
       ) : runs.isLoading && runs.runs.length === 0 ? (
-        <div className="space-y-3">
+        <div className="space-y-3" aria-busy="true">
           <div className="h-24 animate-pulse rounded-xl bg-gray-100" />
           <div className="h-24 animate-pulse rounded-xl bg-gray-100" />
         </div>
       ) : runs.runs.length === 0 ? (
-        <p className="py-6 text-center text-sm text-gray-500">
-          {translator.translateText(definition.emptyText)}
-        </p>
+        <TableEmptyState
+          kind={
+            view.isEmptyGoodNews
+              ? TableEmptyStateKind.AllClear
+              : TableEmptyStateKind.Empty
+          }
+          icon={view.isEmptyGoodNews ? undefined : view.icon}
+          title={view.emptyTitle}
+          description={view.emptyDescription}
+          actions={emptyActions}
+          isCompact={true}
+          dataTestId="security-playbook-runs-empty"
+        />
       ) : (
         <div className="space-y-3">
           {runs.runs.map((run: SecurityPlaybookRun): ReactElement => {
