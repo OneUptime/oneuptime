@@ -25,12 +25,16 @@ flowchart TB
     monitors --> act
 ```
 
-Åpne **Produkter → Security Events**, under **Observerbarhet**. Menyen:
+Åpne **Produkter → Security Events**, under **Observerbarhet**. Menyen har en seksjon for hver del av sikkerheten, og en egen side for hver ting i den:
 
-| Side | Menypunkt | Hva den er til |
+| Side | Seksjon | Hva den er til |
 | --- | --- | --- |
 | **Oversikt** | Oversikt | Hvordan sikkerhet er satt opp, hva som trenger noen nå, og hvor raskt saker blir behandlet |
-| **Security Cases** | Security Cases | Køen over det som er oppdaget, gruppert etter hva det gjelder |
+| **Åpne saker** | Sikkerhetssaker | Køen: hver sak som ikke er lukket ennå, gruppert etter hva den gjelder |
+| **Tildelt meg** | Sikkerhetssaker | De åpne sakene som er tildelt deg |
+| **Ikke tildelt** | Sikkerhetssaker | De åpne sakene ingen har tatt |
+| **Lukkede saker** | Sikkerhetssaker | Sakene som er lukket med en vurdering, de nyeste først |
+| **Alle saker** | Sikkerhetssaker | Hver sak, åpen eller lukket |
 | **Hendelser** | Hendelser | Søk i og filtrer alle hendelser, og åpne en for å se alle feltene |
 | **Entiteter** | Hendelser | Brukerne, vertene og adressene som funnene dine nevner oftest |
 | **Korreler** | Hendelser | En graf over hendelsene som deler en vert, en bruker eller en IP-adresse |
@@ -39,11 +43,12 @@ flowchart TB
 | **Threat Intel** | Detections | STIX/TAXII-feeder med kjente ondsinnede indikatorer |
 | **ATT&CK Coverage** | Detections | MITRE ATT&CK-teknikkene som reglene dine dekker |
 | **Playbooks** | Playbooks | Steg som kjører på saker, av seg selv eller manuelt |
-| **Playbook Runs** | Playbooks | Hva hver playbook gjorde, og stegene som venter på godkjenning |
+| **Venter på godkjenning** | Playbooks | Playbook-stegene som venter på at noen godkjenner eller avviser dem |
+| **Playbook-kjøringer** | Playbooks | Hva hver playbook gjorde, steg for steg |
 | **Connections** | Connections | Loggene dine, sikkerhetsproduktene OneUptime henter fra, og SIEM-ene det sender til |
 | **Oppsettveiledning** | Connections | Kodesnutter for å sende hendelser, fylt ut med ingestion-nøkkelen din |
 
-Sidene bak ett menypunkt åpnes som faner øverst på siden. Ny med sikkerhet? [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started) setter det opp med to klikk.
+**Detections** og **Connections**, som settes opp én gang, er slått sammen til du åpner dem. Ny med sikkerhet? [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started) setter det opp med to klikk.
 
 ## Før du begynner
 
@@ -152,7 +157,7 @@ For å sende sikkerhetslogger du allerede samler inn, for eksempel auditd, syslo
     Retry_Limit      5
 ```
 
-Fanen **Oppsettveiledning** har disse kodesnuttene med din egen vert og nøkkel fylt ut.
+Siden **Oppsettveiledning**, under **Connections**, har disse kodesnuttene med din egen vert og nøkkel fylt ut.
 
 ### Finn sikkerhetshendelser i loggene dine
 
@@ -238,7 +243,7 @@ flowchart TB
 ### Opprett en regel
 
 :::steps
-1. Åpne **Produkter → Security Events → Detections**, og klikk på **Opprett Detection Rule**.
+1. Åpne **Produkter → Security Events → Detections → Detection Rules**, og klikk på **Opprett Detection Rule**.
 2. Lim inn regelens YAML i **Sigma Rule (YAML)** under **Sigma Rule**. Den tolkes når du lagrer, så en feil vises i skjemaet.
 3. **Navn** fylles inn fra regelens `title`: skriv over det for å kalle regelen noe annet. En ny regel kjører; **Aktivert** står i redigeringsskjemaet.
 4. La **Open a Case on Match** stå på under **Ved treff** for å samle treffene i saker, etter verdien regelen grupperer etter.

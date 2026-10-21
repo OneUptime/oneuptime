@@ -63,6 +63,8 @@ let setNavigationLocation: (pathname: string) => void;
 const INGEST_ROUTE_PATTERN: RegExp = /router\.post\(\s*"([^"]+)"/;
 const SAMPLE_PATTERN: RegExp = /format: "([^"]*)",\s*body: `([\s\S]*?)`,/g;
 const DIALECT_PATTERN: RegExp = /\?format=([a-z-]+)/g;
+// A run of spaces and line breaks, read as one space.
+const WHITESPACE_RUN: RegExp = /\s+/g;
 
 const DASHBOARD_SRC: string = nodePath.join(
   __dirname,
@@ -228,12 +230,11 @@ describe("Security events setup guide wiring", () => {
     expect(routesSource).toContain("<SecurityEventsDocumentationPage");
   });
 
-  test("the setup guide is a tab beside Connections, under the Connections menu entry", () => {
-    expect(navigationSource).toContain(
-      '{ page: PageMap.SECURITY_EVENTS_DOCUMENTATION, title: "Setup Guide" }',
-    );
-    expect(navigationSource).toContain(
-      "menuPage: PageMap.SECURITY_EVENTS_CONNECTIONS,",
+  test("the setup guide is a page of its own beside Connections, in the Connections section", () => {
+    const flat: string = navigationSource.replace(WHITESPACE_RUN, " ");
+
+    expect(flat).toContain(
+      'title: "Connections", startsCollapsed: true, items: [ { page: PageMap.SECURITY_EVENTS_CONNECTIONS, title: "Connections", icon: IconProp.Link, }, { page: PageMap.SECURITY_EVENTS_DOCUMENTATION, title: "Setup Guide", icon: IconProp.Book, }, ],',
     );
   });
 
@@ -259,7 +260,7 @@ describe("Security events setup guide wiring", () => {
       trail!.map((link: Link) => {
         return link.title;
       }),
-    ).toEqual(["Project", "Security Events", "Setup Guide"]);
+    ).toEqual(["Project", "Security Events", "Connections", "Setup Guide"]);
   });
 
   /*

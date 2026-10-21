@@ -190,8 +190,6 @@ const SecurityPlaybooksPage: FunctionComponent<
           return Promise.resolve(item);
         }}
         cardProps={{
-          // Its search and buttons drop under the title beside the side menu.
-          headerLayout: "stacked",
           title: "Playbooks",
           description:
             "Responses that run on a case, such as notifying, paging on-call or containing a host. They run when a case opens or grows, or by hand.",

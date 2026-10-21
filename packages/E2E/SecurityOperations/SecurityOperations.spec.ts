@@ -9,12 +9,16 @@ import fs from "fs/promises";
 import path from "path";
 
 /*
- * The Security Events SOC pages - the overview, the case queue, a case,
- * entities, the rule library, ATT&CK coverage, playbooks, a playbook and the
- * runs - on the fixture's synthetic month (Fixture/Fixture.js). What the
- * unit tests cannot see: that the pages fit beside the side menu at every
- * size, read right in both themes, agree with each other on the numbers,
- * and that approving a held playbook step runs the rest of it.
+ * The Security Events SOC pages - the overview, the case queue's pages, a
+ * case, entities, the rule library, ATT&CK coverage, playbooks, a playbook
+ * and the runs - on the fixture's synthetic month (Fixture/Fixture.js), with
+ * the side menu that holds them: six sections, every page an entry of its
+ * own (the tabs and views that used to sit along the tops of pages are
+ * pages now). What the unit tests cannot see: that the pages fit beside the
+ * side menu at every size, read right in both themes, agree with each other
+ * on the numbers, that every page is reached from the menu and named the
+ * same in its breadcrumbs, and that approving a held playbook step runs the
+ * rest of it.
  *
  * Every test pins the clock and puts up a network fence that aborts anything
  * leaving the fixture server. afterEach fails a test on an uncaught page
@@ -28,14 +32,22 @@ const NOW: Date = new Date("2026-10-14T12:00:00.000Z");
 
 const PRODUCT: string = `/dashboard/${PROJECT_ID}/security-events`;
 const OVERVIEW_PATH: string = `${PRODUCT}/overview`;
+// The case queue's pages: the open cases keep the queue's old address.
 const CASES_PATH: string = `${PRODUCT}/cases`;
+const MY_CASES_PATH: string = `${PRODUCT}/cases/assigned-to-me`;
+const UNASSIGNED_CASES_PATH: string = `${PRODUCT}/cases/unassigned`;
+const CLOSED_CASES_PATH: string = `${PRODUCT}/cases/closed`;
+const ALL_CASES_PATH: string = `${PRODUCT}/cases/all`;
 const SPRAY_CASE_PATH: string = `${PRODUCT}/cases/20000000-0000-4000-8000-000000000142`;
 const ENTITIES_PATH: string = `${PRODUCT}/entities`;
 const RULE_LIBRARY_PATH: string = `${PRODUCT}/rule-library`;
 const ATTACK_COVERAGE_PATH: string = `${PRODUCT}/attack-coverage`;
 const PLAYBOOKS_PATH: string = `${PRODUCT}/playbooks`;
 const CONTAIN_PLAYBOOK_PATH: string = `${PRODUCT}/playbooks/24000000-0000-4000-8000-000000000003`;
+// The runs held for an approval keep the runs page's old address.
 const RUNS_PATH: string = `${PRODUCT}/playbook-runs`;
+const ALL_RUNS_PATH: string = `${PRODUCT}/playbook-runs/all`;
+const DETECTION_RULES_PATH: string = `${PRODUCT}/detection-rules`;
 
 const WAITING_RUN_ID: string = "25000000-0000-4000-8000-000000000001";
 
@@ -53,7 +65,8 @@ interface FixtureState {
 interface OpenOptions {
   width?: number;
   height?: number;
-  theme?: "dark";
+  // Light unless "dark"; undefined reads as light, for loops over both.
+  theme?: "dark" | undefined;
   empty?: boolean;
   quiet?: boolean;
   role?: "viewer";
@@ -216,10 +229,51 @@ async function rowTexts(page: Page): Promise<Array<string>> {
   return page.locator("table tbody tr").allInnerTexts();
 }
 
-function sideMenuLink(page: Page, title: string): Locator {
-  return page.getByRole("link", { name: title, exact: false }).filter({
-    hasText: title,
+// The side menu, as a desktop draws it beside the page.
+function sideMenu(page: Page): Locator {
+  return page.locator('aside[role="navigation"]');
+}
+
+// An entry of the side menu, by the page it names (its count is not part of the name).
+function menuEntry(page: Page, title: string): Locator {
+  return sideMenu(page).getByRole("link", { name: title, exact: true });
+}
+
+// A section of the side menu, by its title: the button that folds it.
+function menuSection(page: Page, title: string): Locator {
+  return sideMenu(page).getByRole("button", { name: title, exact: true });
+}
+
+// The entries of the menu marked as the page you are on.
+async function litEntries(page: Page): Promise<Array<string>> {
+  return sideMenu(page)
+    .locator("a.bg-indigo-50")
+    .evaluateAll((anchors: Array<Element>): Array<string> => {
+      return anchors.map((anchor: Element): string => {
+        return (
+          anchor.querySelector("span.truncate")?.textContent ||
+          anchor.textContent ||
+          ""
+        ).trim();
+      });
+    });
+}
+
+// The trail above the page, crumb by crumb.
+async function breadcrumbs(page: Page): Promise<Array<string>> {
+  return (
+    await page
+      .getByRole("navigation", { name: "Breadcrumb" })
+      .getByRole("listitem")
+      .allInnerTexts()
+  ).map((crumb: string): string => {
+    return crumb.trim();
   });
+}
+
+// The pathname the page is on, without the scenario's query.
+function pathnameOf(page: Page): string {
+  return new URL(page.url()).pathname;
 }
 
 // One stage of the Overview's pipeline: Sources, Detections, Security Cases, Playbooks.
@@ -231,9 +285,11 @@ function gettingStarted(page: Page): Locator {
   return page.getByTestId("security-getting-started");
 }
 
-// The tabs across the top of a page whose menu entry holds several.
-function tabs(page: Page): Locator {
-  return page.getByTestId("security-events-tabs");
+// The card of a page, by its title.
+function cardTitled(page: Page, title: string): Locator {
+  return page.getByTestId("card").filter({
+    has: page.getByRole("heading", { name: title, exact: true }),
+  });
 }
 
 /*
@@ -342,11 +398,56 @@ test.describe("the overview", () => {
     await expect(page.getByTestId("security-all-quiet")).toHaveCount(0);
 
     await stage(page, "detections").getByRole("link").click();
-    await expect(page).toHaveURL(new RegExp(`${PRODUCT}/detection-rules$`));
-    await expect(
-      tabs(page).getByRole("link", { name: "Detection Rules" }),
-    ).toHaveAttribute("aria-current", "page");
-    await expect(sideMenuLink(page, "Detections")).toHaveClass(/bg-indigo-50/);
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(DETECTION_RULES_PATH);
+    // Its folded section opened by itself, on the entry of the page.
+    await expect(menuSection(page, "Detections")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(await litEntries(page)).toEqual(["Detection Rules"]);
+  });
+
+  test("each count opens the page that lists exactly what it counts", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [count, pathname, entry, proof] of [
+      [
+        "2 open cases assigned to you",
+        MY_CASES_PATH,
+        "Assigned to Me",
+        "Showing 1-2 of 2 security cases",
+      ],
+      [
+        "2 open cases nobody has picked up",
+        UNASSIGNED_CASES_PATH,
+        "Unassigned",
+        "Showing 1-2 of 2 security cases",
+      ],
+      [
+        "1 playbook step waiting for approval",
+        RUNS_PATH,
+        "Waiting for Approval",
+        "Contain Compromised Okta Users",
+      ],
+    ]) {
+      await open(page, OVERVIEW_PATH);
+      await page.getByRole("link", { name: count! }).click();
+      await expect
+        .poll(() => {
+          return pathnameOf(page);
+        })
+        .toBe(pathname);
+      await expect(page.getByText(proof!).first()).toBeVisible({
+        timeout: 30000,
+      });
+      expect(await litEntries(page)).toEqual([entry]);
+    }
   });
 
   test("dark theme", async ({ page }: { page: Page }) => {
@@ -573,13 +674,25 @@ test.describe("the case queue", () => {
     expect(spray).toContain("Investigating");
     expect(spray).toContain("Maya Chen");
 
-    // Its entry in the side menu is the lit one.
-    await expect(sideMenuLink(page, "Security Cases")).toHaveClass(
-      /bg-indigo-50/,
-    );
+    // Its page is Open Cases, lit in the menu, named so in its trail.
+    await expect(
+      page.getByRole("heading", { name: "Open Cases", exact: true }),
+    ).toBeVisible();
+    expect(await litEntries(page)).toEqual(["Open Cases"]);
+    expect(await breadcrumbs(page)).toEqual([
+      "Project",
+      "Security Events",
+      "Security Cases",
+      "Open Cases",
+    ]);
+    // No row of views above the list: each is a page of its own.
+    await expect(
+      page.locator('[data-testid^="security-case-view-"]'),
+    ).toHaveCount(0);
+    await expect(page.locator("button[aria-pressed]")).toHaveCount(0);
   });
 
-  test("the views narrow the queue: unassigned, mine and closed", async ({
+  test("each case page lists what its name says, from the side menu", async ({
     page,
   }: {
     page: Page;
@@ -591,26 +704,173 @@ test.describe("the case queue", () => {
       },
     );
 
-    await page.getByTestId("security-case-view-unassigned").click();
+    /*
+     * Unassigned: the open cases nobody is on. No Assignee column saying
+     * Unassigned on every row: Team names the team a case was handed to.
+     */
+    await menuEntry(page, "Unassigned").click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(UNASSIGNED_CASES_PATH);
     await expect(
       page.getByText("Showing 1-2 of 2 security cases"),
     ).toBeVisible();
-    for (const row of await rowTexts(page)) {
-      expect(row).toContain("Unassigned");
+    const unassigned: Array<string> = await rowTexts(page);
+    expect(unassigned).toHaveLength(2);
+    for (const row of unassigned) {
+      expect(row).not.toContain("Unassigned");
     }
+    expect(
+      unassigned.find((row: string): boolean => {
+        return row.includes("CASE-138");
+      }),
+    ).toContain("SOC Tier 2");
+    await expect(
+      page.getByRole("columnheader", { name: "Team" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("columnheader", { name: "Assignee" }),
+    ).toHaveCount(0);
+    expect(await litEntries(page)).toEqual(["Unassigned"]);
 
-    await page.getByTestId("security-case-view-mine").click();
+    // Assigned to Me: Maya's open cases, with no Assignee column saying so.
+    await menuEntry(page, "Assigned to Me").click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(MY_CASES_PATH);
     await expect(
       page.getByText("Showing 1-2 of 2 security cases"),
     ).toBeVisible();
-    for (const row of await rowTexts(page)) {
-      expect(row).toContain("Maya Chen");
-    }
+    expect((await rowTexts(page)).join(" ")).toContain("CASE-142");
+    await expect(
+      page.getByRole("columnheader", { name: "Assignee" }),
+    ).toHaveCount(0);
+    expect(await breadcrumbs(page)).toEqual([
+      "Project",
+      "Security Events",
+      "Security Cases",
+      "Assigned to Me",
+    ]);
 
-    await page.getByTestId("security-case-view-closed").click();
+    // Closed Cases: by verdict and when each closed, the latest first.
+    await menuEntry(page, "Closed Cases").click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(CLOSED_CASES_PATH);
     await expect(
       page.getByText("Showing 1-10 of 37 security cases"),
     ).toBeVisible();
+    await expect(
+      page.getByRole("columnheader", { name: "Verdict" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("columnheader", { name: "Status" }),
+    ).toHaveCount(0);
+    // Nothing is opened from the record of what was decided.
+    await expect(
+      page.getByRole("button", { name: "Open Security Case" }),
+    ).toHaveCount(0);
+
+    // All Cases: every case, open and closed.
+    await menuEntry(page, "All Cases").click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(ALL_CASES_PATH);
+    await expect(
+      page.getByText("Showing 1-10 of 43 security cases"),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Open Security Case" }).first(),
+    ).toBeVisible();
+  });
+
+  test("the case pages in both themes, at 1280 and on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [name, pathname, text] of [
+      ["cases-open", CASES_PATH, "CASE-142"],
+      ["cases-assigned-to-me", MY_CASES_PATH, "CASE-142"],
+      ["cases-unassigned", UNASSIGNED_CASES_PATH, "CASE-141"],
+      ["cases-closed", CLOSED_CASES_PATH, "Benign Positive"],
+      ["cases-all", ALL_CASES_PATH, "CASE-142"],
+    ] as Array<[string, string, string]>) {
+      for (const theme of [undefined, "dark"] as Array<"dark" | undefined>) {
+        await open(page, pathname, { width: 1280, theme });
+        await expect(page.getByText(text).first()).toBeVisible({
+          timeout: 30000,
+        });
+        expect(await pageOverflow(page), `${name} at 1280`).toBeLessThanOrEqual(
+          1,
+        );
+        await screenshot(page, `${name}-1280-${theme || "light"}`);
+      }
+
+      await open(page, pathname, { width: 390, height: 844 });
+      await expect(page.getByText(text).first()).toBeVisible({
+        timeout: 30000,
+      });
+      expect(await pageOverflow(page), `${name} at 390`).toBeLessThanOrEqual(1);
+      await screenshot(page, `${name}-390-light`);
+    }
+  });
+
+  test("at 1280, each list's title, search and buttons share one line, the description under them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [pathname, title, text] of [
+      [CASES_PATH, "Open Cases", "CASE-142"],
+      [CLOSED_CASES_PATH, "Closed Cases", "Benign Positive"],
+      [ALL_CASES_PATH, "All Cases", "CASE-142"],
+      [PLAYBOOKS_PATH, "Playbooks", "Contain Compromised Okta Users"],
+    ] as Array<[string, string, string]>) {
+      await open(page, pathname, { width: 1280 });
+      await expect(page.getByText(text).first()).toBeVisible({
+        timeout: 30000,
+      });
+
+      const header: Locator = cardTitled(page, title).getByTestId(
+        "card-header",
+      );
+      // The table's own header, as every table in the product has.
+      await expect(header).toHaveAttribute("data-header-layout", "toolbar");
+
+      const titleBox: Box = await boxOf(
+        header.getByTestId("card-header-title-block"),
+      );
+      const actionsBox: Box = await boxOf(
+        header.getByTestId("card-header-actions"),
+      );
+      const descriptionBox: Box = await boxOf(
+        header.getByTestId("card-description"),
+      );
+
+      // Beside the title, not on a line of their own under it.
+      expect(
+        actionsBox.y,
+        `${title}: controls on the title's line`,
+      ).toBeLessThan(titleBox.y + titleBox.height);
+      expect(
+        actionsBox.x,
+        `${title}: controls right of the title`,
+      ).toBeGreaterThanOrEqual(titleBox.x + titleBox.width - 1);
+      // The description under both, across the card.
+      expect(
+        descriptionBox.y,
+        `${title}: description under the controls`,
+      ).toBeGreaterThanOrEqual(actionsBox.y + actionsBox.height - 1);
+    }
   });
 
   test("fits beside the side menu at 1440: every column in the card", async ({
@@ -660,10 +920,7 @@ test.describe("the case queue", () => {
 
       expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
 
-      const card: Locator = page
-        .getByTestId("card")
-        .filter({ hasText: "Security Cases" })
-        .first();
+      const card: Locator = cardTitled(page, "Open Cases");
       const cardBox: { x: number; width: number } | null =
         await card.boundingBox();
       const search: { x: number; width: number } | null = await page
@@ -889,7 +1146,7 @@ test.describe("playbooks", () => {
     await screenshot(page, "playbook-desktop");
   });
 
-  test("the runs page opens on the runs waiting for approval", async ({
+  test("Waiting for Approval, at the runs page's old address, lists the run held for a decision", async ({
     page,
   }: {
     page: Page;
@@ -904,16 +1161,113 @@ test.describe("playbooks", () => {
     await expect(page.getByTestId("security-playbook-run-card")).toContainText(
       "CASE-142",
     );
+    await expect(
+      page.getByRole("heading", { name: "Waiting for Approval", exact: true }),
+    ).toBeVisible();
+    expect(await litEntries(page)).toEqual(["Waiting for Approval"]);
+    expect(await breadcrumbs(page)).toEqual([
+      "Project",
+      "Security Events",
+      "Playbooks",
+      "Waiting for Approval",
+    ]);
+    // The views that sat on the card are gone: each is a page.
+    await expect(
+      page.locator('[data-testid^="security-playbook-runs-view-"]'),
+    ).toHaveCount(0);
+    await expect(page.locator("button[aria-pressed]")).toHaveCount(0);
+    // With a run listed, the card says what the page holds.
+    await expect(
+      cardTitled(page, "Waiting for Approval").getByTestId("card-description"),
+    ).toContainText("Runs held before a step that needs approval.");
 
-    await page.getByTestId("security-playbook-runs-view-all").click();
+    await screenshot(page, "playbook-runs-waiting-desktop");
+  });
+
+  test("Playbook Runs lists every run, newest first, failures with their reason", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, RUNS_PATH);
+    await expect(page.getByTestId("security-playbook-run-card")).toHaveCount(
+      1,
+      {
+        timeout: 30000,
+      },
+    );
+
+    await menuEntry(page, "Playbook Runs").click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(ALL_RUNS_PATH);
     await expect(page.getByTestId("security-playbook-run-card")).toHaveCount(5);
     await expect(
       page.getByTestId("security-playbook-run-card").filter({
         hasText: "Failed",
       }),
     ).toContainText("The events store did not answer within 30 seconds.");
+    expect(await litEntries(page)).toEqual(["Playbook Runs"]);
 
     await screenshot(page, "playbook-runs-desktop");
+  });
+
+  test("the runs pages in both themes, and on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [name, pathname] of [
+      ["playbook-runs-waiting", RUNS_PATH],
+      ["playbook-runs-all", ALL_RUNS_PATH],
+    ] as Array<[string, string]>) {
+      await open(page, pathname, { width: 1280, theme: "dark" });
+      await expect(
+        page.getByTestId("security-playbook-run-card").first(),
+      ).toBeVisible({ timeout: 30000 });
+      await screenshot(page, `${name}-1280-dark`);
+
+      await open(page, pathname, { width: 390, height: 844 });
+      await expect(
+        page.getByTestId("security-playbook-run-card").first(),
+      ).toBeVisible({ timeout: 30000 });
+      expect(await pageOverflow(page), `${name} at 390`).toBeLessThanOrEqual(1);
+      await screenshot(page, `${name}-390-light`);
+    }
+  });
+
+  test("with nothing held, Waiting for Approval says all is clear; with no run, Playbook Runs points at the playbooks", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, RUNS_PATH, { quiet: true });
+    const waiting: Locator = page.getByTestId("security-playbook-runs-empty");
+    await expect(waiting).toBeVisible({ timeout: 30000 });
+    await expect(waiting).toHaveAttribute("data-empty-state-kind", "all-clear");
+    await expect(waiting).toContainText("No step is waiting for approval");
+    // The empty state says what the page is for; the card does not say it again.
+    await expect(
+      cardTitled(page, "Waiting for Approval").getByTestId("card-description"),
+    ).toHaveCount(0);
+
+    await open(page, ALL_RUNS_PATH, { quiet: true });
+    const none: Locator = page.getByTestId("security-playbook-runs-empty");
+    await expect(none).toBeVisible({ timeout: 30000 });
+    await expect(none).toContainText("No playbook has run yet");
+    await expect(
+      cardTitled(page, "Playbook Runs").getByTestId("card-description"),
+    ).toHaveCount(0);
+    await screenshot(page, "playbook-runs-empty");
+
+    await page.getByTestId("security-playbook-runs-view-playbooks").click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(PLAYBOOKS_PATH);
   });
 });
 
@@ -1005,7 +1359,7 @@ test.describe("detections", () => {
       page.locator('[data-testid^="rule-library-recommended-"]'),
     ).toHaveCount(19);
 
-    await page.getByTestId("rule-library-category-recommended").click();
+    await page.getByTestId("rule-library-category").selectOption("recommended");
     await expect(
       page.locator('[data-testid^="rule-library-entry-"]'),
     ).toHaveCount(19);
@@ -1020,60 +1374,212 @@ test.describe("detections", () => {
     ).toHaveCount(0);
   });
 
-  test("the pages behind Detections are tabs, each its own address, with the menu entry lit on every one", async ({
+  test("the rule library narrows by one select beside its search, which a phone puts under it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [width, theme] of [
+      [1280, undefined],
+      [1280, "dark"],
+      [390, undefined],
+    ] as Array<[number, "dark" | undefined]>) {
+      await open(page, RULE_LIBRARY_PATH, { width, height: 900, theme });
+      await expect(page.getByText("Added").first()).toBeVisible({
+        timeout: 30000,
+      });
+
+      const filters: Locator = page.getByTestId("rule-library-filters");
+      const search: Box = await boxOf(filters.getByPlaceholder("Search rules"));
+      const select: Locator = filters.getByRole("combobox", {
+        name: "Rule categories",
+      });
+      const selectBox: Box = await boxOf(select);
+
+      // No row of buttons across the card to read as tabs.
+      await expect(filters.getByRole("button")).toHaveCount(0);
+      await expect(select).toHaveValue("");
+
+      if (width === 1280) {
+        // Beside the search, the same height, on its line.
+        expect(selectBox.x).toBeGreaterThan(search.x + search.width);
+        expect(Math.abs(selectBox.y - search.y)).toBeLessThanOrEqual(2);
+        expect(Math.abs(selectBox.height - search.height)).toBeLessThanOrEqual(
+          2,
+        );
+      } else {
+        // Under it, as wide as it.
+        expect(selectBox.y).toBeGreaterThanOrEqual(search.y + search.height);
+        expect(Math.abs(selectBox.width - search.width)).toBeLessThanOrEqual(1);
+      }
+
+      // A category narrows the cards to its own rules.
+      const cards: Locator = page.locator(
+        '[data-testid^="rule-library-entry-"]',
+      );
+      const everyRule: number = await cards.count();
+      await select.selectOption("Kubernetes");
+      await expect(select).toHaveValue("Kubernetes");
+      await expect
+        .poll(async (): Promise<number> => {
+          return cards.count();
+        })
+        .toBeLessThan(everyRule);
+      expect(await cards.count()).toBeGreaterThan(0);
+      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await screenshot(
+        page,
+        `rule-library-category-${width}-${theme || "light"}`,
+        { fullPage: false },
+      );
+    }
+  });
+
+  test("Detections is a section of pages, each its own address, its entry lit on each, no row of tabs", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page, RULE_LIBRARY_PATH);
-    await expect(tabs(page)).toBeVisible({ timeout: 30000 });
-    await expect(tabs(page).getByRole("link")).toHaveText([
-      "Detection Rules",
+    await expect(page.getByText("Added").first()).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(page.getByTestId("security-events-tabs")).toHaveCount(0);
+    await expect(menuSection(page, "Detections")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(await litEntries(page)).toEqual(["Rule Library"]);
+    expect(await breadcrumbs(page)).toEqual([
+      "Project",
+      "Security Events",
+      "Detections",
       "Rule Library",
-      "Threat Intel",
-      "ATT&CK Coverage",
     ]);
-    await expect(
-      tabs(page).getByRole("link", { name: "Rule Library" }),
-    ).toHaveAttribute("aria-current", "page");
-    await expect(sideMenuLink(page, "Detections")).toHaveClass(/bg-indigo-50/);
 
-    await tabs(page).getByRole("link", { name: "ATT&CK Coverage" }).click();
-    await expect(page).toHaveURL(new RegExp(`${ATTACK_COVERAGE_PATH}$`));
+    await menuEntry(page, "ATT&CK Coverage").click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(ATTACK_COVERAGE_PATH);
     await expect(page.getByText("2 / 227")).toBeVisible({ timeout: 30000 });
-    await expect(sideMenuLink(page, "Detections")).toHaveClass(/bg-indigo-50/);
+    expect(await litEntries(page)).toEqual(["ATT&CK Coverage"]);
 
-    // On a phone the row scrolls inside itself, never the page.
-    await open(page, RULE_LIBRARY_PATH, { width: 390 });
-    await expect(tabs(page)).toBeVisible({ timeout: 30000 });
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    // The section's crumb opens its first page.
+    await page
+      .getByRole("navigation", { name: "Breadcrumb" })
+      .getByRole("link", { name: "Detections" })
+      .click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(DETECTION_RULES_PATH);
   });
 
-  test("the side menu is six entries, no sections", async ({
+  test("the side menu is six sections of pages; the ones set up once are folded", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page, OVERVIEW_PATH);
+    await expect(page.getByText("Riskiest Entities")).toBeVisible({
+      timeout: 30000,
+    });
+
+    const sections: Array<string> = (
+      await sideMenu(page).locator("h6").allInnerTexts()
+    ).map((title: string): string => {
+      return title.trim().toLowerCase();
+    });
+    expect(sections).toEqual([
+      "overview",
+      "security cases",
+      "events",
+      "detections",
+      "playbooks",
+      "connections",
+    ]);
+
+    for (const [section, expanded] of [
+      ["Overview", "true"],
+      ["Security Cases", "true"],
+      ["Events", "true"],
+      ["Detections", "false"],
+      ["Playbooks", "true"],
+      ["Connections", "false"],
+    ]) {
+      await expect(menuSection(page, section!)).toHaveAttribute(
+        "aria-expanded",
+        expanded!,
+      );
+    }
+
     for (const title of [
       "Overview",
-      "Security Cases",
+      "Open Cases",
+      "Assigned to Me",
+      "Unassigned",
+      "Closed Cases",
+      "All Cases",
       "Events",
-      "Detections",
-      "Playbooks",
-      "Connections",
-    ]) {
-      await expect(sideMenuLink(page, title).first()).toBeVisible();
-    }
-    for (const retired of [
+      "Entities",
       "Correlate",
-      "Rule Library",
-      "Monitors",
-      "Setup Guide",
+      "Playbooks",
+      "Waiting for Approval",
+      "Playbook Runs",
     ]) {
-      await expect(sideMenuLink(page, retired)).toHaveCount(0);
+      await expect(menuEntry(page, title)).toBeVisible();
     }
+    // Folded: there, one click away, but not one more row on every visit.
+    for (const title of ["Rule Library", "Setup Guide"]) {
+      await expect(menuEntry(page, title)).toBeHidden();
+    }
+    await expect(menuEntry(page, "Monitors")).toHaveCount(0);
+
+    // What waits for someone is counted beside the page that lists it.
+    await expect(menuEntry(page, "Open Cases")).toContainText("6");
+    await expect(menuEntry(page, "Assigned to Me")).toContainText("2");
+    await expect(menuEntry(page, "Waiting for Approval")).toContainText("1");
+
     await screenshot(page, "side-menu-desktop", { fullPage: false });
+
+    await menuSection(page, "Detections").click();
+    await expect(menuEntry(page, "Rule Library")).toBeVisible();
+
+    await open(page, OVERVIEW_PATH, { theme: "dark", width: 1280 });
+    await expect(page.getByText("Riskiest Entities")).toBeVisible({
+      timeout: 30000,
+    });
+    await screenshot(page, "side-menu-dark", { fullPage: false });
+  });
+
+  test("on a phone, the menu names the section and the page, and opens on its sections", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CLOSED_CASES_PATH, { width: 390, height: 844 });
+    const toggle: Locator = page.getByTestId("mobile-sidemenu-toggle");
+    await expect(toggle).toContainText("Security Cases / Closed Cases", {
+      timeout: 30000,
+    });
+
+    await toggle.click();
+    const menu: Locator = page.getByRole("navigation", {
+      name: "Main navigation",
+    });
+    await expect(menu.getByRole("link", { name: "Open Cases" })).toBeVisible();
+    await screenshot(page, "side-menu-mobile", { fullPage: false });
+
+    await menu.getByRole("link", { name: "Open Cases" }).click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(CASES_PATH);
+    await expect(toggle).toContainText("Security Cases / Open Cases");
   });
 
   test("entities ranks what the findings name most", async ({
@@ -1104,6 +1610,10 @@ test.describe("every page fits the screen", () => {
     ["get started", `${OVERVIEW_PATH}?empty=1`, "Set up Security in a minute"],
     ["all quiet", `${OVERVIEW_PATH}?quiet=1`, "All quiet"],
     ["cases", CASES_PATH, "CASE-142"],
+    ["assigned to me", MY_CASES_PATH, "CASE-142"],
+    ["unassigned", UNASSIGNED_CASES_PATH, "CASE-141"],
+    ["closed cases", CLOSED_CASES_PATH, "Benign Positive"],
+    ["all cases", ALL_CASES_PATH, "CASE-142"],
     ["case", SPRAY_CASE_PATH, "475 events"],
     ["entities", ENTITIES_PATH, "203.0.113.47"],
     ["rule library", RULE_LIBRARY_PATH, "Added"],
@@ -1111,6 +1621,7 @@ test.describe("every page fits the screen", () => {
     ["playbooks", PLAYBOOKS_PATH, "Enrich New Cases"],
     ["playbook", CONTAIN_PLAYBOOK_PATH, "Latest Runs"],
     ["runs", RUNS_PATH, "CASE-142"],
+    ["all runs", ALL_RUNS_PATH, "The events store did not answer"],
   ];
 
   for (const width of [1280, 1024, 768, 390]) {

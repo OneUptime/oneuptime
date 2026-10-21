@@ -25,12 +25,16 @@ flowchart TB
     monitors --> act
 ```
 
-Abre **Productos → Eventos de seguridad**, en **Observabilidad**. Su menú:
+Abre **Productos → Eventos de seguridad**, en **Observabilidad**. Su menú tiene una sección para cada parte de la seguridad, y una página propia para cada cosa que contiene:
 
-| Página | Entrada del menú | Para qué sirve |
+| Página | Sección | Para qué sirve |
 | --- | --- | --- |
 | **Vista general** | Vista general | Cómo está configurada la seguridad, qué necesita a alguien ahora y con qué rapidez se gestionan los casos |
-| **Security Cases** | Security Cases | La cola de lo detectado, agrupado según de qué trata |
+| **Casos abiertos** | Casos de seguridad | La cola: cada caso aún no cerrado, agrupado según de qué trata |
+| **Asignados a mí** | Casos de seguridad | Los casos abiertos asignados a ti |
+| **Sin asignar** | Casos de seguridad | Los casos abiertos que nadie ha tomado |
+| **Casos cerrados** | Casos de seguridad | Los casos cerrados con un veredicto, los más recientes primero |
+| **Todos los casos** | Casos de seguridad | Cada caso, abierto o cerrado |
 | **Eventos** | Eventos | Buscar y filtrar todos los eventos, y abrir uno para ver todos sus campos |
 | **Entidades** | Eventos | Los usuarios, hosts y direcciones que más nombran tus hallazgos |
 | **Correlacionar** | Eventos | Un grafo de los eventos que comparten un host, un usuario o una dirección IP |
@@ -39,11 +43,12 @@ Abre **Productos → Eventos de seguridad**, en **Observabilidad**. Su menú:
 | **Inteligencia de amenazas** | Detecciones | Feeds STIX/TAXII de indicadores maliciosos conocidos |
 | **ATT&CK Coverage** | Detecciones | Las técnicas de MITRE ATT&CK que cubren tus reglas |
 | **Playbooks** | Playbooks | Pasos que se ejecutan sobre los casos, por sí solos o a mano |
-| **Playbook Runs** | Playbooks | Lo que hizo cada playbook y los pasos que esperan aprobación |
+| **Esperando aprobación** | Playbooks | Los pasos de playbook que esperan que alguien los apruebe o los rechace |
+| **Ejecuciones de playbooks** | Playbooks | Lo que hizo cada playbook, paso a paso |
 | **Conexiones** | Conexiones | Sus registros, los productos de seguridad que consulta OneUptime y los SIEM a los que envía |
 | **Guía de configuración** | Conexiones | Fragmentos para enviar eventos, rellenados con tu clave de ingesta |
 
-Las páginas de una entrada del menú se abren como pestañas en la parte superior de la página. ¿Empieza con la seguridad? [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started) la configura en dos clics.
+**Detecciones** y **Conexiones**, que se configuran una vez, quedan plegadas hasta que las abres. ¿Empieza con la seguridad? [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started) la configura en dos clics.
 
 ## Antes de empezar
 
@@ -152,7 +157,7 @@ Para enviar registros de seguridad que ya recopilas, como los de auditd, syslog 
     Retry_Limit      5
 ```
 
-La pestaña **Guía de configuración** tiene estos fragmentos con tu propio host y tu clave ya rellenados.
+La página **Guía de configuración**, en **Conexiones**, tiene estos fragmentos con tu propio host y tu clave ya rellenados.
 
 ### Encontrar eventos de seguridad en sus registros
 
@@ -238,7 +243,7 @@ flowchart TB
 ### Crear una regla
 
 :::steps
-1. Abre **Productos → Eventos de seguridad → Detecciones** y haz clic en **Crear Regla de detección**.
+1. Abre **Productos → Eventos de seguridad → Detecciones → Reglas de detección** y haz clic en **Crear Regla de detección**.
 2. En **Regla Sigma**, pega el YAML de la regla en **Regla Sigma (YAML)**. Se analiza al guardar, así que un error aparece en el formulario.
 3. El **Nombre** se rellena con el `title` de la regla: escríbelo encima para llamarla de otra forma. Una regla nueva se ejecuta; **Habilitado** está en su formulario de edición.
 4. En **Al coincidir**, deja **Open a Case on Match** activado para agrupar sus coincidencias en casos, por el valor por el que agrupa la regla.

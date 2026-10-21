@@ -26,7 +26,7 @@ flowchart TB
     work --> close["Mit einer Bewertung<br/>geschlossen"]
 ```
 
-Öffnen Sie **Produkte → Sicherheitsereignisse → Security Cases**. Die Warteschlange zeigt zunächst die offenen Fälle; **Assigned to Me**, **Unassigned**, **Geschlossen** und **Alle** sind die anderen Ansichten.
+Öffnen Sie **Produkte → Sicherheitsereignisse → Sicherheitsfälle → Offene Fälle** für die Warteschlange. **Mir zugewiesen**, **Nicht zugewiesen**, **Geschlossene Fälle** und **Alle Fälle** sind eigene Seiten daneben, und jede listet die Fälle, die ihr Name sagt.
 
 ## Bevor Sie beginnen
 
@@ -47,7 +47,7 @@ Jedes dieser Rechte lässt sich auch einzeln vergeben, vom Erstellen eines Falls
 | Erkennungsregeln | Eine Regel passt | **Open a Case on Match**, im Schritt **Bei Treffer** der Regel |
 | Threat Intelligence | Ein Ereignis einen bekannten Indikator nennt | **Open a Case on Match**, im Schritt **Bei Treffer** des Feeds |
 | Verbundene Produkte | Eine eigene Warnung des Produkts auf oder über dem Schwellenwert der Verbindung importiert wird | **Open Cases From** auf **Nie** gesetzt, im Schritt **Abfrage** der Verbindung |
-| Personen | Jemand einen unter **Security Cases** eröffnet, oder mit **Open Case** im Panel eines Ereignisses | Nicht abschaltbar |
+| Personen | Jemand einen unter **Sicherheitsfälle** eröffnet, oder mit **Open Case** im Panel eines Ereignisses | Nicht abschaltbar |
 
 Jede Quelle ist standardmäßig eingeschaltet. Eine Verbindung eröffnet Fälle für **High and above**, sofern Sie keine andere Stufe wählen; die Warnungen darunter werden weiterhin als Ereignisse importiert.
 
@@ -86,7 +86,7 @@ Die Seite des Falls bietet alles, um ihn zu bearbeiten:
 - **Erkennungen**: was ausgelöst hat, um den Fall zu eröffnen oder ihn zu ergänzen, wie oft, und das neueste passende Ereignis.
 - **Entitäten**: die Benutzer, Hosts und Adressen, um die es im Fall geht, mit ihrer Aktivität in allen Ihren Sicherheitsereignissen der letzten 7 Tage. Jede öffnet sich in **Korrelieren**.
 - **MITRE ATT&CK**: die Taktiken und Techniken, denen seine Erkennungen zugeordnet sind, jeweils verlinkt mit ihrer Seite auf attack.mitre.org.
-- **Playbook Runs**: was jedes Playbook am Fall getan hat, Schritt für Schritt, und die Schritte, die auf Genehmigung warten.
+- **Playbook-Ausführungen**: was jedes Playbook am Fall getan hat, Schritt für Schritt, und die Schritte, die auf Genehmigung warten.
 - **Notizen** und **Zeitachse**: was das Team geschrieben hat, und alles, was geschehen ist, jeweils mit der Person, die es getan hat.
 
 Um mehrere Fälle auf einmal zu bearbeiten, wählen Sie sie in der Warteschlange aus und nutzen **Assign to Me**, **Change Status** oder **Change Priority**.
@@ -188,7 +188,7 @@ Eine E-Mail oder ein Beitrag ohne eigene Nachricht sendet eine Zusammenfassung d
 
 ### Ausführungen und Genehmigungen
 
-Jede Ausführung wird an ihrem Fall und unter **Produkte → Sicherheitsereignisse → Playbooks → Playbook Runs** aufgelistet, Schritt für Schritt:
+Jede Ausführung wird an ihrem Fall und unter **Produkte → Sicherheitsereignisse → Playbooks → Playbook-Ausführungen** aufgelistet, Schritt für Schritt:
 
 | Status der Ausführung | Bedeutung |
 | --- | --- |
@@ -199,7 +199,7 @@ Jede Ausführung wird an ihrem Fall und unter **Produkte → Sicherheitsereignis
 | Fehlgeschlagen | Ein Schritt ist fehlgeschlagen, und die Ausführung wurde beendet |
 | Abgebrochen | Jemand hat sie abgebrochen oder einen Schritt abgelehnt |
 
-Ein Schritt, der auf Genehmigung wartet, zeigt an der Ausführung **Approve** und **Ablehnen**, mit einem optionalen Kommentar. Eine Genehmigung setzt die Ausführung ab diesem Schritt fort; eine Ablehnung beendet sie. Die Entscheidung, wer sie getroffen hat, und der Kommentar werden am Schritt und in der Zeitachse des Falls festgehalten. **Playbook Runs** öffnet mit den Ausführungen, die auf Genehmigung warten, und der Menüeintrag **Playbooks** zählt sie.
+Ein Schritt, der auf Genehmigung wartet, zeigt an der Ausführung **Approve** und **Ablehnen**, mit einem optionalen Kommentar. Eine Genehmigung setzt die Ausführung ab diesem Schritt fort; eine Ablehnung beendet sie. Die Entscheidung, wer sie getroffen hat, und der Kommentar werden am Schritt und in der Zeitachse des Falls festgehalten. **Wartet auf Genehmigung**, im Menü unter **Playbooks**, listet die Ausführungen, die auf eine Entscheidung warten, und zählt sie; **Playbook-Ausführungen** listet jede Ausführung.
 
 Eine Ausführung, von deren Worker nichts mehr kommt, etwa nach einem Neustart, wird wieder aufgegriffen: Eine Ausführung in der Warteschlange wird nach 2 Minuten erneut eingereiht, und eine Ausführung, die sich 30 Minuten lang nicht gemeldet hat, gilt als fehlgeschlagen.
 
@@ -207,7 +207,7 @@ Eine Ausführung, von deren Worker nichts mehr kommt, etwa nach einem Neustart, 
 
 **Produkte → Sicherheitsereignisse → Übersicht** ist die Seite, mit der das Produkt öffnet:
 
-- Die offenen Fälle, die Ihnen zugewiesen sind, die offenen Fälle, die noch niemand übernommen hat, und die Playbook-Schritte, die auf Genehmigung warten.
+- Die offenen Fälle, die Ihnen zugewiesen sind, die offenen Fälle, die noch niemand übernommen hat, und die Playbook-Schritte, die auf Genehmigung warten; jede Zahl öffnet die Seite, die sie auflistet.
 - **Mittlere Zeit bis zur Bestätigung**, **Mittlere Zeit bis zur Eindämmung** und **Mittlere Zeit bis zum Schließen**, über die in den letzten 30 Tagen eröffneten Fälle: von der Eröffnung eines Falls, bis jemand ihn übernimmt (eine Person zuweist oder ihn aus „Neu“ herausholt), bis „Contained“ und bis „Geschlossen“. Ein Fall, der noch wartet, geht in keinen Mittelwert ein.
 - Die pro Tag eröffneten Fälle über 30 Tage, nach Priorität, und die pro Tag ausgelösten Erkennungen über 14 Tage, nach Quelle.
 - Die offenen Fälle nach Priorität und nach Status, die Bewertungen der letzten 30 Tage, die ATT&CK-Taktiken hinter den Fällen, die am häufigsten ausgelösten Erkennungen und die Entitäten, die in den meisten Befunden vorkommen.

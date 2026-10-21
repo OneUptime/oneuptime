@@ -7,7 +7,7 @@ const SecurityEventsDocumentationPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   /*
-   * Same gate as the events tab: a reseller plan without telemetry cannot
+   * Same gate as the Events page: a reseller plan without telemetry cannot
    * ingest security events, so a guide explaining how to send them would
    * be instructions for something that gets rejected at the door.
    */

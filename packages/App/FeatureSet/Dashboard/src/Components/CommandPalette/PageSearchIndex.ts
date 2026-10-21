@@ -1614,8 +1614,9 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
     icon: IconProp.ShieldExclamation,
     iconColor: "rose",
     /*
-     * The sections are the menu's entries (SecurityEventsNavigation.ts), with
-     * the pages behind each one's tabs.
+     * The menu's sections and their pages, as SecurityEventsNavigation.ts
+     * lists them: each page of the case queue and of the runs a page of its
+     * own.
      */
     sections: [
       {
@@ -1641,14 +1642,40 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         pages: [
           {
             page: PageMap.SECURITY_CASES,
-            title: "Security Cases",
+            title: "Open Cases",
             icon: IconProp.ShieldExclamation,
             keywords: [
+              "security cases",
+              "case queue",
               "security incidents",
               "triage",
               "investigations",
               "alerts queue",
             ],
+          },
+          {
+            page: PageMap.SECURITY_CASES_ASSIGNED_TO_ME,
+            title: "Assigned to Me",
+            icon: IconProp.User,
+            keywords: ["my cases", "my security cases", "mine"],
+          },
+          {
+            page: PageMap.SECURITY_CASES_UNASSIGNED,
+            title: "Unassigned",
+            icon: IconProp.Inbox,
+            keywords: ["unassigned cases", "nobody assigned", "pick up"],
+          },
+          {
+            page: PageMap.SECURITY_CASES_CLOSED,
+            title: "Closed Cases",
+            icon: IconProp.CheckCircle,
+            keywords: ["verdicts", "false positives", "resolved cases"],
+          },
+          {
+            page: PageMap.SECURITY_CASES_ALL,
+            title: "All Cases",
+            icon: IconProp.RectangleStack,
+            keywords: ["every case", "case history"],
           },
         ],
       },
@@ -1670,7 +1697,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           {
             page: PageMap.SECURITY_EVENTS_CORRELATE,
             title: "Correlate",
-            icon: IconProp.Graph,
+            icon: IconProp.Share,
           },
         ],
       },
@@ -1717,10 +1744,16 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["soar", "automated response", "response automation"],
           },
           {
+            page: PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL,
+            title: "Waiting for Approval",
+            icon: IconProp.PauseCircle,
+            keywords: ["approvals", "pending approvals", "approve a step"],
+          },
+          {
             page: PageMap.SECURITY_PLAYBOOK_RUNS,
             title: "Playbook Runs",
             icon: IconProp.Play,
-            keywords: ["approvals", "pending approvals"],
+            keywords: ["run history", "soar runs"],
           },
         ],
       },

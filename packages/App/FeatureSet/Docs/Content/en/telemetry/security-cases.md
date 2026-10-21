@@ -26,7 +26,7 @@ flowchart TB
     work --> close["Closed with a verdict"]
 ```
 
-Open **Products → Security Events → Security Cases**. The queue opens on the open cases; **Assigned to Me**, **Unassigned**, **Closed** and **All** are the other views.
+Open **Products → Security Events → Security Cases → Open Cases** for the queue. **Assigned to Me**, **Unassigned**, **Closed Cases** and **All Cases** are pages of their own beside it, each listing the cases its name says.
 
 ## Before you begin
 
@@ -199,7 +199,7 @@ Every run is listed on its case and under **Products → Security Events → Pla
 | Failed | A step failed and the run stopped |
 | Cancelled | Someone cancelled it, or rejected a step |
 
-A step waiting for approval shows **Approve** and **Reject** on the run, with an optional comment. Approving carries the run on from that step; rejecting ends it. The decision, who made it and their comment are kept on the step and on the case's timeline. **Playbook Runs** opens on the runs waiting for approval, and the **Playbooks** menu entry counts them.
+A step waiting for approval shows **Approve** and **Reject** on the run, with an optional comment. Approving carries the run on from that step; rejecting ends it. The decision, who made it and their comment are kept on the step and on the case's timeline. **Waiting for Approval**, under **Playbooks** in the menu, lists the runs held for a decision and counts them; **Playbook Runs** lists every run.
 
 A run that stops hearing from its worker, after a restart for example, is picked up again: a queued run is queued again after 2 minutes, and a run that has said nothing for 30 minutes is failed.
 
@@ -207,7 +207,7 @@ A run that stops hearing from its worker, after a restart for example, is picked
 
 **Products → Security Events → Overview** is where the product opens:
 
-- The open cases assigned to you, the open cases nobody has picked up, and the playbook steps waiting for approval.
+- The open cases assigned to you, the open cases nobody has picked up, and the playbook steps waiting for approval, each opening the page that lists them.
 - **Mean Time to Acknowledge**, **Mean Time to Contain** and **Mean Time to Close**, over the cases opened in the last 30 days: from a case opening to someone taking it on (assigning a person, or moving it out of New), to Contained, and to Closed. A case still waiting is not counted in a mean.
 - The cases opened each day for 30 days, by priority, and the detections raised each day for 14 days, by source.
 - The open cases by priority and by status, the verdicts of the last 30 days, the ATT&CK tactics behind the cases, the detections that fired most, and the entities named by the most findings.
