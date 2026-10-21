@@ -32267,5 +32267,11 @@
   "View Playbooks": "Visualizza i playbook",
   "View Unassigned Cases": "Visualizza i casi non assegnati",
   "All categories": "Tutte le categorie",
-  "Rule categories": "Categorie di regole"
+  "Rule categories": "Categorie di regole",
+  "Command Line": "Riga di comando",
+  "Command lines that contain this text": "Righe di comando che contengono questo testo",
+  "Parent Command Line": "Riga di comando del processo padre",
+  "Parent Process": "Processo padre",
+  "Parent Process Path": "Percorso del processo padre",
+  "Process Path": "Percorso del processo"
 }

@@ -32267,5 +32267,11 @@
   "View Playbooks": "Visa playbooks",
   "View Unassigned Cases": "Visa ej tilldelade ärenden",
   "All categories": "Alla kategorier",
-  "Rule categories": "Regelkategorier"
+  "Rule categories": "Regelkategorier",
+  "Command Line": "Kommandorad",
+  "Command lines that contain this text": "Kommandorader som innehåller den här texten",
+  "Parent Command Line": "Kommandorad för överordnad process",
+  "Parent Process": "Överordnad process",
+  "Parent Process Path": "Sökväg för överordnad process",
+  "Process Path": "Processens sökväg"
 }

@@ -32267,5 +32267,11 @@
   "View Playbooks": "Playbooks bekijken",
   "View Unassigned Cases": "Niet-toegewezen zaken bekijken",
   "All categories": "Alle categorieën",
-  "Rule categories": "Regelcategorieën"
+  "Rule categories": "Regelcategorieën",
+  "Command Line": "Opdrachtregel",
+  "Command lines that contain this text": "Opdrachtregels die deze tekst bevatten",
+  "Parent Command Line": "Opdrachtregel van het bovenliggende proces",
+  "Parent Process": "Bovenliggend proces",
+  "Parent Process Path": "Pad van het bovenliggende proces",
+  "Process Path": "Procespad"
 }

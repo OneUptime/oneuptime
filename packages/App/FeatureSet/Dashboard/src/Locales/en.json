@@ -32267,5 +32267,11 @@
   "View Playbooks": "View Playbooks",
   "View Unassigned Cases": "View Unassigned Cases",
   "All categories": "All categories",
-  "Rule categories": "Rule categories"
+  "Rule categories": "Rule categories",
+  "Command Line": "Command Line",
+  "Command lines that contain this text": "Command lines that contain this text",
+  "Parent Command Line": "Parent Command Line",
+  "Parent Process": "Parent Process",
+  "Parent Process Path": "Parent Process Path",
+  "Process Path": "Process Path"
 }

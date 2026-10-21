@@ -32267,5 +32267,11 @@
   "View Playbooks": "دیدن پلی‌بوک‌ها",
   "View Unassigned Cases": "دیدن پرونده‌های بی‌مسئول",
   "All categories": "همه دسته‌بندی‌ها",
-  "Rule categories": "دسته‌بندی‌های قاعده"
+  "Rule categories": "دسته‌بندی‌های قاعده",
+  "Command Line": "خط فرمان",
+  "Command lines that contain this text": "خط‌های فرمانی که این متن را دارند",
+  "Parent Command Line": "خط فرمان فرایند والد",
+  "Parent Process": "فرایند والد",
+  "Parent Process Path": "مسیر فرایند والد",
+  "Process Path": "مسیر فرایند"
 }

@@ -32267,5 +32267,11 @@
   "View Playbooks": "Se playbooks",
   "View Unassigned Cases": "Se saker som ikke er tildelt",
   "All categories": "Alle kategorier",
-  "Rule categories": "Regelkategorier"
+  "Rule categories": "Regelkategorier",
+  "Command Line": "Kommandolinje",
+  "Command lines that contain this text": "Kommandolinjer som inneholder denne teksten",
+  "Parent Command Line": "Kommandolinje for overordnet prosess",
+  "Parent Process": "Overordnet prosess",
+  "Parent Process Path": "Bane til overordnet prosess",
+  "Process Path": "Prosessbane"
 }

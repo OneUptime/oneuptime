@@ -32267,5 +32267,11 @@
   "View Playbooks": "プレイブックを表示",
   "View Unassigned Cases": "未担当のケースを表示",
   "All categories": "すべてのカテゴリ",
-  "Rule categories": "ルールのカテゴリ"
+  "Rule categories": "ルールのカテゴリ",
+  "Command Line": "コマンドライン",
+  "Command lines that contain this text": "このテキストを含むコマンドライン",
+  "Parent Command Line": "親プロセスのコマンドライン",
+  "Parent Process": "親プロセス",
+  "Parent Process Path": "親プロセスのパス",
+  "Process Path": "プロセスのパス"
 }

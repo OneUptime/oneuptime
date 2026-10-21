@@ -237,15 +237,23 @@ export const SIGMA_FIELD_ALIAS_DOCS: Array<SigmaFieldDoc> = [
     aliases: ["dst_port", "destination_port", "DestinationPort", "target_port"],
   },
   {
-    column: "principalProcess",
+    column: "processCommandLine",
     aliases: [
       "CommandLine",
       "command_line",
       "cmdline",
       "ProcessCommandLine",
       "process.command_line",
-      "Image",
     ],
+  },
+  { column: "processPath", aliases: ["Image", "process.executable"] },
+  {
+    column: "parentProcessCommandLine",
+    aliases: ["ParentCommandLine", "process.parent.command_line"],
+  },
+  {
+    column: "parentProcessPath",
+    aliases: ["ParentImage", "process.parent.executable"],
   },
   { column: "message", aliases: ["msg"] },
 ];
@@ -287,6 +295,17 @@ export const SIGMA_COLUMN_DOCS: Array<{
       "targetIp",
       "targetPort",
       "targetResource",
+    ],
+  },
+  {
+    group: "The process, and its parent",
+    columns: [
+      "processName",
+      "processPath",
+      "processCommandLine",
+      "parentProcessName",
+      "parentProcessPath",
+      "parentProcessCommandLine",
     ],
   },
   {
@@ -430,6 +449,8 @@ ${markdownTable(
 )}
 
 \`observables\`, \`mitreTactics\` and \`mitreTechniques\` are lists: a plain value matches when the list contains exactly that value, and \`|contains\` when any item contains it (ignoring case).
+
+The process columns are the process the event is about: in a process creation event, the process that started (\`processPath\` is its executable, Sigma's \`Image\`) and the process that started it (\`parentProcess*\`, Sigma's \`ParentImage\` and \`ParentCommandLine\`). In any other event they are the process that acted - the one that made the connection or wrote the file. \`principalProcess\` is the acting process as the source names it: in a process creation event, the parent.
 
 **Common spellings** — also case-insensitive, so \`CommandLine\` and \`commandline\` are the same field:
 

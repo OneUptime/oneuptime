@@ -32267,5 +32267,11 @@
   "View Playbooks": "प्लेबुक देखें",
   "View Unassigned Cases": "बिना सौंपे केस देखें",
   "All categories": "सभी श्रेणियाँ",
-  "Rule categories": "नियम श्रेणियाँ"
+  "Rule categories": "नियम श्रेणियाँ",
+  "Command Line": "कमांड लाइन",
+  "Command lines that contain this text": "इस टेक्स्ट वाली कमांड लाइनें",
+  "Parent Command Line": "पैरेंट प्रक्रिया की कमांड लाइन",
+  "Parent Process": "पैरेंट प्रक्रिया",
+  "Parent Process Path": "पैरेंट प्रक्रिया का पथ",
+  "Process Path": "प्रक्रिया का पथ"
 }

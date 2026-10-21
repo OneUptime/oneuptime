@@ -32267,5 +32267,11 @@
   "View Playbooks": "Voir les playbooks",
   "View Unassigned Cases": "Voir les dossiers non attribués",
   "All categories": "Toutes les catégories",
-  "Rule categories": "Catégories de règles"
+  "Rule categories": "Catégories de règles",
+  "Command Line": "Ligne de commande",
+  "Command lines that contain this text": "Lignes de commande contenant ce texte",
+  "Parent Command Line": "Ligne de commande du processus parent",
+  "Parent Process": "Processus parent",
+  "Parent Process Path": "Chemin du processus parent",
+  "Process Path": "Chemin du processus"
 }

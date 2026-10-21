@@ -32267,5 +32267,11 @@
   "View Playbooks": "檢視劇本",
   "View Unassigned Cases": "檢視無人認領的案例",
   "All categories": "全部分類",
-  "Rule categories": "規則分類"
+  "Rule categories": "規則分類",
+  "Command Line": "命令列",
+  "Command lines that contain this text": "包含此文字的命令列",
+  "Parent Command Line": "父處理程序命令列",
+  "Parent Process": "父處理程序",
+  "Parent Process Path": "父處理程序路徑",
+  "Process Path": "處理程序路徑"
 }
