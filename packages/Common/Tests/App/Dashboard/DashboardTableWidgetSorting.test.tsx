@@ -47,6 +47,8 @@ import { JSONObject, ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
+import IconProp from "../../../Types/Icon/IconProp";
+import Icon from "../../../UI/Components/Icon/Icon";
 
 /*
  * Click-to-sort on the dashboard's table widgets (issue #5082), read
@@ -1001,6 +1003,32 @@ describe("a security events list", () => {
     expect(cells[3]).toHaveAttribute("title", "Failed login for root");
     expect(cells[4]).toHaveClass("max-w-0", "truncate");
     expect(cells[4]).toHaveAttribute("title", "bastion-1");
+  });
+
+  test("a read that fails says why, under the security widgets' own shield", async () => {
+    analyticsGetListMock.mockRejectedValue(new Error("ClickHouse is busy"));
+
+    render(
+      <DashboardSecurityEventsListComponentElement
+        {...baseProps()}
+        component={securityComponent()}
+      />,
+    );
+
+    const message: HTMLElement = await screen.findByText("ClickHouse is busy");
+    const errorState: HTMLElement = message.parentElement as HTMLElement;
+
+    // The Add Widget catalog's shield, not the "all clear" one.
+    const shield: ReturnType<typeof render> = render(
+      <Icon icon={IconProp.ShieldExclamation} className="h-5 w-5" />,
+      { container: document.createElement("div") },
+    );
+    const shieldPaths: string =
+      shield.container.querySelector("svg")?.innerHTML || "";
+    shield.unmount();
+
+    expect(errorState.querySelector("svg")?.innerHTML).toBe(shieldPaths);
+    expect(document.querySelector("table")).toBeNull();
   });
 
   test("an event without a class, a message or a host says so with a dash", async () => {

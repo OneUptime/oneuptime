@@ -259,7 +259,7 @@ const DashboardSecurityEventsListComponentElement: FunctionComponent<
       error={error}
       isEmpty={securityEvents.length === 0}
       emptyMessage="No security events for the selected time range and filters"
-      emptyIcon={IconProp.ShieldCheck}
+      emptyIcon={IconProp.ShieldExclamation}
       sort={widgetSort.listSort}
     >
       {rows}
