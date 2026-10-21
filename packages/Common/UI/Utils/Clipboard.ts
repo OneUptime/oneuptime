@@ -62,6 +62,13 @@ export default class Clipboard {
       element.focus();
       element.select();
 
+      try {
+        // iOS selects a read-only field only this way.
+        element.setSelectionRange(0, element.value.length);
+      } catch {
+        // A field type with no text selection keeps what select() did.
+      }
+
       return;
     }
 
