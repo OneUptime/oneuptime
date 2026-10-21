@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en" id="air-gapped">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title><%= seo.title %></title>
+  <meta name="description" content="<%= seo.description %>">
+  <%# The questions below, for search results (Partials/json-ld.ejs writes every JSON-LD block). -%>
+  <%- include('./Partials/json-ld', {
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: airGapped.faqs.map(function (faq) {
+        return {
+          '@type': 'Question',
+          name: faq.question,
+          acceptedAnswer: { '@type': 'Answer', text: faq.answer }
+        };
+      })
+    }
+  }) -%>
+  <%# Open Graph and Twitter tags come from head-social.ejs, built from seo. -%>
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+  }) -%>
+
+  <style>
+    .ag-card {
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s ease;
+    }
+
+    .ag-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 18px 40px -20px rgba(15, 23, 42, 0.25);
+    }
+
+    .ag-code {
+      font-family: "Source Code Pro", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .ag-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    section[id] {
+      scroll-margin-top: 5rem;
+    }
+  </style>
+  <%- include('./Partials/tailwind-stylesheet') -%>
+</head>
+
+<%
+  /*
+   * airGapped is Utils/AirGapped.ts's getAirGappedContent(): every fact on
+   * this page, each held to the repository by Tests/AirGappedFacts.test.ts.
+   */
+  const content = airGapped;
+  const planCall = content.planCall;
+
+  // Heroicons (outline, 24px), by what each card is about.
+  const icons = {
+    lock: 'M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z',
+    check: 'm4.5 12.75 6 6 9-13.5',
+    arrowRight: 'M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3',
+    government: 'M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0 0 12 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75Z',
+    'critical-infrastructure': 'm3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z',
+    'regulated-industries': 'M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z',
+    monitoring: 'M9.348 14.652a3.75 3.75 0 0 1 0-5.304m5.304 0a3.75 3.75 0 0 1 0 5.304m-7.425 2.121a6.75 6.75 0 0 1 0-9.546m9.546 0a6.75 6.75 0 0 1 0 9.546M5.106 18.894c-3.808-3.807-3.808-9.98 0-13.788m13.788 0c3.808 3.807 3.808 9.98 0 13.788M12 12h.008v.008H12V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z',
+    incidents: 'M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0',
+    telemetry: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z',
+    notifications: 'M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75',
+    'sign-in': 'M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z',
+    assets: 'm21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9',
+    probes: 'M9.348 14.652a3.75 3.75 0 0 1 0-5.304m5.304 0a3.75 3.75 0 0 1 0 5.304m-7.425 2.121a6.75 6.75 0 0 1 0-9.546m9.546 0a6.75 6.75 0 0 1 0 9.546M12 12h.008v.008H12V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z',
+    database: 'M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125',
+    mail: 'M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75',
+    registry: 'm20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0-3-3m3 3 3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z',
+    identity: 'M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm1.294 6.336a6.721 6.721 0 0 1-3.17.789 6.721 6.721 0 0 1-3.168-.789 3.376 3.376 0 0 1 6.338 0Z',
+    model: 'M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25Zm.75-12h9v9h-9v-9Z',
+    offline: 'm3 3 8.735 8.735m0 0a.374.374 0 1 1 .53.53m-.53-.53.53.53m0 0L21 21M14.652 9.348a3.75 3.75 0 0 1 0 5.304m2.121-7.425a6.75 6.75 0 0 1 0 9.546m2.121-11.667c3.808 3.807 3.808 9.98 0 13.788m-9.546-4.242a3.733 3.733 0 0 1-1.06-2.122m-1.061 4.243a6.75 6.75 0 0 1-1.625-6.929m-.496 9.05c-3.068-3.067-3.664-7.67-1.79-11.334M12 12h.008v.008H12V12Z',
+    residency: 'M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z',
+    keys: 'M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z',
+    accreditation: 'M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-9M10.125 2.25h.375a9 9 0 0 1 9 9v.375M10.125 2.25A3.375 3.375 0 0 1 13.5 5.625v1.5c0 .621.504 1.125 1.125 1.125h1.5a3.375 3.375 0 0 1 3.375 3.375M9 15l2.25 2.25L15 12',
+    'supply-chain': 'M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z'
+  };
+
+-%>
+
+<body class="bg-white antialiased text-gray-900">
+  <%- include('nav') -%>
+
+  <main id="main-content">
+
+    <!-- ============================================================ HERO -->
+    <section class="relative isolate overflow-hidden bg-white" id="air-gapped-hero" aria-labelledby="air-gapped-title">
+      <div
+        class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]">
+      </div>
+
+      <div class="mx-auto max-w-7xl px-6 py-20 sm:py-28 lg:px-8">
+        <div class="mx-auto max-w-3xl text-center">
+          <p class="inline-flex items-center gap-2 rounded-full bg-gray-50 px-4 py-1.5 text-sm text-gray-600 ring-1 ring-inset ring-gray-200">
+            <svg class="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.lock %>" />
+            </svg>
+            <span>Self-Hosted</span>
+            <span class="h-1 w-1 rounded-full bg-gray-300" aria-hidden="true"></span>
+            <span>Air-Gapped</span>
+          </p>
+
+          <h1 id="air-gapped-title" class="mt-8 text-balance text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
+            Run OneUptime
+            <span class="text-gray-500 sm:block">with no internet connection.</span>
+          </h1>
+
+          <p class="mx-auto mt-6 max-w-2xl text-balance text-base leading-7 text-gray-600 sm:text-lg sm:leading-8">
+            Monitoring, incidents, on-call, status pages, logs, metrics and traces, on your own Kubernetes cluster
+            behind your air gap. The same images and Helm chart every self-hosted install runs: bring them into your
+            registry, point the chart at it, and OneUptime runs with no connection to the outside world.
+          </p>
+
+          <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+            <a href="#plan-your-install" data-ou-cta="cta_request_demo"
+              class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 px-6 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 sm:w-auto">
+              Plan your air-gapped install
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.arrowRight %>"></path>
+              </svg>
+            </a>
+            <a href="#set-up"
+              class="inline-flex w-full items-center justify-center rounded-lg bg-white px-6 py-3 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600 sm:w-auto">
+              See the four steps
+            </a>
+          </div>
+        </div>
+
+        <ul role="list" class="mx-auto mt-12 flex max-w-5xl flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-gray-500" data-testid="air-gapped-proof-points">
+          <% content.proofPoints.forEach(function (proofPoint) { -%>
+          <li class="flex items-center gap-2">
+            <svg class="h-4 w-4 flex-none text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.check %>" />
+            </svg>
+            <span><%= proofPoint %></span>
+          </li>
+          <% }); -%>
+        </ul>
+
+        <%#
+          The picture: OneUptime and everything it needs, inside one dashed
+          boundary - the customer's network - and nothing outside it.
+        -%>
+        <div class="mx-auto mt-16 max-w-4xl" data-testid="air-gapped-network">
+          <div class="rounded-3xl border-2 border-dashed border-emerald-300 bg-emerald-50/40 p-4 sm:p-7">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-emerald-700">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.lock %>" />
+                </svg>
+                Your network
+              </p>
+              <p class="inline-flex items-center gap-1.5 text-xs text-gray-500">
+                <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.offline %>" />
+                </svg>
+                No route to the internet needed
+              </p>
+            </div>
+
+            <div class="mt-5 rounded-2xl bg-gray-900 px-5 py-4 shadow-lg sm:px-6">
+              <p class="text-base font-semibold text-white">OneUptime</p>
+              <p class="mt-0.5 text-sm text-gray-400">Dashboard, status pages, API, telemetry ingest and background jobs</p>
+            </div>
+
+            <ul role="list" aria-label="Inside your network" class="mt-3 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-4">
+              <% content.network.forEach(function (item) { -%>
+              <li class="flex items-start gap-3 rounded-xl bg-white p-3.5 shadow-sm ring-1 ring-gray-200">
+                <span class="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 ring-1 ring-inset ring-emerald-100">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons[item.icon] %>" />
+                  </svg>
+                </span>
+                <span class="min-w-0">
+                  <span class="block text-sm font-medium text-gray-900"><%= item.label %></span>
+                  <span class="block text-xs text-gray-500"><%= item.detail %></span>
+                </span>
+              </li>
+              <% }); -%>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section nav -->
+    <div class="sticky top-0 z-20 border-y border-gray-200 bg-white/90 backdrop-blur">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <nav aria-label="On this page" class="ag-scroll flex items-center gap-6 py-3 text-sm text-gray-500 whitespace-nowrap">
+          <a href="#who-its-for" class="hover:text-gray-900">Who it's for</a>
+          <a href="#inside" class="hover:text-gray-900">What runs inside</a>
+          <a href="#set-up" class="hover:text-gray-900">Set up</a>
+          <a href="#connections-out" class="hover:text-gray-900">Connections out</a>
+          <a href="#ai" class="hover:text-gray-900">AI</a>
+          <a href="#compliance" class="hover:text-gray-900">Compliance</a>
+          <a href="#faq" class="hover:text-gray-900">FAQ</a>
+        </nav>
+      </div>
+    </div>
+
+    <!-- ===================================================== WHO IT'S FOR -->
+    <section id="who-its-for" class="bg-white py-20 sm:py-28" aria-labelledby="who-its-for-title">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-3xl">
+          <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">Who it's for</p>
+          <h2 id="who-its-for-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">For networks that stay closed</h2>
+          <p class="mt-4 text-base leading-7 text-gray-600">
+            Where monitoring data may not leave and the network never reaches the internet, OneUptime runs entirely
+            inside.
+          </p>
+        </div>
+
+        <ul role="list" class="mt-12 grid grid-cols-1 gap-5 md:grid-cols-3">
+          <% content.audiences.forEach(function (audience) { -%>
+          <li class="ag-card rounded-2xl border border-gray-200 bg-white p-7 shadow-sm" data-testid="air-gapped-audience">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons[audience.key] %>" />
+              </svg>
+            </span>
+            <h3 class="mt-5 text-lg font-semibold text-gray-900"><%= audience.title %></h3>
+            <p class="mt-2 text-sm leading-6 text-gray-600"><%= audience.description %></p>
+          </li>
+          <% }); -%>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ================================================ WHAT RUNS INSIDE -->
+    <section id="inside" class="border-t border-gray-100 bg-gray-50 py-20 sm:py-28" aria-labelledby="inside-title">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-3xl">
+          <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">What runs inside</p>
+          <h2 id="inside-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Everything runs inside your network</h2>
+          <p class="mt-4 text-base leading-7 text-gray-600">
+            No part of the core platform waits on the internet. All of this works on a network with no route out.
+          </p>
+        </div>
+
+        <ul role="list" class="mt-12 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+          <% content.capabilities.forEach(function (capability) { -%>
+          <li class="ag-card flex flex-col rounded-2xl border border-gray-200 bg-white p-7 shadow-sm" data-testid="air-gapped-capability">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-inset ring-emerald-100">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons[capability.key] %>" />
+              </svg>
+            </span>
+            <h3 class="mt-5 text-lg font-semibold text-gray-900"><%= capability.title %></h3>
+            <p class="mt-2 flex-1 text-sm leading-6 text-gray-600"><%= capability.description %></p>
+            <% if (capability.link) { -%>
+            <a href="<%= capability.link.href %>" class="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-gray-900 hover:text-gray-600">
+              <%= capability.link.label %>
+              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.arrowRight %>"></path>
+              </svg>
+            </a>
+            <% } -%>
+          </li>
+          <% }); -%>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ========================================================== SET UP -->
+    <section id="set-up" class="bg-white py-20 sm:py-28" aria-labelledby="set-up-title">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-3xl">
+          <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">Set up</p>
+          <h2 id="set-up-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Four steps to an air-gapped install</h2>
+          <p class="mt-4 text-base leading-7 text-gray-600">
+            It is the same Helm chart every self-hosted install runs. There is no special air-gapped build to procure.
+          </p>
+        </div>
+
+        <div class="mt-12 grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-14">
+          <ol role="list" class="space-y-8">
+            <% content.steps.forEach(function (step, stepIndex) { -%>
+            <li class="flex gap-4" data-testid="air-gapped-step" id="step-<%= step.key %>">
+              <span class="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-gray-900 text-sm font-semibold text-white" aria-hidden="true"><%= stepIndex + 1 %></span>
+              <div class="min-w-0">
+                <h3 class="text-base font-semibold leading-8 text-gray-900"><%= step.title %></h3>
+                <p class="mt-1 text-sm leading-6 text-gray-600"><%= step.description %></p>
+                <% if (step.key === 'bring-in-chart') { -%>
+                <div class="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5" data-testid="air-gapped-signing-key">
+                  <p class="text-xs font-medium text-gray-500">Signing key fingerprint</p>
+                  <p class="ag-code mt-1 text-xs leading-5 text-gray-800">
+                    <% content.signingKey.fingerprintHalves.forEach(function (half) { -%>
+                    <span class="whitespace-nowrap"><%= half %></span>
+                    <% }); -%>
+                  </p>
+                  <a href="<%= content.signingKey.url %>" target="_blank" rel="noopener noreferrer" class="mt-1 inline-block whitespace-nowrap text-xs font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">OneUptime's public key<span class="sr-only"> (opens in a new tab)</span></a>
+                </div>
+                <% } -%>
+                <div class="mt-3 flex flex-wrap items-center gap-2">
+                  <% step.settings.forEach(function (setting) { -%>
+                  <code class="ag-code rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-800"><%= setting %></code>
+                  <% }); -%>
+                  <% if (step.link) { -%>
+                  <a href="<%= step.link.href %>"<% if (step.link.href.indexOf('https://') === 0) { %> target="_blank" rel="noopener noreferrer"<% } %> class="inline-flex items-center gap-1 text-xs font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900"><%= step.link.label %><% if (step.link.href.indexOf('https://') === 0) { %><span class="sr-only"> (opens in a new tab)</span><% } %></a>
+                  <% } -%>
+                </div>
+              </div>
+            </li>
+            <% }); -%>
+          </ol>
+
+          <div class="lg:sticky lg:top-24 lg:self-start">
+            <div class="overflow-hidden rounded-2xl bg-gray-900 shadow-xl ring-1 ring-gray-900/10" data-testid="air-gapped-values">
+              <div class="flex items-center gap-2 border-b border-white/10 px-4 py-3">
+                <span class="h-2.5 w-2.5 rounded-full bg-rose-400/70" aria-hidden="true"></span>
+                <span class="h-2.5 w-2.5 rounded-full bg-amber-400/70" aria-hidden="true"></span>
+                <span class="h-2.5 w-2.5 rounded-full bg-emerald-400/70" aria-hidden="true"></span>
+                <span class="ml-2 text-xs font-medium text-gray-400">values.yaml</span>
+              </div>
+              <div class="ag-scroll px-5 py-5">
+                <pre class="ag-code text-[13px] leading-6 text-gray-200"><code><%= content.valuesYaml %></code></pre>
+              </div>
+            </div>
+            <p class="mt-3 text-xs leading-5 text-gray-500"><%= content.valuesCaption %></p>
+          </div>
+        </div>
+
+        <div class="mt-12 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-6 sm:flex-row sm:items-center sm:justify-between" data-testid="air-gapped-upgrades">
+          <p class="max-w-3xl text-sm leading-6 text-gray-600">
+            <span class="font-semibold text-gray-900">Upgrades.</span>
+            <%= content.upgradeNote %>
+          </p>
+          <a href="<%= content.docs.upgrading %>" class="inline-flex flex-none items-center gap-1.5 text-sm font-medium text-gray-900 hover:text-gray-600">
+            Upgrading
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.arrowRight %>"></path>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================ CONNECTIONS OUT -->
+    <section id="connections-out" class="border-t border-gray-100 bg-gray-50 py-20 sm:py-28" aria-labelledby="connections-out-title">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-3xl">
+          <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">Connections out</p>
+          <h2 id="connections-out-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">What reaches out, and what to use instead</h2>
+          <p class="mt-4 text-base leading-7 text-gray-600">
+            Three things reach out on their own unless you change a setting. Everything else, from SMS to Slack to a
+            hosted AI model, reaches out only once you set it up.
+          </p>
+        </div>
+
+        <div class="mt-12 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div class="max-md:hidden md:grid md:grid-cols-12 md:gap-6 border-b border-gray-200 bg-gray-50 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500" aria-hidden="true">
+            <span class="md:col-span-3">Connection</span>
+            <span class="md:col-span-4">When</span>
+            <span class="md:col-span-5">Inside an air gap</span>
+          </div>
+          <ul role="list" class="divide-y divide-gray-100">
+            <% content.connections.forEach(function (connection) { -%>
+            <li class="px-6 py-5 md:grid md:grid-cols-12 md:gap-6" data-testid="air-gapped-connection" id="connection-<%= connection.key %>">
+              <div class="md:col-span-3">
+                <h3 class="flex flex-wrap items-center gap-2 text-sm font-semibold text-gray-900">
+                  <%= connection.name %>
+                  <% if (connection.onByDefault) { -%>
+                  <span class="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">On by default</span>
+                  <% } -%>
+                </h3>
+                <p class="ag-code mt-1 text-xs leading-5 text-gray-500"><%= connection.destination %></p>
+              </div>
+              <p class="mt-3 text-sm leading-6 text-gray-600 md:col-span-4 md:mt-0">
+                <span class="font-medium text-gray-900 md:hidden">When: </span><%= connection.when %>
+              </p>
+              <p class="mt-2 text-sm leading-6 text-gray-900 md:col-span-5 md:mt-0">
+                <span class="font-medium md:hidden">Inside an air gap: </span><%= connection.inside %>
+              </p>
+            </li>
+            <% }); -%>
+          </ul>
+        </div>
+
+        <p class="mt-6 max-w-3xl text-sm leading-6 text-gray-500">
+          Webhooks and Mattermost reach a private address once you allow it with
+          <code class="ag-code rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-800">webhooks.allowPrivateNetwork</code>.
+          Read more in
+          <a href="<%= content.docs.connectionsOut %>" class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">connections out of your network</a>
+          and
+          <a href="<%= content.docs.privateNetworkAccess %>" class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">private network access</a>.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================== AI -->
+    <section id="ai" class="relative isolate overflow-hidden bg-gray-900 py-20 sm:py-28" aria-labelledby="ai-title">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:items-start lg:gap-16">
+          <div>
+            <p class="text-sm font-medium uppercase tracking-wide text-emerald-400">AI without the internet</p>
+            <h2 id="ai-title" class="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">OneUptime AI, on a model you run</h2>
+            <p class="mt-4 text-base leading-7 text-gray-400">
+              Investigations, Ask AI and drafts work with a model on your network, so no prompt leaves it.
+            </p>
+
+            <ul role="list" class="mt-8 space-y-4">
+              <% content.ai.options.forEach(function (option) { -%>
+              <li class="flex gap-3.5 rounded-xl border border-white/10 bg-white/[0.03] p-4" data-testid="air-gapped-ai-option">
+                <svg class="mt-0.5 h-5 w-5 flex-none text-emerald-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.check %>" />
+                </svg>
+                <span>
+                  <span class="block text-sm font-semibold text-white"><%= option.title %></span>
+                  <span class="mt-0.5 block text-sm leading-6 text-gray-400"><%= option.description %></span>
+                </span>
+              </li>
+              <% }); -%>
+            </ul>
+          </div>
+
+          <div>
+            <div class="overflow-hidden rounded-2xl border border-white/10 bg-black/40">
+              <div class="border-b border-white/10 px-4 py-3">
+                <span class="text-xs font-medium text-gray-400">A global provider for every project</span>
+              </div>
+              <div class="ag-scroll px-5 py-5">
+                <pre class="ag-code text-[13px] leading-6 text-emerald-300"><code><%= content.ai.envExample %></code></pre>
+              </div>
+            </div>
+            <p class="mt-4 text-sm leading-6 text-gray-400"><%= content.ai.setup %></p>
+            <p class="mt-3 text-sm leading-6 text-gray-400"><%= content.ai.safety %></p>
+            <a href="<%= content.docs.llmProviders %>" class="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-white hover:text-gray-300">
+              LLM providers
+              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.arrowRight %>"></path>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================== COMPLIANCE -->
+    <section id="compliance" class="bg-white py-20 sm:py-28" aria-labelledby="compliance-title">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-3xl">
+          <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">Compliance and data residency</p>
+          <h2 id="compliance-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Your data, inside your boundary</h2>
+          <p class="mt-4 text-base leading-7 text-gray-600">
+            On an air-gapped install, every record stays where you put it, and you decide who certifies it.
+          </p>
+        </div>
+
+        <ul role="list" class="mt-12 grid grid-cols-1 gap-5 md:grid-cols-2">
+          <% content.compliance.forEach(function (point) { -%>
+          <li class="flex gap-5 rounded-2xl border border-gray-200 bg-white p-7 shadow-sm" data-testid="air-gapped-compliance">
+            <span class="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-gray-100 text-gray-700">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons[point.key] %>" />
+              </svg>
+            </span>
+            <div class="min-w-0">
+              <h3 class="text-base font-semibold text-gray-900"><%= point.title %></h3>
+              <p class="mt-2 text-sm leading-6 text-gray-600"><%= point.description %></p>
+            </div>
+          </li>
+          <% }); -%>
+        </ul>
+
+        <p class="mt-8 max-w-3xl text-sm leading-6 text-gray-500">
+          Every compliance statement on this page is governed by our
+          <a href="/trust#claims" class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">claims matrix</a>,
+          which links each one to the document that makes it true. For the rest of self-hosting, from sizing to support,
+          see <a href="/enterprise/self-hosted" class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">Self-Hosted</a>.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================================================= FAQ -->
+    <section id="faq" class="border-t border-gray-100 bg-white py-20 sm:py-28" aria-labelledby="faq-title">
+      <div class="mx-auto max-w-4xl px-6 lg:px-8">
+        <h2 id="faq-title" class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Questions buyers ask</h2>
+
+        <div class="mt-12 divide-y divide-gray-100 border-y border-gray-100">
+          <% content.faqs.forEach(function (faq) { -%>
+          <details class="group py-6" data-testid="air-gapped-faq">
+            <summary class="flex cursor-pointer list-none items-start justify-between gap-6">
+              <span class="text-base font-medium text-gray-900"><%= faq.question %></span>
+              <span
+                class="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-transform group-open:rotate-45" aria-hidden="true">
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"></path>
+                </svg>
+              </span>
+            </summary>
+            <p class="mt-4 text-sm leading-7 text-gray-600"><%= faq.answer %></p>
+          </details>
+          <% }); -%>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================ PLAN YOUR INSTALL -->
+    <section id="plan-your-install" class="relative isolate overflow-hidden bg-gray-900 py-20 sm:py-28" aria-labelledby="plan-your-install-title">
+      <div
+        class="absolute inset-0 -z-10 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,#000_60%,transparent_110%)]">
+      </div>
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
+          <div>
+            <p class="text-sm font-medium uppercase tracking-wide text-emerald-400">Plan your install</p>
+            <h2 id="plan-your-install-title" class="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+              Bring us your network. Leave with an install plan.
+            </h2>
+            <p class="mt-5 text-base leading-7 text-gray-400">
+              A working session with the engineers who build the platform, not a sales call. We go through what to
+              mirror, which values to set, how licensing and upgrades work inside your gap, and where each
+              responsibility sits.
+            </p>
+
+            <p class="mt-8 text-sm leading-6 text-gray-400">
+              Pick a time below, or write to
+              <a href="mailto:<%= planCall.email %>"
+                class="font-medium text-gray-300 underline underline-offset-2 hover:text-white"><%= planCall.email %></a>
+              if you would rather start over email.
+            </p>
+          </div>
+
+          <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-7">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">What we cover</p>
+            <ul role="list" class="mt-5 space-y-4" data-testid="air-gapped-plan-topics">
+              <% planCall.topics.forEach(function (topic) { -%>
+              <li class="flex gap-3">
+                <span class="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400" aria-hidden="true"></span>
+                <span class="text-sm leading-6 text-gray-300"><%= topic %></span>
+              </li>
+              <% }); -%>
+            </ul>
+          </div>
+        </div>
+
+        <%#
+          The same booking as the self-hosted page's architecture assessment
+          (Docs/analytics/enterprise-conversion-tracking.md): one Cal event
+          type, booked as an architecture_assessment, and meeting_booked's
+          page_path says it came from here. Heights are explicit, as on
+          self-hosted.ejs and demo.ejs.
+        -%>
+        <div class="mt-16">
+          <div class="overflow-hidden rounded-2xl bg-white">
+            <div class="h-[500px] w-full overflow-auto sm:h-[600px] lg:h-[680px]"
+              id="my-cal-inline-air-gapped"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <%- include('footer') -%>
+
+  <!-- Cal.com Script -->
+  <script type="text/javascript">
+    (function (C, A, L) { let p = function (a, ar) { a.q.push(ar); }; let d = C.document; C.Cal = C.Cal || function () { let cal = C.Cal; let ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; typeof namespace === "string" ? (cal.ns[namespace] = api) && p(api, ar) : p(cal, ar); return; } p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
+    Cal("init", { origin: "https://cal.com" });
+
+    Cal("inline", {
+      elementOrSelector: "#my-cal-inline-air-gapped",
+      calLink: "oneuptimehq/demo",
+      layout: "month_view",
+      /*
+       * Attribution into the booking metadata, which Cal hands back on its
+       * BOOKING_CREATED webhook to the CRM, with the kind of conversation
+       * this embed books.
+       */
+      config: typeof window.oneUptimeCalAttributionMetadata === 'function'
+          ? window.oneUptimeCalAttributionMetadata('architecture_assessment')
+          : {}
+    });
+
+    Cal("ui", { "styles": { "branding": { "brandColor": "#059669" } }, "hideEventTypeDetails": false, "layout": "month_view" });
+
+    /*
+     * The canonical meeting_booked, through the shared subscriber that takes
+     * every name Cal fires a booking under and reports one booking once.
+     * detail.data carries the attendee's name and email and is deliberately
+     * not forwarded to any analytics destination.
+     */
+    window.oneUptimeOnCalBookingSuccess(function (detail) {
+      window.oneUptimeTrackMeetingBooked({
+        bookingKind: 'architecture_assessment',
+        legacyEventName: 'home/architecture-assessment-booked',
+        calEventType: detail.type,
+        calNamespace: detail.namespace
+      });
+    });
+  </script>
+</body>
+
+</html>

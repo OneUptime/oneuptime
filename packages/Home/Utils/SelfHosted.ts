@@ -458,7 +458,7 @@ export const AirGapSteps: Array<AirGapStep> = [
   {
     title: "Turn off the update check",
     description:
-      "The platform's outbound version check is a single switch. Disabled, a Community Edition install makes no calls to oneuptime.com. An Enterprise Edition install also checks its license online unless it is activated with an offline license token.",
+      "Once a day the install asks GitHub's API for the latest release. One switch turns that off, and with no route out it fails quietly anyway. A Community Edition install then makes no outbound call on its own; an Enterprise Edition install also checks its license online unless it is activated with an offline license token.",
     setting: "updateCheck.disabled",
   },
   {
@@ -470,14 +470,14 @@ export const AirGapSteps: Array<AirGapStep> = [
   {
     title: "Bring your own notification transports",
     description:
-      "Point notifications at your internal SMTP relay and SMS gateway instead of any hosted transport.",
-    setting: "smtp / notifications",
+      "Send email through your internal SMTP relay. SMS, calls and push need their providers, so page people by email, webhook or a chat server on your network instead.",
+    setting: "Settings > Notifications > Emails",
   },
   {
     title: "Run AI locally, or not at all",
     description:
-      "AI features can call an in-cluster vLLM deployment or a local Ollama endpoint, so no prompt leaves your network. They can also be left off entirely.",
-    setting: "vllm.enabled",
+      "AI features can use a model on your own network, Ollama or any OpenAI-compatible server such as vLLM, so no prompt leaves it. They can also be left off entirely.",
+    setting: "GLOBAL_LLM_PROVIDER_TYPE",
   },
   {
     title: "Upgrade from an artifact bundle",
@@ -643,7 +643,7 @@ export const SelfHostedFaqs: Array<SelfHostedFaq> = [
   {
     question: "Does a self-hosted install phone home?",
     answer:
-      "The Community Edition makes one outbound call on its own: a version check, and it is a single switch to disable. With it off and images mirrored into your registry, a Community Edition install runs with no connectivity to us at all. An Enterprise Edition install activated with a license key also checks its license with oneuptime.com once a day, sending seat counts, hashed user emails, and master-admin contact emails — never monitoring data.",
+      "The Community Edition makes one outbound call on its own: a daily version check against GitHub's API, which a single switch disables. A second is up to whoever signs up: with “Notify me about security patches and new releases” ticked, the install sends their name and email to oneuptime.com, so untick it on an air-gapped network. With both off and images mirrored into your registry, a Community Edition install runs with no connectivity to us at all. An Enterprise Edition install activated with a license key also checks its license with oneuptime.com once a day, sending seat counts, hashed user emails, and master-admin contact emails — never monitoring data. Activated with an offline license token, it never calls us.",
   },
   {
     question: "Who is responsible for uptime when we self-host?",

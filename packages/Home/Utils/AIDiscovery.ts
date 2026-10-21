@@ -12,6 +12,7 @@
 import PageSEOConfig, { PageSEOData } from "./PageSEO";
 import Pricing, { PricingPlans } from "./Pricing";
 import { ResellersPageContent } from "./Resellers";
+import { AirGappedPageContent, AirGappedStep } from "./AirGapped";
 import {
   CloudMarketplaceLink,
   CloudMarketplacesContent,
@@ -515,6 +516,175 @@ export function generateResellersMarkdown(
   lines.push(`- [Pricing](${baseUrl}/pricing.md)`);
   lines.push(`- [Request a demo](${baseUrl}/enterprise/demo.md)`);
   lines.push(`- [Sign up](${baseUrl}/accounts/register)`);
+  lines.push("");
+
+  return lines.join("\n");
+}
+
+/*
+ * A docs or site address as an absolute link: the page writes them rooted
+ * ("/docs/..."), and a markdown reader has no page to resolve them against.
+ */
+function absoluteLink(baseUrl: string, href: string): string {
+  return href.startsWith("/") ? `${baseUrl}${href}` : href;
+}
+
+/*
+ * /enterprise/air-gapped.md: the air-gapped page, section by section, from
+ * the same content the page renders (Utils/AirGapped.ts) - who it is for,
+ * what runs inside, the four steps and the values they set, every
+ * connection out and what to use instead, AI on a model the customer runs,
+ * compliance, and the questions buyers ask.
+ */
+export function generateAirGappedMarkdown(
+  homeUrl: string,
+  content: AirGappedPageContent,
+): string {
+  const baseUrl: string = normalizeBaseUrl(homeUrl);
+  const seo: PageSEOData | undefined = PageSEOConfig[content.pagePath];
+  const pageUrl: string = `${baseUrl}${content.pagePath}`;
+  const lines: Array<string> = [];
+
+  lines.push(`# ${seo ? shortTitle(seo) : "Air-Gapped Installs"}`);
+  lines.push("");
+  if (seo) {
+    lines.push(`> ${seo.description}`);
+    lines.push("");
+  }
+  lines.push(`Canonical page: ${pageUrl}`);
+
+  lines.push("");
+  lines.push("## Who it's for");
+  lines.push("");
+  for (const audience of content.audiences) {
+    lines.push(`- **${audience.title}**: ${audience.description}`);
+  }
+
+  lines.push("");
+  lines.push("## What runs inside your network");
+  lines.push("");
+  for (const capability of content.capabilities) {
+    const more: string = capability.link
+      ? ` ([${capability.link.label}](${absoluteLink(baseUrl, capability.link.href)}))`
+      : "";
+    lines.push(`- **${capability.title}**: ${capability.description}${more}`);
+  }
+
+  lines.push("");
+  lines.push("## Four steps to an air-gapped install");
+  lines.push("");
+  lines.push(
+    "The same Helm chart every self-hosted install runs. There is no special air-gapped build.",
+  );
+  lines.push("");
+  content.steps.forEach((step: AirGappedStep, index: number) => {
+    const settings: string = step.settings
+      .map((setting: string): string => {
+        return `\`${setting}\``;
+      })
+      .join(", ");
+    const more: string = step.link
+      ? ` See [${step.link.label}](${absoluteLink(baseUrl, step.link.href)}).`
+      : "";
+    lines.push(
+      `${index + 1}. **${step.title}**: ${step.description} (${settings})${more}`,
+    );
+  });
+  lines.push("");
+  lines.push(
+    `The chart is signed with OneUptime's key, fingerprint ${content.signingKey.fingerprintHalves.join(" ")} (${content.signingKey.url}).`,
+  );
+  lines.push("");
+  lines.push("The values.yaml of an air-gapped install:");
+  lines.push("");
+  lines.push("```yaml");
+  lines.push(content.valuesYaml);
+  lines.push("```");
+  lines.push("");
+  lines.push(content.valuesCaption);
+  lines.push("");
+  lines.push(
+    `${content.upgradeNote} See [Upgrading](${absoluteLink(baseUrl, content.docs.upgrading)}).`,
+  );
+
+  lines.push("");
+  lines.push("## What reaches out, and what to use instead");
+  lines.push("");
+  lines.push(
+    "Three things reach out on their own unless you change a setting. Everything else reaches out only once you set it up.",
+  );
+  lines.push("");
+  lines.push("| Connection | Where it goes | When | Inside an air gap |");
+  lines.push("|---|---|---|---|");
+  for (const connection of content.connections) {
+    const name: string = connection.onByDefault
+      ? `${connection.name} (on by default)`
+      : connection.name;
+    lines.push(
+      `| ${tableCell(name)} | ${tableCell(connection.destination)} | ${tableCell(connection.when)} | ${tableCell(connection.inside)} |`,
+    );
+  }
+  lines.push("");
+  lines.push(
+    `More: [connections out of your network](${absoluteLink(baseUrl, content.docs.connectionsOut)}) and [private network access](${absoluteLink(baseUrl, content.docs.privateNetworkAccess)}).`,
+  );
+
+  lines.push("");
+  lines.push("## OneUptime AI, on a model you run");
+  lines.push("");
+  for (const option of content.ai.options) {
+    lines.push(`- **${option.title}**: ${option.description}`);
+  }
+  lines.push("");
+  lines.push("```bash");
+  lines.push(content.ai.envExample);
+  lines.push("```");
+  lines.push("");
+  lines.push(content.ai.setup);
+  lines.push("");
+  lines.push(content.ai.safety);
+  lines.push("");
+  lines.push(
+    `See [LLM providers](${absoluteLink(baseUrl, content.docs.llmProviders)}).`,
+  );
+
+  lines.push("");
+  lines.push("## Compliance and data residency");
+  lines.push("");
+  for (const point of content.compliance) {
+    lines.push(`- **${point.title}**: ${point.description}`);
+  }
+
+  lines.push("");
+  lines.push("## Questions buyers ask");
+  for (const faq of content.faqs) {
+    lines.push("");
+    lines.push(`### ${faq.question}`);
+    lines.push("");
+    lines.push(faq.answer);
+  }
+
+  lines.push("");
+  lines.push("## Plan your install");
+  lines.push("");
+  lines.push(
+    `Book a working session with OneUptime's engineers at ${pageUrl}#plan-your-install, or email ${content.planCall.email}.`,
+  );
+
+  lines.push("");
+  lines.push("## Learn More");
+  lines.push("");
+  lines.push(`- [Self-hosted deployment](${baseUrl}/enterprise/self-hosted.md)`);
+  lines.push(
+    `- [Self-hosted architecture](${absoluteLink(baseUrl, content.docs.architecture)})`,
+  );
+  lines.push(
+    `- [Offline license activation](${absoluteLink(baseUrl, content.docs.offlineActivation)})`,
+  );
+  lines.push(`- [Helm chart configuration](${content.helmDocs.configuration})`);
+  lines.push(
+    `- [All OneUptime products and links for LLMs](${baseUrl}/llms.txt)`,
+  );
   lines.push("");
 
   return lines.join("\n");
