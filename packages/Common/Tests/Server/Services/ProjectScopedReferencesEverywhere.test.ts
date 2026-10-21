@@ -78,7 +78,7 @@ const SERVICES_DIRECTORY: string = path.resolve(
 
 // OwnerAndRuleServicesCheckReferences covers these.
 const RULE_MODEL_CLASS: RegExp =
-  /class \w+ extends (RuleBaseModel|RelationOnlyRuleBaseModel)\b/;
+  /class \w+ extends (RuleBaseModel|RelationOnlyRuleBaseModel|OnCallRuleBaseModel)\b/;
 const OWNER_MODEL_NAME: RegExp = /Owner(User|Team)$/;
 
 type AnotherCheck =
