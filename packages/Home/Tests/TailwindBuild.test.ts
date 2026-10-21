@@ -49,6 +49,13 @@ import path from "path";
 const BUILD_TIMEOUT_MS: number = 20 * 60 * 1000;
 const PAGE_TIMEOUT_MS: number = 10 * 60 * 1000;
 
+/*
+ * A class that sizes or spaces with a numbered step of Tailwind's spacing
+ * scale, with any variants in front: "h-4", "sm:gap-2.5", "-mt-1".
+ */
+const SPACING_STEP: RegExp =
+  /^(?:[a-z0-9-]+:)*-?(?:size|min-w|min-h|max-w|max-h|w|h|p|px|py|ps|pe|pt|pr|pb|pl|m|mx|my|ms|me|mt|mr|mb|ml|gap|gap-x|gap-y|space-x|space-y|inset|inset-x|inset-y|top|right|bottom|left|start|end|translate-x|translate-y|scroll-m|scroll-mt|scroll-mb|scroll-p)-\d+(?:\.\d+)?$/;
+
 // Classes that only the fixture blog's posts carry.
 const BLOG_ONLY_CLASSES: Array<string> = [
   "tracking-[0.4242em]",
@@ -311,6 +318,52 @@ describe("every class written in a template or a script", () => {
 
   test("in the same order", () => {
     expect(cssCoverage(tokensCss, builtCss).outOfOrder).toEqual([]);
+  });
+
+  test(
+    "sizes and spaces only in steps Tailwind has: a class such as h-4.5 draws nothing",
+    async () => {
+      /*
+       * Tailwind 3.4.5's spacing scale has the half steps 0.5 to 3.5 and
+       * then whole steps, so h-4.5 generates no rule at all: the menus'
+       * featured icons were drawn at the size of their box instead of 18px.
+       * A size the scale lacks is written as an arbitrary value, such as
+       * h-[18px]. Each step is checked without its variants ("sm:", "hover:"),
+       * so this reads the step, whatever variant is in front of it.
+       */
+      const steps: Array<string> = Array.from(
+        new Set(
+          tokens
+            .filter((token: string): boolean => {
+              return SPACING_STEP.test(token);
+            })
+            .map((token: string): string => {
+              return token.slice(token.lastIndexOf(":") + 1);
+            }),
+        ),
+      );
+      const generated: Set<string> = classesSelectedBy(
+        await tailwindCssFor(steps),
+      );
+
+      expect(steps.length).toBeGreaterThan(100);
+      expect(
+        steps.filter((step: string): boolean => {
+          return !generated.has(step);
+        }),
+      ).toEqual([]);
+    },
+    PAGE_TIMEOUT_MS,
+  );
+
+  test("the step check reads a class the scale lacks, and passes the ones it has", () => {
+    for (const token of ["h-4.5", "sm:w-4.5", "-mt-4.5", "gap-x-2.5", "h-4"]) {
+      expect([token, SPACING_STEP.test(token)]).toEqual([token, true]);
+    }
+
+    for (const token of ["h-[18px]", "max-w-3xl", "w-full", "ag-card"]) {
+      expect([token, SPACING_STEP.test(token)]).toEqual([token, false]);
+    }
   });
 });
 
