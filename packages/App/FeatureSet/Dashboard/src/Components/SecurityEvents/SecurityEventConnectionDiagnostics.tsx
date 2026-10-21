@@ -681,37 +681,33 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
 
         <section aria-label="Run history" className="space-y-3">
           {/*
-           * The heading and what it lists are one block, as Scheduled
-           * polling's are, with Refresh history beside it on the heading's
-           * line. Under a row as tall as the link (40px with its padding)
-           * the sentence sat 20px below its heading.
+           * Refresh history shares the heading's line, and what the list
+           * holds runs under both, 4px under the heading, as Scheduled
+           * polling's sentence is. Under a row as tall as the link (40px
+           * with its padding) the sentence sat 20px below its heading; in a
+           * column beside the link a phone squeezed it into four lines.
            */}
-          <div
-            className="flex items-start justify-between gap-2"
-            data-testid="security-connection-run-history-header"
-          >
-            <div className="min-w-0">
-              <h3 className="text-base font-semibold text-gray-900">
+          <div data-testid="security-connection-run-history-header">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="min-w-0 text-base font-semibold text-gray-900">
                 Recent runs
               </h3>
-              <p className="mt-1 text-xs text-gray-500">
-                The 20 most recent runs, including connection tests and
-                previews. Times are shown in UTC; hover a time for your local
-                clock.
-              </p>
+              {/* Its text on the heading's line, its padding hanging over it. */}
+              <div className="-my-2 flex flex-shrink-0 items-center">
+                <Button
+                  title="Refresh history"
+                  buttonStyle={ButtonStyleType.LINK}
+                  onClick={(): void => {
+                    setError(null);
+                    void refreshHistory();
+                  }}
+                />
+              </div>
             </div>
-            {/* Its text on the heading's 24px line, its padding over it. */}
-            <div className="flex h-6 flex-shrink-0 items-center">
-              <Button
-                title="Refresh history"
-                buttonStyle={ButtonStyleType.LINK}
-                className="-my-2"
-                onClick={(): void => {
-                  setError(null);
-                  void refreshHistory();
-                }}
-              />
-            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              The 20 most recent runs, including connection tests and previews.
+              Times are shown in UTC; hover a time for your local clock.
+            </p>
           </div>
           {isLoading && <p role="status">Loading run history…</p>}
           {!isLoading && runs.length === 0 && (

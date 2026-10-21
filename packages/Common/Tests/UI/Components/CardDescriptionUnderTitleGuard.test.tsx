@@ -157,14 +157,15 @@ describe("hand-built headers keep their description under their title", () => {
 
     // Get started's Dismiss hangs 2px over the title's line above and below.
     expect(gettingStarted).toContain('<div className="-my-0.5 flex-shrink-0">');
-    // Recent runs: the heading and its sentence one block, Refresh beside it.
-    expect(
+    // Recent runs: Refresh history hangs over the heading's line, its sentence right under it.
+    const recentRuns: Array<TitleRowWithDescription> =
       scanTitleRowsWithDescriptions("Diagnostics.tsx", diagnostics).filter(
         (row: TitleRowWithDescription): boolean => {
           return row.descriptionClassName.includes("text-xs");
         },
-      ),
-    ).toEqual([]);
+      );
+    expect(recentRuns).toHaveLength(1);
+    expect(recentRuns[0]!.keepsDescriptionUnderTitle).toBe(true);
     expect(diagnostics).toContain(
       'data-testid="security-connection-run-history-header"',
     );
