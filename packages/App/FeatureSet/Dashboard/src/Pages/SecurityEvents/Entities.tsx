@@ -180,7 +180,7 @@ const SecurityEntitiesPage: FunctionComponent<
               )}
               <Button
                 title="Open in Correlate"
-                icon={IconProp.Graph}
+                icon={IconProp.Share}
                 buttonStyle={ButtonStyleType.NORMAL}
                 onClick={() => {
                   Navigation.navigate(getCorrelateRouteForEntity(lookup.value));

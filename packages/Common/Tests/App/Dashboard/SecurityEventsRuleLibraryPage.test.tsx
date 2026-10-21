@@ -19,13 +19,18 @@ import {
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import SecurityCaseApi from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApi";
-import RuleLibraryPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/RuleLibrary";
+import { RECOMMENDED_FILTER } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RuleLibraryUtil";
+import RuleLibraryPage, {
+  RULE_LIBRARY_CATEGORY_SELECT_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/RuleLibrary";
 import DetectionRule from "../../../Models/DatabaseModels/DetectionRule";
 import Project from "../../../Models/DatabaseModels/Project";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import {
   DETECTION_RULE_LIBRARY,
+  DETECTION_RULE_LIBRARY_CATEGORIES,
+  DetectionRuleLibraryCategory,
   DetectionRuleLibraryEntry,
   getRecommendedDetectionRules,
 } from "../../../Types/SecurityEvent/DetectionRuleLibrary";
@@ -89,6 +94,28 @@ async function renderPage(): Promise<void> {
 const RECOMMENDED: Array<DetectionRuleLibraryEntry> =
   getRecommendedDetectionRules();
 
+function getCategorySelect(): HTMLSelectElement {
+  return screen.getByTestId(
+    RULE_LIBRARY_CATEGORY_SELECT_TEST_ID,
+  ) as HTMLSelectElement;
+}
+
+async function pickCategory(value: string): Promise<void> {
+  await act(async () => {
+    fireEvent.change(getCategorySelect(), { target: { value } });
+  });
+}
+
+function getShownRuleIds(): Array<string> {
+  return DETECTION_RULE_LIBRARY.filter(
+    (entry: DetectionRuleLibraryEntry): boolean => {
+      return screen.queryByTestId(`rule-library-entry-${entry.id}`) !== null;
+    },
+  ).map((entry: DetectionRuleLibraryEntry): string => {
+    return entry.id;
+  });
+}
+
 describe("recommended rules in the Rule Library", () => {
   test("every recommended rule is marked, and only those", async () => {
     await renderPage();
@@ -113,26 +140,14 @@ describe("recommended rules in the Rule Library", () => {
   test("the Recommended filter lists just them", async () => {
     await renderPage();
 
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("rule-library-category-recommended"));
-    });
+    await pickCategory(RECOMMENDED_FILTER);
 
-    const shown: Array<string> = DETECTION_RULE_LIBRARY.filter(
-      (entry: DetectionRuleLibraryEntry): boolean => {
-        return screen.queryByTestId(`rule-library-entry-${entry.id}`) !== null;
-      },
-    ).map((entry: DetectionRuleLibraryEntry): string => {
-      return entry.id;
-    });
-
-    expect(shown).toEqual(
+    expect(getShownRuleIds()).toEqual(
       RECOMMENDED.map((entry: DetectionRuleLibraryEntry): string => {
         return entry.id;
       }),
     );
-    expect(
-      screen.getByTestId("rule-library-category-recommended"),
-    ).toHaveAttribute("aria-pressed", "true");
+    expect(getCategorySelect()).toHaveValue(RECOMMENDED_FILTER);
   });
 
   test("one button adds the recommended rules the project lacks, through the server, then reads the rules again", async () => {
@@ -234,20 +249,100 @@ describe("recommended rules in the Rule Library", () => {
     ).toBeInTheDocument();
   });
 
-  test("the search comes first and the filters under it, in one row a phone scrolls sideways", async () => {
+  test("the search and one category select share a row, which a phone stacks, with no row of buttons to read as tabs", async () => {
     await renderPage();
 
-    const search: HTMLElement = screen.getByPlaceholderText("Search rules");
     const filters: HTMLElement = screen.getByTestId("rule-library-filters");
+    const search: HTMLElement =
+      within(filters).getByPlaceholderText("Search rules");
+    const select: HTMLElement = within(filters).getByRole("combobox", {
+      name: "Rule categories",
+    });
+
+    expect(select).toBe(getCategorySelect());
+    expect(
+      search.compareDocumentPosition(select) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(filters.className).toContain("flex-col");
+    expect(filters.className).toContain("sm:flex-row");
+    expect(within(filters).queryAllByRole("button")).toHaveLength(0);
+    expect(document.querySelectorAll("[aria-pressed]")).toHaveLength(0);
+  });
+
+  test("the select offers every rule, the recommended ones, then each category, and opens on every rule", async () => {
+    await renderPage();
+
+    const options: Array<HTMLOptionElement> = Array.from(
+      getCategorySelect().options,
+    );
 
     expect(
-      search.compareDocumentPosition(filters) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(filters.className).toContain("overflow-x-auto");
-    expect(filters.className).toContain("sm:flex-wrap");
-    for (const button of within(filters).getAllByRole("button")) {
-      expect(button.className).toContain("whitespace-nowrap");
+      options.map((option: HTMLOptionElement): string => {
+        return option.textContent || "";
+      }),
+    ).toEqual([
+      "All categories",
+      "Recommended",
+      ...DETECTION_RULE_LIBRARY_CATEGORIES,
+    ]);
+    expect(
+      options.map((option: HTMLOptionElement): string => {
+        return option.value;
+      }),
+    ).toEqual(["", RECOMMENDED_FILTER, ...DETECTION_RULE_LIBRARY_CATEGORIES]);
+    expect(getCategorySelect()).toHaveValue("");
+    expect(getShownRuleIds()).toHaveLength(DETECTION_RULE_LIBRARY.length);
+  });
+
+  test("a category lists just its rules, and All categories lists every rule again", async () => {
+    await renderPage();
+
+    for (const category of DETECTION_RULE_LIBRARY_CATEGORIES) {
+      await pickCategory(category);
+
+      const expected: Array<string> = DETECTION_RULE_LIBRARY.filter(
+        (entry: DetectionRuleLibraryEntry): boolean => {
+          return entry.category === category;
+        },
+      ).map((entry: DetectionRuleLibraryEntry): string => {
+        return entry.id;
+      });
+
+      expect(expected.length).toBeGreaterThan(0);
+      expect(getShownRuleIds()).toEqual(expected);
+      expect(getCategorySelect()).toHaveValue(category);
+    }
+
+    await pickCategory("");
+
+    expect(getShownRuleIds()).toHaveLength(DETECTION_RULE_LIBRARY.length);
+  });
+
+  test("the search narrows within the picked category", async () => {
+    await renderPage();
+
+    const kubernetes: Array<DetectionRuleLibraryEntry> =
+      DETECTION_RULE_LIBRARY.filter(
+        (entry: DetectionRuleLibraryEntry): boolean => {
+          return entry.category === DetectionRuleLibraryCategory.Kubernetes;
+        },
+      );
+    const first: DetectionRuleLibraryEntry = kubernetes[0]!;
+
+    await pickCategory(DetectionRuleLibraryCategory.Kubernetes);
+    await act(async () => {
+      fireEvent.change(screen.getByPlaceholderText("Search rules"), {
+        target: { value: first.title },
+      });
+    });
+
+    expect(getShownRuleIds()).toContain(first.id);
+    for (const id of getShownRuleIds()) {
+      expect(
+        kubernetes.some((entry: DetectionRuleLibraryEntry): boolean => {
+          return entry.id === id;
+        }),
+      ).toBe(true);
     }
   });
 

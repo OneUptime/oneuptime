@@ -5,6 +5,14 @@ import RouteMap, {
   RouteUtil,
   SecurityEventsRoutePath,
 } from "../Utils/RouteMap";
+import {
+  SECURITY_CASE_QUEUE_VIEWS,
+  SecurityCaseQueueView,
+} from "../Components/SecurityCase/SecurityCaseQueueViews";
+import {
+  SECURITY_PLAYBOOK_RUN_VIEWS,
+  SecurityPlaybookRunView,
+} from "../Components/SecurityPlaybook/SecurityPlaybookRunViews";
 import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Navigate, Route as PageRoute, Routes } from "react-router-dom";
@@ -29,7 +37,9 @@ import SecurityPlaybookRunsPage from "../Pages/SecurityEvents/PlaybookRuns";
 /*
  * Every page under the product's side menu renders inside its layout; a
  * case and a playbook are each worked on a full-width page of their own,
- * outside it.
+ * outside it. The case queue's pages and the two runs pages are one page
+ * component each, mounted once per page with the list it shows - and keyed
+ * by it, so going from one to the next starts the page afresh.
  */
 const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -55,15 +65,24 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
-        <PageRoute
-          path={SecurityEventsRoutePath[PageMap.SECURITY_CASES] || ""}
-          element={
-            <SecurityCasesPage
-              {...props}
-              pageRoute={RouteMap[PageMap.SECURITY_CASES] as Route}
-            />
-          }
-        />
+        {SECURITY_CASE_QUEUE_VIEWS.map(
+          (view: SecurityCaseQueueView): ReactElement => {
+            return (
+              <PageRoute
+                key={view.page}
+                path={SecurityEventsRoutePath[view.page] || ""}
+                element={
+                  <SecurityCasesPage
+                    {...props}
+                    key={view.key}
+                    view={view.key}
+                    pageRoute={RouteMap[view.page] as Route}
+                  />
+                }
+              />
+            );
+          },
+        )}
         <PageRoute
           path={
             SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_CORRELATE] || ""
@@ -162,15 +181,24 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
-        <PageRoute
-          path={SecurityEventsRoutePath[PageMap.SECURITY_PLAYBOOK_RUNS] || ""}
-          element={
-            <SecurityPlaybookRunsPage
-              {...props}
-              pageRoute={RouteMap[PageMap.SECURITY_PLAYBOOK_RUNS] as Route}
-            />
-          }
-        />
+        {SECURITY_PLAYBOOK_RUN_VIEWS.map(
+          (view: SecurityPlaybookRunView): ReactElement => {
+            return (
+              <PageRoute
+                key={view.page}
+                path={SecurityEventsRoutePath[view.page] || ""}
+                element={
+                  <SecurityPlaybookRunsPage
+                    {...props}
+                    key={view.key}
+                    view={view.key}
+                    pageRoute={RouteMap[view.page] as Route}
+                  />
+                }
+              />
+            );
+          },
+        )}
         <PageRoute
           path={
             SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_CONNECTIONS] || ""

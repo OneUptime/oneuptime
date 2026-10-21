@@ -45,7 +45,7 @@ flowchart LR
 | --- | --- | --- |
 | **Sources** | **Connexions** | Vos journaux, les produits de sécurité qu'interroge OneUptime et tout ce que vous envoyez |
 | **Détections** | **Détections** | Des règles Sigma et des flux de renseignement sur les menaces qui cherchent des menaces dans chaque événement |
-| **Security Cases** | **Security Cases** | Ce qui a été trouvé, regroupé par l'utilisateur, l'hôte ou l'adresse concernés |
+| **Dossiers de sécurité** | **Dossiers de sécurité** | Ce qui a été trouvé, regroupé par l'utilisateur, l'hôte ou l'adresse concernés |
 | **Playbooks** | **Playbooks** | Des étapes qui s'exécutent sur les nouveaux dossiers : les enrichir, prévenir, ouvrir un incident ou contenir |
 
 Le bandeau en haut de **Vue d'ensemble** montre chaque partie avec ses chiffres : les sources et leurs événements des dernières 24 heures, les règles actives, les dossiers ouverts et les playbooks qui répondent.
@@ -75,7 +75,7 @@ Votre rôle ne peut pas ajouter de règles de détection, de playbooks ni la sou
 :::
 
 :::details L'attaque de test n'a ouvert aucun dossier
-Le dossier s'ouvre en général avant que le bouton ne réponde ; quand la règle rattrape encore son retard, il le dit et le dossier s'ouvre dans la minute. Regardez de nouveau **Security Cases**, et vérifiez sous **Détections** que la règle de force brute est active.
+Le dossier s'ouvre en général avant que le bouton ne réponde ; quand la règle rattrape encore son retard, il le dit et le dossier s'ouvre dans la minute. Regardez de nouveau **Dossiers de sécurité**, et vérifiez sous **Détections** que la règle de force brute est active.
 :::
 
 :::details Aucun événement de sécurité ne vient de mes journaux

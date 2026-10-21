@@ -45,7 +45,7 @@ flowchart LR
 | --- | --- | --- |
 | **Källor** | **Connections** | Dina loggar, säkerhetsprodukterna som OneUptime hämtar från och allt du skickar |
 | **Detections** | **Detections** | Sigma-regler och flöden med hotunderrättelser som letar efter hot i varje händelse |
-| **Security Cases** | **Security Cases** | Det som hittades, grupperat efter användaren, värden eller adressen det gäller |
+| **Säkerhetsärenden** | **Säkerhetsärenden** | Det som hittades, grupperat efter användaren, värden eller adressen det gäller |
 | **Playbooks** | **Playbooks** | Steg som körs på nya ärenden: berikar dem, meddelar, öppnar en incident eller begränsar |
 
 Remsan högst upp på **Översikt** visar varje del med sina siffror: källorna och deras händelser de senaste 24 timmarna, reglerna som är påslagna, de öppna ärendena och playbooks som svarar.
@@ -75,7 +75,7 @@ Din roll får inte lägga till detektionsregler, playbooks eller loggkällan. Fr
 :::
 
 :::details Testattacken öppnade inget ärende
-Ärendet öppnas oftast innan knappen svarar; när regeln fortfarande hämtar in säger den det, och ärendet öppnas inom en minut. Titta under **Security Cases** igen och kontrollera under **Detections** att brute force-regeln är påslagen.
+Ärendet öppnas oftast innan knappen svarar; när regeln fortfarande hämtar in säger den det, och ärendet öppnas inom en minut. Titta under **Säkerhetsärenden** igen och kontrollera under **Detections** att brute force-regeln är påslagen.
 :::
 
 :::details Inga säkerhetshändelser kommer från mina loggar
