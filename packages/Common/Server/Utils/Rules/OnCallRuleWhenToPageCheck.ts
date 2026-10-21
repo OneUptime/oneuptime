@@ -1,5 +1,4 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import OnCallRuleWhenToPage from "../../../Types/OnCallDutyPolicy/OnCallRuleWhenToPage";
@@ -82,19 +81,18 @@ export default class OnCallRuleWhenToPageCheck {
       return;
     }
 
-    const stored: Array<TModel> = await data.service.findBy({
-      query: data.updateBy.query,
-      select: {
+    /*
+     * The rules as stored, read the way every hook reads the rows of an
+     * update it judges: the rows the update writes, and the update held to
+     * them (DatabaseService.findRowsAndHoldUpdateToThem), so the rules judged
+     * are the rules written.
+     */
+    const stored: Array<TModel> =
+      await data.service.findRowsAndHoldUpdateToThem(data.updateBy, {
         whenToPage: true,
         workingHours: true,
         workingHoursTimezone: true,
-      } as never,
-      skip: 0,
-      limit: LIMIT_PER_PROJECT,
-      props: {
-        isRoot: true,
-      },
-    });
+      } as never);
 
     for (const rule of stored) {
       const current: WhenToPageValues = this.read(rule);
