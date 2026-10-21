@@ -2303,7 +2303,7 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
             },
           }),
         ),
-        "re-bound to a different Runner or credential during this round",
+        "re-bound to a different Runner during this round",
       ],
       [
         "the cluster was deleted",
@@ -2806,7 +2806,12 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
       },
     );
 
-    it("runs a cluster reached through an advanced Runner with Enable AI on — no project opt-in holds it back", async () => {
+    /*
+     * A cluster reached through a Runner (the chart's previous in-cluster
+     * Runner: one outside the cluster reached it with a runbook credential,
+     * until those were removed) needs Enable AI alone, as the agent does.
+     */
+    it("runs a cluster reached through its previous in-cluster Runner with Enable AI on — no project opt-in holds it back", async () => {
       mockSuggestionHonouringSelect(clusterRow());
       (
         KubernetesClusterAiAccessService.getStatusForCluster as unknown as jest.SpyInstance
@@ -2814,14 +2819,17 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
         clusterStatus({
           runner: {
             id: CLUSTER_RUNNER_ID.toString(),
-            name: "ops-runner",
+            name: "kubernetes-agent/prod-us",
             kind: "runner",
             isOnline: true,
             canRunAiCommands: true,
-            posture: { inCluster: false, allowWrites: true },
+            posture: {
+              inCluster: true,
+              allowWrites: true,
+              clusterIdentifier: "prod-us",
+            },
           },
-          accessMethod: "credential",
-          credentialId: "99999999-9999-4999-8999-999999999999",
+          accessMethod: "in_cluster",
         }),
       );
       const request: { get: () => InvestigationRequest } = captureRequest();
@@ -2832,7 +2840,7 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
       expect(suggestionCas).not.toHaveBeenCalled();
     });
 
-    it("still stops a round whose advanced-Runner cluster is not remediation-ready, with the status's own reason", async () => {
+    it("still stops a round whose Runner-reached cluster is not remediation-ready, with the status's own reason", async () => {
       mockSuggestionHonouringSelect(clusterRow());
       (
         KubernetesClusterAiAccessService.getStatusForCluster as unknown as jest.SpyInstance
@@ -2840,13 +2848,12 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
         clusterStatus({
           runner: {
             id: CLUSTER_RUNNER_ID.toString(),
-            name: "ops-runner",
+            name: "kubernetes-agent/prod-us",
             kind: "runner",
             isOnline: true,
             canRunAiCommands: false,
           },
-          accessMethod: "credential",
-          credentialId: "99999999-9999-4999-8999-999999999999",
+          accessMethod: "in_cluster",
           isInvestigationReady: false,
           isRemediationReady: false,
           gaps: [
@@ -2854,7 +2861,7 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
               code: "runner_ai_commands_disabled",
               title: "The Runner does not accept AI commands",
               description:
-                'Runner "ops-runner" does not run OneUptime AI\'s commands yet, so it will not be served kubectl work.',
+                'Runner "kubernetes-agent/prod-us" does not run OneUptime AI\'s commands yet, so it will not be served kubectl work.',
               nextStep:
                 "Choose the Runner again on the cluster's AI agent page (AI → Agent) to let OneUptime AI run kubectl on it.",
               blocks: "both",

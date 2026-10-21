@@ -44,8 +44,8 @@ import ObjectID from "../../../Types/ObjectID";
  * steps after it still run.
  *
  * Run once by the Workers' data migration RemoveRunbookCredentials, and
- * tested against a migrated Postgres
- * (Tests/Server/Utils/Runbook/RunbookCredentialsRemovalPostgres.test.ts).
+ * tested against a migrated Postgres right after the move it builds on
+ * (Tests/Server/Utils/Runbook/RunbookVariablesMovePostgres.test.ts).
  */
 
 /*

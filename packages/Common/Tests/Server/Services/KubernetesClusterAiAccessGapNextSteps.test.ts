@@ -2,7 +2,6 @@ import KubernetesClusterAiAccessService, {
   AI_AGENT_INSTALL_COMMAND,
   AI_AGENT_NOT_CONNECTED_NEXT_STEP,
   CLUSTER_AI_AGENT_PAGE,
-  CREDENTIAL_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP,
   KubernetesClusterAiAccessProjectGates,
   LEGACY_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP,
   REMEDIATION_WRITE_ACCESS_NEXT_STEP,
@@ -11,7 +10,6 @@ import KubernetesClusterAiAccessService, {
 } from "../../../Server/Services/KubernetesClusterAiAccessService";
 import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
-import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import RunbookVariableService from "../../../Server/Services/RunbookVariableService";
 import RunnerService from "../../../Server/Services/RunnerService";
@@ -42,9 +40,10 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * agent page (AI → Agent)" — never the retired "cluster's AI page".
  *
  * Every gap is produced by the real status computation, one scenario per
- * branch (the Kubernetes AI agent, the previous in-cluster Runner, an
- * advanced Runner, nothing at all), so a next step added or reworded later
- * is checked too.
+ * branch (the Kubernetes AI agent, the previous in-cluster Runner, a Runner
+ * outside the cluster still bound - which reached it with a runbook
+ * credential until those were removed, and is ignored now - nothing at
+ * all), so a next step added or reworded later is checked too.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -55,9 +54,6 @@ const CLUSTER_ID: ObjectID = new ObjectID(
 );
 const RUNNER_ID: ObjectID = new ObjectID(
   "44444444-4444-4444-8444-444444444444",
-);
-const CREDENTIAL_ID: ObjectID = new ObjectID(
-  "55555555-5555-4555-8555-555555555555",
 );
 const AGENT_ID: ObjectID = new ObjectID("66666666-6666-4666-8666-666666666666");
 
@@ -87,7 +83,6 @@ function cluster(overrides: Record<string, unknown> = {}): KubernetesCluster {
     name: "prod-us",
     clusterIdentifier: "prod-us",
     aiAccessRunnerId: RUNNER_ID,
-    aiAccessCredentialId: undefined,
     isAiInvestigationEnabled: true,
     aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
     ...overrides,
@@ -210,17 +205,9 @@ const SCENARIOS: Array<Scenario> = [
     agent: null,
   },
   {
-    label: "a dashboard Runner signed off",
+    label: "the previous in-cluster Runner never connected",
     cluster: cluster(),
-    runner: dashboardRunner({
-      connectionStatus: RunnerConnectionStatus.Disconnected,
-    }),
-    agent: null,
-  },
-  {
-    label: "a Runner that never connected",
-    cluster: cluster(),
-    runner: dashboardRunner({ lastAlive: undefined }),
+    runner: agentRunner({ lastAlive: undefined }),
     agent: null,
   },
   {
@@ -230,13 +217,7 @@ const SCENARIOS: Array<Scenario> = [
     agent: null,
   },
   {
-    label: "an external Runner whose credential is gone",
-    cluster: cluster({ aiAccessCredentialId: CREDENTIAL_ID }),
-    runner: dashboardRunner(),
-    agent: null,
-  },
-  {
-    label: "an external Runner without a credential",
+    label: "a Runner outside the cluster still bound",
     cluster: cluster(),
     runner: dashboardRunner(),
     agent: null,
@@ -264,7 +245,7 @@ const SCENARIOS: Array<Scenario> = [
     agent: null,
   },
   {
-    label: "both switches off, every project gate closed, an advanced Runner",
+    label: "both switches off, every project gate closed, a Runner outside the cluster",
     cluster: cluster({
       isAiInvestigationEnabled: false,
       aiRemediationMode: KubernetesAiRemediationMode.Disabled,
@@ -284,7 +265,6 @@ const PRODUCED_GAP_CODES: Array<KubernetesAiAccessGapCode> = [
   "runner_offline",
   "runner_ai_commands_disabled",
   "runner_cluster_mismatch",
-  "credential_missing",
   "investigation_disabled",
   "remediation_disabled",
   "remediation_write_access_missing",
@@ -294,15 +274,16 @@ const PRODUCED_GAP_CODES: Array<KubernetesAiAccessGapCode> = [
 
 /*
  * Codes kept in the union for compatibility that the status no longer
- * produces: the AI agent replaced "bind a Runner" (no_runner_bound), a
- * kubernetes-agent row is never an advanced Runner any more
- * (credential_on_agent_runner), last_access_check_failed never was, and
- * the project's "Enable auto-remediation" and "Enable AI command
- * execution" switches were folded into Enable AI (project_ai_disabled),
- * so their gaps went with them.
+ * produces: the AI agent replaced "bind a Runner" (no_runner_bound), runbook
+ * credentials were removed - and with them the Runner outside a cluster
+ * they let reach it (credential_missing, credential_on_agent_runner) -
+ * last_access_check_failed never was, and the project's "Enable
+ * auto-remediation" and "Enable AI command execution" switches were folded
+ * into Enable AI (project_ai_disabled), so their gaps went with them.
  */
 const RETIRED_GAP_CODES: Array<KubernetesAiAccessGapCode> = [
   "no_runner_bound",
+  "credential_missing",
   "credential_on_agent_runner",
   "last_access_check_failed",
   "project_auto_remediation_disabled",
@@ -314,10 +295,6 @@ describe("KubernetesClusterAiAccessService gap next steps", () => {
     jest.spyOn(logger, "error").mockImplementation((): void => {
       return undefined;
     });
-    jest.spyOn(RunbookCredentialService, "findOneBy").mockResolvedValue(null);
-    jest
-      .spyOn(RunbookCredentialService, "countBy")
-      .mockResolvedValue(new PositiveNumber(0));
     jest
       .spyOn(RunbookVariableService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
@@ -408,8 +385,12 @@ describe("KubernetesClusterAiAccessService gap next steps", () => {
       return AI_PAGE_MENTION.test(entry.gap.nextStep);
     });
 
-    // Most cluster-level steps are taken on the AI agent page.
-    expect(entries.length).toBeGreaterThanOrEqual(8);
+    /*
+     * Most cluster-level steps are taken on the AI agent page (one fewer
+     * since the credential a Runner outside the cluster needed went with
+     * runbook credentials).
+     */
+    expect(entries.length).toBeGreaterThanOrEqual(7);
 
     for (const entry of entries) {
       expect(`${entry.gap.code}: ${entry.gap.nextStep}`).toContain(
@@ -424,22 +405,13 @@ describe("KubernetesClusterAiAccessService gap next steps", () => {
     const onTheAiAgentPage: Array<KubernetesAiAccessGapCode> = [
       "runner_missing",
       "runner_cluster_mismatch",
-      "credential_missing",
       "investigation_disabled",
       "remediation_disabled",
       "remediation_write_access_missing",
     ];
 
     for (const entry of await everyGap()) {
-      /*
-       * A Runner outside the chart is given writes on its own host, not on
-       * the page (see the read-only gap's tests below).
-       */
-      const isRunnerHostStep: boolean =
-        entry.gap.nextStep ===
-        CREDENTIAL_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP;
-
-      if (onTheAiAgentPage.includes(entry.gap.code) && !isRunnerHostStep) {
+      if (onTheAiAgentPage.includes(entry.gap.code)) {
         expect(`${entry.scenario}: ${entry.gap.nextStep}`).toContain(
           "the cluster's AI agent page (AI → Agent)",
         );
@@ -545,8 +517,9 @@ describe("the shared install and logs commands", () => {
 
 /*
  * The read-only gap says what grants writes where the executor is
- * configured: the AI agent's chart values, the upgrade to the AI agent for
- * the previous in-cluster Runner, a Runner's own environment otherwise.
+ * configured: the AI agent's chart values, or the upgrade to the AI agent
+ * for the previous in-cluster Runner. (A Runner outside the cluster was
+ * told its own host's variables, until runbook credentials were removed.)
  * The complete command lives on the AI agent page, so the step names it.
  */
 describe("the read-only gap's next step, by who runs kubectl", () => {
@@ -599,18 +572,12 @@ describe("the read-only gap's next step, by who runs kubectl", () => {
     );
   });
 
-  it("a Runner with a credential: its own environment", () => {
-    expect(getRemediationWriteAccessNextStep("credential_runner")).toBe(
-      CREDENTIAL_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP,
-    );
-    expect(CREDENTIAL_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP).toContain(
-      "ONEUPTIME_KUBECTL_ALLOW_WRITES=true",
-    );
-    expect(CREDENTIAL_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP).toContain(
-      "ONEUPTIME_KUBECTL_WRITE_NAMESPACES",
-    );
-    expect(CREDENTIAL_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP).not.toContain(
-      "helm",
-    );
+  it("no read-only step sends anyone to a Runner's host", () => {
+    for (const kind of ["ai_agent", "legacy_runner"] as const) {
+      const step: string = getRemediationWriteAccessNextStep(kind);
+
+      expect(step).not.toContain("ONEUPTIME_KUBECTL_ALLOW_WRITES");
+      expect(step).not.toMatch(/Runner's host/);
+    }
   });
 });
