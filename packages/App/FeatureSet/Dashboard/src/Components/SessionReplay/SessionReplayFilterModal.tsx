@@ -8,6 +8,11 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
+  FILTER_LABEL_CELL_CLASS_NAME,
+  FILTER_LABEL_CLASS_NAME,
+  FILTER_ROW_CLASS_NAME,
+} from "Common/UI/Components/Filters/FiltersForm";
+import {
   EMPTY_ADVANCED_FILTERS,
   normalizeUrlPrefix,
   SessionReplayAdvancedFilters,
@@ -188,11 +193,23 @@ const SessionReplayFilterModal: FunctionComponent<ComponentProps> = (
             return (
               <div
                 key={field.field}
-                className="grid grid-cols-[140px_1fr_auto] gap-3 items-start"
+                className={`${FILTER_ROW_CLASS_NAME} items-start`}
+                data-testid={`session-filter-row-${field.field}`}
               >
-                {/* Label column */}
-                <div className="flex items-center min-w-0 pt-2">
-                  <label className="text-sm font-medium text-gray-700 truncate">
+                {/*
+                 * Label column, drawn as every Filter dialog's is
+                 * (FiltersForm): a long label runs onto a second line rather
+                 * than ending in "..." - "Page URL starts w..." and "Page URL
+                 * visited (..." hid what the field was - and on a phone it
+                 * sits over its field.
+                 */}
+                <div
+                  className={`${FILTER_LABEL_CELL_CLASS_NAME} pt-2 max-sm:pt-0`}
+                >
+                  <label
+                    className={FILTER_LABEL_CLASS_NAME}
+                    data-testid={`session-filter-label-${field.field}`}
+                  >
                     {field.title}
                   </label>
                 </div>

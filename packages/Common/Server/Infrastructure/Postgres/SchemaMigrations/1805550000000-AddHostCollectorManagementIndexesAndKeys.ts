@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddHostCollectorManagement1805200000000, and moved into a migration of its
+ * AddHostCollectorManagement1805500000000, and moved into a migration of its
  * own: projects already have rows in "Host", so the indexes on its new
  * collector columns are built online, and its foreign keys to the new
  * Collector Config tables are added NOT VALID and then validated, without
@@ -11,10 +11,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * host holds no config or version, so the validation finds nothing to
  * refuse. Safe to run again after a stop part way.
  */
-export class AddHostCollectorManagementIndexesAndKeys1805250000000
+export class AddHostCollectorManagementIndexesAndKeys1805550000000
   implements MigrationInterface
 {
-  public name: string = "AddHostCollectorManagementIndexesAndKeys1805250000000";
+  public name: string = "AddHostCollectorManagementIndexesAndKeys1805550000000";
 
   // CREATE INDEX CONCURRENTLY and the validations run outside a transaction.
   public transaction: boolean = false;

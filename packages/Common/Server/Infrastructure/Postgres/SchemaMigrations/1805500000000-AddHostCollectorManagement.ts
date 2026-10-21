@@ -20,12 +20,12 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * nothing is backfilled, and every existing host reads as one whose
  * collector was installed by hand. The indexes and keys on "Host", which
  * already holds rows, are built online in the migration registered right
- * after this one: AddHostCollectorManagementIndexesAndKeys1805250000000.
+ * after this one: AddHostCollectorManagementIndexesAndKeys1805550000000.
  */
-export class AddHostCollectorManagement1805200000000
+export class AddHostCollectorManagement1805500000000
   implements MigrationInterface
 {
-  public name: string = "AddHostCollectorManagement1805200000000";
+  public name: string = "AddHostCollectorManagement1805500000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

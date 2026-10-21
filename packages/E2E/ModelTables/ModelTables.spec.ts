@@ -2023,6 +2023,72 @@ test.describe("the header's search, opened on a wide screen", () => {
   });
 });
 
+test.describe("the header's controls are one height", () => {
+  /*
+   * The "/" key hint stood on the 15px line its 10px text inherited - 21px
+   * with its padding and border - and made every table's search 39px tall
+   * beside its 38px buttons. It keeps a 12px line now, and the search takes
+   * the buttons' padding: 38px from md up, 42px on a phone. The x that
+   * empties it, which comes with the first letter typed, hangs over its
+   * line: it grew the search to 40px (44px on a phone) and moved the
+   * card's description down 2px under the reader's typing.
+   */
+  for (const size of [
+    { width: 1280, height: 38 },
+    { width: 390, height: 42 },
+  ]) {
+    test(`at ${size.width}px the search, the main button and the ⋯ are ${size.height}px tall, the search folded and opened`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, `${MONITORS}?data=rich`, size.width, 900);
+
+      const toolbar: Locator = page.getByTestId("model-table-header-toolbar");
+      const slot: Locator = page.getByTestId("model-table-search-slot");
+      const heightOf: (locator: Locator) => Promise<number> = async (
+        locator: Locator,
+      ): Promise<number> => {
+        return Math.round((await box(locator)).height);
+      };
+
+      expect(await heightOf(slot)).toBe(size.height);
+      expect(
+        await heightOf(page.getByRole("button", { name: "Create Monitor" })),
+      ).toBe(size.height);
+      expect(
+        await heightOf(toolbar.getByRole("button", { name: "More options" })),
+      ).toBe(size.height);
+
+      await page.getByRole("button", { name: "Open search" }).click();
+      await expect(
+        page.getByPlaceholder("Search monitors by name, description…"),
+      ).toBeFocused();
+
+      expect(await heightOf(slot)).toBe(size.height);
+
+      const description: Locator = page
+        .getByTestId("card-header")
+        .first()
+        .getByTestId("card-description");
+      const descriptionTop: number | null =
+        size.width >= 768 ? (await box(description)).y : null;
+
+      await page.keyboard.type("checkout");
+      await expect(
+        page.getByRole("button", { name: "Clear search", exact: true }),
+      ).toBeVisible();
+
+      expect(await heightOf(slot)).toBe(size.height);
+
+      // The card's description (hidden on a phone) stays where it was.
+      if (descriptionTop !== null) {
+        expect((await box(description)).y).toBe(descriptionTop);
+      }
+    });
+  }
+});
+
 test.describe("the dark theme", () => {
   test("the header band, its names and a row's values read at WCAG AA", async ({
     page,

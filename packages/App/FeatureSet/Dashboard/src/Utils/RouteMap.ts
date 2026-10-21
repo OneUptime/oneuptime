@@ -555,6 +555,7 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.CLOUD_ARCHIVED]: `archived`,
   [PageMap.CLOUD_MONITORED_RESOURCES]: `resources`,
+  [PageMap.CLOUD_CONNECT]: `connect`,
 };
 
 export const DatabaseRoutePath: Dictionary<string> = {
@@ -5375,6 +5376,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_MONITORED_RESOURCES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_MONITORED_RESOURCES]
+    }`,
+  ),
+
+  [PageMap.CLOUD_CONNECT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_CONNECT]
     }`,
   ),
 

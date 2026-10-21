@@ -8,6 +8,10 @@ metadata:
 spec:
   nodeSelector:
     {{- include "oneuptime.nodeSelector" (dict) | nindent 4 }}
+  {{- if $.Values.imagePullSecrets }}
+  imagePullSecrets:
+    {{- toYaml $.Values.imagePullSecrets | nindent 4 }}
+  {{- end }}
   containers:
     - name: oneptime-test
       imagePullPolicy: {{ $.Values.image.pullPolicy }}

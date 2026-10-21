@@ -22,6 +22,7 @@ import CloudLabelRules from "../Pages/Cloud/Settings/LabelRules";
 import CloudOwnerRules from "../Pages/Cloud/Settings/OwnerRules";
 import CloudArchived from "../Pages/Cloud/Archived";
 import CloudMonitoredResources from "../Pages/Cloud/MonitoredResources";
+import CloudConnect from "../Pages/Cloud/Connect";
 import CloudResourceLabelRule from "Common/Models/DatabaseModels/CloudResourceLabelRule";
 import CloudResourceOwnerRule from "Common/Models/DatabaseModels/CloudResourceOwnerRule";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
@@ -91,6 +92,15 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
             <CloudMonitoredResources
               {...props}
               pageRoute={RouteMap[PageMap.CLOUD_MONITORED_RESOURCES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_CONNECT] || ""}
+          element={
+            <CloudConnect
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_CONNECT] as Route}
             />
           }
         />

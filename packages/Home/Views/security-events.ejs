@@ -28,13 +28,13 @@
         <div class="mx-auto max-w-7xl px-6 lg:px-8">
           <div class="mx-auto max-w-3xl text-center">
             <!-- Minimal badge -->
-            <p class="text-sm font-medium text-red-600 mb-4">Security Events &middot; SIEM Signals</p>
+            <p class="text-sm font-medium text-red-600 mb-4">Security Events &middot; SIEM + SOAR</p>
 
             <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
               Your security events, where the rest of your data already lives.
             </h1>
             <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
-              POST security events from any source to one endpoint. OneUptime normalizes them to OCSF, stores them in the same data lake as your logs, metrics and traces, matches them with Sigma detection rules, and turns a match into an alert that pages the on-call rotation you already run. Open source.
+              POST security events from any source, connect eight security products, or let OneUptime find them in the logs you already send. Every event is normalized to OCSF and stored beside your logs, metrics and traces. Sigma rules and threat intel find what matters, Security Cases group it by the user, host or address it is about, and playbooks respond &mdash; enrich, notify, page on-call, or contain through Okta, CrowdStrike and Microsoft Defender, with approval on by default. Open source.
             </p>
 
             <div class="mt-10 flex items-center justify-center gap-x-6">
@@ -51,9 +51,11 @@
             <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
               <span>OCSF normalized</span>
               <span class="max-sm:hidden sm:inline text-gray-300">|</span>
-              <span>Sigma rules</span>
+              <span>Sigma rule library</span>
               <span class="max-sm:hidden sm:inline text-gray-300">|</span>
-              <span>Monitors</span>
+              <span>Security cases</span>
+              <span class="max-sm:hidden sm:inline text-gray-300">|</span>
+              <span>Playbooks</span>
               <span class="max-sm:hidden sm:inline text-gray-300">|</span>
               <span>On-call routing</span>
             </div>
@@ -95,11 +97,12 @@
                   <!-- Tabs -->
                   <div class="px-6 pt-4">
                     <div class="flex items-center gap-2 text-xs">
+                      <span class="max-sm:hidden sm:inline px-3 py-1.5 rounded-md text-gray-400 border border-transparent hover:text-gray-600">Overview</span>
+                      <span class="px-3 py-1.5 rounded-md text-gray-400 border border-transparent hover:text-gray-600">Security Cases</span>
                       <span class="px-3 py-1.5 rounded-md bg-red-50 text-red-700 font-semibold border border-red-200">Events</span>
-                      <span class="px-3 py-1.5 rounded-md text-gray-400 border border-transparent hover:text-gray-600">Correlate</span>
-                      <span class="px-3 py-1.5 rounded-md text-gray-400 border border-transparent hover:text-gray-600">Detection Rules</span>
-                      <span class="max-sm:hidden sm:inline px-3 py-1.5 rounded-md text-gray-400 border border-transparent hover:text-gray-600">Monitors</span>
-                      <span class="max-sm:hidden sm:inline px-3 py-1.5 rounded-md text-gray-400 border border-transparent hover:text-gray-600">Setup Guide</span>
+                      <span class="px-3 py-1.5 rounded-md text-gray-400 border border-transparent hover:text-gray-600">Detections</span>
+                      <span class="max-sm:hidden sm:inline px-3 py-1.5 rounded-md text-gray-400 border border-transparent hover:text-gray-600">Playbooks</span>
+                      <span class="max-sm:hidden sm:inline px-3 py-1.5 rounded-md text-gray-400 border border-transparent hover:text-gray-600">Connections</span>
                     </div>
                   </div>
 
@@ -188,10 +191,10 @@
         <div class="mx-auto max-w-2xl text-center mb-16">
           <p class="text-sm font-medium text-red-600 uppercase tracking-wide mb-3">How It Works</p>
           <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
-            One endpoint in. Alerts and on-call out.
+            Events in. Cases, playbooks and on-call out.
           </h2>
           <p class="mt-4 text-lg text-gray-600">
-            No separate cluster to run, no second query language to learn, no security case queue to reconcile with the incidents your team already handles.
+            No separate cluster to run, no second query language to learn, and a case queue that hands off to the incidents and on-call rotations your team already runs.
           </p>
         </div>
 
@@ -210,8 +213,8 @@
                 </svg>
                 <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-red-600 ring-2 ring-red-600">1</span>
               </div>
-              <h3 class="text-base font-semibold text-gray-900 mb-2">POST your events</h3>
-              <p class="text-sm text-gray-600 leading-relaxed">One authenticated endpoint, the same telemetry ingestion key as the rest of OneUptime. Send OCSF, Google SecOps UDM, SecOps detection alerts, or plain security JSON &mdash; the dialect is detected per event.</p>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Collect</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">POST OCSF, Google SecOps UDM, SecOps alerts or plain JSON with your telemetry ingestion key, connect one of eight security products, or let OneUptime find SSH, sudo, Kubernetes audit, CloudTrail and web-attack events in the logs you already send.</p>
             </div>
 
             <!-- Step 2 -->
@@ -235,7 +238,7 @@
                 <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-red-600 ring-2 ring-red-600">3</span>
               </div>
               <h3 class="text-base font-semibold text-gray-900 mb-2">Detect</h3>
-              <p class="text-sm text-gray-600 leading-relaxed">Sigma detection rules run on their own interval and ask &ldquo;did this pattern appear?&rdquo;. Security Events monitors re-read a sliding window and ask &ldquo;how many, right now?&rdquo;. Use both.</p>
+              <p class="text-sm text-gray-600 leading-relaxed">Sigma rules &mdash; your own, or ready-made ones from the Rule Library &mdash; run on their own interval and ask &ldquo;did this pattern appear?&rdquo;. Threat intel checks every event against your STIX/TAXII feeds. Monitors re-read a sliding window and ask &ldquo;how many, right now?&rdquo;.</p>
             </div>
 
             <!-- Step 4 -->
@@ -247,7 +250,7 @@
                 <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-red-600 ring-2 ring-red-600">4</span>
               </div>
               <h3 class="text-base font-semibold text-gray-900 mb-2">Respond</h3>
-              <p class="text-sm text-gray-600 leading-relaxed">A match opens a deduplicated alert &mdash; optionally an incident &mdash; graded against your project&rsquo;s own severities and routed through the escalation policies your responders already carry.</p>
+              <p class="text-sm text-gray-600 leading-relaxed">A match opens a case, or joins the open one about the same user, host or address, and a deduplicated alert takes the same on-call routing as every other alert. Playbooks take it from there: enrich, notify, page on-call, declare an incident, or contain.</p>
             </div>
           </div>
         </div>
@@ -270,7 +273,7 @@
             The 3 AM page should not depend on which console you were watching
           </h2>
           <p class="mt-6 text-lg leading-8 text-gray-600">
-            Security signal usually lands in its own tool, with its own storage, its own alerting and its own queue &mdash; so a detection has to be carried by hand to the people who can act on it. Here it is a telemetry signal like any other: same store, same retention configuration, same alerts, same on-call.
+            Security signal usually lands in its own tool, with its own storage, its own alerting and its own queue &mdash; so a detection has to be carried by hand to the people who can act on it. Here it is a telemetry signal like any other: same store, same retention configuration, same alerts, same on-call. The case queue and the playbooks that work it are part of the same product: every detection is listed on its case, and a case and the incident declared from it link to each other.
           </p>
         </div>
 
@@ -289,7 +292,7 @@
                 <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Ingest</span>
               </div>
               <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">One endpoint. Four dialects. Nothing dropped.</h3>
-              <p class="mt-4 text-lg text-gray-600">Anything that can POST JSON can feed the table &mdash; a SOAR playbook, an EDR webhook, a cloud audit-log forwarder, Fluent Bit. Name the dialect with a query parameter or a header, or send nothing and let OneUptime sniff it per event, so one webhook can mix detection alerts with raw events. Whatever does not map onto a typed column is flattened into dot-notation attribute keys and kept, so you are never choosing between a clean schema and the original payload.</p>
+              <p class="mt-4 text-lg text-gray-600">Anything that can POST JSON can feed the table &mdash; a SOAR playbook, an EDR webhook, a cloud audit-log forwarder, Fluent Bit. Name the dialect with a query parameter or a header, or send nothing and let OneUptime sniff it per event, so one webhook can mix detection alerts with raw events. Whatever does not map onto a typed column is flattened into dot-notation attribute keys and kept, so you are never choosing between a clean schema and the original payload. And when the data already sits somewhere, you do not have to forward it: managed connectors poll eight security products for you, and Your logs turns the security lines in the logs you already send into events, with nothing to install.</p>
               <ul class="mt-6 space-y-3">
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -308,6 +311,18 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
                   Same ingestion key as your logs, metrics &amp; traces
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Managed connectors for eight security products
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  SSH, sudo, Kubernetes audit, CloudTrail &amp; web attacks found in your logs
                 </li>
               </ul>
               <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
@@ -355,6 +370,17 @@
                   <span class="rounded-md bg-gray-800 px-2 py-1 text-[10px] font-mono text-gray-300">?format=generic</span>
                   <span class="text-[10px] text-gray-500">&mdash; or omit it entirely</span>
                 </div>
+                <div class="border-t border-gray-800 px-5 py-3 flex flex-wrap items-center gap-2">
+                  <span class="text-[10px] text-gray-500">Or let OneUptime poll:</span>
+                  <span class="rounded-md bg-gray-800 px-2 py-1 text-[10px] text-gray-300">Google SecOps</span>
+                  <span class="rounded-md bg-gray-800 px-2 py-1 text-[10px] text-gray-300">Microsoft Sentinel</span>
+                  <span class="rounded-md bg-gray-800 px-2 py-1 text-[10px] text-gray-300">Defender XDR</span>
+                  <span class="rounded-md bg-gray-800 px-2 py-1 text-[10px] text-gray-300">CrowdStrike Falcon</span>
+                  <span class="rounded-md bg-gray-800 px-2 py-1 text-[10px] text-gray-300">Splunk ES</span>
+                  <span class="rounded-md bg-gray-800 px-2 py-1 text-[10px] text-gray-300">Elastic Security</span>
+                  <span class="rounded-md bg-gray-800 px-2 py-1 text-[10px] text-gray-300">AWS Security Hub</span>
+                  <span class="rounded-md bg-gray-800 px-2 py-1 text-[10px] text-gray-300">Okta</span>
+                </div>
               </div>
             </div>
           </div>
@@ -388,7 +414,21 @@
     principalIp|startswith: <span class="text-emerald-600">'10.'</span>
   <span class="text-red-600">condition:</span> selection and not filter_internal</pre>
                 </div>
+                <div class="border-t border-gray-100 px-5 py-3 flex flex-wrap items-center gap-2">
+                  <span class="rounded-md bg-gray-50 px-2 py-1 text-[10px] font-mono text-gray-600 border border-gray-200">every 5 min</span>
+                  <span class="rounded-md bg-gray-50 px-2 py-1 text-[10px] font-mono text-gray-600 border border-gray-200">group by principalIp</span>
+                  <span class="rounded-md bg-gray-50 px-2 py-1 text-[10px] font-mono text-gray-600 border border-gray-200">threshold 10</span>
+                </div>
                 <div class="border-t border-gray-100 p-5 space-y-3">
+                  <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div class="flex items-center gap-2">
+                      <span class="w-6 h-6 rounded-md bg-red-50 border border-red-200 flex items-center justify-center">
+                        <svg class="w-3.5 h-3.5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" /></svg>
+                      </span>
+                      <span class="text-xs text-gray-700 font-medium">Open a case</span>
+                    </div>
+                    <span class="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">On by default</span>
+                  </div>
                   <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <div class="flex items-center gap-2">
                       <span class="w-6 h-6 rounded-md bg-red-50 border border-red-200 flex items-center justify-center">
@@ -430,8 +470,14 @@
                 <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Detection Rules</span>
               </div>
               <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Detections as code, written in Sigma</h3>
-              <p class="mt-4 text-lg text-gray-600">Paste a Sigma rule and pick an interval between one minute and 24 hours. OneUptime parses and compiles the rule when you save it, so a broken rule fails in front of the person editing it rather than silently at 3 AM. Field names can be OneUptime columns, common Sigma spellings like <span class="font-mono text-sm text-gray-700">CommandLine</span> or <span class="font-mono text-sm text-gray-700">src_ip</span>, or any flattened key from the original payload. Set a Group By field and you get one alert per distinct host or user instead of one for the whole match set.</p>
+              <p class="mt-4 text-lg text-gray-600">Paste a Sigma rule, or start from the Rule Library: 40 ready-made rules for identity, endpoint, cloud, network, web and Kubernetes threats, written for the fields every source is normalized to. The 19 marked Recommended read data most projects already have, and one click adds them. Pick an interval between one minute and 24 hours; OneUptime parses and compiles the rule when you save it, so a broken rule fails in front of the person editing it rather than silently at 3 AM. Field names can be OneUptime columns, common Sigma spellings like <span class="font-mono text-sm text-gray-700">CommandLine</span> or <span class="font-mono text-sm text-gray-700">src_ip</span>, or any flattened key from the original payload. Group By, Distinct Count and a Match Count Threshold turn a rule into &ldquo;ten failed sign-ins from one IP&rdquo; or &ldquo;one IP against five accounts&rdquo;, with one detection per host, user or IP instead of one per event.</p>
               <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  40 ready-made rules, 19 recommended to start with
+                </li>
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -442,13 +488,13 @@
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  Validated at save time, not on the next cron tick
+                  Group By, Distinct Count &amp; a Match Count Threshold per rule
                 </li>
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  Group By for one alert per host, user or IP
+                  ATT&amp;CK Coverage of what your enabled rules detect
                 </li>
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -466,7 +512,240 @@
             </div>
           </div>
 
-          <!-- Feature 3: Alerts & on-call -->
+          <!-- Feature 3: Security Cases -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 ring-1 ring-red-200">
+                  <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Security Cases</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Every detection about the same user, host or address, in one case</h3>
+              <p class="mt-4 text-lg text-gray-600">Detection rules, threat intel matches and the alerts your connected products raise all land in one queue. A detection about an entity that already has an open case joins it: the case&rsquo;s entities and ATT&amp;CK mapping grow, and its priority rises to the detection&rsquo;s, never down. Analysts assign the case, move it from New to Investigating to Contained, read each entity&rsquo;s last seven days of activity, and close it with a verdict &mdash; True Positive, Benign Positive, False Positive or Undetermined. When a case needs the full treatment, Declare Incident opens a linked OneUptime incident, and on-call, status pages and the postmortem take over from there.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Opened by rules, threat intel, connected products or by hand
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Verdicts that show which rules need tuning
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Mean time to acknowledge, contain &amp; close, over 30 days
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Declare Incident links the case and the incident both ways
+                </li>
+              </ul>
+              <a href="/docs/telemetry/security-cases" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Read the docs
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+
+            <!-- Visual: security case -->
+            <div class="mt-12 lg:mt-0 relative">
+              <div class="absolute -inset-4 bg-red-50/50 rounded-3xl blur-2xl"></div>
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                  <div class="flex gap-1.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                  </div>
+                  <div class="flex-1 text-center">
+                    <span class="text-xs text-gray-400">Security Case</span>
+                  </div>
+                </div>
+                <div class="p-6 space-y-4">
+                  <div class="flex items-start justify-between gap-3">
+                    <div>
+                      <p class="text-[10px] font-mono text-gray-400">CASE-42</p>
+                      <p class="mt-0.5 text-sm font-semibold text-gray-900 leading-snug">Encoded PowerShell command &mdash; build-agent-04</p>
+                    </div>
+                    <span class="flex-shrink-0 inline-flex items-center rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-semibold text-orange-700 ring-1 ring-inset ring-orange-200">High</span>
+                  </div>
+                  <div class="grid grid-cols-4 gap-1 text-center text-[10px] font-semibold">
+                    <span class="rounded-md bg-gray-100 py-1 text-gray-500">New</span>
+                    <span class="rounded-md bg-red-600 py-1 text-white">Investigating</span>
+                    <span class="rounded-md border border-gray-200 py-1 text-gray-400">Contained</span>
+                    <span class="rounded-md border border-gray-200 py-1 text-gray-400">Closed</span>
+                  </div>
+                  <div>
+                    <p class="text-[10px] uppercase tracking-wider font-semibold text-gray-400 mb-2">Detections</p>
+                    <div class="space-y-2">
+                      <div class="flex items-center justify-between gap-3 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                        <span class="text-[11px] text-gray-700 truncate">Encoded PowerShell command</span>
+                        <span class="flex-shrink-0 text-[10px] text-gray-500">Detection rule &middot; 2&times;</span>
+                      </div>
+                      <div class="flex items-center justify-between gap-3 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                        <span class="text-[11px] text-gray-700 truncate">Malicious PowerShell activity</span>
+                        <span class="flex-shrink-0 text-[10px] text-gray-500">CrowdStrike Falcon</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <p class="text-[10px] uppercase tracking-wider font-semibold text-gray-400 mb-2">Entities</p>
+                    <div class="flex flex-wrap gap-1.5">
+                      <span class="rounded-md bg-white px-2 py-1 text-[10px] font-mono text-gray-600 border border-gray-200">build-agent-04</span>
+                      <span class="rounded-md bg-white px-2 py-1 text-[10px] font-mono text-gray-600 border border-gray-200">svc-deploy</span>
+                      <span class="rounded-md bg-white px-2 py-1 text-[10px] font-mono text-gray-600 border border-gray-200">203.0.113.7</span>
+                    </div>
+                  </div>
+                  <div>
+                    <p class="text-[10px] uppercase tracking-wider font-semibold text-gray-400 mb-2">MITRE ATT&amp;CK</p>
+                    <div class="flex flex-wrap gap-1.5">
+                      <span class="rounded-md bg-red-50 px-2 py-1 text-[10px] font-mono text-red-700 border border-red-200">T1059.001 PowerShell</span>
+                      <span class="rounded-md bg-red-50 px-2 py-1 text-[10px] font-mono text-red-700 border border-red-200">T1027 Obfuscation</span>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div class="p-2 bg-white rounded-lg border border-gray-200 text-center text-[10px] text-red-600 font-semibold">Run Playbook &rarr;</div>
+                    <div class="p-2 bg-white rounded-lg border border-gray-200 text-center text-[10px] text-red-600 font-semibold">Declare Incident &rarr;</div>
+                  </div>
+                  <div class="rounded-lg border border-red-100 bg-red-50 p-3">
+                    <p class="text-[10px] uppercase tracking-wider font-semibold text-red-700 mb-2">Overview &middot; last 30 days</p>
+                    <div class="grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <p class="text-sm font-semibold text-gray-900">6 min</p>
+                        <p class="text-[10px] text-gray-500">to acknowledge</p>
+                      </div>
+                      <div>
+                        <p class="text-sm font-semibold text-gray-900">41 min</p>
+                        <p class="text-[10px] text-gray-500">to contain</p>
+                      </div>
+                      <div>
+                        <p class="text-sm font-semibold text-gray-900">3.2 h</p>
+                        <p class="text-[10px] text-gray-500">to close</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 4: Playbooks -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <!-- Visual: playbook run -->
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0 relative">
+              <div class="absolute -inset-4 bg-gray-100/60 rounded-3xl blur-2xl"></div>
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                  <div class="flex gap-1.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                  </div>
+                  <div class="flex-1 text-center">
+                    <span class="text-xs text-gray-400">Playbook run &mdash; CASE-42</span>
+                  </div>
+                </div>
+                <div class="p-6 space-y-4">
+                  <div class="flex items-start justify-between gap-3">
+                    <div>
+                      <p class="text-sm font-semibold text-gray-900 leading-snug">Contain a compromised host</p>
+                      <p class="mt-0.5 text-[11px] text-gray-500">Runs when a detection joins a case</p>
+                    </div>
+                    <span class="flex-shrink-0 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-inset ring-amber-200">Waiting for Approval</span>
+                  </div>
+                  <div class="space-y-2">
+                    <div class="flex items-center justify-between gap-3 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                      <span class="text-[11px] text-gray-700">1. Check entities against threat intel</span>
+                      <span class="flex-shrink-0 text-[10px] font-semibold text-emerald-700">1 match</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-3 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                      <span class="text-[11px] text-gray-700">2. Set the priority to Critical</span>
+                      <span class="flex-shrink-0 text-[10px] font-semibold text-emerald-700">Done</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-3 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                      <span class="text-[11px] text-gray-700">3. Post to Slack</span>
+                      <span class="flex-shrink-0 text-[10px] font-semibold text-emerald-700">Done</span>
+                    </div>
+                    <div class="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                      <div class="flex items-center justify-between gap-3">
+                        <span class="text-[11px] font-semibold text-gray-800">4. Contain the host in CrowdStrike</span>
+                        <span class="flex-shrink-0 text-[10px] font-semibold text-amber-700">Needs approval</span>
+                      </div>
+                      <p class="mt-1 text-[10px] text-gray-500 font-mono">build-agent-04</p>
+                      <div class="mt-2 grid grid-cols-2 gap-2">
+                        <div class="p-1.5 bg-gray-900 rounded-md text-center text-[10px] text-white font-semibold">Approve</div>
+                        <div class="p-1.5 bg-white rounded-md border border-gray-200 text-center text-[10px] text-gray-600 font-semibold">Reject</div>
+                      </div>
+                    </div>
+                    <div class="flex items-center justify-between gap-3 p-2.5 bg-white rounded-lg border border-gray-200">
+                      <span class="text-[11px] text-gray-400">5. Page on-call</span>
+                      <span class="flex-shrink-0 text-[10px] text-gray-400">Not started</span>
+                    </div>
+                  </div>
+                  <p class="text-[11px] text-gray-500 leading-relaxed">Approving carries the run on from the held step; rejecting ends it. The decision, who made it and their comment stay on the case&rsquo;s timeline.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 ring-1 ring-red-200">
+                  <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Playbooks</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Playbooks that respond, with a person in the loop where it matters</h3>
+              <p class="mt-4 text-lg text-gray-600">A playbook is a list of steps that runs as a case opens, each time a detection joins one, or when someone clicks Run Playbook. Its 18 actions are the work an analyst would otherwise do by hand: assign and prioritize the case, check its entities against threat intel, email people, post to Slack or Microsoft Teams, page on-call, declare an incident, send a webhook or start a workflow. Four of them contain the threat: suspend the user or end their sessions in Okta, network-contain the host in CrowdStrike Falcon, or isolate the device in Microsoft Defender for Endpoint. Those act outside OneUptime, so by default they wait on the case until someone approves them.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  18 actions to enrich, notify, escalate, contain &amp; automate
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Containment in Okta, CrowdStrike Falcon &amp; Microsoft Defender
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Per-step approval, on by default for every containment step
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Steps that run only if threat intel matched, or carry on past a failure
+                </li>
+              </ul>
+              <a href="/docs/telemetry/security-cases#playbooks" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Read the docs
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <!-- Feature 5: Alerts & on-call -->
           <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
             <div class="relative">
               <div class="flex items-center gap-4 mb-6">
@@ -478,7 +757,7 @@
                 <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Alerts &amp; On-Call</span>
               </div>
               <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">A detection is an alert your team already knows how to handle</h3>
-              <p class="mt-4 text-lg text-gray-600">A rule match opens a real OneUptime alert &mdash; graded against your project&rsquo;s own severity list, deduplicated per rule and group value against alerts that are still open, and carrying the match count, the window it covered, a sample event and the observables behind it. Turn on incidents per rule when a detection genuinely warrants escalation, SLAs and a status page. There is no second inbox, no separate rotation, and no export step between the detection and the person who acts on it.</p>
+              <p class="mt-4 text-lg text-gray-600">A rule match opens a real OneUptime alert &mdash; graded against your project&rsquo;s own severity list, deduplicated per rule and group value against alerts that are still open, and carrying the match count, the window it covered, a sample event and the observables behind it. Turn on incidents per rule when a detection genuinely warrants escalation, SLAs and a status page. The case is where an analyst works the detection; the alert is how it reaches whoever is on call, through the same on-call rules as every other alert &mdash; no separate rotation, and no export step in between.</p>
               <ul class="mt-6 space-y-3">
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -562,7 +841,7 @@
             </div>
           </div>
 
-          <!-- Feature 4: Monitors -->
+          <!-- Feature 6: Monitors -->
           <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
             <!-- Visual: monitor -->
             <div class="order-2 lg:order-1 mt-12 lg:mt-0 relative">
@@ -663,7 +942,7 @@
             </div>
           </div>
 
-          <!-- Feature 5: Investigate -->
+          <!-- Feature 7: Investigate -->
           <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
             <div class="relative">
               <div class="flex items-center gap-4 mb-6">
@@ -675,7 +954,7 @@
                 <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Investigate</span>
               </div>
               <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Every entity in the event is indexed, so pivoting is one query</h3>
-              <p class="mt-4 text-lg text-gray-600">The entities an event names &mdash; users, hosts, IP addresses &mdash; are extracted into one indexed observables array, so &ldquo;everything mentioning this host&rdquo; is a single cheap query rather than a join you write by hand. Correlate draws the neighborhood around an observable: which event classes touched it, and which other entities it co-occurred with. Click any of those entities and the graph re-centers on it. And because the security table sits next to your logs, metrics and traces, the same pivot keeps going into the request that caused it.</p>
+              <p class="mt-4 text-lg text-gray-600">The entities an event names &mdash; users, hosts, IP addresses &mdash; are extracted into one indexed observables array, so &ldquo;everything mentioning this host&rdquo; is a single cheap query rather than a join you write by hand. Entities ranks the users, hosts, addresses and hashes your findings name most, and looks any value up across 30 days of events. Correlate draws the neighborhood around an observable: which event classes touched it, and which other entities it co-occurred with. Click any of those entities and the graph re-centers on it. And because the security table sits next to your logs, metrics and traces, the same pivot keeps going into the request that caused it.</p>
               <ul class="mt-6 space-y-3">
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -687,13 +966,13 @@
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  Correlate graph over the last hour, day or week
+                  Correlate graph over anything from the last hour to 30 days
                 </li>
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  Full source payload kept alongside the typed OCSF fields
+                  Entities ranked by how many findings name them
                 </li>
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -812,7 +1091,7 @@
                   <%- include('./Partials/icons/security-events', {iconClass: 'h-6 w-6'}) %>
                 </div>
                 <h3 class="mt-6 text-xl font-semibold text-gray-900">Google SecOps</h3>
-                <p class="mt-4 text-gray-600 leading-relaxed">Three ways in: a SOAR playbook webhook, a managed connector that polls your detection alerts on an interval, or full UDM event forwarding.</p>
+                <p class="mt-4 text-gray-600 leading-relaxed">Three ways in &mdash; a SOAR playbook webhook, a managed connector that polls your detection alerts, or full UDM event forwarding &mdash; and one way back: send what OneUptime finds to your SecOps instance.</p>
                 <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-red-600">Read the guide <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></span>
               </div>
             </a>
@@ -824,7 +1103,7 @@
                   <%- include('./Partials/icons/logs', {iconClass: 'h-6 w-6'}) %>
                 </div>
                 <h3 class="mt-6 text-xl font-semibold text-gray-900">Logs</h3>
-                <p class="mt-4 text-gray-600 leading-relaxed">The same data lake, the same retention settings, the same bill &mdash; so the log line behind a detection is one search away, not one vendor away.</p>
+                <p class="mt-4 text-gray-600 leading-relaxed">The same data lake, the same retention settings, the same bill &mdash; so the log line behind a detection is one search away, not one vendor away. Your logs are a source too: their SSH, sudo, Kubernetes audit, CloudTrail and web-attack lines become security events.</p>
                 <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-amber-600">Explore Logs <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></span>
               </div>
             </a>
@@ -848,7 +1127,7 @@
                   <%- include('./Partials/icons/incidents', {iconClass: 'h-6 w-6'}) %>
                 </div>
                 <h3 class="mt-6 text-xl font-semibold text-gray-900">Incidents</h3>
-                <p class="mt-4 text-gray-600 leading-relaxed">Turn incident creation on for the rules that warrant it, and a detection gets the full treatment: timeline, ownership, postmortem and status page.</p>
+                <p class="mt-4 text-gray-600 leading-relaxed">Turn incident creation on for the rules that warrant it, or declare one from a case, and a detection gets the full treatment: timeline, ownership, postmortem and status page.</p>
                 <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-rose-600">Explore Incidents <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></span>
               </div>
             </a>
@@ -872,7 +1151,7 @@
                   <%- include('./Partials/icons/ai-agent', {iconClass: 'h-6 w-6'}) %>
                 </div>
                 <h3 class="mt-6 text-xl font-semibold text-gray-900">AI</h3>
-                <p class="mt-4 text-gray-600 leading-relaxed">Security event search and summary sit in the same AI toolbox as logs, traces, metrics and recent changes, so one question can cross from a failed logon to the commit behind it.</p>
+                <p class="mt-4 text-gray-600 leading-relaxed">Security event search and summary sit in the same AI toolbox as logs, traces, metrics and recent changes, so one question can cross from a failed logon to the commit behind it. Cases, detections and playbooks are on the MCP server for the agents you run yourself.</p>
                 <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-violet-600">Explore AI <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></span>
               </div>
             </a>
@@ -925,11 +1204,19 @@
               </li>
               <li class="flex gap-3">
                 <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-                <span>Turning a detection into a page, an incident and a status update without leaving the platform.</span>
+                <span>Working detections as cases: grouped by the user, host or address they are about, closed with a verdict, and measured by mean time to acknowledge, contain and close.</span>
               </li>
               <li class="flex gap-3">
                 <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-                <span>Boolean Sigma detections, version-controlled and pushed through the REST API.</span>
+                <span>Responding with playbooks that enrich, notify, escalate and contain through Okta, CrowdStrike and Microsoft Defender, with approval on by default before any containment step.</span>
+              </li>
+              <li class="flex gap-3">
+                <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                <span>Turning a detection into a case, a page, an incident and a status update without leaving the platform.</span>
+              </li>
+              <li class="flex gap-3">
+                <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                <span>Boolean Sigma detections &mdash; your own, or from a 40-rule library &mdash; version-controlled and pushed through the REST API.</span>
               </li>
               <li class="flex gap-3">
                 <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
@@ -957,7 +1244,7 @@
             <ul class="space-y-4 text-sm text-gray-600 leading-relaxed">
               <li class="flex gap-3">
                 <svg class="h-5 w-5 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                <span>Sigma aggregation conditions. Anything with a <span class="font-mono text-xs text-gray-700">| count()</span> pipe is rejected when you save it, not quietly ignored &mdash; express those as a monitor instead.</span>
+                <span>Sigma aggregation conditions. Anything with a <span class="font-mono text-xs text-gray-700">| count()</span> pipe is rejected when you save it, not quietly ignored &mdash; count with the rule&rsquo;s Group By, Distinct Count and Match Count Threshold instead, or use a monitor for a rolling window.</span>
               </li>
               <li class="flex gap-3">
                 <svg class="h-5 w-5 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -965,15 +1252,19 @@
               </li>
               <li class="flex gap-3">
                 <svg class="h-5 w-5 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                <span>UEBA and behavioral baselining. Security event monitors compare against thresholds you set, not a learned baseline &mdash; and threat intel matching runs on the same schedule as rules, never as a bundled, curated feed. You bring the TAXII collections.</span>
+                <span>UEBA and behavioral baselining. Security event monitors compare against thresholds you set, not a learned baseline. Threat intel works the same way: events are matched against the STIX/TAXII feeds you subscribe, and OneUptime ships no curated feed of its own. You bring the TAXII collections.</span>
               </li>
               <li class="flex gap-3">
                 <svg class="h-5 w-5 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                <span>A bundled rule library or a case-management workflow. You bring the rules; alerts and incidents are the case record.</span>
+                <span>AI summaries of cases. OneUptime AI can search and summarize your security events, but it does not write up, triage or close a case for you.</span>
               </li>
               <li class="flex gap-3">
                 <svg class="h-5 w-5 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                <span>A drop-in replacement for a large dedicated SIEM program. If that is what you are running, this sits alongside it &mdash; forward the detections that matter and let them page like everything else.</span>
+                <span>Containment beyond Okta, CrowdStrike and Microsoft Defender. To act on any other product, a playbook sends a webhook or starts a workflow that you write.</span>
+              </li>
+              <li class="flex gap-3">
+                <svg class="h-5 w-5 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                <span>A drop-in replacement for a large dedicated SIEM program. If that is what you are running, this sits alongside it &mdash; import its detections through a connector, or forward the ones that matter, and let them page like everything else.</span>
               </li>
             </ul>
           </div>
@@ -992,7 +1283,7 @@
               No security SKU. Same $0.10 per GB.
             </h2>
             <p class="mt-4 text-lg text-gray-600 leading-relaxed">
-              Security events are metered exactly like logs, metrics and traces &mdash; $0.10 per GB ingested, honoring the same retention configuration. There is no separate analyst license and no second contract to negotiate. The core platform is Apache-2.0 open source, and you can self-host this exact product for free.
+              Security events are metered exactly like logs, metrics and traces &mdash; $0.10 per GB ingested, honoring the same retention configuration. Security Cases, playbooks, the rule library and threat intel feeds come with it: there is no separate analyst license, no SOAR add-on and no second contract to negotiate. The core platform is Apache-2.0 open source, and you can self-host this exact product for free.
             </p>
 
             <div class="mt-8 grid grid-cols-2 gap-4">
@@ -1071,6 +1362,15 @@
                     <span class="text-xs text-gray-700 font-medium">Traces</span>
                   </div>
                   <span class="text-[10px] text-gray-500 font-mono">$0.10 / GB</span>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-md bg-red-50 border border-red-200 flex items-center justify-center">
+                      <svg class="w-3.5 h-3.5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" /></svg>
+                    </span>
+                    <span class="text-xs text-gray-700 font-medium">Security Cases &amp; Playbooks</span>
+                  </div>
+                  <span class="text-[10px] text-gray-500 font-mono">Included</span>
                 </div>
                 <div class="p-3 bg-red-50 rounded-lg border border-red-100">
                   <p class="text-xs text-gray-600 leading-relaxed"><span class="font-semibold text-red-700">Same rate, same retention model:</span> security events ride the ingest and storage machinery that logs already use, so the price driver is the same &mdash; bytes retained.</p>

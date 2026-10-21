@@ -1,4 +1,4 @@
-import { fireEvent, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { settle } from "./HostTooltipHarness";
 
 /*
@@ -81,21 +81,23 @@ export async function nextPage(
 }
 
 /*
- * The card's first header button. The lists under test put Refresh there,
- * as an icon with no name of its own (any Filter button comes after it).
+ * Refresh, from the ⋯ at the end of the card's header - where every table
+ * keeps it (Table/TableHeaderControls' getTableHeaderButtons), as these
+ * lists do since their loose refresh icons went.
  */
 export async function clickCardRefresh(
   root: HTMLElement = document.body,
 ): Promise<void> {
   const actions: HTMLElement = within(root).getByTestId("card-header-actions");
-  const refresh: HTMLElement | undefined =
-    within(actions).getAllByRole("button")[0];
 
-  if (!refresh) {
-    throw new Error("The card has no header buttons");
-  }
-
-  fireEvent.click(refresh);
+  fireEvent.click(
+    within(actions).getByRole("button", { name: "More options" }),
+  );
+  fireEvent.click(
+    within(screen.getByRole("menu")).getByRole("menuitem", {
+      name: "Refresh",
+    }),
+  );
   await settle();
 }
 

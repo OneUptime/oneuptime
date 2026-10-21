@@ -1,5 +1,5 @@
-import { AddHostCollectorManagement1805200000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805200000000-AddHostCollectorManagement";
-import { AddHostCollectorManagementIndexesAndKeys1805250000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805250000000-AddHostCollectorManagementIndexesAndKeys";
+import { AddHostCollectorManagement1805500000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805500000000-AddHostCollectorManagement";
+import { AddHostCollectorManagementIndexesAndKeys1805550000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805550000000-AddHostCollectorManagementIndexesAndKeys";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
 import { MigrationInterface, QueryRunner } from "typeorm";
@@ -60,10 +60,10 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("AddHostCollectorManagement1805200000000", () => {
+describe("AddHostCollectorManagement1805500000000", () => {
   test("creates the three new tables, and adds the host's collector columns", async () => {
     const queries: Array<string> = await run(
-      new AddHostCollectorManagement1805200000000(),
+      new AddHostCollectorManagement1805500000000(),
       "up",
     );
 
@@ -88,7 +88,7 @@ describe("AddHostCollectorManagement1805200000000", () => {
 
   test("no column it adds to Host rewrites the table: each is nullable, or has a constant default", async () => {
     const queries: Array<string> = await run(
-      new AddHostCollectorManagement1805200000000(),
+      new AddHostCollectorManagement1805500000000(),
       "up",
     );
 
@@ -103,7 +103,7 @@ describe("AddHostCollectorManagement1805200000000", () => {
 
   test("touches Host only by adding columns: its indexes and keys are the next migration's", async () => {
     const queries: Array<string> = await run(
-      new AddHostCollectorManagement1805200000000(),
+      new AddHostCollectorManagement1805500000000(),
       "up",
     );
 
@@ -123,7 +123,7 @@ describe("AddHostCollectorManagement1805200000000", () => {
 
   test("a config's versions are numbered once per config, and go with it", async () => {
     const queries: Array<string> = await run(
-      new AddHostCollectorManagement1805200000000(),
+      new AddHostCollectorManagement1805500000000(),
       "up",
     );
 
@@ -146,7 +146,7 @@ describe("AddHostCollectorManagement1805200000000", () => {
 
   test("configs and versions go with their project, labels with either side", async () => {
     const queries: Array<string> = await run(
-      new AddHostCollectorManagement1805200000000(),
+      new AddHostCollectorManagement1805500000000(),
       "up",
     );
 
@@ -180,11 +180,11 @@ describe("AddHostCollectorManagement1805200000000", () => {
 
   test("down() drops every table, column and index up() made", async () => {
     const up: Array<string> = await run(
-      new AddHostCollectorManagement1805200000000(),
+      new AddHostCollectorManagement1805500000000(),
       "up",
     );
     const down: Array<string> = await run(
-      new AddHostCollectorManagement1805200000000(),
+      new AddHostCollectorManagement1805500000000(),
       "down",
     );
 
@@ -213,7 +213,7 @@ describe("AddHostCollectorManagement1805200000000", () => {
   });
 });
 
-describe("AddHostCollectorManagementIndexesAndKeys1805250000000", () => {
+describe("AddHostCollectorManagementIndexesAndKeys1805550000000", () => {
   test("builds Host's indexes and keys online, outside a transaction", async () => {
     const indexes: Array<string> = [];
     const keys: Array<string> = [];
@@ -229,8 +229,8 @@ describe("AddHostCollectorManagementIndexesAndKeys1805250000000", () => {
         keys.push(sql);
       });
 
-    const migration: AddHostCollectorManagementIndexesAndKeys1805250000000 =
-      new AddHostCollectorManagementIndexesAndKeys1805250000000();
+    const migration: AddHostCollectorManagementIndexesAndKeys1805550000000 =
+      new AddHostCollectorManagementIndexesAndKeys1805550000000();
     const queries: Array<string> = await run(migration, "up");
 
     expect(migration.transaction).toBe(false);
@@ -269,7 +269,7 @@ describe("AddHostCollectorManagementIndexesAndKeys1805250000000", () => {
       });
 
     const queries: Array<string> = await run(
-      new AddHostCollectorManagementIndexesAndKeys1805250000000(),
+      new AddHostCollectorManagementIndexesAndKeys1805550000000(),
       "down",
     );
 
@@ -290,16 +290,20 @@ describe("the order the migrations run in", () => {
     );
 
     const tables: number = names.indexOf(
-      "AddHostCollectorManagement1805200000000",
+      "AddHostCollectorManagement1805500000000",
     );
     const indexes: number = names.indexOf(
-      "AddHostCollectorManagementIndexesAndKeys1805250000000",
+      "AddHostCollectorManagementIndexesAndKeys1805550000000",
     );
 
     expect(tables).toBeGreaterThan(-1);
     expect(indexes).toBe(tables + 1);
     expect(
       names.indexOf("AddScheduledMaintenanceExternalCalendars1805120000000"),
+    ).toBeLessThan(tables);
+    // After Cloud Connect's, which reached master first.
+    expect(
+      names.indexOf("AddCloudResourceCloudConnectionIndexAndKey1805450000000"),
     ).toBeLessThan(tables);
   });
 });

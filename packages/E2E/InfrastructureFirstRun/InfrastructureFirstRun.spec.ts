@@ -383,7 +383,7 @@ test("vCenters: connecting one by hand is a way in, so the empty table keeps Con
   await expect(emptyTableCreate(page)).toHaveCount(0);
 });
 
-test("Cloud resources: nothing to create, and the first one discovered shows on its own", async ({
+test("Cloud resources: nothing to create, a cloud account one click away, and the first one discovered shows on its own", async ({
   page,
 }: {
   page: Page;
@@ -399,6 +399,31 @@ test("Cloud resources: nothing to create, and the first one discovered shows on 
       .getByRole("button", { name: /^Create / }),
   ).toHaveCount(0);
   await expect(emptyTableCreate(page)).toHaveCount(0);
+
+  /*
+   * The way in leads: connect an AWS, Azure or Google Cloud account from
+   * its tile (Cloud > Connect), no collector to run.
+   */
+  const callout: Locator = page.getByTestId("cloud-connect-callout");
+  await expect(callout).toContainText("Connect a cloud account");
+  for (const provider of ["aws", "azure", "gcp"]) {
+    await expect(
+      callout.getByTestId(`cloud-connection-tile-${provider}`),
+    ).toBeEnabled();
+  }
+
+  // A collector of one's own is the other way, folded until asked for.
+  const collectorWay: Locator = page.getByRole("button", {
+    name: "Already run an OpenTelemetry Collector?",
+  });
+  await expect(collectorWay).toHaveAttribute("aria-expanded", "false");
+  await expect(
+    page.getByText("Discover your cloud resources", { exact: true }),
+  ).toBeHidden();
+  await screenshot(page, "cloud-resources-first-run");
+
+  await collectorWay.click();
+  await expect(collectorWay).toHaveAttribute("aria-expanded", "true");
   await expect(
     page.getByText("Discover your cloud resources", { exact: true }),
   ).toBeVisible();
@@ -420,6 +445,27 @@ test("Cloud resources: nothing to create, and the first one discovered shows on 
     tableCard(page).getByText("orders-db", { exact: true }).first(),
   ).toBeVisible();
   await expect(page.getByText(GUIDE_SENTENCE)).toHaveCount(0);
+  // Once something is there, the list is the page: no way-in cards.
+  await expect(page.getByTestId("cloud-connect-callout")).toHaveCount(0);
+  await expect(collectorWay).toHaveCount(0);
+});
+
+test("Cloud resources: a cloud's tile on the empty list opens that cloud's form on Cloud > Connect", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await open(page, CLOUD_RESOURCES);
+
+  await page
+    .getByTestId("cloud-connect-callout")
+    .getByTestId("cloud-connection-tile-azure")
+    .click();
+
+  // The fixture draws addresses it does not model as their path.
+  await expect(page.getByTestId("stub-page")).toHaveText(
+    `/dashboard/${PROJECT_ID}/cloud/connect?cloud=azure`,
+  );
 });
 
 /*

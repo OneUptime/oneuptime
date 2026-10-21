@@ -5,6 +5,7 @@ import RowActions from "../ActionButton/RowActions";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import { getRefreshButton } from "../Card/CardButtons/Refresh";
 import Card, { CardButtonSchema } from "../Card/Card";
+import { getTableHeaderButtons } from "../Table/TableHeaderControls";
 import DeleteConfirmationMessage from "../DeleteConfirmation/DeleteConfirmationMessage";
 import {
   getDeleteConsequence,
@@ -952,17 +953,20 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
         title={props.title}
         description={props.description}
         rightElement={props.headerElement}
-        buttons={[
+        /*
+         * The Create button in sight and Refresh in the ⋯, as every table's
+         * header has them (getTableHeaderButtons). Refresh was a loose icon
+         * a size smaller than the button beside it.
+         */
+        buttons={getTableHeaderButtons([
           ...headerButtons,
           {
             ...getRefreshButton(),
-            // An icon alone: the tooltip is its name for a screen reader too.
-            tooltip: "Refresh",
-            buttonSize: ButtonSize.Small,
+            title: "Refresh",
             onClick: refresh,
             disabled: isRefreshing,
           },
-        ]}
+        ])}
       >
         <div
           data-testid={props.id}

@@ -64,7 +64,13 @@ Alle rollen van de app zijn hetzelfde image: Docker Compose draait ze in één `
 
 ## Verbindingen uit uw netwerk
 
-De app maakt alleen verbinding naar buiten voor wat u inschakelt. Elk van deze verbindingen is optioneel, en voor elk is er een pagina die de exacte adressen noemt die u moet toestaan:
+Drie verbindingen worden gemaakt, tenzij u een instelling wijzigt:
+
+- Eén keer per dag vraagt de app aan de API van GitHub (`api.github.com`) of er een nieuwere versie is. Zet dit uit met `updateCheck.disabled: true` in de Helm-chart, of met `DISABLE_UPDATE_CHECK=true` in `config.env` bij Docker Compose.
+- Bij een aanmelding met „Stel mij op de hoogte van beveiligingspatches en nieuwe versies” aangevinkt, zoals het in het begin staat, gaan de naam en het e-mailadres van die persoon, een opgegeven bedrijf en telefoonnummer, en het adres en de versie van uw installatie naar `oneuptime.com`. Vink het uit op een netwerk zonder internettoegang.
+- Op Kubernetes vallen probes na de eigen DNS van uw cluster terug op de openbare resolvers `8.8.8.8` en `1.1.1.1`. Zet `dnsConfig.nameservers` op `[]` om elke lookup op uw eigen DNS te houden.
+
+Al het andere maakt alleen verbinding naar buiten als u het inschakelt, en voor elk is er een pagina die de exacte adressen noemt die u moet toestaan:
 
 | Uitgaande verbinding | Gebruikt voor | Meer lezen |
 | --- | --- | --- |

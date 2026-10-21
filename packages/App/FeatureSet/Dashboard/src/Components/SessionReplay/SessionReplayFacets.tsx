@@ -3,6 +3,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
 import { Countries, CountryOption } from "Common/UI/Utils/Countries";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import FacetFilterBar from "../ResourceOwners/FacetFilterBar";
 import FilterChipDropdown from "../ResourceOwners/FilterChipDropdown";
 import { FilterChipDropdownOption } from "../ResourceOwners/FilterChipDropdownTypes";
 import {
@@ -27,6 +28,8 @@ export type SessionReplayFacetField =
 export interface SessionReplayFacet {
   field: SessionReplayFacetField;
   label: string;
+  // Beside the label while the chip is empty, as every list's chips have.
+  icon: IconProp;
   options: Array<FilterChipDropdownOption>;
 }
 
@@ -50,10 +53,20 @@ const fromDropdownOptions: (
   });
 };
 
+/*
+ * Each chip goes by the name the filter has everywhere else on the page:
+ * the Filter form's field (SESSION_REPLAY_FILTER_FIELDS), the chips of a
+ * list that matched nothing, and the search token the search's help names
+ * ("os:, device:, country: and trigger:, as the filter chips"). They were
+ * "Operating system" and "Capture reason" here alone - words twelve of the
+ * sixteen languages had no translation of, and a row of chips that ran
+ * onto a second line on a laptop.
+ */
 export const SESSION_REPLAY_FACETS: Array<SessionReplayFacet> = [
   {
     field: "browserName",
     label: "Browser",
+    icon: IconProp.Window,
     options: toOptions([
       "Chrome",
       "Safari",
@@ -66,7 +79,8 @@ export const SESSION_REPLAY_FACETS: Array<SessionReplayFacet> = [
   },
   {
     field: "osName",
-    label: "Operating system",
+    label: "OS",
+    icon: IconProp.ComputerDesktop,
     options: toOptions([
       "Windows",
       "macOS",
@@ -79,11 +93,13 @@ export const SESSION_REPLAY_FACETS: Array<SessionReplayFacet> = [
   {
     field: "deviceType",
     label: "Device",
+    icon: IconProp.DevicePhoneMobile,
     options: fromDropdownOptions(DEVICE_TYPE_OPTIONS),
   },
   {
     field: "countryCode",
     label: "Country",
+    icon: IconProp.Flag,
     options: Countries.map(
       (country: CountryOption): FilterChipDropdownOption => {
         return {
@@ -95,12 +111,14 @@ export const SESSION_REPLAY_FACETS: Array<SessionReplayFacet> = [
   },
   {
     field: "triggerReason",
-    label: "Capture reason",
+    label: "Trigger",
+    icon: IconProp.VideoCamera,
     options: fromDropdownOptions(TRIGGER_REASON_OPTIONS),
   },
   {
     field: "minDurationSeconds",
     label: "Duration",
+    icon: IconProp.Clock,
     options: [
       { value: "30", label: "At least 30 seconds" },
       { value: "60", label: "At least 1 minute" },
@@ -176,6 +194,25 @@ interface SessionReplayFacetsProps {
   signal: string;
   onFiltersChange: (filters: SessionReplayAdvancedFilters) => void;
   onSignalChange: (signal: string) => void;
+  // Empties the Signal chip and every facet chip ("Clear all").
+  onClearAll: () => void;
+}
+
+/*
+ * How many of the row's chips hold a value - the Signal chip and each
+ * facet - for the count beside "Filter" and whether "Clear all" is offered.
+ */
+export function countActiveSessionReplayChips(
+  filters: SessionReplayAdvancedFilters,
+  signal: string,
+): number {
+  const facetCount: number = SESSION_REPLAY_FACETS.filter(
+    (facet: SessionReplayFacet): boolean => {
+      return getSessionReplayFacetValue(facet.field, filters, signal) !== "";
+    },
+  ).length;
+
+  return facetCount + (signal === "all" ? 0 : 1);
 }
 
 const SIGNAL_OPTIONS: Array<FilterChipDropdownOption> =
@@ -213,17 +250,26 @@ const SessionReplayFacets: FunctionComponent<SessionReplayFacetsProps> = (
         },
       );
     }, [props.rows, props.filters, props.signal]);
+  const activeCount: number = countActiveSessionReplayChips(
+    props.filters,
+    props.signal,
+  );
+
+  /*
+   * The row every list's chips sit in, between the header and the rows:
+   * "Filter", the chips, and "Clear all" once one is set.
+   */
   return (
-    <div
-      className="mb-4 flex flex-wrap items-center gap-2"
-      aria-label="Session replay facets"
-      data-testid="session-replay-facets"
+    <FacetFilterBar
+      activeCount={activeCount}
+      onClearAll={activeCount > 0 ? props.onClearAll : undefined}
+      dataTestId="session-replay-facets"
+      ariaLabel="Filters"
     >
-      <span className="text-xs font-medium text-gray-500">Filter by</span>
       <div data-testid="session-facet-signal">
         <FilterChipDropdown
           label="Signal"
-          emptyIcon={IconProp.Filter}
+          emptyIcon={IconProp.Bolt}
           options={SIGNAL_OPTIONS}
           value={props.signal === "all" ? null : props.signal}
           supportedOperators={["is"]}
@@ -239,6 +285,7 @@ const SessionReplayFacets: FunctionComponent<SessionReplayFacetsProps> = (
           <div key={facet.field} data-testid={`session-facet-${facet.field}`}>
             <FilterChipDropdown
               label={facet.label}
+              emptyIcon={facet.icon}
               options={facet.options}
               value={
                 getSessionReplayFacetValue(
@@ -264,7 +311,7 @@ const SessionReplayFacets: FunctionComponent<SessionReplayFacetsProps> = (
           </div>
         );
       })}
-    </div>
+    </FacetFilterBar>
   );
 };
 
