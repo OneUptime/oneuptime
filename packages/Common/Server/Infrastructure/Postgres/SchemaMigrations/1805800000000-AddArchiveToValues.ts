@@ -15,10 +15,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Adding a NOT NULL column with a constant default does not rewrite the table
  * on Postgres 11+, so this is cheap even on a project with many labels. The
  * foreign keys from "archivedByUserId" to "User" are added online, in
- * AddArchiveToValuesUserKeys1805770000000.
+ * AddArchiveToValuesUserKeys1805810000000.
  */
-export class AddArchiveToValues1805760000000 implements MigrationInterface {
-  public name: string = "AddArchiveToValues1805760000000";
+export class AddArchiveToValues1805800000000 implements MigrationInterface {
+  public name: string = "AddArchiveToValues1805800000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -4,8 +4,8 @@ import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../../Models/DatabaseModels/Label";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
-import { AddArchiveToValues1805760000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1805760000000-AddArchiveToValues";
-import { AddArchiveToValuesUserKeys1805770000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1805770000000-AddArchiveToValuesUserKeys";
+import { AddArchiveToValues1805800000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1805800000000-AddArchiveToValues";
+import { AddArchiveToValuesUserKeys1805810000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1805810000000-AddArchiveToValuesUserKeys";
 import AuditLogService from "../../../Server/Services/AuditLogService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import IncidentSeverityService from "../../../Server/Services/IncidentSeverityService";
@@ -214,7 +214,7 @@ describePostgres("the archive migrations on tables that hold values", () => {
   });
 
   test("up() adds the columns: every existing value is live, with no stamps", async () => {
-    await new AddArchiveToValues1805760000000().up(queryRunner);
+    await new AddArchiveToValues1805800000000().up(queryRunner);
 
     for (const table of ARCHIVABLE_VALUE_TABLE_NAMES) {
       expect(await columnsOf(table)).toEqual([
@@ -248,8 +248,8 @@ describePostgres("the archive migrations on tables that hold values", () => {
   });
 
   test("the keys migration adds each key online, validated, under its name, cleared when the user goes", async () => {
-    const keys: AddArchiveToValuesUserKeys1805770000000 =
-      new AddArchiveToValuesUserKeys1805770000000();
+    const keys: AddArchiveToValuesUserKeys1805810000000 =
+      new AddArchiveToValuesUserKeys1805810000000();
 
     expect(keys.transaction).toBe(false);
 
@@ -290,7 +290,7 @@ describePostgres("the archive migrations on tables that hold values", () => {
   });
 
   test("the keys migration is safe to run again", async () => {
-    await new AddArchiveToValuesUserKeys1805770000000().up(queryRunner);
+    await new AddArchiveToValuesUserKeys1805810000000().up(queryRunner);
 
     for (const table of ARCHIVABLE_VALUE_TABLE_NAMES) {
       expect(await keysOf(table)).toHaveLength(1);
@@ -298,13 +298,13 @@ describePostgres("the archive migrations on tables that hold values", () => {
   });
 
   test("down() undoes both", async () => {
-    await new AddArchiveToValuesUserKeys1805770000000().down(queryRunner);
+    await new AddArchiveToValuesUserKeys1805810000000().down(queryRunner);
 
     for (const table of ARCHIVABLE_VALUE_TABLE_NAMES) {
       expect(await keysOf(table)).toEqual([]);
     }
 
-    await new AddArchiveToValues1805760000000().down(queryRunner);
+    await new AddArchiveToValues1805800000000().down(queryRunner);
 
     for (const table of ARCHIVABLE_VALUE_TABLE_NAMES) {
       expect(await columnsOf(table)).toEqual([]);

@@ -15,9 +15,10 @@ import path from "path";
  * picked in it, every task under it - Repositories, a repository's page
  * where AI is asked with context, a task's conversation filling in as the
  * AI works, replying in it, stopping it and trying again, whatever stops AI
- * working said once at the top of the box with what fixes it, the Runner a
- * repository's settings pick for AI's work, read-only members, the old
- * Tasks and Code Repositories addresses, a phone, dark mode and German.
+ * working said once at the top of the box with what fixes it, a
+ * repository's settings - the GitHub Commands switch, the Runner AI works
+ * on, More settings and commands an operator set - read-only members, the
+ * old Tasks and Code Repositories addresses, a phone, dark mode and German.
  *
  * The maintainer's ask: "overhaul the entire 'Tasks' product and call it
  * 'Code' ... it should show Code repos first and tasks in them ... it should
@@ -807,6 +808,14 @@ test.describe("Code opens on the request box, like Claude Code and Codex", () =>
   });
 });
 
+/*
+ * The maintainer (2026-10-21): "why do I see 'not connected repos' and not
+ * see the connected repo visible? The connected repo is towards the end of
+ * the list, and 'not connected repos' is scattered everywhere ... Make it
+ * look like it belongs to the existing UI of oneuptime." The repositories AI
+ * can work in are now the list - the shared table every product draws -
+ * and those GitHub no longer reaches are folded apart, below it.
+ */
 test.describe("Code's Repositories", () => {
   async function openRepositories(
     page: Page,
@@ -815,7 +824,30 @@ test.describe("Code's Repositories", () => {
     await page.goto(`${CODE}/repositories${search ? `?${search}` : ""}`);
   }
 
-  test("a list - what needs someone first, then the quieter facts - and each opens its repository", async ({
+  function connectedCard(page: Page): Locator {
+    return page.getByTestId("code-repositories-card");
+  }
+
+  function notConnected(page: Page): Locator {
+    return page.getByTestId("code-repositories-not-connected");
+  }
+
+  async function openNotConnected(page: Page): Promise<void> {
+    await notConnected(page)
+      .getByRole("button", { name: "Not connected" })
+      .click();
+    await expect(
+      notConnected(page).getByRole("button", { name: "Not connected" }),
+    ).toHaveAttribute("aria-expanded", "true");
+  }
+
+  function names(list: Locator): Locator {
+    return list
+      .getByTestId("code-repository-row")
+      .getByTestId("code-repository-name");
+  }
+
+  test("the repositories AI can work in are the list - a OneUptime table, most recently active first - and the one it cannot is folded apart", async ({
     page,
   }: {
     page: Page;
@@ -825,130 +857,207 @@ test.describe("Code's Repositories", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Repositories",
     );
-    const rows: Locator = page.getByTestId("code-repository-row");
-    await expect(rows).toHaveCount(3);
-    await expect(page.getByTestId("code-repositories-count")).toHaveText(
-      "3 repositories",
-    );
-
-    // The most recently active repository first.
-    const checkout: Locator = rows.first();
-    await expect(checkout.getByTestId("code-repository-name")).toHaveText(
+    await expect(names(connectedCard(page))).toHaveText([
       "checkout-api",
-    );
-    // GitHub's own name beside it, where there is room for it.
+      "storefront-web",
+    ]);
+    // No "Not connected" among them.
+    await expect(connectedCard(page)).not.toContainText("Not connected");
+
     if (!isPhone(testInfo)) {
-      await expect(checkout).toContainText("acme/checkout-api");
+      // The table's own header row, as every list in OneUptime has.
+      await expect(connectedCard(page).getByRole("columnheader")).toHaveText([
+        "Repository",
+        "Tasks",
+        "Last Activity",
+      ]);
+      await expect(connectedCard(page)).toContainText(
+        "Open a repository to ask AI to work in it, read its tasks or change its settings.",
+      );
+      await expect(connectedCard(page)).toContainText("acme/checkout-api");
     }
+
+    const checkout: Locator = connectedCard(page)
+      .getByTestId("code-repository-row")
+      .first();
     await expect(checkout.getByTestId("code-repository-working")).toHaveText(
       "1 working",
     );
     await expect(checkout.getByTestId("code-repository-waiting")).toHaveText(
       "1 waiting for you",
     );
-    await expect(checkout.getByTestId("code-repository-stats")).toContainText(
+    await expect(checkout.getByTestId("code-repository-task-count")).toHaveText(
       "6 tasks",
     );
-    await expect(checkout.getByTestId("code-repository-stats")).toContainText(
-      "1 open pull request",
-    );
-
-    // A repository AI cannot reach says so, and keeps its whole name.
-    const payments: Locator = rows.filter({ hasText: "payments-worker" });
     await expect(
-      payments.getByTestId("code-repository-not-connected"),
-    ).toHaveText("Not connected");
-    const nameIsWhole: boolean = await payments
-      .getByTestId("code-repository-name")
-      .evaluate((element: Element): boolean => {
-        return element.scrollWidth <= element.clientWidth;
-      });
-    expect(nameIsWhole).toBe(true);
-
-    const quiet: Locator = rows.filter({ hasText: "storefront-web" });
-    await expect(quiet.getByTestId("code-repository-stats")).toHaveText(
-      "No tasks yet",
+      checkout.getByTestId("code-repository-pull-requests"),
+    ).toHaveText("1 open pull request");
+    await expect(connectedCard(page)).toContainText(
+      "Showing 1-2 of 2 repositories",
     );
-    await expect(quiet.getByTestId("code-repository-attention")).toHaveCount(0);
+
+    // The one GitHub does not reach: folded below, counted.
+    const header: Locator = notConnected(page).getByRole("button", {
+      name: "Not connected",
+    });
+    await expect(header).toHaveAttribute("aria-expanded", "false");
+    await expect(notConnected(page)).toContainText("1 repository");
+    await expect(notConnected(page)).toContainText(
+      "GitHub does not give OneUptime access to these repositories any more, so AI cannot work in them.",
+    );
+    // It sits below the list, never among its rows.
+    const cardBox: { y: number; height: number } | null =
+      await connectedCard(page).boundingBox();
+    const foldBox: { y: number } | null =
+      await notConnected(page).boundingBox();
+    expect(foldBox!.y).toBeGreaterThanOrEqual(cardBox!.y + cardBox!.height);
 
     await expectNoSidewaysScroll(page);
     await screenshot(page, testInfo, "code-repositories");
 
-    await checkout.getByTestId("code-repository-link").click();
+    await openNotConnected(page);
+    await expect(names(notConnected(page))).toHaveText(["payments-worker"]);
+    await expect(page.getByTestId("code-not-connected-explanation")).toHaveText(
+      "Their tasks stay readable. Connect GitHub with access to them to use them again, or open one to delete it.",
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repositories-not-connected-open");
+
+    // A click on the name opens the repository.
+    await connectedCard(page)
+      .getByTestId("code-repository-name")
+      .first()
+      .click();
     await expect(page).toHaveURL(repositoryPath(REPOSITORY.checkout));
     await expect(page.getByTestId("code-ask")).toBeVisible();
   });
 
   /*
-   * The UI review: from sm up a row's chips and facts sat beside its name
-   * and took its room - in German "checkout-api" was cut to "checkout-…".
-   * The name now has its line, its facts under it, and what needs someone
-   * sits at the row's end (on a phone, between the name and the facts).
+   * A repository's description is a line that does not wrap: it held the
+   * Repository column at its full length, so beside the side menu the table
+   * outgrew its card and Last Activity had to be scrolled to. The column now
+   * gives way, its words cut short, down to a floor.
    */
-  test("in German a repository keeps its whole name, its facts under it and what needs someone at the row's end", async ({
+  test("beside the side menu, 900 and 1024 wide, both tables fit their cards - Last Activity in sight, a long name cut short", async ({
     page,
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
-    await openRepositories(page, "lang=de");
+    test.skip(isPhone(testInfo), "The desktop table, beside the side menu.");
 
-    const checkout: Locator = page.getByTestId("code-repository-row").first();
-    const name: Locator = checkout.getByTestId("code-repository-name");
-    await expect(name).toHaveText("checkout-api");
-    expect(
-      await name.evaluate((element: Element): boolean => {
-        return element.scrollWidth <= element.clientWidth;
-      }),
-    ).toBe(true);
+    for (const width of [900, 1024]) {
+      await page.setViewportSize({ width, height: 900 });
+      await openRepositories(page, "names=long");
+      await expect(names(connectedCard(page)).first()).toHaveText(
+        "checkout-and-payments-platform-api-service",
+      );
+      await openNotConnected(page);
 
-    const nameBox: {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-    } | null = await name.boundingBox();
-    const statsBox: { y: number } | null = await checkout
-      .getByTestId("code-repository-stats")
-      .boundingBox();
-    const chipsBox: { x: number; y: number } | null = await checkout
-      .getByTestId("code-repository-attention")
-      .boundingBox();
-    // The facts sit under the name.
-    expect(statsBox!.y).toBeGreaterThanOrEqual(nameBox!.y + nameBox!.height);
-    if (isPhone(testInfo)) {
-      // What needs someone first: between the name and the facts.
-      expect(chipsBox!.y).toBeGreaterThan(nameBox!.y);
-      expect(chipsBox!.y).toBeLessThan(statsBox!.y);
-    } else {
-      // At the row's end, past the name - and the description reads whole.
-      expect(chipsBox!.x).toBeGreaterThan(nameBox!.x + nameBox!.width);
+      for (const list of [connectedCard(page), notConnected(page)]) {
+        await expect(list.getByTestId("table-scroll")).toHaveAttribute(
+          "data-overflowing",
+          "false",
+        );
+
+        const lastActivity: { x: number; width: number } | null = await list
+          .getByRole("columnheader", { name: "Last Activity" })
+          .boundingBox();
+        const listBox: { x: number; width: number } | null =
+          await list.boundingBox();
+        expect(lastActivity!.x + lastActivity!.width).toBeLessThanOrEqual(
+          listBox!.x + listBox!.width + 1,
+        );
+      }
+
+      // The long name ends in "..." within its column, whole on hover.
       expect(
-        await checkout
-          .getByTestId("code-repository-row-description")
+        await names(connectedCard(page))
+          .first()
           .evaluate((element: Element): boolean => {
-            return element.scrollWidth <= element.clientWidth;
+            return element.scrollWidth > element.clientWidth;
           }),
       ).toBe(true);
+      await expectNoSidewaysScroll(page);
+      await screenshot(page, testInfo, `code-repositories-${width}`);
     }
-    // Its open pull requests beside the pull request mark.
-    await expect(
-      checkout
-        .getByTestId("code-repository-stats")
-        .getByTestId("code-pull-request-mark"),
-    ).toBeVisible();
-
-    await expectNoSidewaysScroll(page);
-    await screenshot(page, testInfo, "code-repositories-german");
   });
 
-  test("Connect repositories starts GitHub's install", async ({
+  test("a click anywhere on a row opens its repository, as every table's rows do", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openRepositories(page);
 
-    await page.getByTestId("code-connect-more").click();
+    await connectedCard(page)
+      .getByTestId("code-repository-row")
+      .nth(1)
+      .getByTestId("code-repository-task-count")
+      .click();
+    await expect(page).toHaveURL(repositoryPath(REPOSITORY.web));
+  });
+
+  test("the maintainer's project: the one connected repository is the list, the fourteen others folded and paged", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openRepositories(page, "repos=stale");
+
+    await expect(names(connectedCard(page))).toHaveText(["oneuptime"]);
+    await expect(notConnected(page)).toContainText("14 repositories");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repositories-stale");
+
+    await openNotConnected(page);
+    await expect(names(notConnected(page))).toHaveCount(10);
+    await expect(names(notConnected(page)).first()).toHaveText("ads");
+    await expect(notConnected(page)).toContainText(
+      "Showing 1-10 of 14 repositories",
+    );
+    await notConnected(page).getByTestId("pagination-next-button").click();
+    await expect(names(notConnected(page))).toHaveText([
+      "marketing-site",
+      "mobile",
+      "status-page-templates",
+      "terraform-provider",
+    ]);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repositories-stale-open");
+  });
+
+  test("in German, a repository keeps its whole name and the list reads in German", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openRepositories(page, "lang=de");
+
+    const name: Locator = names(connectedCard(page)).first();
+    await expect(name).toHaveText("checkout-api");
+    expect(
+      await name.evaluate((element: Element): boolean => {
+        return element.scrollWidth <= element.clientWidth;
+      }),
+    ).toBe(true);
+    await expect(notConnected(page)).toContainText("Nicht verbunden");
+    await expect(
+      connectedCard(page).getByTestId("code-repository-task-count").first(),
+    ).toHaveText("6 Aufgaben");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repositories-german");
+  });
+
+  test("Connect repositories, the list's main button, starts GitHub's install", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRepositories(page);
+
+    await connectedCard(page)
+      .getByRole("button", { name: "Connect repositories" })
+      .click();
     await expect
       .poll(async () => {
         return (await recorded(page)).navigations;
@@ -958,47 +1067,87 @@ test.describe("Code's Repositories", () => {
       ]);
   });
 
-  test("with many repositories, a search box finds one by name", async ({
+  test("the folded list's Connect GitHub starts GitHub's install too", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await openRepositories(page, "repos=many");
+    await openRepositories(page);
+    await openNotConnected(page);
 
-    const rows: Locator = page.getByTestId("code-repository-row");
-    await expect(rows).toHaveCount(8);
-    const search: Locator = page.getByTestId("code-repository-search");
-    await search.fill("index");
-    await expect(rows).toHaveCount(1);
-    await expect(rows).toContainText("search-indexer");
-
-    await search.fill("nothing like it");
-    await expect(rows).toHaveCount(0);
-    await expect(page.getByTestId("code-repository-search-empty")).toHaveText(
-      "No repository matches your search.",
-    );
+    await page
+      .getByTestId("code-not-connected-reconnect")
+      .getByRole("button", { name: "Connect GitHub" })
+      .click();
+    await expect
+      .poll(async () => {
+        return (await recorded(page)).navigations;
+      })
+      .toEqual([
+        "https://github.com/apps/oneuptime-app/installations/new?state=fixture",
+      ]);
   });
 
-  test("GitHub reaches none of them: said once over the list, with Connect GitHub - not on every row", async ({
+  test("with many repositories, a search finds one by name - and opens Not connected when only a folded one matches", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openRepositories(page, "repos=many");
+
+    await expect(names(connectedCard(page))).toHaveCount(7);
+    await page.getByTestId("code-repository-search-slot").click();
+    const search: Locator = page.getByTestId("code-repository-search");
+    await expect(search).toBeFocused();
+    await search.fill("index");
+    await expect(names(connectedCard(page))).toHaveText(["search-indexer"]);
+    // Found among the connected ones: Not connected stays folded.
+    const header: Locator = notConnected(page).getByRole("button", {
+      name: "Not connected",
+    });
+    await expect(header).toHaveAttribute("aria-expanded", "false");
+
+    await search.fill("payments");
+    await expect(names(connectedCard(page))).toHaveCount(0);
+    const empty: Locator = page.getByTestId("code-repository-search-empty");
+    await expect(empty).toContainText("No repository matches your search");
+    await expect(empty).toContainText(
+      "1 repository under Not connected matches it.",
+    );
+    // Found only there: Not connected opens, the repository in sight.
+    await expect(header).toHaveAttribute("aria-expanded", "true");
+    await expect(names(notConnected(page))).toHaveText(["payments-worker"]);
+    await expect(names(notConnected(page))).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repositories-search-not-connected");
+
+    await empty.getByRole("button", { name: "Clear Search" }).click();
+    await expect(names(connectedCard(page))).toHaveCount(7);
+  });
+
+  test("GitHub reaches none of them: the list says so, with Connect GitHub - once", async ({
     page,
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
     await openRepositories(page, "connected=none");
 
-    const banner: Locator = page.getByTestId("code-github-disconnected");
-    await expect(banner).toContainText(
-      "GitHub is not connected to this project, so AI cannot work in these repositories.",
+    const empty: Locator = page.getByTestId("code-github-disconnected");
+    await expect(empty).toContainText("No connected repositories");
+    // Its repositories are folded below the empty list: "its", not "these".
+    await expect(empty).toContainText(
+      "GitHub is not connected to this project, so AI cannot work in its repositories.",
     );
-    await expect(page.getByTestId("code-repository-row")).toHaveCount(3);
-    await expect(page.getByTestId("code-repository-not-connected")).toHaveCount(
-      0,
-    );
-    await expect(page.getByTestId("code-connect-more")).toHaveCount(0);
+    await expect(names(connectedCard(page))).toHaveCount(0);
+    // One way to connect: no second button in the list's header.
+    await expect(
+      connectedCard(page).getByRole("button", { name: "Connect repositories" }),
+    ).toHaveCount(0);
+    await expect(notConnected(page)).toContainText("3 repositories");
     await expectNoSidewaysScroll(page);
     await screenshot(page, testInfo, "code-repositories-disconnected");
 
-    await banner.getByTestId("code-github-reconnect").click();
+    await empty.getByTestId("code-github-reconnect").click();
     await expect
       .poll(async () => {
         return (await recorded(page)).navigations;
@@ -1006,6 +1155,198 @@ test.describe("Code's Repositories", () => {
       .toEqual([
         "https://github.com/apps/oneuptime-app/installations/new?state=fixture",
       ]);
+  });
+});
+
+/*
+ * The maintainer (2026-10-21): "This toggle should be turned on by default"
+ * - Respond to GitHub Commands - and of the dialog's Build & Test step: "We
+ * don't need this step at all because repos have an agents.md file in
+ * them". A repository's settings are cards now, its GitHub commands one
+ * switch, and what most people never change folded under More settings.
+ */
+test.describe("a repository's settings", () => {
+  const SETTINGS: string = `${repositoryPath(REPOSITORY.checkout)}/settings`;
+
+  function commandsSwitch(page: Page): Locator {
+    return page.getByRole("switch", { name: "Respond to GitHub Commands" });
+  }
+
+  function moreSettings(page: Page): Locator {
+    return page.getByTestId("code-repository-more-settings");
+  }
+
+  async function openMoreSettings(page: Page): Promise<void> {
+    await moreSettings(page)
+      .getByRole("button", { name: "More settings" })
+      .click();
+    await expect(
+      moreSettings(page).getByRole("button", { name: "More settings" }),
+    ).toHaveAttribute("aria-expanded", "true");
+  }
+
+  test("cards, not a four-step dialog: GitHub Commands is on, and a flip saves at once", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(SETTINGS);
+
+    await expect(commandsSwitch(page)).toHaveAttribute("aria-checked", "true");
+    await expect(
+      page.getByRole("button", { name: "Edit Settings" }),
+    ).toHaveCount(0);
+    await expect(page.getByText("Build & Test")).toHaveCount(0);
+    await expect(
+      moreSettings(page).getByRole("button", { name: "More settings" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-settings");
+
+    await commandsSwitch(page).click();
+    await expect
+      .poll(async () => {
+        return (await recorded(page)).settings;
+      })
+      .toEqual([{ isGitHubCommandsEnabled: false }]);
+    await expect(commandsSwitch(page)).toHaveAttribute("aria-checked", "false");
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+  });
+
+  test("a repository that never set it reads as on, and one turned off as off", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${SETTINGS}?ghcommands=unset`);
+    await expect(commandsSwitch(page)).toHaveAttribute("aria-checked", "true");
+
+    await page.goto(`${SETTINGS}?ghcommands=off`);
+    await expect(commandsSwitch(page)).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("More settings: where pull requests open and how many, and the trigger label - each with its Edit, on one page", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(SETTINGS);
+    await expect(moreSettings(page)).toContainText("Pull Requests");
+    await expect(moreSettings(page)).toContainText("GitHub Trigger Label");
+
+    await openMoreSettings(page);
+    await screenshot(page, testInfo, "code-repository-more-settings");
+
+    /*
+     * The trigger label card: what the label does, and the label that
+     * applies, named - not a stray value under the card's words.
+     */
+    const triggerLabel: Locator = page.getByTestId("card").filter({
+      has: page
+        .getByTestId("card-details-heading")
+        .getByText("GitHub Trigger Label", { exact: true }),
+    });
+    await expect(triggerLabel).toContainText(
+      "Adding this label to a GitHub issue hands the issue to the app, as a mention does.",
+    );
+    await expect(triggerLabel.getByTestId("detail-label")).toHaveText("Label");
+    await expect(triggerLabel.getByTestId("detail-value")).toHaveText(
+      "oneuptime",
+    );
+
+    const pullRequests: Locator = page.getByTestId("card").filter({
+      has: page
+        .getByTestId("card-details-heading")
+        .getByText("Pull Requests", { exact: true }),
+    });
+    await pullRequests.getByRole("button", { name: "Edit" }).click();
+    const modal: Locator = page.getByTestId("modal");
+    await expect(modal).toBeVisible();
+    // One page: no steps, the action right there.
+    await expect(
+      modal.getByRole("navigation", { name: "Progress" }),
+    ).toHaveCount(0);
+    await modal.getByText("A limit", { exact: true }).click();
+    await modal.getByPlaceholder("3").fill("2");
+    await modal.getByTestId("modal-footer-submit-button").click();
+    await expect(modal).toBeHidden();
+    await expect
+      .poll(async () => {
+        const settings: Array<Record<string, unknown>> = (await recorded(page))
+          .settings;
+        return settings[settings.length - 1];
+      })
+      .toMatchObject({ maxOpenFixPullRequests: 2 });
+    await expect(pullRequests).toContainText("Up to 2 open at once");
+  });
+
+  test("build and test commands an operator set are shown read-only, and Remove Commands asks first, then clears all three", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${SETTINGS}?commands=1`);
+    // Folded, More settings says they are there.
+    await expect(moreSettings(page)).toContainText(
+      "Build and Test Commands: Configured",
+    );
+
+    await openMoreSettings(page);
+    const commands: Locator = page.getByTestId("code-repository-commands");
+    await expect(commands).toContainText("npm ci");
+    await expect(commands).toContainText("npm run build");
+    await expect(commands).toContainText("npm test");
+    await expect(commands.getByRole("textbox")).toHaveCount(0);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-commands");
+
+    await page.getByRole("button", { name: "Remove Commands" }).click();
+    const dialog: Locator = page.getByRole("dialog");
+    await expect(dialog).toContainText("Remove these commands?");
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).toBeHidden();
+    expect((await recorded(page)).settings).toEqual([]);
+
+    await page.getByRole("button", { name: "Remove Commands" }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Remove Commands" })
+      .click();
+    await expect
+      .poll(async () => {
+        return (await recorded(page)).settings;
+      })
+      .toEqual([{ setupCommand: null, buildCommand: null, testCommand: null }]);
+    await expect(page.getByTestId("code-repository-commands")).toHaveCount(0);
+  });
+
+  test("a repository with no commands shows nothing of them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(SETTINGS);
+    await openMoreSettings(page);
+    await expect(page.getByTestId("code-repository-commands")).toHaveCount(0);
+    await expect(page.getByText("Build and Test Commands")).toHaveCount(0);
+  });
+
+  test("Connection says what Repositories says: GitHub App where GitHub reaches it, Not connected where it does not", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(SETTINGS);
+    const status: Locator = page.getByTestId("repository-connection-status");
+    await expect(status).toHaveAttribute("data-connection", "github-app");
+    await expect(status).toHaveText("GitHub App");
+
+    // payments-worker: folded under Not connected on Repositories.
+    await page.goto(`${repositoryPath(REPOSITORY.payments)}/settings`);
+    await expect(status).toHaveAttribute("data-connection", "not-connected");
+    await expect(status).toHaveText("Not connected");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-settings-not-connected");
   });
 });
 
@@ -1500,7 +1841,12 @@ test.describe("a repository's page: ask AI", () => {
     );
     await notice.getByTestId("code-blocker-fix").click();
     await expect(page).toHaveURL(`${CODE}/repositories`);
-    await expect(page.getByTestId("code-connect-more")).toBeVisible();
+    // Connect repositories: the list header's main button.
+    await expect(
+      page
+        .getByTestId("code-repositories-toolbar")
+        .getByRole("button", { name: "Connect repositories" }),
+    ).toBeVisible();
   });
 
   test("a member who may only read reads every task, and is told why they cannot ask", async ({
@@ -1563,11 +1909,12 @@ test.describe("a repository's page: ask AI", () => {
 test.describe("a repository's Runner", () => {
   const SETTINGS: string = `${repositoryPath(REPOSITORY.checkout)}/settings`;
 
+  // The Runner card of the repository's settings.
   function settingsCard(page: Page): Locator {
     return page.getByTestId("card").filter({
       has: page
         .getByTestId("card-details-heading")
-        .getByText("Repository Settings", { exact: true }),
+        .getByText("Runner", { exact: true }),
     });
   }
 
@@ -1575,17 +1922,18 @@ test.describe("a repository's Runner", () => {
     return page.getByTestId("code-repository-runner-picker");
   }
 
-  // Opens Edit Settings and walks to its Runner step.
+  /*
+   * Opens the Runner card's Edit: one field on one page - the dialog's four
+   * steps (Pull Requests, GitHub Commands, Runner, Build & Test) are gone.
+   */
   async function openRunnerStep(page: Page): Promise<Locator> {
-    await settingsCard(page)
-      .getByRole("button", { name: "Edit Settings" })
-      .click();
+    await settingsCard(page).getByRole("button", { name: "Edit" }).click();
     const modal: Locator = page.getByTestId("modal");
     await expect(modal).toBeVisible();
-    for (let step: number = 0; step < 2; step++) {
-      await modal.getByRole("button", { name: "Next", exact: true }).click();
-    }
     await expect(runnerPicker(page)).toBeVisible();
+    await expect(
+      modal.getByRole("button", { name: "Next", exact: true }),
+    ).toHaveCount(0);
     return modal;
   }
 
@@ -1612,8 +1960,7 @@ test.describe("a repository's Runner", () => {
     modal: Locator,
   ): Promise<Record<string, unknown>> {
     const before: number = (await recorded(page)).settings.length;
-    // Build & Test, the last step, saves.
-    await modal.getByRole("button", { name: "Next", exact: true }).click();
+    // One page: its Save Changes saves.
     await modal.getByTestId("modal-footer-submit-button").click();
     await expect
       .poll(async (): Promise<number> => {
@@ -1640,12 +1987,9 @@ test.describe("a repository's Runner", () => {
     );
     // Global Runner is no page of the project's to link to.
     await expect(value.getByRole("link")).toHaveCount(0);
-    /*
-     * The repository has setup, build and test commands, which Global
-     * Runner never runs: said under it, above the commands the card lists.
-     */
+    // It runs no command: AI's change is not built or tested before the PR.
     await expect(value.getByTestId("code-repository-runner-skips")).toHaveText(
-      "Run by OneUptime for every project. It skips your setup, build and test commands.",
+      "Run by OneUptime for every project. It does not build or test AI's change before the pull request opens.",
     );
     await expect(settingsCard(page)).toContainText(
       "Where AI works in this repository.",
@@ -1654,7 +1998,7 @@ test.describe("a repository's Runner", () => {
     await screenshot(page, testInfo, "code-repository-runner-global");
   });
 
-  test("Edit Settings offers Global Runner first, then the project's own Runners - never the Kubernetes agent's - and saves the one picked", async ({
+  test("the Runner card's Edit offers Global Runner first, then the project's own Runners - never the Kubernetes agent's - and saves the one picked", async ({
     page,
   }: {
     page: Page;
@@ -1663,9 +2007,9 @@ test.describe("a repository's Runner", () => {
     const modal: Locator = await openRunnerStep(page);
 
     /*
-     * A field like the dialog's others: the form's title and the card's
-     * own description above the menu, which the title names, and no
-     * "(Optional)" - empty is Global Runner, an answer of its own.
+     * A field like any other: the form's title and its description above
+     * the menu, which the title names, and no "(Optional)" - empty is
+     * Global Runner, an answer of its own.
      */
     await expect(modal).toContainText("Where AI works in this repository.");
     await expect(modal).not.toContainText("(Optional)");
@@ -1677,7 +2021,7 @@ test.describe("a repository's Runner", () => {
     await expect(
       page.getByTestId("code-repository-runner-picker-help"),
     ).toHaveText(
-      "AI works on a Runner OneUptime runs for every project, which skips your setup, build and test commands. Pick one of your Runners to have them run.",
+      "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the pull request opens.",
     );
 
     await runnerPicker(page).getByRole("combobox").click();
@@ -1685,7 +2029,7 @@ test.describe("a repository's Runner", () => {
     await expect(options).toHaveCount(3);
     await expect(options.nth(0)).toContainText("Global Runner · Connected");
     await expect(options.nth(0)).toContainText(
-      "Run by OneUptime for every project. It skips your setup, build and test commands.",
+      "Run by OneUptime for every project. It does not build or test AI's change before the pull request opens.",
     );
     await expect(options.nth(1)).toHaveText("office-runner · Disconnected");
     await expect(options.nth(2)).toHaveText("prod-eu-west-1 · Connected");
@@ -1699,7 +2043,7 @@ test.describe("a repository's Runner", () => {
     await expect(
       page.getByTestId("code-repository-runner-picker-help"),
     ).toHaveText(
-      "AI clones the repository on this Runner, runs your setup, build and test commands there, and opens the pull request.",
+      "AI clones the repository on this Runner, builds and tests its change there the way the repository's AGENTS.md says, and opens the pull request.",
     );
 
     const saved: Record<string, unknown> = await save(page, modal);
@@ -1712,7 +2056,7 @@ test.describe("a repository's Runner", () => {
       "Connected",
     );
     await expect(value.getByRole("link")).toHaveText("prod-eu-west-1");
-    // Its own Runner runs the commands: nothing is said about skipping them.
+    // Its own Runner builds and tests: nothing is said about not doing so.
     await expect(value.getByTestId("code-repository-runner-skips")).toHaveCount(
       0,
     );
@@ -1774,7 +2118,7 @@ test.describe("a repository's Runner", () => {
     await expect(page.getByTestId("code-repository-runner")).toHaveText(
       "None: this server runs no global Runner",
     );
-    // Nothing is picked: the step says what to do, not what a pick does.
+    // Nothing is picked: the field says what to do, not what a pick does.
     await openRunnerStep(page);
     await expect(
       page.getByTestId("code-repository-runner-picker-help"),

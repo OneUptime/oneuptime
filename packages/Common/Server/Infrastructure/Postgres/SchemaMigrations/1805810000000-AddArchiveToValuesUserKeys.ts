@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddArchiveToValues1805760000000, and moved into a migration of its own:
+ * AddArchiveToValues1805800000000, and moved into a migration of its own:
  * incidents, alerts, monitors and everything else that picks one of these
  * values reads the tables all the time, so each foreign key from the new
  * "archivedByUserId" column to "User" is added NOT VALID and then validated,
@@ -11,10 +11,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * validation finds nothing to refuse. Safe to run again after a stop part
  * way.
  */
-export class AddArchiveToValuesUserKeys1805770000000
+export class AddArchiveToValuesUserKeys1805810000000
   implements MigrationInterface
 {
-  public name: string = "AddArchiveToValuesUserKeys1805770000000";
+  public name: string = "AddArchiveToValuesUserKeys1805810000000";
 
   // The validation runs outside a transaction.
   public transaction: boolean = false;

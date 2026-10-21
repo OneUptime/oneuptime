@@ -15,6 +15,9 @@ import BackendAPI, {
   TelemetryToolService,
 } from "../Utils/BackendAPI";
 import GitPorcelain, { GIT_STATUS_PORCELAIN_ARGS } from "../Utils/GitPorcelain";
+import RepositoryInstructions, {
+  RepositoryInstructionsFile,
+} from "../Utils/RepositoryInstructions";
 import SecretRedactor from "../Utils/SecretRedactor";
 import WorkspaceFileAccess, {
   WorkspaceTarget,
@@ -220,10 +223,24 @@ export default class InHouseCodeAgent implements CodeAgent {
     const startedAtMs: number = Date.now();
     const logs: Array<string> = [];
 
+    /*
+     * How the repository says to work in it (its AGENTS.md first), read
+     * before the agent changes anything: the agent follows it, and builds
+     * and tests a change that way (RepositoryInstructions).
+     */
+    const instructions: RepositoryInstructionsFile | null =
+      await RepositoryInstructions.read(workspaceRoot);
+
+    if (instructions) {
+      await this.log(
+        `Following the repository's ${instructions.fileName} for how to work in it`,
+      );
+    }
+
     const messages: Array<LLMMessage> = [
       {
         role: "system",
-        content: this.buildSystemPrompt(task),
+        content: this.buildSystemPrompt(task, instructions),
       },
       {
         role: "user",
@@ -554,9 +571,14 @@ export default class InHouseCodeAgent implements CodeAgent {
 
   /*
    * System prompt = the recipe prompt (built by the task handler) + the
-   * tool-use contract.
+   * repository's own instructions for coding agents, and for a change on a
+   * Runner that runs commands, to build and test it that way + the tool-use
+   * contract.
    */
-  private buildSystemPrompt(task: CodeAgentTask): string {
+  private buildSystemPrompt(
+    task: CodeAgentTask,
+    instructions: RepositoryInstructionsFile | null,
+  ): string {
     let recipePrompt: string = task.prompt;
 
     if (task.context) {
@@ -576,7 +598,8 @@ export default class InHouseCodeAgent implements CodeAgent {
       ...(RUNS_PROJECT_AUTHORED_COMMANDS
         ? [
             "- run_command runs a shell command in the repository root (120 second",
-            "  timeout). Use it to build or run tests when helpful.",
+            "  timeout). Use it to set up, build and run the tests the way the",
+            "  repository says to.",
           ]
         : [
             "- There is no command-running tool on this Runner: make your change",
@@ -600,7 +623,19 @@ export default class InHouseCodeAgent implements CodeAgent {
       "plain-text summary of what you changed and why.",
     ].join("\n");
 
-    return `${recipePrompt}\n\n${toolInstructions}`;
+    const repositorySection: string = RepositoryInstructions.buildPromptSection(
+      {
+        instructions,
+        checksChange: !task.skipsChangeChecks,
+        canRunCommands: RUNS_PROJECT_AUTHORED_COMMANDS,
+      },
+    );
+
+    return [recipePrompt, repositorySection, toolInstructions]
+      .filter((part: string): boolean => {
+        return part.length > 0;
+      })
+      .join("\n\n");
   }
 
   // The workspace tool surface offered to the model.

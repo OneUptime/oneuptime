@@ -13,8 +13,8 @@ import Label from "../../../../Models/DatabaseModels/Label";
 import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "../../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import Migrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddArchiveToValues1805760000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805760000000-AddArchiveToValues";
-import { AddArchiveToValuesUserKeys1805770000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805770000000-AddArchiveToValuesUserKeys";
+import { AddArchiveToValues1805800000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805800000000-AddArchiveToValues";
+import { AddArchiveToValuesUserKeys1805810000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805810000000-AddArchiveToValuesUserKeys";
 import { ARCHIVABLE_VALUE_TABLE_NAMES } from "../../../../Utils/ArchivableValues";
 
 /*
@@ -40,12 +40,12 @@ const MIGRATIONS_DIR: string = path.join(
   "SchemaMigrations",
 );
 
-const COLUMNS_FILE: string = "1805760000000-AddArchiveToValues.ts";
-const KEYS_FILE: string = "1805770000000-AddArchiveToValuesUserKeys.ts";
-const COLUMNS_NAME: string = "AddArchiveToValues1805760000000";
-const KEYS_NAME: string = "AddArchiveToValuesUserKeys1805770000000";
+const COLUMNS_FILE: string = "1805800000000-AddArchiveToValues.ts";
+const KEYS_FILE: string = "1805810000000-AddArchiveToValuesUserKeys.ts";
+const COLUMNS_NAME: string = "AddArchiveToValues1805800000000";
+const KEYS_NAME: string = "AddArchiveToValuesUserKeys1805810000000";
 // The migration they were generated on top of.
-const PREVIOUS_NAME: string = "AddRunnerProjectDefault1805720000000";
+const PREVIOUS_NAME: string = "TurnOnUnsetGitHubCommands1805770000000";
 
 const read: (file: string) => { up: string; down: string; source: string } = (
   file: string,
@@ -130,8 +130,8 @@ describe("registration", () => {
     const keys: number = names.indexOf(KEYS_NAME);
 
     expect(columns).toBeGreaterThan(-1);
-    expect(Migrations[columns]).toBe(AddArchiveToValues1805760000000);
-    expect(Migrations[keys]).toBe(AddArchiveToValuesUserKeys1805770000000);
+    expect(Migrations[columns]).toBe(AddArchiveToValues1805800000000);
+    expect(Migrations[keys]).toBe(AddArchiveToValuesUserKeys1805810000000);
     expect(keys).toBe(columns + 1);
   });
 
@@ -143,8 +143,8 @@ describe("registration", () => {
   });
 
   test("their names match their classes and their files' timestamps", () => {
-    expect(new AddArchiveToValues1805760000000().name).toBe(COLUMNS_NAME);
-    expect(new AddArchiveToValuesUserKeys1805770000000().name).toBe(KEYS_NAME);
+    expect(new AddArchiveToValues1805800000000().name).toBe(COLUMNS_NAME);
+    expect(new AddArchiveToValuesUserKeys1805810000000().name).toBe(KEYS_NAME);
     expect(COLUMNS_FILE.split("-")[0]).toBe(COLUMNS_NAME.slice(-13));
     expect(KEYS_FILE.split("-")[0]).toBe(KEYS_NAME.slice(-13));
   });
@@ -233,7 +233,7 @@ describe("what the migrations change", () => {
   });
 
   test("the keys migration runs outside a transaction, through OnlineDdl", () => {
-    expect(new AddArchiveToValuesUserKeys1805770000000().transaction).toBe(
+    expect(new AddArchiveToValuesUserKeys1805810000000().transaction).toBe(
       false,
     );
     expect(KEYS_MIGRATION.up).not.toContain("queryRunner.query(");
