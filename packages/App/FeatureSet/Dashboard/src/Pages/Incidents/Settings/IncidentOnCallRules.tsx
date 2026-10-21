@@ -18,6 +18,8 @@ import {
   getOnCallRuleActionFields,
   getOnCallRuleFormSteps,
 } from "../../../Utils/Form/EventRuleForm";
+import { OnCallRuleNameCell } from "../../../Components/OnCallRule/WorkingHoursSummary";
+import { OnCallRuleRecord } from "../../../Components/OnCallRule/WorkingHoursText";
 
 const incidentOnCallDocumentation: string = `
 ### How Incident On-Call Rules Work
@@ -88,6 +90,9 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
       sortOrder={SortOrder.Ascending}
       selectMoreFields={{
         isEnabled: true,
+        whenToPage: true,
+        workingHours: true,
+        workingHoursTimezone: true,
       }}
       filters={[
         {
@@ -106,6 +111,9 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
           field: { name: true },
           title: "Name",
           type: FieldType.Text,
+          getElement: (item: IncidentOnCallRule): ReactElement => {
+            return <OnCallRuleNameCell name={item.name || ""} rule={item} />;
+          },
         },
         {
           field: { description: true },
@@ -221,7 +229,9 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
           required: false,
           placeholder: "production|critical",
         },
-        ...getOnCallRuleActionFields<IncidentOnCallRule>(),
+        ...getOnCallRuleActionFields<IncidentOnCallRule>(
+          OnCallRuleRecord.Incident,
+        ),
       ]}
       showRefreshButton={true}
     />
@@ -254,7 +264,12 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
       }}
       sortBy="name"
       sortOrder={SortOrder.Ascending}
-      selectMoreFields={{ isEnabled: true }}
+      selectMoreFields={{
+        isEnabled: true,
+        whenToPage: true,
+        workingHours: true,
+        workingHoursTimezone: true,
+      }}
       filters={[
         { field: { name: true }, title: "Name", type: FieldType.Text },
         {
@@ -264,7 +279,14 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
         },
       ]}
       columns={[
-        { field: { name: true }, title: "Name", type: FieldType.Text },
+        {
+          field: { name: true },
+          title: "Name",
+          type: FieldType.Text,
+          getElement: (item: IncidentEpisodeOnCallRule): ReactElement => {
+            return <OnCallRuleNameCell name={item.name || ""} rule={item} />;
+          },
+        },
         {
           field: { description: true },
           title: "Description",
@@ -337,7 +359,9 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
           required: false,
           placeholder: "timeout|connection refused",
         },
-        ...getOnCallRuleActionFields<IncidentEpisodeOnCallRule>(),
+        ...getOnCallRuleActionFields<IncidentEpisodeOnCallRule>(
+          OnCallRuleRecord.IncidentEpisode,
+        ),
       ]}
       showRefreshButton={true}
     />

@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
@@ -240,8 +241,10 @@ RunCron(
             : scheduledMaintenance.title!;
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. Scheduled maintenance event - ${scheduledMaintenanceIdentifier}, state changed${previousState ? ` from ${previousState.name}` : ""} to ${scheduledMaintenanceState!
-            .name!}. To view this event, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: buildNotificationSms(
+            `Scheduled maintenance event - ${scheduledMaintenanceIdentifier}, state changed${previousState ? ` from ${previousState.name}` : ""} to ${scheduledMaintenanceState!
+              .name!}.`,
+          ),
         };
 
         const callMessage: CallRequestMessage = {

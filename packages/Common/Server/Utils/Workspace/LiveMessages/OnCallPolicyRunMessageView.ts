@@ -109,6 +109,21 @@ import WorkspaceMessageTime from "../WorkspaceMessageTime";
  * When everybody it paged passed it on, the run ends with nobody on the
  * record, and that is loud: "⚠️ Nobody can take Incident INC-8: everybody
  * paged by PolicyX passed it on (Alex and Sam). Someone needs to take it."
+ *
+ * A RUN THAT WAITS TO PAGE - an on-call rule's, until its working hours
+ * (OnCallDutyPolicyRunWait) - pages nobody yet, and its message says so and
+ * when paging starts, in the words OneUptime says it in everywhere, the
+ * moment in each reader's own time. Once it starts, the same message is
+ * edited into a paging run's; a record handled while it waits ends it with
+ * nobody paged, which is no alarm:
+ *
+ *   ⏳ PolicyX is waiting to page for Alert #12
+ *
+ *   Waiting for working hours. Paging starts tomorrow at 9:00 AM.
+ *
+ *   See every step in OneUptime
+ *
+ *   ✅ Alert #12 moved to Resolved, so PolicyX did not page anyone
  */
 
 // How a run's message is drawn for one place.
@@ -122,12 +137,22 @@ export interface OnCallPolicyRunViewOptions {
 
 // How a run stands, as the message tells it.
 export enum OnCallPolicyRunOutcome {
+  /*
+   * Waiting to page, paging nobody yet: held until working hours
+   * (OnCallDutyPolicyRunWait). Not an ending: it starts paging later.
+   */
+  Waiting = "Waiting",
   // Still escalating.
   Paging = "Paging",
   // A person acknowledged their page.
   Acknowledged = "Acknowledged",
   // The record was acknowledged or resolved some other way: paging stopped.
   RecordHandled = "RecordHandled",
+  /*
+   * The record was acknowledged or resolved while the run waited to page:
+   * it ended having paged nobody, and nobody needed paging.
+   */
+  HandledWhileWaiting = "HandledWhileWaiting",
   // The policy was archived while the run was escalating.
   PolicyArchived = "PolicyArchived",
   // Every escalation rule (and repeat) ran, people were paged, nobody acknowledged.
@@ -227,8 +252,23 @@ export interface OnCallPolicyRun {
   recordLabel: string;
   recordUrl: string;
   outcome: OnCallPolicyRunOutcome;
-  // Failed: what went wrong. RecordHandled: the record's state name.
+  /*
+   * Failed: what went wrong. RecordHandled, HandledWhileWaiting: the
+   * record's state name.
+   */
   outcomeDetail?: string | undefined;
+  /*
+   * Waiting: when paging starts, and whether it waits for working hours
+   * (OnCallDutyPolicyRunWait) or for a moment some other caller named.
+   */
+  pagingStartsAt?: Date | undefined;
+  isWaitingForWorkingHours?: boolean | undefined;
+  /*
+   * A run that waited and started before its hours began: why. Its record
+   * came to match an on-call rule that pages right away
+   * (WaitingRunsOnRecordChange).
+   */
+  startedEarlyReason?: string | undefined;
   acknowledgedByName?: string | undefined;
   ruleCount: number;
   // The escalation rule the run is on (or ended on).
@@ -351,9 +391,28 @@ export default class OnCallPolicyRunMessageView {
       parts.push(mdText`“${recordTitle}”`);
     }
 
+    /*
+     * Started before the working hours it waited for, because its record
+     * came to match a rule that pages right away: why it is paging now.
+     */
+    const startedEarlyReason: string = (run.startedEarlyReason || "").trim();
+
+    if (startedEarlyReason) {
+      parts.push(mdText`**Started early.** ${startedEarlyReason}`);
+    }
+
     // A direct page pages everybody at once: there is no rule it is on.
     if (run.outcome === OnCallPolicyRunOutcome.Paging && !run.directPage) {
       parts.push(this.getProgress(run));
+    }
+
+    // Waiting to page: why, and when paging starts.
+    if (run.outcome === OnCallPolicyRunOutcome.Waiting) {
+      const waiting: MarkdownText | null = this.getWaiting(run);
+
+      if (waiting) {
+        parts.push(waiting);
+      }
     }
 
     const people: Array<MarkdownText> = [
@@ -433,6 +492,12 @@ export default class OnCallPolicyRunMessageView {
     const isStartedByPerson: boolean = this.isStartedByPerson(run);
 
     switch (run.outcome) {
+      case OnCallPolicyRunOutcome.Waiting:
+        return `${pagerName} is waiting to page for ${run.recordLabel}`;
+      case OnCallPolicyRunOutcome.HandledWhileWaiting:
+        return run.outcomeDetail
+          ? `${run.recordLabel} moved to ${run.outcomeDetail}, so ${pagerNameInSentence} did not page anyone`
+          : `${pagerName} did not page anyone for ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.Paging:
         return `${pagerName} is paging for ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.Acknowledged:
@@ -492,7 +557,8 @@ export default class OnCallPolicyRunMessageView {
      */
     const isSomebodyOnIt: boolean =
       run.outcome === OnCallPolicyRunOutcome.Acknowledged ||
-      run.outcome === OnCallPolicyRunOutcome.RecordHandled;
+      run.outcome === OnCallPolicyRunOutcome.RecordHandled ||
+      run.outcome === OnCallPolicyRunOutcome.HandledWhileWaiting;
 
     if (run.firstRuleThatReachedNobody && !isSomebodyOnIt) {
       const reasons: Array<string | MarkdownText> =
@@ -606,6 +672,16 @@ export default class OnCallPolicyRunMessageView {
       : mdText`so ${policyInSentence} stopped paging`;
 
     switch (run.outcome) {
+      case OnCallPolicyRunOutcome.Waiting:
+        return mdText`⏳ ${policy} is waiting to page for ${record}`;
+      /*
+       * It never paged, so it did not "stop": in the past tense, as for a
+       * run that stopped because its record was handled.
+       */
+      case OnCallPolicyRunOutcome.HandledWhileWaiting:
+        return run.outcomeDetail
+          ? mdText`✅ ${record} moved to **${run.outcomeDetail}**, so ${policyInSentence} did not page anyone`
+          : mdText`✅ ${record} is being handled, so ${policyInSentence} did not page anyone`;
       case OnCallPolicyRunOutcome.Paging:
         return mdText`📟 ${policy} is paging for ${record}`;
       case OnCallPolicyRunOutcome.Acknowledged:
@@ -649,6 +725,28 @@ export default class OnCallPolicyRunMessageView {
           : mdText`❌ ${policy} ${what} ${record}`;
       }
     }
+  }
+
+  /*
+   * Why a waiting run waits, and when paging starts, in each reader's own
+   * time: "**Waiting for working hours.** Paging starts tomorrow at 9:00
+   * AM." - the words of its status message (OnCallDutyPolicyRunWait). Null
+   * when the run does not know when.
+   */
+  private static getWaiting(run: OnCallPolicyRun): MarkdownText | null {
+    const startsAt: Date | undefined = run.pagingStartsAt;
+
+    if (!startsAt || isNaN(startsAt.getTime())) {
+      return run.isWaitingForWorkingHours
+        ? mdText`**Waiting for working hours.**`
+        : null;
+    }
+
+    const when: MarkdownText = WorkspaceMessageTime.dateAndTime(startsAt);
+
+    return run.isWaitingForWorkingHours
+      ? mdText`**Waiting for working hours.** Paging starts ${when}.`
+      : mdText`Paging starts ${when}.`;
   }
 
   /*

@@ -496,9 +496,9 @@ describe("the email", () => {
 });
 
 describe("the other channels", () => {
-  test("SMS says it is a missed call and how to unsubscribe", () => {
+  test("SMS says it is a missed call and where to turn these off", () => {
     expect(build(makeCall()).smsMessage.message).toBe(
-      "This is a message from OneUptime. Missed call: +14155550999 called Support Hotline. Nobody answered. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.",
+      "OneUptime: Missed call: +14155550999 called Support Hotline. Nobody answered. Turn off in User Settings > Notification Settings.",
     );
   });
 

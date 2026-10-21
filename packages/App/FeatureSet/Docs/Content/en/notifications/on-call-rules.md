@@ -51,7 +51,7 @@ That is a safe start, and usually too much. Trim it to what each severity deserv
 | Major | Push at once, SMS after 10 minutes |
 | Minor or low | Email at once |
 
-OneUptime has no quiet hours: keep low severities on email, or on a push rule set to **Standard**, so they never wake you.
+Your own rules have no quiet hours: keep low severities on email, or on a push rule set to **Standard**, so they never wake you. To make a low-severity page wait for working hours for everyone, set the on-call rule that pages it to **Only during working hours**: see [On-call rules](/docs/alerts/settings#on-call-rules).
 
 ## Add a rule
 

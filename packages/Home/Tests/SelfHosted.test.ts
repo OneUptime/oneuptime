@@ -27,6 +27,7 @@ import {
   getSelfHostedContent,
 } from "../Utils/SelfHosted";
 import PageSEOConfig, { PageSEOData } from "../Utils/PageSEO";
+import { getCloudMarketplacesContent } from "../Utils/CloudMarketplaces";
 import { RetiredClaim, RetiredEditionClaims } from "../Utils/Claims";
 
 /*
@@ -571,6 +572,8 @@ describe("SelfHosted content model", () => {
     expect(content.supportBoundaries).toBe(SupportBoundaries);
     expect(content.faqs).toBe(SelfHostedFaqs);
     expect(content.helmDocs).toBe(HelmDocs);
+    // The line under the Enterprise Edition's call to action names these.
+    expect(content.cloudMarketplaces).toEqual(getCloudMarketplacesContent());
   });
 });
 

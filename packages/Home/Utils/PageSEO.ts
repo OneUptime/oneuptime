@@ -1426,14 +1426,17 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   /*
-   * The companies that sell OneUptime, and the form for becoming one
-   * (Utils/Resellers.ts). An "enterprise" page, so llms.txt lists it with the
-   * other ways to buy; /resellers.md lists the resellers themselves.
+   * The companies that sell OneUptime, the cloud marketplaces it is sold on,
+   * and the form for becoming a reseller (Utils/Resellers.ts,
+   * Utils/CloudMarketplaces.ts). An "enterprise" page, so llms.txt lists it
+   * with the other ways to buy; /resellers.md lists the resellers and the
+   * listings themselves. The description names neither, so it stays true as
+   * they change, and gives the two ways to buy before the way to sell.
    */
   "/resellers": {
     title: "Resellers | Buy Through a Local Partner | OneUptime",
     description:
-      "Buy OneUptime through a reseller in your country, or apply to become one. See our resellers by region and send us your details.",
+      "Buy OneUptime through a reseller in your country, or on your cloud marketplace and pay on your cloud bill. Or apply to become a reseller.",
     canonicalPath: "/resellers",
     twitterCard: "summary",
     pageType: "enterprise",

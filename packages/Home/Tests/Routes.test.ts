@@ -714,3 +714,29 @@ describe("Resellers routes", () => {
     expect(isRedirectPath("/resellers")).toBe(false);
   });
 });
+
+describe("Cloud marketplace routes", () => {
+  test("/pricing hands its page OneUptime Cloud's marketplace listings, from the one list", () => {
+    const body: string | null = bodyOfGetRoute("/pricing");
+
+    expect(body).not.toBeNull();
+    expect(body).toContain("`${ViewsPath}/pricing`");
+    expect(body).toContain("cloudMarketplaces: getCloudMarketplacesContent()");
+    expect(routesSource).toContain(
+      'import { getCloudMarketplacesContent } from "./Utils/CloudMarketplaces";',
+    );
+  });
+
+  test("the Resellers and self-hosted pages get theirs inside their own content", () => {
+    // getResellersPageContent and getSelfHostedContent carry them.
+    expect(bodyOfGetRoute("/resellers")).toContain(
+      "resellers: getResellersPageContent(",
+    );
+    expect(routesSource).toContain("selfHosted: getSelfHostedContent()");
+  });
+
+  test("no route gives the section an address of its own: it is part of /resellers", () => {
+    expect(routesSource).not.toContain('"/cloud-marketplaces"');
+    expect(routesSource).not.toContain('"/marketplaces"');
+  });
+});

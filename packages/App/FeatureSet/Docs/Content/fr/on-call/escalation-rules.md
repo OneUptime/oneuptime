@@ -118,6 +118,26 @@ Chaque message est accepté par son fournisseur, de sorte qu'une alerte part tou
 
 Un message plus long, avec un titre long ou une longue description qu'un modèle y a placée, est coupé et se termine par une note indiquant que le texte complet est dans OneUptime : « … (truncated — see OneUptime for the full text) ». Le libellé d'un message WhatsApp est un modèle fixe, ce sont donc les valeurs les plus longues qui y sont coupées, chacune se terminant par « … ». Les liens d'un message ne sont jamais coupés.
 
+### Ce que dit le SMS d'une alerte
+
+Un SMS est envoyé, et facturé, par parties de 160 caractères. Une alerte par SMS est écrite pour tenir en une seule partie chaque fois que c'est possible, et ne dit que ce dont vous avez besoin sur un téléphone verrouillé : qui l'envoie, ce qui s'est passé, et l'unique lien pour accuser réception de l'alerte ou la transmettre. Sur un téléphone, elle s'affiche ainsi :
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+```
+
+Il indique la gravité et ce qui s'est passé (un incident, une alerte ou un épisode de l'un ou de l'autre), son numéro, le projet et le titre, dans cet ordre. Quand tout ne tient pas en une partie :
+
+1. Le projet est d'abord omis.
+2. Puis le titre est coupé, et se termine par `...`.
+
+La gravité, le numéro et le lien ne sont jamais coupés. Un titre garde au moins 20 caractères : si même cela ne tient pas, par exemple avec une adresse ou un nom de produit très long, le SMS prend une deuxième partie et dit tout.
+
+Un seul caractère hors de l'alphabet simple des SMS fait partir tout le message par parties de 70 caractères. C'est pourquoi les guillemets et les tirets typographiques sont écrits `"`, `'` et `-`, `…` est écrit `...`, et les lettres comme `ç` et `ł` perdent leurs accents ; les emoji sont omis. Un titre dans une autre écriture, comme le japonais ou le russe, est envoyé tel qu'il est écrit, et prend deux parties ou plus.
+
+Les autres SMS que OneUptime vous envoie, par exemple pour une modification d'un incident dont vous êtes propriétaire ou le début de votre tour d'astreinte, commencent aussi par `OneUptime:` et se terminent par `Turn off in User Settings > Notification Settings.`, une phrase omise quand c'est ce qui permet au SMS de tenir en une partie.
+
 ### Quand une alerte n'est pas envoyée
 
 Une alerte non envoyée indique pourquoi dans les **Journaux d'astreinte** de la personne (Paramètres utilisateur) : sa ligne affiche **Erreur**, et son message d'état en donne la raison. Elle ne reste plus bloquée sur **Envoi en cours**. Le message indique l'une de ces raisons :

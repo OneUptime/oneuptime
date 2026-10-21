@@ -344,6 +344,35 @@ describe("the Resellers page entry", () => {
 
   test("names no reseller, so it stays true as the list changes", () => {
     expect(`${seo!.title} ${seo!.description}`).not.toMatch(/SLEXN|Korea/);
-    expect(seo!.description).toContain("become one");
+    expect(seo!.description).toContain("become a reseller");
+  });
+
+  test("says a buyer can also pay on their cloud bill, naming no marketplace, so it stays true as listings go public", () => {
+    expect(seo!.description).toBe(
+      "Buy OneUptime through a reseller in your country, or on your cloud marketplace and pay on your cloud bill. Or apply to become a reseller.",
+    );
+    expect(`${seo!.title} ${seo!.description}`).not.toMatch(
+      /AWS|Amazon|Azure|Microsoft|Google/,
+    );
+  });
+
+  test("gives both ways to buy first, then the way to sell", () => {
+    const description: string = seo!.description;
+
+    expect(description.startsWith("Buy OneUptime through a reseller")).toBe(
+      true,
+    );
+    expect(description.indexOf("a reseller in your country")).toBeLessThan(
+      description.indexOf("cloud marketplace"),
+    );
+    expect(description.indexOf("cloud marketplace")).toBeLessThan(
+      description.indexOf("become a reseller"),
+    );
+    // One sentence to buy, one to sell.
+    expect(
+      description.split(". ").map((sentence: string): string => {
+        return sentence.split(" ")[0] || "";
+      }),
+    ).toEqual(["Buy", "Or"]);
   });
 });

@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "../../Utils/Sms/NotificationSms";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
@@ -121,7 +122,9 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       };
 
       const sms: SMSMessage = {
-        message: `This is a message from OneUptime. You have been added to the on-call duty policy ${createdModel.onCallDutyPolicy?.name} for team ${temaName} and escalation rule ${createdModel.onCallDutyPolicyEscalationRule?.name} with order ${createdModel.onCallDutyPolicyEscalationRule?.order}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+        message: buildNotificationSms(
+          `You have been added to the on-call duty policy ${createdModel.onCallDutyPolicy?.name} for team ${temaName} and escalation rule ${createdModel.onCallDutyPolicyEscalationRule?.name} with order ${createdModel.onCallDutyPolicyEscalationRule?.order}.`,
+        ),
       };
 
       const callMessage: CallRequestMessage = {
@@ -319,7 +322,9 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. You have been removed from the on-call duty policy ${deletedItem.onCallDutyPolicy?.name} for team ${teamName} and escalation rule ${deletedItem.onCallDutyPolicyEscalationRule?.name} with order ${deletedItem.onCallDutyPolicyEscalationRule?.order}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: buildNotificationSms(
+            `You have been removed from the on-call duty policy ${deletedItem.onCallDutyPolicy?.name} for team ${teamName} and escalation rule ${deletedItem.onCallDutyPolicyEscalationRule?.name} with order ${deletedItem.onCallDutyPolicyEscalationRule?.order}.`,
+          ),
         };
 
         const callMessage: CallRequestMessage = {

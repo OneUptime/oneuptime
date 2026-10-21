@@ -598,10 +598,11 @@ const NUMBERS: Record<string, Array<string>> = {
   [SLACK]: ["443", "15"],
   [TEAMS]: ["405", "404", "58", "24", "443", "15"],
   /*
-   * Twilio's error for an SMS from a number that cannot send SMS, and the
-   * Singapore number ranges the separate-numbers section names.
+   * Twilio's error for an SMS from a number that cannot send SMS. The
+   * separate-numbers section names no country, so no country's number
+   * ranges either.
    */
-  [TWILIO]: ["443", "164", "21606", "65"],
+  [TWILIO]: ["443", "164", "21606"],
   [GITHUB]: ["15", "443"],
 };
 

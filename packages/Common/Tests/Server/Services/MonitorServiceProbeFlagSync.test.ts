@@ -1224,7 +1224,7 @@ describe("MonitorService probe flags", () => {
           it(`the SMS says the probes are ${status}`, async () => {
             for (const notification of sentToOwners()) {
               expect(notification.smsMessage.message).toBe(
-                `This is a message from OneUptime. Probes for monitor ${MONITOR_NAME} are ${status}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+                `OneUptime: Probes for monitor ${MONITOR_NAME} are ${status}. Turn off in User Settings > Notification Settings.`,
               );
             }
           });

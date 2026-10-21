@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
@@ -172,7 +173,9 @@ RunCron(
           };
 
           const sms: SMSMessage = {
-            message: `This is a message from OneUptime. New incident episode created: ${episodeIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+            message: buildNotificationSms(
+              `New incident episode created: ${episodeIdentifier}.`,
+            ),
           };
 
           const callMessage: CallRequestMessage = {

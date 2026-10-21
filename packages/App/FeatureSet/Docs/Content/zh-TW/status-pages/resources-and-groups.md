@@ -152,7 +152,7 @@ flowchart TB
 
 | 位置 | 動作 |
 | ----- | ------- |
-| 導覽器的列選單 | **Edit group**、**Move up**、**Move down**、**顯示 ID**、**Delete group** |
+| 導覽器的列選單 | **Edit group**、**上移**、**下移**、**顯示 ID**、**Delete group** |
 | 窗格的 **More actions** 選單 | **Edit this group**、**Add a sub group**、**Move group up**、**Move group down**、**Show group ID**、**重新整理**、**Delete this group** |
 
 沒有名稱就儲存的群組會顯示為 **Untitled group**，這很好地提醒您原本想輸入點什麼。
@@ -195,7 +195,7 @@ flowchart TB
 | 對象 | 如何調整順序 |
 | ---- | ----------------- |
 | 群組內的資源 | 拖曳一列。窗格上也會提示：**Drag a row to change the order visitors see**。 |
-| 群組之間 | 導覽器列選單中的 **Move up** / **Move down**，或 **More actions** 中的 **Move group up** / **Move group down**。 |
+| 群組之間 | 導覽器列選單中的 **上移** / **下移**，或 **More actions** 中的 **Move group up** / **Move group down**。 |
 | 不屬於任何群組的資源 | 它們在 **Top of page** 中，一律顯示在所有群組之上，所以請把大家最先查看的內容放在這裡。 |
 
 **有兩種情況無法拖曳。** 在 **Search in {group}...** 方塊中搜尋時會關閉排序（窗格會顯示 `N of M shown · drag to reorder is off while filtering`），所以請先清除搜尋。另外，格狀群組從不透過拖曳排序，因為監測器的位置由它的列與欄決定。

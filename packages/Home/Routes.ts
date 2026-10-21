@@ -54,6 +54,7 @@ import { getDatabasesPageContent } from "./Utils/Databases";
 import { getQueuesPageContent } from "./Utils/Queues";
 import { getCliPageContent } from "./Utils/CliPage";
 import { getResellersPageContent } from "./Utils/Resellers";
+import { getCloudMarketplacesContent } from "./Utils/CloudMarketplaces";
 import {
   ResellerInquiryHandlerOptions,
   createDefaultResellerInquiryOptions,
@@ -580,6 +581,8 @@ const HomeFeatureSet: FeatureSet = {
         pricing,
         enableGoogleTagManager: GoogleTagManagerEnabled,
         seo,
+        // The line under the plans naming OneUptime Cloud's marketplace listings.
+        cloudMarketplaces: getCloudMarketplacesContent(),
       });
     });
 

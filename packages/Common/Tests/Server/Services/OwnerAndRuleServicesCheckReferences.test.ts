@@ -83,7 +83,7 @@ interface ServiceCase {
 
 // A rule model: the class extends one of the rule base models.
 const RULE_MODEL_CLASS: RegExp =
-  /class \w+ extends (RuleBaseModel|RelationOnlyRuleBaseModel)\b/;
+  /class \w+ extends (RuleBaseModel|RelationOnlyRuleBaseModel|OnCallRuleBaseModel)\b/;
 
 // An owner row model: <Resource>OwnerUser or <Resource>OwnerTeam.
 const OWNER_MODEL_NAME: RegExp = /Owner(User|Team)$/;

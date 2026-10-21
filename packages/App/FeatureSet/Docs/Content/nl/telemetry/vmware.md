@@ -311,7 +311,7 @@ De installatie zonder Docker is al een systemd-service, met een eigen unit.
 
 ## De agent upgraden
 
-De agent meldt de collectorversie die zijn bestanden vastzetten als zijn **Agentversie**. Is die ouder dan de versie die deze OneUptime-release vastzet, dan verschijnt er een waarschuwingsteken naast, op de pagina **Overzicht** van het vCenter en in de lijst **Alle vCenters**. Selecteer het om deze commando's te zien. Een agent die is geïnstalleerd voordat zijn bestanden een versie meldden, toont er geen tot hij op deze manier is bijgewerkt.
+De agent meldt de collectorversie die zijn bestanden vastzetten als zijn **Agentversie**. Is die ouder dan de versie die deze OneUptime-release vastzet, dan verschijnt er een waarschuwingsteken naast op de pagina **Overzicht** van het vCenter. Selecteer het om deze commando's te zien. Een agent die is geïnstalleerd voordat zijn bestanden een versie meldden, toont er geen tot hij op deze manier is bijgewerkt.
 
 De collector ligt vast in `docker-compose.yml` (of, zonder Docker, via de release die je hebt gedownload) en de configuratie ervan is een bestand ernaast, dus alleen pullen brengt de agent niet verder:
 

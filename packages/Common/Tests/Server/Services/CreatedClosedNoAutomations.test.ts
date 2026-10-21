@@ -30,6 +30,7 @@ import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
 import IncidentGroupingEngineService from "../../../Server/Services/IncidentGroupingEngineService";
 import IncidentLabelRuleEngineService from "../../../Server/Services/IncidentLabelRuleEngineService";
 import IncidentOnCallRuleEngineService from "../../../Server/Services/IncidentOnCallRuleEngineService";
+import { OnCallRulePagingHold } from "../../../Server/Utils/OnCall/OnCallRulePagingHold";
 import IncidentOwnerRuleEngineService from "../../../Server/Services/IncidentOwnerRuleEngineService";
 import IncidentPrivacyRuleEngineService from "../../../Server/Services/IncidentPrivacyRuleEngineService";
 import IncidentService from "../../../Server/Services/IncidentService";
@@ -2084,6 +2085,108 @@ describe("a live record still pages every policy, its rules' included", () => {
           .sort(),
       ).toEqual([PRIMARY_POLICY_ID, DATABASE_POLICY_ID].sort());
       expect(onCallNotRunLines(INCIDENT, probes)).toHaveLength(0);
+    },
+  );
+});
+
+/*
+ * A policy an on-call rule holds until working hours (OnCallRulePagingHold)
+ * is run held: the rule engine hands the record's service the hold, and
+ * the fan-out passes it to executePolicy with that policy - and no other.
+ * An episode's "On-Call Policy Executed" entry says which of its policies
+ * is not paging yet.
+ */
+describe("a policy an on-call rule holds until working hours", () => {
+  const HOLD: OnCallRulePagingHold = {
+    pagingStartsAt: new Date(Date.now() + 6 * 60 * 60 * 1000),
+    waitingStatusMessage:
+      "Waiting for working hours. Paging starts Tue 09:00 (Europe/London).",
+  };
+
+  // The engine of a record's on-call rules, as its service calls it.
+  const RULE_ENGINES: Array<[Kind, unknown, string]> = [
+    [INCIDENT, IncidentOnCallRuleEngineService, "applyRulesToIncident"],
+    [ALERT, AlertOnCallRuleEngineService, "applyRulesToAlert"],
+    [ALERT_EPISODE, AlertEpisodeOnCallRuleEngineService, "applyRulesToEpisode"],
+    [
+      INCIDENT_EPISODE,
+      IncidentEpisodeOnCallRuleEngineService,
+      "applyRulesToEpisode",
+    ],
+  ];
+
+  async function createHolding(
+    kind: Kind,
+    engine: unknown,
+    method: string,
+    state: string | null,
+  ): Promise<Created> {
+    return create(kind, state, [PRIMARY_POLICY_ID, DATABASE_POLICY_ID], {
+      extraStubs: (probes: Probes): void => {
+        jest
+          .spyOn(engine as Record<string, AnyFunction>, method)
+          .mockImplementation((async (
+            record: unknown,
+          ): Promise<Map<string, OnCallRulePagingHold>> => {
+            probes.onCallRules.push(record);
+            return new Map<string, OnCallRulePagingHold>([
+              [DATABASE_POLICY_ID, HOLD],
+            ]);
+          }) as never);
+      },
+    });
+  }
+
+  test.each(RULE_ENGINES)(
+    "%#: the held policy runs held, and every other pages now",
+    async (kind: Kind, engine: unknown, method: string) => {
+      const { probes } = await createHolding(kind, engine, method, null);
+
+      const held: { options: Record<string, unknown> } | undefined =
+        probes.paged.find((page: { policyId: string }): boolean => {
+          return page.policyId === DATABASE_POLICY_ID;
+        });
+      const now: { options: Record<string, unknown> } | undefined =
+        probes.paged.find((page: { policyId: string }): boolean => {
+          return page.policyId === PRIMARY_POLICY_ID;
+        });
+
+      expect(probes.paged).toHaveLength(2);
+      expect(held!.options["pagingStartsAt"]).toEqual(HOLD.pagingStartsAt);
+      expect(held!.options["waitingStatusMessage"]).toBe(
+        HOLD.waitingStatusMessage,
+      );
+      expect(now!.options["pagingStartsAt"]).toBeUndefined();
+      expect(now!.options["waitingStatusMessage"]).toBeUndefined();
+    },
+  );
+
+  test.each(RULE_ENGINES.slice(2))(
+    "%#: an episode's feed says the held policy is not paging yet",
+    async (kind: Kind, engine: unknown, method: string) => {
+      const { probes } = await createHolding(kind, engine, method, null);
+
+      const executed: string | undefined = probes.feed
+        .map((item: Record<string, unknown>): string => {
+          return String(item["feedInfoInMarkdown"] || "");
+        })
+        .find((text: string): boolean => {
+          return text.includes("On-Call Policy Executed");
+        });
+
+      expect(executed).toContain("not paging yet.");
+      expect(executed).toContain("Waiting for working hours");
+      // The policy that pages now is listed as it always was.
+      expect(executed).toMatch(/- Primary\n/);
+    },
+  );
+
+  test.each(RULE_ENGINES)(
+    "%#: created acknowledged, pages none of them, held or not",
+    async (kind: Kind, engine: unknown, method: string) => {
+      const { probes } = await createHolding(kind, engine, method, MONITORING);
+
+      expect(probes.paged).toHaveLength(0);
     },
   );
 });

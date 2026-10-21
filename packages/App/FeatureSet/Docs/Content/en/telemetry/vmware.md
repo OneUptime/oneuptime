@@ -311,7 +311,7 @@ The install without Docker is a systemd service already, with a unit of its own.
 
 ## Upgrading the agent
 
-The agent reports the collector version its files pin as its **Agent Version**. When that is older than the version this OneUptime release pins, a warning sign appears beside it on the vCenter's **Overview** and in the **All vCenters** list. Select it to see these commands. An agent installed before its files reported a version shows none until it is upgraded this way.
+The agent reports the collector version its files pin as its **Agent Version**. When that is older than the version this OneUptime release pins, a warning sign appears beside it on the vCenter's **Overview**. Select it to see these commands. An agent installed before its files reported a version shows none until it is upgraded this way.
 
 The collector is pinned in `docker-compose.yml` (or, without Docker, by the release you downloaded) and its config is a file next to it, so pulling alone does not move the agent forward:
 

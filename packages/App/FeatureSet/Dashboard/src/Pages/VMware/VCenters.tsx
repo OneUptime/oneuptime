@@ -28,6 +28,7 @@ import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerAction
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import useFirstRecordWatch, {
   FirstRecordWatch,
@@ -267,13 +268,28 @@ const VMwareVCenters: FunctionComponent<
               );
             },
           },
+          /*
+           * Collected By and Agent Version start hidden. The list answers
+           * "which vCenters are there, and are they up?" with the columns
+           * every infrastructure list shows: Name, Status, Last Seen, Labels
+           * and Owners. How one vCenter is collected, and the version of the
+           * agent that sends it, are details of that vCenter, on its own
+           * pages: the Overview shows the Agent Version (with its upgrade
+           * sign) under vCenter Details, and Settings the Data Collection
+           * card. The table's Customize Columns turns either back on.
+           *
+           * Neither is hideOnMobile: that flag drops a column at render
+           * while the picker knows nothing of it, so on a phone a viewer
+           * who switched one on would get no column (as the monitor list's
+           * Template column explains, in Components/Monitor/MonitorTable).
+           */
           {
             field: {
               collectionMethod: true,
             },
             title: "Collected By",
             type: FieldType.Element,
-            hideOnMobile: true,
+            isHiddenByDefault: true,
             getElement: (item: VMwareVCenter): ReactElement => {
               if (!isProbeCollected(item)) {
                 return (
@@ -308,8 +324,19 @@ const VMwareVCenters: FunctionComponent<
             },
             title: "Agent Version",
             type: FieldType.Element,
-            hideOnMobile: true,
+            // Hidden until asked for: see Collected By above.
+            isHiddenByDefault: true,
             getElement: (item: VMwareVCenter): ReactElement => {
+              /*
+               * No version: a vCenter a probe collects, or an agent from
+               * before its files reported one. The quiet dash every empty
+               * cell has, which a phone's card leaves out rather than
+               * naming a field with nothing under it.
+               */
+              if (!item.agentVersion) {
+                return <TableEmptyValue screenReaderText="Not reported" />;
+              }
+
               return (
                 <AgentVersion
                   kind={AgentKind.VMwareAgent}

@@ -56,7 +56,7 @@ For an installation-wide default, an administrator can instead open **Admin Dash
 
 ### Separate numbers for calls and SMS
 
-A Twilio number can make calls and send SMS, or only one of the two, and in some countries no one number does both. In Singapore, for example, national numbers (+65 3 or +65 6) are voice-only, and SMS need a mobile number (+65 8). A configuration, a project's or the installation's, can list numbers for SMS under **More fields**:
+A Twilio number can make calls and send SMS, or only one of the two, and in some countries no one number does both: national numbers can be voice-only, while SMS need a mobile number. A configuration, a project's or the installation's, can list numbers for SMS under **More fields**:
 
 | Field | What goes out from it |
 | --- | --- |
@@ -64,12 +64,12 @@ A Twilio number can make calls and send SMS, or only one of the two, and in some
 | **Twilio Secondary Phone Numbers** | Calls, and SMS while no SMS numbers are listed, to recipients in each number's country |
 | **Twilio SMS Phone Numbers** | Every SMS once listed: from the number in the recipient's country, or else from the first |
 
-For Singapore, enter the national number as **Twilio Primary Phone Number** and the mobile number in **Twilio SMS Phone Numbers**. Once a configuration lists SMS numbers, no SMS goes out from its other numbers, so list every number that should send SMS.
+If your number can only make calls, keep it as **Twilio Primary Phone Number** and enter a number that can send SMS, such as a mobile number, in **Twilio SMS Phone Numbers**. Once a configuration lists SMS numbers, no SMS goes out from its other numbers, so list every number that should send SMS.
 
 A configuration without SMS numbers sends SMS from the same numbers as calls, as before. **Send Test SMS** and **Send Test Call** go out from the number a real SMS or call to the same recipient would. If Twilio refuses an SMS with error 21606, the number cannot send SMS: add one that can to **Twilio SMS Phone Numbers**.
 
 > [!NOTE]
-> In Singapore, an SMS from a number that is not registered with SGNIC, or from a number outside Singapore, arrives from the sender `Likely-SCAM`. Register the mobile number with SGNIC and with Twilio before you rely on it; see [Twilio's SMS guidelines for Singapore](https://www.twilio.com/en-us/guidelines/sg/sms).
+> Which numbers can send SMS, and whether a sender must be registered first, differs from country to country: where registration is required, an SMS from an unregistered number can be blocked or flagged as spam. Before you rely on a number, check [Twilio's SMS guidelines](https://www.twilio.com/en-us/guidelines/sms) for each country you send to.
 
 ## 3. Configure network access
 
