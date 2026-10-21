@@ -34,6 +34,8 @@ import {
   getCloudResourceTypeLabel,
 } from "Common/Types/Cloud/CloudResourceCatalog";
 import CloudMonitoringDocumentationCard from "../../Components/Cloud/CloudMonitoringDocumentationCard";
+import CloudConnectCallout from "../../Components/Cloud/Connect/CloudConnectCallout";
+import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
 
 /*
  * Cloud → All Resources: the IaaS and PaaS resources discovered from the
@@ -41,10 +43,10 @@ import CloudMonitoringDocumentationCard from "../../Components/Cloud/CloudMonito
  * Monitor, CloudWatch, Cloud Monitoring), read by an OpenTelemetry
  * Collector (Common/Types/Cloud/CloudMonitoredResource).
  *
- * Every row is ingest's: a resource is matched to its metrics by the
- * provider's own identity, which no form could supply, so there is no
- * create button - connecting an account (the guide below) is how resources
- * get here. Rows can be renamed, labelled, owned and archived like any
+ * Every row is ingest's or a cloud connection's: a resource is matched to
+ * its metrics by the provider's own identity, which no form could supply,
+ * so there is no create button - connecting an account (Cloud, Connect,
+ * offered below while the list is empty) is how resources get here. Rows can be renamed, labelled, owned and archived like any
  * Cloud row; one the provider stops reporting is archived after a week,
  * and comes back by itself when it reports again.
  */
@@ -131,7 +133,7 @@ const CloudMonitoredResources: FunctionComponent<
         cardProps={{
           title: "Cloud Resources",
           description:
-            "Virtual machines, load balancers, buckets, databases and more, discovered from your cloud provider's metrics through an OpenTelemetry Collector.",
+            "Virtual machines, load balancers, buckets, databases and more, from your connected cloud accounts and your cloud's metrics.",
         }}
         noItemsMessage="No cloud resources discovered yet."
         filters={[
@@ -334,11 +336,25 @@ const CloudMonitoredResources: FunctionComponent<
           );
         }}
       />
+      {/*
+       * The way in while the list is empty: connect a cloud account (no
+       * collector to run), or - folded - send the provider's metrics from
+       * an OpenTelemetry Collector of your own.
+       */}
       {firstRecordWatch.count === 0 && (
-        <CloudMonitoringDocumentationCard
-          title="Discover your cloud resources"
-          description={FIRST_RUN_GUIDE_DESCRIPTION}
-        />
+        <div className="space-y-4">
+          <CloudConnectCallout />
+          <CollapsibleSection
+            title="Already run an OpenTelemetry Collector?"
+            collapsedDescription="Send your cloud's metrics through it instead: the steps for Azure Monitor, CloudWatch and Cloud Monitoring."
+            defaultCollapsed={true}
+          >
+            <CloudMonitoringDocumentationCard
+              title="Discover your cloud resources"
+              description={FIRST_RUN_GUIDE_DESCRIPTION}
+            />
+          </CollapsibleSection>
+        </div>
       )}
     </Fragment>
   );
