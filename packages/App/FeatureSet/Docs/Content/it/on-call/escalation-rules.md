@@ -118,6 +118,26 @@ Ogni messaggio è uno che il suo fornitore accetta, così un avviso parte sempre
 
 Un messaggio più lungo, con un titolo lungo o una descrizione lunga inserita da un modello, viene tagliato e termina con una nota che il testo completo è in OneUptime: «… (truncated — see OneUptime for the full text)». Il testo di un messaggio WhatsApp è un modello fisso, quindi lì vengono tagliati i valori più lunghi, ognuno terminato da «…». I link in un messaggio non vengono mai tagliati.
 
+### Cosa dice l'SMS di un avviso
+
+Un SMS viene inviato, e fatturato, in parti da 160 caratteri. Un avviso via SMS è scritto per stare in una sola parte ovunque possibile, e dice solo ciò che ti serve su un telefono bloccato: chi lo invia, cosa è successo e l'unico link per confermare l'avviso o passarlo. Su un telefono appare così:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+```
+
+Indica la gravità e cosa è successo (un incidente, un avviso o un episodio di uno dei due), il suo numero, il progetto e il titolo, in quest'ordine. Quando non entra tutto in una parte:
+
+1. Per primo viene omesso il progetto.
+2. Poi il titolo viene tagliato e termina con `...`.
+
+La gravità, il numero e il link non vengono mai tagliati. Un titolo conserva almeno 20 caratteri: se nemmeno così entra, ad esempio con un indirizzo o un nome di prodotto molto lungo, l'SMS occupa una seconda parte e dice tutto.
+
+Un solo carattere fuori dall'alfabeto semplice degli SMS fa partire l'intero messaggio in parti da 70 caratteri. Per questo le virgolette e i trattini tipografici vengono scritti come `"`, `'` e `-`, `…` come `...`, e lettere come `ç` e `ł` perdono i loro accenti; le emoji vengono omesse. Un titolo in un'altra scrittura, come il giapponese o il russo, viene inviato così come è scritto e occupa due parti o più.
+
+Gli altri SMS che OneUptime ti invia, ad esempio per una modifica a un incidente di cui sei proprietario o l'inizio del tuo turno di reperibilità, iniziano anch'essi con `OneUptime:` e terminano con `Turn off in User Settings > Notification Settings.`, una frase che viene omessa quando è proprio questo a far stare l'SMS in una parte.
+
 ### Quando un avviso non viene inviato
 
 Un avviso non inviato indica il motivo nei **Registri di reperibilità** della persona (Impostazioni utente): la sua riga mostra **Errore** e il suo messaggio di stato ne dà la ragione. Non resta più su **Invio in corso**. Il messaggio dice una di queste cose:
@@ -208,7 +228,7 @@ Ogni passaggio viene registrato. La **Cronologia di esecuzione** dell'esecuzione
 La scheda di ogni regola ha **Edit rule** e un menu **⋯** con le altre azioni:
 
 - **Edit rule** apre la stessa finestra di dialogo di una pagina, compilata con la regola com'è: i suoi destinatari, la sua attesa, il nome e la descrizione in **Altri campi**. Aggiungi o rimuovi destinatari e fai clic su **Salva modifiche**. Svuotare il nome ridà alla regola il nome del suo livello.
-- **Move up** e **Move down** nel menu **⋯** di una regola ne cambiano il livello. Una regola che prende il nome dal suo livello mantiene un nome coerente con la sua posizione: quando **Level 3** sale sopra **Level 2**, le due si scambiano i nomi. Un nome che hai scelto, come **Responsabili**, resta lo stesso ovunque vada la regola.
+- **Sposta su** e **Sposta giù** nel menu **⋯** di una regola ne cambiano il livello. Una regola che prende il nome dal suo livello mantiene un nome coerente con la sua posizione: quando **Level 3** sale sopra **Level 2**, le due si scambiano i nomi. Un nome che hai scelto, come **Responsabili**, resta lo stesso ovunque vada la regola.
 - **Delete rule** chiede prima conferma e indica chi avvisa il livello. Eliminare un livello fa salire i livelli sottostanti, e le regole che prendono il nome dal livello vengono rinominate di conseguenza.
 
 ## Creare regole con l'API o Terraform

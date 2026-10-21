@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
@@ -239,10 +240,12 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. ${
-            monitor.name || "Monitor"
-          } status changed${previousStatus ? ` from ${previousStatus.name}` : ""} to ${monitorStatus!
-            .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: buildNotificationSms(
+            `${
+              monitor.name || "Monitor"
+            } status changed${previousStatus ? ` from ${previousStatus.name}` : ""} to ${monitorStatus!
+              .name!}.`,
+          ),
         };
 
         const callMessage: CallRequestMessage = {

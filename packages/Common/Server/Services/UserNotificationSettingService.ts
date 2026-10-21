@@ -57,6 +57,8 @@ import { appendRecipientToWhatsAppMessage } from "../Utils/WhatsAppTemplateUtil"
 import DatabaseConfig from "../DatabaseConfig";
 import URL from "../../Types/API/URL";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import { fitNotificationSmsForSending } from "../../Utils/Sms/NotificationSms";
+import ProductBrandingText from "../Utils/ProductBrandingText";
 
 export class Service extends DatabaseService<UserNotificationSetting> {
   public constructor() {
@@ -274,10 +276,27 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           },
         });
 
+        /*
+         * The SMS copy, in the characters an SMS carries cheaply and in one
+         * part where it can be (NotificationSms), measured as the
+         * Notification service sends it - with the installation's own name.
+         * The Telegram, Slack and Microsoft Teams copies made from the same
+         * text below keep every character as written.
+         */
+        const smsMessage: SMSMessage = {
+          ...data.smsMessage,
+          message: fitNotificationSmsForSending(
+            data.smsMessage.message || "",
+            (text: string): string => {
+              return ProductBrandingText.brandText(text);
+            },
+          ),
+        };
+
         for (const userSms of userSmses) {
           SmsService.sendSms(
             {
-              ...data.smsMessage,
+              ...smsMessage,
               to: userSms.phone!,
             },
             {

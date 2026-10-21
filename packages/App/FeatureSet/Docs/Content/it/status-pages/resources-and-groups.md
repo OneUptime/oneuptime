@@ -152,7 +152,7 @@ Per modificare un gruppo, usate **Edit Group** nell'intestazione del riquadro, o
 
 | Dove | Azioni |
 | ----- | ------- |
-| Il menu della riga del navigatore | **Edit group**, **Move up**, **Move down**, **Mostra ID**, **Delete group** |
+| Il menu della riga del navigatore | **Edit group**, **Sposta su**, **Sposta giù**, **Mostra ID**, **Delete group** |
 | Il menu **More actions** del riquadro | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Aggiorna**, **Delete this group** |
 
 Un gruppo salvato senza nome compare come **Untitled group**, buon segno che volevate scrivere qualcosa.
@@ -195,7 +195,7 @@ L'ordine lo decidete voi, non l'alfabeto:
 | Cosa | Come riordinarlo |
 | ---- | ------------------ |
 | Le risorse dentro un gruppo | Trascinate una riga. Il riquadro lo dice: **Drag a row to change the order visitors see**. |
-| I gruppi tra loro | **Move up** / **Move down** nel menu della riga del navigatore, oppure **Move group up** / **Move group down** in **More actions**. |
+| I gruppi tra loro | **Sposta su** / **Sposta giù** nel menu della riga del navigatore, oppure **Move group up** / **Move group down** in **More actions**. |
 | Le risorse senza gruppo | Stanno in **Top of page** e compaiono sempre sopra ogni gruppo, quindi mettete lì la cosa che tutti controllano per prima. |
 
 **Due casi in cui il trascinamento è disattivato.** Una ricerca nella casella **Search in {group}...** disattiva il riordino (il riquadro dice `N of M shown · drag to reorder is off while filtering`), quindi svuotate prima la ricerca. E i gruppi a griglia non si riordinano mai trascinando, perché il posto di un monitor deriva dalla sua riga e dalla sua colonna.

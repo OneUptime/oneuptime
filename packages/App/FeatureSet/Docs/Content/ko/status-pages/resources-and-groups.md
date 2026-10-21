@@ -152,7 +152,7 @@ flowchart TB
 
 | 위치 | 동작 |
 | ----- | ------- |
-| 탐색기의 행 메뉴 | **Edit group**, **Move up**, **Move down**, **ID 표시**, **Delete group** |
+| 탐색기의 행 메뉴 | **Edit group**, **위로 이동**, **아래로 이동**, **ID 표시**, **Delete group** |
 | 창의 **More actions** 메뉴 | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **새로고침**, **Delete this group** |
 
 이름 없이 저장한 그룹은 **Untitled group**으로 표시됩니다. 무언가 입력하려 했다는 좋은 신호입니다.
@@ -195,7 +195,7 @@ flowchart TB
 | 대상 | 순서를 바꾸는 방법 |
 | ---- | ----------------- |
 | 그룹 안의 리소스 | 행을 끕니다. 창에도 **Drag a row to change the order visitors see**라고 표시됩니다. |
-| 그룹끼리의 순서 | 탐색기 행 메뉴의 **Move up** / **Move down**, 또는 **More actions**의 **Move group up** / **Move group down**. |
+| 그룹끼리의 순서 | 탐색기 행 메뉴의 **위로 이동** / **아래로 이동**, 또는 **More actions**의 **Move group up** / **Move group down**. |
 | 그룹에 속하지 않은 리소스 | **Top of page**에 있으며 항상 모든 그룹 위에 표시되므로, 모두가 가장 먼저 확인하는 것을 여기에 두세요. |
 
 **끌기가 꺼지는 두 가지 경우.** **Search in {group}...** 상자로 검색하면 순서 변경이 꺼집니다(창에 `N of M shown · drag to reorder is off while filtering`이 표시됨). 먼저 검색을 지우세요. 또한 그리드 그룹은 끌어서 순서를 바꿀 수 없습니다. 모니터의 위치는 행과 열로 정해지기 때문입니다.

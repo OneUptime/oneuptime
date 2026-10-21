@@ -21,6 +21,25 @@ import {
   TRUNCATED_NAME_NOTE,
   TRUNCATED_TEXT_NOTE,
 } from "Common/Utils/MessageFit";
+import {
+  buildOnCallPageSms,
+  MIN_TITLE_CHARACTERS,
+  ON_CALL_PAGE_SMS_ACTION,
+  ON_CALL_PAGE_SMS_CUT_MARK,
+  OnCallPageSms,
+  OnCallPageSmsKind,
+} from "Common/Utils/Sms/OnCallPageSms";
+import {
+  buildNotificationSms,
+  NOTIFICATION_SMS_SENDER,
+  NOTIFICATION_SMS_TURN_OFF,
+} from "Common/Utils/Sms/NotificationSms";
+import { toGsm7Text } from "Common/Utils/Sms/Gsm7Text";
+import {
+  GSM_7_SINGLE_SEGMENT_LENGTH,
+  SmsEncoding,
+  UCS_2_SINGLE_SEGMENT_LENGTH,
+} from "Common/Utils/Sms/SmsSegments";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -826,6 +845,128 @@ describe("the Incoming Call Policy page", () => {
     );
     expect(page).toContain(
       "A workflow can read call logs with **Find One** and **Find Many**, but it cannot create or change them.",
+    );
+  });
+});
+
+describe("the Escalation Rules page's text message section", () => {
+  const page: string = readPage("en", "on-call/escalation-rules");
+  const start: number = page.indexOf("### What a page's text message says");
+  const section: string = page.slice(
+    start,
+    page.indexOf("### When a page is not sent"),
+  );
+
+  // The page's example, built by the code that writes every page's text.
+  const example: OnCallPageSms = buildOnCallPageSms({
+    kind: OnCallPageSmsKind.Incident,
+    productName: NOTIFICATION_SMS_SENDER,
+    severityName: "Critical Incident",
+    number: "INC-42",
+    projectName: "Acme Prod",
+    title: "Checkout API is down",
+    link: "https://oneuptime.com/l/XJlaZRsd",
+  });
+
+  it("sits under How the levels page people, before When a page is not sent", () => {
+    expect(start).toBeGreaterThan(
+      page.indexOf("### How each person is reached"),
+    );
+    expect(section.length).toBeGreaterThan(0);
+  });
+
+  it("quotes a page's text exactly as OneUptime writes it, and it is one part", () => {
+    /*
+     * Shown as a phone wraps it, at the sentence before the link, so the
+     * docs column shows it all without scrolling: the same text, one line
+     * when sent.
+     */
+    const block: string = section.slice(
+      section.indexOf("```text\n") + "```text\n".length,
+      section.indexOf("\n```", section.indexOf("```text\n") + 1),
+    );
+    const lines: Array<string> = block.split("\n");
+
+    expect(section).toContain("On a phone it reads:\n\n```text\n");
+    expect(lines).toEqual([
+      example.text.slice(
+        0,
+        example.text.indexOf(` ${ON_CALL_PAGE_SMS_ACTION}`),
+      ),
+      example.text.slice(example.text.indexOf(ON_CALL_PAGE_SMS_ACTION)),
+    ]);
+    expect(lines.join(" ")).toBe(example.text);
+    // Each line fits the docs column (556px of 13px JetBrains Mono: 71 characters).
+    for (const line of lines) {
+      expect(line.length).toBeLessThanOrEqual(71);
+    }
+    expect(example.sent.encoding).toBe(SmsEncoding.Gsm7);
+    expect(example.sent.segments).toBe(1);
+    expect(example.text).toContain(ON_CALL_PAGE_SMS_ACTION);
+  });
+
+  it("gives the part sizes the counter bills by", () => {
+    expect(section).toContain(
+      `in parts of ${GSM_7_SINGLE_SEGMENT_LENGTH} characters`,
+    );
+    expect(section).toContain(
+      `the whole text go out in parts of ${UCS_2_SINGLE_SEGMENT_LENGTH} characters`,
+    );
+  });
+
+  it("gives the fitting rule in its order, with the cut mark and the shortest title", () => {
+    expect(section).toContain(
+      "1. The project is left out first.\n" +
+        `2. Then the title is cut, and ends with \`${ON_CALL_PAGE_SMS_CUT_MARK}\`.`,
+    );
+    expect(section).toContain(
+      `A title keeps at least ${MIN_TITLE_CHARACTERS} characters`,
+    );
+    expect(section).toContain(
+      "The severity, the number and the link are never cut.",
+    );
+
+    // What the code does when the project goes and when the title is cut.
+    const longTitle: OnCallPageSms = buildOnCallPageSms({
+      kind: OnCallPageSmsKind.Incident,
+      productName: NOTIFICATION_SMS_SENDER,
+      severityName: "Critical Incident",
+      number: "INC-42",
+      projectName: "Acme Prod",
+      title:
+        "Checkout API is down for every customer in every region since the deploy of 10:42",
+      link: "https://oneuptime.com/l/XJlaZRsd",
+    });
+
+    expect(longTitle.isProjectLeftOut).toBe(true);
+    expect(longTitle.isTitleCut).toBe(true);
+    expect(longTitle.text).toContain(
+      `${ON_CALL_PAGE_SMS_CUT_MARK} ${ON_CALL_PAGE_SMS_ACTION}`,
+    );
+    expect(longTitle.text).toContain(" INC-42: ");
+    expect(longTitle.text).toContain("Critical Incident");
+  });
+
+  it("names the characters it writes plainly as the code writes them", () => {
+    expect(section).toContain(
+      "So curly quotes and dashes are written as `\"`, `'` and `-`, `\u{2026}` as `...`, and letters such as `\u{00E7}` and `\u{0142}` lose their accents; emoji are left out.",
+    );
+    expect(toGsm7Text("\u{201C}\u{201D}")).toBe('""');
+    expect(toGsm7Text("\u{2018}\u{2019}")).toBe("''");
+    expect(toGsm7Text("\u{2013}\u{2014}")).toBe("--");
+    expect(toGsm7Text("\u{2026}")).toBe("...");
+    expect(toGsm7Text("\u{00E7}\u{0142}")).toBe("cl");
+    expect(toGsm7Text("\u{1F525}")).toBe("");
+    // A title in another script is kept as written.
+    expect(toGsm7Text("\u{6C7A}\u{6E08}")).toBe("\u{6C7A}\u{6E08}");
+  });
+
+  it("quotes the words every other text to a team member starts and ends with", () => {
+    expect(section).toContain(
+      `start with \`${NOTIFICATION_SMS_SENDER}:\` too and end with \`${NOTIFICATION_SMS_TURN_OFF}\``,
+    );
+    expect(buildNotificationSms("X.")).toBe(
+      `${NOTIFICATION_SMS_SENDER}: X. ${NOTIFICATION_SMS_TURN_OFF}`,
     );
   });
 });

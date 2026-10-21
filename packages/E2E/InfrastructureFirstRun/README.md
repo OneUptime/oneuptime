@@ -28,6 +28,12 @@ workspace, and the fixture header says so ("Preview workspace · Synthetic data"
 Picked with query parameters:
 
 - `hosts=1`: the project already has a host ("web-01").
+- `vcenters=1`: the project already has two vCenters, "vcenter-lab" (a probe collects it, "Lab
+  Probe") and "vcenter-prod" (an outdated VMware Agent sends it). The All vCenters specs open the
+  list on its five default columns and switch Collected By and Agent Version on from Customize
+  Columns, at a laptop's and a phone's width, and in German (`lang=de`), where the dialog's
+  search finds both by their German names. Each also measures the dialog's list: all seven
+  columns in view, and a height that would cut an eighth row in half.
 - `failFirstCount=1`: the page's first count of its list fails once, so the page shows the error
   with its Refresh; the count after it answers as usual.
 - `lang=de`, `theme=dark`.

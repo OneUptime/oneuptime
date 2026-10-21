@@ -30,7 +30,11 @@ import ts from "typescript";
  *   6. a stale entry in either list;
  *   7. an AgentVersion for a kind whose upgrade has a step only the setup
  *      guide can fill in (a key picked there) without the guide's route,
- *      which would leave the dialog naming a guide it cannot link to.
+ *      which would leave the dialog naming a guide it cannot link to;
+ *   8. a list's table column on agentVersion that is not hidden by default:
+ *      the version is a detail of one resource, read on its own page, and a
+ *      list offers it only through Customize Columns ("We dont need to show
+ *      these column in vmware" - All vCenters' Agent Version).
  *
  * Rendering is tested in Common/Tests/App/Dashboard/AgentVersion.test.tsx.
  */
@@ -401,6 +405,71 @@ function lineOf(sourceFile: ts.SourceFile, node: ts.Node): number {
   return sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1;
 }
 
+// A declared type that is a table column or a set of them.
+const COLUMN_TYPE: RegExp = /\bColumns?</;
+
+function isDeclaredAsColumn(node: ts.Node): boolean {
+  return (
+    ts.isVariableDeclaration(node) &&
+    node.type !== undefined &&
+    COLUMN_TYPE.test(node.type.getText())
+  );
+}
+
+/*
+ * A table column: an object written into a table's `columns` -
+ * `columns={[...]}` on a JSX element or `columns: [...]` in an object - or
+ * into a constant typed as columns (`const column: Column<Monitor> = {...}`,
+ * `const columns: Columns<Host> = [...]`). Not a details card's `fields`.
+ */
+function isTableColumn(object: ts.ObjectLiteralExpression): boolean {
+  const parent: ts.Node = object.parent;
+  if (isDeclaredAsColumn(parent)) {
+    return true;
+  }
+  if (!ts.isArrayLiteralExpression(parent)) {
+    return false;
+  }
+  const holder: ts.Node = parent.parent;
+  if (isDeclaredAsColumn(holder)) {
+    return true;
+  }
+  if (ts.isJsxExpression(holder) && ts.isJsxAttribute(holder.parent)) {
+    return holder.parent.name.getText() === "columns";
+  }
+  return (
+    ts.isPropertyAssignment(holder) && propertyNameOf(holder) === "columns"
+  );
+}
+
+// `isHiddenByDefault: true`, written as a literal.
+function isHiddenByDefault(object: ts.ObjectLiteralExpression): boolean {
+  return object.properties.some((property: ts.ObjectLiteralElementLike) => {
+    return (
+      ts.isPropertyAssignment(property) &&
+      propertyNameOf(property) === "isHiddenByDefault" &&
+      property.initializer.kind === ts.SyntaxKind.TrueKeyword
+    );
+  });
+}
+
+// Every table column on agentVersion in a file, hidden or not.
+function agentVersionTableColumns(
+  sourceFile: ts.SourceFile,
+): Array<ts.ObjectLiteralExpression> {
+  const columns: Array<ts.ObjectLiteralExpression> = [];
+  visit(sourceFile, (node: ts.Node): void => {
+    if (
+      ts.isObjectLiteralExpression(node) &&
+      isAgentVersionFieldDescriptor(node) &&
+      isTableColumn(node)
+    ) {
+      columns.push(node);
+    }
+  });
+  return columns;
+}
+
 const MENTIONING: Array<string> = filesMentioningAgentVersion().map(relative);
 
 describe("every front-end file that mentions agentVersion is accounted for", () => {
@@ -570,8 +639,72 @@ describe.each(Object.entries(DISPLAYS))(
       });
       expect(bare).toEqual([]);
     });
+
+    test("a list's column on agentVersion starts hidden: Customize Columns turns it on", () => {
+      const shown: Array<string> = agentVersionTableColumns(sourceFile)
+        .filter((column: ts.ObjectLiteralExpression): boolean => {
+          return !isHiddenByDefault(column);
+        })
+        .map((column: ts.ObjectLiteralExpression): string => {
+          return `${file}:${lineOf(sourceFile, column)}`;
+        });
+      expect(shown).toEqual([]);
+    });
   },
 );
+
+describe("a list offers the agent version, it does not open on it", () => {
+  /*
+   * The rule above proves an absence, so prove it sees the one list that
+   * offers the column: All vCenters, whose Agent Version starts hidden.
+   */
+  test("All vCenters' Agent Version is a table column the rule reads, and it starts hidden", () => {
+    const columns: Array<ts.ObjectLiteralExpression> = agentVersionTableColumns(
+      parse(path.join(DASHBOARD_SRC, "Pages", "VMware", "VCenters.tsx")),
+    );
+    expect(columns).toHaveLength(1);
+    expect(isHiddenByDefault(columns[0]!)).toBe(true);
+  });
+
+  function snippet(source: string): ts.SourceFile {
+    return ts.createSourceFile(
+      "Snippet.tsx",
+      source,
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TSX,
+    );
+  }
+
+  // A resource's Overview draws it in a details card, which the rule leaves be.
+  test("a details card's Agent Version field is not a table column", () => {
+    expect(
+      agentVersionTableColumns(
+        snippet(
+          '<CardModelDetail modelDetailProps={{ fields: [{ field: { agentVersion: true }, title: "Agent Version" }] }} />;',
+        ),
+      ),
+    ).toEqual([]);
+  });
+
+  test("a column written in a typed constant, or a typed array, is a table column", () => {
+    const shown: Array<ts.ObjectLiteralExpression> = agentVersionTableColumns(
+      snippet(
+        [
+          'const agentVersionColumn: Column<Host> = { field: { agentVersion: true }, title: "Agent Version" };',
+          'const columns: Columns<Host> = [{ field: { agentVersion: true }, title: "Agent Version", isHiddenByDefault: true }];',
+          '<ResourceTable columns={[{ title: "Agent Version", key: "agentVersion" }]} />;',
+        ].join("\n"),
+      ),
+    );
+
+    expect(
+      shown.map((column: ts.ObjectLiteralExpression): boolean => {
+        return isHiddenByDefault(column);
+      }),
+    ).toEqual([false, true, false]);
+  });
+});
 
 describe("the hero's agent chip lives in the component only", () => {
   test('no page builds its own "Agent {{version}}" chip', () => {

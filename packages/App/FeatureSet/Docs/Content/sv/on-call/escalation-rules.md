@@ -118,6 +118,26 @@ Varje meddelande är ett som leverantören tar emot, så ett larm går alltid ut
 
 Ett längre meddelande, med en lång titel eller en lång beskrivning som en mall har lagt in, kortas och slutar med en notering om att hela texten finns i OneUptime: "… (truncated — see OneUptime for the full text)". Texten i ett WhatsApp-meddelande är en fast mall, så där kortas i stället de längsta värdena, vart och ett med "…" på slutet. Länkarna i ett meddelande kortas aldrig.
 
+### Vad ett larms sms säger
+
+Ett sms skickas, och debiteras, i delar om 160 tecken. Ett larm via sms skrivs så att det ryms i en del där det går, och säger bara det du behöver på en låst telefon: vem som skickar det, vad som har hänt och den enda länken för att bekräfta larmet eller skicka det vidare. På en telefon ser det ut så här:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+```
+
+Det anger allvarlighetsgraden och vad som har hänt (en incident, ett larm eller en episod av någon av dem), dess nummer, projektet och titeln, i den ordningen. När inte allt ryms i en del:
+
+1. Först utelämnas projektet.
+2. Sedan kortas titeln och slutar med `...`.
+
+Allvarlighetsgraden, numret och länken kortas aldrig. En titel behåller minst 20 tecken: ryms inte ens det, till exempel med en mycket lång adress eller ett mycket långt produktnamn, tar sms:et en del till och säger allt.
+
+Ett enda tecken utanför sms:ets enkla alfabet gör att hela meddelandet går ut i delar om 70 tecken. Därför skrivs typografiska citattecken och tankstreck som `"`, `'` och `-`, `…` som `...`, och bokstäver som `ç` och `ł` förlorar sina accenter; emojier utelämnas. En titel i en annan skrift, som japanska eller ryska, skickas som den är skriven och tar två delar eller fler.
+
+De andra sms som OneUptime skickar till dig, till exempel om en ändring i en incident du äger eller början på ditt jourpass, börjar också med `OneUptime:` och slutar med `Turn off in User Settings > Notification Settings.`, en mening som utelämnas när det är det som gör att sms:et ryms i en del.
+
 ### När ett larm inte skickas
 
 Ett larm som inte skickas säger varför i personens **Jourloggar** (Användarinställningar): raden visar **Fel**, och statusmeddelandet anger orsaken. Det blir inte längre stående på **Skickar**. Meddelandet säger något av detta:
@@ -208,7 +228,7 @@ Varje gång ett larm skickas vidare registreras det. Körningens **Tidslinje fö
 Varje regels kort har **Edit rule** och en **⋯**-meny med de andra åtgärderna:
 
 - **Edit rule** öppnar samma dialog på en sida, ifylld med regeln som den är: dess mottagare, dess väntetid och dess namn och beskrivning under **Fler fält**. Lägg till eller ta bort mottagare och klicka på **Spara ändringar**. Rensar du namnet får regeln sitt nivås namn igen.
-- **Move up** och **Move down** i en regels **⋯**-meny ändrar dess nivå. En regel som har sitt nivås namn behåller ett namn som stämmer med dess plats: när **Level 3** flyttas upp förbi **Level 2** byter de två namn. Ett namn du själv har valt, till exempel **Chefer**, förblir detsamma var regeln än hamnar.
+- **Flytta upp** och **Flytta ned** i en regels **⋯**-meny ändrar dess nivå. En regel som har sitt nivås namn behåller ett namn som stämmer med dess plats: när **Level 3** flyttas upp förbi **Level 2** byter de två namn. Ett namn du själv har valt, till exempel **Chefer**, förblir detsamma var regeln än hamnar.
 - **Delete rule** frågar först och säger vem nivån larmar. Tar du bort en nivå flyttas nivåerna under den upp, och regler som har sitt nivås namn byter namn så att de stämmer.
 
 ## Skapa regler med API:et eller Terraform

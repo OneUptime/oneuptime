@@ -311,7 +311,7 @@ Installationen utan Docker är redan en systemd-tjänst, med en egen enhet.
 
 ## Uppgradera agenten
 
-Agenten rapporterar den collectorversion som dess filer låser som sin **Agentversion**. När den är äldre än den version som den här OneUptime-versionen låser, visas ett varningstecken bredvid den, på vCenters sida **Översikt** och i listan **Alla vCenter**. Välj det för att se de här kommandona. En agent som installerades innan dess filer rapporterade en version visar ingen förrän den har uppgraderats på det här sättet.
+Agenten rapporterar den collectorversion som dess filer låser som sin **Agentversion**. När den är äldre än den version som den här OneUptime-versionen låser, visas ett varningstecken bredvid den på vCenters sida **Översikt**. Välj det för att se de här kommandona. En agent som installerades innan dess filer rapporterade en version visar ingen förrän den har uppgraderats på det här sättet.
 
 Collectorn är låst i `docker-compose.yml` (eller, utan Docker, av den version du laddade ned) och dess konfiguration är en fil bredvid den, så att bara hämta images för inte agenten framåt:
 

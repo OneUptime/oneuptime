@@ -198,6 +198,7 @@ class AlertOnCallRuleEngineServiceClass {
    * wait for working hours (WaitingRunsOnRecordChange).
    */
   @CaptureSpan()
+  @RuleEvaluation()
   public async getPoliciesPagingNow(
     alert: Alert,
     now: Date,
