@@ -528,9 +528,9 @@ describe("a project that has not set Security up", () => {
       );
 
       expect(margin).toMatchObject({ top: -2, bottom: -2 });
-      expect(20 + padding.top + padding.bottom + margin.top + margin.bottom).toBe(
-        24,
-      );
+      expect(
+        20 + padding.top + padding.bottom + margin.top + margin.bottom,
+      ).toBe(24);
     }
   });
 });

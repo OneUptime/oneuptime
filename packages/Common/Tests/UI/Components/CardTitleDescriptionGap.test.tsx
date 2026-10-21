@@ -1,6 +1,4 @@
-import Button, {
-  ButtonStyleType,
-} from "../../../UI/Components/Button/Button";
+import Button, { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import Card, {
   CARD_DESCRIPTION_CLASS_NAME,
   CARD_DESCRIPTION_CLEARANCE_IN_PX,
@@ -115,8 +113,10 @@ interface Shape {
 interface HeaderClasses {
   // The element that lays the title out beside the actions.
   row: string;
-  // The stacked/toolbar description follows the row; the default one is in
-  // the title's block.
+  /*
+   * The stacked/toolbar description follows the row; the default one is in
+   * the title's block.
+   */
   descriptionInTitleBlock: boolean;
   actions: string | null;
   description: string | null;
@@ -279,9 +279,7 @@ function layOut(
     // The default header: the description is in the title's block.
     const block: number =
       titleHeight +
-      (descriptionShown
-        ? descriptionMargin + descriptionHeight(shape)
-        : 0);
+      (descriptionShown ? descriptionMargin + descriptionHeight(shape) : 0);
     const line: number = Math.max(
       block,
       hasActions ? actionHeight + actionMargins.top + actionMargins.bottom : 0,
@@ -506,13 +504,21 @@ describe("the numbers the header is built on", () => {
 
     for (const width of DESKTOP_WIDTHS) {
       expect(
-        resolveSpacing(CARD_HEADER_ACTIONS_OVERHANG_CLASS_NAME, width, "margin"),
+        resolveSpacing(
+          CARD_HEADER_ACTIONS_OVERHANG_CLASS_NAME,
+          width,
+          "margin",
+        ),
       ).toEqual({ top: 0, right: 0, bottom: -7, left: 0 });
     }
 
     for (const width of PHONE_WIDTHS) {
       expect(
-        resolveSpacing(CARD_HEADER_ACTIONS_OVERHANG_CLASS_NAME, width, "margin"),
+        resolveSpacing(
+          CARD_HEADER_ACTIONS_OVERHANG_CLASS_NAME,
+          width,
+          "margin",
+        ),
       ).toEqual({ top: 0, right: 0, bottom: 0, left: 0 });
     }
   });
@@ -522,8 +528,11 @@ describe("the numbers the header is built on", () => {
 
     for (const width of WIDTHS_IN_PX) {
       expect(
-        resolveSpacing(CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME, width, "margin")
-          .top,
+        resolveSpacing(
+          CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME,
+          width,
+          "margin",
+        ).top,
       ).toBe(
         CARD_HEADER_CONTROL_OVERHANG_IN_PX + CARD_DESCRIPTION_CLEARANCE_IN_PX,
       );
@@ -596,12 +605,20 @@ describe("the numbers the header is built on", () => {
     // The actions keep to the top of the line from md up.
     for (const width of DESKTOP_WIDTHS) {
       expect(
-        resolveFlex(CARD_HEADER_STACKED_ACTIONS_CLASS_NAME, width, "align-self"),
+        resolveFlex(
+          CARD_HEADER_STACKED_ACTIONS_CLASS_NAME,
+          width,
+          "align-self",
+        ),
       ).toBe("flex-start");
     }
     for (const width of PHONE_WIDTHS) {
       expect(
-        resolveFlex(CARD_HEADER_STACKED_ACTIONS_CLASS_NAME, width, "align-self"),
+        resolveFlex(
+          CARD_HEADER_STACKED_ACTIONS_CLASS_NAME,
+          width,
+          "align-self",
+        ),
       ).toBe("auto");
     }
   });
@@ -929,9 +946,10 @@ describe.each(STACKED_LAYOUTS)(
     test.each(PHONE_WIDTHS)(
       "at %ipx (a phone, no description shown) the title and the 42px controls are centred on each other, nothing hangs past the line, and the body starts under it",
       (width: number) => {
-        for (const description of ["one-line", "none"] as Array<
-          DescriptionShape
-        >) {
+        for (const description of [
+          "one-line",
+          "none",
+        ] as Array<DescriptionShape>) {
           const shape: Shape = {
             layout,
             titleLines: 1,
@@ -960,9 +978,11 @@ describe("the default header, laid out", () => {
   test.each(DESKTOP_WIDTHS)(
     "at %ipx keeps its description 6px under the title, beside the actions, whose top is the title's",
     (width: number) => {
-      for (const actions of ["controls", "pill", "none"] as Array<
-        ActionsShape
-      >) {
+      for (const actions of [
+        "controls",
+        "pill",
+        "none",
+      ] as Array<ActionsShape>) {
         const shape: Shape = {
           layout: "default",
           titleLines: 1,
@@ -971,9 +991,10 @@ describe("the default header, laid out", () => {
         };
         const laidOut: LaidOutHeader = layOut(shape, classesOf(shape), width);
 
-        expect([actions, laidOut.descriptionTop! - laidOut.titleBottom]).toEqual(
-          [actions, 6],
-        );
+        expect([
+          actions,
+          laidOut.descriptionTop! - laidOut.titleBottom,
+        ]).toEqual([actions, 6]);
         expect([actions, laidOut.titleTop]).toEqual([actions, 0]);
 
         if (laidOut.actionsTop !== null) {
@@ -989,9 +1010,11 @@ describe("every layout, at every width", () => {
     "at %ipx no description is ever more than 9px under its title while the actions share the title's line, and never under the controls' foot",
     (width: number) => {
       for (const layout of CARD_HEADER_LAYOUTS) {
-        for (const actions of ["controls", "pill", "none"] as Array<
-          ActionsShape
-        >) {
+        for (const actions of [
+          "controls",
+          "pill",
+          "none",
+        ] as Array<ActionsShape>) {
           for (const titleLines of [1, 2] as Array<1 | 2>) {
             const shape: Shape = {
               layout,

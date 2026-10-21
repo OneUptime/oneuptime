@@ -139,7 +139,9 @@ async function open(
  */
 async function headerBoxesOf(card: Locator): Promise<HeaderBoxes> {
   return await card.evaluate((element: Element): HeaderBoxes => {
-    const boxOf = (part: Element | null): Box | null => {
+    const boxOf: (part: Element | null) => Box | null = (
+      part: Element | null,
+    ): Box | null => {
       if (!part || getComputedStyle(part).display === "none") {
         return null;
       }
@@ -151,7 +153,9 @@ async function headerBoxesOf(card: Locator): Promise<HeaderBoxes> {
         height: rect.height,
       };
     };
-    const find = (testId: string): Element | null => {
+    const find: (testId: string) => Element | null = (
+      testId: string,
+    ): Element | null => {
       return element.querySelector(`[data-testid='${testId}']`);
     };
     const header: Element = find("card-header")!;
@@ -194,9 +198,7 @@ function centreOf(found: Box): number {
 
 // The actions share the title's line (rather than a line of their own under it).
 function onTitleLine(boxes: HeaderBoxes): boolean {
-  return Boolean(
-    boxes.actions && boxes.actions.y < bottomOf(boxes.title) - 1,
-  );
+  return Boolean(boxes.actions && boxes.actions.y < bottomOf(boxes.title) - 1);
 }
 
 async function expectNoSidewaysScroll(page: Page): Promise<void> {
@@ -636,9 +638,7 @@ test.describe("every header shape", () => {
         if (shape.gap !== null) {
           expect(boxes.description, `${label}: a description`).not.toBeNull();
           expect(
-            Math.abs(
-              boxes.description!.y - bottomOf(boxes.title) - shape.gap,
-            ),
+            Math.abs(boxes.description!.y - bottomOf(boxes.title) - shape.gap),
             `${label}: the description ${shape.gap}px under the title`,
           ).toBeLessThanOrEqual(TOLERANCE);
         } else {

@@ -40,15 +40,14 @@ const REPOSITORY_ROOT: string = path.resolve(
  * hang over the heading's line or it is listed here; an entry that no
  * longer matches fails too.
  */
-const KEEPS_ITS_OWN_LINE: Record<string, { count: number; reason: string }> =
-  {
-    "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/SecurityEventsHowItWorksCard.tsx":
-      {
-        count: 1,
-        reason:
-          "The severity levels' 'How ... are chosen' is a text link in the heading's own size (text-sm, no padding): the row is the heading's line, and the description follows it as it would without the link.",
-      },
-  };
+const KEEPS_ITS_OWN_LINE: Record<string, { count: number; reason: string }> = {
+  "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/SecurityEventsHowItWorksCard.tsx":
+    {
+      count: 1,
+      reason:
+        "The severity levels' 'How ... are chosen' is a text link in the heading's own size (text-sm, no padding): the row is the heading's line, and the description follows it as it would without the link.",
+    },
+};
 
 function relative(file: string): string {
   return path.relative(REPOSITORY_ROOT, file).split(path.sep).join("/");
@@ -93,9 +92,7 @@ describe("hand-built headers keep their description under their title", () => {
   test("every row of a heading and actions over a description hangs its actions over the heading's line", () => {
     const pushedDown: Array<string> = scanHandBuiltRows()
       .filter((row: TitleRowWithDescription): boolean => {
-        return (
-          !row.keepsDescriptionUnderTitle && !KEEPS_ITS_OWN_LINE[row.file]
-        );
+        return !row.keepsDescriptionUnderTitle && !KEEPS_ITS_OWN_LINE[row.file];
       })
       .map((row: TitleRowWithDescription): string => {
         return `${row.file}:${row.line} (row "${row.rowClassName}", description "${row.descriptionClassName}")`;
@@ -168,7 +165,9 @@ describe("hand-built headers keep their description under their title", () => {
         },
       ),
     ).toEqual([]);
-    expect(diagnostics).toContain('data-testid="security-connection-run-history-header"');
+    expect(diagnostics).toContain(
+      'data-testid="security-connection-run-history-header"',
+    );
   });
 });
 

@@ -205,8 +205,8 @@ export const CARD_DESCRIPTION_CLEARANCE_IN_PX: number = 2;
  *
  *   - the title sits at the foot of its line (md:items-end), so beside 38px
  *     controls it is centred on them, 7px from their top and their foot -
- *     where a table's title was at their top, 14px above the middle of its
- *     search and its main button;
+ *     where a table's title hung from their top, its middle 7px above the
+ *     middle of its search and its main button;
  *   - the actions keep to the top of the line (md:self-start) and hang
  *     their last 7px past its foot (md:-mb-[7px]), so the line is no taller
  *     than the title's beside them;
