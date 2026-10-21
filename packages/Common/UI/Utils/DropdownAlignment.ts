@@ -79,6 +79,31 @@ export function getDropdownHorizontalAlignment(
     : DropdownHorizontalAlignment.Right;
 }
 
+export interface DropdownWidthToFitInput {
+  // The popup's offsetWidth as measured, 0 before it is laid out.
+  measuredWidthInPx: number;
+  // The width the popup is styled to (288 for Tailwind `w-72`).
+  dropdownWidthInPx: number;
+}
+
+/*
+ * The width a popup has to find room for: at least the width it is styled
+ * to. The popup can be measured before its width applies - the Dashboard's
+ * Tailwind runtime writes a class's rule only after the first element that
+ * uses it is in the page - and a time range dropdown opened for the first
+ * time measured 131px, not its 288px. Its picker at the right of a table's
+ * header then opened from its left edge and ran off the screen, until it
+ * was closed and opened again. A popup wider than it is styled to (its
+ * content) is taken at its measured width.
+ */
+export function getDropdownWidthToFit(input: DropdownWidthToFitInput): number {
+  const measured: number = Number.isFinite(input.measuredWidthInPx)
+    ? input.measuredWidthInPx
+    : 0;
+
+  return Math.max(measured, input.dropdownWidthInPx);
+}
+
 /*
  * Tailwind positioning class for an alignment. Kept next to the resolver so
  * callers cannot drift out of sync with the enum.
@@ -140,7 +165,10 @@ export function useDropdownHorizontalAlignment(
         getDropdownHorizontalAlignment({
           anchorLeft: anchorRect.left,
           anchorRight: anchorRect.right,
-          dropdownWidth: measuredWidth > 0 ? measuredWidth : dropdownWidthInPx,
+          dropdownWidth: getDropdownWidthToFit({
+            measuredWidthInPx: measuredWidth,
+            dropdownWidthInPx: dropdownWidthInPx,
+          }),
           viewportWidth: window.innerWidth,
           viewportMargin: viewportMargin,
         }),

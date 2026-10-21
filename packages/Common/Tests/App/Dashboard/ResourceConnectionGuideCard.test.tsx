@@ -22,6 +22,7 @@ import { SpyInstance } from "jest-mock";
 import ResourceConnectionGuideCard from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceConnection/ResourceConnectionGuideCard";
 import {
   ResourceConnectionGuide,
+  getHostConnectionGuide,
   getKubernetesClusterConnectionGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceConnection/ResourceConnectionGuides";
 import Route from "../../../Types/API/Route";
@@ -440,5 +441,66 @@ describe("ResourceConnectionGuideCard with the Kubernetes guide", () => {
         "kubectl logs -n oneuptime-agent deploy/kubernetes-agent --tail=50",
       ),
     ).toBeInTheDocument();
+  });
+});
+
+describe("ResourceConnectionGuideCard for a host OneUptime installed the collector on", () => {
+  function renderManagedHost(registeredMinutesAgo: number): void {
+    render(
+      <ResourceConnectionGuideCard
+        status={undefined}
+        lastSeenAt={undefined}
+        guide={getHostConnectionGuide("web-09", {
+          isManaged: true,
+          osType: "linux",
+          registeredAt: new Date(
+            NOW.getTime() - registeredMinutesAgo * 60 * 1000,
+          ),
+        })}
+        documentationRoute={DOCS}
+      />,
+    );
+  }
+
+  test("just installed: it says the host is starting, and lists no checks", () => {
+    renderManagedHost(1);
+
+    expect(
+      screen.getByRole("heading", { name: "This host is starting" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryAllByTestId("resource-connection-guide-step"),
+    ).toHaveLength(0);
+    expect(card()!.querySelector("ol")).toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Open the Collector page" }),
+    ).toBeInTheDocument();
+  });
+
+  test("its first data late: it says so, with the checks", () => {
+    renderManagedHost(30);
+
+    expect(
+      screen.getByRole("heading", { name: "No data from this host yet" }),
+    ).toBeInTheDocument();
+    expect(stepTitles()).toEqual([
+      "Check the collector's config",
+      "Check the collector's service",
+      "Read the collector's log",
+    ]);
+    expect(
+      screen.getByText("sudo systemctl status oneuptime-collector"),
+    ).toBeInTheDocument();
+  });
+
+  test("a command wraps at a space, not in the middle of a word", () => {
+    renderManagedHost(30);
+
+    const code: HTMLElement = screen.getByText(
+      "sudo journalctl -u oneuptime-collector -n 50",
+    );
+    expect(code.tagName).toBe("CODE");
+    expect(code.className).not.toContain("break-all");
+    expect(code.className).toContain("[overflow-wrap:anywhere]");
   });
 });

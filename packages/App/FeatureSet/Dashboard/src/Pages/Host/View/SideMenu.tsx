@@ -164,15 +164,20 @@ const HostViewSideMenu: FunctionComponent<ComponentProps> = (
           resourceType={MonitorRecommendationResourceType.Host}
           resourceId={props.modelId}
         />
+        {/*
+         * The host's collector: what OneUptime runs on it and how that went,
+         * or - for a collector installed by hand - how to hand it over to
+         * OneUptime, and the manual guide.
+         */}
         <SideMenuItem
           link={{
-            title: "Documentation",
+            title: "Collector",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.HOST_VIEW_DOCUMENTATION] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.Book}
+          icon={IconProp.Cube}
         />
       </SideMenuSection>
 

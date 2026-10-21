@@ -1,0 +1,106 @@
+# Cloud > Connect reads AWS accounts through read-only IAM roles that trust
+# this OneUptime's own AWS identity. The app needs it to test a connection
+# and to write the role command the form shows; the worker needs it for every
+# read. An install without it must keep connecting AWS with an access key, so
+# both values default to empty.
+suite: cloud connect
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: ships with no AWS identity, so AWS accounts connect with an access key
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CLOUD_CONNECT_AWS_ACCESS_KEY_ID
+            value: ""
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY
+            value: ""
+
+  - it: passes the AWS identity to the app
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      cloudConnect.aws.accessKeyId: AKIAIOSFODNN7EXAMPLE
+      cloudConnect.aws.secretAccessKey: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CLOUD_CONNECT_AWS_ACCESS_KEY_ID
+            value: AKIAIOSFODNN7EXAMPLE
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY
+            value: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+
+  - it: passes it to the worker, which reads every connection
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker.enabled: true
+      cloudConnect.aws.accessKeyId: AKIAIOSFODNN7EXAMPLE
+      cloudConnect.aws.secretAccessKey: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CLOUD_CONNECT_AWS_ACCESS_KEY_ID
+            value: AKIAIOSFODNN7EXAMPLE
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY
+            value: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+
+  - it: reads the AWS identity from an existing secret when one is named
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      cloudConnect.aws.existingSecret.name: cloud-connect-aws-secret
+      cloudConnect.aws.existingSecret.accessKeyIdKey: accessKeyId
+      cloudConnect.aws.existingSecret.secretAccessKeyKey: secretAccessKey
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CLOUD_CONNECT_AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: cloud-connect-aws-secret
+                key: accessKeyId
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: cloud-connect-aws-secret
+                key: secretAccessKey
+
+  - it: refuses an existing secret that does not name its keys
+    templates:
+      - templates/app.yaml
+    set:
+      cloudConnect.aws.existingSecret.name: cloud-connect-aws-secret
+    asserts:
+      - failedTemplate: {}

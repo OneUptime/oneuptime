@@ -77,6 +77,7 @@ const SOURCES: Record<string, string> = {
   ruleCriteriaFields: `${COMMON_UI}/RuleCriteria/RuleCriteriaFields.ts`,
   ownersFormField: `${COMMON_UI}/PeoplePicker/OwnersFormField.ts`,
   baseModelTable: `${COMMON_UI}/ModelTable/BaseModelTable.tsx`,
+  tableHeaderControls: `${COMMON_UI}/Table/TableHeaderControls.tsx`,
   moreMenu: `${COMMON_UI}/MoreMenu/MoreMenu.tsx`,
   labelRuleTable: `${COMMON_UI}/LabelRule/LabelRuleTable.tsx`,
   importLabelRulesModal: `${COMMON_UI}/LabelRule/ImportLabelRulesModal.tsx`,
@@ -691,11 +692,18 @@ describe("Import and Export Label Rules, against the import", () => {
     expect(table).toMatch(
       /title: "Import JSON",\s*icon: IconProp\.Upload,\s*buttonStyle: ButtonStyleType\.OUTLINE,/,
     );
+    /*
+     * The table's header picks its main button (TableHeaderControls, #5135):
+     * a normal Add first, else a normal or primary one - never an outlined one.
+     */
     expect(readSource("baseModelTable")).toContain(
-      "c.buttonStyle === ButtonStyleType.NORMAL && c.icon === IconProp.Add",
+      "splitTableHeaderButtons(cardButtons)",
     );
-    expect(readSource("baseModelTable")).not.toMatch(
-      /style === ButtonStyleType\.OUTLINE \|\|/,
+    expect(readSource("tableHeaderControls")).toMatch(
+      /schema\.buttonStyle === ButtonStyleType\.NORMAL &&\s*schema\.icon === IconProp\.Add/,
+    );
+    expect(readSource("tableHeaderControls")).not.toMatch(
+      /ButtonStyleType\.OUTLINE/,
     );
     expect(readSource("moreMenu")).toContain(
       'translateString("More options") || "More options"',

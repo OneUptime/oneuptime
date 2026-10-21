@@ -78,6 +78,12 @@ export interface ComponentProps {
    * instead of showing a stale secret from a previous selection.
    */
   onSelectedKeyChange: (key: TelemetryIngestionKey | null) => void;
+
+  /*
+   * Only the key picker, without the endpoint and the token under it: for a
+   * guide whose one command already carries both (Add Host).
+   */
+  hideValues?: boolean | undefined;
 }
 
 const IngestionKeySelector: FunctionComponent<ComponentProps> = (
@@ -259,11 +265,9 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
 
     return (
       <div className="text-xs text-amber-700 mt-2 leading-relaxed">
-        Server key — treat it as a secret. It can write every kind of telemetry
-        into this project from anywhere, so it belongs in server environment
-        variables and collector config only. Never paste it into browser
-        JavaScript, a mobile app bundle, or anything else your users can read:
-        use a Browser ingestion key there.
+        {translator.translateText(
+          "Server key — treat it as a secret. It can write every kind of telemetry into this project from anywhere, so it belongs in server environment variables and collector config only. Never paste it into browser JavaScript, a mobile app bundle, or anything else your users can read: use a Browser ingestion key there.",
+        )}
       </div>
     );
   };
@@ -272,7 +276,9 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
     if (isLoadingKeys) {
       return (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-          <p className="text-sm text-gray-500">Loading ingestion keys...</p>
+          <p className="text-sm text-gray-500">
+            {translator.translateText("Loading ingestion keys...")}
+          </p>
         </div>
       );
     }
@@ -281,7 +287,10 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
       return (
         <div className="rounded-lg border border-red-200 bg-red-50 p-4">
           <p className="text-sm text-red-600">
-            Failed to load ingestion keys: {keyError}
+            {translator.translateTemplate(
+              "Failed to load ingestion keys: {{error}}",
+              { error: keyError },
+            )}
           </p>
           <button
             type="button"
@@ -290,7 +299,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
             }}
             className="mt-2 text-sm text-red-700 underline hover:text-red-800"
           >
-            Retry
+            {translator.translateText("Retry")}
           </button>
         </div>
       );
@@ -304,13 +313,17 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
           </div>
           <p className="text-sm font-medium text-gray-900 mb-1">
             {isBrowserKeyOnly
-              ? "No browser ingestion keys yet"
-              : "No ingestion keys yet"}
+              ? translator.translateText("No browser ingestion keys yet")
+              : translator.translateText("No ingestion keys yet")}
           </p>
           <p className="text-xs text-gray-500 mb-4">
             {isBrowserKeyOnly
-              ? "A browser key is the one safe to publish in a page: it is accepted only from the origins you list, and it can only write browser telemetry."
-              : "Create an ingestion key to authenticate your telemetry data."}
+              ? translator.translateText(
+                  "A browser key is the one safe to publish in a page: it is accepted only from the origins you list, and it can only write browser telemetry.",
+                )
+              : translator.translateText(
+                  "Create an ingestion key to authenticate your telemetry data.",
+                )}
           </p>
           <button
             type="button"
@@ -320,7 +333,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm"
           >
             <Icon icon={IconProp.Add} className="w-4 h-4" />
-            Create Ingestion Key
+            {translator.translateText("Create Ingestion Key")}
           </button>
         </div>
       );
@@ -328,9 +341,15 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
 
     return (
       <div>
-        {/* Key selector row */}
-        <div className="flex items-center gap-2 mb-3">
-          <div className="flex-1">
+        {/*
+         * Key selector row. Where the picker would get narrower than a key's
+         * name (a phone, a dialog), New Key goes under it instead.
+         */}
+        <div
+          className={`flex flex-wrap items-center gap-2 ${props.hideValues ? "" : "mb-3"}`}
+          data-testid="ingestion-key-picker-row"
+        >
+          <div className="min-w-[min(14rem,100%)] flex-1">
             <Dropdown
               options={ingestionKeys.map(
                 (key: TelemetryIngestionKey): DropdownOption => {
@@ -371,12 +390,12 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
             className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors flex-shrink-0"
           >
             <Icon icon={IconProp.Add} className="w-4 h-4" />
-            New Key
+            {translator.translateText("New Key")}
           </button>
         </div>
 
         {/* Credentials display */}
-        {selectedKey && (
+        {selectedKey && !props.hideValues && (
           <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
             <div className="grid grid-cols-1 divide-y divide-gray-100">
               <div className="px-4 py-3 flex items-start gap-3">
@@ -388,7 +407,8 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {props.endpointLabel}
+                    {translator.translateText(props.endpointLabel) ||
+                      props.endpointLabel}
                   </div>
                   <div className="text-sm text-gray-900 font-mono mt-0.5 break-all select-all">
                     {props.endpointValue}
@@ -409,7 +429,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ingestion Token
+                    {translator.translateText("Ingestion Token")}
                   </div>
                   <div className="text-sm text-gray-900 font-mono mt-0.5 break-all select-all">
                     {selectedKey.secretKey?.toString() || "—"}

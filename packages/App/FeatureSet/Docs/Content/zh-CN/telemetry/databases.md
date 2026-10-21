@@ -392,7 +392,7 @@ docker compose up -d
 
 PostgreSQL 接收器的 `postgresqlreceiver.preciselagmetrics` 功能开关默认开启，它把复制时间延迟记录为 `postgresql.wal.delay` 而不是 `postgresql.wal.lag`，而该指标在上游默认关闭，所以代理开启了它。每份配置都在注释中列出了更多可选指标；可以用同样的方式开启其中任何一个。数据库概览中的 **Engine metrics** 部分为本表中的每个引擎绘制一组精选指标（对于 Elasticsearch / OpenSearch：集群健康状况、节点、未分配的分片、待处理任务、JVM 堆、可用磁盘、搜索和索引；对于 Memcached：连接、内存、条目、get 命中和未命中、命令和驱逐），**指标** 选项卡则包含全部指标。在那里，概览中绘制的指标显示概览的值（其序列以同样的方式合并，计数器按每秒速率显示），并带有一个说明方式的标题（_total of series_、_per second, all series_）；其他每一行显示其序列的平均值，在你按属性过滤列表时，每一行也都显示平均值。MariaDB 把 `mysql.buffer_pool.limit` 报告为缓冲池的页数，而不是接收器声明的字节数，因此在 MariaDB 数据库上，该行及其图表的单位是页。MariaDB 没有 `Innodb_rows_*` 状态计数器，因此接收器不会为它发送 `mysql.row_operations`，MariaDB 的概览中也没有 **Row operations** 图表；它的行读写显示在 **Handler operations** 中。
 
-数据库的 **Version** 来自接收器（如果接收器报告了版本）：`db.system.version`（MySQL / MariaDB、MongoDB）、`redis.version`（Redis、KeyDB）、`oracle.db.version`（Oracle）和 `elasticsearch.node.version`（Elasticsearch / OpenSearch）。PostgreSQL、SQL Server 和 Memcached 接收器不报告版本，因此仅有代理时，这些数据库不显示版本；同时在 Kubernetes、Docker 或 Podman 中运行的数据库会显示其容器镜像的版本。
+数据库的 **版本** 来自接收器（如果接收器报告了版本）：`db.system.version`（MySQL / MariaDB、MongoDB）、`redis.version`（Redis、KeyDB）、`oracle.db.version`（Oracle）和 `elasticsearch.node.version`（Elasticsearch / OpenSearch）。PostgreSQL、SQL Server 和 Memcached 接收器不报告版本，因此仅有代理时，这些数据库不显示版本；同时在 Kubernetes、Docker 或 Podman 中运行的数据库会显示其容器镜像的版本。
 
 查询样本和热门查询会出现在数据库的 **日志** 选项卡中，以查询文本作为消息。接收器发送它们时正文为空，查询位于 `db.query.text` 中；配置中的 `transform/query_event_body` 处理器会把它复制到正文并保留该属性，并为没有查询文本的事件设置其事件名称（`db.server.query_sample`、`db.server.top_query`）。
 

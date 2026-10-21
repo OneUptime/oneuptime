@@ -551,7 +551,11 @@ test("combines facets, synchronizes URL and clears filters across the entire res
   await expect(page.getByTestId("session-facet-signal")).toContainText(
     "Errors",
   );
-  await page.getByTestId("session-clear-filters").click();
+  /* The chip row's own Clear all, as every list's chips have. */
+  await page
+    .getByTestId("session-replay-facets")
+    .getByRole("button", { name: "Clear all", exact: true })
+    .click();
   await expect(rows(page)).toHaveCount(8);
   await expect
     .poll(async (): Promise<unknown> => {
@@ -595,16 +599,23 @@ test("country search and duration facets issue the expected endpoint values", as
   await expect(rows(page)).toHaveCount(3);
 });
 
-test("search guidance is optional and an empty result offers a direct reset", async ({
+test("search guidance drops down from the opened search and an empty result offers a direct reset", async ({
   page,
 }: {
   page: Page;
 }) => {
   await openList(page);
-  await expect(page.getByTestId("session-search-hint")).toHaveCount(0);
-  await page.getByRole("button", { name: "Search help", exact: true }).click();
-  await expect(page.getByTestId("session-search-hint")).toBeVisible();
+  /* No help line under a search nobody opened. */
+  await expect(page.getByTestId("session-search-help")).toHaveCount(0);
+  await page.getByRole("button", { name: "Open search", exact: true }).click();
+  await expect(page.getByTestId("session-search-input")).toBeFocused();
+  await expect(page.getByTestId("session-search-help")).toBeVisible();
+  await expect(page.getByTestId("session-search-help")).toContainText(
+    "user:<reference>",
+  );
   await page.getByTestId("session-search-input").fill("absent-customer");
+  /* Typing puts the help away. */
+  await expect(page.getByTestId("session-search-help")).toHaveCount(0);
   await page.getByTestId("session-search-input").press("Enter");
   await expect(page.getByTestId("list-empty")).toBeVisible();
   await expect(page.getByTestId("list-empty-title")).toContainText(
@@ -684,8 +695,11 @@ test("pagination forwards the opaque cursor and changing the sort resets it", as
       return (await lastListRequest(page))["cursor"];
     })
     .toMatchObject({ sessionId: "00000000000000000000000000000014" });
-  await page.getByRole("combobox", { name: "Sort sessions" }).click();
-  await page.getByRole("option", { name: "Longest", exact: true }).click();
+  /* The sort order is one of the header's ⋯ choices. */
+  await page.getByTestId("session-replay-more").click();
+  await page
+    .getByRole("menuitemradio", { name: "Longest", exact: true })
+    .click();
   await expect(rows(page)).toHaveCount(20);
   await expect
     .poll(async (): Promise<unknown> => {

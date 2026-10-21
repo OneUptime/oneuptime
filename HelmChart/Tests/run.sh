@@ -21,7 +21,7 @@ SUITES_DIR="${TESTS_DIR}/suites"
 # Ordered cheapest-first. Every file in ./suites has to appear here or in
 # OPT_IN_SUITES, which is checked below: a new suite cannot be added and then
 # silently never run.
-ALL_SUITES=(lint unit extra-values vapid-existing-secret marketplace secrets-lifecycle keda-bootstrap)
+ALL_SUITES=(lint unit extra-values vapid-existing-secret air-gapped marketplace secrets-lifecycle keda-bootstrap)
 
 # Run only when named, never by default (so not in the helm-test job): they
 # pull third-party images and wait out reconcile intervals, measuring how other

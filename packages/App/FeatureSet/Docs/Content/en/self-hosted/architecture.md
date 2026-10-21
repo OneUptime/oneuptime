@@ -64,7 +64,13 @@ All of the app's roles are the same image: Docker Compose runs them in one `app`
 
 ## Connections out of your network
 
-The app reaches out only for what you turn on. Each of these is optional, and each has a page that names the exact addresses to allow:
+Three connections are made unless you change a setting:
+
+- Once a day, the app asks GitHub's API (`api.github.com`) whether a newer release is out. To turn this off, set `updateCheck.disabled: true` in the Helm chart, or `DISABLE_UPDATE_CHECK=true` in `config.env` on Docker Compose.
+- Signing up with “Notify me about security patches and new releases” ticked, as it is at first, sends the person's name and email, any company and phone number they gave, and your install's address and version to `oneuptime.com`. Untick it on a network without internet access.
+- On Kubernetes, probes fall back to the public resolvers `8.8.8.8` and `1.1.1.1` after your cluster's own DNS. Set `dnsConfig.nameservers` to `[]` to keep every lookup on your own DNS.
+
+Everything else reaches out only when you turn it on, and each has a page that names the exact addresses to allow:
 
 | Outbound connection | Used for | Where to read more |
 | --- | --- | --- |
