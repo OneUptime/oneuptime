@@ -1,12 +1,6 @@
 import "@testing-library/jest-dom";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+// The global jest, as HealthLicenseRequired.test.tsx uses: its jest.Mock type.
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import {
   act,
   cleanup,

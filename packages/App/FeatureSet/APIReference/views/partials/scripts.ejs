@@ -425,9 +425,14 @@
       });
    }
 
+   // The block around a copy button: what it reads from.
+   function copyScopeOf(button) {
+      return button.closest('[data-copy-scope]');
+   }
+
    // The element a button's text is read from, to select when the copy fails.
    function sourceElementFor(button) {
-      var scope = button.closest('[data-copy-scope]');
+      var scope = copyScopeOf(button);
 
       if (!scope) {
          return null;
@@ -439,7 +444,7 @@
    }
 
    function textToCopyFor(button) {
-      var scope = button.closest('[data-copy-scope]');
+      var scope = copyScopeOf(button);
 
       if (!scope) {
          return '';
