@@ -101,9 +101,8 @@ test.afterEach(async ({ page }: { page: Page }) => {
 
 async function fixtureLog(page: Page): Promise<FixtureLog> {
   return await page.evaluate((): FixtureLog => {
-    return (
-      window as unknown as { __resourceTopologyFixture: FixtureLog }
-    ).__resourceTopologyFixture;
+    return (window as unknown as { __resourceTopologyFixture: FixtureLog })
+      .__resourceTopologyFixture;
   });
 }
 
@@ -191,26 +190,36 @@ test.describe("a vCenter's Topology page", () => {
   }) => {
     await openTopology(page, "vmware");
 
-    await expect(page.getByText("Topology", { exact: true }).first()).toBeVisible();
-    await expect(byTestId(page, "resource-topology-count-vmware.datacenter")).toContainText("2");
+    await expect(
+      page.getByText("Topology", { exact: true }).first(),
+    ).toBeVisible();
+    await expect(
+      byTestId(page, "resource-topology-count-vmware.datacenter"),
+    ).toContainText("2");
     await expect(byTestId(page, "resource-topology-box-vcenter")).toBeVisible();
     await expect(
-      byTestId(page, "resource-topology-box-vmware.datacenter:datacenter/Amsterdam"),
+      byTestId(
+        page,
+        "resource-topology-box-vmware.datacenter:datacenter/Amsterdam",
+      ),
     ).toBeVisible();
     // The open incidents and alerts of the whole vCenter, counted at the top.
-    await expect(byTestId(page, "resource-topology-issue-summary")).toContainText(
-      "open incident",
-    );
+    await expect(
+      byTestId(page, "resource-topology-issue-summary"),
+    ).toContainText("open incident");
     // The first view is framed so a person can read it without zooming in.
     expect(await mapScale(page)).toBeGreaterThanOrEqual(0.6);
     // A closed card says, in the legend's colours, what needs attention inside.
     await expect(
-      byTestId(page, "resource-topology-card-vmware.cluster:cluster/Amsterdam/ams-prod").getByTestId(
-        "resource-topology-attention-counts",
-      ),
+      byTestId(
+        page,
+        "resource-topology-card-vmware.cluster:cluster/Amsterdam/ams-prod",
+      ).getByTestId("resource-topology-attention-counts"),
     ).toBeVisible();
     // The side menu's Topology item is the page shown.
-    await expect(page.getByRole("link", { name: "Topology" }).first()).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Topology" }).first(),
+    ).toBeVisible();
 
     await screenshot(page, "vmware-1280-light");
   });
@@ -243,9 +252,9 @@ test.describe("a vCenter's Topology page", () => {
     await openTopology(page, "vmware");
     await byTestId(page, "resource-topology-search").fill("api-gateway-07");
 
-    await expect(byTestId(page, "resource-topology-search-result")).toContainText(
-      "1 part matches your search.",
-    );
+    await expect(
+      byTestId(page, "resource-topology-search-result"),
+    ).toContainText("1 part matches your search.");
     await expect(page).toHaveURL(/search=api-gateway-07/);
 
     await partNamed(page, "api-gateway-07").click({
@@ -258,10 +267,15 @@ test.describe("a vCenter's Topology page", () => {
     // One click further: the virtual machine's own page in the vCenter.
     await expect(
       picked.getByRole("link", { name: "Open Virtual Machine" }),
-    ).toHaveAttribute("href", /\/vmware\/31000000-0000-4000-8000-000000000001\/virtual-machines\//);
+    ).toHaveAttribute(
+      "href",
+      /\/vmware\/31000000-0000-4000-8000-000000000001\/virtual-machines\//,
+    );
 
     // A virtual machine holds nothing and calls nothing: nothing to focus on.
-    await expect(byTestId(page, "resource-topology-panel-focus")).toHaveCount(0);
+    await expect(byTestId(page, "resource-topology-panel-focus")).toHaveCount(
+      0,
+    );
   });
 
   test("focusing on a host draws its lineage and what is inside it, nothing else", async ({
@@ -286,7 +300,10 @@ test.describe("a vCenter's Topology page", () => {
     // Its swapping virtual machine is drawn; Frankfurt is not.
     await expect(partNamed(page, "db-primary-01")).toBeVisible();
     await expect(
-      byTestId(page, "resource-topology-card-vmware.datacenter:datacenter/Frankfurt"),
+      byTestId(
+        page,
+        "resource-topology-card-vmware.datacenter:datacenter/Frankfurt",
+      ),
     ).toHaveCount(0);
     await screenshot(page, "vmware-focus-host");
 
@@ -310,16 +327,25 @@ test.describe("a vCenter's Topology page", () => {
     const box: Locator = byTestId(page, `resource-topology-box-${cluster}`);
     await expect(box).toBeVisible();
     // The hosts sit inside the cluster's box.
-    const host: Locator = startingWith(page, "resource-topology-card-vmware.host:").first();
+    const host: Locator = startingWith(
+      page,
+      "resource-topology-card-vmware.host:",
+    ).first();
     await expect(host).toBeVisible();
-    const outer: { x: number; y: number; width: number; height: number } = await boxOf(box);
-    const inner: { x: number; y: number; width: number; height: number } = await boxOf(host);
+    const outer: { x: number; y: number; width: number; height: number } =
+      await boxOf(box);
+    const inner: { x: number; y: number; width: number; height: number } =
+      await boxOf(host);
     expect(inner.x).toBeGreaterThanOrEqual(outer.x);
-    expect(inner.x + inner.width).toBeLessThanOrEqual(outer.x + outer.width + 1);
+    expect(inner.x + inner.width).toBeLessThanOrEqual(
+      outer.x + outer.width + 1,
+    );
 
     await byTestId(page, `resource-topology-close-${cluster}`).click();
     await expect(box).toHaveCount(0);
-    await expect(byTestId(page, `resource-topology-card-${cluster}`)).toBeVisible();
+    await expect(
+      byTestId(page, `resource-topology-card-${cluster}`),
+    ).toBeVisible();
   });
 
   test("a large vCenter folds each kind into '+ N more' and says how much is drawn", async ({
@@ -328,10 +354,15 @@ test.describe("a vCenter's Topology page", () => {
     page: Page;
   }) => {
     await openTopology(page, "vmware", "estate=large");
-    // Three datacenters of hundreds of virtual machines: the first view stops
-    // at the datacenters, each saying what it holds.
+    /*
+     * Three datacenters of hundreds of virtual machines: the first view stops
+     * at the datacenters, each saying what it holds.
+     */
     await expect(
-      byTestId(page, "resource-topology-card-vmware.datacenter:datacenter/Amsterdam"),
+      byTestId(
+        page,
+        "resource-topology-card-vmware.datacenter:datacenter/Amsterdam",
+      ),
     ).toBeVisible();
     await byTestId(
       page,
@@ -361,7 +392,9 @@ test.describe("a Kubernetes cluster's Topology page", () => {
     page: Page;
   }) => {
     await openTopology(page, "kubernetes");
-    await expect(byTestId(page, "resource-topology-card-k8s.namespace:payments")).toBeVisible();
+    await expect(
+      byTestId(page, "resource-topology-card-k8s.namespace:payments"),
+    ).toBeVisible();
     // The nodes sit beside the namespaces, small: here they hold nothing.
     await expect(
       startingWith(page, "resource-topology-chip-k8s.node:").first(),
@@ -370,7 +403,9 @@ test.describe("a Kubernetes cluster's Topology page", () => {
 
     await byTestId(page, "resource-topology-arrangement-nodes").click();
     await expect(page).toHaveURL(/by=nodes/);
-    await expect(byTestId(page, "resource-topology-card-k8s.namespace:payments")).toHaveCount(0);
+    await expect(
+      byTestId(page, "resource-topology-card-k8s.namespace:payments"),
+    ).toHaveCount(0);
     // By node, each node holds the pods it runs.
     await expect(
       page
@@ -388,10 +423,18 @@ test.describe("a Kubernetes cluster's Topology page", () => {
     page: Page;
   }) => {
     await openTopology(page, "kubernetes");
-    await byTestId(page, "resource-topology-open-k8s.namespace:payments").click();
-    await expect(byTestId(page, "resource-topology-box-k8s.namespace:payments")).toBeVisible();
+    await byTestId(
+      page,
+      "resource-topology-open-k8s.namespace:payments",
+    ).click();
+    await expect(
+      byTestId(page, "resource-topology-box-k8s.namespace:payments"),
+    ).toBeVisible();
 
-    const pod: Locator = startingWith(page, "resource-topology-chip-k8s.pod:payments/").first();
+    const pod: Locator = startingWith(
+      page,
+      "resource-topology-chip-k8s.pod:payments/",
+    ).first();
     await expect(pod).toBeVisible();
     await pod.click();
     await expect(byTestId(page, "resource-topology-panel")).toBeVisible();
@@ -408,9 +451,15 @@ test.describe("a host's Topology page", () => {
     page: Page;
   }) => {
     await openTopology(page, "host");
-    const callers: Locator = byTestId(page, "resource-topology-box-section:callers");
+    const callers: Locator = byTestId(
+      page,
+      "resource-topology-box-section:callers",
+    );
     const host: Locator = byTestId(page, "resource-topology-box-host");
-    const calls: Locator = byTestId(page, "resource-topology-box-section:calls");
+    const calls: Locator = byTestId(
+      page,
+      "resource-topology-box-section:calls",
+    );
 
     await expect(callers).toBeVisible();
     await expect(calls).toBeVisible();
@@ -421,8 +470,12 @@ test.describe("a host's Topology page", () => {
     expect(left.x + left.width).toBeLessThan(middle.x);
     expect(middle.x + middle.width).toBeLessThan(right.x);
     // Every call, without picking anything, with its rate on it.
-    expect(await page.locator(".react-flow__edge").count()).toBeGreaterThanOrEqual(3);
-    await expect(page.locator(".react-flow__edge-text").first()).toContainText("/min");
+    expect(
+      await page.locator(".react-flow__edge").count(),
+    ).toBeGreaterThanOrEqual(3);
+    await expect(page.locator(".react-flow__edge-text").first()).toContainText(
+      "/min",
+    );
     await expect(byTestId(page, "resource-topology-legend")).toContainText(
       "Calls per minute",
     );
@@ -432,7 +485,14 @@ test.describe("a host's Topology page", () => {
 });
 
 test.describe("every resource that holds parts", () => {
-  for (const product of ["docker", "podman", "swarm", "proxmox", "ceph", "storage"]) {
+  for (const product of [
+    "docker",
+    "podman",
+    "swarm",
+    "proxmox",
+    "ceph",
+    "storage",
+  ]) {
     test(`${product}: the Topology page draws the resource from its own inventory`, async ({
       page,
     }: {
@@ -459,7 +519,10 @@ test.describe("the master Topology", () => {
     await byTestId(page, "resource-topology-master-link").click();
 
     await expect(page).toHaveURL(/\/topology\/overview\?.*infraFocus=/);
-    const back: Locator = byTestId(page, "infrastructure-resource-topology-link");
+    const back: Locator = byTestId(
+      page,
+      "infrastructure-resource-topology-link",
+    );
     await expect(back).toHaveText("Open vCenter topology");
     await screenshot(page, "master-topology-vcenter");
 
@@ -530,23 +593,31 @@ test.describe("on a phone, in dark mode and in German", () => {
       "placeholder",
       GERMAN["Find a host, virtual machine or datastore…"] as string,
     );
-    await expect(byTestId(page, "resource-topology-filter-attention")).toContainText(
-      GERMAN["Needs attention"] as string,
-    );
+    await expect(
+      byTestId(page, "resource-topology-filter-attention"),
+    ).toContainText(GERMAN["Needs attention"] as string);
     const legend: string = (
       (await byTestId(page, "resource-topology-legend").textContent()) || ""
     ).replace(WHITE_SPACE_RUNS, " ");
-    expect(legend).toContain(GERMAN["Related, for the part you pick"] as string);
+    expect(legend).toContain(
+      GERMAN["Related, for the part you pick"] as string,
+    );
 
     await screenshot(page, "vmware-1280-de");
   });
 });
 
 test.describe("when there is nothing, or the read fails", () => {
-  test("an empty inventory says what to do", async ({ page }: { page: Page }) => {
+  test("an empty inventory says what to do", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await page.goto(topologyUrl("vmware", "estate=empty"));
     await expect(page.getByText("Nothing to draw yet")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Open the Overview" })).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Open the Overview" }),
+    ).toBeVisible();
   });
 
   test("a failed read can be tried again", async ({ page }: { page: Page }) => {
@@ -565,7 +636,9 @@ test.describe("when there is nothing, or the read fails", () => {
   }) => {
     await openTopology(page, "vmware", "issues=denied");
     await expect(byTestId(page, "resource-topology-box-vcenter")).toBeVisible();
-    await expect(byTestId(page, "resource-topology-issue-summary")).toHaveCount(0);
+    await expect(byTestId(page, "resource-topology-issue-summary")).toHaveCount(
+      0,
+    );
   });
 
   test("the keyboard reaches a part and opens its panel", async ({

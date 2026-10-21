@@ -778,7 +778,8 @@ export function computeResourceTopologyView(
       const items: Array<ResourceTopologyCardItem | ResourceTopologyChipItem> =
         [];
 
-      shown.forEach((member: ResourceTopologyNode, index: number) => {
+      for (let index: number = 0; index < shown.length; index++) {
+        const member: ResourceTopologyNode = shown[index]!;
         shownIds.add(member.id);
 
         if (asChips) {
@@ -790,11 +791,11 @@ export function computeResourceTopologyView(
             nodeId: member.id,
             isMatch: Boolean(narrowing?.matches.has(member.id)),
           });
-          return;
+          continue;
         }
 
         items.push(buildCard(member, automatic && index < cardPreview));
-      });
+      }
 
       const hidden: Array<ResourceTopologyNode> = group.members.filter(
         (member: ResourceTopologyNode): boolean => {

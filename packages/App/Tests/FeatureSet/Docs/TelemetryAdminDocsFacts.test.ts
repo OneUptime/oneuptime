@@ -208,7 +208,8 @@ const QUOTED: RegExp = /"([^"]+)"/g;
 // A resource's own Topology page, as ResourceTopologyLinks names it.
 const RESOURCE_TOPOLOGY_PAGE: RegExp = /page: PageMap\.([A-Z_]+_TOPOLOGY),/g;
 // The button on the master map that leads back to a resource's own map.
-const RESOURCE_TOPOLOGY_LINK_TEXT: RegExp = /linkText: translationKey\("([^"]+)"\)/g;
+const RESOURCE_TOPOLOGY_LINK_TEXT: RegExp =
+  /linkText: translationKey\("([^"]+)"\)/g;
 
 function english(page: string): string {
   return readPage("en", page);
@@ -2182,9 +2183,9 @@ describe("Topology (telemetry/topology)", () => {
         menu,
         linked: true,
       });
-      expect(
-        between(sideMenu, `PageMap.${key}`, "/>").length,
-      ).toBeGreaterThan(0);
+      expect(between(sideMenu, `PageMap.${key}`, "/>").length).toBeGreaterThan(
+        0,
+      );
     }
 
     // The nine are the ones the master map links into, and no others.
@@ -2192,9 +2193,7 @@ describe("Topology (telemetry/topology)", () => {
       "Components/ResourceTopology/ResourceTopologyLinks.ts",
     );
 
-    expect(
-      allMatches(links, RESOURCE_TOPOLOGY_PAGE).sort(),
-    ).toEqual(
+    expect(allMatches(links, RESOURCE_TOPOLOGY_PAGE).sort()).toEqual(
       [
         "CEPH_CLUSTER_VIEW_TOPOLOGY",
         "DOCKER_HOST_VIEW_TOPOLOGY",
