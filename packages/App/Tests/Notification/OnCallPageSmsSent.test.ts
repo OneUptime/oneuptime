@@ -336,7 +336,9 @@ describe.each(KINDS)("a page about $name", (kind: PageKind) => {
 
     expect(body).toBe(sms.message);
     expect(body.startsWith("OneUptime: ")).toBe(true);
-    expect(body.endsWith(" Ack or pass it on: https://oneuptime.com/l/XJlaZRsd")).toBe(true);
+    expect(
+      body.endsWith(" Ack or pass it on: https://oneuptime.com/l/XJlaZRsd"),
+    ).toBe(true);
     expect(counted.encoding).toBe(SmsEncoding.Gsm7);
     expect(counted.segments).toBe(1);
     // The log keeps what was sent.

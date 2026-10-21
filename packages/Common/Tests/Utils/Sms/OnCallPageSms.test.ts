@@ -10,10 +10,7 @@ import {
   OnCallPageSmsInput,
   OnCallPageSmsKind,
 } from "../../../Utils/Sms/OnCallPageSms";
-import {
-  countSmsSegments,
-  SmsEncoding,
-} from "../../../Utils/Sms/SmsSegments";
+import { countSmsSegments, SmsEncoding } from "../../../Utils/Sms/SmsSegments";
 import ProductBrandingUtil from "../../../Types/Branding/ProductBranding";
 import { seededRandom, SeededRandom } from "../../Helpers/SeededRandom";
 
@@ -212,7 +209,11 @@ describe("describeWhatHappened", () => {
     [OnCallPageSmsKind.Incident, "SEV1", "SEV1 incident"],
     [OnCallPageSmsKind.Incident, "Critical", "Critical incident"],
     [OnCallPageSmsKind.Incident, "Sev 1 (Incident)", "Sev 1 (Incident)"],
-    [OnCallPageSmsKind.IncidentEpisode, "Critical Incident", "Critical Incident episode"],
+    [
+      OnCallPageSmsKind.IncidentEpisode,
+      "Critical Incident",
+      "Critical Incident episode",
+    ],
     [OnCallPageSmsKind.IncidentEpisode, "P1", "P1 incident episode"],
     [OnCallPageSmsKind.Alert, "High", "High alert"],
     [OnCallPageSmsKind.Alert, "Low", "Low alert"],
@@ -413,7 +414,8 @@ describe("the fitting rule", () => {
 describe("characters outside GSM-7", () => {
   test("a curly quote, a dash and an ellipsis are written plainly, so the page stays in one part", () => {
     const sms: OnCallPageSms = page({
-      title: "\u{201C}Checkout\u{201D} service \u{2013} payments failing\u{2026}",
+      title:
+        "\u{201C}Checkout\u{201D} service \u{2013} payments failing\u{2026}",
     });
 
     expect(sms.text).toBe(
@@ -524,9 +526,7 @@ describe("measured as sent", () => {
     expect(sms.sent.segments).toBe(1);
     expect(sms.sent.length).toBeLessThanOrEqual(160);
     // Unrenamed, the same title would have kept more of itself.
-    expect(page({ title: title }).text.length).toBeGreaterThan(
-      sms.text.length,
-    );
+    expect(page({ title: title }).text.length).toBeGreaterThan(sms.text.length);
   });
 
   test("a title that says OneUptime is counted with the name it is renamed to", () => {
@@ -569,7 +569,11 @@ describe("pathological values", () => {
     });
 
     expect(sms.sent.segments).toBeLessThanOrEqual(MAX_PAGE_SMS_SEGMENTS);
-    expect(sms.text.endsWith(tail(`https://${"a".repeat(200)}.example.com/l/XJlaZRsd`))).toBe(true);
+    expect(
+      sms.text.endsWith(
+        tail(`https://${"a".repeat(200)}.example.com/l/XJlaZRsd`),
+      ),
+    ).toBe(true);
     expect(sms.text).toContain(han.repeat(100));
     expect(sms.text).toContain(`${han.repeat(20)}123456`);
   });

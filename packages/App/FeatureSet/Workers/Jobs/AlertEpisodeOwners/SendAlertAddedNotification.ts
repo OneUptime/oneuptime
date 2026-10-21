@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
@@ -369,7 +370,7 @@ RunCron(
               : `${alertCountInBatch} new alerts were added to alert episode ${episodeNumberStr} (${episode.title}).`;
 
           const sms: SMSMessage = {
-            message: `This is a message from OneUptime. ${summaryLine} To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+            message: buildNotificationSms(`${summaryLine}`),
           };
 
           const callMessage: CallRequestMessage = {

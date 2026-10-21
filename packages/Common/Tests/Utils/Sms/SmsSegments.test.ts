@@ -154,13 +154,16 @@ describe("countSmsSegments in GSM-7", () => {
     [460, 4],
     [1530, 10],
     [1531, 11],
-  ])("%d plain characters go out in %d part(s)", (length: number, parts: number) => {
-    expect(count("a".repeat(length))).toEqual({
-      encoding: SmsEncoding.Gsm7,
-      length: length,
-      segments: parts,
-    });
-  });
+  ])(
+    "%d plain characters go out in %d part(s)",
+    (length: number, parts: number) => {
+      expect(count("a".repeat(length))).toEqual({
+        encoding: SmsEncoding.Gsm7,
+        length: length,
+        segments: parts,
+      });
+    },
+  );
 
   test("an extension character takes two places", () => {
     expect(count("{".repeat(80)).length).toBe(160);
@@ -209,19 +212,24 @@ describe("countSmsSegments in UCS-2", () => {
     [135, 3],
     [201, 3],
     [202, 4],
-  ])("%d Cyrillic letters go out in %d part(s)", (length: number, parts: number) => {
-    expect(countSmsSegments(CYRILLIC_ZHE.repeat(length))).toEqual({
-      encoding: SmsEncoding.Ucs2,
-      length: length,
-      segments: parts,
-    });
-  });
+  ])(
+    "%d Cyrillic letters go out in %d part(s)",
+    (length: number, parts: number) => {
+      expect(countSmsSegments(CYRILLIC_ZHE.repeat(length))).toEqual({
+        encoding: SmsEncoding.Ucs2,
+        length: length,
+        segments: parts,
+      });
+    },
+  );
 
   test("one character outside GSM-7 makes a short text take two parts", () => {
     expect(countSmsSegments("a".repeat(100)).segments).toBe(1);
-    expect(
-      countSmsSegments(`${"a".repeat(99)}${RIGHT_SINGLE_QUOTE}`),
-    ).toEqual({ encoding: SmsEncoding.Ucs2, length: 100, segments: 2 });
+    expect(countSmsSegments(`${"a".repeat(99)}${RIGHT_SINGLE_QUOTE}`)).toEqual({
+      encoding: SmsEncoding.Ucs2,
+      length: 100,
+      segments: 2,
+    });
   });
 
   test("an extension character is one code unit in UCS-2, as any other", () => {

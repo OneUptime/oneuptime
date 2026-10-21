@@ -306,159 +306,154 @@ const getReadableCut: (
  * The page's text, fitted to the fewest parts by the fitting rule above,
  * with how it goes out.
  */
-export const buildOnCallPageSms: (input: OnCallPageSmsInput) => OnCallPageSms =
-  (input: OnCallPageSmsInput): OnCallPageSms => {
-    const sentAs: (text: string) => string =
-      input.sentAs ||
-      ((text: string): string => {
-        return text;
-      });
+export const buildOnCallPageSms: (
+  input: OnCallPageSmsInput,
+) => OnCallPageSms = (input: OnCallPageSmsInput): OnCallPageSms => {
+  const sentAs: (text: string) => string =
+    input.sentAs ||
+    ((text: string): string => {
+      return text;
+    });
 
-    const parts: PageParts = {
-      productName: toOneLine(input.productName),
-      what: describeWhatHappened({
-        kind: input.kind,
-        severityName: toSmsValue(input.severityName),
-      }),
-      number: toSmsValue(input.number),
-      projectName: toSmsValue(input.projectName),
-      title: Array.from(toSmsValue(input.title)),
-      link: input.link.trim(),
+  const parts: PageParts = {
+    productName: toOneLine(input.productName),
+    what: describeWhatHappened({
+      kind: input.kind,
+      severityName: toSmsValue(input.severityName),
+    }),
+    number: toSmsValue(input.number),
+    projectName: toSmsValue(input.projectName),
+    title: Array.from(toSmsValue(input.title)),
+    link: input.link.trim(),
+  };
+
+  const wholeTitle: string = parts.title.join("");
+
+  const measure: (text: string) => SmsSegmentCount = (
+    text: string,
+  ): SmsSegmentCount => {
+    return countSmsSegments(sentAs(text));
+  };
+
+  const fitted: (
+    text: string,
+    isProjectLeftOut: boolean,
+    isTitleCut: boolean,
+  ) => OnCallPageSms = (
+    text: string,
+    isProjectLeftOut: boolean,
+    isTitleCut: boolean,
+  ): OnCallPageSms => {
+    return {
+      text: text,
+      sent: measure(text),
+      isProjectLeftOut: isProjectLeftOut,
+      isTitleCut: isTitleCut,
+    };
+  };
+
+  // The text with the title cut to its first `count` characters, as is.
+  const withTitleCutTo: (count: number) => string = (count: number): string => {
+    return compose(parts, {
+      withProject: false,
+      title: parts.title
+        .slice(0, getWholeCharacterCount(parts.title, count))
+        .join(""),
+      isTitleCut: true,
+    });
+  };
+
+  for (
+    let segments: number = 1;
+    segments <= MAX_PAGE_SMS_SEGMENTS;
+    segments++
+  ) {
+    const fits: (text: string) => boolean = (text: string): boolean => {
+      return measure(text).segments <= segments;
     };
 
-    const wholeTitle: string = parts.title.join("");
+    // 1. Everything.
+    const everything: string = compose(parts, {
+      withProject: true,
+      title: wholeTitle,
+      isTitleCut: false,
+    });
 
-    const measure: (text: string) => SmsSegmentCount = (
-      text: string,
-    ): SmsSegmentCount => {
-      return countSmsSegments(sentAs(text));
-    };
+    if (fits(everything)) {
+      return fitted(everything, false, false);
+    }
 
-    const fitted: (
-      text: string,
-      isProjectLeftOut: boolean,
-      isTitleCut: boolean,
-    ) => OnCallPageSms = (
-      text: string,
-      isProjectLeftOut: boolean,
-      isTitleCut: boolean,
-    ): OnCallPageSms => {
-      return {
-        text: text,
-        sent: measure(text),
-        isProjectLeftOut: isProjectLeftOut,
-        isTitleCut: isTitleCut,
-      };
-    };
-
-    // The text with the title cut to its first `count` characters, as is.
-    const withTitleCutTo: (count: number) => string = (
-      count: number,
-    ): string => {
-      return compose(parts, {
+    // 2. Without the project.
+    if (parts.projectName) {
+      const withoutProject: string = compose(parts, {
         withProject: false,
-        title: parts.title
-          .slice(0, getWholeCharacterCount(parts.title, count))
-          .join(""),
-        isTitleCut: true,
-      });
-    };
-
-    for (
-      let segments: number = 1;
-      segments <= MAX_PAGE_SMS_SEGMENTS;
-      segments++
-    ) {
-      const fits: (text: string) => boolean = (text: string): boolean => {
-        return measure(text).segments <= segments;
-      };
-
-      // 1. Everything.
-      const everything: string = compose(parts, {
-        withProject: true,
         title: wholeTitle,
         isTitleCut: false,
       });
 
-      if (fits(everything)) {
-        return fitted(everything, false, false);
-      }
-
-      // 2. Without the project.
-      if (parts.projectName) {
-        const withoutProject: string = compose(parts, {
-          withProject: false,
-          title: wholeTitle,
-          isTitleCut: false,
-        });
-
-        if (fits(withoutProject)) {
-          return fitted(withoutProject, true, false);
-        }
-      }
-
-      // 3. The title cut, as long as at least MIN_TITLE_CHARACTERS are left.
-      if (parts.title.length > MIN_TITLE_CHARACTERS) {
-        let longest: number = -1;
-        let low: number = MIN_TITLE_CHARACTERS;
-        let high: number = parts.title.length - 1;
-
-        /*
-         * The most characters that fit: a longer cut never takes fewer
-         * places, so the answer is found by halving.
-         */
-        while (low <= high) {
-          const middle: number = Math.floor((low + high) / 2);
-
-          if (fits(withTitleCutTo(middle))) {
-            longest = middle;
-            low = middle + 1;
-          } else {
-            high = middle - 1;
-          }
-        }
-
-        if (longest >= 0) {
-          const readableTitle: string | null = getReadableCut(
-            parts.title,
-            longest,
-            MIN_TITLE_CHARACTERS,
-          );
-          const readable: string | null =
-            readableTitle === null
-              ? null
-              : compose(parts, {
-                  withProject: false,
-                  title: readableTitle,
-                  isTitleCut: true,
-                });
-
-          // Reading well never costs a part: else the plain cut, which fits.
-          return readable !== null && fits(readable)
-            ? fitted(readable, Boolean(parts.projectName), true)
-            : fitted(
-                withTitleCutTo(longest),
-                Boolean(parts.projectName),
-                true,
-              );
-        }
+      if (fits(withoutProject)) {
+        return fitted(withoutProject, true, false);
       }
     }
 
-    // Nothing fits in that many parts: as short as the rule allows.
-    return parts.title.length > MIN_TITLE_CHARACTERS
-      ? fitted(
-          withTitleCutTo(MIN_TITLE_CHARACTERS),
-          Boolean(parts.projectName),
-          true,
-        )
-      : fitted(
-          compose(parts, {
-            withProject: false,
-            title: wholeTitle,
-            isTitleCut: false,
-          }),
-          Boolean(parts.projectName),
-          false,
+    // 3. The title cut, as long as at least MIN_TITLE_CHARACTERS are left.
+    if (parts.title.length > MIN_TITLE_CHARACTERS) {
+      let longest: number = -1;
+      let low: number = MIN_TITLE_CHARACTERS;
+      let high: number = parts.title.length - 1;
+
+      /*
+       * The most characters that fit: a longer cut never takes fewer
+       * places, so the answer is found by halving.
+       */
+      while (low <= high) {
+        const middle: number = Math.floor((low + high) / 2);
+
+        if (fits(withTitleCutTo(middle))) {
+          longest = middle;
+          low = middle + 1;
+        } else {
+          high = middle - 1;
+        }
+      }
+
+      if (longest >= 0) {
+        const readableTitle: string | null = getReadableCut(
+          parts.title,
+          longest,
+          MIN_TITLE_CHARACTERS,
         );
-  };
+        const readable: string | null =
+          readableTitle === null
+            ? null
+            : compose(parts, {
+                withProject: false,
+                title: readableTitle,
+                isTitleCut: true,
+              });
+
+        // Reading well never costs a part: else the plain cut, which fits.
+        return readable !== null && fits(readable)
+          ? fitted(readable, Boolean(parts.projectName), true)
+          : fitted(withTitleCutTo(longest), Boolean(parts.projectName), true);
+      }
+    }
+  }
+
+  // Nothing fits in that many parts: as short as the rule allows.
+  return parts.title.length > MIN_TITLE_CHARACTERS
+    ? fitted(
+        withTitleCutTo(MIN_TITLE_CHARACTERS),
+        Boolean(parts.projectName),
+        true,
+      )
+    : fitted(
+        compose(parts, {
+          withProject: false,
+          title: wholeTitle,
+          isTitleCut: false,
+        }),
+        Boolean(parts.projectName),
+        false,
+      );
+};

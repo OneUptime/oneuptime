@@ -45,10 +45,22 @@ describe("the look-alikes", () => {
 
 describe("toGsm7Text: punctuation and spaces", () => {
   test.each([
-    ["curly double quotes", "\u{201C}Checkout\u{201D} is down", '"Checkout" is down'],
+    [
+      "curly double quotes",
+      "\u{201C}Checkout\u{201D} is down",
+      '"Checkout" is down',
+    ],
     ["curly single quotes", "\u{2018}api\u{2019}s queue", "'api's queue"],
-    ["low quotes", "\u{201E}Zahlung\u{201C} fehlgeschlagen", '"Zahlung" fehlgeschlagen'],
-    ["guillemets", "\u{00AB}Paiements\u{00BB} en panne", '"Paiements" en panne'],
+    [
+      "low quotes",
+      "\u{201E}Zahlung\u{201C} fehlgeschlagen",
+      '"Zahlung" fehlgeschlagen',
+    ],
+    [
+      "guillemets",
+      "\u{00AB}Paiements\u{00BB} en panne",
+      '"Paiements" en panne',
+    ],
     ["a backtick", "`checkout` crashed", "'checkout' crashed"],
     ["an acute accent as an apostrophe", "it\u{00B4}s down", "it's down"],
     ["primes", "5\u{2032} 6\u{2033}", "5' 6\""],
@@ -108,17 +120,53 @@ describe("toGsm7Text: letters", () => {
 
   test.each([
     ["Portuguese", "Falha na integra\u{00E7}\u{00E3}o", "Falha na integracao"],
-    ["Spanish", "Ca\u{00ED}da del servicio de facturaci\u{00F3}n", "Caida del servicio de facturacion"],
-    ["French, keeping the accents GSM-7 has", "Cr\u{00E8}me br\u{00FB}l\u{00E9}e \u{00E0} l\u{2019}h\u{00F4}tel", "Cr\u{00E8}me brul\u{00E9}e \u{00E0} l'hotel"],
-    ["German, all GSM-7 already", "St\u{00F6}rung: \u{00DC}berlast im Gro\u{00DF}handel", "St\u{00F6}rung: \u{00DC}berlast im Gro\u{00DF}handel"],
-    ["Polish", "\u{0141}\u{00F3}d\u{017A}: awaria p\u{0142}atno\u{015B}ci", "Lodz: awaria platnosci"],
+    [
+      "Spanish",
+      "Ca\u{00ED}da del servicio de facturaci\u{00F3}n",
+      "Caida del servicio de facturacion",
+    ],
+    [
+      "French, keeping the accents GSM-7 has",
+      "Cr\u{00E8}me br\u{00FB}l\u{00E9}e \u{00E0} l\u{2019}h\u{00F4}tel",
+      "Cr\u{00E8}me brul\u{00E9}e \u{00E0} l'hotel",
+    ],
+    [
+      "German, all GSM-7 already",
+      "St\u{00F6}rung: \u{00DC}berlast im Gro\u{00DF}handel",
+      "St\u{00F6}rung: \u{00DC}berlast im Gro\u{00DF}handel",
+    ],
+    [
+      "Polish",
+      "\u{0141}\u{00F3}d\u{017A}: awaria p\u{0142}atno\u{015B}ci",
+      "Lodz: awaria platnosci",
+    ],
     ["Czech", "V\u{00FD}padek \u{0159}\u{00ED}zen\u{00ED}", "Vypadek rizeni"],
-    ["Romanian", "Eroare la pl\u{0103}\u{021B}i \u{0219}i facturi", "Eroare la plati si facturi"],
-    ["Turkish", "\u{0130}stanbul \u{00F6}deme hatas\u{0131} \u{011F}\u{015F}", "Istanbul \u{00F6}deme hatasi gs"],
+    [
+      "Romanian",
+      "Eroare la pl\u{0103}\u{021B}i \u{0219}i facturi",
+      "Eroare la plati si facturi",
+    ],
+    [
+      "Turkish",
+      "\u{0130}stanbul \u{00F6}deme hatas\u{0131} \u{011F}\u{015F}",
+      "Istanbul \u{00F6}deme hatasi gs",
+    ],
     ["Hungarian", "Hossz\u{00FA} v\u{00E1}laszid\u{0151}", "Hosszu valaszido"],
-    ["Vietnamese", "\u{0110}\u{00E0} N\u{1EB5}ng: l\u{1ED7}i thanh to\u{00E1}n", "D\u{00E0} Nang: loi thanh toan"],
-    ["Icelandic", "\u{00DE}j\u{00F3}nusta \u{00ED} ve\u{00F0}ri", "Thjonusta i vedri"],
-    ["Danish and Norwegian, all GSM-7 already", "\u{00C6}r\u{00F8}sk\u{00F8}bing \u{00E5}bner", "\u{00C6}r\u{00F8}sk\u{00F8}bing \u{00E5}bner"],
+    [
+      "Vietnamese",
+      "\u{0110}\u{00E0} N\u{1EB5}ng: l\u{1ED7}i thanh to\u{00E1}n",
+      "D\u{00E0} Nang: loi thanh toan",
+    ],
+    [
+      "Icelandic",
+      "\u{00DE}j\u{00F3}nusta \u{00ED} ve\u{00F0}ri",
+      "Thjonusta i vedri",
+    ],
+    [
+      "Danish and Norwegian, all GSM-7 already",
+      "\u{00C6}r\u{00F8}sk\u{00F8}bing \u{00E5}bner",
+      "\u{00C6}r\u{00F8}sk\u{00F8}bing \u{00E5}bner",
+    ],
     ["a ligature", "\u{0153}uvre \u{FB01}le", "oeuvre file"],
     ["a capital sharp s", "STRA\u{1E9E}E", "STRASSE"],
   ])("%s", (_name: string, text: string, written: string) => {
@@ -144,25 +192,40 @@ describe("toGsm7Text: letters", () => {
     ["a circled digit", "Step \u{2460}", "Step 1"],
     ["bold maths letters", "\u{1D401}\u{1D41E}\u{1D41A}\u{1D420}", "Beag"],
     ["a unit", "5 \u{338F}", "5 kg"],
-  ])("%s are written as what they stand for", (_name: string, text: string, written: string) => {
-    expect(toGsm7Text(text)).toBe(written);
-  });
+  ])(
+    "%s are written as what they stand for",
+    (_name: string, text: string, written: string) => {
+      expect(toGsm7Text(text)).toBe(written);
+    },
+  );
 });
 
 describe("toGsm7Text: what is left out", () => {
   test.each([
     ["an emoji", "\u{1F525} Checkout down \u{1F525}", " Checkout down "],
     ["an emoji with a skin tone", "Approved \u{1F44D}\u{1F3FD}", "Approved "],
-    ["a family joined by joiners", "\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467} team", " team"],
+    [
+      "a family joined by joiners",
+      "\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467} team",
+      " team",
+    ],
     ["a flag", "\u{1F1E9}\u{1F1EA} region", " region"],
-    ["a warning sign with its selector", "\u{26A0}\u{FE0F} Disk 90%", " Disk 90%"],
+    [
+      "a warning sign with its selector",
+      "\u{26A0}\u{FE0F} Disk 90%",
+      " Disk 90%",
+    ],
     ["a check mark", "\u{2705} done", " done"],
     ["a degree sign", "40\u{00B0}C", "40C"],
     ["a currency GSM-7 lacks", "Over \u{20B9}5000", "Over 5000"],
     ["a zero-width space", "data\u{200B}base", "database"],
     ["a soft hyphen", "data\u{00AD}base", "database"],
     ["a byte order mark", "\u{FEFF}Checkout", "Checkout"],
-    ["direction marks and isolates", "\u{200E}a\u{200F}b\u{2066}c\u{2069}", "abc"],
+    [
+      "direction marks and isolates",
+      "\u{200E}a\u{200F}b\u{2066}c\u{2069}",
+      "abc",
+    ],
     ["control characters", "a\u{0000}b\u{0007}c\u{000B}d", "abcd"],
     ["a joiner between Latin letters", "a\u{200C}b\u{200D}c", "abc"],
   ])("%s", (_name: string, text: string, written: string) => {
@@ -182,16 +245,34 @@ describe("toGsm7Text: what is left out", () => {
 
 describe("toGsm7Text: letters of other scripts are kept as written", () => {
   test.each([
-    ["Japanese", "\u{6C7A}\u{6E08}API\u{304C}\u{5FDC}\u{7B54}\u{3057}\u{307E}\u{305B}\u{3093}\u{3002}"],
+    [
+      "Japanese",
+      "\u{6C7A}\u{6E08}API\u{304C}\u{5FDC}\u{7B54}\u{3057}\u{307E}\u{305B}\u{3093}\u{3002}",
+    ],
     ["Chinese", "\u{652F}\u{4ED8}\u{670D}\u{52A1}\u{4E0D}\u{53EF}\u{7528}"],
     ["Korean", "\u{acb0}\u{c81c} \u{c11c}\u{bc84} \u{c7a5}\u{c560}"],
-    ["Russian, with its \u{0439}", "\u{0421}\u{0435}\u{0440}\u{0432}\u{0438}\u{0441} \u{043D}\u{0435}\u{0434}\u{043E}\u{0441}\u{0442}\u{0443}\u{043F}\u{0435}\u{043D}, \u{0439}"],
-    ["Greek, with its accents", "\u{0394}\u{03BF}\u{03BA}\u{03B9}\u{03BC}\u{03AE}"],
-    ["Hindi, with its marks", "\u{0928}\u{092E}\u{0938}\u{094D}\u{0924}\u{0947}"],
+    [
+      "Russian, with its \u{0439}",
+      "\u{0421}\u{0435}\u{0440}\u{0432}\u{0438}\u{0441} \u{043D}\u{0435}\u{0434}\u{043E}\u{0441}\u{0442}\u{0443}\u{043F}\u{0435}\u{043D}, \u{0439}",
+    ],
+    [
+      "Greek, with its accents",
+      "\u{0394}\u{03BF}\u{03BA}\u{03B9}\u{03BC}\u{03AE}",
+    ],
+    [
+      "Hindi, with its marks",
+      "\u{0928}\u{092E}\u{0938}\u{094D}\u{0924}\u{0947}",
+    ],
     ["Arabic", "\u{0627}\u{0644}\u{062E}\u{062F}\u{0645}\u{0629}"],
     ["Hebrew", "\u{05E9}\u{05D9}\u{05E8}\u{05D5}\u{05EA}"],
-    ["Persian, with the non-joiner between its letters", "\u{0645}\u{06CC}\u{200C}\u{062E}\u{0648}\u{0627}\u{0647}\u{0645}"],
-    ["Devanagari, with a joiner between its letters", "\u{0915}\u{094D}\u{200D}\u{0937}"],
+    [
+      "Persian, with the non-joiner between its letters",
+      "\u{0645}\u{06CC}\u{200C}\u{062E}\u{0648}\u{0627}\u{0647}\u{0645}",
+    ],
+    [
+      "Devanagari, with a joiner between its letters",
+      "\u{0915}\u{094D}\u{200D}\u{0937}",
+    ],
   ])("%s", (_name: string, text: string) => {
     expect(toGsm7Text(text)).toBe(text);
     expect(isGsm7Text(toGsm7Text(text))).toBe(false);
@@ -313,7 +394,8 @@ describe("toGsm7Message", () => {
   });
 
   test("is toGsm7Text for a message without links", () => {
-    const text: string = "\u{201C}Caf\u{00E9}\u{201D} \u{2013} 40\u{00B0}C \u{1F525}";
+    const text: string =
+      "\u{201C}Caf\u{00E9}\u{201D} \u{2013} 40\u{00B0}C \u{1F525}";
 
     expect(toGsm7Message(text)).toBe(toGsm7Text(text));
   });

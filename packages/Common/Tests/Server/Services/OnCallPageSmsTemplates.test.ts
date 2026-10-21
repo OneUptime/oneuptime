@@ -268,7 +268,11 @@ describe.each(KINDS)("the SMS a page about $name sends", (kind: Kind) => {
 
     expect(counted.encoding).toBe(SmsEncoding.Gsm7);
     expect(counted.segments).toBe(1);
-    expect(sms.message.startsWith(`OneUptime: ${kind.what} ${kind.number}: Database replication lag`)).toBe(true);
+    expect(
+      sms.message.startsWith(
+        `OneUptime: ${kind.what} ${kind.number}: Database replication lag`,
+      ),
+    ).toBe(true);
     expect(sms.message).not.toContain("Acme Prod");
     expect(
       sms.message.endsWith(

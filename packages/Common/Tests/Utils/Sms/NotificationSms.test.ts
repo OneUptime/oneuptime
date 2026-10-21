@@ -74,7 +74,9 @@ describe("buildNotificationSms", () => {
 
 describe("fitNotificationSmsForSending", () => {
   test("a text that fits is sent as written", () => {
-    const text: string = buildNotificationSms("You are now on call for Payments.");
+    const text: string = buildNotificationSms(
+      "You are now on call for Payments.",
+    );
 
     expect(fitNotificationSmsForSending(text)).toBe(text);
   });
@@ -97,9 +99,9 @@ describe("fitNotificationSmsForSending", () => {
 
     expect(countSmsSegments(text).segments).toBe(2);
     expect(fitNotificationSmsForSending(text)).toBe(`OneUptime: ${news}`);
-    expect(
-      countSmsSegments(fitNotificationSmsForSending(text)).segments,
-    ).toBe(1);
+    expect(countSmsSegments(fitNotificationSmsForSending(text)).segments).toBe(
+      1,
+    );
   });
 
   test("keeps it when even without it the text takes two parts", () => {
