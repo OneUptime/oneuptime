@@ -71,6 +71,11 @@ export interface DiscoveryImportProjectFacts {
   templates: Array<DiscoveryImportTemplateChoice>;
   // Why no template can be picked, when none can.
   templatesUnavailableReason?: string | undefined;
+  /*
+   * Whether the project's templates were read: a read that failed lists
+   * none, and must not be taken for a project that has none.
+   */
+  didReadTemplates: boolean;
   incidentSeverities: Map<string, NamedColor>;
   alertSeverities: Map<string, NamedColor>;
   monitorStatuses: Map<string, NamedColor>;
@@ -214,6 +219,35 @@ export function buildTemplateChoices(data: {
   }
 
   return rest;
+}
+
+/*
+ * What the step knows once the templates are read again - the reader came
+ * back to the dialog's window, maybe from making a template in another tab
+ * (issue #5145): the templates replaced, everything else as it was read
+ * when the step opened. Null keeps the step as it is, when the read that
+ * matters failed: a template read that failed lists none, and a status or
+ * severity read that failed would take away the recommended template the
+ * import creates - neither means the project's templates changed.
+ */
+export function mergeRefreshedFacts(data: {
+  current: DiscoveryImportProjectFacts;
+  loaded: DiscoveryImportProjectFacts;
+}): DiscoveryImportProjectFacts | null {
+  if (!data.loaded.didReadTemplates) {
+    return null;
+  }
+
+  if (data.current.seedIds && !data.loaded.seedIds) {
+    return null;
+  }
+
+  return {
+    ...data.current,
+    templates: data.loaded.templates,
+    templatesUnavailableReason: data.loaded.templatesUnavailableReason,
+    didReadTemplates: true,
+  };
 }
 
 export function toPolicyFacts(data: {
@@ -416,6 +450,7 @@ export async function loadDiscoveryImportProjectFacts(): Promise<DiscoveryImport
   return {
     templates: templateChoices,
     templatesUnavailableReason: templatesUnavailableReason,
+    didReadTemplates: templatesResult.status === "fulfilled",
     incidentSeverities: toNamedColorMap<IncidentSeverity>(
       incidentSeverities,
       (row: IncidentSeverity): string | undefined => {

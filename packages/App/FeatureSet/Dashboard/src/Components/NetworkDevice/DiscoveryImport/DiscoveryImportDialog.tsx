@@ -79,6 +79,7 @@ import {
 import {
   DiscoveryImportProjectFacts,
   loadDiscoveryImportProjectFacts,
+  mergeRefreshedFacts,
 } from "./DiscoveryImportProjectFacts";
 import useDiscoveryImportPolling, {
   DiscoveryImportPolling,
@@ -542,8 +543,9 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
    * keeps the list the step has, and nothing is read while an import is
    * being started or before the step's first read is in.
    */
-  const hasFactsRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
-  hasFactsRef.current = Boolean(facts) && !isLoadingFacts;
+  const factsRef: React.MutableRefObject<DiscoveryImportProjectFacts | null> =
+    useRef<DiscoveryImportProjectFacts | null>(null);
+  factsRef.current = isLoadingFacts ? null : facts;
   const isActingRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
   isActingRef.current = isActing;
   const factsRefreshRef: React.MutableRefObject<number> = useRef<number>(0);
@@ -554,7 +556,7 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
     }
 
     const onWindowFocus: () => void = (): void => {
-      if (!hasFactsRef.current || isActingRef.current) {
+      if (!factsRef.current || isActingRef.current) {
         return;
       }
 
@@ -563,19 +565,29 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
 
       loadDiscoveryImportProjectFacts()
         .then((loaded: DiscoveryImportProjectFacts) => {
+          const current: DiscoveryImportProjectFacts | null = factsRef.current;
+
           if (
             request !== factsRefreshRef.current ||
             isActingRef.current ||
-            shownStepRef.current !== DiscoveryImportStep.Monitoring
+            shownStepRef.current !== DiscoveryImportStep.Monitoring ||
+            !current
           ) {
             return;
           }
 
-          setFacts(loaded);
-          setSettings((current: DiscoveryImportSettings) => {
+          const merged: DiscoveryImportProjectFacts | null =
+            mergeRefreshedFacts({ current: current, loaded: loaded });
+
+          if (!merged) {
+            return;
+          }
+
+          setFacts(merged);
+          setSettings((settingsNow: DiscoveryImportSettings) => {
             return keepPickedTemplate({
-              settings: current,
-              templates: loaded.templates,
+              settings: settingsNow,
+              templates: merged.templates,
             });
           });
         })

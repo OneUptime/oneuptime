@@ -102,6 +102,7 @@ import {
   NO_DEVICE_MONITOR_TEMPLATE_REASON,
   buildTemplateChoices,
   loadDiscoveryImportProjectFacts,
+  mergeRefreshedFacts,
   toPolicyFacts,
   toTemplateChoice,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImport/DiscoveryImportProjectFacts";
@@ -506,6 +507,108 @@ describe("templates of every kind a device's monitor can be made from (#5145)", 
   });
 });
 
+
+/*
+ * The templates are read again each time the reader comes back to the
+ * dialog's window (#5145): the step takes the new list, and nothing else -
+ * and keeps what it has when the read that matters failed.
+ */
+describe("the facts, once the templates are read again", () => {
+  function facts(
+    overrides: Partial<DiscoveryImportProjectFacts> = {},
+  ): DiscoveryImportProjectFacts {
+    return {
+      templates: buildTemplateChoices({
+        templates: [posTemplate()],
+        canCreateTemplates: true,
+        seedIds: SEED_IDS,
+        projectId: PROJECT_ID,
+      }),
+      didReadTemplates: true,
+      incidentSeverities: new Map([
+        [CRITICAL_ID.toString(), { name: "Critical" }],
+      ]),
+      alertSeverities: new Map(),
+      monitorStatuses: new Map(),
+      policies: [],
+      monitorLimitStatus: null,
+      monitorRoom: null,
+      canCreateMonitors: { isAllowed: true },
+      canCreateDevices: { isAllowed: true },
+      seedIds: SEED_IDS,
+      ...overrides,
+    };
+  }
+
+  test("the new list replaces the old; the rest is what the step read when it opened", () => {
+    const current: DiscoveryImportProjectFacts = facts();
+    const loaded: DiscoveryImportProjectFacts = facts({
+      templates: [
+        toTemplateChoice(posTemplate()),
+        toTemplateChoice(
+          Object.assign(new MonitorTemplate(), {
+            id: RECOMMENDED_TEMPLATE_ID,
+            templateName: "WB KDS Ping Monitor Template",
+            monitorType: MonitorType.Ping,
+          }),
+        ),
+      ],
+      incidentSeverities: new Map(),
+      monitorRoom: 3,
+    });
+
+    const merged: DiscoveryImportProjectFacts | null = mergeRefreshedFacts({
+      current: current,
+      loaded: loaded,
+    });
+
+    expect(namesOf(merged!.templates)).toEqual([
+      "POS ping availability",
+      "WB KDS Ping Monitor Template",
+    ]);
+    expect(merged!.incidentSeverities).toBe(current.incidentSeverities);
+    expect(merged!.monitorRoom).toBeNull();
+    expect(merged!.didReadTemplates).toBe(true);
+  });
+
+  test("a template read that failed lists none: the step keeps its list", () => {
+    expect(
+      mergeRefreshedFacts({
+        current: facts(),
+        loaded: facts({
+          templates: [],
+          didReadTemplates: false,
+          templatesUnavailableReason: "The connection was interrupted.",
+        }),
+      }),
+    ).toBeNull();
+  });
+
+  test("a status or severity read that failed would take the recommended template away: the step keeps its list", () => {
+    expect(
+      mergeRefreshedFacts({
+        current: facts(),
+        loaded: facts({ seedIds: null, templates: [] }),
+      }),
+    ).toBeNull();
+  });
+
+  test("a project left with no template says why, as the step would have on opening", () => {
+    const merged: DiscoveryImportProjectFacts | null = mergeRefreshedFacts({
+      current: facts({ seedIds: null }),
+      loaded: facts({
+        seedIds: null,
+        templates: [],
+        templatesUnavailableReason: NO_DEVICE_MONITOR_TEMPLATE_REASON,
+      }),
+    });
+
+    expect(merged!.templates).toEqual([]);
+    expect(merged!.templatesUnavailableReason).toBe(
+      NO_DEVICE_MONITOR_TEMPLATE_REASON,
+    );
+  });
+});
 
 describe("the alert policies, as the summary needs them", () => {
   test("enabled or not, scoped or not, with the template they provision from", () => {
