@@ -51,7 +51,7 @@ Dat is een veilig begin, en meestal te veel. Kort het in tot wat elke ernst verd
 | Groot | Meteen push, na 10 minuten een sms |
 | Klein of laag | Meteen een e-mail |
 
-OneUptime heeft geen stille uren: houd lage ernstniveaus op e-mail, of op een pushregel ingesteld op **Normaal**, zodat ze je nooit wakker maken.
+Je eigen regels hebben geen stille uren: houd lage ernstniveaus op e-mail, of op een pushregel ingesteld op **Normaal**, zodat ze je nooit wakker maken. Om de oproep voor een laag ernstniveau voor iedereen op werktijden te laten wachten, zet je de bereikbaarheidsregel die oproept op **Alleen tijdens werktijden**: zie [Bereikbaarheidsregels](/docs/alerts/settings#bereikbaarheidsregels).
 
 ## Een regel toevoegen
 

@@ -16,7 +16,9 @@ import {
  *   - A severity changed through the ID column - how the API, Terraform
  *     (incident_severity_id), workflows and the AI tools write it - records
  *     itself in the feed, recalculates the SLA deadlines, re-matches the
- *     reminder rule and counts as a severity change, once each. It used to do
+ *     reminder rule, counts as a severity change and matches the record's
+ *     runs waiting for working hours against the on-call rules again
+ *     (WaitingRunsOnRecordChange), once each. It used to do
  *     none of that: only the relation name the dashboard sends set them off.
  *   - The severity a record already holds, written back under either name,
  *     sets off none of them. It used to set them all off again on every save
@@ -81,6 +83,7 @@ import StatusPageAnnouncementService from "../../../Server/Services/StatusPageAn
 import { ExpressRequest, ExpressResponse } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
 import TelemetryUtil from "../../../Server/Utils/Telemetry/Telemetry";
+import WaitingRunsOnRecordChange from "../../../Server/Utils/OnCall/WaitingRunsOnRecordChange";
 import MutableMetric from "../../../Models/AnalyticsModels/MutableMetric";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
@@ -276,6 +279,7 @@ describe("PUT an incident", () => {
   let feed: MockFunction;
   let recalculate: MockFunction;
   let refreshReminders: MockFunction;
+  let startWaitingRuns: MockFunction;
   let metrics: MockFunction;
 
   function storedIncident(): Incident {
@@ -333,6 +337,12 @@ describe("PUT an incident", () => {
       .spyOn(IncidentService, "refreshReminderSchedule")
       .mockImplementation(refreshReminders as never);
 
+    startWaitingRuns = getJestMockFunction();
+    startWaitingRuns.mockResolvedValue(0 as never);
+    jest
+      .spyOn(WaitingRunsOnRecordChange, "startForIncident")
+      .mockImplementation(startWaitingRuns as never);
+
     jest
       .spyOn(IncidentService, "getIncidentMetricContext")
       .mockResolvedValue({ baseMetricAttributes: {} } as never);
@@ -383,6 +393,9 @@ describe("PUT an incident", () => {
     expect(recalculate).toHaveBeenCalledTimes(1);
     expect(refreshReminders).toHaveBeenCalledTimes(1);
     expect(severityChanges()).toHaveLength(1);
+    // A run waiting for working hours may now match a rule that pages right away.
+    expect(startWaitingRuns).toHaveBeenCalledTimes(1);
+    expect(String(startWaitingRuns.mock.calls[0]![0])).toBe(RECORD_ID);
   });
 
   test("a new severity by the relation, as the dashboard sends it, does the same, once", async () => {
@@ -396,6 +409,7 @@ describe("PUT an incident", () => {
     expect(recalculate).toHaveBeenCalledTimes(1);
     expect(refreshReminders).toHaveBeenCalledTimes(1);
     expect(severityChanges()).toHaveLength(1);
+    expect(startWaitingRuns).toHaveBeenCalledTimes(1);
   });
 
   test.each([
@@ -411,6 +425,8 @@ describe("PUT an incident", () => {
       expect(recalculate).not.toHaveBeenCalled();
       expect(refreshReminders).not.toHaveBeenCalled();
       expect(severityChanges()).toHaveLength(0);
+      // Nothing the on-call rules read changed.
+      expect(startWaitingRuns).not.toHaveBeenCalled();
     },
   );
 
@@ -425,6 +441,8 @@ describe("PUT an incident", () => {
     expect(feedMarkdown()[0]).not.toContain("Incident Severity");
     expect(recalculate).not.toHaveBeenCalled();
     expect(severityChanges()).toHaveLength(0);
+    // An on-call rule may match the title.
+    expect(startWaitingRuns).toHaveBeenCalledTimes(1);
   });
 
   test("a master admin writing the whole incident back, notify flag included, re-sends nothing", async () => {
@@ -506,6 +524,7 @@ describe("PUT an alert", () => {
 
   let feed: MockFunction;
   let refreshReminders: MockFunction;
+  let startWaitingRuns: MockFunction;
 
   function storedAlert(): Alert {
     const alert: Alert = new Alert();
@@ -547,9 +566,15 @@ describe("PUT an alert", () => {
     jest
       .spyOn(AlertService, "refreshReminderSchedule")
       .mockImplementation(refreshReminders as never);
+
+    startWaitingRuns = getJestMockFunction();
+    startWaitingRuns.mockResolvedValue(0 as never);
+    jest
+      .spyOn(WaitingRunsOnRecordChange, "startForAlert")
+      .mockImplementation(startWaitingRuns as never);
   });
 
-  test("a new severity by its ID column is recorded in the feed and re-matches reminders, once", async () => {
+  test("a new severity by its ID column is recorded in the feed, re-matches reminders and the alert's waiting runs, once", async () => {
     await put(Alert, alertService, { alertSeverityId: CRITICAL });
 
     expect(Response.sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
@@ -559,6 +584,9 @@ describe("PUT an alert", () => {
         .feedInfoInMarkdown,
     ).toContain("Critical");
     expect(refreshReminders).toHaveBeenCalledTimes(1);
+    // A P3 raised to P1 at night: a rule that pages right away may now match.
+    expect(startWaitingRuns).toHaveBeenCalledTimes(1);
+    expect(String(startWaitingRuns.mock.calls[0]![0])).toBe(RECORD_ID);
   });
 
   test.each([
@@ -572,6 +600,7 @@ describe("PUT an alert", () => {
       expect(Response.sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
       expect(feed).not.toHaveBeenCalled();
       expect(refreshReminders).not.toHaveBeenCalled();
+      expect(startWaitingRuns).not.toHaveBeenCalled();
     },
   );
 });

@@ -425,3 +425,99 @@ describe("EmailInlineImages.attach - linear time", () => {
     expect(attached.html.length).toBeLessThan(20000);
   });
 });
+
+describe("EmailInlineImages.attachImage - an image of the email's own", () => {
+  /*
+   * OneUptime's logo in an email's header (EmailLogo): attached by the
+   * name it is given, held to no limit and never left out - the caller
+   * counts it (EmailSize.attachWithinLimit).
+   */
+  const own: { dataUri: string; fileName: string } = {
+    dataUri: `data:image/png;base64,${PNG}`,
+    fileName: "oneuptime-logo.png",
+  };
+
+  test("every <img> that shows it points at one attachment by its name", () => {
+    const html: string = `${image(PNG)}<p>Hi</p>${image(PNG)}`;
+
+    const attached: EmailHtmlWithInlineImages = EmailInlineImages.attachImage(
+      html,
+      own,
+    );
+
+    expect(attached.inlineImages).toHaveLength(1);
+
+    const attachment: EmailInlineImage = attached.inlineImages[0]!;
+
+    expect(attachment).toEqual({
+      contentId: attachment.contentId,
+      fileName: "oneuptime-logo.png",
+      mimeType: "image/png",
+      base64: PNG,
+      byteLength: Buffer.from(PNG, "base64").length,
+    });
+    expect(attachment.contentId).toMatch(CONTENT_ID_PATTERN);
+    expect(sourcesIn(attached.html)).toEqual([
+      `cid:${attachment.contentId}`,
+      `cid:${attachment.contentId}`,
+    ]);
+  });
+
+  test("leaves every other image alone, an inline one included", () => {
+    const html: string = `${image(JPEG, "image/jpeg")}<img src="https://oneuptime.example.com/a.png" alt="A">`;
+
+    expect(EmailInlineImages.attachImage(html, own)).toEqual({
+      html: html,
+      inlineImages: [],
+    });
+  });
+
+  test("is held to no limit: it is the caller's to count", () => {
+    const big: string = pngOfSize(MaxEmailInlineImageBytes + 1024);
+
+    const attached: EmailHtmlWithInlineImages = EmailInlineImages.attachImage(
+      image(big),
+      { dataUri: `data:image/png;base64,${big}`, fileName: "big.png" },
+    );
+
+    expect(attached.inlineImages).toHaveLength(1);
+    expect(attached.html).not.toContain("too large");
+  });
+
+  test.each([
+    ["an empty body", ""],
+    ["a body without it", "<p>Hello</p>"],
+    ["its data: URL only as text", `<p>data:image/png;base64,${PNG}</p>`],
+    [
+      "its data: URL only in another attribute",
+      `<img data-src="data:image/png;base64,${PNG}" src="https://example.com/a.png">`,
+    ],
+  ])("%s comes back exactly as it was", (_label: string, html: string) => {
+    expect(EmailInlineImages.attachImage(html, own)).toEqual({
+      html: html,
+      inlineImages: [],
+    });
+  });
+
+  test("an image that is not an inline raster image is never attached", () => {
+    const svg: string = "data:image/svg+xml;base64,PHN2Zy8+";
+    const html: string = `<img src="${svg}" alt="x">`;
+
+    expect(
+      EmailInlineImages.attachImage(html, { dataUri: svg, fileName: "x.svg" }),
+    ).toEqual({ html: html, inlineImages: [] });
+  });
+
+  test("a body full of unclosed <img tags, in linear time", () => {
+    const html: string = `${"<img src='data:image/png;base64,".repeat(20000)}data:image/png;base64,${PNG}`;
+
+    const startedAt: number = Date.now();
+    const attached: EmailHtmlWithInlineImages = EmailInlineImages.attachImage(
+      html,
+      own,
+    );
+
+    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(attached.html).toBe(html);
+  });
+});

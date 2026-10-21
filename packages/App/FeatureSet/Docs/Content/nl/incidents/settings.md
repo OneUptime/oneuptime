@@ -627,6 +627,8 @@ Het aanmaakformulier heeft twee stappen:
 2. **Bereikbaarheidsbeleid** — het beleid dat deze regel oproept, en de **Naam** van de regel, daaruit ingevuld ("Platform on-call oproepen") totdat je zelf een naam typt; de **Beschrijving** wacht onder **Meer velden**. De regel begint ingeschakeld; het bewerkingsformulier voegt de schakelaar **Ingeschakeld** toe, en de lijst toont per regel een groen label **Ingeschakeld** of een rood label **Uitgeschakeld**.
 :::
 
+Een regel roept op zodra een incident erop past. Om de regel in plaats daarvan op werktijden te laten wachten, beantwoord je **Wanneer moet deze regel oproepen?** onder **Meer velden** met **Alleen tijdens werktijden**. De **Werktijden** beginnen op maandag tot en met vrijdag, 09:00 tot 17:00, in je eigen tijdzone: kies andere dagen, een andere **Starttijd** of **Eindtijd**, of een andere **Tijdzone**, en een zin onder de keuze zegt wat er gebeurt. In de lijst toont de regel zijn tijden onder zijn naam. Een incident dat buiten die tijden past, krijgt een uitvoering die wacht, als **Wachten**, en niemand oproept; zodra de werktijden beginnen, roept het beleid zijn eerste escalatieregel op en escaleert het zoals gewoonlijk. Wordt het incident eerst bevestigd of opgelost, dan wordt niemand opgeroepen. Verandert het incident terwijl het wacht en past het nu op een regel die direct oproept, bijvoorbeeld omdat zijn ernstniveau is verhoogd, dan begint de uitvoering meteen met oproepen, en de feed van het incident zegt waarom.
+
 ### Hoe overeenkomen wordt afgehandeld
 
 De regels die de pagina zelf meebrengt, zijn het waard om je eigen te maken:
@@ -635,7 +637,7 @@ De regels die de pagina zelf meebrengt, zijn het waard om je eigen te maken:
 - Een lijstcriterium — **Monitoren**, **Incident Ernsten**, **Incident-labels**, **Monitorlabels** — gebruikt **Heeft een van**, **Heeft alle** of **Heeft geen van** de waarden die je kiest.
 - Een tekstcriterium — de titel en de beschrijving van het incident, de namen en beschrijvingen van zijn monitoren — gebruikt **Bevat**, **Bevat niet**, **Is gelijk aan**, **Is niet gelijk aan**, **Begint met** of **Eindigt met**, zonder op hoofdletters te letten, of **Komt overeen met patroon** / **Komt niet overeen met patroon** voor een reguliere expressie zonder onderscheid tussen hoofdletters en kleine letters of een jokerteken `*`. Een nieuwe tekstvoorwaarde begint op **Bevat**.
 - **Alle overeenkomende regels gaan af.** Er is geen prioriteit en geen kortsluiting.
-- Het beleid dat daadwerkelijk wordt uitgevoerd, is de vereniging van het beleid van elke overeenkomende regel plus elk beleid dat met de hand of door een sjabloon aan het incident is gehangen, ontdubbeld zodat elk beleid hoogstens één keer draait.
+- Het beleid dat daadwerkelijk wordt uitgevoerd, is de vereniging van het beleid van elke overeenkomende regel plus elk beleid dat met de hand of door een sjabloon aan het incident is gehangen, ontdubbeld zodat elk beleid hoogstens één keer draait. Roepen twee overeenkomende regels hetzelfde beleid op, dan roept het op zodra een van beide het toelaat: direct wint van werktijden.
 
 > [!NOTE]
 > Ernst is hier een criterium en nergens anders. Een incidenternst heeft geen bereikbaarheidsveld — "Critical Incident" kiezen roept op zichzelf niemand op. Wil je dat de ernst het oproepen stuurt, schrijf dan een bereikbaarheidsregel die erop filtert.

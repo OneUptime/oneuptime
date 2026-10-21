@@ -34,7 +34,7 @@ Uma política não aciona ninguém até que algo a execute. Cada incidente, aler
 | À mão | **Executar política de plantão**, no menu **Ações** de um feed, ou em uma mensagem do Slack ou do Microsoft Teams | [O feed do incidente](/docs/incidents/notes-owners-and-feed#o-feed-do-incidente) |
 | Chat e workflows | `/oneuptime page` no Slack ou no Microsoft Teams, e a etapa **Page an On-Call Policy** de um workflow | [Paging](/docs/workflows/components#paging) |
 
-Uma política que várias regras adicionam é executada uma única vez. Uma gravidade nunca executa uma política sozinha: quem faz isso é uma regra de plantão que corresponde a essa gravidade. Um incidente ou alerta criado já confirmado ou resolvido não executa nenhuma das suas políticas.
+Uma política que várias regras adicionam é executada uma única vez. Uma gravidade nunca executa uma política sozinha: quem faz isso é uma regra de plantão que corresponde a essa gravidade. Um incidente ou alerta criado já confirmado ou resolvido não executa nenhuma das suas políticas. Uma regra de plantão definida como **Somente em horário comercial** faz as políticas que adiciona aguardarem até esse horário começar.
 
 ## As páginas de uma política
 
@@ -84,6 +84,7 @@ flowchart TB
 
 | Status | O que significa |
 | --- | --- |
+| **Aguardando** | Uma regra de plantão definida como **Somente em horário comercial** faz a execução aguardar até esse horário começar: ela diz quando o acionamento começa, e até lá não aciona ninguém. Termina sem acionar se o incidente ou o alerta for confirmado ou resolvido antes. Começa a acionar na hora se o incidente ou o alerta mudar e passar a corresponder a uma regra de plantão que aciona imediatamente. |
 | **Agendado**, **Iniciada** | A execução está sendo preparada. Uma que ainda esteja aqui depois de 5 minutos é encerrada como **Erro**. |
 | **Executing** | A execução está acionando. O OneUptime a avança a cada minuto. |
 | **Execution Completed** | Alguém confirmou, o incidente ou alerta foi resolvido, todas as regras e repetições foram usadas, ou a política foi arquivada. |

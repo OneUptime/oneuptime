@@ -346,6 +346,8 @@ describe("which of a run's statuses are news for the feed", () => {
    * How it ended is news.
    */
   test.each<[OnCallDutyPolicyStatus, boolean]>([
+    // Said when the run is created (getRunWaitingMarkdown).
+    [OnCallDutyPolicyStatus.Waiting, false],
     [OnCallDutyPolicyStatus.Scheduled, false],
     [OnCallDutyPolicyStatus.Started, false],
     [OnCallDutyPolicyStatus.Executing, false],

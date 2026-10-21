@@ -51,7 +51,7 @@ Det är en säker början, och oftast för mycket. Skala ned det till vad varje 
 | Allvarlig | Push direkt, ett SMS efter 10 minuter |
 | Mindre eller låg | Ett e-postmeddelande direkt |
 
-OneUptime har inga tysta timmar: håll låga allvarlighetsgrader på e-post, eller på en push-regel inställd på **Normal**, så att de aldrig väcker dig.
+Dina egna regler har inga tysta timmar: håll låga allvarlighetsgrader på e-post, eller på en push-regel inställd på **Normal**, så att de aldrig väcker dig. För att låta larmet för en låg allvarlighetsgrad vänta på arbetstid för alla ställer du jourregeln som larmar på **Endast under arbetstid**: se [Jourregler](/docs/alerts/settings#jourregler).
 
 ## Lägg till en regel
 

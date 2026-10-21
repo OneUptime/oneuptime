@@ -40,7 +40,7 @@ RunCron(
      * healthy escalations and silently dropped every remaining rule/repeat,
      * meaning later responders were never paged for an unacknowledged incident.
      */
-    const stuckExecutions: Array<OnCallDutyPolicyExecutionLog> =
+    const startedExecutions: Array<OnCallDutyPolicyExecutionLog> =
       await OnCallDutyPolicyExecutionLogService.findAllBy({
         query: {
           status: OnCallDutyPolicyStatus.Started,
@@ -51,11 +51,26 @@ RunCron(
           createdAt: true,
           // Whether it is a policy's run or a direct page, for what it is told.
           onCallDutyPolicyId: true,
+          pagingStartsAt: true,
         },
         props: {
           isRoot: true,
         },
       });
+
+    /*
+     * A run that waited to page (OnCallDutyPolicyRunWait) - held until
+     * working hours, for hours or days - was created long before it starts:
+     * it is started from Waiting, and its pagingStartsAt is the moment it
+     * was. It is stuck only five minutes after that, not at once. A Waiting
+     * run itself is not read here at all: it is not stuck, it waits.
+     */
+    const stuckExecutions: Array<OnCallDutyPolicyExecutionLog> =
+      startedExecutions.filter(
+        (executionLog: OnCallDutyPolicyExecutionLog): boolean => {
+          return isStartedLongerThan(executionLog, fiveMinsAgo);
+        },
+      );
 
     /*
      * A log is created in "Scheduled" and advanced to "Started" inside the
@@ -115,3 +130,26 @@ RunCron(
     }
   },
 );
+
+/*
+ * Whether a run in Started began starting before `before`: when it was
+ * created, or - for a run that waited to page - when its paging started.
+ */
+function isStartedLongerThan(
+  executionLog: OnCallDutyPolicyExecutionLog,
+  before: Date,
+): boolean {
+  if (!executionLog.pagingStartsAt) {
+    return true;
+  }
+
+  const pagingStartedAt: Date = OneUptimeDate.fromString(
+    executionLog.pagingStartsAt,
+  );
+
+  if (isNaN(pagingStartedAt.getTime())) {
+    return true;
+  }
+
+  return OneUptimeDate.isBefore(pagingStartedAt, before);
+}

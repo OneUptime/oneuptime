@@ -128,6 +128,11 @@ const SOURCES: Record<string, string> = {
   mobileSettingsScreen: `${MOBILE_APP}/src/screens/SettingsScreen.tsx`,
   mobileAlarmSounds: `${MOBILE_APP}/src/notifications/criticalAlertSounds.ts`,
   mobileAlarmSoundScreen: `${MOBILE_APP}/src/screens/settings/CriticalAlertSoundScreen.tsx`,
+  emailLogoPartial:
+    "packages/App/FeatureSet/Notification/Templates/Partials/Logo.hbs",
+  emailLogo: `${COMMON_SERVER}/Utils/Mail/EmailLogo.ts`,
+  emailBranding: "packages/App/FeatureSet/Notification/Utils/EmailBranding.ts",
+  statusPageEmailLogo: `${COMMON_SERVER}/Utils/StatusPage/StatusPageEmailLogo.ts`,
 };
 
 /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
@@ -2200,6 +2205,55 @@ describe("Architecture, against the compose file and the chart", () => {
     expect(valkey?.[3]).toContain("pending push receipts");
     expect(readSource("receiptQueue")).toContain(
       'import Redis, { ClientType } from "./Redis";',
+    );
+  });
+
+  /*
+   * Issue #5124: every email's header loaded OneUptime's logo from
+   * res.cloudinary.com. The page says what an email loads when opened; the
+   * product is held to it here, and in OfflineAssetHygiene and
+   * EmailsLoadNothingFromOutside.
+   */
+  it("says OneUptime's logo travels inside every email, as the email's header carries it", () => {
+    expect(page).toContain(
+      "OneUptime's logo travels inside every email it sends, so it shows even on a network without internet access, and opening an email asks no other host for it.",
+    );
+
+    // The header writes the logo the email carries: an image, not an address.
+    expect(readSource("emailLogoPartial")).toContain(
+      'src="{{{@root.oneUptimeLogoUrl}}}"',
+    );
+    expect(readSource("emailBranding")).toContain(
+      'variables["oneUptimeLogoUrl"] = oneUptimeLogoUrl;',
+    );
+    expect(readSource("emailLogo")).toContain('"oneuptime-email-logo.png"');
+    expect(
+      fs.existsSync(
+        path.join(
+          REPO_DIR,
+          COMMON_SERVER,
+          "Static",
+          "Brand",
+          "oneuptime-email-logo.png",
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it("says a logo you upload is shown from your OneUptime URL, as the emails build it", () => {
+    expect(page).toContain(
+      "Images you upload yourself, such as your own logo or a status page's, are shown from your OneUptime URL, which the people who read those emails need to be able to reach.",
+    );
+
+    // The installation's own logo, on HOST; a status page's, on the host given.
+    expect(readSource("emailBranding")).toContain(
+      "const logoUrl: string | null = toAbsoluteUrl(branding.logoUrl);",
+    );
+    expect(readSource("emailBranding")).toContain(
+      "new URL(HttpProtocol, Host.trim())",
+    );
+    expect(readSource("statusPageEmailLogo")).toContain(
+      "return new URL(data.httpProtocol, data.host)",
     );
   });
 });

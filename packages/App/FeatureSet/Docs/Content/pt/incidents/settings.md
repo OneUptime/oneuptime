@@ -627,6 +627,8 @@ O formulário de criação tem duas etapas:
 2. **Políticas de plantão** — as políticas que esta regra aciona, e o **Nome** da regra, preenchido a partir delas ("Acionar Platform on-call") até você digitar um próprio; a **Descrição** fica em **Mais campos**. A regra começa habilitada; o formulário de edição dela acrescenta o interruptor **Habilitado**, e a lista mostra uma etiqueta verde **Habilitado** ou vermelha **Desabilitado** por regra.
 :::
 
+Uma regra aciona assim que um incidente corresponde a ela. Para que ela aguarde o horário comercial, responda **Quando esta regra deve acionar?** em **Mais campos** com **Somente em horário comercial**. O **Horário comercial** começa de segunda a sexta, das 09:00 às 17:00, no seu próprio fuso horário: escolha outros dias, outra **Hora de início** ou **Horário de término**, ou outro **Fuso horário**, e uma frase abaixo da opção diz o que vai acontecer. Na lista, a regra mostra o horário abaixo do nome. Um incidente que corresponde fora desse horário recebe uma execução que aguarda, como **Aguardando**, e não aciona ninguém; quando o horário começa, a política aciona sua primeira regra de escalonamento e escala como de costume. Se o incidente for confirmado ou resolvido antes, ninguém é acionado. Se o incidente mudar enquanto aguarda e passar a corresponder a uma regra que aciona imediatamente, por exemplo porque sua gravidade foi elevada, a execução começa a acionar na hora, e o feed do incidente diz por quê.
+
 ### Como a correspondência é resolvida
 
 As regras que a própria página traz valem a pena ser internalizadas:
@@ -635,7 +637,7 @@ As regras que a própria página traz valem a pena ser internalizadas:
 - Um critério de lista — **Monitores**, **Incidente Severidades**, **Rótulos de incidentes**, **Rótulos do Monitor** — usa **Tem algum de**, **Tem todos os** ou **Não tem nenhum de** os valores que você escolher.
 - Um critério de texto — o título e a descrição do incidente, os nomes e as descrições dos monitores dele — usa **Contém**, **Não contém**, **Igual a**, **Diferente de**, **Começa com** ou **Termina com**, sem diferenciar maiúsculas e minúsculas, ou **Corresponde ao padrão** / **Não corresponde ao padrão** para uma expressão regular sem diferenciar maiúsculas e minúsculas ou um curinga `*`. Uma condição de texto nova começa em **Contém**.
 - **Todas as regras que correspondem disparam.** Não há prioridade nem curto-circuito.
-- O conjunto de políticas que de fato é executado é a união das políticas de toda regra que corresponde, mais qualquer política anexada ao incidente manualmente ou por um modelo, sem duplicatas, para que cada política seja executada no máximo uma vez.
+- O conjunto de políticas que de fato é executado é a união das políticas de toda regra que corresponde, mais qualquer política anexada ao incidente manualmente ou por um modelo, sem duplicatas, para que cada política seja executada no máximo uma vez. Quando duas regras que correspondem acionam a mesma política, ela aciona assim que qualquer uma delas permitir: imediatamente vence o horário comercial.
 
 > [!NOTE]
 > A severidade é um critério de correspondência aqui e em nenhum outro lugar. Uma severidade de incidente não tem campo de plantão — escolher «Critical Incident» não aciona, por si só, ninguém. Se você quer que a severidade conduza o acionamento, escreva uma regra de plantão que corresponda a ela.
