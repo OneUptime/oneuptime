@@ -58,7 +58,7 @@ const CloudResourceGroups: FunctionComponent<ComponentProps> = (
       >
         <span className="truncate">{label}</span>
         <span className="font-semibold text-gray-900">
-          {count.toLocaleString("en-US")}
+          {translator.formatNumber(count)}
         </span>
       </li>
     );
@@ -69,9 +69,10 @@ const CloudResourceGroups: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     return hidden > 0 ? (
       <li className="inline-flex items-center px-1 text-xs text-gray-500">
-        {translator.translateTemplate("+{{count}} more", {
-          count: String(hidden),
-        })}
+        {translator.translatePlural(
+          { one: "+{{count}} more", other: "+{{count}} more" },
+          hidden,
+        )}
       </li>
     ) : (
       <></>

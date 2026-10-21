@@ -47,9 +47,11 @@ import {
   CloudConnectionHealth,
   CloudTemplate,
   CloudWords,
+  drawCloudTemplate,
   getCloudConnectionHealth,
   getCloudLastReadWords,
   getCloudReadFailureWords,
+  getCloudReadIntervalWords,
 } from "./CloudConnectionWords";
 import CloudResourceGroups from "./CloudResourceGroups";
 
@@ -302,7 +304,7 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
             },
             disabled: !props.updateGate.isAllowed,
             tooltip: props.updateGate.isAllowed
-              ? "Read it again, from where it stopped."
+              ? "Read it again"
               : props.updateGate.disabledReason,
             onClick: (
               item: CloudConnection,
@@ -317,7 +319,7 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
             buttonStyleType: ButtonStyleType.OUTLINE,
             disabled: !props.updateGate.isAllowed,
             tooltip: props.updateGate.isAllowed
-              ? "Sign in with its saved settings and count what there is. Nothing is stored."
+              ? "Check its saved settings with a small read. Nothing is imported."
               : props.updateGate.disabledReason,
             onClick: (
               item: CloudConnection,
@@ -339,7 +341,7 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
             },
             disabled: !props.updateGate.isAllowed,
             tooltip: props.updateGate.isAllowed
-              ? "Stop reading it. Its resources and metrics stay."
+              ? "Stop reading it. What it brought in stays."
               : props.updateGate.disabledReason,
             onClick: (
               item: CloudConnection,
@@ -489,26 +491,21 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                   </div>
                   {words ? (
                     <div className="text-xs text-gray-500">
-                      {translator.translateTemplate(
-                        words.template,
-                        words.values,
-                      )}
+                      {drawCloudTemplate(translator, words)}
                     </div>
                   ) : (
                     <></>
                   )}
                   {definition ? (
                     <div className="text-xs text-gray-500">
-                      {translator.translateTemplate(
-                        "Every {{minutes}} minutes",
-                        {
-                          minutes: String(
-                            getCloudConnectionReadIntervalInMinutes(
-                              definition,
-                              item.config?.[READ_INTERVAL_FIELD_KEY],
-                            ),
+                      {drawCloudTemplate(
+                        translator,
+                        getCloudReadIntervalWords(
+                          getCloudConnectionReadIntervalInMinutes(
+                            definition,
+                            item.config?.[READ_INTERVAL_FIELD_KEY],
                           ),
-                        },
+                        ),
                       )}
                     </div>
                   ) : (
@@ -526,7 +523,7 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
           title={translator.translateTemplate("Test {{name}}", {
             name: testItem.name || "",
           })}
-          description="Signs in with the saved settings and counts what there is. Nothing is stored."
+          description="A small read with the saved settings. Nothing is imported or stored."
           modalWidth={ModalWidth.Medium}
           closeButtonText="Close"
           onClose={(): void => {

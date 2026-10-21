@@ -15,7 +15,14 @@ import {
 } from "Common/Types/CloudConnection/CloudConnectionTest";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  TemplateValue,
+  TemplateValues,
+  Translator,
+  composedValue,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * What Cloud > Connect says about a connection, in the dashboard's own
@@ -24,8 +31,9 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  *
  * React-free (App's tests read it). Every string is an English translation
  * key, or a template with its values, which the components translate when
- * they draw them. A cloud's own message is kept apart, as the details of a
- * failure: it is English, and it is the cloud's, not ours.
+ * they draw them (drawCloudTemplate). A cloud's own message is kept apart,
+ * as the details of a failure: it is English, and it is the cloud's, not
+ * ours.
  */
 
 export interface CloudWords {
@@ -36,7 +44,69 @@ export interface CloudWords {
 
 export interface CloudTemplate {
   template: string;
-  values: Record<string, string>;
+  values: TemplateValues;
+  /*
+   * A sentence that changes with a count: `template` is its general
+   * ("other") form, and `one` the form for one.
+   */
+  plural?: { one: string; count: number } | undefined;
+}
+
+// A template on the screen, in the reader's language.
+export function drawCloudTemplate(
+  translator: Translator,
+  words: CloudTemplate,
+): string {
+  if (words.plural) {
+    return translator.translatePlural(
+      { one: words.plural.one, other: words.template },
+      words.plural.count,
+      words.values,
+    );
+  }
+
+  return translator.translateTemplate(words.template, words.values);
+}
+
+const RESOURCE_COUNT: PluralTemplate = {
+  one: "{{count}} resource",
+  other: "{{count}} resources",
+};
+
+const RESOURCE_COUNT_IN_REGIONS: PluralTemplate = {
+  one: "{{count}} resource in {{regions}} regions",
+  other: "{{count}} resources in {{regions}} regions",
+};
+
+function pluralOf(
+  template: PluralTemplate,
+  count: number,
+  values: TemplateValues = {},
+): CloudTemplate {
+  return {
+    template: template.other,
+    values,
+    plural: { one: template.one, count },
+  };
+}
+
+// A number written the way the sentence's language writes it.
+function numberIn(value: number, fractionDigits?: number): TemplateValue {
+  return composedValue((translator: Translator): string => {
+    const options: Intl.NumberFormatOptions | undefined =
+      fractionDigits === undefined
+        ? undefined
+        : {
+            minimumFractionDigits: fractionDigits,
+            maximumFractionDigits: fractionDigits,
+          };
+
+    try {
+      return value.toLocaleString(translator.language, options);
+    } catch {
+      return value.toLocaleString("en-US", options);
+    }
+  });
 }
 
 const FAILURE_WORDS: Record<
@@ -51,10 +121,10 @@ const FAILURE_WORDS: Record<
   },
   [CloudConnectionFailureKind.Permission]: {
     headline: translationKey(
-      "Signed in, but the access may not read what OneUptime needs.",
+      "Signed in, but this access cannot read what OneUptime needs.",
     ),
     advice: translationKey(
-      "Run the setup command again: it gives the access the read-only role it needs. A new role can take a minute to work.",
+      "Run the setup command again: it grants the read-only role OneUptime needs. A new role can take a minute to work.",
     ),
   },
   [CloudConnectionFailureKind.RateLimited]: {
@@ -228,12 +298,19 @@ export function getCloudConnectionHealth(
 
 // "12 resources", "1 resource".
 export function getResourceCountWords(count: number): CloudTemplate {
-  return count === 1
-    ? { template: translationKey("1 resource"), values: {} }
-    : {
-        template: translationKey("{{count}} resources"),
-        values: { count: count.toLocaleString("en-US") },
-      };
+  return pluralOf(RESOURCE_COUNT, count);
+}
+
+// How often a connection is read: "Every 10 minutes", "Every hour".
+export function getCloudReadIntervalWords(minutes: number): CloudTemplate {
+  if (minutes === 60) {
+    return { template: translationKey("Every hour"), values: {} };
+  }
+
+  return {
+    template: translationKey("Every {{minutes}} minutes"),
+    values: { minutes: numberIn(minutes) },
+  };
 }
 
 /*
@@ -296,11 +373,8 @@ export function getCloudCostWords(data: {
       "Reading these every {{minutes}} minutes costs about ${{cost}} a month in your cloud's monitoring charges.",
     ),
     values: {
-      minutes: String(data.readIntervalInMinutes),
-      cost: estimate.monthlyCostUsd.toLocaleString("en-US", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }),
+      minutes: numberIn(data.readIntervalInMinutes),
+      cost: numberIn(Math.round(estimate.monthlyCostUsd * 100) / 100, 2),
     },
   };
 }
@@ -333,11 +407,7 @@ export function getCloudLastReadWords(
     return getResourceCountWords(summary.resourceCount);
   }
 
-  return {
-    template: translationKey("{{count}} resources in {{regions}} regions"),
-    values: {
-      count: summary.resourceCount.toLocaleString("en-US"),
-      regions: String(regions),
-    },
-  };
+  return pluralOf(RESOURCE_COUNT_IN_REGIONS, summary.resourceCount, {
+    regions: numberIn(regions),
+  });
 }

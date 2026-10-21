@@ -91,7 +91,7 @@ describe("the catalog", () => {
     ]);
   });
 
-  test("every method says what its command does and what to paste", () => {
+  test("every method says what its command does, in which shell", () => {
     for (const definition of CloudConnectionCatalog) {
       for (const method of definition.authMethods) {
         expect(method.title.length).toBeGreaterThan(0);
@@ -99,7 +99,6 @@ describe("the catalog", () => {
         expect(method.hint).toContain(
           definition.shellTitle.replace("Google ", "").replace("AWS ", ""),
         );
-        expect(method.pasteHint.startsWith("Paste")).toBe(true);
       }
     }
   });

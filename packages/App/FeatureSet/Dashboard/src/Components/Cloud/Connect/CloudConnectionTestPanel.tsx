@@ -20,6 +20,7 @@ import CloudResourceGroups from "./CloudResourceGroups";
 import {
   CloudTemplate,
   CloudWords,
+  drawCloudTemplate,
   getCloudCostWords,
   getCloudTestWords,
   getResourceCountWords,
@@ -142,7 +143,7 @@ const CloudConnectionTestPanel: FunctionComponent<ComponentProps> = (
           <div className="mt-3 space-y-3 pl-6" data-testid="cloud-test-found">
             <div>
               <div className="text-sm font-semibold text-gray-900">
-                {translator.translateTemplate(count.template, count.values)}
+                {drawCloudTemplate(translator, count)}
               </div>
               {result.isSample ? (
                 <div className="text-xs text-gray-500">
@@ -170,7 +171,7 @@ const CloudConnectionTestPanel: FunctionComponent<ComponentProps> = (
                   className="mt-px h-3.5 w-3.5 flex-shrink-0 text-gray-400"
                 />
                 <span>
-                  {translator.translateTemplate(cost.template, cost.values)}
+                  {drawCloudTemplate(translator, cost)}
                 </span>
               </div>
             ) : (

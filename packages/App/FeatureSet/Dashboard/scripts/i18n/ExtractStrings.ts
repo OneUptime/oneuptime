@@ -121,6 +121,12 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    * page and the connection form show them as written there.
    */
   { directory: "packages/Common/Types/LlmObservability", kind: "ui" },
+  /*
+   * The cloud connections' catalog: each cloud's title, description, sign
+   * in methods, shell and fields - the Connect page and the connection form
+   * show them as written there.
+   */
+  { directory: "packages/Common/Types/CloudConnection", kind: "ui" },
 ];
 
 /*

@@ -116,7 +116,7 @@ const CloudSetupCommand: FunctionComponent<ComponentProps> = (
           icon={IconProp.ShieldCheck}
           className="mt-px h-3.5 w-3.5 flex-shrink-0"
         />
-        <span>{translator.translateText(props.definition.readOnlyNote)}</span>
+        <span>{translator.translateText(props.definition.explanation)}</span>
       </div>
     </div>
   );

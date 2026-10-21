@@ -29,7 +29,11 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  composedValue,
+  translatableTerm,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -153,7 +157,7 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
         name: props.connection?.name || definition.title,
       })
     : translator.translateTemplate("Connect {{provider}}", {
-        provider: translator.translateText(definition.title) || definition.title,
+        provider: translatableTerm(definition.title),
       });
 
   // An AWS form waits for the role setup: it decides what the form offers.
@@ -321,11 +325,13 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
             <Icon icon={IconProp.Check} className="mt-0.5 h-4 w-4" />
             <span>
               {translator.translateTemplate("Found: {{fields}}", {
-                fields: found
-                  .map((fieldTitle: string): string => {
-                    return translator.translateText(fieldTitle) || fieldTitle;
-                  })
-                  .join(", "),
+                fields: composedValue((inSentence: Translator): string => {
+                  return found
+                    .map((fieldTitle: string): string => {
+                      return inSentence.translateText(fieldTitle) || fieldTitle;
+                    })
+                    .join(", ");
+                }),
               })}
             </span>
           </div>
@@ -369,9 +375,14 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
             ? translator.translateTemplate(
                 "{{description}} Leave blank to keep the stored value.",
                 {
-                  description:
-                    translator.translateText(field.description) ||
-                    field.description,
+                  description: composedValue(
+                    (inSentence: Translator): string => {
+                      return (
+                        inSentence.translateText(field.description) ||
+                        field.description
+                      );
+                    },
+                  ),
                 },
               )
             : field.description,
@@ -469,11 +480,15 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
           disabledReason={
             missing.length > 0
               ? translator.translateTemplate("Fill in {{fields}} to test.", {
-                  fields: missing
-                    .map((field: CloudConnectionField): string => {
-                      return translator.translateText(field.title) || field.title;
-                    })
-                    .join(", "),
+                  fields: composedValue((inSentence: Translator): string => {
+                    return missing
+                      .map((field: CloudConnectionField): string => {
+                        return (
+                          inSentence.translateText(field.title) || field.title
+                        );
+                      })
+                      .join(", ");
+                  }),
                 })
               : undefined
           }

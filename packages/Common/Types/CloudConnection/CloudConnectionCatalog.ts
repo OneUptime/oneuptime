@@ -23,7 +23,8 @@ import IconProp from "../Icon/IconProp";
  * The words here are shown as written in the dashboard and translated
  * there: this folder is one of the extractor's source roots
  * (Dashboard/scripts/i18n/ExtractStrings.ts), which reads the title,
- * description, summary, hint, label and placeholder of every entry.
+ * description, summary, explanation, hint, label and placeholder of every
+ * entry. The shells' names are product names, the same in every language.
  */
 
 /*
@@ -81,8 +82,6 @@ export interface CloudConnectionAuthMethodDefinition {
   description: string;
   // What the command does, said above it.
   hint: string;
-  // What to copy once the command ran, said above the paste box.
-  pasteHint: string;
 }
 
 export interface CloudConnectionDefinition {
@@ -92,8 +91,8 @@ export interface CloudConnectionDefinition {
   description: string;
   // What arrives, in the reader's words: shown on the form and the list.
   summary: string;
-  // What OneUptime may do with the access it is given.
-  readOnlyNote: string;
+  // What OneUptime may do with the access it is given, said under the command.
+  explanation: string;
   icon: IconProp;
   /*
    * The guide: a section of the cloud accounts page, e.g.
@@ -149,7 +148,7 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
       "EC2, RDS, Lambda, load balancers and more, read from CloudWatch.",
     summary:
       "Every resource that reports to CloudWatch, in every region you use, with its key metrics.",
-    readOnlyNote: "OneUptime can only read metrics and tags.",
+    explanation: "OneUptime can only read metrics and tags.",
     icon: IconProp.Cloud,
     docsPath: "/docs/telemetry/cloud-accounts#amazon-web-services",
     shellTitle: "AWS CloudShell",
@@ -161,7 +160,6 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
         description:
           "Recommended. Nothing secret is stored: OneUptime signs in with a role you can delete at any time.",
         hint: "Run this in AWS CloudShell. It creates a role that can only read metrics and tags, and prints the role's ARN.",
-        pasteHint: "Paste the role ARN the command printed.",
       },
       {
         method: CloudConnectionAuthMethod.AwsAccessKey,
@@ -169,7 +167,6 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
         description:
           "An IAM user's access key. Use it when a role is not possible.",
         hint: "Run this in AWS CloudShell. It creates a user that can only read metrics and tags, and prints its access key.",
-        pasteHint: "Paste everything the last command printed.",
       },
     ],
     configFields: [
@@ -224,7 +221,7 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
       "Virtual machines, App Service, SQL, storage and more, read from Azure Monitor.",
     summary:
       "Every resource in the subscriptions the app can read, with its key metrics.",
-    readOnlyNote: "OneUptime can only read resources and metrics.",
+    explanation: "OneUptime can only read resources and metrics.",
     icon: IconProp.Cloud,
     docsPath: "/docs/telemetry/cloud-accounts#microsoft-azure",
     shellTitle: "Azure Cloud Shell",
@@ -235,7 +232,6 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
         title: "App registration",
         description: "An app with the Monitoring Reader role.",
         hint: "Run this in Azure Cloud Shell. It creates an app with the Monitoring Reader role on your subscription, and prints its details.",
-        pasteHint: "Paste everything the command printed.",
       },
     ],
     configFields: [
@@ -300,7 +296,7 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
       "Compute Engine, Cloud SQL, Cloud Run, buckets and more, read from Cloud Monitoring.",
     summary:
       "Every resource that reports to Cloud Monitoring in your projects, with its key metrics.",
-    readOnlyNote: "OneUptime can only read metrics.",
+    explanation: "OneUptime can only read metrics.",
     icon: IconProp.Cloud,
     docsPath: "/docs/telemetry/cloud-accounts#google-cloud",
     shellTitle: "Google Cloud Shell",
@@ -311,7 +307,6 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
         title: "Service account",
         description: "A service account with the Monitoring Viewer role.",
         hint: "Run this in Cloud Shell, in the project to monitor. It creates a service account with the Monitoring Viewer role, and prints its key.",
-        pasteHint: "Paste everything the command printed.",
       },
     ],
     configFields: [
