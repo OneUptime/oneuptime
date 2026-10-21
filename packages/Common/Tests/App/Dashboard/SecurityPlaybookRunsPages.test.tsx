@@ -171,13 +171,19 @@ describe("the two runs pages", () => {
       const view: SecurityPlaybookRunView = viewOf(
         key as SecurityPlaybookRunViewKey,
       );
+      listedRuns = [finishedRun()];
 
       await renderRuns(view.key);
 
       expect(
         screen.getByRole("heading", { name: view.title }),
       ).toBeInTheDocument();
-      expect(screen.getByText(view.description)).toBeInTheDocument();
+      expect(
+        await screen.findByTestId("security-playbook-run-card"),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId("card-description")).toHaveTextContent(
+        view.description,
+      );
       // Waiting for Approval, Running and All Runs are no longer buttons.
       expect(
         document.querySelectorAll(
@@ -221,6 +227,28 @@ describe("the two runs pages", () => {
 });
 
 describe("what an empty runs page says", () => {
+  test.each(["waiting", "all"])(
+    "%s: the empty state says what the page is for, and the card does not say it a second time",
+    async (key: string) => {
+      const view: SecurityPlaybookRunView = viewOf(
+        key as SecurityPlaybookRunViewKey,
+      );
+
+      await renderRuns(view.key);
+
+      await screen.findByTestId("security-playbook-runs-empty");
+
+      expect(
+        screen.getByRole("heading", { name: view.title }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId("security-playbook-runs-empty-description"),
+      ).toHaveTextContent(view.emptyDescription);
+      expect(screen.queryByTestId("card-description")).toBeNull();
+      expect(screen.queryByText(view.description)).toBeNull();
+    },
+  );
+
   test("nothing waiting for approval is good news, with nothing to do", async () => {
     await renderRuns("waiting");
 

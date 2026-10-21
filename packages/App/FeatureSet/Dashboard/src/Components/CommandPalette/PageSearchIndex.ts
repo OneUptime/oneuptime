@@ -1662,7 +1662,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           {
             page: PageMap.SECURITY_CASES_UNASSIGNED,
             title: "Unassigned",
-            icon: IconProp.UserGroup,
+            icon: IconProp.Inbox,
             keywords: ["unassigned cases", "nobody assigned", "pick up"],
           },
           {
@@ -1746,7 +1746,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           {
             page: PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL,
             title: "Waiting for Approval",
-            icon: IconProp.Pause,
+            icon: IconProp.PauseCircle,
             keywords: ["approvals", "pending approvals", "approve a step"],
           },
           {

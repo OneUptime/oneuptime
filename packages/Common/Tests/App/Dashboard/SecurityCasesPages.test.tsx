@@ -80,7 +80,9 @@ interface CapturedTable {
         actions?: Array<CapturedEmptyStateAction> | undefined;
       }
     | undefined;
-  cardProps?: { title?: unknown; description?: unknown } | undefined;
+  cardProps?:
+    | { title?: unknown; description?: unknown; headerLayout?: unknown }
+    | undefined;
   bulkActions?: { buttons: Array<unknown> } | undefined;
   [key: string]: unknown;
 }
@@ -179,6 +181,7 @@ import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
+import Team from "../../../Models/DatabaseModels/Team";
 import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
@@ -297,6 +300,41 @@ function closedCase(): SecurityCase {
   row.detectionCount = 2;
   row.entities = [];
   return row;
+}
+
+// An open case nobody has picked up, handed to a team or to nobody.
+function unassignedCase(
+  id: string,
+  caseNumber: string,
+  title: string,
+  teamName: string | undefined,
+): SecurityCase {
+  const row: SecurityCase = new SecurityCase();
+  row._id = id;
+  row.caseNumberWithPrefix = caseNumber;
+  row.title = title;
+  row.priority = SecurityCasePriority.High;
+  row.status = SecurityCaseStatus.New;
+  row.lastDetectedAt = new Date(Date.now() - 2 * 60 * 60 * 1000);
+  row.detectionCount = 1;
+  row.entities = [];
+
+  if (teamName) {
+    const team: Team = new Team();
+    team._id = "70000000-0000-4000-8000-000000000001";
+    team.name = teamName;
+    row.assignedToTeam = team;
+  }
+
+  return row;
+}
+
+function bodyRowTexts(): Array<string> {
+  return Array.from(document.querySelectorAll("tbody tr")).map(
+    (row: Element): string => {
+      return row.textContent || "";
+    },
+  );
 }
 
 beforeEach(() => {
@@ -441,7 +479,7 @@ describe("each case page draws the list its question needs", () => {
     ]);
   });
 
-  test("columns: no Assignee on Assigned to Me, the verdict and when it closed on Closed Cases", async () => {
+  test("columns: no Assignee on Assigned to Me or Unassigned, the verdict and when it closed on Closed Cases", async () => {
     const columns: Record<string, Array<string>> = {};
     const hidden: Record<string, Array<string>> = {};
 
@@ -465,11 +503,12 @@ describe("each case page draws the list its question needs", () => {
         "Last Detection",
       ],
       mine: ["Case", "Priority", "Status", "Labels", "Last Detection"],
+      // Nobody is on these cases: the team one was handed to, if any.
       unassigned: [
         "Case",
         "Priority",
         "Status",
-        "Assignee",
+        "Team",
         "Labels",
         "Last Detection",
       ],
@@ -557,13 +596,14 @@ describe("each case page draws the list its question needs", () => {
     });
   });
 
-  test("bulk actions: no Assign to Me where every case is already yours", async () => {
-    expect(bulkTitles(await capture("mine"))).toEqual([
-      "Change Status",
-      "Change Priority",
-    ]);
+  test("bulk actions: Assign to Me only where cases are taken on, not where every case is yours or closed", async () => {
+    for (const key of ["mine", "closed"]) {
+      expect(
+        bulkTitles(await capture(key as SecurityCaseQueueViewKey)),
+      ).toEqual(["Change Status", "Change Priority"]);
+    }
 
-    for (const key of ["open", "unassigned", "closed", "all"]) {
+    for (const key of ["open", "unassigned", "all"]) {
       expect(
         bulkTitles(await capture(key as SecurityCaseQueueViewKey)),
       ).toEqual(["Assign to Me", "Change Status", "Change Priority"]);
@@ -685,6 +725,115 @@ describe("the list a person sees", () => {
     expect(screen.getByTestId("empty-table-create-button")).toHaveTextContent(
       "Open Security Case",
     );
+  });
+
+  test("Unassigned names the team a case was handed to, and a dash for none, instead of Unassigned on every row", async () => {
+    listedRows = [
+      unassignedCase(
+        "20000000-0000-4000-8000-000000000141",
+        "CASE-141",
+        "Known-bad domain resolved by build-runner-07",
+        undefined,
+      ),
+      unassignedCase(
+        "20000000-0000-4000-8000-000000000138",
+        "CASE-138",
+        "Defender XDR: suspicious PowerShell on web-03",
+        "SOC Tier 2",
+      ),
+    ];
+
+    await drawTable(await capture("unassigned"));
+
+    await screen.findByText("Defender XDR: suspicious PowerShell on web-03");
+
+    expect(screen.getByRole("columnheader", { name: /Team/ })).toBeVisible();
+    expect(screen.queryByRole("columnheader", { name: /Assignee/ })).toBeNull();
+
+    const rows: Array<string> = bodyRowTexts();
+
+    expect(rows).toHaveLength(2);
+    expect(
+      rows.find((row: string): boolean => {
+        return row.includes("CASE-138");
+      }),
+    ).toContain("SOC Tier 2");
+    for (const row of rows) {
+      expect(row).not.toContain("Unassigned");
+    }
+
+    // The case with no team: one quiet dash in its Team cell.
+    const teamColumn: number = Array.from(
+      document.querySelectorAll("thead th"),
+    ).findIndex((header: Element): boolean => {
+      return (header.textContent || "").includes("Team");
+    });
+    const noTeamRow: Element | undefined = Array.from(
+      document.querySelectorAll("tbody tr"),
+    ).find((row: Element): boolean => {
+      return (row.textContent || "").includes("CASE-141");
+    });
+
+    expect(teamColumn).toBeGreaterThan(-1);
+    expect(noTeamRow?.children[teamColumn]?.textContent?.trim()).toBe("-");
+  });
+
+  test("Open Cases names a case's team where nobody is on it, and says Unassigned where there is neither", async () => {
+    listedRows = [
+      unassignedCase(
+        "20000000-0000-4000-8000-000000000141",
+        "CASE-141",
+        "Known-bad domain resolved by build-runner-07",
+        undefined,
+      ),
+      unassignedCase(
+        "20000000-0000-4000-8000-000000000138",
+        "CASE-138",
+        "Defender XDR: suspicious PowerShell on web-03",
+        "SOC Tier 2",
+      ),
+    ];
+
+    await drawTable(await capture("open"));
+
+    await screen.findByText("Defender XDR: suspicious PowerShell on web-03");
+
+    expect(
+      screen.getByRole("columnheader", { name: /Assignee/ }),
+    ).toBeVisible();
+    expect(screen.queryByRole("columnheader", { name: /^Team/ })).toBeNull();
+
+    const rows: Array<string> = bodyRowTexts();
+
+    expect(
+      rows.find((row: string): boolean => {
+        return row.includes("CASE-138");
+      }),
+    ).toContain("SOC Tier 2");
+    expect(
+      rows.find((row: string): boolean => {
+        return row.includes("CASE-141");
+      }),
+    ).toContain("Unassigned");
+  });
+
+  test("every case page heads its list with the toolbar header every table has, not a layout of its own", async () => {
+    for (const view of SECURITY_CASE_QUEUE_VIEWS) {
+      const table: CapturedTable = await capture(view.key);
+
+      // No layout of its own: the table's toolbar header (BaseModelTable).
+      expect(table.cardProps?.headerLayout).toBeUndefined();
+
+      await drawTable(table);
+      await screen.findByTestId("table-empty-state");
+
+      const header: HTMLElement = screen.getByTestId("card-header");
+
+      expect(header).toHaveAttribute("data-header-layout", "toolbar");
+      expect(header).toHaveTextContent(view.title);
+
+      cleanup();
+    }
   });
 
   test("Closed Cases asks for the closed cases, latest closed first, and draws each by its verdict", async () => {

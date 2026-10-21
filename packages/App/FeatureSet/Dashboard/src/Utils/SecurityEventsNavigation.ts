@@ -89,7 +89,7 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
       {
         page: PageMap.SECURITY_CASES_UNASSIGNED,
         title: "Unassigned",
-        icon: IconProp.UserGroup,
+        icon: IconProp.Inbox,
       },
       {
         page: PageMap.SECURITY_CASES_CLOSED,
@@ -166,7 +166,7 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
       {
         page: PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL,
         title: "Waiting for Approval",
-        icon: IconProp.Pause,
+        icon: IconProp.PauseCircle,
         badge: "runsWaitingForApproval",
       },
       {

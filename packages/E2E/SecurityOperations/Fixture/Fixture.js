@@ -480,6 +480,9 @@ if (hasHistory) {
     status: SecurityCaseStatus.New,
     priority: SecurityCasePriority.High,
     ...assignee(undefined),
+    // Handed to a team, but nobody on it has picked it up yet.
+    assignedToTeam: socTeam,
+    assignedToTeamId: new ObjectID(socTeam._id),
     source: SecurityDetectionSource.ConnectedProduct,
     entities: [
       entity(SecurityEntityType.Host, "web-03"),

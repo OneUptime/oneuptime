@@ -81,6 +81,7 @@ function rowOf(view: SecurityCaseQueueView): JSONObject {
     sortBy: view.sortBy,
     isEmptyGoodNews: view.isEmptyGoodNews,
     canOpenCase: view.canOpenCase,
+    canAssignToMe: view.canAssignToMe,
   };
 }
 
@@ -127,9 +128,10 @@ describe("the case queue's pages", () => {
         sortBy: "lastDetectedAt",
         isEmptyGoodNews: true,
         canOpenCase: true,
+        canAssignToMe: true,
       },
       {
-        // Every case here is yours: no Assignee column.
+        // Every case here is yours: no Assignee column, no Assign to Me.
         key: "mine",
         page: "SECURITY_CASES_ASSIGNED_TO_ME",
         title: "Assigned to Me",
@@ -139,9 +141,14 @@ describe("the case queue's pages", () => {
         sortBy: "lastDetectedAt",
         isEmptyGoodNews: false,
         canOpenCase: false,
+        canAssignToMe: false,
       },
       {
-        // A case handed to a team waits here too; Assignee names the team.
+        /*
+         * Nobody is on any case here, so no Assignee column saying
+         * Unassigned on every row: a case handed to a team waits here
+         * too, and Team names it. Assign to Me is how a case is taken on.
+         */
         key: "unassigned",
         page: "SECURITY_CASES_UNASSIGNED",
         title: "Unassigned",
@@ -149,7 +156,7 @@ describe("the case queue's pages", () => {
           "case",
           "priority",
           "status",
-          "assignee",
+          "team",
           "labels",
           "lastDetection",
         ],
@@ -158,9 +165,13 @@ describe("the case queue's pages", () => {
         sortBy: "lastDetectedAt",
         isEmptyGoodNews: true,
         canOpenCase: false,
+        canAssignToMe: true,
       },
       {
-        // Read by verdict and when it closed; every case here is Closed.
+        /*
+         * Read by verdict and when it closed; every case here is Closed,
+         * and nobody takes a closed case on.
+         */
         key: "closed",
         page: "SECURITY_CASES_CLOSED",
         title: "Closed Cases",
@@ -177,6 +188,7 @@ describe("the case queue's pages", () => {
         sortBy: "closedAt",
         isEmptyGoodNews: false,
         canOpenCase: false,
+        canAssignToMe: false,
       },
       {
         key: "all",
@@ -196,6 +208,7 @@ describe("the case queue's pages", () => {
         sortBy: "lastDetectedAt",
         isEmptyGoodNews: false,
         canOpenCase: true,
+        canAssignToMe: true,
       },
     ]);
   });

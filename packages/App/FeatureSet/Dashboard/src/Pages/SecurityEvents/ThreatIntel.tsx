@@ -126,8 +126,6 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
         sortBy="name"
         sortOrder={SortOrder.Ascending}
         cardProps={{
-          // Its search and buttons drop under the title beside the side menu.
-          headerLayout: "stacked",
           title: "Threat Intel Feeds",
           description:
             "STIX/TAXII 2.1 feed subscriptions. Indicators are polled on an interval, enrich incoming events with threat.* attributes, and matches open deduplicated alerts — the same machinery as Sigma detection rules.",
@@ -552,8 +550,6 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
         isCreateable={false}
         isViewable={false}
         cardProps={{
-          // Its search and buttons drop under the title beside the side menu.
-          headerLayout: "stacked",
           title: "Indicators",
           description:
             "Indicators from the feeds above. An indicator can briefly appear twice, and expired or revoked ones stay listed for a while but are never matched.",

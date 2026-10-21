@@ -704,7 +704,10 @@ test.describe("the case queue", () => {
       },
     );
 
-    // Unassigned: the open cases nobody is on, each saying so.
+    /*
+     * Unassigned: the open cases nobody is on. No Assignee column saying
+     * Unassigned on every row: Team names the team a case was handed to.
+     */
     await menuEntry(page, "Unassigned").click();
     await expect
       .poll(() => {
@@ -714,9 +717,22 @@ test.describe("the case queue", () => {
     await expect(
       page.getByText("Showing 1-2 of 2 security cases"),
     ).toBeVisible();
-    for (const row of await rowTexts(page)) {
-      expect(row).toContain("Unassigned");
+    const unassigned: Array<string> = await rowTexts(page);
+    expect(unassigned).toHaveLength(2);
+    for (const row of unassigned) {
+      expect(row).not.toContain("Unassigned");
     }
+    expect(
+      unassigned.find((row: string): boolean => {
+        return row.includes("CASE-138");
+      }),
+    ).toContain("SOC Tier 2");
+    await expect(
+      page.getByRole("columnheader", { name: "Team" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("columnheader", { name: "Assignee" }),
+    ).toHaveCount(0);
     expect(await litEntries(page)).toEqual(["Unassigned"]);
 
     // Assigned to Me: Maya's open cases, with no Assignee column saying so.
@@ -805,6 +821,55 @@ test.describe("the case queue", () => {
       });
       expect(await pageOverflow(page), `${name} at 390`).toBeLessThanOrEqual(1);
       await screenshot(page, `${name}-390-light`);
+    }
+  });
+
+  test("at 1280, each list's title, search and buttons share one line, the description under them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [pathname, title, text] of [
+      [CASES_PATH, "Open Cases", "CASE-142"],
+      [CLOSED_CASES_PATH, "Closed Cases", "Benign Positive"],
+      [ALL_CASES_PATH, "All Cases", "CASE-142"],
+      [PLAYBOOKS_PATH, "Playbooks", "Contain Compromised Okta Users"],
+    ] as Array<[string, string, string]>) {
+      await open(page, pathname, { width: 1280 });
+      await expect(page.getByText(text).first()).toBeVisible({
+        timeout: 30000,
+      });
+
+      const header: Locator = cardTitled(page, title).getByTestId(
+        "card-header",
+      );
+      // The table's own header, as every table in the product has.
+      await expect(header).toHaveAttribute("data-header-layout", "toolbar");
+
+      const titleBox: Box = await boxOf(
+        header.getByTestId("card-header-title-block"),
+      );
+      const actionsBox: Box = await boxOf(
+        header.getByTestId("card-header-actions"),
+      );
+      const descriptionBox: Box = await boxOf(
+        header.getByTestId("card-description"),
+      );
+
+      // Beside the title, not on a line of their own under it.
+      expect(
+        actionsBox.y,
+        `${title}: controls on the title's line`,
+      ).toBeLessThan(titleBox.y + titleBox.height);
+      expect(
+        actionsBox.x,
+        `${title}: controls right of the title`,
+      ).toBeGreaterThanOrEqual(titleBox.x + titleBox.width - 1);
+      // The description under both, across the card.
+      expect(
+        descriptionBox.y,
+        `${title}: description under the controls`,
+      ).toBeGreaterThanOrEqual(actionsBox.y + actionsBox.height - 1);
     }
   });
 
@@ -1111,6 +1176,10 @@ test.describe("playbooks", () => {
       page.locator('[data-testid^="security-playbook-runs-view-"]'),
     ).toHaveCount(0);
     await expect(page.locator("button[aria-pressed]")).toHaveCount(0);
+    // With a run listed, the card says what the page holds.
+    await expect(
+      cardTitled(page, "Waiting for Approval").getByTestId("card-description"),
+    ).toContainText("Runs held before a step that needs approval.");
 
     await screenshot(page, "playbook-runs-waiting-desktop");
   });
@@ -1179,11 +1248,18 @@ test.describe("playbooks", () => {
     await expect(waiting).toBeVisible({ timeout: 30000 });
     await expect(waiting).toHaveAttribute("data-empty-state-kind", "all-clear");
     await expect(waiting).toContainText("No step is waiting for approval");
+    // The empty state says what the page is for; the card does not say it again.
+    await expect(
+      cardTitled(page, "Waiting for Approval").getByTestId("card-description"),
+    ).toHaveCount(0);
 
     await open(page, ALL_RUNS_PATH, { quiet: true });
     const none: Locator = page.getByTestId("security-playbook-runs-empty");
     await expect(none).toBeVisible({ timeout: 30000 });
     await expect(none).toContainText("No playbook has run yet");
+    await expect(
+      cardTitled(page, "Playbook Runs").getByTestId("card-description"),
+    ).toHaveCount(0);
     await screenshot(page, "playbook-runs-empty");
 
     await page.getByTestId("security-playbook-runs-view-playbooks").click();

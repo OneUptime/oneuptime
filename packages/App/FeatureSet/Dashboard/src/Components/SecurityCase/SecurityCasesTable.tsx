@@ -195,10 +195,11 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
     BulkActionButtonSchema<SecurityCase> | ModalTableBulkDefaultActions
   > = [
     /*
-     * Not on Assigned to Me: every case there is already yours. On
-     * Unassigned it is the way to take cases on.
+     * Not on Assigned to Me, where every case is already yours, nor on
+     * Closed Cases (SecurityCaseQueueViews.ts). On Unassigned it is the way
+     * to take cases on.
      */
-    ...(view.key === "mine"
+    ...(!view.canAssignToMe
       ? []
       : [
           {
@@ -427,6 +428,25 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
         );
       },
     },
+    // The team a case was handed to, as the case's own page shows it.
+    team: {
+      field: { assignedToTeam: { name: true } },
+      title: "Team",
+      type: FieldType.Element,
+      hideOnMobile: true,
+      getElement: (item: SecurityCase): ReactElement => {
+        if (!item.assignedToTeam?.name) {
+          return <span className="text-sm text-gray-400">-</span>;
+        }
+
+        return (
+          <span className="inline-flex items-center gap-1.5 text-sm text-gray-700">
+            <Icon icon={IconProp.UserGroup} className="h-4 w-4 text-gray-400" />
+            {item.assignedToTeam.name}
+          </span>
+        );
+      },
+    },
     labels: {
       field: { labels: { name: true, color: true } },
       title: "Labels",
@@ -482,7 +502,7 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
           actions: [
             {
               title: VIEW_UNASSIGNED_CASES,
-              icon: IconProp.UserGroup,
+              icon: IconProp.Inbox,
               dataTestId: VIEW_UNASSIGNED_CASES_TEST_ID,
               onClick: (): void => {
                 Navigation.navigate(
@@ -541,8 +561,6 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
          * the case itself.
          */
         cardProps={{
-          // Its search and buttons drop under the title beside the side menu.
-          headerLayout: "stacked",
           title: view.title,
           description: view.description,
         }}

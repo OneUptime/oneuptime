@@ -432,7 +432,7 @@ const SecurityOverviewPage: FunctionComponent<
             to={route(PageMap.SECURITY_CASES_ASSIGNED_TO_ME)}
           />
           <AttentionTile
-            icon={IconProp.UserGroup}
+            icon={IconProp.Inbox}
             count={metrics.unassignedOpenCases}
             label={{
               one: "open case nobody has picked up",
@@ -442,7 +442,7 @@ const SecurityOverviewPage: FunctionComponent<
             to={route(PageMap.SECURITY_CASES_UNASSIGNED)}
           />
           <AttentionTile
-            icon={IconProp.Pause}
+            icon={IconProp.PauseCircle}
             count={overview.runsWaitingForApproval}
             label={{
               one: "playbook step waiting for approval",

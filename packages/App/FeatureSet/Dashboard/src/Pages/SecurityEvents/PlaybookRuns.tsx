@@ -76,8 +76,19 @@ const SecurityPlaybookRunsPage: FunctionComponent<ComponentProps> = (
         },
       ];
 
+  /*
+   * While the list is empty its empty state says what the page is for, so
+   * the card leaves its own description out - the same thing twice, a few
+   * lines apart, as a table's empty state does (BaseModelTable).
+   */
+  const isEmptyStateShown: boolean =
+    !runs.error && !runs.isLoading && runs.runs.length === 0;
+
   return (
-    <Card title={view.title} description={view.description}>
+    <Card
+      title={view.title}
+      description={isEmptyStateShown ? undefined : view.description}
+    >
       {runs.error ? (
         <ErrorMessage message={runs.error} />
       ) : runs.isLoading && runs.runs.length === 0 ? (

@@ -40,6 +40,7 @@ export type SecurityCaseQueueColumn =
   | "status"
   | "verdict"
   | "assignee"
+  | "team"
   | "labels"
   | "lastDetection"
   | "closed";
@@ -79,6 +80,12 @@ export interface SecurityCaseQueueView {
    * Closed Cases are lists to work, not to add to.
    */
   canOpenCase: boolean;
+  /*
+   * Whether Assign to Me is among the actions on the cases selected: the
+   * lists cases are taken on from. Not Assigned to Me, where every case is
+   * yours already, nor Closed Cases, where nobody works a case any more.
+   */
+  canAssignToMe: boolean;
   columns: ReadonlyArray<SecurityCaseQueueColumn>;
   // Columns the list draws only once someone turns them on.
   hiddenColumns: ReadonlyArray<SecurityCaseQueueColumn>;
@@ -131,6 +138,7 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
     icon: IconProp.ShieldExclamation,
     isEmptyGoodNews: true,
     canOpenCase: true,
+    canAssignToMe: true,
     columns: OPEN_COLUMNS,
     hiddenColumns: ["labels"],
     filters: OPEN_FILTERS,
@@ -149,6 +157,7 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
     icon: IconProp.User,
     isEmptyGoodNews: false,
     canOpenCase: false,
+    canAssignToMe: false,
     // Every case here is yours: no Assignee column saying so on each row.
     columns: withoutColumn(OPEN_COLUMNS, "assignee"),
     hiddenColumns: ["labels"],
@@ -163,14 +172,18 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
       "Open cases nobody has picked up yet. Assign one to yourself to take it on.",
     ),
     emptyMessage: translationKey("Every open case has someone on it."),
-    icon: IconProp.UserGroup,
+    // The tray of cases waiting to be picked up; a team draws as UserGroup.
+    icon: IconProp.Inbox,
     isEmptyGoodNews: true,
     canOpenCase: false,
+    // Taking a case on is what this page is for.
+    canAssignToMe: true,
     /*
-     * Nobody here is a person: a case handed to a team waits here too, and
-     * its Assignee says which team.
+     * No case here has a person on it, so an Assignee column would say
+     * Unassigned on every row. A case handed to a team waits here too, and
+     * its Team says which team.
      */
-    columns: OPEN_COLUMNS,
+    columns: ["case", "priority", "status", "team", "labels", "lastDetection"],
     hiddenColumns: ["labels"],
     filters: OPEN_FILTERS,
     sortBy: "lastDetectedAt",
@@ -193,6 +206,7 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
     icon: IconProp.CheckCircle,
     isEmptyGoodNews: false,
     canOpenCase: false,
+    canAssignToMe: false,
     columns: ["case", "priority", "verdict", "assignee", "labels", "closed"],
     hiddenColumns: ["labels"],
     filters: ["title", "priority", "verdict", "labels", "opened", "closed"],
@@ -211,6 +225,7 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
     icon: IconProp.RectangleStack,
     isEmptyGoodNews: false,
     canOpenCase: true,
+    canAssignToMe: true,
     columns: [
       "case",
       "priority",

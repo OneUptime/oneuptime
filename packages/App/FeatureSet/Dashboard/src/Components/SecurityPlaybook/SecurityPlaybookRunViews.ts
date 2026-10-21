@@ -57,7 +57,7 @@ export const SECURITY_PLAYBOOK_RUN_VIEWS: ReadonlyArray<SecurityPlaybookRunView>
         "A step that needs approval holds its run here until someone approves or rejects it.",
       ),
       isEmptyGoodNews: true,
-      icon: IconProp.Pause,
+      icon: IconProp.PauseCircle,
       query: { status: SecurityPlaybookRunStatus.WaitingForApproval },
     },
     {
