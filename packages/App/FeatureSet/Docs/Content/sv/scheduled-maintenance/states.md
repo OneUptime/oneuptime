@@ -136,7 +136,7 @@ Arkivera en egen status som ditt team inte längre ska använda, i stället för
 
 - **Arkivera** finns i radens meny **⋯**. Den frågar först och listar de mätningar och arbetsflöden som är inställda på att använda statusen.
 - **Ingen kan välja den igen.** Händelsens sidhuvud, **Ändra tillstånd**, Slack och Microsoft Teams utelämnar den, och API:et, Terraform och MCP avvisar den. Du kan fortfarande filtrera händelser på den.
-- **Arkiverade statusar listas för sig**, i det hopfällda avsnittet **Arkiverade händelsestatusar** under tabellen. **Avarkivera** återställer en som den var.
+- **Arkiverade statusar listas för sig**, i det hopfällda avsnittet **Arkiverade statusar för schemalagt underhåll** under tabellen. **Avarkivera** återställer en som den var.
 - **De fyra inbyggda statusarna kan inte arkiveras**: OneUptime flyttar händelser till dem. Deras **Arkivera** är låst, med skälet.
 
 ## Tillståndstidslinjen

@@ -139,6 +139,10 @@ describe("a picker's options", () => {
   });
 
   test("an archived value the record keeps is shown, marked Archived, never offered", () => {
+    /*
+     * Marked by isArchived alone: the dropdown draws the Archived tag beside
+     * its name (ArchivedTag), so no description says it a second time.
+     */
     expect(
       ArchivedValuePicker.getPickerOptions({
         values,
@@ -152,7 +156,6 @@ describe("a picker's options", () => {
         label: "[DONOTUSE] Very critical",
         isArchived: true,
         isDisabled: true,
-        description: ARCHIVED_VALUE_TAG,
       },
     ]);
     expect(ARCHIVED_VALUE_TAG).toBe("Archived");

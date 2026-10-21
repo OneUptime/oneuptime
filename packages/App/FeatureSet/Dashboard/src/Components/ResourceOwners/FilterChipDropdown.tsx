@@ -673,9 +673,17 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                         : ""
                     }
                   >
+                    {/*
+                     * A heading OneUptime writes ("People", "Teams",
+                     * "Archived"), in the reader's language.
+                     */}
                     {hasAnyGroup && section.group && (
-                      <div className="sticky top-0 bg-white px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                        {section.group}
+                      <div
+                        className="sticky top-0 bg-white px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400"
+                        data-testid="filter-chip-group-heading"
+                      >
+                        {translator.translateText(section.group) ||
+                          section.group}
                       </div>
                     )}
                     {section.items.map((option: FilterChipDropdownOption) => {

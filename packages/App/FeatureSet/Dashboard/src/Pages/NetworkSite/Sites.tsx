@@ -1,6 +1,10 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
+import {
+  ARCHIVED_FACET_SELECT,
+  getArchivableValueFacetOptions,
+} from "../../Components/ArchivableValue/ArchivedValueFacetOptions";
 import AppLink from "../../Components/AppLink/AppLink";
 import MonitorStatusElement from "../../Components/MonitorStatus/MonitorStatusElement";
 import { NETWORK_SITE_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/NetworkSiteMetricDescriptions";
@@ -132,16 +136,26 @@ const NetworkSites: FunctionComponent<
               query: query,
               limit: FACET_PICKER_PAGE_SIZE,
               skip: 0,
-              select: { _id: true, name: true, color: true, priority: true },
+              select: {
+                _id: true,
+                name: true,
+                color: true,
+                priority: true,
+                ...ARCHIVED_FACET_SELECT,
+              },
               sort: { priority: SortOrder.Ascending },
             });
 
-          return result.data.map((status: MonitorStatus) => {
-            return {
-              value: status.id?.toString() || "",
-              label: status.name?.toString() || "",
-              color: status.color?.toString() || "#9ca3af",
-            };
+          // Archived statuses too - sites can still be in them - listed last.
+          return getArchivableValueFacetOptions({
+            values: result.data,
+            toOption: (status: MonitorStatus): FilterChipDropdownOption => {
+              return {
+                value: status.id?.toString() || "",
+                label: status.name?.toString() || "",
+                color: status.color?.toString() || "#9ca3af",
+              };
+            },
           });
         },
         resolveOptions: async (

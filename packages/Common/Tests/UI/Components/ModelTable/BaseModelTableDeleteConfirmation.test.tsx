@@ -80,6 +80,8 @@ jest.mock("../../../../UI/Utils/Translation", () => {
 import BaseModelTable, {
   BaseTableCallbacks,
   ComponentProps as BaseModelTableProps,
+  DELETE_CONFIRMATION_LOADING,
+  DELETE_CONFIRMATION_LOADING_DELAY_MS,
   DeleteConfirmation,
 } from "../../../../UI/Components/ModelTable/BaseModelTable";
 import TableFilterUrlState from "../../../../UI/Utils/TableFilterUrlState";
@@ -664,6 +666,213 @@ describe("a delete with another way to the same end", () => {
         screen.queryByTestId("confirm-modal-description"),
       ).not.toBeInTheDocument();
     });
+    expect(deleteItem).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Working out what a delete would change asks the server (a value's usage
+ * read), and that can be slow. A slow answer never leaves the click without
+ * one: after a moment the dialog opens, saying it is checking, with its
+ * Delete waiting for the words; a quick answer opens the dialog with its
+ * words, as before, with nothing flashing first.
+ */
+describe("a confirmation that is slow to work out", () => {
+  interface Deferred {
+    promise: Promise<DeleteConfirmation>;
+    resolve: (confirmation: DeleteConfirmation) => void;
+    reject: (error: Error) => void;
+  }
+
+  const defer: () => Deferred = (): Deferred => {
+    let resolve: (confirmation: DeleteConfirmation) => void = () => {
+      // set below
+    };
+    let reject: (error: Error) => void = () => {
+      // set below
+    };
+
+    const promise: Promise<DeleteConfirmation> =
+      new Promise<DeleteConfirmation>(
+        (
+          done: (confirmation: DeleteConfirmation) => void,
+          fail: (error: Error) => void,
+        ) => {
+          resolve = done;
+          reject = fail;
+        },
+      );
+
+    return { promise, resolve, reject };
+  };
+
+  const loadingLine: () => HTMLElement | null = (): HTMLElement | null => {
+    return screen.queryByTestId("delete-confirmation-loading");
+  };
+
+  test("waits a moment before opening, so a quick answer shows nothing first", () => {
+    expect(DELETE_CONFIRMATION_LOADING_DELAY_MS).toBeGreaterThanOrEqual(200);
+    expect(DELETE_CONFIRMATION_LOADING_DELAY_MS).toBeLessThanOrEqual(500);
+    expect(DELETE_CONFIRMATION_LOADING).toBe(
+      "Checking what deleting it would change…",
+    );
+  });
+
+  test("a slow answer opens the dialog saying it is checking, and its Delete waits for the words", async () => {
+    const deleteItem: MockFunction = getJestMockFunction();
+    deleteItem.mockResolvedValue(undefined);
+    const answer: Deferred = defer();
+
+    renderTable({
+      asModels: true,
+      deleteItem: deleteItem,
+      getDeleteConfirmation: (): Promise<DeleteConfirmation> => {
+        return answer.promise;
+      },
+    });
+
+    await clickRemove(0);
+
+    // Not at once: a quick answer would have opened with its words.
+    expect(loadingLine()).toBeNull();
+
+    await waitFor(() => {
+      expect(loadingLine()).not.toBeNull();
+    });
+
+    expect(loadingLine()).toHaveTextContent(
+      "Checking what deleting it would change…",
+    );
+    expect(loadingLine()).toHaveAttribute("role", "status");
+    // The row being deleted names the dialog already.
+    expect(screen.getByText("Delete Monitor")).toBeInTheDocument();
+
+    const deleteButton: HTMLButtonElement = findButtons("Delete")[0]!;
+
+    expect(deleteButton).toBeDisabled();
+
+    fireEvent.click(deleteButton);
+    expect(deleteItem).not.toHaveBeenCalled();
+
+    answer.resolve({ description: "Deleting it also changes these." });
+
+    await waitFor(() => {
+      expect(loadingLine()).toBeNull();
+    });
+    expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
+      "Deleting it also changes these.",
+    );
+    expect(findButtons("Delete")[0]!).not.toBeDisabled();
+
+    fireEvent.click(findButtons("Delete")[0]!);
+
+    await waitFor(() => {
+      expect(deleteItem).toHaveBeenCalledTimes(1);
+    });
+    expect((deleteItem.mock.calls[0]![0] as Monitor).id?.toString()).toBe(
+      "monitor-1",
+    );
+  });
+
+  test("a quick answer opens the dialog with its words, the checking line never drawn", async () => {
+    let sawLoading: boolean = false;
+    const observer: MutationObserver = new MutationObserver(() => {
+      if (loadingLine()) {
+        sawLoading = true;
+      }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    renderTable({
+      getDeleteConfirmation: async (): Promise<DeleteConfirmation> => {
+        return { description: "Quick words." };
+      },
+    });
+
+    await clickRemove(0);
+
+    expect(await waitForDialog()).toHaveTextContent("Quick words.");
+
+    // Longer than the delay: the timer was stopped by the answer.
+    await new Promise<void>((done: () => void) => {
+      setTimeout(done, DELETE_CONFIRMATION_LOADING_DELAY_MS + 100);
+    });
+
+    observer.disconnect();
+
+    expect(sawLoading).toBe(false);
+    expect(loadingLine()).toBeNull();
+    expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
+      "Quick words.",
+    );
+  });
+
+  test("closed while it is checking, it stays closed when the answer comes", async () => {
+    const deleteItem: MockFunction = getJestMockFunction();
+    deleteItem.mockResolvedValue(undefined);
+    const answer: Deferred = defer();
+
+    renderTable({
+      deleteItem: deleteItem,
+      getDeleteConfirmation: (): Promise<DeleteConfirmation> => {
+        return answer.promise;
+      },
+    });
+
+    await clickRemove(0);
+
+    await waitFor(() => {
+      expect(loadingLine()).not.toBeNull();
+    });
+
+    fireEvent.click(findButtons("Cancel")[0]!);
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("confirm-modal-description"),
+      ).not.toBeInTheDocument();
+    });
+
+    answer.resolve({ description: "Too late." });
+
+    // Give the late answer every chance to reopen it.
+    await new Promise<void>((done: () => void) => {
+      setTimeout(done, DELETE_CONFIRMATION_LOADING_DELAY_MS + 100);
+    });
+
+    expect(screen.queryByTestId("confirm-modal-description")).toBeNull();
+    expect(screen.queryByText("Too late.")).toBeNull();
+    expect(deleteItem).not.toHaveBeenCalled();
+  });
+
+  test("an answer that fails while it is checking closes the dialog and says why", async () => {
+    const deleteItem: MockFunction = getJestMockFunction();
+    deleteItem.mockResolvedValue(undefined);
+    const answer: Deferred = defer();
+
+    renderTable({
+      deleteItem: deleteItem,
+      getDeleteConfirmation: (): Promise<DeleteConfirmation> => {
+        return answer.promise;
+      },
+    });
+
+    await clickRemove(0);
+
+    await waitFor(() => {
+      expect(loadingLine()).not.toBeNull();
+    });
+
+    answer.reject(new Error("Could not count what uses this value."));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Could not count what uses this value."),
+      ).toBeInTheDocument();
+    });
+    expect(loadingLine()).toBeNull();
+    expect(screen.queryByText("Delete Monitor")).not.toBeInTheDocument();
     expect(deleteItem).not.toHaveBeenCalled();
   });
 });

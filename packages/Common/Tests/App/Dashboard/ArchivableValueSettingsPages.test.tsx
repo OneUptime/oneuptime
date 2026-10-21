@@ -138,7 +138,10 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
+import IncidentRole from "../../../Models/DatabaseModels/IncidentRole";
 import Label from "../../../Models/DatabaseModels/Label";
+import Color from "../../../Types/Color";
+import IconProp from "../../../Types/Icon/IconProp";
 import Route from "../../../Types/API/Route";
 import {
   ArchivableValueDeleteEffect,
@@ -354,6 +357,31 @@ const runAction: (
   });
 };
 
+/*
+ * Clicks an action whose work goes on after the click - the Archive dialog
+ * opens on it, and what uses the value is read after - without waiting for
+ * that work to finish.
+ */
+const startAction: (
+  action: ActionButtonSchema<BaseModel>,
+  item: BaseModel,
+) => Promise<void> = async (
+  action: ActionButtonSchema<BaseModel>,
+  item: BaseModel,
+): Promise<void> => {
+  await act(async () => {
+    void action.onClick(
+      item,
+      () => {
+        // done
+      },
+      (error: Error) => {
+        throw error;
+      },
+    );
+  });
+};
+
 describe.each(PAGES)("$name", (pageCase: PageCase) => {
   const copy: ArchivableValueCopy = ARCHIVABLE_VALUE_COPY[pageCase.type];
 
@@ -514,9 +542,7 @@ describe("Archive", () => {
       ),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "These are set up to use it, and keep using it until you change them:",
-      ),
+      screen.getByText("These keep using it until you change them:"),
     ).toBeInTheDocument();
     expect(screen.getByText("Incident On-Call Rules (3)")).toBeInTheDocument();
     // The incidents that have it are not "set up to use it": archiving keeps them.
@@ -550,6 +576,199 @@ describe("Archive", () => {
       expect(screen.queryByText("Archive Critical?")).toBeNull();
     });
     expect(table(severities.tableId)!["refreshToggle"]).not.toBe(refreshBefore);
+  });
+
+  /*
+   * The dialog opens on the click: what still uses the value is read after,
+   * and the dialog says so while it is - a slow read never leaves the click
+   * without an answer.
+   */
+  const deferUsage: () => {
+    answer: (usage: Array<unknown>) => void;
+    fail: (error: Error) => void;
+  } = (): {
+    answer: (usage: Array<unknown>) => void;
+    fail: (error: Error) => void;
+  } => {
+    const pending: Array<{
+      resolve: (usage: Array<unknown>) => void;
+      reject: (error: Error) => void;
+    }> = [];
+
+    usageMock.mockImplementation((): Promise<Array<unknown>> => {
+      return new Promise<Array<unknown>>(
+        (
+          resolve: (usage: Array<unknown>) => void,
+          reject: (error: Error) => void,
+        ) => {
+          pending.push({ resolve, reject });
+        },
+      );
+    });
+
+    return {
+      answer: (usage: Array<unknown>): void => {
+        pending.shift()!.resolve(usage);
+      },
+      fail: (error: Error): void => {
+        pending.shift()!.reject(error);
+      },
+    };
+  };
+
+  const onCallRules: ArchivableValueUsageItem = usageItem({
+    tableName: "IncidentOnCallRule",
+    title: "Incident On-Call Rules",
+    singularTitle: "Incident On-Call Rule",
+    count: 3,
+    effect: ArchivableValueDeleteEffect.RemovedFromList,
+    kind: ArchivableValueUsageKind.Settings,
+  });
+
+  test("opens on the click, saying it is checking what still uses the value, then lists it", async () => {
+    const usage: { answer: (usage: Array<unknown>) => void } = deferUsage();
+
+    await renderPage(severities);
+    await startAction(
+      actionTitled(table(severities.tableId), "Archive"),
+      severity({}),
+    );
+
+    // Open, before the answer: what archiving does, and that it is checking.
+    expect(screen.getByText("Archive Critical?")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        ARCHIVABLE_VALUE_COPY[ArchivableValueType.IncidentSeverity]
+          .archiveMessage,
+      ),
+    ).toBeInTheDocument();
+
+    const checking: HTMLElement = screen.getByTestId(
+      "archivable-value-checking",
+    );
+
+    expect(checking).toHaveTextContent("Checking what still uses it…");
+    // A screen reader hears it once, politely.
+    expect(checking).toHaveAttribute("role", "status");
+    expect(checking).toHaveAttribute("aria-live", "polite");
+    expect(
+      screen.queryByText("These keep using it until you change them:"),
+    ).toBeNull();
+
+    await act(async () => {
+      usage.answer([usageItem({}), onCallRules]);
+    });
+
+    expect(screen.queryByTestId("archivable-value-checking")).toBeNull();
+    expect(
+      screen.getByText("These keep using it until you change them:"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Incident On-Call Rules (3)")).toBeInTheDocument();
+    // The incidents that have it keep it: never listed as using it.
+    expect(screen.queryByText("Incidents (12)")).toBeNull();
+  });
+
+  test("Archive does not wait for the list: archiving changes no setting", async () => {
+    deferUsage();
+
+    await renderPage(severities);
+    await startAction(
+      actionTitled(table(severities.tableId), "Archive"),
+      severity({}),
+    );
+
+    expect(screen.getByTestId("archivable-value-checking")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    });
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      (updateByIdMock.mock.calls[0]![0] as { data: unknown }).data,
+    ).toEqual({ isArchived: true });
+    await waitFor(() => {
+      expect(screen.queryByText("Archive Critical?")).toBeNull();
+    });
+  });
+
+  test("a read of what uses it that fails leaves the dialog as it is, without a list or an error", async () => {
+    const usage: { fail: (error: Error) => void } = deferUsage();
+
+    await renderPage(severities);
+    await startAction(
+      actionTitled(table(severities.tableId), "Archive"),
+      severity({}),
+    );
+
+    await act(async () => {
+      usage.fail(new Error("Could not count what uses this value."));
+    });
+
+    expect(screen.queryByTestId("archivable-value-checking")).toBeNull();
+    expect(screen.getByText("Archive Critical?")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Could not count what uses this value."),
+    ).toBeNull();
+    expect(
+      screen.queryByText("These keep using it until you change them:"),
+    ).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    });
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  test("closed before the answer comes, it stays closed; the next value's dialog never shows the last one's answer", async () => {
+    const usage: { answer: (usage: Array<unknown>) => void } = deferUsage();
+
+    await renderPage(severities);
+
+    const archive: ActionButtonSchema<BaseModel> = actionTitled(
+      table(severities.tableId),
+      "Archive",
+    );
+
+    await startAction(archive, severity({}));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("Archive Critical?")).toBeNull();
+    });
+
+    // Another value's dialog opens while the first answer is still out.
+    await startAction(archive, severity({ name: "Minor" }));
+
+    expect(screen.getByText("Archive Minor?")).toBeInTheDocument();
+
+    // The first value's answer arrives late: not this dialog's.
+    await act(async () => {
+      usage.answer([onCallRules]);
+    });
+
+    expect(screen.queryByText("Archive Critical?")).toBeNull();
+    expect(screen.getByTestId("archivable-value-checking")).toBeInTheDocument();
+    expect(screen.queryByText("Incident On-Call Rules (3)")).toBeNull();
+
+    // Its own answer: nothing set up to use it.
+    await act(async () => {
+      usage.answer([usageItem({})]);
+    });
+
+    expect(screen.queryByTestId("archivable-value-checking")).toBeNull();
+    expect(
+      screen.queryByText("These keep using it until you change them:"),
+    ).toBeNull();
+    expect(screen.getByText("Archive Minor?")).toBeInTheDocument();
   });
 
   test("a refused archive keeps the dialog open, with the server's words", async () => {
@@ -596,6 +815,106 @@ describe("Archive", () => {
     expect(
       (updateByIdMock.mock.calls[0]![0] as { data: unknown }).data,
     ).toEqual({ isArchived: false });
+  });
+});
+
+/*
+ * The Archived section names each value the way its page's own table does:
+ * a label as a label, a role with its icon, and a state or a severity as
+ * the coloured pill.
+ */
+describe("the Archived section draws each value as its page's table does", () => {
+  const nameCellOf: (pageCase: PageCase, item: BaseModel) => HTMLElement = (
+    pageCase: PageCase,
+    item: BaseModel,
+  ): HTMLElement => {
+    const columns: Array<{
+      title: string;
+      getElement?: (item: BaseModel) => ReactElement;
+    }> = table(archivedTableId(pageCase))!["columns"] as Array<{
+      title: string;
+      getElement?: (item: BaseModel) => ReactElement;
+    }>;
+
+    expect(columns[0]!.title).toBe("Name");
+
+    const view: { container: HTMLElement } = render(
+      <div data-testid="archived-name-cell">
+        {columns[0]!.getElement!(item)}
+      </div>,
+    );
+
+    return view.container;
+  };
+
+  const openArchived: (pageCase: PageCase) => Promise<void> = async (
+    pageCase: PageCase,
+  ): Promise<void> => {
+    archivedCount = 1;
+    await renderPage(pageCase);
+
+    await waitFor(() => {
+      expect(table(archivedTableId(pageCase))).toBeDefined();
+    });
+  };
+
+  test("a label: its name and colour, as on everything that has it", async () => {
+    const labels: PageCase = PAGES[6]!;
+
+    await openArchived(labels);
+
+    const label: Label = new Label();
+    label._id = VALUE_ID;
+    label.name = "legacy-db";
+    label.color = new Color("#64748b");
+
+    const cell: HTMLElement = nameCellOf(labels, label);
+
+    expect(cell).toHaveTextContent("legacy-db");
+    // The label's own pill, not the minimal one states are listed with.
+    expect(table(archivedTableId(labels))!["selectMoreFields"]).toMatchObject({
+      color: true,
+    });
+  });
+
+  test("an incident role: with its icon, read beside its name", async () => {
+    const roles: PageCase = PAGES[7]!;
+
+    await openArchived(roles);
+
+    expect(table(archivedTableId(roles))!["selectMoreFields"]).toEqual({
+      color: true,
+      roleIcon: true,
+      description: true,
+    });
+
+    const role: IncidentRole = new IncidentRole();
+    role._id = VALUE_ID;
+    role.name = "Customer Liaison";
+    role.roleIcon = IconProp.Chat;
+
+    const cell: HTMLElement = nameCellOf(roles, role);
+
+    expect(cell).toHaveTextContent("Customer Liaison");
+    // RoleLabel draws the role's icon in its tile.
+    expect(cell.querySelector("svg")).not.toBeNull();
+  });
+
+  test("a state or a severity: the coloured pill, with nothing more to read", async () => {
+    const severities: PageCase = PAGES[1]!;
+
+    await openArchived(severities);
+
+    expect(table(archivedTableId(severities))!["selectMoreFields"]).toEqual({
+      color: true,
+    });
+
+    const cell: HTMLElement = nameCellOf(
+      severities,
+      severity({ name: "[DONOTUSE] Very critical", isArchived: true }),
+    );
+
+    expect(cell).toHaveTextContent("[DONOTUSE] Very critical");
   });
 });
 
@@ -706,7 +1025,7 @@ describe("Delete says what it would do", () => {
     expect(confirmation.isDeleteBlocked).toBe(true);
     expect(confirmation.alternative).toBeUndefined();
     expect(textOf(confirmation)).toContain(
-      "It stays archived meanwhile: nobody can pick it, and everything that has it keeps it.",
+      "It can stay archived: nobody can pick it, and everything that has it keeps it.",
     );
   });
 

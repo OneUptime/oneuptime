@@ -440,11 +440,11 @@ describe("the list a setting picked from the project's records offers", () => {
       { label: "Critical", value: "5e000000-0000-4000-8000-0000000000c1" },
       { label: "Low", value: "5e000000-0000-4000-8000-0000000000c3" },
       {
+        // The dropdown draws the Archived tag beside it (ArchivedTag).
         label: "[DONOTUSE] Very critical",
         value: "5e000000-0000-4000-8000-0000000000c2",
         isArchived: true,
         isDisabled: true,
-        description: "Archived",
       },
     ]);
   });

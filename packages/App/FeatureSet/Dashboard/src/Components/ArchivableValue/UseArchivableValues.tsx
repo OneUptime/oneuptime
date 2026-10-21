@@ -5,6 +5,7 @@ import {
   ARCHIVE_INSTEAD,
   ARCHIVED_COUNT,
   ArchivableValueCopy,
+  CHECKING_WHAT_USES_IT,
   DELETE_CHANGES_ARCHIVE_INSTEAD,
   DELETE_CHANGES_CANNOT_UNDO,
   DELETE_CHANGES_INTRO,
@@ -32,6 +33,7 @@ import { Gray500 } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
+import Select from "Common/Types/BaseDatabase/Select";
 import ObjectID from "Common/Types/ObjectID";
 import {
   ARCHIVABLE_VALUES,
@@ -48,6 +50,7 @@ import CardSections from "Common/UI/Components/Card/CardSections";
 import DeleteConfirmationMessage from "Common/UI/Components/DeleteConfirmation/DeleteConfirmationMessage";
 import NamedSentence from "Common/UI/Components/DeleteConfirmation/NamedSentence";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import InlineLoadingLine from "Common/UI/Components/Loader/InlineLoadingLine";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { DeleteConfirmation } from "Common/UI/Components/ModelTable/BaseModelTable";
 import Columns from "Common/UI/Components/ModelTable/Columns";
@@ -97,6 +100,11 @@ import React, {
  *   - `element`, placed after the table: the folded Archived section - only
  *     when something is archived - whose rows Unarchive with one click, and
  *     the Archive dialog.
+ *
+ * A page whose table draws its values its own way (a label as a label, a
+ * role with its icon) hands that in as `getNameElement`, so an archived
+ * value looks in the Archived section as it does in the table above it,
+ * and on every record that has it.
  */
 
 export interface ArchivableValues<T extends BaseModel> {
@@ -109,7 +117,12 @@ export interface ArchivableValues<T extends BaseModel> {
 
 interface ArchiveDialogState<T extends BaseModel> {
   item: T;
-  settings: Array<ArchivableValueUsageItem>;
+  /*
+   * The settings that keep using it - null while they are read. The dialog
+   * opens at once and says it is checking; a read that fails lists none,
+   * since archiving needs no answer from it.
+   */
+  settings: Array<ArchivableValueUsageItem> | null;
 }
 
 const readName: (item: BaseModel) => string = (item: BaseModel): string => {
@@ -132,13 +145,24 @@ const readId: (item: BaseModel) => ObjectID | null = (
 
 export const ARCHIVED_SECTION_TEST_ID: string = "archived-values-section";
 
-const useArchivableValues: <T extends BaseModel>(data: {
+export interface UseArchivableValuesOptions<T extends BaseModel> {
   modelType: { new (): T };
   type: ArchivableValueType;
-}) => ArchivableValues<T> = <T extends BaseModel>(data: {
-  modelType: { new (): T };
-  type: ArchivableValueType;
-}): ArchivableValues<T> => {
+  /*
+   * How the page's own table draws a value's name, for the Archived
+   * section's Name column; and the columns that needs beside the name and
+   * colour. Left out, the name is the coloured pill states and severities
+   * are drawn with.
+   */
+  getNameElement?: ((item: T) => ReactElement) | undefined;
+  nameSelect?: Select<T> | undefined;
+}
+
+const useArchivableValues: <T extends BaseModel>(
+  data: UseArchivableValuesOptions<T>,
+) => ArchivableValues<T> = <T extends BaseModel>(
+  data: UseArchivableValuesOptions<T>,
+): ArchivableValues<T> => {
   const translator: Translator = useTranslator();
 
   const definition: ArchivableValueDefinition = ARCHIVABLE_VALUES[data.type];
@@ -266,29 +290,48 @@ const useArchivableValues: <T extends BaseModel>(data: {
     disabled: !updateGate.isAllowed,
     tooltip: updateGate.isAllowed ? undefined : updateGate.disabledReason,
     getDisabledReason: getArchiveLockedReason,
-    onClick: async (
-      item: T,
-      onCompleteAction: VoidFunction,
-      onError: ErrorFunction,
-    ): Promise<void> => {
-      try {
-        const id: ObjectID | null = readId(item);
+    onClick: async (item: T, onCompleteAction: VoidFunction): Promise<void> => {
+      const id: ObjectID | null = readId(item);
 
-        const usage: Array<ArchivableValueUsageItem> = id
-          ? await fetchArchivableValueUsage({
+      // The dialog opens at once; what still uses the value follows.
+      setArchiveError("");
+      setArchiveDialog({ item: item, settings: id ? null : [] });
+      onCompleteAction();
+
+      if (!id) {
+        return;
+      }
+
+      // Only for the dialog still open on this value.
+      const showSettings: (
+        settings: Array<ArchivableValueUsageItem>,
+      ) => void = (settings: Array<ArchivableValueUsageItem>): void => {
+        setArchiveDialog(
+          (
+            current: ArchiveDialogState<T> | null,
+          ): ArchiveDialogState<T> | null => {
+            return current && current.item === item
+              ? { item: item, settings: settings }
+              : current;
+          },
+        );
+      };
+
+      try {
+        showSettings(
+          getArchiveDialogItems(
+            await fetchArchivableValueUsage({
               modelType: data.modelType,
               valueId: id,
-            })
-          : [];
-
-        setArchiveError("");
-        setArchiveDialog({
-          item: item,
-          settings: getArchiveDialogItems(usage),
-        });
-        onCompleteAction();
-      } catch (err) {
-        onError(err as Error);
+            }),
+          ),
+        );
+      } catch {
+        /*
+         * The list only helps: archiving changes no setting, so a read that
+         * fails leaves the dialog as it is, without one.
+         */
+        showSettings([]);
       }
     },
   };
@@ -427,6 +470,10 @@ const useArchivableValues: <T extends BaseModel>(data: {
       type: FieldType.Text,
       isNotCustomizable: true,
       getElement: (item: T): ReactElement => {
+        if (data.getNameElement) {
+          return data.getNameElement(item);
+        }
+
         return (
           <Pill
             isMinimal={true}
@@ -481,7 +528,9 @@ const useArchivableValues: <T extends BaseModel>(data: {
                 refreshToggle={refreshToggle}
                 sortBy={"archivedAt" as keyof T}
                 sortOrder={SortOrder.Descending}
-                selectMoreFields={{ color: true } as never}
+                selectMoreFields={
+                  { color: true, ...(data.nameSelect || {}) } as never
+                }
                 actionButtons={[unarchiveAction]}
                 getDeleteConfirmation={getDeleteConfirmationFor(true)}
                 onItemDeleted={() => {
@@ -505,7 +554,13 @@ const useArchivableValues: <T extends BaseModel>(data: {
           description={
             <div data-testid="archivable-value-archive-confirmation">
               <p>{translator.translateText(copy.archiveMessage)}</p>
-              {archiveDialog.settings.length > 0 ? (
+              {archiveDialog.settings === null ? (
+                <InlineLoadingLine
+                  className="mt-3"
+                  text={CHECKING_WHAT_USES_IT}
+                  dataTestId="archivable-value-checking"
+                />
+              ) : archiveDialog.settings.length > 0 ? (
                 <>
                   <p className="mt-3 font-medium text-gray-900">
                     {translator.translateText(STILL_SET_UP_TO_USE_IT)}

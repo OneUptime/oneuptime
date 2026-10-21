@@ -136,7 +136,7 @@ Archive a state of your own that your team should stop using, instead of deletin
 
 - **Archive** is in the row's **⋯** menu. It asks first, and lists the measurements and workflows set up to use the state.
 - **Nobody can pick it again.** The event's header, **Change State**, Slack and Microsoft Teams leave it out, and the API, Terraform and MCP refuse it. You can still filter events by it.
-- **Archived states are listed apart**, in the folded **Archived Event States** section under the table. **Unarchive** puts one back as it was.
+- **Archived states are listed apart**, in the folded **Archived Scheduled Maintenance States** section under the table. **Unarchive** puts one back as it was.
 - **The four built-in states can't be archived**: OneUptime moves events into them. Their **Archive** is locked, with the reason.
 
 ## The state timeline

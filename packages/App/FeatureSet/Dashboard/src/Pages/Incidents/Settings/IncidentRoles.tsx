@@ -48,6 +48,18 @@ const IncidentRoles: FunctionComponent<
     useArchivableValues<IncidentRole>({
       modelType: IncidentRole,
       type: ArchivableValueType.IncidentRole,
+      // An archived role looks as it does in the table above, icon and all.
+      getNameElement: (item: IncidentRole): ReactElement => {
+        return (
+          <RoleLabel
+            name={item.name || ""}
+            color={item.color || undefined}
+            icon={item.roleIcon || undefined}
+            description={item.description || undefined}
+          />
+        );
+      },
+      nameSelect: { roleIcon: true, description: true },
     });
 
   /*

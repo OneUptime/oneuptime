@@ -136,7 +136,7 @@ Archivez un état créé par vous que votre équipe ne doit plus utiliser, au li
 
 - **Archiver** se trouve dans le menu **⋯** de la ligne. Il demande d'abord confirmation et liste les mesures et flux de travail configurés pour utiliser l'état.
 - **Personne ne peut plus le choisir.** L'en-tête de l'événement, **Modifier l'état**, Slack et Microsoft Teams l'excluent, et l'API, Terraform et MCP le refusent. Vous pouvez toujours filtrer les événements par celui-ci.
-- **Les états archivés sont listés à part**, dans la section repliée **États d'événement archivés** sous le tableau. **Désarchiver** en remet un tel qu'il était.
+- **Les états archivés sont listés à part**, dans la section repliée **États de maintenance planifiée archivés** sous le tableau. **Désarchiver** en remet un tel qu'il était.
 - **Les quatre états intégrés ne peuvent pas être archivés** : OneUptime y fait passer les événements. Leur **Archiver** est verrouillé, avec la raison.
 
 ## La chronologie d'état

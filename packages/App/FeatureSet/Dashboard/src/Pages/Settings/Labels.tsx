@@ -17,6 +17,10 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const archive: ArchivableValues<Label> = useArchivableValues<Label>({
     modelType: Label,
     type: ArchivableValueType.Label,
+    // An archived label looks as it does on everything that has it.
+    getNameElement: (item: Label): ReactElement => {
+      return <LabelElement label={item} />;
+    },
   });
 
   return (

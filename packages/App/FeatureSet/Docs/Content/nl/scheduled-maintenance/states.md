@@ -136,7 +136,7 @@ Archiveer een eigen status die uw team niet meer moet gebruiken, in plaats van d
 
 - **Archiveren** staat in het menu **⋯** van de rij. Het vraagt eerst om bevestiging en toont de metingen en workflows die zijn ingesteld om de status te gebruiken.
 - **Niemand kan hem nog kiezen.** De kop van de gebeurtenis, **Status wijzigen**, Slack en Microsoft Teams laten hem weg, en de API, Terraform en MCP weigeren hem. U kunt gebeurtenissen er nog steeds op filteren.
-- **Gearchiveerde statussen staan apart**, in de ingeklapte sectie **Gearchiveerde statussen van gebeurtenissen** onder de tabel. **Uit archief halen** zet er een terug zoals hij was.
+- **Gearchiveerde statussen staan apart**, in de ingeklapte sectie **Gearchiveerde statussen van gepland onderhoud** onder de tabel. **Uit archief halen** zet er een terug zoals hij was.
 - **De vier ingebouwde statussen kunnen niet worden gearchiveerd**: OneUptime zet gebeurtenissen erin. Hun **Archiveren** is vergrendeld, met de reden.
 
 ## De statustijdlijn

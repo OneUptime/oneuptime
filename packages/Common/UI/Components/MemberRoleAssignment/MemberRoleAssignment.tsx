@@ -19,7 +19,7 @@ import ConfirmModal from "../Modal/ConfirmModal";
 import Modal from "../Modal/Modal";
 import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import { ButtonStyleType } from "../Button/Button";
-import { ARCHIVED_VALUE_TAG } from "../../Utils/ArchivedValuePicker";
+import ArchivedTag from "../ArchivedTag/ArchivedTag";
 
 export interface MemberRole {
   id: ObjectID;
@@ -428,12 +428,7 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                               </span>
                             )}
                             {role.isArchived && (
-                              <span
-                                data-testid="member-role-archived-tag"
-                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600"
-                              >
-                                {translator.translateText(ARCHIVED_VALUE_TAG)}
-                              </span>
+                              <ArchivedTag dataTestId="member-role-archived-tag" />
                             )}
                             {/*
                              * No "Multiple" tag: a role that takes several

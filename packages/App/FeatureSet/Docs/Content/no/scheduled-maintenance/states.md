@@ -136,7 +136,7 @@ Arkiver en status du selv har laget som teamet ditt ikke lenger skal bruke, i st
 
 - **Arkiver** ligger i radens meny **⋯**. Den spør først og viser målingene og arbeidsflytene som er satt opp til å bruke statusen.
 - **Ingen kan velge den igjen.** Hendelsens topptekst, **Endre tilstand**, Slack og Microsoft Teams utelater den, og API-et, Terraform og MCP avviser den. Du kan fortsatt filtrere hendelser på den.
-- **Arkiverte statuser vises for seg**, i den sammenslåtte delen **Arkiverte statuser for vedlikeholdshendelser** under tabellen. **Fjern fra arkiv** setter en tilbake slik den var.
+- **Arkiverte statuser vises for seg**, i den sammenslåtte delen **Arkiverte statuser for planlagt vedlikehold** under tabellen. **Fjern fra arkiv** setter en tilbake slik den var.
 - **De fire innebygde statusene kan ikke arkiveres**: OneUptime flytter hendelser inn i dem. Deres **Arkiver** er låst, med begrunnelsen.
 
 ## Tilstandstidslinjen

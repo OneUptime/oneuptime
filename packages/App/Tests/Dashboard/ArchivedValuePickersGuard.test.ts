@@ -51,6 +51,8 @@ const HANDLES_ARCHIVED: Array<string> = [
   "isArchived",
   "ArchivedValuePicker",
   "getPickableIncidentRoleChoices",
+  // A list's filter: every value, the archived ones last under "Archived".
+  "getArchivableValueFacetOptions",
 ];
 
 /*
@@ -72,8 +74,6 @@ const READS_EVERY_VALUE: Record<string, string> = {
     "shows a monitor's saved criteria, whatever they name",
   "Components/MonitorStatus/FetchMonitorStatuses.tsx":
     "reads statuses by id, to show the ones monitors are in",
-  "Components/ResourceOwners/useResourceOwners.tsx":
-    "the facet bar filters lists by label: records keep archived labels, and stay findable by them",
   "Components/StatusPage/HistoryChartBarColorPreview.tsx":
     "previews the colour of every status a status page's history can show",
   "Components/Workspace/WorkspaceNotificationRulesTable.tsx":
@@ -98,7 +98,6 @@ const READS_EVERY_VALUE: Record<string, string> = {
     "works out an incident's times from its state timeline",
   "Pages/MonitorGroup/View/Index.tsx":
     "works out a group's status from the statuses its monitors are in",
-  "Pages/NetworkSite/Sites.tsx": "shows the statuses network sites are in",
   "Pages/ScheduledMaintenanceEvents/View/Index.tsx":
     "works out an event's times from its state timeline",
   "Utils/AlertState.ts":

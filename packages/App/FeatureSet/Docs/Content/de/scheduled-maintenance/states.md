@@ -136,7 +136,7 @@ Archivieren Sie einen eigenen Status, den Ihr Team nicht mehr verwenden soll, st
 
 - **Archivieren** steht im Menü **⋯** der Zeile. Es fragt zuerst nach und listet die Messungen und Workflows auf, die so eingerichtet sind, dass sie den Status verwenden.
 - **Niemand kann ihn erneut auswählen.** Die Kopfzeile des Ereignisses, **Status ändern**, Slack und Microsoft Teams lassen ihn weg, und die API, Terraform und MCP lehnen ihn ab. Sie können Ereignisse weiterhin danach filtern.
-- **Archivierte Status werden getrennt aufgeführt**, im eingeklappten Abschnitt **Archivierte Ereignisstatus** unter der Tabelle. **Aus Archiv entfernen** stellt einen so wieder her, wie er war.
+- **Archivierte Status werden getrennt aufgeführt**, im eingeklappten Abschnitt **Archivierte Status der geplanten Wartung** unter der Tabelle. **Aus Archiv entfernen** stellt einen so wieder her, wie er war.
 - **Die vier eingebauten Status lassen sich nicht archivieren**: OneUptime bewegt Ereignisse in sie hinein. Ihr **Archivieren** ist gesperrt, mit Begründung.
 
 ## Die Zustands-Zeitachse

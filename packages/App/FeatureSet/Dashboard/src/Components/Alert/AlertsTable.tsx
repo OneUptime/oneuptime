@@ -1,4 +1,8 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import {
+  ARCHIVED_FACET_SELECT,
+  getArchivableValueFacetOptions,
+} from "../ArchivableValue/ArchivedValueFacetOptions";
 import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
 import ResolvedStateUtil from "Common/Utils/ResolvedState";
 import { StateListType } from "Common/Utils/StateOrder";
@@ -266,15 +270,25 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             query: query,
             limit: 50,
             skip: 0,
-            select: { _id: true, name: true, order: true, color: true },
+            select: {
+              _id: true,
+              name: true,
+              order: true,
+              color: true,
+              ...ARCHIVED_FACET_SELECT,
+            },
             sort: { order: SortOrder.Ascending },
           });
-        return result.data.map((s: AlertState) => {
-          return {
-            value: s.id?.toString() || "",
-            label: s.name?.toString() || "",
-            color: s.color?.toString() || "#9ca3af",
-          };
+        // Archived states too - old alerts are in them - listed last.
+        return getArchivableValueFacetOptions({
+          values: result.data,
+          toOption: (s: AlertState): FilterChipDropdownOption => {
+            return {
+              value: s.id?.toString() || "",
+              label: s.name?.toString() || "",
+              color: s.color?.toString() || "#9ca3af",
+            };
+          },
         });
       },
       resolveOptions: async (
@@ -335,15 +349,25 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             query: query,
             limit: 50,
             skip: 0,
-            select: { _id: true, name: true, order: true, color: true },
+            select: {
+              _id: true,
+              name: true,
+              order: true,
+              color: true,
+              ...ARCHIVED_FACET_SELECT,
+            },
             sort: { order: SortOrder.Ascending },
           });
-        return result.data.map((s: AlertSeverity) => {
-          return {
-            value: s.id?.toString() || "",
-            label: s.name?.toString() || "",
-            color: s.color?.toString() || "#9ca3af",
-          };
+        // Archived severities too - old alerts have them - listed last.
+        return getArchivableValueFacetOptions({
+          values: result.data,
+          toOption: (s: AlertSeverity): FilterChipDropdownOption => {
+            return {
+              value: s.id?.toString() || "",
+              label: s.name?.toString() || "",
+              color: s.color?.toString() || "#9ca3af",
+            };
+          },
         });
       },
       resolveOptions: async (

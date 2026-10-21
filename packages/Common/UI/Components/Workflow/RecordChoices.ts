@@ -1,8 +1,6 @@
 import { DropdownOption } from "../Dropdown/Dropdown";
 import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
-import ArchivedValuePicker, {
-  ARCHIVED_VALUE_TAG,
-} from "../../Utils/ArchivedValuePicker";
+import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
@@ -167,10 +165,10 @@ export const loadRecordChoices: LoadRecordChoicesFunction = async (data: {
       value: id,
     };
 
+    // The dropdown draws the Archived tag beside it (ArchivedTag).
     if (ArchivedValuePicker.isArchived(record)) {
       option.isArchived = true;
       option.isDisabled = true;
-      option.description = ARCHIVED_VALUE_TAG;
     }
 
     return option;

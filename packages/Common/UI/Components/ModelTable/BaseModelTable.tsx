@@ -184,9 +184,21 @@ import UserPreferences, {
 } from "../../../Utils/UserPreferences";
 import RequestOptions from "../../Utils/API/RequestOptions";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
-import ArchivedValuePicker, {
-  ARCHIVED_VALUE_TAG,
-} from "../../Utils/ArchivedValuePicker";
+import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
+import InlineLoadingLine from "../Loader/InlineLoadingLine";
+
+/*
+ * A row's Delete whose dialog first asks the server what the delete would
+ * change (getDeleteConfirmation) opens at once if the answer is slow: after
+ * this long it shows, saying it is checking, so the click is never left
+ * without an answer. A quick answer opens the dialog with its words, as
+ * before, with nothing flashing first.
+ */
+export const DELETE_CONFIRMATION_LOADING_DELAY_MS: number = 300;
+
+export const DELETE_CONFIRMATION_LOADING: string = translationKey(
+  "Checking what deleting it would change…",
+);
 
 /*
  * How many rows a drag-ordered table shows at once unless told otherwise.
@@ -1612,6 +1624,24 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     useState<DeleteConfirmation | null>(null);
 
   /*
+   * The Delete dialog opened before its wording arrived
+   * (DELETE_CONFIRMATION_LOADING_DELAY_MS), and which opening is the
+   * current one: one the person closed while it was still being read never
+   * opens again, or shows its error, when the answer comes.
+   */
+  const [isDeleteConfirmationLoading, setIsDeleteConfirmationLoading] =
+    useState<boolean>(false);
+  const deleteConfirmationRequest: MutableRefObject<number> =
+    React.useRef<number>(0);
+
+  const closeDeleteConfirmModal: () => void = (): void => {
+    deleteConfirmationRequest.current += 1;
+    setShowDeleteConfirmModal(false);
+    setIsDeleteConfirmationLoading(false);
+    setDeleteAlternativeError("");
+  };
+
+  /*
    * A page size that came in on the URL wins over the viewer's own stored
    * preference — a shared link should render the same slice of rows for
    * everyone who opens it.
@@ -1994,12 +2024,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               ) as string,
             };
 
+            // The filter's dropdown draws the Archived tag beside it.
             if (
               isArchivableFilter &&
               item.getColumnValue("isArchived") === true
             ) {
               option.isArchived = true;
-              option.description = ARCHIVED_VALUE_TAG;
             }
 
             if (colorColumnName) {
@@ -3431,20 +3461,63 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           onCompleteAction: VoidFunction,
           onError: ErrorFunction,
         ) => {
+          deleteConfirmationRequest.current += 1;
+          const request: number = deleteConfirmationRequest.current;
+          let loadingTimer: ReturnType<typeof setTimeout> | undefined =
+            undefined;
+
           try {
             if (props.onBeforeDelete) {
               item = await props.onBeforeDelete(item);
             }
 
-            setDeleteConfirmation(
-              props.getDeleteConfirmation
-                ? await props.getDeleteConfirmation(item)
-                : null,
-            );
+            let confirmation: DeleteConfirmation | null = null;
+
+            if (props.getDeleteConfirmation) {
+              const pending: Promise<DeleteConfirmation> =
+                props.getDeleteConfirmation(item);
+              const openingItem: TBaseModel = item;
+
+              // Slow to answer: open now, saying it is checking.
+              loadingTimer = setTimeout(() => {
+                if (request !== deleteConfirmationRequest.current) {
+                  return;
+                }
+
+                setDeleteConfirmation(null);
+                setDeleteAlternativeError("");
+                setCurrentDeleteableItem(openingItem);
+                setIsDeleteConfirmationLoading(true);
+                setShowDeleteConfirmModal(true);
+              }, DELETE_CONFIRMATION_LOADING_DELAY_MS);
+
+              confirmation = await pending;
+              clearTimeout(loadingTimer);
+            }
+
+            // Closed while its wording was being read: it stays closed.
+            if (request !== deleteConfirmationRequest.current) {
+              onCompleteAction();
+              return;
+            }
+
+            setDeleteConfirmation(confirmation);
+            setIsDeleteConfirmationLoading(false);
             setShowDeleteConfirmModal(true);
             setCurrentDeleteableItem(item);
             onCompleteAction();
           } catch (err) {
+            if (loadingTimer) {
+              clearTimeout(loadingTimer);
+            }
+
+            if (request !== deleteConfirmationRequest.current) {
+              onCompleteAction();
+              return;
+            }
+
+            setIsDeleteConfirmationLoading(false);
+            setShowDeleteConfirmModal(false);
             onError(err as Error);
           }
         },
@@ -5456,34 +5529,40 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             })
           }
           description={
-            deleteConfirmation?.description || (
-              <DeleteConfirmationMessage
-                kind="question"
-                name={getItemLabel(currentDeleteableItem)}
-                typeLabel={getDeleteLabel(
-                  props.singularName,
-                  model.singularName,
-                )}
-                /*
-                 * What goes with it, as the bulk Delete and the record's own
-                 * Delete page say it.
-                 */
-                warning={getDeleteWarning(props.deleteConfirmationWarning)}
+            isDeleteConfirmationLoading ? (
+              <InlineLoadingLine
+                text={DELETE_CONFIRMATION_LOADING}
+                dataTestId="delete-confirmation-loading"
               />
+            ) : (
+              deleteConfirmation?.description || (
+                <DeleteConfirmationMessage
+                  kind="question"
+                  name={getItemLabel(currentDeleteableItem)}
+                  typeLabel={getDeleteLabel(
+                    props.singularName,
+                    model.singularName,
+                  )}
+                  /*
+                   * What goes with it, as the bulk Delete and the record's
+                   * own Delete page say it.
+                   */
+                  warning={getDeleteWarning(props.deleteConfirmationWarning)}
+                />
+              )
             )
           }
+          disableSubmitButton={isDeleteConfirmationLoading}
           /*
            * A delete that cannot go through, with nothing to offer instead,
            * is a notice: its one button closes it.
            */
           onClose={
             deleteConfirmation?.isDeleteBlocked &&
-            !deleteConfirmation.alternative
+            !deleteConfirmation.alternative &&
+            !isDeleteConfirmationLoading
               ? undefined
-              : () => {
-                  setShowDeleteConfirmModal(false);
-                  setDeleteAlternativeError("");
-                }
+              : closeDeleteConfirmModal
           }
           submitButtonText={
             deleteConfirmation?.isDeleteBlocked
@@ -5491,11 +5570,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               : deleteConfirmation?.submitButtonText || "Delete"
           }
           onSubmit={async () => {
+            // Nothing to do until it knows what the delete would change.
+            if (isDeleteConfirmationLoading) {
+              return;
+            }
+
             if (deleteConfirmation?.isDeleteBlocked) {
               if (deleteConfirmation.alternative) {
                 await runDeleteAlternative(deleteConfirmation.alternative);
               } else {
-                setShowDeleteConfirmModal(false);
+                closeDeleteConfirmModal();
               }
 
               return;
@@ -5514,6 +5598,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               : ButtonStyleType.DANGER
           }
           secondaryButton={
+            !isDeleteConfirmationLoading &&
             deleteConfirmation?.alternative &&
             !deleteConfirmation.isDeleteBlocked
               ? {

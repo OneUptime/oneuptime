@@ -30,9 +30,8 @@ import React, {
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import { canPickByLabel, withLabels, withSearch } from "./EntityDropdownQuery";
-import ArchivedValuePicker, {
-  ARCHIVED_VALUE_TAG,
-} from "../../Utils/ArchivedValuePicker";
+import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
+import ArchivedTag from "../ArchivedTag/ArchivedTag";
 
 /*
  * EntityDropdown is the generalized successor to react-select-based Dropdown.
@@ -1486,12 +1485,10 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 )}
                 <span className="max-w-[14rem] truncate">{opt.label}</span>
                 {opt.isArchived && (
-                  <span
-                    data-testid="entity-dropdown-archived-tag"
-                    className="rounded bg-white px-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500 ring-1 ring-inset ring-gray-200"
-                  >
-                    {translator.translateText(ARCHIVED_VALUE_TAG)}
-                  </span>
+                  <ArchivedTag
+                    isCompact={true}
+                    dataTestId="entity-dropdown-archived-tag"
+                  />
                 )}
                 {!props.disabled && (
                   <button
@@ -1607,12 +1604,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                   {selectedOptions[0]!.label}
                 </span>
                 {selectedOptions[0]!.isArchived && (
-                  <span
-                    data-testid="entity-dropdown-archived-tag"
-                    className="rounded bg-gray-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500 ring-1 ring-inset ring-gray-200"
-                  >
-                    {translator.translateText(ARCHIVED_VALUE_TAG)}
-                  </span>
+                  <ArchivedTag dataTestId="entity-dropdown-archived-tag" />
                 )}
               </span>
               <div className="flex items-center gap-1 text-gray-400">

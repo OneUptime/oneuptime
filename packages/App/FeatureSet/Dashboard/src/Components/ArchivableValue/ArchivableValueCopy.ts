@@ -25,7 +25,11 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 export interface ArchivableValueCopy {
   // The Archive dialog's sentence: what archiving does to this value.
   archiveMessage: string;
-  // The folded Archived section: its title, and what an archived value is.
+  /*
+   * The folded Archived section: its title - the table's above it, archived
+   * - and what an archived value is, said from the records' side: they keep
+   * it, nobody picks it again.
+   */
   archivedTitle: string;
   archivedDescription: string;
 }
@@ -40,7 +44,7 @@ export const ARCHIVABLE_VALUE_COPY: Record<
     ),
     archivedTitle: translationKey("Archived Incident States"),
     archivedDescription: translationKey(
-      "Kept on the incidents and episodes that are in them, and in their history and filters. Nobody can pick them again.",
+      "Incidents and episodes in these states stay in them, and their history still shows them. Nobody can pick them again.",
     ),
   },
   [ArchivableValueType.IncidentSeverity]: {
@@ -49,7 +53,7 @@ export const ARCHIVABLE_VALUE_COPY: Record<
     ),
     archivedTitle: translationKey("Archived Incident Severities"),
     archivedDescription: translationKey(
-      "Kept on the incidents and episodes that have them, and in filters. Nobody can pick them for anything new.",
+      "Incidents and episodes that have these keep them. Nobody can pick them again.",
     ),
   },
   [ArchivableValueType.AlertState]: {
@@ -58,7 +62,7 @@ export const ARCHIVABLE_VALUE_COPY: Record<
     ),
     archivedTitle: translationKey("Archived Alert States"),
     archivedDescription: translationKey(
-      "Kept on the alerts and episodes that are in them, and in their history and filters. Nobody can pick them again.",
+      "Alerts and episodes in these states stay in them, and their history still shows them. Nobody can pick them again.",
     ),
   },
   [ArchivableValueType.AlertSeverity]: {
@@ -67,7 +71,7 @@ export const ARCHIVABLE_VALUE_COPY: Record<
     ),
     archivedTitle: translationKey("Archived Alert Severities"),
     archivedDescription: translationKey(
-      "Kept on the alerts and episodes that have them, and in filters. Nobody can pick them for anything new.",
+      "Alerts and episodes that have these keep them. Nobody can pick them again.",
     ),
   },
   [ArchivableValueType.MonitorStatus]: {
@@ -76,16 +80,16 @@ export const ARCHIVABLE_VALUE_COPY: Record<
     ),
     archivedTitle: translationKey("Archived Monitor Statuses"),
     archivedDescription: translationKey(
-      "Kept on the monitors that are in them, and in their history. Nobody can pick them again.",
+      "Monitors in these statuses stay in them until their status changes. Nobody can pick them again.",
     ),
   },
   [ArchivableValueType.ScheduledMaintenanceState]: {
     archiveMessage: translationKey(
       "Nobody can pick an archived state for a maintenance event again. Events in it stay in it and move on as usual, and it stays in their history and in filters. You can unarchive it at any time.",
     ),
-    archivedTitle: translationKey("Archived Event States"),
+    archivedTitle: translationKey("Archived Scheduled Maintenance States"),
     archivedDescription: translationKey(
-      "Kept on the maintenance events that are in them, and in their history and filters. Nobody can pick them again.",
+      "Maintenance events in these states stay in them, and their history still shows them. Nobody can pick them again.",
     ),
   },
   [ArchivableValueType.Label]: {
@@ -94,7 +98,7 @@ export const ARCHIVABLE_VALUE_COPY: Record<
     ),
     archivedTitle: translationKey("Archived Labels"),
     archivedDescription: translationKey(
-      "Kept on everything that has them, and in filters. Nobody can add them to anything again.",
+      "Everything that has these labels keeps them. Nobody can add them to anything again.",
     ),
   },
   [ArchivableValueType.IncidentRole]: {
@@ -103,7 +107,7 @@ export const ARCHIVABLE_VALUE_COPY: Record<
     ),
     archivedTitle: translationKey("Archived Incident Roles"),
     archivedDescription: translationKey(
-      "Kept by the people who hold them on incidents. Nobody can be given them again.",
+      "People who hold these roles on incidents keep them. Nobody can be given them again.",
     ),
   },
 };
@@ -163,7 +167,11 @@ export const UNARCHIVE_ACTION: string = translationKey("Unarchive");
 // The Archive dialog.
 export const ARCHIVE_DIALOG_TITLE: string = translationKey("Archive {{name}}?");
 export const STILL_SET_UP_TO_USE_IT: string = translationKey(
-  "These are set up to use it, and keep using it until you change them:",
+  "These keep using it until you change them:",
+);
+// While they are read: the dialog opens at once.
+export const CHECKING_WHAT_USES_IT: string = translationKey(
+  "Checking what still uses it…",
 );
 
 // The Delete dialog, for a value records use.
@@ -179,7 +187,7 @@ export const DELETE_REFUSED_ARCHIVE_INSTEAD: string = translationKey(
   "Archive it instead: nobody can pick it again, and everything that has it keeps it.",
 );
 export const DELETE_REFUSED_ALREADY_ARCHIVED: string = translationKey(
-  "It stays archived meanwhile: nobody can pick it, and everything that has it keeps it.",
+  "It can stay archived: nobody can pick it, and everything that has it keeps it.",
 );
 export const DELETE_CHANGES_INTRO: string = translationKey(
   "Deleting it also changes these:",
@@ -200,7 +208,7 @@ export const DELETE_EFFECT_LABELS: Record<ArchivableValueDeleteEffect, string> =
     [ArchivableValueDeleteEffect.Deleted]: translationKey("Deleted with it"),
     [ArchivableValueDeleteEffect.Cleared]: translationKey("Cleared on"),
     [ArchivableValueDeleteEffect.LeftDangling]: translationKey(
-      "Left pointing at nothing",
+      "Left set to a deleted value",
     ),
   };
 
@@ -236,6 +244,7 @@ export const getArchivableValueStrings: () => Array<string> =
       UNARCHIVE_ACTION,
       ARCHIVE_DIALOG_TITLE,
       STILL_SET_UP_TO_USE_IT,
+      CHECKING_WHAT_USES_IT,
       ARCHIVE_INSTEAD,
       DELETE_REFUSED_NAMED,
       DELETE_REFUSED_INTRO,

@@ -1,4 +1,5 @@
 import ObjectID from "../../../Types/ObjectID";
+import ArchivedTag from "../ArchivedTag/ArchivedTag";
 import DROPDOWN_MENU_Z_INDEX from "./DropdownMenuZIndex";
 import useTranslateValue from "../../Utils/Translation";
 import { createTranslator } from "../../Utils/TranslateTemplate";
@@ -562,6 +563,16 @@ const Dropdown: FunctionComponent<ComponentProps> = (
             <span className="text-sm font-medium text-gray-900">
               {getOptionLabelText(option)}
             </span>
+            {/*
+             * An archived value the record still has: kept, never offered
+             * again - the same tag the entity dropdowns draw.
+             */}
+            {option.isArchived ? (
+              <ArchivedTag
+                isCompact={Boolean(props.isMultiSelect)}
+                dataTestId="dropdown-archived-tag"
+              />
+            ) : null}
           </div>
           {renderAssociatedLabels(
             visibleLabels,
@@ -588,6 +599,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           >
             {getOptionLabelText(option)}
           </span>
+          {option.isArchived ? (
+            <ArchivedTag dataTestId="dropdown-archived-tag" />
+          ) : null}
         </div>
         {option.description ? (
           <span className="text-xs text-gray-500">

@@ -1,5 +1,9 @@
 import ProjectUtil from "Common/UI/Utils/Project";
 import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
+import {
+  ARCHIVED_FACET_SELECT,
+  getArchivableValueFacetOptions,
+} from "../ArchivableValue/ArchivedValueFacetOptions";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import AffectedResourcesCell from "../AffectedResources/AffectedResourcesCell";
 import StatusPagesElement from "../StatusPage/StatusPagesElement";
@@ -191,15 +195,27 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             query: query,
             limit: 50,
             skip: 0,
-            select: { _id: true, name: true, order: true, color: true },
+            select: {
+              _id: true,
+              name: true,
+              order: true,
+              color: true,
+              ...ARCHIVED_FACET_SELECT,
+            },
             sort: { order: SortOrder.Ascending },
           });
-        return result.data.map((s: ScheduledMaintenanceState) => {
-          return {
-            value: s.id?.toString() || "",
-            label: s.name?.toString() || "",
-            color: s.color?.toString() || "#9ca3af",
-          };
+        // Archived states too - old events are in them - listed last.
+        return getArchivableValueFacetOptions({
+          values: result.data,
+          toOption: (
+            s: ScheduledMaintenanceState,
+          ): FilterChipDropdownOption => {
+            return {
+              value: s.id?.toString() || "",
+              label: s.name?.toString() || "",
+              color: s.color?.toString() || "#9ca3af",
+            };
+          },
         });
       },
       resolveOptions: async (

@@ -37,6 +37,28 @@ export interface UsageListProps {
   dataTestId?: string | undefined;
 }
 
+/*
+ * One line of a list, with the dot both lists draw: the Archive dialog's
+ * plain list and the Delete dialog's grouped one read as the same kind of
+ * list.
+ */
+const UsageLine: FunctionComponent<{
+  children: ReactElement | string;
+  dataTestId?: string | undefined;
+}> = (props: {
+  children: ReactElement | string;
+  dataTestId?: string | undefined;
+}): ReactElement => {
+  return (
+    <li className="flex gap-2" data-testid={props.dataTestId}>
+      <span aria-hidden="true" className="text-gray-400">
+        •
+      </span>
+      <span className="min-w-0">{props.children}</span>
+    </li>
+  );
+};
+
 // A plain list of kinds and counts.
 export const UsageList: FunctionComponent<UsageListProps> = (
   props: UsageListProps,
@@ -45,14 +67,14 @@ export const UsageList: FunctionComponent<UsageListProps> = (
 
   return (
     <ul
-      className="mt-2 list-disc space-y-0.5 pl-5 text-sm text-gray-700"
+      className="mt-2 space-y-1 text-sm text-gray-700"
       data-testid={props.dataTestId || "archivable-value-usage-list"}
     >
       {props.items.map((item: ArchivableValueUsageItem): ReactElement => {
         return (
-          <li key={`${item.tableName}-${item.effect}`}>
+          <UsageLine key={`${item.tableName}-${item.effect}`}>
             {getUsageItemText(item, translator)}
-          </li>
+          </UsageLine>
         );
       })}
     </ul>
@@ -88,15 +110,11 @@ export const UsageGroups: FunctionComponent<UsageGroupsProps> = (
         const items: string = texts.join(getListSeparator(texts));
 
         return (
-          <li
+          <UsageLine
             key={group.effect}
-            className="flex gap-2"
-            data-testid={`archivable-value-delete-group-${group.effect}`}
+            dataTestId={`archivable-value-delete-group-${group.effect}`}
           >
-            <span aria-hidden="true" className="text-gray-400">
-              •
-            </span>
-            <span>
+            <>
               {props.showLabels ? (
                 <span className="font-medium text-gray-900">
                   {translator.translateText(group.label)}:{" "}
@@ -105,8 +123,8 @@ export const UsageGroups: FunctionComponent<UsageGroupsProps> = (
                 <></>
               )}
               {items}
-            </span>
-          </li>
+            </>
+          </UsageLine>
         );
       })}
     </ul>

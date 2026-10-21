@@ -39,7 +39,7 @@ import {
   toIncidentRoleChoice,
   withRoleUsers,
 } from "../IncidentRole/IncidentRoleAssignments";
-import { ARCHIVED_VALUE_TAG } from "Common/UI/Utils/ArchivedValuePicker";
+import ArchivedTag from "Common/UI/Components/ArchivedTag/ArchivedTag";
 
 // Under an archived role's card: why nobody can be added to it.
 export const ARCHIVED_ROLE_NOTE: string = translationKey(
@@ -278,12 +278,7 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
                   </span>
                 )}
                 {role.isArchived && (
-                  <span
-                    data-testid="incident-role-archived-tag"
-                    className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-medium"
-                  >
-                    {translator.translateText(ARCHIVED_VALUE_TAG)}
-                  </span>
+                  <ArchivedTag dataTestId="incident-role-archived-tag" />
                 )}
               </div>
             </div>

@@ -136,7 +136,7 @@ Archive un estado propio que su equipo ya no deba usar, en lugar de eliminarlo. 
 
 - **Archivar** está en el menú **⋯** de la fila. Primero pide confirmación y enumera las mediciones y los flujos de trabajo configurados para usar el estado.
 - **Nadie puede volver a elegirlo.** La cabecera del evento, **Cambiar estado**, Slack y Microsoft Teams lo omiten, y la API, Terraform y MCP lo rechazan. Puede seguir filtrando los eventos por él.
-- **Los estados archivados se listan aparte**, en la sección plegada **Estados de evento archivados** bajo la tabla. **Desarchivar** devuelve uno tal como estaba.
+- **Los estados archivados se listan aparte**, en la sección plegada **Estados de mantenimiento programado archivados** bajo la tabla. **Desarchivar** devuelve uno tal como estaba.
 - **Los cuatro estados integrados no se pueden archivar**: OneUptime mueve los eventos a ellos. Su **Archivar** está bloqueado, con el motivo.
 
 ## La cronología de estados

@@ -1,5 +1,5 @@
-import { translationKey } from "./TranslateTemplate";
-import { DropdownOption } from "../Components/Dropdown/Dropdown";
+import { ARCHIVED_VALUE_TAG } from "../Components/ArchivedTag/ArchivedTagCopy";
+import type { DropdownOption } from "../Components/Dropdown/Dropdown";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import {
   ARCHIVED_COLUMN,
@@ -22,8 +22,8 @@ import {
  * list every value, archived ones too: old records stay findable by them.
  */
 
-// The tag beside an archived value a record still has.
-export const ARCHIVED_VALUE_TAG: string = translationKey("Archived");
+// The tag beside an archived value a record still has (ArchivedTag draws it).
+export { ARCHIVED_VALUE_TAG };
 
 type ModelType = { new (): BaseModel };
 
@@ -117,9 +117,9 @@ export default class ArchivedValuePicker {
    * The options of a dropdown built from a list the caller read itself
    * (with the archive switch selected), one option per value, in order: the
    * live values, and the archived values a record being edited still has -
-   * `keptIds` - so its form still shows them, marked Archived and never
-   * offered for a new pick (isDisabled). Every other archived value is left
-   * out.
+   * `keptIds` - so its form still shows them, marked Archived (the dropdown
+   * draws the tag, ArchivedTag) and never offered for a new pick
+   * (isDisabled). Every other archived value is left out.
    */
   public static getPickerOptions<T>(data: {
     values: Array<T>;
@@ -162,7 +162,6 @@ export default class ArchivedValuePicker {
           ...option,
           isArchived: true,
           isDisabled: true,
-          description: ARCHIVED_VALUE_TAG,
         });
       }
     }
