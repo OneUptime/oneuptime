@@ -829,7 +829,23 @@ const DocsFeatureSet: FeatureSet = {
       },
     );
 
-    app.use("/docs/static", ExpressStatic(StaticPath));
+    /*
+     * The installers under /docs/static/scripts (the host collector's
+     * install.sh and install.ps1, the infrastructure agent's install.sh) are
+     * served as text: Windows PowerShell's Invoke-RestMethod hands a .ps1
+     * back as a string only when it is sent as text, which the one-line
+     * Windows install command relies on.
+     */
+    app.use(
+      "/docs/static",
+      ExpressStatic(StaticPath, {
+        setHeaders: (res: ExpressResponse, filePath: string): void => {
+          if (filePath.endsWith(".ps1") || filePath.endsWith(".sh")) {
+            res.setHeader("Content-Type", "text/plain; charset=utf-8");
+          }
+        },
+      }),
+    );
   },
 };
 

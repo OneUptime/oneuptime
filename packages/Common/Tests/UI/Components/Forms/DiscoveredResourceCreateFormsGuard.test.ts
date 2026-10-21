@@ -71,6 +71,13 @@ interface DiscoveredResource {
   open: Array<string>;
   // Titled after the attribute the one identifier must equal.
   identityTitle?: string | undefined;
+  /*
+   * Added by a command of its own, not a form: a host runs the Add Host
+   * command and registers itself when its collector connects
+   * (HostCollectorAgent), so its list has no create form. Its service still
+   * names and checks what the API creates.
+   */
+  isAddedByCommand?: boolean | undefined;
 }
 
 const DISCOVERED_RESOURCES: Array<DiscoveredResource> = [
@@ -81,6 +88,7 @@ const DISCOVERED_RESOURCES: Array<DiscoveredResource> = [
     service: "HostService.ts",
     open: ["hostIdentifier"],
     identityTitle: "Host Name (host.name)",
+    isAddedByCommand: true,
   },
   {
     model: "DockerHost",
@@ -136,6 +144,13 @@ const DISCOVERED_MODELS: ReadonlySet<string> = new Set<string>(
   DISCOVERED_RESOURCES.map((resource: DiscoveredResource): string => {
     return resource.model;
   }),
+);
+
+// The resources whose list page has a create form.
+const CREATED_BY_FORM: Array<DiscoveredResource> = DISCOVERED_RESOURCES.filter(
+  (resource: DiscoveredResource): boolean => {
+    return !resource.isAddedByCommand;
+  },
 );
 
 const listPageForms: Array<FormFacts> = scanFormFiles({
@@ -218,119 +233,137 @@ const methodBody: MethodBodyFunction = (
 
 describe("the create forms of resources that telemetry discovers", () => {
   test("are really read", () => {
-    expect(listPageForms.length).toBeGreaterThanOrEqual(
-      DISCOVERED_RESOURCES.length,
-    );
+    expect(listPageForms.length).toBeGreaterThanOrEqual(CREATED_BY_FORM.length);
 
-    for (const resource of DISCOVERED_RESOURCES) {
+    for (const resource of CREATED_BY_FORM) {
       expect(findForm(resource).fields.length).toBeGreaterThan(0);
     }
   });
 
-  describe.each(DISCOVERED_RESOURCES)(
-    "$label",
-    (resource: DiscoveredResource) => {
-      const form: FormFacts = findForm(resource);
-      const fields: Array<FormFieldFacts> = createFields(form);
-      const open: Array<FormFieldFacts> = fields.filter(
-        (field: FormFieldFacts): boolean => {
-          return field.collapsibleSection === undefined;
-        },
-      );
-      const folded: Array<FormFieldFacts> = fields.filter(
-        (field: FormFieldFacts): boolean => {
-          return field.collapsibleSection !== undefined;
-        },
-      );
-
-      test("is one page, every field counted", () => {
-        expect(form.uncountableReasons).toEqual([]);
-        expect(form.hasSteps).toBe(false);
-        // No field is written on a step (a helper's spread reads as null).
-        expect(
-          keys(
-            fields.filter((field: FormFieldFacts): boolean => {
-              return typeof field.stepId === "string";
-            }),
-          ),
-        ).toEqual([]);
-      });
-
-      test("shows open only what the telemetry is matched on", () => {
-        expect(keys(open)).toEqual(resource.open);
-      });
-
-      test("folds the display name, the description and the labels, in that order, into one section", () => {
-        expect(keys(folded)).toEqual(["name", "description", "labels"]);
-        expect(
-          new Set(
-            folded.map((field: FormFieldFacts): string | undefined => {
-              return field.collapsibleSection;
-            }),
-          ).size,
-        ).toBe(1);
-
-        // After everything open: one header at the end of the form.
-        expect(keys(fields.slice(open.length))).toEqual(keys(folded));
-        expect(countFieldRows(fields)).toBe(resource.open.length + 1);
-      });
-
-      test("asks for the display name with the shared field, never a Name of its own", () => {
-        const nameFields: Array<FormFieldFacts> = form.fields.filter(
-          (field: FormFieldFacts): boolean => {
-            return field.key === "name";
-          },
-        );
-
-        expect(nameFields).toHaveLength(1);
-        expect(nameFields[0]!.helper).toBe(DISPLAY_NAME_HELPER);
-        expect(nameFields[0]!.title).toBe("Display Name");
-        // Its default is the name the form fills in (getDefaultValue).
-        expect(nameFields[0]!.hasDefault).toBe(true);
-      });
-
-      test("asks for the labels with the shared field", () => {
-        expect(
-          form.fields.find((field: FormFieldFacts): boolean => {
-            return field.key === "labels";
-          })?.helper,
-        ).toBe(LABELS_HELPER);
-      });
-
-      test("never fills the identifier in from anything", () => {
-        /*
-         * A name is made from the identifier, never the other way round:
-         * an identifier that is not exactly what the telemetry reports
-         * leaves the resource empty, with no error anywhere.
-         */
-        for (const field of open) {
-          expect(field.hasDefault).toBe(false);
-          expect(field.defaultValue).toBeUndefined();
-        }
-      });
-
-      if (resource.identityTitle) {
-        test("asks for its one identifier with the shared field, titled after the attribute", () => {
-          expect(open).toHaveLength(1);
-          expect(open[0]!.helper).toBe(IDENTITY_HELPER);
-          expect(open[0]!.title).toBe(resource.identityTitle);
-          // "<What it is> (<the attribute it must equal>)".
-          expect(open[0]!.title).toMatch(/^[A-Z][A-Za-z ]+ \([A-Za-z.]+\)$/);
-        });
-
-        test("the display name follows that identifier", () => {
-          const code: string = readCode(resource.listPage);
-
-          // However Prettier wraps the call.
-          const follows: RegExp = new RegExp(
-            `getDefaultName: getNameFromIdentityField<${resource.model}>\\( ?"${resource.open[0]}",? ?\\)`,
+  test.each(
+    DISCOVERED_RESOURCES.filter((resource: DiscoveredResource): boolean => {
+      return Boolean(resource.isAddedByCommand);
+    }).map((resource: DiscoveredResource): [string, DiscoveredResource] => {
+      return [resource.label, resource];
+    }),
+  )(
+    "%s is added by its own command: its list offers no create form",
+    (_label: string, resource: DiscoveredResource) => {
+      const forms: Array<FormFacts> = listPageForms.filter(
+        (form: FormFacts): boolean => {
+          return (
+            form.file === resource.listPage && form.label === resource.label
           );
+        },
+      );
 
-          expect(code).toMatch(follows);
-        });
-      }
+      expect(forms.length).toBe(1);
+      expect(forms[0]!.hasCreateForm).toBe(false);
+      expect(createFields(forms[0]!)).toEqual([]);
     },
   );
+
+  describe.each(CREATED_BY_FORM)("$label", (resource: DiscoveredResource) => {
+    const form: FormFacts = findForm(resource);
+    const fields: Array<FormFieldFacts> = createFields(form);
+    const open: Array<FormFieldFacts> = fields.filter(
+      (field: FormFieldFacts): boolean => {
+        return field.collapsibleSection === undefined;
+      },
+    );
+    const folded: Array<FormFieldFacts> = fields.filter(
+      (field: FormFieldFacts): boolean => {
+        return field.collapsibleSection !== undefined;
+      },
+    );
+
+    test("is one page, every field counted", () => {
+      expect(form.uncountableReasons).toEqual([]);
+      expect(form.hasSteps).toBe(false);
+      // No field is written on a step (a helper's spread reads as null).
+      expect(
+        keys(
+          fields.filter((field: FormFieldFacts): boolean => {
+            return typeof field.stepId === "string";
+          }),
+        ),
+      ).toEqual([]);
+    });
+
+    test("shows open only what the telemetry is matched on", () => {
+      expect(keys(open)).toEqual(resource.open);
+    });
+
+    test("folds the display name, the description and the labels, in that order, into one section", () => {
+      expect(keys(folded)).toEqual(["name", "description", "labels"]);
+      expect(
+        new Set(
+          folded.map((field: FormFieldFacts): string | undefined => {
+            return field.collapsibleSection;
+          }),
+        ).size,
+      ).toBe(1);
+
+      // After everything open: one header at the end of the form.
+      expect(keys(fields.slice(open.length))).toEqual(keys(folded));
+      expect(countFieldRows(fields)).toBe(resource.open.length + 1);
+    });
+
+    test("asks for the display name with the shared field, never a Name of its own", () => {
+      const nameFields: Array<FormFieldFacts> = form.fields.filter(
+        (field: FormFieldFacts): boolean => {
+          return field.key === "name";
+        },
+      );
+
+      expect(nameFields).toHaveLength(1);
+      expect(nameFields[0]!.helper).toBe(DISPLAY_NAME_HELPER);
+      expect(nameFields[0]!.title).toBe("Display Name");
+      // Its default is the name the form fills in (getDefaultValue).
+      expect(nameFields[0]!.hasDefault).toBe(true);
+    });
+
+    test("asks for the labels with the shared field", () => {
+      expect(
+        form.fields.find((field: FormFieldFacts): boolean => {
+          return field.key === "labels";
+        })?.helper,
+      ).toBe(LABELS_HELPER);
+    });
+
+    test("never fills the identifier in from anything", () => {
+      /*
+       * A name is made from the identifier, never the other way round:
+       * an identifier that is not exactly what the telemetry reports
+       * leaves the resource empty, with no error anywhere.
+       */
+      for (const field of open) {
+        expect(field.hasDefault).toBe(false);
+        expect(field.defaultValue).toBeUndefined();
+      }
+    });
+
+    if (resource.identityTitle) {
+      test("asks for its one identifier with the shared field, titled after the attribute", () => {
+        expect(open).toHaveLength(1);
+        expect(open[0]!.helper).toBe(IDENTITY_HELPER);
+        expect(open[0]!.title).toBe(resource.identityTitle);
+        // "<What it is> (<the attribute it must equal>)".
+        expect(open[0]!.title).toMatch(/^[A-Z][A-Za-z ]+ \([A-Za-z.]+\)$/);
+      });
+
+      test("the display name follows that identifier", () => {
+        const code: string = readCode(resource.listPage);
+
+        // However Prettier wraps the call.
+        const follows: RegExp = new RegExp(
+          `getDefaultName: getNameFromIdentityField<${resource.model}>\\( ?"${resource.open[0]}",? ?\\)`,
+        );
+
+        expect(code).toMatch(follows);
+      });
+    }
+  });
 
   test("a cloud environment's display name follows all three values the key is made from", () => {
     const code: string = readCode(
@@ -416,7 +449,7 @@ describe("every Dashboard form of a discovered resource", () => {
         })
         .sort(),
     ).toEqual(
-      DISCOVERED_RESOURCES.map((resource: DiscoveredResource): string => {
+      CREATED_BY_FORM.map((resource: DiscoveredResource): string => {
         return `${resource.listPage} ${resource.label}`;
       }).sort(),
     );

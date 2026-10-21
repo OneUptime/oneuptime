@@ -44,7 +44,7 @@ Usate il monitor host quando l'host invia già dati OpenTelemetry, o quando vole
 
 ## Prima di iniziare
 
-- **Eseguite un OpenTelemetry Collector sull'host** con il receiver `hostmetrics`. [Collector OpenTelemetry sull'host](/docs/telemetry/host-otel-collector) copre Linux, macOS e Windows, e **Prodotti → Infrastruttura → Host → Documentazione** fornisce una configurazione pronta.
+- **Eseguite un OpenTelemetry Collector sull'host** con il receiver `hostmetrics`. Il modo più rapido è [Host](/docs/telemetry/hosts): un comando installa il collector e OneUptime lo configura. [Collector OpenTelemetry sull'host](/docs/telemetry/host-otel-collector) copre Linux, macOS e Windows, e **Prodotti → Infrastruttura → Host → Documentazione** fornisce una configurazione pronta.
 - **Attivate le metriche di utilizzo.** `system.cpu.utilization`, `system.memory.utilization` e `system.filesystem.utilization` sono facoltative nel receiver, e i modelli di CPU, memoria e filesystem ne hanno bisogno. La configurazione della dashboard le attiva.
 - **Verificate che l'host sia registrato.** Compare in **Prodotti → Infrastruttura → Host → Tutti gli host**, con il nome del suo `host.name`, appena arrivano i suoi primi dati.
 

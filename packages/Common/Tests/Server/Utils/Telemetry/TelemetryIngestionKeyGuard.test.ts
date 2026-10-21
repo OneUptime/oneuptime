@@ -137,10 +137,14 @@ describe("TelemetryIngestionKeyGuard.getRefusal", () => {
       },
     );
 
-    test("covers all eighteen surfaces in the matrix above", () => {
-      expect(ALL_SURFACES).toHaveLength(18);
+    test("covers all nineteen surfaces in the matrix above", () => {
+      expect(ALL_SURFACES).toHaveLength(19);
       expect(BROWSER_ALLOWED).toHaveLength(4);
-      expect(BROWSER_FORBIDDEN).toHaveLength(14);
+      expect(BROWSER_FORBIDDEN).toHaveLength(15);
+      // The supervisor on a host OneUptime manages: never a page's.
+      expect(BROWSER_FORBIDDEN).toContain(
+        TelemetryIngestSurface.HostCollectorManagement,
+      );
     });
 
     /*

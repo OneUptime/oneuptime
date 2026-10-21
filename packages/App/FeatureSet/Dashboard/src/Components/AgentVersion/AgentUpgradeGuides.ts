@@ -123,6 +123,11 @@ export interface AgentUpgradeGuideContext {
    * install methods that OS can have (every one when it is unknown).
    */
   hostOsType?: string | null | undefined;
+  /*
+   * OneUptime installed the host's collector (Add Host): it is upgraded by
+   * running that command again, not by the manual guide's steps.
+   */
+  isHostCollectorManaged?: boolean | undefined;
 }
 
 // ---- shared wording --------------------------------------------------------
@@ -428,6 +433,31 @@ const HOST_COLLECTOR_METHOD_LABELS: Record<HostCollectorMethod, string> = {
 function getHostCollectorGuide(
   context: AgentUpgradeGuideContext,
 ): AgentUpgradeGuide {
+  /*
+   * A collector OneUptime installed: the same command installs the release
+   * this OneUptime pins, over the old one, and the host keeps its identity
+   * and its config. The host's Collector page gives the command, filled in
+   * with a key picked there (On the host > Show the install command); the
+   * dialog opens on that page too, so it links nowhere.
+   */
+  if (context.isHostCollectorManaged) {
+    return {
+      methods: [
+        {
+          label: translationKey("Install command"),
+          steps: [
+            {
+              title: translationKey("Run the install command again"),
+              description: translationKey(
+                "Open this host's Collector page and select Show the install command, under On the host. Run the command on the host with the same labels: it installs the new release and keeps the host as it is in OneUptime.",
+              ),
+            },
+          ],
+        },
+      ],
+    };
+  }
+
   return {
     methods: getHostCollectorMethodsForOsType(context.hostOsType).map(
       (method: HostCollectorMethod): AgentUpgradeMethod => {

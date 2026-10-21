@@ -44,7 +44,7 @@ OneUptime にはマシン用のモニターが 2 つあります。同じホス�
 
 ## 始める前に
 
-- **ホストで OpenTelemetry Collector を実行します**。`hostmetrics` レシーバーを使います。[ホスト OpenTelemetry Collector](/docs/telemetry/host-otel-collector) で Linux、macOS、Windows を扱っており、**製品 → インフラストラクチャ → ホスト → ドキュメント** に既製の設定があります。
+- **ホストで OpenTelemetry Collector を実行します**。`hostmetrics` レシーバーを使います。最も手早いのは [ホスト](/docs/telemetry/hosts) です。1 つのコマンドでコレクターがインストールされ、OneUptime が設定します。[ホスト OpenTelemetry Collector](/docs/telemetry/host-otel-collector) で Linux、macOS、Windows を扱っており、**製品 → インフラストラクチャ → ホスト → ドキュメント** に既製の設定があります。
 - **使用率のメトリクスを有効にします。** `system.cpu.utilization`、`system.memory.utilization`、`system.filesystem.utilization` はレシーバーでは任意ですが、CPU、メモリ、ファイルシステムのテンプレートに必要です。ダッシュボードの設定では有効になっています。
 - **ホストが登録されていることを確認します。** 最初のデータが届くと、`host.name` の名前で **製品 → インフラストラクチャ → ホスト → すべてのホスト** に表示されます。
 

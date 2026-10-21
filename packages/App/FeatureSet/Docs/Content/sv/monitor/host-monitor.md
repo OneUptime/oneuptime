@@ -44,7 +44,7 @@ Använd värdmonitorn när värden redan skickar OpenTelemetry-data, eller när 
 
 ## Innan du börjar
 
-- **Kör en OpenTelemetry Collector på värden** med mottagaren `hostmetrics`. [OpenTelemetry-collector på värden](/docs/telemetry/host-otel-collector) beskriver Linux, macOS och Windows, och **Produkter → Infrastruktur → Värdar → Dokumentation** ger en färdig konfiguration.
+- **Kör en OpenTelemetry Collector på värden** med mottagaren `hostmetrics`. Snabbast är [Värdar](/docs/telemetry/hosts): Ett kommando installerar insamlaren, och OneUptime konfigurerar den. [OpenTelemetry-collector på värden](/docs/telemetry/host-otel-collector) beskriver Linux, macOS och Windows, och **Produkter → Infrastruktur → Värdar → Dokumentation** ger en färdig konfiguration.
 - **Slå på utnyttjandemåtten.** `system.cpu.utilization`, `system.memory.utilization` och `system.filesystem.utilization` är valfria i mottagaren, och mallarna för CPU, minne och filsystem behöver dem. Konfigurationen från instrumentpanelen slår på dem.
 - **Kontrollera att värden är registrerad.** Den visas under **Produkter → Infrastruktur → Värdar → Alla värdar**, namngiven efter sitt `host.name`, så snart dess första data kommer.
 

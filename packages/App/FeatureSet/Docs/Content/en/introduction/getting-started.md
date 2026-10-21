@@ -60,7 +60,7 @@ The docs are organized like the sidebar, in nine sections. Pick the part you nee
 
 :::cards
 - [Telemetry](/docs/telemetry/open-telemetry): Send logs, metrics and traces with OpenTelemetry, and search them.
-- [Infrastructure agents](/docs/telemetry/kubernetes-agent): Install the agents for Kubernetes, hosts, Docker, Proxmox, VMware and more.
+- [Infrastructure agents](/docs/telemetry/hosts): Add a host in one command, and install the agents for Kubernetes, Docker, Proxmox, VMware and more.
 - [Cloud](/docs/telemetry/cloud-environments): Observe ECS, Cloud Run, Azure Container Apps and other managed platforms.
 - [AI observability](/docs/telemetry/ai-llm-observability): Follow your AI's conversations, and get told when it answers badly.
 - [Security](/docs/telemetry/security-events): Collect security events and threat intelligence.

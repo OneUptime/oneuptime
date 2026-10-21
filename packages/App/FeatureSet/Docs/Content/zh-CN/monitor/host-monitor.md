@@ -44,7 +44,7 @@ OneUptime 有两种用于机器的监视器。它们可以在同一台主机上�
 
 ## 开始之前
 
-- **在主机上运行 OpenTelemetry Collector**，并启用 `hostmetrics` 接收器。[主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 涵盖 Linux、macOS 和 Windows，**产品 → 基础设施 → 主机 → 文档** 提供现成的配置。
+- **在主机上运行 OpenTelemetry Collector**，并启用 `hostmetrics` 接收器。最快的方式是 [主机](/docs/telemetry/hosts)：一条命令即可安装收集器，并由 OneUptime 配置。[主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 涵盖 Linux、macOS 和 Windows，**产品 → 基础设施 → 主机 → 文档** 提供现成的配置。
 - **开启利用率指标。** `system.cpu.utilization`、`system.memory.utilization` 和 `system.filesystem.utilization` 在接收器中是可选的，而 CPU、内存和文件系统模板都需要它们。仪表板提供的配置会开启它们。
 - **确认主机已注册。** 第一批数据到达后，它会以其 `host.name` 命名，出现在 **产品 → 基础设施 → 主机 → 所有主机** 下。
 

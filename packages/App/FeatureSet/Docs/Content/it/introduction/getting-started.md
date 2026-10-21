@@ -60,7 +60,7 @@ La documentazione è organizzata come la barra laterale, in nove sezioni. Scegli
 
 :::cards
 - [Telemetria](/docs/telemetry/open-telemetry): Inviare log, metriche e tracce con OpenTelemetry, e cercarli.
-- [Agenti di infrastruttura](/docs/telemetry/kubernetes-agent): Installare gli agenti per Kubernetes, host, Docker, Proxmox, VMware e altro.
+- [Agenti di infrastruttura](/docs/telemetry/hosts): Aggiungere un host con un comando e installare gli agenti per Kubernetes, Docker, Proxmox, VMware e altro.
 - [Cloud](/docs/telemetry/cloud-environments): Osservare ECS, Cloud Run, Azure Container Apps e altre piattaforme gestite.
 - [Osservabilità dell'IA](/docs/telemetry/ai-llm-observability): Seguire le conversazioni della tua IA, ed essere avvisati quando risponde male.
 - [Sicurezza](/docs/telemetry/security-events): Raccogliere eventi di sicurezza e threat intelligence.

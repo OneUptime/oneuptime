@@ -91,6 +91,7 @@ Monitorer, hendelser, varsler, statussider, SLO-er og mange andre ressurser har 
 | API-nøkler | `API Key` |
 | MCP-klienter som folk kobler til | `MCP Client Authorization` |
 | Inventarelementer | `Inventory Item` |
+| Innsamlerkonfigurasjoner | `Collector Config` |
 | vCenter-servere | `vCenter` |
 | Pakkeopptak og nedlastingene av dem | `Packet Capture` |
 | Sikkerhetssaker og playbooks | `Security Case`, `Security Playbook` |
