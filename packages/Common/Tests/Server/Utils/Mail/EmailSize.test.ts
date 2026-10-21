@@ -6,7 +6,11 @@ import EmailSize, {
   MAX_EMAIL_BYTES,
   MAX_EMAIL_FIELD_HTML_BYTES,
 } from "../../../../Server/Utils/Mail/EmailSize";
-import { MaxEmailInlineImageBytes } from "../../../../Server/Utils/Mail/EmailInlineImages";
+import {
+  EmailInlineImage,
+  MaxEmailInlineImageBytes,
+} from "../../../../Server/Utils/Mail/EmailInlineImages";
+import EmailLogo from "../../../../Server/Utils/Mail/EmailLogo";
 import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
 
 /*
@@ -142,6 +146,169 @@ describe("EmailSize.attachWithinLimit", () => {
     expect(EmailSize.getHtmlSizeInBytes(attached.html)).toBeLessThanOrEqual(
       1000,
     );
+  });
+});
+
+describe("EmailSize.attachWithinLimit - OneUptime's logo (EmailLogo)", () => {
+  /*
+   * The header of an email that shows OneUptime's branding carries its logo
+   * (issue #5124: it used to load from res.cloudinary.com). It goes with
+   * the email whatever else is left out, and it is counted.
+   */
+  const logoDataUrl: string = EmailLogo.getDataUrl() as string;
+  const logoBase64Length: number =
+    logoDataUrl.length - "data:image/png;base64,".length;
+  const logoHeader: string = `<img src="${logoDataUrl}" width="32" height="32" alt="OneUptime">`;
+
+  const contentIdsIn: (html: string) => Array<string> = (
+    html: string,
+  ): Array<string> => {
+    return html
+      .split('src="cid:')
+      .slice(1)
+      .map((rest: string): string => {
+        return rest.slice(0, rest.indexOf('"'));
+      });
+  };
+
+  // Every image the HTML points at is attached, and every attachment shown.
+  const expectAttachmentsMatchTheHtml: (attached: EmailWithinLimit) => void = (
+    attached: EmailWithinLimit,
+  ): void => {
+    expect([...new Set(contentIdsIn(attached.html))].sort()).toEqual(
+      attached.inlineImages
+        .map((image: EmailInlineImage): string => {
+          return image.contentId;
+        })
+        .sort(),
+    );
+  };
+
+  test("the logo in the shipped file is a few kilobytes", () => {
+    expect(logoDataUrl.startsWith("data:image/png;base64,")).toBe(true);
+    expect(logoBase64Length).toBeLessThan(11 * 1024);
+  });
+
+  test("an email that shows it carries it, as its first attachment", () => {
+    const attached: EmailWithinLimit = EmailSize.attachWithinLimit(
+      `${logoHeader}<p>Hello</p>`,
+    );
+
+    expect(attached.wasFitted).toBe(false);
+    expect(attached.inlineImages).toHaveLength(1);
+    expect(attached.inlineImages[0]!.fileName).toBe("oneuptime-logo.png");
+    expect(attached.html).toBe(
+      `<img src="cid:${attached.inlineImages[0]!.contentId}" width="32" height="32" alt="OneUptime"><p>Hello</p>`,
+    );
+  });
+
+  test("comes before the email's screenshots, which keep their own names", () => {
+    const attached: EmailWithinLimit = EmailSize.attachWithinLimit(
+      `${logoHeader}<p>Hello</p>${image(1000, "Shot")}`,
+    );
+
+    expect(
+      attached.inlineImages.map((image: EmailInlineImage): string => {
+        return image.fileName;
+      }),
+    ).toEqual(["oneuptime-logo.png", "image-1.png"]);
+    expectAttachmentsMatchTheHtml(attached);
+  });
+
+  test("is not one of the twenty screenshots an email may carry", () => {
+    const shots: string = Array.from(
+      { length: 21 },
+      (_: unknown, index: number): string => {
+        return image(1000, `Shot ${index + 1}`);
+      },
+    ).join("");
+
+    const attached: EmailWithinLimit = EmailSize.attachWithinLimit(
+      `${logoHeader}${shots}`,
+    );
+
+    expect(attached.inlineImages).toHaveLength(21);
+    expect(attached.inlineImages[0]!.fileName).toBe("oneuptime-logo.png");
+    expect(attached.html).toContain(
+      "[Shot 21: image too large to include in this email]",
+    );
+    expectAttachmentsMatchTheHtml(attached);
+  });
+
+  test("stays when screenshots are left out to fit, and is counted", () => {
+    const html: string = `${logoHeader}<p>${"a".repeat(2 * 1024 * 1024)}</p>${image(900000, "First")}${image(900000, "Second")}`;
+
+    const attached: EmailWithinLimit = EmailSize.attachWithinLimit(html);
+
+    expect(attached.wasFitted).toBe(true);
+    expect(attached.inlineImages[0]!.fileName).toBe("oneuptime-logo.png");
+    expect(attached.html).toContain("image too large to include in this email");
+    expect(attached.html).not.toContain("OneUptime: image too large");
+    expect(EmailSize.getSizeInBytes(attached)).toBeLessThanOrEqual(
+      MAX_EMAIL_BYTES,
+    );
+    expectAttachmentsMatchTheHtml(attached);
+  });
+
+  test("stays when HTML too big on its own is cut, and is counted", () => {
+    const html: string = `${logoHeader}${image(1000, "Small")}<p>${"word ".repeat(1000000)}</p>`;
+
+    const attached: EmailWithinLimit = EmailSize.attachWithinLimit(html);
+
+    expect(attached.wasFitted).toBe(true);
+    expect(
+      attached.inlineImages.map((image: EmailInlineImage): string => {
+        return image.fileName;
+      }),
+    ).toEqual(["oneuptime-logo.png"]);
+    expect(attached.html.startsWith('<img src="cid:')).toBe(true);
+    expect(attached.html.endsWith(EMAIL_TRUNCATED_TEXT_NOTE_HTML)).toBe(true);
+    expect(attached.html).toContain(
+      "[Small: image too large to include in this email]",
+    );
+    // The whole email, the logo's base64 included, is within the limit.
+    expect(EmailSize.getSizeInBytes(attached)).toBeLessThanOrEqual(
+      MAX_EMAIL_BYTES,
+    );
+    expect(EmailSize.getHtmlSizeInBytes(attached.html)).toBeLessThanOrEqual(
+      MAX_EMAIL_BYTES - logoBase64Length,
+    );
+    expectAttachmentsMatchTheHtml(attached);
+  });
+
+  test("a limit that is given holds the logo too", () => {
+    const attached: EmailWithinLimit = EmailSize.attachWithinLimit(
+      `${logoHeader}<p>${"x".repeat(20000)}</p>`,
+      15000,
+    );
+
+    expect(attached.inlineImages).toHaveLength(1);
+    expect(EmailSize.getSizeInBytes(attached)).toBeLessThanOrEqual(15000);
+    expectAttachmentsMatchTheHtml(attached);
+  });
+
+  test("never an attachment the HTML no longer points at", () => {
+    // A limit too small for the text before the logo cuts the logo away.
+    const attached: EmailWithinLimit = EmailSize.attachWithinLimit(
+      `<p>${"x".repeat(5000)}</p>${logoHeader}`,
+      8000,
+    );
+
+    expect(attached.inlineImages).toEqual([]);
+    expect(attached.html).not.toContain("cid:");
+    expectAttachmentsMatchTheHtml(attached);
+  });
+
+  test("an email without it has no logo attachment", () => {
+    const attached: EmailWithinLimit = EmailSize.attachWithinLimit(
+      `<p>Hello</p>${image(1000, "Shot")}`,
+    );
+
+    expect(
+      attached.inlineImages.map((image: EmailInlineImage): string => {
+        return image.fileName;
+      }),
+    ).toEqual(["image-1.png"]);
   });
 });
 

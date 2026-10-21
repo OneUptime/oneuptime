@@ -77,6 +77,8 @@ Appen ansluter bara utåt för det du slår på. Var och en av dessa är valfri,
 
 Anslutningar åt andra hållet – SendGrid som levererar inkommande e-post, Slack och Microsoft Teams som anropar tillbaka – kräver att ingressen går att nå från internet. Vilka privata adresser appen och proberna får nå bestämmer du: se [Åtkomst till privat nätverk](/docs/self-hosted/private-network-access).
 
+OneUptimes logotyp finns inuti varje e-postmeddelande som OneUptime skickar, så den visas även i ett nätverk utan internetåtkomst, och när ett meddelande öppnas efterfrågas ingenting från någon annan värd. Bilder som du laddar upp själv, som din egen logotyp eller en statussidas, visas från din OneUptime-URL, som de som läser meddelandena måste kunna nå.
+
 ## Nästa steg
 
 :::cards

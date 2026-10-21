@@ -1,5 +1,6 @@
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import { Host, HttpProtocol } from "Common/Server/EnvironmentConfig";
+import EmailLogo from "Common/Server/Utils/Mail/EmailLogo";
 import URL from "Common/Types/API/URL";
 import ProductBrandingUtil, {
   ProductBranding,
@@ -18,10 +19,15 @@ import Dictionary from "Common/Types/Dictionary";
  *   brandWebsiteUrl   where "Powered by" links when renamed, when it has one
  *   brandLogoUrl      the installation's logo, absolute, when it has one an
  *                     email can show (a PNG, JPEG or GIF)
+ *   oneUptimeLogoUrl  OneUptime's own logo, where the header shows it (not
+ *                     renamed, no logo of its own): a data: URL, sent as an
+ *                     image inside the email (EmailLogo), never an address
+ *                     on another host
  *
- * Absent variables keep OneUptime's own markup, byte for byte: an
- * installation that shows OneUptime's branding sends exactly the emails it
- * sent before.
+ * An installation that shows OneUptime's branding gets brandProductName
+ * and oneUptimeLogoUrl: OneUptime's markup, its logo carried in the email
+ * itself, so no email asks any host for anything when it is opened. The
+ * other variables are absent, and keep that markup as it is.
  */
 
 export const BRAND_VARIABLE_NAMES: ReadonlyArray<string> = [
@@ -29,6 +35,7 @@ export const BRAND_VARIABLE_NAMES: ReadonlyArray<string> = [
   "isBrandRenamed",
   "brandWebsiteUrl",
   "brandLogoUrl",
+  "oneUptimeLogoUrl",
 ];
 
 const TRAILING_SLASHES: RegExp = /\/+$/;
@@ -79,6 +86,20 @@ export const getEmailBrandingVariables: (
 
     if (logoUrl) {
       variables["brandLogoUrl"] = logoUrl;
+    }
+  }
+
+  /*
+   * Where the header shows OneUptime's own logo, the logo itself, carried
+   * in the email: it needs no HOST, and no reader's mail client reaches
+   * anywhere for it. Left out when its file cannot be read, and the header
+   * shows OneUptime's name alone.
+   */
+  if (!variables["brandLogoUrl"] && variables["isBrandRenamed"] !== "true") {
+    const oneUptimeLogoUrl: string | null = EmailLogo.getDataUrl();
+
+    if (oneUptimeLogoUrl) {
+      variables["oneUptimeLogoUrl"] = oneUptimeLogoUrl;
     }
   }
 

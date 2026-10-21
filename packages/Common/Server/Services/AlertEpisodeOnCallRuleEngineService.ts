@@ -186,6 +186,7 @@ class AlertEpisodeOnCallRuleEngineServiceClass {
    * while some of its runs wait for working hours (WaitingRunsOnRecordChange).
    */
   @CaptureSpan()
+  @RuleEvaluation()
   public async getPoliciesPagingNow(
     episode: AlertEpisode,
     now: Date,
