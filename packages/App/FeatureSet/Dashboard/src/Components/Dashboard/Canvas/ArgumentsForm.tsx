@@ -59,6 +59,16 @@ import MetricUtil from "../../Metrics/Utils/Metrics";
 import API from "Common/UI/Utils/API/API";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  DASHBOARD_WIDGET_SORT_ARGUMENT,
+  DashboardWidgetSortColumns,
+} from "Common/Types/Dashboard/DashboardWidgetSort";
+import { withDashboardWidgetSavedSort } from "Common/Utils/Dashboard/DashboardWidgetSorts";
+import WidgetSortEditor from "./WidgetSortEditor";
+import {
+  SORT_SETTING_SECTION_NAME,
+  getWidgetSortSettingColumns,
+} from "./WidgetSortOptions";
 
 export interface ComponentProps {
   // eslint-disable-next-line react/no-unused-prop-types
@@ -72,6 +82,11 @@ export interface ComponentProps {
     | ((values: Dictionary<boolean>) => void)
     | undefined;
   onFormChange: (component: DashboardBaseComponent) => void;
+  /*
+   * What a widget whose columns are its own (a metric table, a Data Source
+   * table, a trace table) can be sorted by, as its live preview reports it.
+   */
+  widgetSortColumns?: DashboardWidgetSortColumns | null | undefined;
 }
 
 interface SectionGroup {
@@ -954,6 +969,31 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
 
   const sectionGroups: Array<SectionGroup> = groupArgumentsBySections();
 
+  const sortSetting: DashboardWidgetSortColumns | null =
+    getWidgetSortSettingColumns(componentType, props.widgetSortColumns);
+
+  const renderSortSetting: () => ReactElement | null =
+    (): ReactElement | null => {
+      if (!sortSetting) {
+        return null;
+      }
+
+      return (
+        <WidgetSortEditor
+          columns={sortSetting.columns}
+          builtInSort={sortSetting.builtInSort}
+          savedSort={
+            (component.arguments as JSONObject | undefined)?.[
+              DASHBOARD_WIDGET_SORT_ARGUMENT
+            ]
+          }
+          onChange={(sort: string | null): void => {
+            commitComponent(withDashboardWidgetSavedSort(component, sort));
+          }}
+        />
+      );
+    };
+
   const hasTableColumnsArg: boolean = componentArguments.some(
     (arg: ComponentArgument<DashboardBaseComponent>): boolean => {
       return arg.type === ComponentInputType.TableColumns;
@@ -1339,6 +1379,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                     {renderMultiFormulaSection()}
                   </>
                 )}
+                {sectionGroup.section.name === SORT_SETTING_SECTION_NAME &&
+                  renderSortSetting()}
               </div>
             </CollapsibleSection>
           </div>

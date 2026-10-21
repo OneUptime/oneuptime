@@ -47,6 +47,7 @@ Ein öffentliches Dashboard:
 
 - Öffnet sich immer zum Lesen. Besucher können es nicht bearbeiten und sehen nie seine Bearbeitungselemente.
 - Enthält die Variablen, die Sie hinzugefügt haben. Besucher wählen aus denselben Auswahlen wie Ihr Team und können den Zeitbereich ändern, zoomen, die automatische Aktualisierung einschalten und in den Vollbildmodus wechseln. Es öffnet sich mit dem Standardzeitraum und der standardmäßigen automatischen Aktualisierung des Dashboards, und der Browser jedes Besuchers merkt sich seine eigene Auswahl.
+- Lässt Besucher [seine Listen und Tabellen sortieren](/docs/dashboards/widgets#listen-und-tabellen-sortieren), indem sie auf einen Spaltenkopf klicken, wie Ihr Team es tut. Der Browser jedes Besuchers merkt sich seine eigene Sortierung, und OneUptime sortiert die ganze Liste selbst, immer nur nach einer der Spalten des Widgets.
 - Verwendet das Branding, das Sie auf der Seite **Branding** des Dashboards festlegen: Seitentitel, Beschreibung, Logo, Design, Favicon.
 - Lässt jeden Besucher mit einer Schaltfläche mit Sonne oder Mond in seiner Werkzeugleiste zwischen dem hellen und dem dunklen Dashboard wechseln; [Design](#design) erklärt, wie.
 

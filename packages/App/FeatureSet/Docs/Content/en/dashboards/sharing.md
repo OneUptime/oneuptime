@@ -47,6 +47,7 @@ A public dashboard:
 
 - Always opens for reading. Visitors can't edit it, and never see its edit controls.
 - Includes the variables you've added. Visitors pick from the same pickers your team uses, and can change the time range, zoom, turn on auto-refresh and go full screen. It opens on the dashboard's default time range and auto-refresh, and each visitor's browser remembers their own picks.
+- Lets visitors [sort its lists and tables](/docs/dashboards/widgets#sorting-lists-and-tables) by clicking a column header, as your team does. Each visitor's browser remembers their own sort, and OneUptime sorts the whole list itself, only ever by one of the widget's own columns.
 - Uses the branding you set on the dashboard's **Branding** page: page title, description, logo, theme, favicon.
 - Lets each visitor switch between the light and the dark dashboard, with a sun or moon button in its toolbar; [Theme](#theme) says how.
 

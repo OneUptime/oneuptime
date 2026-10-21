@@ -51,6 +51,8 @@ import TraceAggregationService, {
   TraceAnalyticsTimeseriesRow,
   TraceAnalyticsTopItem,
   TraceAnalyticsTableRow,
+  TraceAnalyticsTableSort,
+  parseTraceAnalyticsTableSort,
 } from "../Services/TraceAggregationService";
 import ExceptionAggregationService, {
   HistogramBucket as ExceptionHistogramBucket,
@@ -1778,6 +1780,23 @@ router.post(
         await TelemetryReadAccess.getScope(Span, databaseProps),
       );
 
+      /*
+       * A table's order (the dashboard Trace Table's sortable headers): a
+       * column from the fixed list, else none - the busiest groups first.
+       */
+      const requestedTableSort: JSONObject | undefined =
+        body["tableSort"] &&
+        typeof body["tableSort"] === "object" &&
+        !Array.isArray(body["tableSort"])
+          ? (body["tableSort"] as JSONObject)
+          : undefined;
+
+      const tableSort: TraceAnalyticsTableSort | null =
+        parseTraceAnalyticsTableSort(
+          requestedTableSort?.["column"],
+          requestedTableSort?.["direction"],
+        );
+
       const request: TraceAnalyticsRequest = {
         projectId: databaseProps.tenantId,
         startTime,
@@ -1787,6 +1806,7 @@ router.post(
         metric,
         groupBy,
         limit,
+        ...(tableSort ? { tableSort } : {}),
         ...traceFilters,
       };
 

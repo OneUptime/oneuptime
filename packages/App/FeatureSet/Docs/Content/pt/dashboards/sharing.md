@@ -47,6 +47,7 @@ Um painel público:
 
 - Sempre abre para leitura. Os visitantes não podem editá-lo, e nunca veem os controles de edição dele.
 - Inclui as variáveis que você adicionou. Os visitantes escolhem nos mesmos seletores que a sua equipe usa, e podem mudar o intervalo de tempo, aplicar zoom, ligar a atualização automática e entrar em tela cheia. Ele abre com o período e a atualização automática padrão do painel, e o navegador de cada visitante lembra as escolhas dele.
+- Permite que os visitantes [ordenem as listas e tabelas dele](/docs/dashboards/widgets#ordenar-listas-e-tabelas) clicando no cabeçalho de uma coluna, como a sua equipe faz. O navegador de cada visitante lembra a própria ordenação, e o OneUptime ordena a lista inteira por conta própria, sempre por uma das colunas do próprio widget.
 - Usa a marca que você define na página **Marca** do painel: título da página, descrição, logotipo, tema, favicon.
 - Permite que cada visitante alterne entre o painel claro e o escuro com um botão de sol ou de lua na barra de ferramentas; [Tema](#tema) explica como.
 

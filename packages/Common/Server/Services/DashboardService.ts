@@ -51,6 +51,7 @@ import {
   DASHBOARD_AUTO_REFRESH_FIELD,
   getDashboardAutoRefreshProblem,
 } from "../../Types/Dashboard/DashboardAutoRefresh";
+import { getDashboardWidgetSortsProblem } from "../../Utils/Dashboard/DashboardWidgetSorts";
 
 // The dashboard column that holds its widgets, variables and defaults.
 export const DASHBOARD_VIEW_CONFIG_COLUMN: string = "dashboardViewConfig";
@@ -58,10 +59,12 @@ export const DASHBOARD_VIEW_CONFIG_COLUMN: string = "dashboardViewConfig";
 /*
  * Why a write's dashboardViewConfig cannot be saved, or null when it can:
  * its default time range and auto-refresh must each be one a dashboard can
- * open on (Types/Dashboard/DashboardTimeRange, DashboardAutoRefresh), or
- * left out. The config is read the way every reader reads it
- * (StoredDashboardViewConfig.unwrap: an envelope, JSON text), and nothing
- * else in it is looked at: a config is stored as it is sent.
+ * open on (Types/Dashboard/DashboardTimeRange, DashboardAutoRefresh), and
+ * each list or table widget's own sort one the widget can be sorted by
+ * (Utils/Dashboard/DashboardWidgetSorts), or left out. The config is read
+ * the way every reader reads it (StoredDashboardViewConfig.unwrap: an
+ * envelope, JSON text), and nothing else in it is looked at: a config is
+ * stored as it is sent.
  */
 export const getDashboardViewConfigProblem: (
   dashboardViewConfig: unknown,
@@ -75,7 +78,8 @@ export const getDashboardViewConfigProblem: (
 
   return (
     getDashboardTimeRangeProblem(stored[DASHBOARD_TIME_RANGE_FIELD]) ||
-    getDashboardAutoRefreshProblem(stored[DASHBOARD_AUTO_REFRESH_FIELD])
+    getDashboardAutoRefreshProblem(stored[DASHBOARD_AUTO_REFRESH_FIELD]) ||
+    getDashboardWidgetSortsProblem(stored)
   );
 };
 
@@ -84,8 +88,9 @@ export const getDashboardViewConfigProblem: (
  * (checkCreateBeforeReferences, checkUpdateBeforeReferences): a theme that
  * is not Light, Dark or System, spelled exactly so (Types/Dashboard/
  * DashboardTheme), and a dashboardViewConfig whose default time range or
- * auto-refresh is none a dashboard can open on. Nothing at all is fine for
- * each: the light page, the past hour, no auto-refresh.
+ * auto-refresh is none a dashboard can open on, or with a widget sort its
+ * widget cannot be sorted by. Nothing at all is fine for each: the light
+ * page, the past hour, no auto-refresh, each widget's own order.
  */
 export const assertDashboardWriteValues: (
   data: Record<string, unknown>,

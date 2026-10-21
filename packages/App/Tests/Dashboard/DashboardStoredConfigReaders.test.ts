@@ -125,6 +125,10 @@ const KNOWN_FILES: Record<string, KnownFile> = {
     role: "handed-a-read-config",
     why: "layout utilities over a config already read",
   },
+  "Common/Utils/Dashboard/DashboardWidgetSorts.ts": {
+    role: "handed-a-read-config",
+    why: "checks each widget's sort in the config DashboardService's write check read, through StoredDashboardViewConfig.getComponentEntries",
+  },
   "Common/Models/DatabaseModels/Dashboard.ts": {
     role: "other",
     why: "the column itself",

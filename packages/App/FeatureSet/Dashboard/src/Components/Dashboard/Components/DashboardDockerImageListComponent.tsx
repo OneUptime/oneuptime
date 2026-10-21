@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import DashboardDockerImageListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardDockerImageListComponent";
@@ -17,7 +18,13 @@ import DashboardResourceList from "../Utils/DashboardResourceList";
 import DockerResource from "Common/Models/DatabaseModels/DockerResource";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import Select from "Common/Types/BaseDatabase/Select";
+import Sort from "Common/Types/BaseDatabase/Sort";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
+import { JSONObject } from "Common/Types/JSON";
+import useDashboardListWidgetSort, {
+  DashboardListWidgetSort,
+} from "../Utils/UseDashboardListWidgetSort";
 import Query from "Common/Types/BaseDatabase/Query";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Search from "Common/Types/BaseDatabase/Search";
@@ -36,9 +43,9 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Image", widthPct: "55%" },
+  { label: "Image", widthPct: "55%", sortKey: "name" },
   { label: "Image ID", widthPct: "20%" },
-  { label: "Host", widthPct: "25%" },
+  { label: "Host", widthPct: "25%", sortKey: "host" },
 ];
 
 const DashboardDockerImageListComponentElement: FunctionComponent<
@@ -47,6 +54,10 @@ const DashboardDockerImageListComponentElement: FunctionComponent<
   const [images, setImages] = useState<Array<DockerResource>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const widgetSort: DashboardListWidgetSort = useDashboardListWidgetSort(
+    props,
+    DashboardComponentType.DockerImageList,
+  );
 
   const args: DashboardDockerImageListComponent["arguments"] =
     props.component.arguments;
@@ -59,7 +70,15 @@ const DashboardDockerImageListComponentElement: FunctionComponent<
   const dockerHostIdsKey: string = (dockerHostIds || []).join(",");
   const nameSearchKey: string = (nameSearch || "").trim();
 
+  /*
+   * Only the newest read may draw: a viewer clicking through a column's
+   * sorts starts a read per click, and an older, slower one must not
+   * replace the order they ended on.
+   */
+  const readSequenceRef: React.MutableRefObject<number> = useRef<number>(0);
+
   const fetchImages: () => Promise<void> = useCallback(async () => {
+    const readSequence: number = ++readSequenceRef.current;
     setIsLoading(true);
 
     const projectId: ReturnType<typeof ProjectUtil.getCurrentProjectId> =
@@ -99,12 +118,13 @@ const DashboardDockerImageListComponentElement: FunctionComponent<
             {
               componentId: props.componentId,
               variables: props.variables,
+              viewerSort: widgetSort.viewerPick,
             },
           ),
           query: query,
           limit: maxRows,
           skip: 0,
-          select: {
+          select: widgetSort.withSortSelect({
             _id: true,
             name: true,
             containerId: true,
@@ -112,15 +132,22 @@ const DashboardDockerImageListComponentElement: FunctionComponent<
             dockerHost: {
               name: true,
             },
-          },
-          sort: {
-            name: SortOrder.Ascending,
-          },
+          } as JSONObject) as Select<DockerResource>,
+          // The viewer's pick, else the widget's own sort, else by name.
+          sort: widgetSort.modelSort as Sort<DockerResource>,
         });
+
+      if (readSequence !== readSequenceRef.current) {
+        return;
+      }
 
       setImages(listResult.data);
       setError(null);
     } catch (err: unknown) {
+      if (readSequence !== readSequenceRef.current) {
+        return;
+      }
+
       setError(API.getFriendlyErrorMessage(err as Error));
     }
 
@@ -131,6 +158,7 @@ const DashboardDockerImageListComponentElement: FunctionComponent<
     nameSearchKey,
     props.variables,
     props.componentId,
+    widgetSort.sortKey,
   ]);
 
   useEffect(() => {
@@ -194,6 +222,7 @@ const DashboardDockerImageListComponentElement: FunctionComponent<
       emptyIcon={IconProp.Cube}
       viewMode={viewMode}
       honeycombTiles={honeycombTiles}
+      sort={widgetSort.listSort}
     >
       {rows}
     </DashboardResourceListBase>

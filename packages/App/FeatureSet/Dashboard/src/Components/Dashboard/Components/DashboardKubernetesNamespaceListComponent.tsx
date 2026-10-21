@@ -6,6 +6,7 @@ import {
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import DashboardKubernetesResourceListBase from "./DashboardKubernetesResourceListBase";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import IconProp from "Common/Types/Icon/IconProp";
 import KubernetesResource from "Common/Models/DatabaseModels/KubernetesResource";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -30,8 +31,8 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Namespace", widthPct: "60%" },
-  { label: "Cluster", widthPct: "40%" },
+  { label: "Namespace", widthPct: "60%", sortKey: "name" },
+  { label: "Cluster", widthPct: "40%", sortKey: "cluster" },
 ];
 
 function renderNamespaceRow(r: KubernetesResource): ReactElement {
@@ -125,6 +126,8 @@ const DashboardKubernetesNamespaceListComponentElement: FunctionComponent<
   return (
     <DashboardKubernetesResourceListBase
       componentId={props.componentId}
+      componentType={DashboardComponentType.KubernetesNamespaceList}
+      widgetProps={props}
       title={args.title}
       pluralLabel="namespaces"
       emptyMessage="No namespaces found"

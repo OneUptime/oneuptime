@@ -47,6 +47,7 @@ Un panel público:
 
 - Siempre se abre para leerlo. Los visitantes no pueden editarlo y nunca ven sus controles de edición.
 - Incluye las variables que has añadido. Los visitantes eligen en los mismos selectores que usa tu equipo, y pueden cambiar el intervalo de tiempo, hacer zoom, activar la actualización automática y pasar a pantalla completa. Se abre con el intervalo de tiempo y la actualización automática predeterminados del panel, y el navegador de cada visitante recuerda sus propias elecciones.
+- Permite a los visitantes [ordenar sus listas y tablas](/docs/dashboards/widgets#ordenar-listas-y-tablas) haciendo clic en el encabezado de una columna, como lo hace tu equipo. El navegador de cada visitante recuerda su propio orden, y OneUptime ordena por sí mismo la lista entera, siempre por una de las columnas del propio widget.
 - Usa la marca que defines en la página **Marca** del panel: título de la página, descripción, logotipo, tema y favicon.
 - Permite a cada visitante cambiar entre el panel claro y el oscuro con un botón de sol o de luna en su barra de herramientas; [Tema](#tema) explica cómo.
 

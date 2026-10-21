@@ -1122,6 +1122,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           refreshTick={refreshTick}
           variables={dashboardVariables}
           chartSyncId={props.dashboardId.toString()}
+          dashboardId={props.dashboardId.toString()}
           onDashboardTimeRangeSelect={timeRangeZoom.zoomToTimeRange}
           onDashboardTimeRangeReset={timeRangeZoom.resetZoom}
           isDashboardTimeRangeZoomed={timeRangeZoom.isZoomed}

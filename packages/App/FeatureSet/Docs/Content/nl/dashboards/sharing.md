@@ -47,6 +47,7 @@ Een openbaar dashboard:
 
 - Opent altijd om te lezen. Bezoekers kunnen het niet bewerken, en zien de bewerkknoppen nooit.
 - Bevat de variabelen die je hebt toegevoegd. Bezoekers kiezen uit dezelfde kiezers die je team gebruikt, en kunnen het tijdsbereik wijzigen, inzoomen, automatisch vernieuwen aanzetten en naar volledig scherm gaan. Het opent op de standaardperiode en het standaard automatisch vernieuwen van het dashboard, en de browser van elke bezoeker onthoudt diens eigen keuzes.
+- Laat bezoekers [zijn lijsten en tabellen sorteren](/docs/dashboards/widgets#lijsten-en-tabellen-sorteren) door op een kolomkop te klikken, zoals je team dat doet. De browser van elke bezoeker onthoudt zijn eigen sortering, en OneUptime sorteert zelf de hele lijst, altijd op een van de kolommen van de widget.
 - Gebruikt de huisstijl die je instelt op de pagina **Huisstijl** van het dashboard: paginatitel, beschrijving, logo, thema, favicon.
 - Laat elke bezoeker met een knop met een zon of een maan in de werkbalk wisselen tussen het lichte en het donkere dashboard; [Thema](#thema) legt uit hoe.
 

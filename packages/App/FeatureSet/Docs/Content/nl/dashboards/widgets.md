@@ -6,6 +6,7 @@ Een widget is één tegel op een dashboard. Deze pagina beschrijft elke widget u
 - [Welke widget moet ik gebruiken?](#welke-widget-moet-ik-gebruiken): Kies op basis van de vraag die de tegel beantwoordt.
 - [Grafieken en getallen](#grafieken-en-getallen): Grafiek, Waarde, Meter en Tabel, vanuit een metrics-query.
 - [Logs, traces en beveiliging](#logs-traces-en-beveiliging): Volumegrafieken, live stromen en lijsten.
+- [Lijsten en tabellen sorteren](#lijsten-en-tabellen-sorteren): Sorteer op een kolom, en stel de volgorde in die iedereen ziet.
 - [Als een widget niet kan worden weergegeven](#als-een-widget-niet-kan-worden-weergegeven): Wat een kapotte widget toont, en hoe je hem herstelt.
 :::
 
@@ -198,6 +199,33 @@ Een site verschijnt alleen als hij coördinaten heeft. Voeg breedte- en lengtegr
 ## Externe gegevensbronnen
 
 De groep Externe gegevensbronnen tekent een **Grafiek**, een **Waarde**, een **Meter** of een **Tabel** uit een systeem dat niet van OneUptime is: Prometheus, PostgreSQL, MySQL, SQL Server, ClickHouse, Loki, Elasticsearch of elke REST-API. Je koppelt het systeem één keer, en schrijft daarna de query van elke widget in de eigen taal van dat systeem. [Externe gegevensbronnen](/docs/dashboards/data-sources) laat zien hoe.
+
+## Lijsten en tabellen sorteren
+
+Klik op de kop van een kolom om een lijst of tabel erop te sorteren: een eerste klik sorteert zoals de tabel hieronder zegt, de volgende klik andersom, en die daarna zet de widget terug in zijn eigen volgorde. Op de kolom waarop de widget al gesorteerd is, draait een klik de volgorde om. Een pijl markeert de kolom waarop de rijen gesorteerd zijn.
+
+| Kolom | Eerste klik | Volgende klik |
+| --- | --- | --- |
+| Een status, toestand of ernst | Slechtste eerst | Beste eerst |
+| Een tijd | Nieuwste eerst | Oudste eerst |
+| Een getal | Hoogste eerst | Laagste eerst |
+| Tekst | A tot Z | Z tot A |
+
+Slechtste volgt de eigen volgorde van je project: een monitorstatus op zijn prioriteit, de ernst en toestand van een incident of waarschuwing op de volgorde waarin je ze bijhoudt, en een resource die uitgevallen, niet gereed of uitgeschakeld is vóór een gezonde. De fase van een pod sorteert Failed, dan Unknown, dan Pending, dan Running en Succeeded. De SLI en het foutbudget van een SLO, en de VMID van een Proxmox-gast, sorteren de laagste eerst.
+
+De hele lijst wordt gesorteerd, niet alleen de rijen op het scherm: een lijst die 25 rijen toont, gesorteerd met de slechtste eerst, toont de 25 slechtste van allemaal. Rijen die gelijk eindigen, houden de eigen volgorde van de widget. Een kolom waarop een lijst niet als geheel gesorteerd kan worden, zoals het bericht van een beveiligingsgebeurtenis, sorteert niet.
+
+### Je eigen sortering
+
+Je sortering is alleen van jou: je browser onthoudt hem voor die widget op dat dashboard, zodat herladen of een wandscherm dat herstart hem behoudt, en niemand anders hem ziet. De klik die de widget terugzet in zijn eigen volgorde, vergeet je sortering, en de widget volgt daarna zijn eigen volgorde, ook als een bewerker die later verandert.
+
+### De volgorde die iedereen ziet
+
+Om de volgorde in te stellen waarin een widget voor iedereen opent, bewerk je hem en kies je de volgorde onder **Sorteren**, of klik je op een kolomkop in zijn **Live Preview**, en klik je daarna op **Wijzigingen opslaan**. Je ziet de nieuwe volgorde meteen; wie de widget zelf gesorteerd heeft, houdt zijn sortering.
+
+De dashboardsjablonen openen hun lijsten van hosts, nodes, pods, Swarm-services en netwerkapparaten met de slechtste eerst.
+
+Via de API en Terraform is de volgorde de `arguments.sort` van de widget: een kolom en een richting, bijvoorbeeld `status:desc`. Een lijstwidget weigert een kolom die hij niet heeft, en de fout noemt de sorteringen die hij heeft.
 
 ## Op een openbaar dashboard
 
