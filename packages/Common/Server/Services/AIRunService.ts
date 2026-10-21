@@ -46,6 +46,7 @@ import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity
 export interface AIRunTransitionSet {
   status: AIRunStatus;
   attemptCount?: number | undefined;
+  handedBackCount?: number | undefined;
   startedAt?: Date | undefined;
   lastHeartbeatAt?: Date | undefined;
   completedAt?: Date | undefined;

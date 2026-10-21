@@ -235,6 +235,68 @@ describe("Queue.removeJob", () => {
 });
 
 /*
+ * The options the AIInvestigation queue's jobs use: a background run's job
+ * waits behind an RCA's (priority), and a finished job is removed at once,
+ * so the same job id - a run at one attempt count - can be added again
+ * the moment its job is done.
+ */
+describe("Queue.addJob — priority and removal when done", () => {
+  let queue: MockBullQueue;
+
+  beforeAll(() => {
+    Queue.getQueue(QueueName.Worker);
+    queue = mockBullQueueInstances[0] as MockBullQueue;
+  });
+
+  beforeEach(() => {
+    queue.add.mockReset().mockResolvedValue({});
+    queue.getJob.mockReset().mockResolvedValue(undefined);
+  });
+
+  it("hands BullMQ the priority and removes the job once it is done", async () => {
+    await Queue.addJob(
+      QueueName.Worker,
+      "run-1",
+      "ProcessQueuedRun",
+      {},
+      { priority: 10, removeWhenDone: true, skipExistenceCheck: true },
+    );
+
+    expect(queue.add).toHaveBeenCalledWith(
+      "ProcessQueuedRun",
+      {},
+      expect.objectContaining({
+        jobId: "run-1",
+        priority: 10,
+        removeOnComplete: true,
+        removeOnFail: true,
+      }),
+    );
+    // An id that is still stored is left to BullMQ, which keeps its job.
+    expect(queue.getJob).not.toHaveBeenCalled();
+  });
+
+  it("sets neither for a job that asks for neither, or for priority 0", async () => {
+    await Queue.addJob(
+      QueueName.Worker,
+      "run-2",
+      "ProcessQueuedRun",
+      {},
+      {
+        priority: 0,
+      },
+    );
+
+    const options: Record<string, unknown> = queue.add.mock
+      .calls[0]![2] as Record<string, unknown>;
+
+    expect(options).not.toHaveProperty("priority");
+    expect(options).not.toHaveProperty("removeOnComplete");
+    expect(options).not.toHaveProperty("removeOnFail");
+  });
+});
+
+/*
  * The KEDA scaling signal.
  *
  * Every RunCron() registration parks one entry in BullMQ's DELAYED set — the
@@ -516,5 +578,28 @@ describe("Queue.getQueueBacklogSize", () => {
     queue.getJobSchedulersCount.mockResolvedValue(undefined);
 
     await expect(Queue.getQueueBacklogSize(QueueName.Worker)).resolves.toBe(10);
+  });
+
+  /*
+   * BullMQ keeps a job added with a priority (the AIInvestigation queue's
+   * background runs) in a set of its own, which getWaitingCount() leaves
+   * out. It is waiting work all the same: left out, a backlog of background
+   * runs would never scale the workers that drain it.
+   */
+  it("counts the jobs waiting with a priority as backlog", async () => {
+    queue.getWaitingCount.mockResolvedValue(7);
+    queue.getDelayedCount.mockResolvedValue(3);
+
+    const withPrioritized: MockBullQueue & { getPrioritizedCount?: jest.Mock } =
+      queue;
+    withPrioritized.getPrioritizedCount = jest.fn().mockResolvedValue(4);
+
+    try {
+      await expect(Queue.getQueueBacklogSize(QueueName.Worker)).resolves.toBe(
+        14,
+      );
+    } finally {
+      delete withPrioritized.getPrioritizedCount;
+    }
   });
 });

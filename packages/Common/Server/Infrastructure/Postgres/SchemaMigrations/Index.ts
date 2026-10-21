@@ -146,6 +146,7 @@ import { AddInvestigationRuleWait1805030000000 } from "./1805030000000-AddInvest
 import { AddInvestigationRuleWaitIndexes1805040000000 } from "./1805040000000-AddInvestigationRuleWaitIndexes";
 import { AddScheduledMaintenanceExternalCalendars1805120000000 } from "./1805120000000-AddScheduledMaintenanceExternalCalendars";
 import { AddOnCallRuleWorkingHours1805170000000 } from "./1805170000000-AddOnCallRuleWorkingHours";
+import { AddAIRunHandedBackCount1805220000000 } from "./1805220000000-AddAIRunHandedBackCount";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1494,4 +1495,5 @@ export default [
   AddInvestigationRuleWaitIndexes1805040000000,
   AddScheduledMaintenanceExternalCalendars1805120000000,
   AddOnCallRuleWorkingHours1805170000000,
+  AddAIRunHandedBackCount1805220000000,
 ];

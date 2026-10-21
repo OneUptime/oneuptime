@@ -3552,6 +3552,10 @@
                 "telemetryConcurrency": {
                     "type": "integer"
                 },
+                "aiInvestigationConcurrency": {
+                    "type": "integer",
+                    "minimum": 1
+                },
                 "networkDevicePollFetchLimit": {
                     "type": [
                         "integer",
@@ -3791,6 +3795,10 @@
                 },
                 "telemetryConcurrency": {
                     "type": "integer"
+                },
+                "aiInvestigationConcurrency": {
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "telemetryFanInMaxBatchRows": {
                     "type": "integer",
