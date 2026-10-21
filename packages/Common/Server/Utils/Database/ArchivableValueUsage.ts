@@ -43,22 +43,26 @@ export const USAGE_COUNT_CAP: number = 10000;
 /*
  * Tables whose rows set things up rather than being the things that have
  * a value: they keep using an archived value until someone changes them.
+ * A permission scoped to a label (an API key's, a team's, a custom role's)
+ * is one too.
  */
-const SETTINGS_TABLE_SUFFIXES: Array<string> = [
+export const SETTINGS_TABLE_SUFFIXES: Array<string> = [
   "Rule",
   "Template",
   "Setting",
   "Measurement",
   "Feed",
   "Connection",
+  "Permission",
 ];
 
 // Single references and lists on other records that are settings too.
-const SETTINGS_REFERENCES: Array<string> = [
+export const SETTINGS_REFERENCES: Array<string> = [
   "Project.incidentInvestigationMinimumSeverity",
   "Project.alertInvestigationMinimumSeverity",
   "StatusPage.downtimeMonitorStatuses",
   "ServiceLevelObjective.downtimeMonitorStatuses",
+  "ServiceLevelObjective.monitorLabels",
   "Monitor.suppressAlertsWhenParentMonitorStatuses",
   "NetworkSite.alertSeverity",
 ];
@@ -155,7 +159,7 @@ export interface ValueReference {
   kind: ArchivableValueUsageKind;
 }
 
-const isSettingsReference: (
+export const isSettingsReference: (
   recordTable: string,
   recordProperty: string,
 ) => boolean = (recordTable: string, recordProperty: string): boolean => {
@@ -170,18 +174,21 @@ const isSettingsReference: (
   return SETTINGS_REFERENCES.includes(`${recordTable}.${recordProperty}`);
 };
 
-const getEffect: (onDelete: string | undefined) => ArchivableValueDeleteEffect =
-  (onDelete: string | undefined): ArchivableValueDeleteEffect => {
-    switch ((onDelete || "NO ACTION").toUpperCase()) {
-      case "CASCADE":
-        return ArchivableValueDeleteEffect.Deleted;
-      case "SET NULL":
-      case "SET DEFAULT":
-        return ArchivableValueDeleteEffect.Cleared;
-      default:
-        return ArchivableValueDeleteEffect.Refused;
-    }
-  };
+export const getEffect: (
+  onDelete: string | undefined,
+) => ArchivableValueDeleteEffect = (
+  onDelete: string | undefined,
+): ArchivableValueDeleteEffect => {
+  switch ((onDelete || "NO ACTION").toUpperCase()) {
+    case "CASCADE":
+      return ArchivableValueDeleteEffect.Deleted;
+    case "SET NULL":
+    case "SET DEFAULT":
+      return ArchivableValueDeleteEffect.Cleared;
+    default:
+      return ArchivableValueDeleteEffect.Refused;
+  }
+};
 
 // How a model names its records: "Incidents", and one of them, "Incident".
 const getTitles: (metadata: EntityMetadata) => {
