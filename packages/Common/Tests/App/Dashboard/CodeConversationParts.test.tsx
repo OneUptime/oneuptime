@@ -80,8 +80,10 @@ import CodeTaskStateMark from "../../../../App/FeatureSet/Dashboard/src/Componen
 import CodeDiffStat from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeDiffStat";
 import { CodeTaskRow } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskList";
 import CodeRepositoriesTable, {
+  CODE_REPOSITORY_COLUMN_CLASS_NAME,
   CODE_REPOSITORY_ROW_FACT_CLASS_NAME,
   CODE_REPOSITORY_ROW_TEST_ID,
+  CODE_REPOSITORY_TEXT_CLASS_NAME,
   getRepositoryTaskWords,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoriesTable";
 import { CodeRepositoryListItem } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
@@ -1599,6 +1601,59 @@ describe("a repository's row in the Repositories table", () => {
       expect(classes).toContain("font-normal");
       expect(classes).not.toContain("font-medium");
     }
+  });
+
+  test("the Repository column gives way down to a floor: its words are cut short to it, not holding it at a description's length", () => {
+    draw(
+      <CodeRepositoriesTable
+        id="rows"
+        repositories={[
+          listed({
+            name: "checkout-api",
+            organizationName: "acme",
+            repositoryName: "checkout-api-service",
+            description: "A description much longer than any column. ".repeat(
+              6,
+            ),
+          }),
+        ]}
+      />,
+    );
+
+    const row: HTMLElement = screen.getByTestId(CODE_REPOSITORY_ROW_TEST_ID);
+    const text: HTMLElement = within(row).getByTestId("code-repository-text");
+
+    /*
+     * A one-column grid (minmax(0, 1fr)) adds nothing to the column's least
+     * width; a block holding a line that does not wrap held it at the line.
+     */
+    expect(CODE_REPOSITORY_TEXT_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["grid", "grid-cols-1", "min-w-0"]),
+    );
+    expect(text.className.split(" ")).toEqual(
+      expect.arrayContaining(CODE_REPOSITORY_TEXT_CLASS_NAME.split(" ")),
+    );
+    // The name line and the description are its rows.
+    expect(
+      within(text).getByTestId("code-repository-row-description"),
+    ).toBeInTheDocument();
+    expect(
+      within(text).getByTestId("code-repository-name"),
+    ).toBeInTheDocument();
+
+    /*
+     * The table's own wrapper around the cell carries the column's cap and
+     * its floor: a page's own min-w-* and max-w-* are kept as written.
+     */
+    const wrapper: HTMLElement = text.parentElement!.parentElement!;
+    expect(wrapper.closest("td")).not.toBeNull();
+    expect(CODE_REPOSITORY_COLUMN_CLASS_NAME.split(" ")).toEqual([
+      "max-w-[28rem]",
+      "min-w-[11rem]",
+    ]);
+    expect(wrapper.className.split(" ")).toEqual(
+      expect.arrayContaining(CODE_REPOSITORY_COLUMN_CLASS_NAME.split(" ")),
+    );
   });
 
   test("GitHub's organization/name is left out where it is only the name again", () => {

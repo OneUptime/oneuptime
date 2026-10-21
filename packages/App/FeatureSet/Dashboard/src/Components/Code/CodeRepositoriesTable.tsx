@@ -66,6 +66,25 @@ export const CODE_REPOSITORY_ROW_FACT_CLASS_NAME: string =
   "font-normal text-gray-500";
 
 /*
+ * The Repository column: as wide as a name and its description want, up to
+ * 28rem, and never narrower than 11rem. Between the two it gives way, so
+ * the table fits its card beside the side menu (1024px wide) with Tasks and
+ * Last Activity in sight, rather than scrolling sideways to reach them.
+ */
+export const CODE_REPOSITORY_COLUMN_CLASS_NAME: string =
+  "max-w-[28rem] min-w-[11rem]";
+
+/*
+ * A row's words beside the GitHub mark - the name line and the description
+ * under it. A one-column grid (minmax(0, 1fr)) adds nothing to the column's
+ * least width: a description is a line that does not wrap, and as a block
+ * it held the column at its full length, so the table outgrew its card.
+ * Here it is cut short to the column instead.
+ */
+export const CODE_REPOSITORY_TEXT_CLASS_NAME: string =
+  "grid min-w-0 flex-1 grid-cols-1";
+
+/*
  * The facts of one repository's Tasks cell, as text: how many tasks, its
  * open pull requests, and what needs someone. React-free words, so the
  * cell and the tests read the same.
@@ -161,8 +180,10 @@ const CodeRepositoriesTable: FunctionComponent<ComponentProps> = (
       /*
        * Room for a repository's name with GitHub's organization/name beside
        * it and its description under them; past it, they are cut short.
+       * The column gives way to Tasks and Last Activity down to its floor
+       * (CODE_REPOSITORY_COLUMN_CLASS_NAME).
        */
-      contentClassName: "max-w-[28rem]",
+      contentClassName: CODE_REPOSITORY_COLUMN_CLASS_NAME,
       getElement: (repository: CodeRepositoryListItem): ReactElement => {
         const fullName: string = getRepositoryFullName(repository);
 
@@ -178,7 +199,10 @@ const CodeRepositoriesTable: FunctionComponent<ComponentProps> = (
             >
               <GitHubMark className="h-4 w-4" />
             </span>
-            <span className="block min-w-0">
+            <span
+              data-testid="code-repository-text"
+              className={CODE_REPOSITORY_TEXT_CLASS_NAME}
+            >
               <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
                 <Link
                   to={getRepositoryRoute(repository.id)}

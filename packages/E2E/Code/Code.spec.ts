@@ -932,6 +932,56 @@ test.describe("Code's Repositories", () => {
     await expect(page.getByTestId("code-ask")).toBeVisible();
   });
 
+  /*
+   * A repository's description is a line that does not wrap: it held the
+   * Repository column at its full length, so beside the side menu the table
+   * outgrew its card and Last Activity had to be scrolled to. The column now
+   * gives way, its words cut short, down to a floor.
+   */
+  test("beside the side menu, 900 and 1024 wide, both tables fit their cards - Last Activity in sight, a long name cut short", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    test.skip(isPhone(testInfo), "The desktop table, beside the side menu.");
+
+    for (const width of [900, 1024]) {
+      await page.setViewportSize({ width, height: 900 });
+      await openRepositories(page, "names=long");
+      await expect(names(connectedCard(page)).first()).toHaveText(
+        "checkout-and-payments-platform-api-service",
+      );
+      await openNotConnected(page);
+
+      for (const list of [connectedCard(page), notConnected(page)]) {
+        await expect(list.getByTestId("table-scroll")).toHaveAttribute(
+          "data-overflowing",
+          "false",
+        );
+
+        const lastActivity: { x: number; width: number } | null = await list
+          .getByRole("columnheader", { name: "Last Activity" })
+          .boundingBox();
+        const listBox: { x: number; width: number } | null =
+          await list.boundingBox();
+        expect(lastActivity!.x + lastActivity!.width).toBeLessThanOrEqual(
+          listBox!.x + listBox!.width + 1,
+        );
+      }
+
+      // The long name ends in "..." within its column, whole on hover.
+      expect(
+        await names(connectedCard(page))
+          .first()
+          .evaluate((element: Element): boolean => {
+            return element.scrollWidth > element.clientWidth;
+          }),
+      ).toBe(true);
+      await expectNoSidewaysScroll(page);
+      await screenshot(page, testInfo, `code-repositories-${width}`);
+    }
+  });
+
   test("a click anywhere on a row opens its repository, as every table's rows do", async ({
     page,
   }: {
