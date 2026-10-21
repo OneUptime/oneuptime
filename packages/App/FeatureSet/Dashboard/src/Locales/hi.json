@@ -32302,7 +32302,6 @@
   "Data read from and written to the device per second, averaged over the selected range.": "डिवाइस से प्रति सेकंड पढ़ा और उस पर लिखा गया डेटा, चुनी गई सीमा का औसत।",
   "Data received and sent per second by this host's physical network adapters in each interval of the selected range.": "चुनी गई सीमा के हर अंतराल में इस होस्ट के भौतिक नेटवर्क एडेप्टर द्वारा प्रति सेकंड प्राप्त और भेजा गया डेटा।",
   "Data the adapter received and sent per second, averaged over the selected range.": "एडेप्टर द्वारा प्रति सेकंड प्राप्त और भेजा गया डेटा, चुनी गई सीमा का औसत।",
-  "Data this host's physical network adapters received and sent per second, together, averaged over the last 5 minutes of the selected range.": "इस होस्ट के भौतिक नेटवर्क एडेप्टर द्वारा प्रति सेकंड प्राप्त और भेजा गया कुल डेटा, चुनी गई सीमा के आखिरी 5 मिनट का औसत।",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "क्लाउड कनेक्शन हटाने पर OneUptime उस खाते को पढ़ना बंद कर देता है। उसके संसाधन अपने मेट्रिक्स के साथ बने रहते हैं।",
   "Disk latency": "डिस्क लेटेंसी",
   "EC2, RDS, Lambda, load balancers and more, read from CloudWatch.": "EC2, RDS, Lambda, लोड बैलेंसर और भी बहुत कुछ, CloudWatch से पढ़ा गया।",
@@ -32387,8 +32386,6 @@
   "Send cloud metrics from your own collector": "अपने खुद के कलेक्टर से क्लाउड मेट्रिक्स भेजें",
   "Send your cloud's metrics through it instead: the steps for Azure Monitor, CloudWatch and Cloud Monitoring.": "इसके बजाय अपने क्लाउड के मेट्रिक्स इसके ज़रिए भेजें: Azure Monitor, CloudWatch और Cloud Monitoring के चरण।",
   "Service account": "सेवा खाता",
-  "Share of this host's CPU capacity in use, averaged over the last 5 minutes of the selected range (the whole range when it has no recent data). The chart below covers the whole range.": "इस होस्ट की CPU क्षमता का उपयोग में हिस्सा, चुनी गई सीमा के आखिरी 5 मिनट का औसत (हाल का डेटा न होने पर पूरी सीमा)। नीचे का चार्ट पूरी सीमा दिखाता है।",
-  "Share of this host's RAM in use, averaged over the last 5 minutes of the selected range (the whole range when it has no recent data).": "इस होस्ट की RAM का उपयोग में हिस्सा, चुनी गई सीमा के आखिरी 5 मिनट का औसत (हाल का डेटा न होने पर पूरी सीमा)।",
   "Shipping ESXi syslog": "ESXi syslog भेजना",
   "Signed in, but this access cannot read what OneUptime needs.": "साइन इन हो गया, लेकिन यह पहुँच वह नहीं पढ़ सकती जिसकी OneUptime को ज़रूरत है।",
   "Signs in and counts what there is to monitor. Nothing is kept until you connect.": "साइन इन करता है और गिनता है कि निगरानी के लिए क्या है। कनेक्ट करने तक कुछ भी नहीं रखा जाता।",
@@ -32409,9 +32406,7 @@
   "The password value the command printed. Stored encrypted and never shown again.": "कमांड द्वारा प्रिंट किया गया password मान। एन्क्रिप्ट करके संग्रहीत किया जाता है और फिर कभी नहीं दिखाया जाता।",
   "The powered-on VMs on this host with a CPU reading from the last 15 minutes, busiest first: each VM's CPU as a share of its own vCPUs, from the latest inventory rather than the selected range. A CPU Ready badge marks a VM waiting for a physical CPU (amber from 5%, red from 10%).": "इस होस्ट की चालू VM जिनका पिछले 15 मिनट का CPU रीडिंग है, सबसे व्यस्त पहले: हर VM का CPU उसके अपने vCPU के हिस्से के रूप में, चुनी गई सीमा के बजाय नवीनतम इन्वेंटरी से। CPU Ready बैज उस VM को दिखाता है जो भौतिक CPU का इंतज़ार कर रही है (5% से एम्बर, 10% से लाल)।",
   "The role the command created.": "कमांड द्वारा बनाई गई भूमिका।",
-  "The running VMs on this host using the most CPU right now.": "इस होस्ट की चल रही VM जो अभी सबसे ज़्यादा CPU इस्तेमाल कर रही हैं।",
   "The secret the command printed. Stored encrypted and never shown again.": "कमांड द्वारा प्रिंट किया गया सीक्रेट। एन्क्रिप्ट करके संग्रहीत किया जाता है और फिर कभी नहीं दिखाया जाता।",
-  "The slowest disk's response time: the highest latency any of this host's storage devices reported in the last 5 minutes of the selected range. The bar fills toward 50 ms, where the Host Disk Latency High alert fires; amber from 20 ms.": "सबसे धीमी डिस्क का रिस्पॉन्स टाइम: चुनी गई सीमा के आखिरी 5 मिनट में इस होस्ट के किसी भी स्टोरेज डिवाइस द्वारा बताई गई सबसे ज़्यादा लेटेंसी। बार 50 ms तक भरता है, जहाँ Host Disk Latency High अलर्ट ट्रिगर होता है; 20 ms से एम्बर।",
   "The tenant value the command printed.": "कमांड द्वारा प्रिंट किया गया tenant मान।",
   "The virtual machines (and VM templates) on this host, with their current resource usage. CPU is reported only for powered-on VMs.": "इस होस्ट पर वर्चुअल मशीनें (और VM टेम्पलेट), उनके मौजूदा संसाधन उपयोग के साथ। CPU केवल चालू VM के लिए बताया जाता है।",
   "This host is not in the vCenter's inventory": "यह होस्ट vCenter की इन्वेंटरी में नहीं है",
@@ -32468,5 +32463,10 @@
   "{{used}} of {{total}} memory": "{{total}} में से {{used}} मेमोरी",
   "Its numbers stop there. The host may be disconnected from vCenter, in maintenance mode or powered off - or the vCenter itself stopped reporting.": "इसके आंकड़े वहीं रुक जाते हैं। हो सकता है होस्ट vCenter से डिस्कनेक्ट हो, मेंटेनेंस मोड में हो या बंद हो - या खुद vCenter ने रिपोर्ट भेजना बंद कर दिया हो।",
   "vCenter last reported this host {{time}}": "vCenter ने इस होस्ट की आखिरी रिपोर्ट {{time}} दी",
-  "vCenter stopped reporting this host": "vCenter ने इस होस्ट की रिपोर्ट देना बंद कर दिया"
+  "vCenter stopped reporting this host": "vCenter ने इस होस्ट की रिपोर्ट देना बंद कर दिया",
+  "Data this host's physical network adapters received and sent per second, together, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data).": "इस होस्ट के भौतिक नेटवर्क एडेप्टर द्वारा प्रति सेकंड प्राप्त और भेजा गया कुल डेटा, चुनी गई सीमा के आखिरी 5 मिनट का औसत (12 घंटे से लंबी सीमा पर या हाल का डेटा न होने पर अक्सर पूरी सीमा)।",
+  "Share of this host's CPU capacity in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). The chart below covers the whole range.": "इस होस्ट की CPU क्षमता का उपयोग में हिस्सा, चुनी गई सीमा के आखिरी 5 मिनट का औसत (12 घंटे से लंबी सीमा पर या हाल का डेटा न होने पर अक्सर पूरी सीमा)। नीचे का चार्ट पूरी सीमा दिखाता है।",
+  "Share of this host's RAM in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data).": "इस होस्ट की RAM का उपयोग में हिस्सा, चुनी गई सीमा के आखिरी 5 मिनट का औसत (12 घंटे से लंबी सीमा पर या हाल का डेटा न होने पर अक्सर पूरी सीमा)।",
+  "The highest latency any of this host's storage devices reported in the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). Amber from 20 ms; full at 50 ms, where the Host Disk Latency High alert fires.": "चुनी गई सीमा के आखिरी 5 मिनट में इस होस्ट के किसी भी स्टोरेज डिवाइस द्वारा बताई गई सबसे ज़्यादा लेटेंसी (12 घंटे से लंबी सीमा पर या हाल का डेटा न होने पर अक्सर पूरी सीमा)। 20 ms से एम्बर; 50 ms पर पूरा, जहाँ Host Disk Latency High अलर्ट ट्रिगर होता है।",
+  "The running VMs on this host using the most CPU in the latest inventory.": "इस होस्ट की चल रही VM जो नवीनतम इन्वेंटरी में सबसे ज़्यादा CPU इस्तेमाल कर रही हैं।"
 }

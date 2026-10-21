@@ -43,7 +43,7 @@ const GIB: number = 1024 * 1024 * 1024;
 interface ListRequest {
   modelName: string;
   query: Record<string, unknown>;
-  select?: Record<string, unknown>;
+  select?: Record<string, unknown> | undefined;
 }
 
 interface AggregateRequest {
@@ -78,7 +78,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
         if (mockVCenterError) {
           return Promise.reject(mockVCenterError);
         }
-        const Model: new () => object = request.modelType;
+        const Model: new () => { tableName?: string } = request.modelType;
         return Promise.resolve(
           mockVCenter ? Object.assign(new Model(), mockVCenter) : null,
         );
@@ -115,8 +115,8 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
           records = mockAlerts;
         }
 
-        const data: Array<object> = records.map(
-          (record: Record<string, unknown>): object => {
+        const data: Array<{ tableName?: string }> = records.map(
+          (record: Record<string, unknown>): { tableName?: string } => {
             return Object.assign(new Model(), record);
           },
         );
@@ -165,7 +165,13 @@ jest.mock(
       default: {
         getUnresolvedIncidentStates: (): Promise<Array<unknown>> => {
           return Promise.resolve([
-            { id: { toString: () => "50000000-0000-4000-8000-000000000001" } },
+            {
+              id: {
+                toString: () => {
+                  return "50000000-0000-4000-8000-000000000001";
+                },
+              },
+            },
           ]);
         },
       },
@@ -179,7 +185,13 @@ jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/AlertState", () => {
     default: {
       getUnresolvedAlertStates: (): Promise<Array<unknown>> => {
         return Promise.resolve([
-          { id: { toString: () => "51000000-0000-4000-8000-000000000001" } },
+          {
+            id: {
+              toString: () => {
+                return "51000000-0000-4000-8000-000000000001";
+              },
+            },
+          },
         ]);
       },
     },
@@ -752,7 +764,7 @@ describe("the cards", () => {
       within(adapters)
         .getAllByTestId("vmware-host-network-adapter")
         .map((row: HTMLElement): string => {
-          return row.cells[0]!.textContent || "";
+          return (row as HTMLTableRowElement).cells[0]!.textContent || "";
         }),
     ).toEqual(["vmnic0", "vmnic1"]);
     expect(

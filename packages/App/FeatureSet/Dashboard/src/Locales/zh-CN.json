@@ -32302,7 +32302,6 @@
   "Data read from and written to the device per second, averaged over the selected range.": "每秒从设备读取和写入设备的数据量，取所选范围内的平均值。",
   "Data received and sent per second by this host's physical network adapters in each interval of the selected range.": "所选范围内每个区间中，此主机物理网络适配器每秒接收和发送的数据量。",
   "Data the adapter received and sent per second, averaged over the selected range.": "适配器每秒接收和发送的数据量，取所选范围内的平均值。",
-  "Data this host's physical network adapters received and sent per second, together, averaged over the last 5 minutes of the selected range.": "此主机物理网络适配器每秒接收和发送的数据量之和，取所选范围最后 5 分钟的平均值。",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "删除云连接后，OneUptime 将停止读取该账户。其资源及指标会保留。",
   "Disk latency": "磁盘延迟",
   "EC2, RDS, Lambda, load balancers and more, read from CloudWatch.": "EC2、RDS、Lambda、负载均衡器等，从 CloudWatch 读取。",
@@ -32387,8 +32386,6 @@
   "Send cloud metrics from your own collector": "从你自己的采集器发送云指标",
   "Send your cloud's metrics through it instead: the steps for Azure Monitor, CloudWatch and Cloud Monitoring.": "改为通过它发送云指标：Azure Monitor、CloudWatch 和 Cloud Monitoring 的步骤。",
   "Service account": "服务账号",
-  "Share of this host's CPU capacity in use, averaged over the last 5 minutes of the selected range (the whole range when it has no recent data). The chart below covers the whole range.": "此主机 CPU 容量的使用比例，取所选范围最后 5 分钟的平均值（没有近期数据时取整个范围）。下方图表涵盖整个范围。",
-  "Share of this host's RAM in use, averaged over the last 5 minutes of the selected range (the whole range when it has no recent data).": "此主机 RAM 的使用比例，取所选范围最后 5 分钟的平均值（没有近期数据时取整个范围）。",
   "Shipping ESXi syslog": "发送 ESXi syslog",
   "Signed in, but this access cannot read what OneUptime needs.": "已登录，但此访问权限无法读取 OneUptime 所需的内容。",
   "Signs in and counts what there is to monitor. Nothing is kept until you connect.": "登录并统计可监控的内容。在你连接之前不会保存任何内容。",
@@ -32409,9 +32406,7 @@
   "The password value the command printed. Stored encrypted and never shown again.": "命令输出的 password 值。加密存储，不会再次显示。",
   "The powered-on VMs on this host with a CPU reading from the last 15 minutes, busiest first: each VM's CPU as a share of its own vCPUs, from the latest inventory rather than the selected range. A CPU Ready badge marks a VM waiting for a physical CPU (amber from 5%, red from 10%).": "此主机上过去 15 分钟内有 CPU 读数的已开机 VM，按繁忙程度排列：每个 VM 的 CPU 以占其自身 vCPU 的比例表示，来自最新清单而非所选范围。CPU Ready 徽章标记正在等待物理 CPU 的 VM（5% 起为琥珀色，10% 起为红色）。",
   "The role the command created.": "命令创建的角色。",
-  "The running VMs on this host using the most CPU right now.": "此主机上当前使用 CPU 最多的正在运行的 VM。",
   "The secret the command printed. Stored encrypted and never shown again.": "命令输出的机密。加密存储，不会再次显示。",
-  "The slowest disk's response time: the highest latency any of this host's storage devices reported in the last 5 minutes of the selected range. The bar fills toward 50 ms, where the Host Disk Latency High alert fires; amber from 20 ms.": "最慢磁盘的响应时间：此主机任一存储设备在所选范围最后 5 分钟内报告的最高延迟。进度条向 50 ms 填充，此时会触发 Host Disk Latency High 警报；20 ms 起为琥珀色。",
   "The tenant value the command printed.": "命令输出的 tenant 值。",
   "The virtual machines (and VM templates) on this host, with their current resource usage. CPU is reported only for powered-on VMs.": "此主机上的虚拟机（及 VM 模板）及其当前资源使用情况。仅为已开机的 VM 报告 CPU。",
   "This host is not in the vCenter's inventory": "此主机不在 vCenter 的清单中",
@@ -32468,5 +32463,10 @@
   "{{used}} of {{total}} memory": "内存 {{used}} / {{total}}",
   "Its numbers stop there. The host may be disconnected from vCenter, in maintenance mode or powered off - or the vCenter itself stopped reporting.": "它的数值到此为止。主机可能已与 vCenter 断开连接、处于维护模式或已关机，也可能是 vCenter 本身停止了报告。",
   "vCenter last reported this host {{time}}": "vCenter 上次报告此主机：{{time}}",
-  "vCenter stopped reporting this host": "vCenter 已停止报告此主机"
+  "vCenter stopped reporting this host": "vCenter 已停止报告此主机",
+  "Data this host's physical network adapters received and sent per second, together, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data).": "此主机物理网络适配器每秒接收和发送的数据量总和，取所选范围最后 5 分钟的平均值（范围超过 12 小时或没有近期数据时，通常取整个范围）。",
+  "Share of this host's CPU capacity in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). The chart below covers the whole range.": "此主机 CPU 容量的使用比例，取所选范围最后 5 分钟的平均值（范围超过 12 小时或没有近期数据时，通常取整个范围）。下方图表涵盖整个范围。",
+  "Share of this host's RAM in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data).": "此主机 RAM 的使用比例，取所选范围最后 5 分钟的平均值（范围超过 12 小时或没有近期数据时，通常取整个范围）。",
+  "The highest latency any of this host's storage devices reported in the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). Amber from 20 ms; full at 50 ms, where the Host Disk Latency High alert fires.": "此主机任一存储设备在所选范围最后 5 分钟内报告的最高延迟（范围超过 12 小时或没有近期数据时，通常取整个范围）。20 ms 起为琥珀色；到 50 ms 时填满，此时会触发 Host Disk Latency High 警报。",
+  "The running VMs on this host using the most CPU in the latest inventory.": "在最新清单中，此主机上使用 CPU 最多的正在运行的 VM。"
 }

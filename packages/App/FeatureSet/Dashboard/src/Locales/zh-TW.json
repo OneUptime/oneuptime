@@ -32302,7 +32302,6 @@
   "Data read from and written to the device per second, averaged over the selected range.": "每秒從裝置讀取及寫入裝置的資料量，取所選範圍內的平均值。",
   "Data received and sent per second by this host's physical network adapters in each interval of the selected range.": "所選範圍內每個區間中，此主機實體網路介面卡每秒接收及傳送的資料量。",
   "Data the adapter received and sent per second, averaged over the selected range.": "介面卡每秒接收及傳送的資料量，取所選範圍內的平均值。",
-  "Data this host's physical network adapters received and sent per second, together, averaged over the last 5 minutes of the selected range.": "此主機實體網路介面卡每秒接收及傳送的資料量總和，取所選範圍最後 5 分鐘的平均值。",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "刪除雲端連線後，OneUptime 會停止讀取該帳戶。其資源及指標會保留。",
   "Disk latency": "磁碟延遲",
   "EC2, RDS, Lambda, load balancers and more, read from CloudWatch.": "EC2、RDS、Lambda、負載平衡器等，從 CloudWatch 讀取。",
@@ -32387,8 +32386,6 @@
   "Send cloud metrics from your own collector": "從你自己的收集器傳送雲端指標",
   "Send your cloud's metrics through it instead: the steps for Azure Monitor, CloudWatch and Cloud Monitoring.": "改為透過它傳送雲端指標：Azure Monitor、CloudWatch 和 Cloud Monitoring 的步驟。",
   "Service account": "服務帳戶",
-  "Share of this host's CPU capacity in use, averaged over the last 5 minutes of the selected range (the whole range when it has no recent data). The chart below covers the whole range.": "此主機 CPU 容量的使用比例，取所選範圍最後 5 分鐘的平均值（沒有近期資料時取整個範圍）。下方圖表涵蓋整個範圍。",
-  "Share of this host's RAM in use, averaged over the last 5 minutes of the selected range (the whole range when it has no recent data).": "此主機 RAM 的使用比例，取所選範圍最後 5 分鐘的平均值（沒有近期資料時取整個範圍）。",
   "Shipping ESXi syslog": "傳送 ESXi syslog",
   "Signed in, but this access cannot read what OneUptime needs.": "已登入，但此存取權無法讀取 OneUptime 所需的內容。",
   "Signs in and counts what there is to monitor. Nothing is kept until you connect.": "登入並計算可監控的內容。在你連線之前不會儲存任何內容。",
@@ -32409,9 +32406,7 @@
   "The password value the command printed. Stored encrypted and never shown again.": "指令輸出的 password 值。加密儲存，不會再次顯示。",
   "The powered-on VMs on this host with a CPU reading from the last 15 minutes, busiest first: each VM's CPU as a share of its own vCPUs, from the latest inventory rather than the selected range. A CPU Ready badge marks a VM waiting for a physical CPU (amber from 5%, red from 10%).": "此主機上過去 15 分鐘內有 CPU 讀數的已開機 VM，依忙碌程度排列：每個 VM 的 CPU 以占其自身 vCPU 的比例表示，來自最新詳細目錄而非所選範圍。CPU Ready 徽章標示正在等待實體 CPU 的 VM（5% 起為琥珀色，10% 起為紅色）。",
   "The role the command created.": "指令建立的角色。",
-  "The running VMs on this host using the most CPU right now.": "此主機上目前使用最多 CPU 的執行中 VM。",
   "The secret the command printed. Stored encrypted and never shown again.": "指令輸出的機密。加密儲存，不會再次顯示。",
-  "The slowest disk's response time: the highest latency any of this host's storage devices reported in the last 5 minutes of the selected range. The bar fills toward 50 ms, where the Host Disk Latency High alert fires; amber from 20 ms.": "最慢磁碟的回應時間：此主機任一儲存裝置在所選範圍最後 5 分鐘內回報的最高延遲。進度列向 50 ms 填滿，此時會觸發 Host Disk Latency High 警示；20 ms 起為琥珀色。",
   "The tenant value the command printed.": "指令輸出的 tenant 值。",
   "The virtual machines (and VM templates) on this host, with their current resource usage. CPU is reported only for powered-on VMs.": "此主機上的虛擬機器（及 VM 範本）與其目前的資源使用情況。僅為已開機的 VM 回報 CPU。",
   "This host is not in the vCenter's inventory": "此主機不在 vCenter 的詳細目錄中",
@@ -32468,5 +32463,10 @@
   "{{used}} of {{total}} memory": "記憶體 {{used}} / {{total}}",
   "Its numbers stop there. The host may be disconnected from vCenter, in maintenance mode or powered off - or the vCenter itself stopped reporting.": "它的數值到此為止。主機可能已與 vCenter 中斷連線、處於維護模式或已關機，也可能是 vCenter 本身停止了回報。",
   "vCenter last reported this host {{time}}": "vCenter 上次回報此主機：{{time}}",
-  "vCenter stopped reporting this host": "vCenter 已停止回報此主機"
+  "vCenter stopped reporting this host": "vCenter 已停止回報此主機",
+  "Data this host's physical network adapters received and sent per second, together, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data).": "此主機實體網路介面卡每秒接收及傳送的資料量總和，取所選範圍最後 5 分鐘的平均值（範圍超過 12 小時或沒有近期資料時，通常取整個範圍）。",
+  "Share of this host's CPU capacity in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). The chart below covers the whole range.": "此主機 CPU 容量的使用比例，取所選範圍最後 5 分鐘的平均值（範圍超過 12 小時或沒有近期資料時，通常取整個範圍）。下方圖表涵蓋整個範圍。",
+  "Share of this host's RAM in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data).": "此主機 RAM 的使用比例，取所選範圍最後 5 分鐘的平均值（範圍超過 12 小時或沒有近期資料時，通常取整個範圍）。",
+  "The highest latency any of this host's storage devices reported in the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). Amber from 20 ms; full at 50 ms, where the Host Disk Latency High alert fires.": "此主機任一儲存裝置在所選範圍最後 5 分鐘內回報的最高延遲（範圍超過 12 小時或沒有近期資料時，通常取整個範圍）。20 ms 起為琥珀色；到 50 ms 時填滿，此時會觸發 Host Disk Latency High 警示。",
+  "The running VMs on this host using the most CPU in the latest inventory.": "在最新詳細目錄中，此主機上使用最多 CPU 的執行中 VM。"
 }

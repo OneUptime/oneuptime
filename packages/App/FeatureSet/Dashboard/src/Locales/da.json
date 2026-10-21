@@ -32302,7 +32302,6 @@
   "Data read from and written to the device per second, averaged over the selected range.": "Data læst fra og skrevet til enheden pr. sekund, i gennemsnit over det valgte tidsrum.",
   "Data received and sent per second by this host's physical network adapters in each interval of the selected range.": "Data modtaget og sendt pr. sekund af denne værts fysiske netværksadaptere i hvert interval af det valgte tidsrum.",
   "Data the adapter received and sent per second, averaged over the selected range.": "Data, som adapteren modtog og sendte pr. sekund, i gennemsnit over det valgte tidsrum.",
-  "Data this host's physical network adapters received and sent per second, together, averaged over the last 5 minutes of the selected range.": "Data, som denne værts fysiske netværksadaptere modtog og sendte pr. sekund, samlet, i gennemsnit over de seneste 5 minutter af det valgte tidsrum.",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "Når du sletter en cloudforbindelse, holder OneUptime op med at læse kontoen. Dens ressourcer bliver, med deres metrikker.",
   "Disk latency": "Disklatens",
   "EC2, RDS, Lambda, load balancers and more, read from CloudWatch.": "EC2, RDS, Lambda, load balancere og mere, læst fra CloudWatch.",
@@ -32387,8 +32386,6 @@
   "Send cloud metrics from your own collector": "Send cloudmetrikker fra din egen collector",
   "Send your cloud's metrics through it instead: the steps for Azure Monitor, CloudWatch and Cloud Monitoring.": "Send i stedet din clouds metrikker gennem den: trinene for Azure Monitor, CloudWatch og Cloud Monitoring.",
   "Service account": "Tjenestekonto",
-  "Share of this host's CPU capacity in use, averaged over the last 5 minutes of the selected range (the whole range when it has no recent data). The chart below covers the whole range.": "Andel af denne værts CPU-kapacitet i brug, i gennemsnit over de seneste 5 minutter af det valgte tidsrum (hele tidsrummet, når der ikke er nye data). Diagrammet nedenfor dækker hele tidsrummet.",
-  "Share of this host's RAM in use, averaged over the last 5 minutes of the selected range (the whole range when it has no recent data).": "Andel af denne værts RAM i brug, i gennemsnit over de seneste 5 minutter af det valgte tidsrum (hele tidsrummet, når der ikke er nye data).",
   "Shipping ESXi syslog": "Send ESXi-syslog",
   "Signed in, but this access cannot read what OneUptime needs.": "Logget ind, men denne adgang kan ikke læse det, OneUptime har brug for.",
   "Signs in and counts what there is to monitor. Nothing is kept until you connect.": "Logger ind og tæller, hvad der er at overvåge. Intet gemmes, før du forbinder.",
@@ -32409,9 +32406,7 @@
   "The password value the command printed. Stored encrypted and never shown again.": "Værdien password, som kommandoen udskrev. Gemmes krypteret og vises aldrig igen.",
   "The powered-on VMs on this host with a CPU reading from the last 15 minutes, busiest first: each VM's CPU as a share of its own vCPUs, from the latest inventory rather than the selected range. A CPU Ready badge marks a VM waiting for a physical CPU (amber from 5%, red from 10%).": "De tændte VM'er på denne vært med en CPU-måling fra de seneste 15 minutter, de mest belastede først: hver VM's CPU som andel af dens egne vCPU'er, fra det nyeste inventar i stedet for det valgte tidsrum. Et CPU Ready-mærke markerer en VM, der venter på en fysisk CPU (gul fra 5 %, rød fra 10 %).",
   "The role the command created.": "Rollen, som kommandoen oprettede.",
-  "The running VMs on this host using the most CPU right now.": "De kørende VM'er på denne vært, der bruger mest CPU lige nu.",
   "The secret the command printed. Stored encrypted and never shown again.": "Hemmeligheden, som kommandoen udskrev. Gemmes krypteret og vises aldrig igen.",
-  "The slowest disk's response time: the highest latency any of this host's storage devices reported in the last 5 minutes of the selected range. The bar fills toward 50 ms, where the Host Disk Latency High alert fires; amber from 20 ms.": "Den langsomste disks svartid: den højeste latens, som nogen af denne værts lagerenheder rapporterede i de seneste 5 minutter af det valgte tidsrum. Bjælken fyldes op mod 50 ms, hvor advarslen Host Disk Latency High udløses; gul fra 20 ms.",
   "The tenant value the command printed.": "Værdien tenant, som kommandoen udskrev.",
   "The virtual machines (and VM templates) on this host, with their current resource usage. CPU is reported only for powered-on VMs.": "De virtuelle maskiner (og VM-skabeloner) på denne vært med deres aktuelle ressourceforbrug. CPU rapporteres kun for tændte VM'er.",
   "This host is not in the vCenter's inventory": "Denne vært er ikke i vCenters inventar",
@@ -32468,5 +32463,10 @@
   "{{used}} of {{total}} memory": "{{used}} af {{total}} hukommelse",
   "Its numbers stop there. The host may be disconnected from vCenter, in maintenance mode or powered off - or the vCenter itself stopped reporting.": "Dens værdier stopper der. Værten er måske afbrudt fra vCenter, i vedligeholdelsestilstand eller slukket - eller også er vCenter selv holdt op med at rapportere.",
   "vCenter last reported this host {{time}}": "vCenter rapporterede sidst denne vært {{time}}",
-  "vCenter stopped reporting this host": "vCenter er holdt op med at rapportere denne vært"
+  "vCenter stopped reporting this host": "vCenter er holdt op med at rapportere denne vært",
+  "Data this host's physical network adapters received and sent per second, together, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data).": "Data, som denne værts fysiske netværksadaptere modtog og sendte pr. sekund, samlet, i gennemsnit over de seneste 5 minutter af det valgte tidsrum (ofte hele tidsrummet ved tidsrum over 12 timer eller uden nye data).",
+  "Share of this host's CPU capacity in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). The chart below covers the whole range.": "Andel af denne værts CPU-kapacitet i brug, i gennemsnit over de seneste 5 minutter af det valgte tidsrum (ofte hele tidsrummet ved tidsrum over 12 timer eller uden nye data). Diagrammet nedenfor dækker hele tidsrummet.",
+  "Share of this host's RAM in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data).": "Andel af denne værts RAM i brug, i gennemsnit over de seneste 5 minutter af det valgte tidsrum (ofte hele tidsrummet ved tidsrum over 12 timer eller uden nye data).",
+  "The highest latency any of this host's storage devices reported in the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). Amber from 20 ms; full at 50 ms, where the Host Disk Latency High alert fires.": "Den højeste latens, som nogen af denne værts lagerenheder rapporterede i de seneste 5 minutter af det valgte tidsrum (ofte hele tidsrummet ved tidsrum over 12 timer eller uden nye data). Gul fra 20 ms; fuld ved 50 ms, hvor advarslen Host Disk Latency High udløses.",
+  "The running VMs on this host using the most CPU in the latest inventory.": "De kørende VM'er på denne vært, der bruger mest CPU i det nyeste inventar."
 }

@@ -32302,7 +32302,6 @@
   "Data read from and written to the device per second, averaged over the selected range.": "Данные, прочитанные с устройства и записанные на него за секунду, в среднем за выбранный период.",
   "Data received and sent per second by this host's physical network adapters in each interval of the selected range.": "Данные, принятые и отправленные за секунду физическими сетевыми адаптерами этого хоста, в каждом интервале выбранного периода.",
   "Data the adapter received and sent per second, averaged over the selected range.": "Данные, принятые и отправленные адаптером за секунду, в среднем за выбранный период.",
-  "Data this host's physical network adapters received and sent per second, together, averaged over the last 5 minutes of the selected range.": "Данные, принятые и отправленные за секунду физическими сетевыми адаптерами этого хоста, вместе, в среднем за последние 5 минут выбранного периода.",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "При удалении облачного подключения OneUptime перестаёт читать аккаунт. Его ресурсы остаются вместе с метриками.",
   "Disk latency": "Задержка диска",
   "EC2, RDS, Lambda, load balancers and more, read from CloudWatch.": "EC2, RDS, Lambda, балансировщики нагрузки и многое другое — из CloudWatch.",
@@ -32387,8 +32386,6 @@
   "Send cloud metrics from your own collector": "Отправлять облачные метрики из собственного коллектора",
   "Send your cloud's metrics through it instead: the steps for Azure Monitor, CloudWatch and Cloud Monitoring.": "Отправляйте метрики облака через него: шаги для Azure Monitor, CloudWatch и Cloud Monitoring.",
   "Service account": "Сервисный аккаунт",
-  "Share of this host's CPU capacity in use, averaged over the last 5 minutes of the selected range (the whole range when it has no recent data). The chart below covers the whole range.": "Доля используемой ёмкости CPU этого хоста, в среднем за последние 5 минут выбранного периода (за весь период, если свежих данных нет). График ниже охватывает весь период.",
-  "Share of this host's RAM in use, averaged over the last 5 minutes of the selected range (the whole range when it has no recent data).": "Доля используемой RAM этого хоста, в среднем за последние 5 минут выбранного периода (за весь период, если свежих данных нет).",
   "Shipping ESXi syslog": "Отправка syslog ESXi",
   "Signed in, but this access cannot read what OneUptime needs.": "Вход выполнен, но этот доступ не позволяет читать то, что нужно OneUptime.",
   "Signs in and counts what there is to monitor. Nothing is kept until you connect.": "Выполняет вход и подсчитывает, что можно отслеживать. Ничего не сохраняется, пока вы не подключите аккаунт.",
@@ -32409,9 +32406,7 @@
   "The password value the command printed. Stored encrypted and never shown again.": "Значение password, которое вывела команда. Хранится в зашифрованном виде и больше никогда не показывается.",
   "The powered-on VMs on this host with a CPU reading from the last 15 minutes, busiest first: each VM's CPU as a share of its own vCPUs, from the latest inventory rather than the selected range. A CPU Ready badge marks a VM waiting for a physical CPU (amber from 5%, red from 10%).": "Включённые ВМ этого хоста с показанием CPU за последние 15 минут, сначала самые загруженные: CPU каждой ВМ как доля её собственных vCPU, по последнему инвентарю, а не за выбранный период. Значок CPU Ready отмечает ВМ, ожидающую физический CPU (жёлтый от 5 %, красный от 10 %).",
   "The role the command created.": "Роль, которую создала команда.",
-  "The running VMs on this host using the most CPU right now.": "Запущенные ВМ этого хоста, которые сейчас больше всего используют CPU.",
   "The secret the command printed. Stored encrypted and never shown again.": "Секрет, который вывела команда. Хранится в зашифрованном виде и больше никогда не показывается.",
-  "The slowest disk's response time: the highest latency any of this host's storage devices reported in the last 5 minutes of the selected range. The bar fills toward 50 ms, where the Host Disk Latency High alert fires; amber from 20 ms.": "Время отклика самого медленного диска: наибольшая задержка, о которой сообщило любое из устройств хранения этого хоста за последние 5 минут выбранного периода. Полоса заполняется до 50 мс, где срабатывает оповещение Host Disk Latency High; жёлтый от 20 мс.",
   "The tenant value the command printed.": "Значение tenant, которое вывела команда.",
   "The virtual machines (and VM templates) on this host, with their current resource usage. CPU is reported only for powered-on VMs.": "Виртуальные машины (и шаблоны ВМ) этого хоста с текущим использованием ресурсов. CPU сообщается только для включённых ВМ.",
   "This host is not in the vCenter's inventory": "Этого хоста нет в инвентаре vCenter",
@@ -32468,5 +32463,10 @@
   "{{used}} of {{total}} memory": "Память: {{used}} из {{total}}",
   "Its numbers stop there. The host may be disconnected from vCenter, in maintenance mode or powered off - or the vCenter itself stopped reporting.": "На этом его значения обрываются. Хост, возможно, отключён от vCenter, находится в режиме обслуживания или выключен - или сам vCenter перестал отправлять отчёты.",
   "vCenter last reported this host {{time}}": "vCenter последний раз сообщал об этом хосте {{time}}",
-  "vCenter stopped reporting this host": "vCenter перестал сообщать об этом хосте"
+  "vCenter stopped reporting this host": "vCenter перестал сообщать об этом хосте",
+  "Data this host's physical network adapters received and sent per second, together, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data).": "Данные, принятые и отправленные за секунду физическими сетевыми адаптерами этого хоста, вместе, в среднем за последние 5 минут выбранного периода (на периодах длиннее 12 часов или без свежих данных часто за весь период).",
+  "Share of this host's CPU capacity in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). The chart below covers the whole range.": "Доля используемой ёмкости CPU этого хоста, в среднем за последние 5 минут выбранного периода (на периодах длиннее 12 часов или без свежих данных часто за весь период). График ниже охватывает весь период.",
+  "Share of this host's RAM in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data).": "Доля используемой RAM этого хоста, в среднем за последние 5 минут выбранного периода (на периодах длиннее 12 часов или без свежих данных часто за весь период).",
+  "The highest latency any of this host's storage devices reported in the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). Amber from 20 ms; full at 50 ms, where the Host Disk Latency High alert fires.": "Наибольшая задержка, о которой сообщило любое из устройств хранения этого хоста за последние 5 минут выбранного периода (на периодах длиннее 12 часов или без свежих данных часто за весь период). Жёлтый от 20 мс; полоса заполнена при 50 мс, где срабатывает оповещение Host Disk Latency High.",
+  "The running VMs on this host using the most CPU in the latest inventory.": "Запущенные ВМ этого хоста, которые больше всего используют CPU по последнему инвентарю."
 }

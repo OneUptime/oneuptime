@@ -32302,7 +32302,6 @@
   "Data read from and written to the device per second, averaged over the selected range.": "Dados lidos do dispositivo e gravados nele por segundo, em média no período selecionado.",
   "Data received and sent per second by this host's physical network adapters in each interval of the selected range.": "Dados recebidos e enviados por segundo pelos adaptadores de rede físicos deste host em cada intervalo do período selecionado.",
   "Data the adapter received and sent per second, averaged over the selected range.": "Dados que o adaptador recebeu e enviou por segundo, em média no período selecionado.",
-  "Data this host's physical network adapters received and sent per second, together, averaged over the last 5 minutes of the selected range.": "Dados que os adaptadores de rede físicos deste host receberam e enviaram por segundo, somados, em média nos últimos 5 minutos do período selecionado.",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "Excluir uma conexão de nuvem faz o OneUptime parar de ler a conta. Os recursos dela permanecem, com suas métricas.",
   "Disk latency": "Latência de disco",
   "EC2, RDS, Lambda, load balancers and more, read from CloudWatch.": "EC2, RDS, Lambda, balanceadores de carga e mais, lidos do CloudWatch.",
@@ -32387,8 +32386,6 @@
   "Send cloud metrics from your own collector": "Enviar métricas de nuvem do seu próprio coletor",
   "Send your cloud's metrics through it instead: the steps for Azure Monitor, CloudWatch and Cloud Monitoring.": "Envie as métricas da sua nuvem por ele: os passos para Azure Monitor, CloudWatch e Cloud Monitoring.",
   "Service account": "Conta de serviço",
-  "Share of this host's CPU capacity in use, averaged over the last 5 minutes of the selected range (the whole range when it has no recent data). The chart below covers the whole range.": "Parcela da capacidade de CPU deste host em uso, em média nos últimos 5 minutos do período selecionado (o período inteiro quando não há dados recentes). O gráfico abaixo cobre o período inteiro.",
-  "Share of this host's RAM in use, averaged over the last 5 minutes of the selected range (the whole range when it has no recent data).": "Parcela da RAM deste host em uso, em média nos últimos 5 minutos do período selecionado (o período inteiro quando não há dados recentes).",
   "Shipping ESXi syslog": "Enviar o syslog do ESXi",
   "Signed in, but this access cannot read what OneUptime needs.": "Login feito, mas este acesso não pode ler o que o OneUptime precisa.",
   "Signs in and counts what there is to monitor. Nothing is kept until you connect.": "Faz login e conta o que há para monitorar. Nada é guardado até você conectar.",
@@ -32409,9 +32406,7 @@
   "The password value the command printed. Stored encrypted and never shown again.": "O valor password que o comando exibiu. Armazenado criptografado e nunca mais exibido.",
   "The powered-on VMs on this host with a CPU reading from the last 15 minutes, busiest first: each VM's CPU as a share of its own vCPUs, from the latest inventory rather than the selected range. A CPU Ready badge marks a VM waiting for a physical CPU (amber from 5%, red from 10%).": "As VMs ligadas deste host com uma leitura de CPU dos últimos 15 minutos, as mais ocupadas primeiro: a CPU de cada VM como parcela de suas próprias vCPUs, do inventário mais recente e não do período selecionado. Um selo CPU Ready marca uma VM esperando uma CPU física (âmbar a partir de 5%, vermelho a partir de 10%).",
   "The role the command created.": "A função que o comando criou.",
-  "The running VMs on this host using the most CPU right now.": "As VMs em execução neste host que mais usam CPU agora.",
   "The secret the command printed. Stored encrypted and never shown again.": "O segredo que o comando exibiu. Armazenado criptografado e nunca mais exibido.",
-  "The slowest disk's response time: the highest latency any of this host's storage devices reported in the last 5 minutes of the selected range. The bar fills toward 50 ms, where the Host Disk Latency High alert fires; amber from 20 ms.": "O tempo de resposta do disco mais lento: a maior latência que qualquer dispositivo de armazenamento deste host informou nos últimos 5 minutos do período selecionado. A barra se enche até 50 ms, onde o alerta Host Disk Latency High dispara; âmbar a partir de 20 ms.",
   "The tenant value the command printed.": "O valor tenant que o comando exibiu.",
   "The virtual machines (and VM templates) on this host, with their current resource usage. CPU is reported only for powered-on VMs.": "As máquinas virtuais (e modelos de VM) deste host, com o uso atual de recursos. A CPU só é informada para VMs ligadas.",
   "This host is not in the vCenter's inventory": "Este host não está no inventário do vCenter",
@@ -32468,5 +32463,10 @@
   "{{used}} of {{total}} memory": "{{used}} de {{total}} de memória",
   "Its numbers stop there. The host may be disconnected from vCenter, in maintenance mode or powered off - or the vCenter itself stopped reporting.": "Seus valores param aí. O host pode estar desconectado do vCenter, em modo de manutenção ou desligado - ou o próprio vCenter parou de informar.",
   "vCenter last reported this host {{time}}": "O vCenter informou este host pela última vez {{time}}",
-  "vCenter stopped reporting this host": "O vCenter parou de informar este host"
+  "vCenter stopped reporting this host": "O vCenter parou de informar este host",
+  "Data this host's physical network adapters received and sent per second, together, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data).": "Dados que os adaptadores de rede físicos deste host receberam e enviaram por segundo, somados, em média nos últimos 5 minutos do período selecionado (muitas vezes o período inteiro em períodos de mais de 12 horas ou sem dados recentes).",
+  "Share of this host's CPU capacity in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). The chart below covers the whole range.": "Parcela da capacidade de CPU deste host em uso, em média nos últimos 5 minutos do período selecionado (muitas vezes o período inteiro em períodos de mais de 12 horas ou sem dados recentes). O gráfico abaixo cobre o período inteiro.",
+  "Share of this host's RAM in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data).": "Parcela da RAM deste host em uso, em média nos últimos 5 minutos do período selecionado (muitas vezes o período inteiro em períodos de mais de 12 horas ou sem dados recentes).",
+  "The highest latency any of this host's storage devices reported in the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). Amber from 20 ms; full at 50 ms, where the Host Disk Latency High alert fires.": "A maior latência que qualquer dispositivo de armazenamento deste host informou nos últimos 5 minutos do período selecionado (muitas vezes o período inteiro em períodos de mais de 12 horas ou sem dados recentes). Âmbar a partir de 20 ms; cheia em 50 ms, onde o alerta Host Disk Latency High dispara.",
+  "The running VMs on this host using the most CPU in the latest inventory.": "As VMs em execução neste host que mais usam CPU no inventário mais recente."
 }

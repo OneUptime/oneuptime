@@ -77,7 +77,7 @@ const VMwareHostBusiestVirtualMachines: FunctionComponent<ComponentProps> = (
             />
           </span>
         }
-        description="The running VMs on this host using the most CPU right now."
+        description="The running VMs on this host using the most CPU in the latest inventory."
         buttons={[
           {
             title: translator.translatePlural(

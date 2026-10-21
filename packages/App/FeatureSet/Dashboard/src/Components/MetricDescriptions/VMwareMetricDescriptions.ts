@@ -198,19 +198,19 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
 
   // ---- ESXi host page: tiles --------------------------------------------
   hostCpu: translationKey(
-    "Share of this host's CPU capacity in use, averaged over the last 5 minutes of the selected range (the whole range when it has no recent data). The chart below covers the whole range.",
+    "Share of this host's CPU capacity in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). The chart below covers the whole range.",
   ),
   hostCpuCapacity: translationKey(
     "This host's total CPU: all its cores added together, in MHz or GHz, from the latest report.",
   ),
   hostMemory: translationKey(
-    "Share of this host's RAM in use, averaged over the last 5 minutes of the selected range (the whole range when it has no recent data).",
+    "Share of this host's RAM in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data).",
   ),
   hostPageDiskLatency: translationKey(
-    "The slowest disk's response time: the highest latency any of this host's storage devices reported in the last 5 minutes of the selected range. The bar fills toward 50 ms, where the Host Disk Latency High alert fires; amber from 20 ms.",
+    "The highest latency any of this host's storage devices reported in the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). Amber from 20 ms; full at 50 ms, where the Host Disk Latency High alert fires.",
   ),
   hostPageNetwork: translationKey(
-    "Data this host's physical network adapters received and sent per second, together, averaged over the last 5 minutes of the selected range.",
+    "Data this host's physical network adapters received and sent per second, together, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data).",
   ),
 
   // ---- ESXi host page: charts -------------------------------------------

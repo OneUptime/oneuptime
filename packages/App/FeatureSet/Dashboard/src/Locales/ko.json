@@ -32302,7 +32302,6 @@
   "Data read from and written to the device per second, averaged over the selected range.": "디바이스에서 읽고 디바이스에 쓴 초당 데이터로, 선택한 범위의 평균입니다.",
   "Data received and sent per second by this host's physical network adapters in each interval of the selected range.": "선택한 범위의 각 구간에서 이 호스트의 물리 네트워크 어댑터가 초당 수신하고 송신한 데이터입니다.",
   "Data the adapter received and sent per second, averaged over the selected range.": "어댑터가 초당 수신하고 송신한 데이터로, 선택한 범위의 평균입니다.",
-  "Data this host's physical network adapters received and sent per second, together, averaged over the last 5 minutes of the selected range.": "이 호스트의 물리 네트워크 어댑터가 초당 수신하고 송신한 데이터의 합계로, 선택한 범위의 마지막 5분 평균입니다.",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "클라우드 연결을 삭제하면 OneUptime이 해당 계정 읽기를 중지합니다. 리소스는 메트릭과 함께 유지됩니다.",
   "Disk latency": "디스크 지연 시간",
   "EC2, RDS, Lambda, load balancers and more, read from CloudWatch.": "CloudWatch에서 읽어 오는 EC2, RDS, Lambda, 로드 밸런서 등.",
@@ -32387,8 +32386,6 @@
   "Send cloud metrics from your own collector": "자체 컬렉터에서 클라우드 메트릭 보내기",
   "Send your cloud's metrics through it instead: the steps for Azure Monitor, CloudWatch and Cloud Monitoring.": "대신 컬렉터를 통해 클라우드 메트릭을 보내세요. Azure Monitor, CloudWatch, Cloud Monitoring의 단계입니다.",
   "Service account": "서비스 계정",
-  "Share of this host's CPU capacity in use, averaged over the last 5 minutes of the selected range (the whole range when it has no recent data). The chart below covers the whole range.": "이 호스트의 CPU 용량 중 사용 중인 비율로, 선택한 범위의 마지막 5분 평균입니다(최근 데이터가 없으면 범위 전체). 아래 차트는 범위 전체를 보여 줍니다.",
-  "Share of this host's RAM in use, averaged over the last 5 minutes of the selected range (the whole range when it has no recent data).": "이 호스트의 RAM 중 사용 중인 비율로, 선택한 범위의 마지막 5분 평균입니다(최근 데이터가 없으면 범위 전체).",
   "Shipping ESXi syslog": "ESXi syslog 보내기",
   "Signed in, but this access cannot read what OneUptime needs.": "로그인했지만 이 액세스로는 OneUptime에 필요한 항목을 읽을 수 없습니다.",
   "Signs in and counts what there is to monitor. Nothing is kept until you connect.": "로그인해 모니터링할 항목을 셉니다. 연결하기 전까지는 아무것도 저장되지 않습니다.",
@@ -32409,9 +32406,7 @@
   "The password value the command printed. Stored encrypted and never shown again.": "명령이 출력한 password 값입니다. 암호화되어 저장되며 다시 표시되지 않습니다.",
   "The powered-on VMs on this host with a CPU reading from the last 15 minutes, busiest first: each VM's CPU as a share of its own vCPUs, from the latest inventory rather than the selected range. A CPU Ready badge marks a VM waiting for a physical CPU (amber from 5%, red from 10%).": "최근 15분 동안 CPU 값이 있는 이 호스트의 전원이 켜진 VM을 바쁜 순서대로 보여 줍니다. 각 VM의 CPU는 자체 vCPU 대비 비율이며, 선택한 범위가 아니라 최신 인벤토리의 값입니다. CPU Ready 배지는 물리 CPU를 기다리는 VM을 표시합니다(5%부터 주황색, 10%부터 빨간색).",
   "The role the command created.": "명령이 만든 역할입니다.",
-  "The running VMs on this host using the most CPU right now.": "지금 이 호스트에서 CPU를 가장 많이 쓰는 실행 중인 VM입니다.",
   "The secret the command printed. Stored encrypted and never shown again.": "명령이 출력한 비밀입니다. 암호화되어 저장되며 다시 표시되지 않습니다.",
-  "The slowest disk's response time: the highest latency any of this host's storage devices reported in the last 5 minutes of the selected range. The bar fills toward 50 ms, where the Host Disk Latency High alert fires; amber from 20 ms.": "가장 느린 디스크의 응답 시간입니다. 선택한 범위의 마지막 5분 동안 이 호스트의 스토리지 디바이스가 보고한 가장 높은 지연 시간입니다. 막대는 Host Disk Latency High 알림이 발생하는 50ms까지 차오르며, 20ms부터 주황색입니다.",
   "The tenant value the command printed.": "명령이 출력한 tenant 값입니다.",
   "The virtual machines (and VM templates) on this host, with their current resource usage. CPU is reported only for powered-on VMs.": "이 호스트의 가상 머신(및 VM 템플릿)과 현재 리소스 사용량입니다. CPU는 전원이 켜진 VM에 대해서만 보고됩니다.",
   "This host is not in the vCenter's inventory": "이 호스트는 vCenter 인벤토리에 없습니다",
@@ -32468,5 +32463,10 @@
   "{{used}} of {{total}} memory": "메모리 {{used}} / {{total}}",
   "Its numbers stop there. The host may be disconnected from vCenter, in maintenance mode or powered off - or the vCenter itself stopped reporting.": "값은 그 시점에서 멈춥니다. 호스트가 vCenter에서 연결이 끊겼거나 유지 보수 모드이거나 전원이 꺼졌을 수 있고, vCenter 자체가 보고를 멈췄을 수도 있습니다.",
   "vCenter last reported this host {{time}}": "vCenter가 이 호스트를 마지막으로 보고한 시점: {{time}}",
-  "vCenter stopped reporting this host": "vCenter가 이 호스트의 보고를 멈췄습니다"
+  "vCenter stopped reporting this host": "vCenter가 이 호스트의 보고를 멈췄습니다",
+  "Data this host's physical network adapters received and sent per second, together, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data).": "이 호스트의 물리 네트워크 어댑터가 초당 수신하고 송신한 데이터의 합계로, 선택한 범위의 마지막 5분 평균입니다(12시간이 넘는 범위이거나 최근 데이터가 없으면 대개 범위 전체).",
+  "Share of this host's CPU capacity in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). The chart below covers the whole range.": "이 호스트의 CPU 용량 중 사용 중인 비율로, 선택한 범위의 마지막 5분 평균입니다(12시간이 넘는 범위이거나 최근 데이터가 없으면 대개 범위 전체). 아래 차트는 범위 전체를 보여 줍니다.",
+  "Share of this host's RAM in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data).": "이 호스트의 RAM 중 사용 중인 비율로, 선택한 범위의 마지막 5분 평균입니다(12시간이 넘는 범위이거나 최근 데이터가 없으면 대개 범위 전체).",
+  "The highest latency any of this host's storage devices reported in the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). Amber from 20 ms; full at 50 ms, where the Host Disk Latency High alert fires.": "선택한 범위의 마지막 5분 동안 이 호스트의 스토리지 디바이스가 보고한 가장 높은 지연 시간입니다(12시간이 넘는 범위이거나 최근 데이터가 없으면 대개 범위 전체). 20ms부터 주황색이며, Host Disk Latency High 알림이 발생하는 50ms에서 가득 찹니다.",
+  "The running VMs on this host using the most CPU in the latest inventory.": "최신 인벤토리에서 이 호스트의 CPU를 가장 많이 쓰는 실행 중인 VM입니다."
 }
