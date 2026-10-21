@@ -20,7 +20,7 @@ Código é onde você pede à OneUptime AI que trabalhe nos seus repositórios, 
 :::steps
 ### Abra o Código
 
-Abra **Produtos → Código**. Ele abre em **O que a IA deve fazer?**: a caixa onde você pede, com todas as tarefas abaixo, as mais recentes primeiro. Se ainda não houver nenhum repositório, ele oferece **Conectar o GitHub** no lugar (veja [Antes de começar](#antes-de-começar)). **Repositórios**, no menu lateral, lista os repositórios conectados, e a página de cada repositório tem a mesma caixa para aquele repositório.
+Abra **Produtos → Código**. Ele abre em **O que a IA deve fazer?**: a caixa onde você pede, com todas as tarefas abaixo, as mais recentes primeiro. Se ainda não houver nenhum repositório, ele oferece **Conectar o GitHub** no lugar (veja [Antes de começar](#antes-de-começar)). **Repositórios**, no menu lateral, lista os repositórios em que a IA pode trabalhar, e agrupa em **Não conectado** os que a GitHub App não alcança mais. A página de cada repositório tem a mesma caixa para aquele repositório.
 
 ### Escolha o repositório e o branch
 
@@ -89,7 +89,7 @@ flowchart TB
 3. O Runner busca o contexto da tarefa. Para um pedido, são as palavras dele, o contexto adicionado e a conversa até ali; para uma exceção, o tipo, a mensagem e o stack trace dela.
 4. Ele clona o repositório em um espaço de trabalho próprio e cria um branch. Uma correção de uma exceção se chama `oneuptime-fix-exception-` seguido dos primeiros caracteres do id da execução. Um pedido parte do branch escolhido quando foi feito, e o pull request dele abre para esse branch. Uma resposta trabalha, em vez disso, no branch do pull request aberto da tarefa.
 5. Um agente de código, movido pelo provedor de LLM do seu projeto, lê o código e escreve a alteração. O servidor do OneUptime faz as chamadas ao LLM, então o Runner nunca tem a chave de API do seu provedor, e cada chamada é medida e listada nos logs de IA. Uma correção de uma exceção, de um trace lento ou de um incidente também lê dados de produção enquanto trabalha: as exceções, os traces, os logs e as métricas dos serviços do repositório (veja [Telemetria de produção em uma correção](#telemetria-de-produção-em-uma-correção)).
-6. Se o repositório tiver comandos de verificação, um Runner próprio compila e testa a alteração antes de fazer qualquer commit, e devolve uma falha ao agente de código para ser corrigida (veja [Verificação antes do pull request](#verificação-antes-do-pull-request)).
+6. Em um Runner próprio, o agente de código compila e testa a alteração como diz o `AGENTS.md` do repositório antes de qualquer commit, e corrige o que falha (veja [Verificação antes do pull request](#verificação-antes-do-pull-request)).
 7. O Runner faz o commit, envia o branch, abre o pull request (para um pedido, só quando alterou código) e apaga o espaço de trabalho.
 
 A página de onde a tarefa foi iniciada mostra o status dela ao vivo. Toda tarefa aparece no repositório dela, em **Produtos → Código**: a página dela é a conversa, e o **Registro** de cada vez tem uma linha para cada arquivo que o Runner leu ou escreveu e cada comando que executou.
@@ -148,15 +148,18 @@ Quando nenhum serviço corresponde ao repositório, a tarefa roda sem telemetria
 
 ## Verificação antes do pull request
 
-Um repositório pode ter até três comandos de verificação na página **Configurações** dele em Código:
+Um repositório diz como é compilado e testado em um `AGENTS.md` na raiz, o arquivo que os agentes de código leem. Antes de mudar qualquer coisa, o agente de código lê o `AGENTS.md` do repositório (ou o `CLAUDE.md` dele, quando não há `AGENTS.md`) a partir do branch de onde a tarefa parte, e trabalha como ele diz. Sem nenhum dos dois, ele descobre como a partir do `CONTRIBUTING.md` do repositório, do README, dos scripts do pacote, do `Makefile` ou dos workflows de CI. Não há nada a configurar no OneUptime.
 
-| Comando | Exemplo | Quando é executado |
-| --- | --- | --- |
-| **Setup Command** | `npm ci` | Primeiro, para instalar as dependências. |
-| **Build Command** | `npm run build` | Depois do setup. |
-| **Test Command** | `npm test` | Por último. |
+| Onde a IA trabalha | O que ela faz com o build e os testes do repositório |
+| --- | --- |
+| Um dos seus Runners | Compila e testa a alteração antes de o pull request abrir, corrige o que falha e verifica de novo, e diz no resumo quais verificações executou. Cada comando que executa tem até 2 minutos, sem as credenciais do próprio Runner no ambiente. |
+| **Runner global** | Não executa nenhum comando: escreve a mudança e abre o pull request, e a CI do seu repositório a verifica. |
 
-Quando algum deles está definido, cada execução de correção verifica a própria alteração antes de o pull request abrir:
+Nada de um pull request que vem de um fork é lido como instruções do repositório: uma revisão recusa esse pull request, e uma avaliação lê o branch base.
+
+### Comandos definidos em um repositório
+
+O Código não pede mais comandos de configuração, build e teste, mas um repositório que os tem, definidos antes ou pela API ou pelo Terraform, os mantém. Eles aparecem somente leitura no cartão **Comandos de build e teste**, em **Mais configurações** na página **Configurações** do repositório, e **Remover comandos** remove os três. Enquanto algum deles estiver definido, cada execução de correção em um Runner próprio também verifica a própria alteração com eles antes de o pull request abrir:
 
 1. Quando o agente de código termina, os comandos são executados em ordem na raiz do repositório, no Runner, no espaço de trabalho clonado. Cada um tem até 15 minutos e roda com `CI=true`, para que nada fique esperando uma resposta; a primeira falha interrompe a rodada.
 2. Em caso de falha, o final da saída do comando que falhou volta para o mesmo agente de código como tarefa de reparo, com instruções para corrigir a própria alteração em vez de enfraquecer ou pular testes, e os comandos são executados de novo. Ele faz no máximo **2** tentativas de reparo. Elas compartilham o orçamento de LLM da execução, e as mudanças delas vão no mesmo commit da correção.
@@ -205,12 +208,12 @@ Você não associa repositórios a serviços. Quando uma tarefa começa, o OneUp
 
 ### Escolha o Runner do repositório
 
-Cada repositório escolhe o Runner em que a IA trabalha nele: na página **Configurações** dele em Código, clique em **Editar definições** e escolha um na etapa **Runner**. Um repositório que não escolhe nenhum trabalha no **Runner global**, que o OneUptime executa para todos os projetos.
+Cada repositório escolhe o Runner em que a IA trabalha nele: na página **Configurações** dele em Código, clique em **Editar** no cartão **Runner** e escolha um. Um repositório que a GitHub App importa começa no [Runner padrão](/docs/runbooks/agents#o-runner-padrão-do-projeto) do projeto, quando ele tem um. Um repositório que não escolhe nenhum trabalha no **Runner global**, que o OneUptime executa para todos os projetos.
 
 | Runner | O que ele faz com uma tarefa |
 | --- | --- |
-| **Runner global** | Escreve a mudança e abre o pull request, sem os seus comandos de configuração, build e teste: a CI do seu repositório verifica a mudança. |
-| Um dos seus Runners | Também executa os seus comandos de configuração, build e teste, em um host que você controla. |
+| **Runner global** | Escreve a mudança e abre o pull request sem compilá-la nem testá-la: a CI do seu repositório verifica a mudança. |
+| Um dos seus Runners | Também compila e testa a mudança como diz o `AGENTS.md` do repositório, em um host que você controla. |
 
 Só o Runner que um repositório escolhe recebe as tarefas dele e um token para ele. Em um projeto que desativa **Usar Runners globais** em **Runbooks → Agentes de runbook**, cada repositório precisa de um dos Runners do próprio projeto. A página de um Runner lista os repositórios que o escolhem.
 
@@ -233,7 +236,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Escolha-o para o repositório
 
-Na página **Configurações** do repositório em Código, clique em **Editar definições** e escolha o Runner na etapa **Runner**. O Runner percebe a mudança no próximo heartbeat, em cerca de um minuto; não há nada para reiniciar.
+Na página **Configurações** do repositório em Código, clique em **Editar** no cartão **Runner** e escolha o Runner. O Runner percebe a mudança no próximo heartbeat, em cerca de um minuto; não há nada para reiniciar.
 
 ### Verifique se ele se conecta
 

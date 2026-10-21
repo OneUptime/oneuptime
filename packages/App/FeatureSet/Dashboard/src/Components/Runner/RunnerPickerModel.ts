@@ -57,7 +57,7 @@ export const GLOBAL_RUNNER_PICK_VALUE: string = GLOBAL_RUNNER_CHOICE_ID;
  * global Runners stand behind it: a step's JavaScript runs on the global
  * Runners' sandbox; a repository's AI work runs on the global Runner for
  * code (the installation's bundled Runner, OneUptime Cloud's fleet), which
- * never runs a repository's own commands
+ * runs no command - it does not build or test AI's change
  * (Common/Types/Runner/CodeRepositoryRunner).
  */
 export enum RunnerPickerWork {
@@ -168,9 +168,14 @@ export const RUNNER_NOT_CONNECTED_TEMPLATE: string = translationKey(
   "{{runner}} is not connected right now. The step fails if this Runner does not pick it up within its claim timeout.",
 );
 
-// The global choice, under its name, in a code repository's picker.
+/*
+ * The global choice, under its name, in a code repository's picker - and
+ * under "Global Runner" on its settings: it runs no command, so AI's change
+ * is not built or tested before its pull request opens (the repository's
+ * own CI checks it).
+ */
 export const CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION: string = translationKey(
-  "Run by OneUptime for every project. It skips your setup, build and test commands.",
+  "Run by OneUptime for every project. It does not build or test AI's change before the pull request opens.",
 );
 
 /*
@@ -178,12 +183,15 @@ export const CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION: string = translationKey(
  * why a team picks one of its own Runners instead.
  */
 export const CODE_GLOBAL_RUNNER_HELPER_TEXT: string = translationKey(
-  "AI works on a Runner OneUptime runs for every project, which skips your setup, build and test commands. Pick one of your Runners to have them run.",
+  "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the pull request opens.",
 );
 
-// Under a code repository's picker on one of the project's own Runners.
+/*
+ * Under a code repository's picker on one of the project's own Runners: AI
+ * builds and tests there the way the repository says to (its AGENTS.md).
+ */
 export const CODE_OWN_RUNNER_HELPER_TEXT: string = translationKey(
-  "AI clones the repository on this Runner, runs your setup, build and test commands there, and opens the pull request.",
+  "AI clones the repository on this Runner, builds and tests its change there the way the repository's AGENTS.md says, and opens the pull request.",
 );
 
 // Under a code repository's picker in a project that turned global Runners off.

@@ -72,7 +72,6 @@ import SecurityCaseService from "./SecurityCaseService";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
-import Query from "../Types/Database/Query";
 import UpdateBy from "../Types/Database/UpdateBy";
 import CallerPermission from "../Utils/Permission/CallerPermission";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
@@ -247,23 +246,19 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
   }
 
-  // Whether a write's query reaches a Security Case rule.
-  private async reachesSecurityCaseRule(
-    query: Query<WorkspaceNotificationRule>,
-  ): Promise<boolean> {
-    return (
-      (
-        await this.countBy({
-          query: {
-            ...query,
-            eventType: NotificationRuleEventType.SecurityCase,
-          },
-          props: {
-            isRoot: true,
-          },
-        })
-      ).toNumber() > 0
-    );
+  /*
+   * Whether the rules a write changes include a Security Case rule. The
+   * rules are the ones the update writes or the delete removes, read the
+   * way every hook that judges a write by its rows reads them
+   * (findRowsAndHoldUpdateToThem, findRowsAndHoldDeleteToThem), with the
+   * write held to them - so the rules judged are the rules written.
+   */
+  private static includesSecurityCaseRule(
+    rules: Array<WorkspaceNotificationRule>,
+  ): boolean {
+    return rules.some((rule: WorkspaceNotificationRule): boolean => {
+      return rule.eventType === NotificationRuleEventType.SecurityCase;
+    });
   }
 
   @CaptureSpan()
@@ -285,7 +280,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       !updateBy.props.isRoot &&
       ((updateBy.data as unknown as Record<string, unknown>)["eventType"] ===
         NotificationRuleEventType.SecurityCase ||
-        (await this.reachesSecurityCaseRule(updateBy.query)))
+        Service.includesSecurityCaseRule(
+          await this.findRowsAndHoldUpdateToThem(updateBy, {
+            eventType: true,
+          }),
+        ))
     ) {
       this.assertMaySetUpSecurityCaseRules(updateBy.props);
     }
@@ -299,7 +298,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
   ): Promise<OnDelete<WorkspaceNotificationRule>> {
     if (
       !deleteBy.props.isRoot &&
-      (await this.reachesSecurityCaseRule(deleteBy.query))
+      Service.includesSecurityCaseRule(
+        await this.findRowsAndHoldDeleteToThem(deleteBy, {
+          eventType: true,
+        }),
+      )
     ) {
       this.assertMaySetUpSecurityCaseRules(deleteBy.props);
     }

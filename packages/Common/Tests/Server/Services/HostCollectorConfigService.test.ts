@@ -13,6 +13,9 @@ import HostCollectorProjectConfigsMemo, {
   HostCollectorProjectConfig,
 } from "../../../Server/Utils/HostCollector/HostCollectorProjectConfigsMemo";
 import { getHostCollectorConfigHash } from "../../../Server/Utils/HostCollector/HostCollectorConfigHash";
+import DeleteBy from "../../../Server/Types/Database/DeleteBy";
+import { OnDelete } from "../../../Server/Types/Database/Hooks";
+import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import logger from "../../../Server/Utils/Logger";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -26,6 +29,7 @@ import {
 } from "../../../Types/HostCollector/HostCollector";
 import { getHostCollectorDefaultConfig } from "../../../Utils/HostCollector/HostCollectorDefaultConfig";
 import { getJestSpyOn } from "../../Spy";
+import type { SpyInstance } from "jest-mock";
 import {
   InMemoryTable,
   StoredRow,
@@ -53,6 +57,17 @@ const LINUX_DEFAULT: string = getHostCollectorDefaultConfig(
   HostCollectorOsType.Linux,
 );
 const CHANGED: string = `${LINUX_DEFAULT}# changed\n`;
+
+// The hooks that read the configs a write changes, called on their own.
+interface ConfigWriteHooks {
+  onUpdatePermitted(updateBy: UpdateBy<HostCollectorConfig>): Promise<void>;
+  onBeforeDelete(
+    deleteBy: DeleteBy<HostCollectorConfig>,
+  ): Promise<OnDelete<HostCollectorConfig>>;
+}
+
+const hooks: ConfigWriteHooks =
+  HostCollectorConfigService as unknown as ConfigWriteHooks;
 
 function member(
   permissions: Array<Permission>,
@@ -482,6 +497,130 @@ describe("HostCollectorConfigService, through the whole write", () => {
         HostCollectorProjectConfigsMemo.get(PROJECT_ID.toString()),
       ).toBeUndefined();
     });
+
+    test("a change of the YAML of two configs at once is refused, and both stay as they were", async () => {
+      configs.rows.push({
+        _id: "7c9e6679-7425-40de-944b-e07fc1f90004",
+        projectId: PROJECT_ID.toString(),
+        name: "Second",
+        osType: HostCollectorOsType.Linux,
+        order: 1,
+        configYaml: LINUX_DEFAULT,
+        configHash: getHostCollectorConfigHash(LINUX_DEFAULT),
+        currentVersionNumber: 1,
+        version: 1,
+      });
+
+      await expect(
+        HostCollectorConfigService.updateBy({
+          query: { projectId: PROJECT_ID },
+          data: { configYaml: CHANGED },
+          limit: 10,
+          skip: 0,
+          props: member([Permission.ProjectAdmin]),
+        }),
+      ).rejects.toThrow("Change the config of one Collector Config at a time.");
+
+      for (const row of configs.rows) {
+        expect(row["configYaml"]).toBe(LINUX_DEFAULT);
+        expect(row["currentVersionNumber"]).toBe(1);
+      }
+      expect(versions.inserts.length).toBe(0);
+    });
+  });
+
+  /*
+   * The config a change of YAML is numbered from is the one the update
+   * writes: read with findOneRowAndHoldUpdateToIt, which holds the update
+   * to that config - never by the update's own query, which reads rows in
+   * a window of its own (UpdateChecksReadHeldRows).
+   */
+  describe("the config a change of YAML is numbered from", () => {
+    type HoldUpdateToOne =
+      typeof HostCollectorConfigService.findOneRowAndHoldUpdateToIt;
+
+    function holdUpdateTo(found: {
+      row: HostCollectorConfig | null;
+      writesMore: boolean;
+    }): SpyInstance<HoldUpdateToOne> {
+      return jest
+        .spyOn(HostCollectorConfigService, "findOneRowAndHoldUpdateToIt")
+        .mockResolvedValue(found);
+    }
+
+    function changeOfYaml(): UpdateBy<HostCollectorConfig> {
+      return {
+        query: { _id: new ObjectID(CONFIG_ID) },
+        data: { configYaml: CHANGED },
+        limit: 1,
+        skip: 0,
+        props: member([Permission.ProjectAdmin]),
+      } as unknown as UpdateBy<HostCollectorConfig>;
+    }
+
+    test("is the config the update is held to: the update itself is handed over, and the next number is that config's", async () => {
+      // Stored as version 1; the config the update writes is at version 6.
+      const written: HostCollectorConfig = new HostCollectorConfig();
+      written._id = CONFIG_ID;
+      written.projectId = PROJECT_ID;
+      written.currentVersionNumber = 6;
+      written.configHash = getHostCollectorConfigHash(LINUX_DEFAULT);
+
+      const held: SpyInstance<HoldUpdateToOne> = holdUpdateTo({
+        row: written,
+        writesMore: false,
+      });
+      const updateBy: UpdateBy<HostCollectorConfig> = changeOfYaml();
+
+      await hooks.onUpdatePermitted(updateBy);
+
+      expect(held).toHaveBeenCalledTimes(1);
+      // The update itself, so it is held to the config read.
+      expect(held.mock.calls[0]![0]).toBe(updateBy);
+      expect(held.mock.calls[0]![1]).toEqual({
+        _id: true,
+        projectId: true,
+        currentVersionNumber: true,
+        configHash: true,
+      });
+      expect(updateBy.data).toMatchObject({
+        currentVersionNumber: 7,
+        configHash: getHostCollectorConfigHash(CHANGED),
+      });
+    });
+
+    test("an update that writes no config numbers no version", async () => {
+      holdUpdateTo({ row: null, writesMore: false });
+      const updateBy: UpdateBy<HostCollectorConfig> = changeOfYaml();
+
+      await hooks.onUpdatePermitted(updateBy);
+
+      expect(updateBy.data).toEqual({ configYaml: CHANGED });
+    });
+
+    test("an update that writes more than one config is refused", async () => {
+      holdUpdateTo({ row: null, writesMore: true });
+      const updateBy: UpdateBy<HostCollectorConfig> = changeOfYaml();
+
+      await expect(hooks.onUpdatePermitted(updateBy)).rejects.toThrow(
+        "Change the config of one Collector Config at a time.",
+      );
+      expect(updateBy.data).toEqual({ configYaml: CHANGED });
+    });
+
+    test("a change that leaves the YAML alone reads no config", async () => {
+      const held: SpyInstance<HoldUpdateToOne> = holdUpdateTo({
+        row: null,
+        writesMore: false,
+      });
+
+      await hooks.onUpdatePermitted({
+        ...changeOfYaml(),
+        data: { name: "Renamed" },
+      } as unknown as UpdateBy<HostCollectorConfig>);
+
+      expect(held).not.toHaveBeenCalled();
+    });
   });
 
   describe("the versions", () => {
@@ -534,6 +673,66 @@ describe("HostCollectorConfigService, through the whole write", () => {
       ).rejects.toThrow();
 
       expect(configs.get(CONFIG_ID)).toBeDefined();
+    });
+
+    /*
+     * The projects told are those of the configs the delete removes: read
+     * with findRowsAndHoldDeleteToThem, which holds the delete to them -
+     * never by the delete's own query (DeleteChecksReadHeldRows).
+     */
+    describe("the projects told", () => {
+      type HoldDelete =
+        typeof HostCollectorConfigService.findRowsAndHoldDeleteToThem;
+
+      function holdDeleteTo(
+        rows: Array<HostCollectorConfig>,
+      ): SpyInstance<HoldDelete> {
+        return jest
+          .spyOn(HostCollectorConfigService, "findRowsAndHoldDeleteToThem")
+          .mockResolvedValue(rows);
+      }
+
+      function deleteOfConfig(): DeleteBy<HostCollectorConfig> {
+        return {
+          query: { _id: new ObjectID(CONFIG_ID) },
+          limit: 1,
+          skip: 0,
+          props: member([Permission.ProjectAdmin]),
+        } as unknown as DeleteBy<HostCollectorConfig>;
+      }
+
+      test("are the projects of the configs the delete is held to: the delete itself is handed over", async () => {
+        const otherProjectId: ObjectID = new ObjectID(
+          "7c9e6679-7425-40de-944b-e07fc1f90005",
+        );
+        const removed: HostCollectorConfig = new HostCollectorConfig();
+        removed._id = CONFIG_ID;
+        removed.projectId = otherProjectId;
+
+        const held: SpyInstance<HoldDelete> = holdDeleteTo([removed]);
+        const deleteBy: DeleteBy<HostCollectorConfig> = deleteOfConfig();
+
+        const onDelete: OnDelete<HostCollectorConfig> =
+          await hooks.onBeforeDelete(deleteBy);
+
+        expect(held).toHaveBeenCalledTimes(1);
+        // The delete itself, so it is held to the configs read.
+        expect(held.mock.calls[0]![0]).toBe(deleteBy);
+        expect(held.mock.calls[0]![1]).toEqual({ projectId: true });
+        expect(onDelete.deleteBy).toBe(deleteBy);
+        expect(onDelete.carryForward).toEqual({
+          projectIds: [otherProjectId.toString()],
+        });
+      });
+
+      test("are none when the delete removes no config", async () => {
+        holdDeleteTo([]);
+
+        const onDelete: OnDelete<HostCollectorConfig> =
+          await hooks.onBeforeDelete(deleteOfConfig());
+
+        expect(onDelete.carryForward).toEqual({ projectIds: [] });
+      });
     });
   });
 });

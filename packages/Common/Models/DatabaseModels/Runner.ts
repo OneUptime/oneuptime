@@ -583,13 +583,22 @@ export default class Runner extends BaseModel {
    * (Types/Runner/ProjectDefaultRunner). Off for every Runner until someone
    * makes one the default, so no step moves by itself; written by those who
    * edit Runners, from Runbooks -> Runners and the Runner's own page.
+   *
+   * Every creator of a Runner may give it a value on create - the table's
+   * create list: a client that sends what the API publishes sends false
+   * with every create, as the Terraform provider does. A Runner is created
+   * AS the default only by someone who may make one the default, the
+   * update list below (RunnerService.assertMayCreateAsProjectDefault):
+   * Create Runner alone, like a Project Member, never makes the Runner it
+   * creates the one every step that picks no Runner runs on.
    */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
+      Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.EditRunner,
+      Permission.CreateRunner,
     ],
     read: [
       Permission.ProjectOwner,

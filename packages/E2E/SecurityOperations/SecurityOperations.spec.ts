@@ -12,7 +12,7 @@ import path from "path";
  * The Security Events SOC pages - the overview, the case queue's pages, a
  * case, entities, the rule library, ATT&CK coverage, playbooks, a playbook
  * and the runs - on the fixture's synthetic month (Fixture/Fixture.js), with
- * the side menu that holds them: six sections, every page an entry of its
+ * the side menu that holds them: seven sections, every page an entry of its
  * own (the tabs and views that used to sit along the tops of pages are
  * pages now). What the unit tests cannot see: that the pages fit beside the
  * side menu at every size, read right in both themes, agree with each other
@@ -1486,7 +1486,7 @@ test.describe("detections", () => {
       .toBe(DETECTION_RULES_PATH);
   });
 
-  test("the side menu is six sections of pages; the ones set up once are folded", async ({
+  test("the side menu is seven sections of pages; the ones set up once are folded", async ({
     page,
   }: {
     page: Page;
@@ -1507,6 +1507,7 @@ test.describe("detections", () => {
       "events",
       "detections",
       "playbooks",
+      "workspace",
       "connections",
     ]);
 
@@ -1516,6 +1517,7 @@ test.describe("detections", () => {
       ["Events", "true"],
       ["Detections", "false"],
       ["Playbooks", "true"],
+      ["Workspace", "false"],
       ["Connections", "false"],
     ]) {
       await expect(menuSection(page, section!)).toHaveAttribute(
@@ -1555,6 +1557,15 @@ test.describe("detections", () => {
 
     await menuSection(page, "Detections").click();
     await expect(menuEntry(page, "Rule Library")).toBeVisible();
+
+    /*
+     * Workspace lists the chat workspaces the project has connected - Slack
+     * here - and nothing for the one it has not.
+     */
+    await menuSection(page, "Workspace").click();
+    await expect(menuEntry(page, "Slack")).toBeVisible();
+    await expect(menuEntry(page, "Microsoft Teams")).toHaveCount(0);
+    await expect(menuEntry(page, "Connect Slack or Teams")).toHaveCount(0);
 
     await open(page, OVERVIEW_PATH, { theme: "dark", width: 1280 });
     await expect(page.getByText("Riskiest Entities")).toBeVisible({

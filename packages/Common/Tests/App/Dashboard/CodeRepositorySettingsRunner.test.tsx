@@ -12,14 +12,14 @@ import React, { ReactElement } from "react";
  * repository's Runner is picked, and where a Runner says which
  * repositories pick it.
  *
- *   - the repository's settings form has a Runner step, between GitHub
- *     Commands and Build & Test, whose one field is the Runner picker for a
- *     repository (CodeRepositoryRunnerPicker): a field like the others -
- *     the form draws its title and the card's own description, with no
- *     "(Optional)" since empty is Global Runner - and it writes the
- *     Runner's id, or nothing for Global Runner;
- *   - the settings card says what the repository runs on
- *     (CodeRepositoryRunnerValue);
+ *   - the repository's settings have a Runner card of their own, whose Edit
+ *     asks one thing on one page - no steps: the Runner picker for a
+ *     repository (CodeRepositoryRunnerPicker), a field like the others -
+ *     the form draws its title and its description, with no "(Optional)"
+ *     since empty is Global Runner - and it writes the Runner's id, or
+ *     nothing for Global Runner;
+ *   - the card says what the repository runs on
+ *     (CodeRepositoryRunnerValue), under its own title alone;
  *   - a Runner's page lists the repositories that pick it in its Runner
  *     Details, where the "Runs AI Code Fixes" switch was, each linked to
  *     the repository's settings - or says none does, and where a
@@ -33,6 +33,16 @@ jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
     __esModule: true,
     default: (props: Record<string, unknown>): null => {
       mockDetails.push(props);
+      return null;
+    },
+  };
+});
+
+// The GitHub Commands switch card reads the repository itself: not here.
+jest.mock("../../../UI/Components/ModelSwitch/ModelSwitchCard", () => {
+  return {
+    __esModule: true,
+    default: (): null => {
       return null;
     },
   };
@@ -90,10 +100,13 @@ interface DetailField {
   getElement?: ((item: CodeRepository) => ReactElement) | undefined;
 }
 
+// The Runner card, as the settings page drew it.
 function page(): Record<string, unknown> {
   render(<CodeRepositorySettings {...({} as unknown as PageComponentProps)} />);
 
-  return mockDetails[mockDetails.length - 1]!;
+  return mockDetails.filter((props: Record<string, unknown>): boolean => {
+    return props["name"] === "Repository > Runner";
+  })[0]!;
 }
 
 beforeEach(() => {
@@ -112,17 +125,18 @@ afterEach(() => {
 });
 
 describe("a repository's settings: its Runner", () => {
-  test("the form asks for it on a step of its own, after GitHub Commands and before Build & Test", () => {
-    const steps: Array<{ title: string; id: string }> = page()[
-      "formSteps"
-    ] as Array<{ title: string; id: string }>;
+  test("a card of its own, whose Edit asks for it alone, on one page", () => {
+    const card: Record<string, unknown> = page();
 
-    expect(
-      steps.map((step: { id: string }) => {
-        return step.id;
-      }),
-    ).toEqual(["pull-requests", "github-commands", "runner", "build-and-test"]);
-    expect(steps[2]!.title).toBe("Runner");
+    expect((card["cardProps"] as { title: string }).title).toBe("Runner");
+    expect((card["cardProps"] as { description: string }).description).toBe(
+      CodeRepositoryRunnerCopy.fieldDescription,
+    );
+    expect(card["editButtonText"]).toBe("Edit");
+    expect(card["editModalTitle"]).toBe("Runner");
+    // No steps: the old dialog's Runner step was the third of four.
+    expect(card["formSteps"]).toBeUndefined();
+    expect(card["formFields"] as Array<FormField>).toHaveLength(1);
   });
 
   test("its one field is the Runner picker for a repository, a field like the others, and it writes the Runner picked or nothing", () => {
@@ -134,7 +148,7 @@ describe("a repository's settings: its Runner", () => {
     });
 
     expect(runner).toBeDefined();
-    expect(runner!.stepId).toBe("runner");
+    expect(runner!.stepId).toBeUndefined();
     expect(runner!.title).toBe(CodeRepositoryRunnerCopy.fieldTitle);
     expect(runner!.fieldType).toBe(FormFieldSchemaType.CustomComponent);
     expect(runner!.required).toBe(false);
@@ -169,7 +183,7 @@ describe("a repository's settings: its Runner", () => {
     expect(written).toEqual([null, RUNNER_ID]);
   });
 
-  test("the settings card says what the repository runs on", () => {
+  test("the card says what the repository runs on, under the card's own title alone", () => {
     const fields: Array<DetailField> = (
       page()["modelDetailProps"] as { fields: Array<DetailField> }
     ).fields;
@@ -179,31 +193,22 @@ describe("a repository's settings: its Runner", () => {
       },
     );
 
+    expect(fields).toHaveLength(1);
     expect(runner).toBeDefined();
-    expect(runner!.title).toBe(CodeRepositoryRunnerCopy.fieldTitle);
-    expect(runner!.description).toBe(CodeRepositoryRunnerCopy.fieldDescription);
+    // The card is titled Runner and says what it is for: no label again.
+    expect(runner!.title).toBeUndefined();
+    expect(runner!.description).toBeUndefined();
 
     const item: CodeRepository = new CodeRepository();
     item.runnerId = new ObjectID(RUNNER_ID);
+    // Commands set or not, the value says the same: what the Runner does.
+    item.setupCommand = "npm ci";
 
     const element: ReactElement = runner!.getElement!(item);
 
     expect(element.type).toBe(CodeRepositoryRunnerValue);
     expect(String(element.props.runnerId)).toBe(RUNNER_ID);
-    // No command set: nothing for Global Runner to skip.
-    expect(element.props.hasCommands).toBe(false);
-
-    // Any one of the three commands is one Global Runner would skip.
-    for (const command of [
-      "setupCommand",
-      "buildCommand",
-      "testCommand",
-    ] as const) {
-      const withCommand: CodeRepository = new CodeRepository();
-      withCommand[command] = "npm ci";
-
-      expect(runner!.getElement!(withCommand).props.hasCommands).toBe(true);
-    }
+    expect(Object.keys(element.props)).toEqual(["runnerId"]);
   });
 });
 

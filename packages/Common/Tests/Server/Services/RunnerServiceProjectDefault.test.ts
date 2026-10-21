@@ -4,6 +4,7 @@ import RunnerService, {
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
+import ColumnWriteRefusedException from "../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -185,6 +186,104 @@ describe("assertMayBeProjectDefault", () => {
       expect(message).toContain(words);
     },
   );
+});
+
+/*
+ * Who creates a Runner AS the project's default: someone who may make a
+ * Runner the default (the column's update list). Every creator of a Runner
+ * may send the column - false comes with every create the Terraform
+ * provider makes - so the column's create list is the table's, and this is
+ * where the one value that makes the new Runner the default is held to
+ * those who edit Runners. Driven through the real create in
+ * ProjectDefaultRowWrites.test.ts.
+ */
+describe("assertMayCreateAsProjectDefault", () => {
+  // A member of the project holding these permissions.
+  function memberWith(
+    permissions: Array<Permission>,
+  ): DatabaseCommonInteractionProps {
+    return {
+      userId: ObjectID.generate(),
+      tenantId: PROJECT_ID,
+      userTenantAccessPermission: {
+        [PROJECT_ID.toString()]: {
+          _type: "UserTenantAccessPermission",
+          projectId: PROJECT_ID,
+          permissions: [Permission.ProjectUser, ...permissions].map(
+            (permission: Permission) => {
+              return {
+                _type: "UserPermission",
+                permission,
+                labelIds: [],
+                isBlockPermission: false,
+              };
+            },
+          ),
+        },
+      },
+    } as unknown as DatabaseCommonInteractionProps;
+  }
+
+  it.each([
+    ["a Runbook Admin", editorProps()],
+    ["someone given Edit Runner", memberWith([Permission.EditRunner])],
+    ["a master admin", masterAdminProps()],
+    ["OneUptime", rootProps()],
+  ] as Array<[string, DatabaseCommonInteractionProps]>)(
+    "lets %s create a Runner as the default",
+    (_label: string, props: DatabaseCommonInteractionProps) => {
+      expect(() => {
+        RunnerServiceClass.assertMayCreateAsProjectDefault(
+          { isProjectDefault: true },
+          props,
+        );
+      }).not.toThrow();
+    },
+  );
+
+  it.each([
+    ["someone given only Create Runner", [Permission.CreateRunner]],
+    ["a Project Member", [Permission.ProjectMember]],
+  ] as Array<[string, Array<Permission>]>)(
+    "refuses %s, in the column check's words",
+    (_label: string, permissions: Array<Permission>) => {
+      let refused: unknown = null;
+
+      try {
+        RunnerServiceClass.assertMayCreateAsProjectDefault(
+          { isProjectDefault: true },
+          memberWith(permissions),
+        );
+      } catch (error) {
+        refused = error;
+      }
+
+      expect(refused).toBeInstanceOf(ColumnWriteRefusedException);
+      expect((refused as Error).message).toContain(
+        "User is not allowed to create on isProjectDefault column of Runner.",
+      );
+    },
+  );
+
+  it("asks nothing of a Runner not created as the default: false is what every create may send", () => {
+    for (const isProjectDefault of [false, undefined]) {
+      expect(() => {
+        RunnerServiceClass.assertMayCreateAsProjectDefault(
+          { isProjectDefault },
+          memberWith([Permission.CreateRunner]),
+        );
+      }).not.toThrow();
+    }
+  });
+
+  it("is asked by the create hook", async () => {
+    await expect(
+      hooks.onBeforeCreate({
+        data: runner({ isProjectDefault: true }),
+        props: memberWith([Permission.CreateRunner]),
+      } as CreateBy<Runner>),
+    ).rejects.toThrow(ColumnWriteRefusedException);
+  });
 });
 
 describe("RunnerService's create hook", () => {

@@ -154,6 +154,8 @@ import { AddSecurityProtectedEntity1805600000000 } from "./1805600000000-AddSecu
 import { AddAIRunHandedBackCount1805650000000 } from "./1805650000000-AddAIRunHandedBackCount";
 import { AddSecurityCaseNotifications1805700000000 } from "./1805700000000-AddSecurityCaseNotifications";
 import { AddRunnerProjectDefault1805720000000 } from "./1805720000000-AddRunnerProjectDefault";
+import { TurnOnGitHubCommandsByDefault1805760000000 } from "./1805760000000-TurnOnGitHubCommandsByDefault";
+import { TurnOnUnsetGitHubCommands1805770000000 } from "./1805770000000-TurnOnUnsetGitHubCommands";
 import { AddThreatIntelFeedSources1805800000000 } from "./1805800000000-AddThreatIntelFeedSources";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
@@ -1511,5 +1513,7 @@ export default [
   AddAIRunHandedBackCount1805650000000,
   AddSecurityCaseNotifications1805700000000,
   AddRunnerProjectDefault1805720000000,
+  TurnOnGitHubCommandsByDefault1805760000000,
+  TurnOnUnsetGitHubCommands1805770000000,
   AddThreatIntelFeedSources1805800000000,
 ];

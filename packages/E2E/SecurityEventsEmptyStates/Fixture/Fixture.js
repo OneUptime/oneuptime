@@ -62,6 +62,7 @@ import SecurityEventDestination from "Common/Models/DatabaseModels/SecurityEvent
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import Service from "Common/Models/DatabaseModels/Service";
+import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
@@ -163,13 +164,16 @@ const project = Object.assign(new Project(), {
 
 /*
  * The tables the two pages read. Every one of them is empty: Connections
- * reads your logs' switch, the security tools and the SIEMs sent to.
+ * reads your logs' switch, the security tools and the SIEMs sent to, and
+ * the side menu's Workspace section asks which chat workspaces the project
+ * has connected - none, so it offers to connect one.
  */
 const MODEL_TABLES = [
   tableName(SecurityEventConnection),
   tableName(SecurityLogSource),
   tableName(SecurityEventDestination),
   tableName(Service),
+  tableName(WorkspaceProjectAuthToken),
 ];
 const ANALYTICS_TABLES = [tableName(SecurityEvent)];
 // The side menu's badges: open cases, and runs waiting for approval.

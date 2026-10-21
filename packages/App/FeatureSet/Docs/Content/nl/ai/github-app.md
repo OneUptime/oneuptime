@@ -118,11 +118,11 @@ Hij negeert ook elke opmerking die een bot schreef, zijn eigen inbegrepen, en ve
 
 ## Wat het kost en hoe je het begrenst
 
-Elke opdracht die werk start, is een volledige agent-run: een kloon, tot 40 LLM-aanroepen en 100.000 uitvoertokens, en de build- en testopdrachten van je repository als je die hebt ingesteld. De productiequery's van een review, hoogstens 12, tellen mee voor dezelfde 40 aanroepen.
+Elke opdracht die werk start, is een volledige agent-run: een kloon, tot 40 LLM-aanroepen en 100.000 uitvoertokens, en, op een eigen Runner, de build- en testcontroles die de `AGENTS.md` van je repository beschrijft. De productiequery's van een review, hoogstens 12, tellen mee voor dezelfde 40 aanroepen.
 
 GitHub-opdrachten zijn AI-werk buiten incidenten en waarschuwingen, dus er geldt geen dagelijkse limiet voor hersteltaken; de eigen dagelijkse AI-limieten van het project gelden wel, als het project die instelt. De enige andere limiet is die al geldt voor de taken in [Code](/docs/ai/ai-agent):
 
-- **Het maximum aan open pull requests** (**Max Open Fix Pull Requests**, op de pagina **Instellingen** van de repository). **AI-fix-pullrequests** staat op **Geen limiet** tot je **Een limiet** kiest, of **Geen**, dat AI-pull-requests met een fix op die repository blokkeert. Reviews en herzieningen zijn uitgezonderd: geen van beide voegt een pull request toe aan je reviewwachtrij.
+- **Het maximum aan open pull requests** (**Max Open Fix Pull Requests**, onder **Meer instellingen** op de pagina **Instellingen** van de repository). **AI-fix-pullrequests** staat op **Geen limiet** tot je **Een limiet** kiest, of **Geen**, dat AI-pull-requests met een fix op die repository blokkeert. Reviews en herzieningen zijn uitgezonderd: geen van beide voegt een pull request toe aan je reviewwachtrij.
 
 Per issue of pull request is er steeds maar één run van een soort actief. Twee keer vragen vertelt je dat hij er al mee bezig is; om een review vragen terwijl een herziening loopt, start ze allebei, omdat het verschillende verzoeken zijn.
 
@@ -130,9 +130,9 @@ Als een run niet kan starten, zegt de app in de thread waarom: hij mislukt nooit
 
 ## Uitzetten
 
-Elke repository heeft een schakelaar: **Respond to GitHub Commands**, op de pagina **Instellingen** van de repository. Staat die uit, dan negeert de app vermeldingen, toewijzingen en het triggerlabel in die repository, en vertelt hij iedereen die het vraagt waar de schakelaar zit.
+Elke repository heeft een schakelaar: **Respond to GitHub Commands**, op de pagina **Instellingen** van de repository. Hij staat aan voor elke repository en slaat op zodra je hem omzet. Staat die uit, dan negeert de app vermeldingen, toewijzingen en het triggerlabel in die repository, en vertelt hij iedereen die het vraagt waar de schakelaar zit.
 
-Dezelfde pagina bevat het **GitHub Trigger Label**, als je een ander label dan `oneuptime` wilt.
+Dezelfde pagina bevat het **GitHub Trigger Label**, onder **Meer instellingen**, als je een ander label dan `oneuptime` wilt.
 
 ## Waarop je je abonneert
 
