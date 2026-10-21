@@ -32368,5 +32368,6 @@
   "See every resource in your AWS, Azure and Google Cloud accounts, with its key metrics. One command in your cloud's terminal connects an account.": "查看你的 AWS、Azure 和 Google Cloud 帳戶中的每個資源及其關鍵指標。在雲端的終端機中執行一個指令即可連線帳戶。",
   "Still missing: {{fields}}. Paste everything the command printed, or enter the values below.": "仍缺少：{{fields}}。請貼上指令輸出的全部內容，或在下方輸入這些值。",
   "Subscriptions: {{accounts}}": "訂用帳戶：{{accounts}}",
-  "Subscriptions: {{accounts}}_one": "訂用帳戶：{{accounts}}"
+  "Subscriptions: {{accounts}}_one": "訂用帳戶：{{accounts}}",
+  "Signs in and counts what there is to monitor. Nothing changes until you save.": "登入並計算可監控的內容。在你儲存之前不會有任何變更。"
 }

@@ -32368,5 +32368,6 @@
   "See every resource in your AWS, Azure and Google Cloud accounts, with its key metrics. One command in your cloud's terminal connects an account.": "AWS, Azure, Google Cloud 계정의 모든 리소스를 주요 메트릭과 함께 확인하세요. 클라우드 터미널에서 명령 하나만 실행하면 계정이 연결됩니다.",
   "Still missing: {{fields}}. Paste everything the command printed, or enter the values below.": "아직 없는 값: {{fields}}. 명령이 출력한 내용을 모두 붙여 넣거나 아래에 값을 입력하세요.",
   "Subscriptions: {{accounts}}": "구독: {{accounts}}",
-  "Subscriptions: {{accounts}}_one": "구독: {{accounts}}"
+  "Subscriptions: {{accounts}}_one": "구독: {{accounts}}",
+  "Signs in and counts what there is to monitor. Nothing changes until you save.": "로그인해 모니터링할 항목을 셉니다. 저장하기 전까지는 아무것도 바뀌지 않습니다."
 }

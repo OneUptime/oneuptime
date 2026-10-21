@@ -32368,5 +32368,6 @@
   "See every resource in your AWS, Azure and Google Cloud accounts, with its key metrics. One command in your cloud's terminal connects an account.": "هر منبع در حساب‌های AWS، Azure و Google Cloud خود را همراه با متریک‌های کلیدی‌اش ببینید. یک فرمان در ترمینال ابر شما یک حساب را متصل می‌کند.",
   "Still missing: {{fields}}. Paste everything the command printed, or enter the values below.": "هنوز کم است: {{fields}}. همهٔ خروجی فرمان را جای‌گذاری کنید یا مقادیر را در پایین وارد کنید.",
   "Subscriptions: {{accounts}}": "اشتراک‌ها: {{accounts}}",
-  "Subscriptions: {{accounts}}_one": "اشتراک: {{accounts}}"
+  "Subscriptions: {{accounts}}_one": "اشتراک: {{accounts}}",
+  "Signs in and counts what there is to monitor. Nothing changes until you save.": "وارد می‌شود و آنچه برای پایش هست را می‌شمارد. تا وقتی ذخیره نکنید چیزی تغییر نمی‌کند."
 }

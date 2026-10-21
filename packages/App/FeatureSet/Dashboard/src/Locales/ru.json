@@ -32368,5 +32368,6 @@
   "See every resource in your AWS, Azure and Google Cloud accounts, with its key metrics. One command in your cloud's terminal connects an account.": "Смотрите все ресурсы ваших аккаунтов AWS, Azure и Google Cloud с ключевыми метриками. Одна команда в терминале облака подключает аккаунт.",
   "Still missing: {{fields}}. Paste everything the command printed, or enter the values below.": "Ещё не хватает: {{fields}}. Вставьте всё, что вывела команда, или введите значения ниже.",
   "Subscriptions: {{accounts}}": "Подписки: {{accounts}}",
-  "Subscriptions: {{accounts}}_one": "Подписка: {{accounts}}"
+  "Subscriptions: {{accounts}}_one": "Подписка: {{accounts}}",
+  "Signs in and counts what there is to monitor. Nothing changes until you save.": "Выполняет вход и подсчитывает, что можно отслеживать. Ничего не изменится, пока вы не сохраните."
 }

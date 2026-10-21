@@ -32368,5 +32368,6 @@
   "See every resource in your AWS, Azure and Google Cloud accounts, with its key metrics. One command in your cloud's terminal connects an account.": "AWS、Azure、Google Cloud のアカウント内のすべてのリソースを、主要なメトリクスとともに確認できます。クラウドのターミナルでコマンドを 1 つ実行するだけでアカウントを接続できます。",
   "Still missing: {{fields}}. Paste everything the command printed, or enter the values below.": "まだ不足しています: {{fields}}。コマンドの出力をすべて貼り付けるか、下に値を入力してください。",
   "Subscriptions: {{accounts}}": "サブスクリプション: {{accounts}}",
-  "Subscriptions: {{accounts}}_one": "サブスクリプション: {{accounts}}"
+  "Subscriptions: {{accounts}}_one": "サブスクリプション: {{accounts}}",
+  "Signs in and counts what there is to monitor. Nothing changes until you save.": "サインインして、監視できるものを数えます。保存するまで何も変わりません。"
 }

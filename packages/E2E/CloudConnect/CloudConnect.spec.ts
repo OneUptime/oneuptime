@@ -667,6 +667,45 @@ test.describe("the connected accounts", () => {
   });
 });
 
+test.describe("just connected", () => {
+  test("a connection waiting for its first read shows what the read found as soon as it ends, nothing pressed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=new");
+
+    await expect(page.getByText("Waiting for the first read")).toBeVisible();
+    await expect(page.getByText("None yet")).toBeVisible();
+    // Quiet: no "Reading now", and Read now is free.
+    await expect(page.getByTestId("cloud-connection-reading")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Read now" })).toBeEnabled();
+    await shoot(page, "connect-new");
+
+    await page.evaluate(() => {
+      (
+        window as unknown as {
+          __cloudConnectFixture: { finishRead: (id: string) => void };
+        }
+      ).__cloudConnectFixture.finishRead(
+        "20000000-0000-4000-8000-000000000004",
+      );
+    });
+
+    await expect(page.getByText("Working", { exact: true })).toBeVisible();
+    await expect(
+      page.getByTestId("cloud-connection-resource-count"),
+    ).toHaveText("37 resources");
+    await expect(page.getByTestId("cloud-connection-regions")).toHaveText(
+      "westeurope, northeurope",
+    );
+    await expect(page.getByTestId("cloud-connection-last-read")).toContainText(
+      "Last read",
+    );
+    await shoot(page, "connect-new-read");
+  });
+});
+
 test.describe("a connection's own actions", () => {
   test("Test from a row opens on its answer, in its cloud's words, with Test again beside Close", async ({
     page,

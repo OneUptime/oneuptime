@@ -42,6 +42,8 @@ import UserUtil from "Common/UI/Utils/User";
  *               | connected (an AWS account that works, an Azure
  *               subscription that does not, a Google Cloud project that is
  *               turned off)
+ *               | new (an Azure subscription just connected, waiting for
+ *               its first read)
  *   ?role=      owner (default) | member
  *   ?aws=       role (default: this OneUptime can sign in to an AWS role)
  *               | key (it cannot: AWS connects with an access key)
@@ -135,10 +137,27 @@ function connection(id, fields) {
   return item;
 }
 
+// Just connected: no read yet, nothing failed.
+const NEW_CONNECTIONS = [
+  connection("20000000-0000-4000-8000-000000000004", {
+    name: "Microsoft Azure",
+    provider: "azure",
+    config: {
+      authMethod: "azure-client-secret",
+      tenantId: "b3c1b5fc-828c-45fa-a1e1-10d74f6d6e9c",
+      clientId: "00001111-aaaa-2222-bbbb-3333cccc4444",
+      cloud: "public",
+      readIntervalInMinutes: "5",
+    },
+  }),
+];
+
 const connections =
   dataState === "empty"
     ? []
-    : [
+    : dataState === "new"
+      ? NEW_CONNECTIONS
+      : [
         connection("20000000-0000-4000-8000-000000000001", {
           name: "AWS 123456789012",
           provider: "aws",
@@ -380,6 +399,23 @@ window.__cloudConnectFixture = {
       found.lastPulledAt = now;
       found.lastSuccessfulPullAt = now;
       found.lastError = undefined;
+      found.lastPullResult = {
+        status: "success",
+        accounts: ["7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b"],
+        resourceCount: 37,
+        resourceTypes: [{ type: "Microsoft.Compute/virtualMachines", count: 18 }],
+        regions: [
+          { region: "westeurope", count: 29 },
+          { region: "northeurope", count: 8 },
+        ],
+        newResources: 37,
+        archivedResources: 0,
+        pointsWritten: 512,
+        requestCount: 40,
+        warnings: [],
+        durationMs: 4000,
+        finishedAt: now.toISOString(),
+      };
     }
   },
 };

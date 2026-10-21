@@ -32368,5 +32368,6 @@
   "See every resource in your AWS, Azure and Google Cloud accounts, with its key metrics. One command in your cloud's terminal connects an account.": "Bekijk elke resource in je AWS-, Azure- en Google Cloud-accounts met de belangrijkste metrieken. Eén opdracht in de terminal van je cloud koppelt een account.",
   "Still missing: {{fields}}. Paste everything the command printed, or enter the values below.": "Nog niet gevonden: {{fields}}. Plak alles wat de opdracht heeft getoond, of voer de waarden hieronder in.",
   "Subscriptions: {{accounts}}": "Abonnementen: {{accounts}}",
-  "Subscriptions: {{accounts}}_one": "Abonnement: {{accounts}}"
+  "Subscriptions: {{accounts}}_one": "Abonnement: {{accounts}}",
+  "Signs in and counts what there is to monitor. Nothing changes until you save.": "Meldt zich aan en telt wat er te monitoren is. Er verandert niets totdat je opslaat."
 }

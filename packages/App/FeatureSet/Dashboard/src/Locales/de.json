@@ -32368,5 +32368,6 @@
   "See every resource in your AWS, Azure and Google Cloud accounts, with its key metrics. One command in your cloud's terminal connects an account.": "Sieh jede Ressource in deinen AWS-, Azure- und Google-Cloud-Konten mit ihren wichtigsten Metriken. Ein Befehl im Terminal deiner Cloud verbindet ein Konto.",
   "Still missing: {{fields}}. Paste everything the command printed, or enter the values below.": "Es fehlt noch: {{fields}}. Füge alles ein, was der Befehl ausgegeben hat, oder gib die Werte unten ein.",
   "Subscriptions: {{accounts}}": "Abonnements: {{accounts}}",
-  "Subscriptions: {{accounts}}_one": "Abonnement: {{accounts}}"
+  "Subscriptions: {{accounts}}_one": "Abonnement: {{accounts}}",
+  "Signs in and counts what there is to monitor. Nothing changes until you save.": "Meldet sich an und zählt, was es zu überwachen gibt. Nichts ändert sich, bis du speicherst."
 }

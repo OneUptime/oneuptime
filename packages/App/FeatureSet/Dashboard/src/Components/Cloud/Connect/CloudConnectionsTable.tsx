@@ -32,8 +32,10 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import AppLink from "../../AppLink/AppLink";
@@ -54,6 +56,7 @@ import {
   MORE_COUNT,
   NOT_READ_YET,
   READING_NOW,
+  doesNameSayCloud,
   drawCloudTemplate,
   getAccountsNotInName,
   getCloudConnectionHealth,
@@ -73,7 +76,9 @@ import {
  *
  * What can be done with a connection: read it now (the row then says it
  * is reading, and the list catches up by itself when the read ends), test
- * it, see why it failed, turn it off or on, edit or remove it. Create and
+ * it, see why it failed, turn it off or on, edit or remove it. A
+ * connection waiting for its first read is watched the same way, quietly:
+ * its row shows what the read found once it ends. Create and
  * edit go through CloudConnectionFormModal (opened by the page): its
  * fields depend on the cloud and its secrets are write-only, which
  * ModelTable's own form cannot express.
@@ -93,6 +98,12 @@ export interface ComponentProps {
 interface ReadInProgress {
   before: string;
   startedAt: number;
+  /*
+   * A first read the list watches on its own: the row says nothing more
+   * than "Waiting for the first read" until it ends. A read someone started
+   * (Read now) says "Reading now..." and locks Read now.
+   */
+  isQuiet: boolean;
 }
 
 const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
@@ -106,8 +117,12 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
     { type: AlertType; text: string } | undefined
   >(undefined);
   const [refreshCounter, setRefreshCounter] = useState<number>(0);
-  // The reads Read now started that have not ended yet, by connection id.
+  // The reads watched that have not ended yet, by connection id.
   const [reading, setReading] = useState<Record<string, ReadInProgress>>({});
+  // Connections whose first read was watched: once is enough, ended or not.
+  const firstReadsWatched: MutableRefObject<Set<string>> = useRef<
+    Set<string>
+  >(new Set<string>());
 
   const refresh: () => void = (): void => {
     setRefreshCounter((value: number): number => {
@@ -182,10 +197,64 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
     };
   }, [reading]);
 
+  // A read someone started from the list, not yet ended.
   const isReading: (item: CloudConnection) => boolean = (
     item: CloudConnection,
   ): boolean => {
-    return Boolean(item.id && reading[item.id.toString()]);
+    const read: ReadInProgress | undefined = item.id
+      ? reading[item.id.toString()]
+      : undefined;
+
+    return Boolean(read && !read.isQuiet);
+  };
+
+  /*
+   * Each load: a connection waiting for its first read - one just
+   * connected - is watched quietly, once, so its row shows the read as soon
+   * as it ends.
+   */
+  const watchFirstReads: (connections: Array<CloudConnection>) => void = (
+    connections: Array<CloudConnection>,
+  ): void => {
+    const waiting: Array<CloudConnection> = connections.filter(
+      (item: CloudConnection): boolean => {
+        return (
+          Boolean(item.id) &&
+          !firstReadsWatched.current.has(item.id!.toString()) &&
+          getCloudConnectionHealth(item).key === "waiting"
+        );
+      },
+    );
+
+    if (waiting.length === 0) {
+      return;
+    }
+
+    for (const item of waiting) {
+      firstReadsWatched.current.add(item.id!.toString());
+    }
+
+    setReading(
+      (
+        current: Record<string, ReadInProgress>,
+      ): Record<string, ReadInProgress> => {
+        const next: Record<string, ReadInProgress> = { ...current };
+
+        for (const item of waiting) {
+          const id: string = item.id!.toString();
+
+          if (!next[id]) {
+            next[id] = {
+              before: getLastReadKey(item.lastPulledAt),
+              startedAt: Date.now(),
+              isQuiet: true,
+            };
+          }
+        }
+
+        return next;
+      },
+    );
   };
 
   const setEnabled: (
@@ -315,10 +384,11 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
             lastError: true,
           }}
           onFetchSuccess={(
-            _data: Array<CloudConnection>,
+            data: Array<CloudConnection>,
             totalCount: number,
           ) => {
             props.onConnectionsLoaded(totalCount);
+            watchFirstReads(data);
           }}
           isDeleteable={true}
           isEditable={false}
@@ -391,6 +461,7 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                         [item.id!.toString()]: {
                           before: getLastReadKey(item.lastPulledAt),
                           startedAt: Date.now(),
+                          isQuiet: false,
                         },
                       };
                     },
@@ -490,11 +561,32 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                   getCloudConnectionDefinition(item.provider);
                 const summary: CloudConnectionReadSummary | undefined =
                   readCloudConnectionReadSummary(item.lastPullResult);
-                // What the name does not already say ("AWS 123456789012" does).
+                /*
+                 * Under the name, one quiet line: its cloud, then what it
+                 * reads - each only when the name does not say it already
+                 * ("Microsoft Azure", "AWS 123456789012").
+                 */
                 const accounts: Array<string> = getAccountsNotInName({
                   name: item.name,
                   accounts: summary?.accounts || [],
                 });
+                const cloudTitle: string = definition
+                  ? translator.translateText(definition.title) ||
+                    definition.title
+                  : item.provider || "";
+                const cloud: string | undefined =
+                  definition &&
+                  doesNameSayCloud({
+                    name: item.name,
+                    cloudTitle: definition.title,
+                  })
+                    ? undefined
+                    : cloudTitle;
+                const subtitle: string = [cloud, accounts.join(", ")]
+                  .filter((part: string | undefined): boolean => {
+                    return Boolean(part);
+                  })
+                  .join(" · ");
 
                 return (
                   <div className="flex items-center gap-3">
@@ -507,20 +599,25 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                       >
                         {item.name}
                       </div>
-                      {/* Its cloud, then what it reads: one quiet line. */}
-                      <div className="truncate text-xs text-gray-500">
-                        {definition
-                          ? translator.translateText(definition.title)
-                          : item.provider}
-                        {accounts.length > 0 ? (
-                          <span data-testid="cloud-connection-accounts">
-                            {" · "}
-                            {accounts.join(", ")}
-                          </span>
-                        ) : (
-                          <></>
-                        )}
-                      </div>
+                      {subtitle ? (
+                        <div
+                          className="truncate text-xs text-gray-500"
+                          title={subtitle}
+                          data-testid="cloud-connection-subtitle"
+                        >
+                          {cloud || ""}
+                          {accounts.length > 0 ? (
+                            <span data-testid="cloud-connection-accounts">
+                              {cloud ? " · " : ""}
+                              {accounts.join(", ")}
+                            </span>
+                          ) : (
+                            <></>
+                          )}
+                        </div>
+                      ) : (
+                        <></>
+                      )}
                     </div>
                   </div>
                 );

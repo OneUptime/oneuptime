@@ -271,6 +271,45 @@ describe("a row", () => {
     ).toHaveTextContent("123456789012");
   });
 
+  test("a name that says its cloud is not followed by it again: the line under it says what it reads", () => {
+    renderTable();
+
+    const azure: HTMLElement = drawCell(
+      "Account",
+      connection({
+        name: "Microsoft Azure",
+        provider: CloudProvider.Azure,
+        lastPullResult: readResult({
+          accounts: ["7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b"],
+        }),
+      }),
+    );
+
+    expect(azure.textContent?.split("Microsoft Azure")).toHaveLength(2);
+    expect(
+      within(azure).getByTestId("cloud-connection-subtitle"),
+    ).toHaveTextContent(/^7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b$/);
+    // Cut, not widening the table: the whole line on hover.
+    expect(
+      within(azure).getByTestId("cloud-connection-subtitle"),
+    ).toHaveAttribute("title", "7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b");
+
+    // The name says both: nothing under it.
+    const gcp: HTMLElement = drawCell(
+      "Account",
+      connection({
+        name: "Google Cloud acme-prod",
+        provider: CloudProvider.GCP,
+        lastPullResult: readResult({ accounts: ["acme-prod"] }),
+      }),
+    );
+
+    expect(gcp).toHaveTextContent(/^Google Cloud acme-prod$/);
+    expect(
+      within(gcp).queryByTestId("cloud-connection-subtitle"),
+    ).not.toBeInTheDocument();
+  });
+
   test("the account says once what its name already says", () => {
     renderTable();
 
@@ -573,6 +612,99 @@ describe("its actions", () => {
     expect(action("Read now").getDisabledReason!(item)).toBeUndefined();
     // The list loads again: whatever it now holds is what is shown.
     expect(tableProps()["refreshToggle"]).not.toBe(toggleBefore);
+  });
+
+  test("a connection waiting for its first read is watched quietly, once: its row shows the read when it ends", async () => {
+    jest.useFakeTimers();
+    // Not read yet.
+    getItemSpy.mockImplementation(async (): Promise<CloudConnection> => {
+      return connection();
+    });
+    renderTable();
+    const waiting: CloudConnection = connection();
+    const loaded: (data: Array<CloudConnection>, count: number) => void =
+      tableProps()["onFetchSuccess"] as (
+        data: Array<CloudConnection>,
+        count: number,
+      ) => void;
+
+    await act(async () => {
+      loaded([waiting], 1);
+    });
+
+    const toggleBefore: unknown = tableProps()["refreshToggle"];
+
+    // Quiet: the row says no more than it is waiting, and Read now is free.
+    expect(
+      within(drawCell("Status", waiting)).queryByTestId(
+        "cloud-connection-reading",
+      ),
+    ).not.toBeInTheDocument();
+    expect(action("Read now").getDisabledReason!(waiting)).toBeUndefined();
+
+    await tick(READ_NOW_POLL_MS);
+
+    expect(getItemSpy).toHaveBeenCalledTimes(1);
+    expect(tableProps()["refreshToggle"]).toBe(toggleBefore);
+
+    // The first read ends: the list loads again by itself.
+    getItemSpy.mockImplementation(async (): Promise<CloudConnection> => {
+      return connection({ lastPulledAt: READ_AT });
+    });
+
+    await tick(READ_NOW_POLL_MS);
+
+    expect(tableProps()["refreshToggle"]).not.toBe(toggleBefore);
+
+    // Once is enough: a later load does not watch it again.
+    const asked: number = getItemSpy.mock.calls.length;
+
+    await act(async () => {
+      (
+        tableProps()["onFetchSuccess"] as (
+          data: Array<CloudConnection>,
+          count: number,
+        ) => void
+      )([waiting], 1);
+    });
+    await tick(READ_NOW_POLL_MS * 2);
+
+    expect(getItemSpy.mock.calls.length).toBe(asked);
+  });
+
+  test("a connection that works, failed or is turned off is not watched", async () => {
+    jest.useFakeTimers();
+    renderTable();
+
+    await act(async () => {
+      (
+        tableProps()["onFetchSuccess"] as (
+          data: Array<CloudConnection>,
+          count: number,
+        ) => void
+      )(
+        [
+          connection({
+            _id: "20000000-0000-4000-8000-000000000011",
+            lastPulledAt: READ_AT,
+            lastSuccessfulPullAt: READ_AT,
+          }),
+          connection({
+            _id: "20000000-0000-4000-8000-000000000012",
+            lastPulledAt: READ_AT,
+            lastError: "AccessDenied",
+          }),
+          connection({
+            _id: "20000000-0000-4000-8000-000000000013",
+            isEnabled: false,
+          }),
+        ],
+        3,
+      );
+    });
+    await tick(READ_NOW_POLL_MS * 2);
+
+    expect(getItemSpy).not.toHaveBeenCalled();
   });
 
   test("a connection deleted while it reads ends the watch", async () => {

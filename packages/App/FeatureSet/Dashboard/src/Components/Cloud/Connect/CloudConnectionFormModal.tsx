@@ -565,6 +565,7 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
               : undefined
           }
           autoStart={stepId === TEST_STEP_ID}
+          isEditing={isEditing}
           runTest={(): Promise<CloudConnectionTestResult> => {
             return runCloudConnectionTest(
               cloudConnectionTestBody({

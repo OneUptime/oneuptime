@@ -358,6 +358,20 @@ export function getAccountsNotInName(data: {
 }
 
 /*
+ * Whether a connection's name already says its cloud: "Microsoft Azure",
+ * the name a new Azure connection is given, or "Google Cloud acme-prod".
+ * The quiet line under the name then leaves the cloud out.
+ */
+export function doesNameSayCloud(data: {
+  name: string | undefined;
+  cloudTitle: string;
+}): boolean {
+  const title: string = data.cloudTitle.trim().toLowerCase();
+
+  return Boolean(title) && (data.name || "").toLowerCase().includes(title);
+}
+
+/*
  * Why the Credentials step cannot go on yet, said on the box the command's
  * output is pasted into: nothing there, or a value still missing from what
  * was pasted or typed.

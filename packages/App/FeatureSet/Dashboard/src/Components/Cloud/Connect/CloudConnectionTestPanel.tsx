@@ -261,6 +261,8 @@ export interface ComponentProps {
    * Test again runs it again.
    */
   autoStart?: boolean | undefined;
+  // Editing a saved connection: Save changes, not Connect, keeps what it tests.
+  isEditing?: boolean | undefined;
 }
 
 // The connection form's Test step: what the test does, its button, its answer.
@@ -290,9 +292,13 @@ const CloudConnectionTestPanel: FunctionComponent<ComponentProps> = (
             {translator.translateText("Test the connection")}
           </div>
           <div className="mt-1 text-sm text-gray-500">
-            {translator.translateText(
-              "Signs in and counts what there is to monitor. Nothing is kept until you connect.",
-            )}
+            {props.isEditing
+              ? translator.translateText(
+                  "Signs in and counts what there is to monitor. Nothing changes until you save.",
+                )
+              : translator.translateText(
+                  "Signs in and counts what there is to monitor. Nothing is kept until you connect.",
+                )}
           </div>
         </div>
         <div className="flex-shrink-0">

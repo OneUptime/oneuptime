@@ -600,6 +600,10 @@ describe("editing a connection", () => {
 
     // The Test step tests the saved connection, with what the form changed, by itself.
     await within(modal()).findByTestId("cloud-connection-test-pass");
+    // An edit is kept by Save changes, not by Connect.
+    expect(
+      within(modal()).getByTestId("cloud-connection-test-panel"),
+    ).toHaveTextContent("Nothing changes until you save.");
     expect(postSpy).toHaveBeenCalledTimes(1);
     expect(postSpy.mock.calls[0]![0].data).toMatchObject({
       connectionId: connection._id,
