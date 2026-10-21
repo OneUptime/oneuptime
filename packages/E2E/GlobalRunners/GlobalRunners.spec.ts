@@ -1073,6 +1073,56 @@ test.describe("a project with a default Runner", () => {
     await screenshot(page, "runner-page-project-default-locked");
   });
 
+  test("a long name ends in an ellipsis of its own in the list, its pill under it, and the row shows it in full under the pointer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const longName: string =
+      "production-eu-west-1-bastion-primary-runner-for-databases";
+    await openRunners(page, "custom=2&default=1&longname=1");
+
+    const name: Locator = card(page, "Custom Runners")
+      .getByTestId("runner-name")
+      .filter({ hasText: longName });
+    await expect(name).toHaveText(longName);
+
+    const drawn: { isCutShort: boolean; textOverflow: string } =
+      await name.evaluate(
+        (element: Element): { isCutShort: boolean; textOverflow: string } => {
+          return {
+            isCutShort: element.scrollWidth > element.clientWidth,
+            textOverflow: window.getComputedStyle(element).textOverflow,
+          };
+        },
+      );
+    expect(drawn).toEqual({ isCutShort: true, textOverflow: "ellipsis" });
+
+    // The pill is not pushed off the cell by the name: it starts under it.
+    const nameBox: { x: number; y: number; height: number } | null =
+      await name.boundingBox();
+    const pillBox: { x: number; y: number } | null = await card(
+      page,
+      "Custom Runners",
+    )
+      .getByTestId("runner-project-default-pill")
+      .boundingBox();
+    expect(nameBox).not.toBeNull();
+    expect(pillBox).not.toBeNull();
+    expect(pillBox!.y).toBeGreaterThanOrEqual(nameBox!.y + nameBox!.height);
+    expect(Math.abs(pillBox!.x - nameBox!.x)).toBeLessThanOrEqual(1);
+
+    // Pointed at, the cell names the Runner in full.
+    await name.hover();
+    await expect
+      .poll(async (): Promise<string> => {
+        return (await name.locator("xpath=../..").getAttribute("title")) || "";
+      })
+      .toContain(longName);
+    expect(await noHorizontalScroll(page)).toBeLessThanOrEqual(0);
+    await screenshot(page, "runners-default-long-name");
+  });
+
   test("a phone, dark: the default's pill and the Runners list stay on the screen", async ({
     page,
   }: {

@@ -506,15 +506,20 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
              * The project's default Runner - the one the steps that pick no
              * Runner run on - says so beside its name, where a reader looks
              * first, rather than in a column of its own that would push
-             * Last Seen under the row's buttons.
+             * Last Seen under the row's buttons. A long name ends in an
+             * ellipsis of its own, as a plain name cell's does (the row
+             * shows it in full under the pointer), and the pill goes under
+             * it when the two do not fit on one line.
              */
             field: { name: true },
             title: "Name",
             type: FieldType.Text,
             getElement: (item: Runner): ReactElement => {
               return (
-                <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span>{item.name}</span>
+                <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="min-w-0 truncate" data-testid="runner-name">
+                    {item.name}
+                  </span>
                   {item.isProjectDefault ? (
                     <span data-testid="runner-project-default-pill">
                       <Pill

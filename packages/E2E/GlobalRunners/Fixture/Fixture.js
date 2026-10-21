@@ -26,6 +26,8 @@
  *                            the default is Runbooks -> Runners
  *   - runner=2               page=runner opens the second Runner of the
  *                            project's own (office-runner; custom=2)
+ *   - longname=1             the first Runner of the project's own has a
+ *                            long name (production-eu-west-1-bastion-...)
  *   - picks=0                no code repository picks that Runner
  *                            (by default one does: checkout-service)
  *   - global=<n>             how many global Runners the server has: 0, 1
@@ -125,6 +127,7 @@ const javaScriptPick = params.get("jspick") === "global" ? "global" : "";
 const bashPick = params.get("bashpick") === "global" ? "global" : "";
 const officeRunsRunbooks = params.get("norunbooks") !== "1";
 const runnerPageIndex = params.get("runner") === "2" ? 1 : 0;
+const longRunnerName = params.get("longname") === "1";
 
 const wait = (ms) => {
   return new Promise((resolve) => {
@@ -245,7 +248,9 @@ const CUSTOM_RUNNERS = [
   record(Runner, {
     _id: CUSTOM_RUNNER_IDS[0],
     projectId: new ObjectID(PROJECT_ID),
-    name: "prod-eu-west-1",
+    name: longRunnerName
+      ? "production-eu-west-1-bastion-primary-runner-for-databases"
+      : "prod-eu-west-1",
     description: "Production VPC; reaches the databases.",
     key: "a-key-only-admins-read-0123456789",
     isGlobalRunner: false,
