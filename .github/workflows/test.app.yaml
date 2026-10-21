@@ -347,6 +347,11 @@ jobs:
           # groups are kept to. External MCP Servers (about a minute with its
           # bundle locally, Chromium only: Project Settings > AI > External
           # MCP Servers and a server's page) joined them too: about 18.
+          # Resource Topology (about 1.5 minutes with its bundle locally:
+          # every resource's Topology page - a vCenter, a Kubernetes cluster,
+          # a host and six more - and the master Topology's links into them,
+          # at a laptop's and a phone's width, dark and German, Chromium
+          # only) joined them on 2026-10-21: about 20 for the eight.
           - group: 7
             browsers: chromium
             suites: >-
@@ -357,6 +362,7 @@ jobs:
               test-public-dashboard-theme-ui
               test-dashboard-templates-ui
               test-external-mcp-servers-ui
+              test-resource-topology-ui
           # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
           # dashboard's default time range and auto-refresh inside OneUptime
           # and on its public page, at a laptop's width and, for what a phone
@@ -536,6 +542,8 @@ jobs:
             output/playwright/auto-remediation-rules-ui/test-results
             output/playwright/external-mcp-servers-ui/*.png
             output/playwright/external-mcp-servers-ui/test-results
+            output/playwright/resource-topology-ui/*.png
+            output/playwright/resource-topology-ui/test-results
             output/playwright/runbook-variables-ui/*.png
             output/playwright/runbook-variables-ui/test-results
             output/playwright/runbook-steps-ui/*.png

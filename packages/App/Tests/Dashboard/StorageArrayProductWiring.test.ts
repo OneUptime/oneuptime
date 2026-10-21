@@ -72,6 +72,8 @@ const STORAGE_ARRAY_PAGE_KEYS: ReadonlyArray<string> = [
   "STORAGE_ARRAYS_SETTINGS_LABEL_RULES",
   "STORAGE_ARRAYS_SETTINGS_LABEL_RULE_VIEW",
   "STORAGE_ARRAY_VIEW",
+  // The array drawn as one map: Components/ResourceTopology.
+  "STORAGE_ARRAY_VIEW_TOPOLOGY",
   "STORAGE_ARRAY_VIEW_VOLUMES",
   "STORAGE_ARRAY_VIEW_VOLUME_DETAIL",
   "STORAGE_ARRAY_VIEW_HOSTS",
@@ -125,6 +127,7 @@ const BREADCRUMB_PAGE_KEYS: ReadonlyArray<string> = NAVIGABLE_PAGE_KEYS.filter(
  */
 const VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["Index.tsx", "STORAGE_ARRAY_VIEW"],
+  ["Topology.tsx", "STORAGE_ARRAY_VIEW_TOPOLOGY"],
   ["Volumes.tsx", "STORAGE_ARRAY_VIEW_VOLUMES"],
   ["VolumeDetail.tsx", "STORAGE_ARRAY_VIEW_VOLUME_DETAIL"],
   ["Hosts.tsx", "STORAGE_ARRAY_VIEW_HOSTS"],

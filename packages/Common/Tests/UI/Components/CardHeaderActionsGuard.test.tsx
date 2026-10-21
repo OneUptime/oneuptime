@@ -584,7 +584,7 @@ describe("hand-built card headers", () => {
     "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/SecurityEventsHowItWorksCard.tsx":
       'className="flex flex-shrink-0 items-center gap-2 self-end sm:self-auto"',
     "packages/App/FeatureSet/Dashboard/src/Components/Topology/InfrastructureExplorer.tsx":
-      "flex-shrink-0 self-end border border-gray-200 text-gray-600 hover:bg-gray-50 sm:self-auto",
+      'className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2 self-end sm:self-auto"',
     "packages/App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionAIAssistance.tsx":
       'className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2"',
   };

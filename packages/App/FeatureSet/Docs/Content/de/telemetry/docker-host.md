@@ -129,7 +129,7 @@ Everything is ready. Begin running and processing data.
 
 ### Den Host in OneUptime finden
 
-Öffnen Sie **Produkte → Infrastruktur → Docker → Alle Hosts**. Der Host erscheint innerhalb etwa einer Minute unter seinem `DOCKER_HOST_NAME`, mit seinen Containern, Metriken und Logs. Der KI-Agent wird auf der Seite **KI-Agent** des Hosts und unten in seiner **Übersicht** als verbunden angezeigt.
+Öffnen Sie **Produkte → Infrastruktur → Docker → Alle Hosts**. Der Host erscheint innerhalb etwa einer Minute unter seinem `DOCKER_HOST_NAME`, mit seinen Containern, Metriken und Logs. Der KI-Agent wird auf der Seite **KI-Agent** des Hosts und unten in seiner **Übersicht** als verbunden angezeigt. Die Seite **Topologie** des Hosts zeichnet seine Compose-Projekte, Container, Images, Netzwerke und Volumes als eine Karte: siehe [Topologie](/docs/telemetry/topology#die-eigene-karte-einer-ressource-öffnen).
 :::
 
 ## Umgebungsvariablen

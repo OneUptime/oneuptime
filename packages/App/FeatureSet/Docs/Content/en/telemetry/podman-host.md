@@ -129,7 +129,7 @@ Everything is ready. Begin running and processing data.
 
 ### Find the host in OneUptime
 
-Open **Products → Infrastructure → Podman → All Hosts**. The host appears under its `PODMAN_HOST_NAME` within a minute or so, with its containers, metrics and logs. The AI agent shows as connected on the host's **AI agent** page, and at the bottom of its **Overview**.
+Open **Products → Infrastructure → Podman → All Hosts**. The host appears under its `PODMAN_HOST_NAME` within a minute or so, with its containers, metrics and logs. The AI agent shows as connected on the host's **AI agent** page, and at the bottom of its **Overview**. The host's **Topology** page draws its Compose projects, containers, images, networks and volumes as one map: see [Topology](/docs/telemetry/topology#open-a-resources-own-map).
 :::
 
 ## Environment variables

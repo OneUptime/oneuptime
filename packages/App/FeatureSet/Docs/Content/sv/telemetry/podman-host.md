@@ -129,7 +129,7 @@ Everything is ready. Begin running and processing data.
 
 ### Hitta värden i OneUptime
 
-Öppna **Produkter → Infrastruktur → Podman → Alla värdar**. Värden visas under sitt `PODMAN_HOST_NAME` inom en minut eller så, med sina containrar, mätvärden och loggar. AI-agenten visas som ansluten på värdens sida **AI-agent**, och längst ned på dess **Översikt**.
+Öppna **Produkter → Infrastruktur → Podman → Alla värdar**. Värden visas under sitt `PODMAN_HOST_NAME` inom en minut eller så, med sina containrar, mätvärden och loggar. AI-agenten visas som ansluten på värdens sida **AI-agent**, och längst ned på dess **Översikt**. Värdens sida **Topologi** ritar dess Compose-projekt, containrar, avbildningar, nätverk och volymer på en karta: se [Topologi](/docs/telemetry/topology#öppna-en-resurs-egen-karta).
 :::
 
 ## Miljövariabler
