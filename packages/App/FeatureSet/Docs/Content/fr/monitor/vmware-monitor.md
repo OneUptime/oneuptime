@@ -260,7 +260,7 @@ Envoyées uniquement pour les clusters avec vSAN, leurs hôtes et les VM d'un da
 | `vcenter.vm.vsan.throughput`        | `By/s`            | Débit vSAN de la VM, par `direction`                                                                                                            |
 
 > [!NOTE]
-> L'état d'alimentation d'une VM n'est pas une métrique. Le récepteur n'envoie `vcenter.vm.cpu.*` que pour les VM allumées, donc OneUptime distingue **Powered on** de **Powered off** selon que des données CPU sont arrivées dans la même collecte que les données mémoire et disque de la VM ; la page **Virtual Machines** du vCenter affiche le résultat. Pour alerter sur des hôtes éteints ou sur le nombre de VM en cours d'exécution, utilisez l'attribut `power_state` de `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` ou `vcenter.cluster.vm.count`.
+> L'état d'alimentation d'une VM n'est pas une métrique. Le récepteur n'envoie `vcenter.vm.cpu.*` que pour les VM allumées, donc OneUptime distingue **Powered on** de **Powered off** selon que des données CPU sont arrivées dans la même collecte que les données mémoire et disque de la VM ; la page **Machines virtuelles** du vCenter affiche le résultat. Pour alerter sur des hôtes éteints ou sur le nombre de VM en cours d'exécution, utilisez l'attribut `power_state` de `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` ou `vcenter.cluster.vm.count`.
 
 ## Critères de surveillance
 

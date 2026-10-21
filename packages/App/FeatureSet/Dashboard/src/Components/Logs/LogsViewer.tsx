@@ -195,6 +195,13 @@ export interface ComponentProps {
    * unset and keep their noLogsMessage.
    */
   offersSetupWhenEmpty?: boolean | undefined;
+  /*
+   * An embed's own block for an empty list that no chip or search narrows,
+   * in place of noLogsMessage: how to get logs here at all (an ESXi host's
+   * Logs tab shows how to forward the host's syslog). The Logs page's
+   * offersSetupWhenEmpty wins when both are set.
+   */
+  emptyContentWhenUnfiltered?: ReactElement | undefined;
   logQuery?: Query<Log> | undefined;
   /*
    * Entity scope with attribute fallback (contract C4): compiles server-side
@@ -2165,7 +2172,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   /*
    * What an empty, unnarrowed list shows on the Logs page: the setup guide
    * and, on a short range, the past week. Embedded viewers (a service's or a
-   * host's logs) keep the plain empty message.
+   * host's logs) keep the plain empty message, unless they bring a block of
+   * their own (emptyContentWhenUnfiltered).
    */
   const firstSteps: ReactElement | undefined = props.offersSetupWhenEmpty ? (
     <TelemetryFirstStepsEmptyState
@@ -2173,7 +2181,9 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       timeRange={timeRange}
       onTimeRangeChange={handleTimeRangeChange}
     />
-  ) : undefined;
+  ) : (
+    props.emptyContentWhenUnfiltered
+  );
 
   const rebuildFilterOptionsFromFacets: (
     facets: Map<string, Set<string>>,

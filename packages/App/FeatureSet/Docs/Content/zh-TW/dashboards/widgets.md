@@ -178,7 +178,7 @@ SLO 小工具可以在 [公開儀表板](/docs/dashboards/sharing) 上使用。�
 | **Docker Swarm** | **節點**、**服務** | Docker Swarm 代理程式 |
 | **Podman** | **主機**、**容器**、**映像**、**網路**、**磁碟區** | Podman 代理程式 |
 | **Proxmox** | **節點**、**Guests** | Proxmox 代理程式 |
-| **VMware** | **主機**、**Virtual Machines** | VMware 代理程式，或你連線的 vCenter |
+| **VMware** | **主機**、**虛擬機器** | VMware 代理程式，或你連線的 vCenter |
 | **Ceph** | 以依狀態著色的牆顯示的 **OSDs** ，以及 **Pools** | Ceph 代理程式 |
 | **儲存陣列** | **磁碟區**，以及以依狀態著色的牆顯示的 **Hardware** | Storage Array 代理程式 |
 
