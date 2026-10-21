@@ -67,6 +67,8 @@ import {
 import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import { resolveSpacing } from "../../ResponsiveSpacing";
+import { WIDTHS_IN_PX } from "../../RenderedMarkup";
 
 /*
  * The diagnostics modal, run details and their util, driven by a Google
@@ -637,6 +639,59 @@ describe("SecurityEventConnectionDiagnostics for a Google SecOps connection", ()
     fireEvent.click(screen.getByRole("button", { name: "View run" }));
     expect(screen.getByRole("region", { name: "Run details" })).toBeVisible();
     expect(API.post).not.toHaveBeenCalled();
+  });
+
+  test("Recent runs keeps its sentence right under its heading and across the dialog, with Refresh history on the heading's line", async (): Promise<void> => {
+    renderDiagnostics();
+
+    const header: HTMLElement = await screen.findByTestId(
+      "security-connection-run-history-header",
+    );
+    const heading: HTMLElement = within(header).getByRole("heading", {
+      name: "Recent runs",
+    });
+    const sentence: HTMLElement = within(header).getByText(
+      /^The 20 most recent runs/,
+    );
+    const refresh: HTMLElement = within(header).getByRole("button", {
+      name: "Refresh history",
+    });
+    const line: HTMLElement = heading.parentElement!;
+
+    /*
+     * The heading and Refresh history share one line; the sentence follows
+     * it 4px under the heading, as Scheduled polling's does, and runs the
+     * dialog's whole width - under a row as tall as the link it sat 20px
+     * below the heading, and in a column beside the link a phone squeezed
+     * it into four lines.
+     */
+    expect(Array.from(header.children)).toEqual([line, sentence]);
+    expect(Array.from(line.children)).toEqual([heading, refresh.parentElement]);
+    expect(line).toHaveClass("flex", "items-center", "justify-between");
+    expect(sentence).toHaveClass("mt-1");
+    expect(sentence.parentElement).toBe(header);
+
+    /*
+     * The link's text on the heading's line, its padding hanging over it:
+     * the box it is in reaches back as far as the link's padding.
+     */
+    expect(refresh.parentElement).toHaveClass("items-center");
+    for (const width of WIDTHS_IN_PX) {
+      const margin: { top: number; bottom: number } = resolveSpacing(
+        refresh.parentElement!.getAttribute("class"),
+        width,
+        "margin",
+      );
+      const padding: { top: number; bottom: number } = resolveSpacing(
+        refresh.getAttribute("class"),
+        width,
+        "padding",
+      );
+
+      expect(padding.top).toBeGreaterThan(0);
+      expect(padding.top + margin.top).toBe(0);
+      expect(padding.bottom + margin.bottom).toBe(0);
+    }
   });
 
   test("a selected run leaving the recent history does not disable actions", async (): Promise<void> => {

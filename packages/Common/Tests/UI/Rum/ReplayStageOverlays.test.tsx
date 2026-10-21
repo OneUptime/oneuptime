@@ -2561,3 +2561,196 @@ describe("ReplayStageOverlays screenshot dock", () => {
     });
   });
 });
+
+/*
+ * Issue #5132: every copy control copies, or says it could not. The URL
+ * bar's Copy said "Copied" once the address was on the clipboard, and
+ * nothing at all when the browser refused it - a button that seemed to do
+ * nothing. It copies through the product's one clipboard writer now (the
+ * async clipboard, then the older copy command a plain-http page still
+ * has), says Copy failed when both refuse, and selects the address in the
+ * bar so it can be copied by hand.
+ */
+describe("ReplayStageOverlays' URL bar Copy (issue #5132)", () => {
+  const PAGE_URL: string = "https://app.acme.com/checkout/payment?step=2";
+
+  const originalExecCommand: PropertyDescriptor | undefined =
+    Object.getOwnPropertyDescriptor(document, "execCommand");
+
+  function installExecCommand(
+    execCommand: ((command: string) => boolean) | undefined,
+  ): void {
+    Object.defineProperty(document, "execCommand", {
+      value: execCommand,
+      configurable: true,
+      writable: true,
+    });
+  }
+
+  function renderUrlBar(): void {
+    renderOverlays({
+      signals: [makeNavigation(1000, PAGE_URL)],
+      chunks: [],
+    });
+  }
+
+  function copyButton(): HTMLElement {
+    return screen.getByTestId("replay-url-copy");
+  }
+
+  function copyStatus(): HTMLElement {
+    return screen.getByTestId("replay-url-copy-status");
+  }
+
+  async function pressCopy(): Promise<void> {
+    await act(async (): Promise<void> => {
+      fireEvent.click(copyButton());
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+  }
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    setClipboard(null);
+    installExecCommand(undefined);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    window.getSelection()?.removeAllRanges();
+    setClipboard(null);
+
+    if (originalExecCommand) {
+      Object.defineProperty(document, "execCommand", originalExecCommand);
+    } else {
+      Reflect.deleteProperty(document, "execCommand");
+    }
+  });
+
+  it("idle: Copy the URL, and nothing said yet", () => {
+    renderUrlBar();
+
+    expect(copyButton()).toHaveAttribute("aria-label", "Copy the URL");
+    expect(copyButton()).toHaveAttribute("title", "Copy the URL");
+    expect(copyButton()).toHaveAttribute("data-copy-state", "idle");
+    expect(copyStatus()).toHaveAttribute("role", "status");
+    expect(copyStatus()).toBeEmptyDOMElement();
+  });
+
+  it("copies the address and only then says Copied, for two seconds", async () => {
+    const writeText: MockFunction = getJestMockFunction();
+
+    writeText.mockResolvedValue(undefined);
+    setClipboard(writeText);
+    renderUrlBar();
+
+    await pressCopy();
+
+    expect(writeText).toHaveBeenCalledWith(PAGE_URL);
+    expect(copyButton()).toHaveAttribute("aria-label", "URL copied");
+    expect(copyButton()).toHaveAttribute("title", "Copied");
+    expect(copyButton()).toHaveAttribute("data-copy-state", "copied");
+    expect(copyButton().className).toContain("text-emerald-600");
+    expect(copyStatus()).toHaveTextContent("URL copied");
+
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    expect(copyButton()).toHaveAttribute("aria-label", "Copy the URL");
+    expect(copyButton()).toHaveAttribute("data-copy-state", "idle");
+    expect(copyStatus()).toBeEmptyDOMElement();
+  });
+
+  it("on a plain-http page (no clipboard API) it copies through the browser's copy command", async () => {
+    let copied: string = "";
+
+    installExecCommand((command: string): boolean => {
+      const field: HTMLTextAreaElement | null = document.querySelector(
+        "textarea[aria-hidden='true']",
+      );
+
+      copied = command === "copy" ? field?.value || "" : "";
+
+      return command === "copy";
+    });
+    renderUrlBar();
+
+    await pressCopy();
+
+    expect(copied).toBe(PAGE_URL);
+    expect(copyButton()).toHaveAttribute("aria-label", "URL copied");
+    expect(copyButton()).toHaveAttribute("data-copy-state", "copied");
+  });
+
+  it("the bug: refused both ways it says Copy failed - never Copied, never nothing - and selects the address", async () => {
+    const writeText: MockFunction = getJestMockFunction();
+
+    writeText.mockRejectedValue(
+      new DOMException("Write permission denied.", "NotAllowedError"),
+    );
+    setClipboard(writeText);
+    installExecCommand((): boolean => {
+      return false;
+    });
+    renderUrlBar();
+
+    await pressCopy();
+
+    expect(writeText).toHaveBeenCalledWith(PAGE_URL);
+    expect(copyButton()).toHaveAttribute("aria-label", "Copy failed");
+    expect(copyButton()).toHaveAttribute("title", "Copy failed");
+    expect(copyButton()).toHaveAttribute("data-copy-state", "failed");
+    expect(copyButton().className).toContain("text-rose-600");
+    expect(copyStatus()).toHaveTextContent("Copy failed");
+    expect(window.getSelection()?.toString()).toBe(PAGE_URL);
+  });
+
+  it("with no clipboard API and no copy command it says Copy failed too", async () => {
+    renderUrlBar();
+
+    await pressCopy();
+
+    expect(copyButton()).toHaveAttribute("data-copy-state", "failed");
+    expect(copyStatus()).toHaveTextContent("Copy failed");
+    expect(screen.getByTestId("replay-url-text")).toHaveTextContent(PAGE_URL);
+    expect(window.getSelection()?.toString()).toBe(PAGE_URL);
+  });
+
+  it("Copy failed stays four seconds, and a copy that then works says Copied", async () => {
+    renderUrlBar();
+
+    await pressCopy();
+
+    act(() => {
+      jest.advanceTimersByTime(3999);
+    });
+    expect(copyButton()).toHaveAttribute("data-copy-state", "failed");
+
+    act(() => {
+      jest.advanceTimersByTime(1);
+    });
+    expect(copyButton()).toHaveAttribute("data-copy-state", "idle");
+    expect(copyButton()).toHaveAttribute("aria-label", "Copy the URL");
+
+    const writeText: MockFunction = getJestMockFunction();
+
+    writeText.mockResolvedValue(undefined);
+    setClipboard(writeText);
+
+    await pressCopy();
+
+    expect(copyButton()).toHaveAttribute("data-copy-state", "copied");
+    expect(copyStatus()).toHaveTextContent("URL copied");
+  });
+
+  it("with no address known there is no Copy, and nothing to announce", () => {
+    renderOverlays({ entryUrl: "", chunks: [] });
+
+    expect(screen.queryByTestId("replay-url-copy")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("replay-url-copy-status"),
+    ).not.toBeInTheDocument();
+  });
+});

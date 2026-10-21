@@ -66,6 +66,16 @@ import IncidentEpisodeService from "./IncidentEpisodeService";
 import AlertEpisodeService from "./AlertEpisodeService";
 import ProjectService from "./ProjectService";
 import Project from "../../Models/DatabaseModels/Project";
+import SecurityCase from "../../Models/DatabaseModels/SecurityCase";
+import SecurityPlaybook from "../../Models/DatabaseModels/SecurityPlaybook";
+import SecurityCaseService from "./SecurityCaseService";
+import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import Query from "../Types/Database/Query";
+import UpdateBy from "../Types/Database/UpdateBy";
+import CallerPermission from "../Utils/Permission/CallerPermission";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import FeedMarkdown, {
   mdText,
@@ -152,6 +162,11 @@ export interface NotificationFor {
   scheduledMaintenanceId?: ObjectID | undefined;
   monitorId?: ObjectID | undefined;
   onCallDutyPolicyId?: ObjectID | undefined;
+  /*
+   * A security case (SecurityCaseNotifications): posted to the channels and
+   * chats its Security Case rules name. It has no channel of its own.
+   */
+  securityCaseId?: ObjectID | undefined;
 }
 
 // Slack conversation ids are short upper-case alphanumerics (C0123ABCD, G..., D...).
@@ -194,11 +209,102 @@ const LATER_CHANNEL_RECORD_WORDS: Record<NotificationRuleEventType, string> = {
     "scheduled maintenance event",
   [NotificationRuleEventType.Monitor]: "monitor",
   [NotificationRuleEventType.OnCallDutyPolicy]: "on-call policy",
+  [NotificationRuleEventType.SecurityCase]: "security case",
 };
+
+/*
+ * Who may set up a Security Case rule: the roles that may create a security
+ * playbook (SecurityPlaybook's create permissions). A Security Case rule
+ * posts every case it matches - its title, entities and link - to the
+ * channels it names, as a playbook's Post to Slack step does, and a case is
+ * the investigation trail of a possible breach, which most of a project may
+ * not read. Without this a Project Member, who may set up the other rules,
+ * could post every security case to a channel of theirs.
+ */
+export const SECURITY_CASE_RULE_PERMISSION_MESSAGE: string =
+  "A Security Case rule posts security cases to Slack and Microsoft Teams, so it takes a role that may set up security playbooks, such as Project Owner, Project Admin or Security Admin.";
 
 export class Service extends DatabaseService<WorkspaceNotificationRule> {
   public constructor() {
     super(WorkspaceNotificationRule);
+  }
+
+  private assertMaySetUpSecurityCaseRules(
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    if (
+      !CallerPermission.holdsAnyOf(
+        props,
+        new SecurityPlaybook().getCreatePermissions(),
+        { projectId: props.tenantId },
+      )
+    ) {
+      throw new NotAuthorizedException(SECURITY_CASE_RULE_PERMISSION_MESSAGE);
+    }
+  }
+
+  // Whether a write's query reaches a Security Case rule.
+  private async reachesSecurityCaseRule(
+    query: Query<WorkspaceNotificationRule>,
+  ): Promise<boolean> {
+    return (
+      (
+        await this.countBy({
+          query: {
+            ...query,
+            eventType: NotificationRuleEventType.SecurityCase,
+          },
+          props: {
+            isRoot: true,
+          },
+        })
+      ).toNumber() > 0
+    );
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<WorkspaceNotificationRule>,
+  ): Promise<OnCreate<WorkspaceNotificationRule>> {
+    if (createBy.data.eventType === NotificationRuleEventType.SecurityCase) {
+      this.assertMaySetUpSecurityCaseRules(createBy.props);
+    }
+
+    return { createBy, carryForward: undefined };
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<WorkspaceNotificationRule>,
+  ): Promise<OnUpdate<WorkspaceNotificationRule>> {
+    if (
+      !updateBy.props.isRoot &&
+      ((updateBy.data as unknown as Record<string, unknown>)["eventType"] ===
+        NotificationRuleEventType.SecurityCase ||
+        (await this.reachesSecurityCaseRule(updateBy.query)))
+    ) {
+      this.assertMaySetUpSecurityCaseRules(updateBy.props);
+    }
+
+    return { updateBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<WorkspaceNotificationRule>,
+  ): Promise<OnDelete<WorkspaceNotificationRule>> {
+    if (
+      !deleteBy.props.isRoot &&
+      (await this.reachesSecurityCaseRule(deleteBy.query))
+    ) {
+      this.assertMaySetUpSecurityCaseRules(deleteBy.props);
+    }
+
+    return { deleteBy, carryForward: null };
   }
 
   @CaptureSpan()
@@ -300,7 +406,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     let createdChannels: NotificationRuleWorkspaceChannel[] = [];
 
-    if ((notificationRule as IncidentNotificationRule).shouldCreateNewChannel) {
+    if (
+      rule.eventType !== NotificationRuleEventType.SecurityCase &&
+      (notificationRule as IncidentNotificationRule).shouldCreateNewChannel
+    ) {
       /*
        * A channel of its own, named as the rule names a record's, with a few
        * random letters for the record: prod-abcde, or test-abcde for a rule
@@ -1803,6 +1912,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     if (notificationFor.scheduledMaintenanceId) {
       return NotificationRuleEventType.ScheduledMaintenance;
+    }
+
+    if (notificationFor.securityCaseId) {
+      return NotificationRuleEventType.SecurityCase;
     }
 
     throw new BadDataException("Notification for not found");
@@ -4211,6 +4324,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       logger.debug(monitorLabels, {} as LogAttributes);
 
       return {
+        [NotificationRuleConditionCheckOn.SecurityCaseTitle]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseDescription]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCasePriority]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: incident.title || "",
         [NotificationRuleConditionCheckOn.IncidentDescription]:
@@ -4300,6 +4419,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       logger.debug(monitorLabels, {} as LogAttributes);
 
       return {
+        [NotificationRuleConditionCheckOn.SecurityCaseTitle]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseDescription]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCasePriority]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -4408,6 +4533,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       logger.debug(monitorLabels, {} as LogAttributes);
 
       return {
+        [NotificationRuleConditionCheckOn.SecurityCaseTitle]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseDescription]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCasePriority]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -4489,6 +4620,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       const monitorLabels: Array<Label> = monitor?.labels || [];
 
       return {
+        [NotificationRuleConditionCheckOn.SecurityCaseTitle]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseDescription]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCasePriority]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: monitor?.name || "",
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -4583,6 +4720,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             return label._id?.toString() || "";
           }) || [],
 
+        [NotificationRuleConditionCheckOn.SecurityCaseTitle]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseDescription]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCasePriority]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -4654,6 +4797,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       logger.debug(incidentEpisode, {} as LogAttributes);
 
       return {
+        [NotificationRuleConditionCheckOn.SecurityCaseTitle]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseDescription]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCasePriority]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -4727,6 +4876,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       }
 
       return {
+        [NotificationRuleConditionCheckOn.SecurityCaseTitle]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseDescription]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCasePriority]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -4764,6 +4919,87 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           alertEpisode.labels?.map((label: Label) => {
             return label._id?.toString() || "";
           }) || [],
+        [NotificationRuleConditionCheckOn.IncidentEpisodeTitle]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]:
+          undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeSeverity]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeState]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]: undefined,
+      };
+    }
+
+    /*
+     * Security cases. Priority, status and source are the case's own fixed
+     * scales, matched as written; labels by id, as everywhere else.
+     */
+    if (data.notificationFor.securityCaseId) {
+      const securityCase: SecurityCase | null =
+        await SecurityCaseService.findOneById({
+          id: data.notificationFor.securityCaseId,
+          select: {
+            title: true,
+            description: true,
+            priority: true,
+            status: true,
+            source: true,
+            labels: {
+              _id: true,
+            },
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!securityCase) {
+        throw new BadDataException("Security Case ID not found");
+      }
+
+      return {
+        [NotificationRuleConditionCheckOn.SecurityCaseTitle]:
+          securityCase.title || "",
+        [NotificationRuleConditionCheckOn.SecurityCaseDescription]:
+          securityCase.description || "",
+        [NotificationRuleConditionCheckOn.SecurityCasePriority]:
+          securityCase.priority || "",
+        [NotificationRuleConditionCheckOn.SecurityCaseStatus]:
+          securityCase.status || "",
+        [NotificationRuleConditionCheckOn.SecurityCaseSource]:
+          securityCase.source || "",
+        [NotificationRuleConditionCheckOn.SecurityCaseLabels]:
+          securityCase.labels?.map((label: Label) => {
+            return label._id?.toString() || "";
+          }) || [],
+        [NotificationRuleConditionCheckOn.MonitorName]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentSeverity]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentState]: undefined,
+        [NotificationRuleConditionCheckOn.MonitorType]: undefined,
+        [NotificationRuleConditionCheckOn.MonitorStatus]: undefined,
+        [NotificationRuleConditionCheckOn.AlertTitle]: undefined,
+        [NotificationRuleConditionCheckOn.AlertDescription]: undefined,
+        [NotificationRuleConditionCheckOn.AlertSeverity]: undefined,
+        [NotificationRuleConditionCheckOn.AlertState]: undefined,
+        [NotificationRuleConditionCheckOn.ScheduledMaintenanceTitle]: undefined,
+        [NotificationRuleConditionCheckOn.ScheduledMaintenanceDescription]:
+          undefined,
+        [NotificationRuleConditionCheckOn.ScheduledMaintenanceState]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentLabels]: undefined,
+        [NotificationRuleConditionCheckOn.AlertLabels]: undefined,
+        [NotificationRuleConditionCheckOn.MonitorLabels]: undefined,
+        [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]:
+          undefined,
+        [NotificationRuleConditionCheckOn.Monitors]: undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
+          undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeTitle]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeDescription]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeSeverity]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]:
           undefined,

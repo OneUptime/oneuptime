@@ -1,6 +1,6 @@
 import { AddKubernetesClusterAiAccess1794400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1794400000000-AddKubernetesClusterAiAccess";
 import { AddKubernetesAiAgentAndAiDefaults1796100000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796100000000-AddKubernetesAiAgentAndAiDefaults";
-import { RemoveRunbookCredentials1805650000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805650000000-RemoveRunbookCredentials";
+import { RemoveRunbookCredentials1805750000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805750000000-RemoveRunbookCredentials";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -170,7 +170,7 @@ const EXPECTED_COLUMNS: Array<ExpectedColumn> = [
     table: "KubernetesCluster",
     property: "aiAccessCredentialId",
     ddl: "uuid",
-    droppedLater: new RemoveRunbookCredentials1805650000000(),
+    droppedLater: new RemoveRunbookCredentials1805750000000(),
   },
   {
     model: KubernetesCluster,
@@ -254,7 +254,7 @@ const EXPECTED_RELATIONS: Array<ExpectedRelation> = [
     relation: "aiAccessCredential",
     column: "aiAccessCredentialId",
     referencedTable: "RunbookCredential",
-    droppedLater: new RemoveRunbookCredentials1805650000000(),
+    droppedLater: new RemoveRunbookCredentials1805750000000(),
   },
   {
     model: RunnerJob,

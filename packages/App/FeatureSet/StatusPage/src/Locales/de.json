@@ -147,6 +147,7 @@
       "copyHint": "Fügen Sie ihn in eine beliebige Kalender-App ein, die einen Kalender per URL abonnieren kann.",
       "copy": "Link kopieren",
       "copied": "Kopiert!",
+      "copyFailed": "Ihr Browser hat das Kopieren des Links nicht zugelassen. Der Link ist oben markiert, sodass Sie ihn selbst kopieren können.",
       "done": "Fertig",
       "refreshNote": "Kalender-Apps suchen nach eigenem Zeitplan nach Änderungen, daher kann es einige Stunden dauern, bis eine Änderung erscheint."
     }

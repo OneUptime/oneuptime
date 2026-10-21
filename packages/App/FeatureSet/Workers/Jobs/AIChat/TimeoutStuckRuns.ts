@@ -51,6 +51,7 @@ RunCron(
         conversationId: true,
         runType: true,
         attemptCount: true,
+        handedBackCount: true,
         lastHeartbeatAt: true,
         projectId: true,
         triggeredByIncidentId: true,
@@ -102,6 +103,8 @@ RunCron(
             await AIInvestigationQueue.requeueOrMarkStale({
               id: run.id!,
               attemptCount: run.attemptCount || 0,
+              // Claims a shutting-down server handed back do not count.
+              handedBackCount: run.handedBackCount || 0,
               lastHeartbeatAt: run.lastHeartbeatAt,
               runType: run.runType,
               projectId: run.projectId,

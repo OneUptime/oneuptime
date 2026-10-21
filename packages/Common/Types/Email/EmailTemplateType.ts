@@ -99,6 +99,11 @@ enum EmailTemplateType {
 
   IncomingCallPolicyOwnerMissedCall = "IncomingCallPolicyOwnerMissedCall.hbs",
 
+  // Security cases (Server/Utils/SecurityCase/SecurityCaseNotifications.ts).
+  SecurityCaseOpened = "SecurityCaseOpened.hbs",
+  SecurityCaseAssigned = "SecurityCaseAssigned.hbs",
+  SecurityPlaybookApprovalRequested = "SecurityPlaybookApprovalRequested.hbs",
+
   ProjectSubscriptionOverdue = "ProjectSubscriptionOverdue.hbs",
   Invoice = "Invoice.hbs",
 

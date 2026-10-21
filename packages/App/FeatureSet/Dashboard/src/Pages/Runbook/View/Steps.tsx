@@ -61,6 +61,7 @@ import {
   getStepMoreFieldsItems,
   isHttpBodyShown,
   isLegacyCredentialStep,
+  isRunnerStep,
   readStepsForEditor,
   setStepRequiresApproval,
 } from "../../../Components/Runbook/Steps/RunbookStepEditorModel";
@@ -75,6 +76,13 @@ import {
   buildRunnerPickerModel,
   getRunnerSummary,
 } from "../../../Components/Runner/RunnerPickerModel";
+import {
+  getRunnerLiveStatusLabel,
+  RunnerLiveStatus,
+} from "Common/Types/Runner/RunnerLiveStatus";
+import useTranslateValue, {
+  UseTranslateValueResult,
+} from "Common/UI/Utils/Translation";
 import useRefreshRunnerChoicesOnFocus from "../../../Components/Runner/useRefreshRunnerChoicesOnFocus";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -668,6 +676,39 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   }, [modelId.toString()]);
 
   const translator: Translator = useTranslator();
+  const { translateString }: UseTranslateValueResult = useTranslateValue();
+
+  /*
+   * Where a step runs, as its folded More fields name it: "Runner: Global
+   * Runner", "Runner: prod-eu-west-1", with how the Runner is doing when it
+   * is not connected ("Runner: office-runner · Disconnected"), or "Runner:
+   * None" while the step cannot run as it is - so nobody opens the fold to
+   * learn it.
+   */
+  const getRunnerFoldedValue: (model: RunnerPickerModel) => string = (
+    model: RunnerPickerModel,
+  ): string => {
+    const summary: RunnerSummary | undefined = getRunnerSummary(model);
+
+    if (!summary) {
+      return translator.translateText("None") || "None";
+    }
+
+    const name: string = summary.isGlobal
+      ? translator.translateText(summary.name) || summary.name
+      : summary.name;
+
+    if (
+      !summary.liveStatus ||
+      summary.liveStatus === RunnerLiveStatus.Connected
+    ) {
+      return name;
+    }
+
+    const status: string = getRunnerLiveStatusLabel(summary.liveStatus);
+
+    return `${name} · ${translateString(status) || status}`;
+  };
 
   const [collapsedState, setCollapsedState] = useState<Record<string, boolean>>(
     {},
@@ -944,10 +985,12 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   }
 
   /*
-   * Which Runner runs a step: the one Runner picker (RunnerPicker). A
-   * JavaScript step that picked none shows "Global Runner", the Runners
-   * OneUptime runs for every project; a Bash, SSH or Kubernetes step picks
-   * one of the project's own.
+   * Which Runner runs a step: the one Runner picker (RunnerPicker), first
+   * under the step's More fields. A step that picked none shows the
+   * project's default Runner when the project has one, and otherwise -
+   * for a JavaScript step - "Global Runner", the Runners OneUptime runs for
+   * every project; a Bash, SSH or kubectl step with neither picks one of
+   * the project's own, and the Global Runner is drawn as not open to it.
    */
   const renderAgentPicker: (args: {
     stepIndex: number;
@@ -1145,7 +1188,14 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
    * A step's More fields: what most steps never change, folded under one
    * quiet line that names what is inside and what of it is set
    * (RunbookStepEditorModel.getStepMoreFieldsItems) - the maintainer asked
-   * for the steps to "hide advanced options".
+   * for the steps to "hide advanced options", and for the Runner to be one
+   * of them: "have this runner drop down, hidden in More".
+   *
+   * A step that runs on a Runner names it first on that line, whatever it
+   * is ("Runner: Global Runner"), so where the step runs is read without
+   * opening anything. And a step that cannot run as it is - a Bash step
+   * with no Runner of its own and no project default - starts with its
+   * fold open: its Runner is the field to fill, and it is inside.
    */
   const renderMoreFields: (
     step: RunbookStep,
@@ -1156,10 +1206,19 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     idx: number,
     children: ReactNode,
   ): ReactElement => {
+    const runnerModel: RunnerPickerModel | undefined =
+      isRunnerStep(step.type) && !isLegacyCredentialStep(step)
+        ? getStepRunnerModel(step)
+        : undefined;
+
     return (
       <FoldedSection
         title={MORE_FIELDS_SECTION_TITLE}
-        items={getStepMoreFieldsItems(step)}
+        items={getStepMoreFieldsItems(
+          step,
+          runnerModel ? { runner: getRunnerFoldedValue(runnerModel) } : {},
+        )}
+        defaultCollapsed={runnerModel ? runnerModel.willRun : true}
         dataTestId={`runbook-step-${idx}-more-fields`}
       >
         <div className="flex flex-col gap-4">{children}</div>
@@ -1377,23 +1436,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
     return (
       <>
-        {renderAgentPicker({
-          stepIndex: idx,
-          stepType: RunbookStepType.JavaScript,
-          currentAgentId: config.agentId || "",
-          onChange: (id: string) => {
-            updateConfig(idx, {
-              agentId: id,
-            });
-          },
-          helperText: (
-            <>
-              {translator.translateText(
-                "Runs on this Runner, in your own infrastructure.",
-              )}
-            </>
-          ),
-        })}
         {renderScriptField({
           id: `runbook-step-${idx}-javascript-script`,
           label: "Script",
@@ -1418,6 +1460,23 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           step,
           idx,
           <>
+            {renderAgentPicker({
+              stepIndex: idx,
+              stepType: RunbookStepType.JavaScript,
+              currentAgentId: config.agentId || "",
+              onChange: (id: string) => {
+                updateConfig(idx, {
+                  agentId: id,
+                });
+              },
+              helperText: (
+                <>
+                  {translator.translateText(
+                    "Runs on this Runner, in your own infrastructure.",
+                  )}
+                </>
+              ),
+            })}
             {renderRunSwitches(step, idx)}
             {renderDescriptionField(step, idx)}
             {renderAgentTimeouts({
@@ -1579,23 +1638,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
     return (
       <>
-        {renderAgentPicker({
-          stepIndex: idx,
-          stepType: RunbookStepType.Bash,
-          currentAgentId: config.agentId || "",
-          onChange: (id: string) => {
-            updateConfig(idx, {
-              agentId: id,
-            });
-          },
-          helperText: (
-            <>
-              {translator.translateText(
-                "Runs on this Runner, in your own infrastructure.",
-              )}
-            </>
-          ),
-        })}
         {renderScriptField({
           id: `runbook-step-${idx}-bash-script`,
           label: "Bash script",
@@ -1618,6 +1660,23 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           step,
           idx,
           <>
+            {renderAgentPicker({
+              stepIndex: idx,
+              stepType: RunbookStepType.Bash,
+              currentAgentId: config.agentId || "",
+              onChange: (id: string) => {
+                updateConfig(idx, {
+                  agentId: id,
+                });
+              },
+              helperText: (
+                <>
+                  {translator.translateText(
+                    "Runs on this Runner, in your own infrastructure.",
+                  )}
+                </>
+              ),
+            })}
             {renderRunSwitches(step, idx)}
             {renderDescriptionField(step, idx)}
             {renderAgentTimeouts({
@@ -1654,25 +1713,14 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
     const config: SSHStepConfig = step.config as SSHStepConfig;
 
+    /*
+     * The Runner the step runs on - its own pick, or the project's default -
+     * which a secret it signs in with must let use it.
+     */
+    const runnerId: string = getStepRunnerModel(step).runnerId;
+
     return (
       <>
-        {renderAgentPicker({
-          stepIndex: idx,
-          stepType: RunbookStepType.SSH,
-          currentAgentId: config.agentId || "",
-          onChange: (id: string) => {
-            updateConfig(idx, {
-              agentId: id,
-            });
-          },
-          helperText: (
-            <>
-              {translator.translateText(
-                "This Runner opens the SSH connection, so it must be able to reach the machine.",
-              )}
-            </>
-          ),
-        })}
         <SshTargetInput
           host={config.host || ""}
           username={config.username || ""}
@@ -1696,7 +1744,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           label={SSH_SIGN_IN_TITLE}
           value={config.signIn || ""}
           choices={variableChoices}
-          runnerId={config.agentId || ""}
+          runnerId={runnerId}
           runbookId={modelId}
           dataTestId={`runbook-step-${idx}-ssh-sign-in`}
           helperText={translator.translateText(
@@ -1727,6 +1775,23 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           step,
           idx,
           <>
+            {renderAgentPicker({
+              stepIndex: idx,
+              stepType: RunbookStepType.SSH,
+              currentAgentId: config.agentId || "",
+              onChange: (id: string) => {
+                updateConfig(idx, {
+                  agentId: id,
+                });
+              },
+              helperText: (
+                <>
+                  {translator.translateText(
+                    "This Runner opens the SSH connection, so it must be able to reach the machine.",
+                  )}
+                </>
+              ),
+            })}
             {renderRunSwitches(step, idx)}
             <div className="max-w-xs">
               <label
@@ -1754,7 +1819,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               label={SSH_PASSPHRASE_TITLE}
               value={config.passphrase || ""}
               choices={variableChoices}
-              runnerId={config.agentId || ""}
+              runnerId={runnerId}
               runbookId={modelId}
               noneLabel={NO_PASSPHRASE_LABEL}
               dataTestId={`runbook-step-${idx}-ssh-passphrase`}
@@ -1800,28 +1865,11 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
     return (
       <>
-        {renderAgentPicker({
-          stepIndex: idx,
-          stepType: RunbookStepType.Kubernetes,
-          currentAgentId: config.agentId || "",
-          onChange: (id: string) => {
-            updateConfig(idx, {
-              agentId: id,
-            });
-          },
-          helperText: (
-            <>
-              {translator.translateText(
-                "This Runner runs kubectl, so it must be able to reach the cluster's API server.",
-              )}
-            </>
-          ),
-        })}
         <RunbookVariablePicker
           label={KUBECONFIG_TITLE}
           value={config.kubeconfig || ""}
           choices={variableChoices}
-          runnerId={config.agentId || ""}
+          runnerId={getStepRunnerModel(step).runnerId}
           runbookId={modelId}
           noneLabel={RUNNER_OWN_KUBECONFIG_LABEL}
           dataTestId={`runbook-step-${idx}-kubeconfig`}
@@ -1860,6 +1908,23 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           step,
           idx,
           <>
+            {renderAgentPicker({
+              stepIndex: idx,
+              stepType: RunbookStepType.Kubernetes,
+              currentAgentId: config.agentId || "",
+              onChange: (id: string) => {
+                updateConfig(idx, {
+                  agentId: id,
+                });
+              },
+              helperText: (
+                <>
+                  {translator.translateText(
+                    "This Runner runs kubectl, so it must be able to reach the cluster's API server.",
+                  )}
+                </>
+              ),
+            })}
             {renderRunSwitches(step, idx)}
             {renderDescriptionField(step, idx)}
             {renderAgentTimeouts({

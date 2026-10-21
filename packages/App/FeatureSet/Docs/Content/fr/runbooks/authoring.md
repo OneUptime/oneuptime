@@ -12,7 +12,7 @@ Vous écrivez un runbook sous forme de liste ordonnée d'étapes, sur sa page **
 ## Avant de commencer
 
 - **Un rôle qui rédige des runbooks.** Project Owner, Project Admin et Runbook Admin créent des runbooks et enregistrent leurs étapes. Avec des autorisations granulaires, il vous faut **Create Runbook** et **Edit Runbook**. Voir [Autorisations](/docs/runbooks/configuration#autorisations).
-- **Un agent Runbook, pour les étapes Bash, SSH et kubectl.** Ces étapes s'exécutent sur un [agent Runbook](/docs/runbooks/agents) dans votre propre infrastructure, jamais sur le Worker OneUptime. Installez-en un d'abord. Une étape JavaScript s'exécute sur un [agent Runbook global](/docs/runbooks/agents#agents-runbook-globaux), sauf si vous choisissez l'un des vôtres.
+- **Un agent Runbook, pour les étapes Bash, SSH et kubectl.** Ces étapes s'exécutent sur un [agent Runbook](/docs/runbooks/agents) dans votre propre infrastructure, jamais sur le Worker OneUptime. Installez-en un d'abord. Une étape qui ne choisit aucun agent s'exécute sur l'[agent Runbook par défaut du projet](/docs/runbooks/agents#lagent-runbook-par-défaut-du-projet), si vous en avez défini un ; une étape JavaScript s'exécute sinon sur un [agent Runbook global](/docs/runbooks/agents#agents-runbook-globaux).
 - **Une variable secrète, pour les étapes SSH et kubectl.** La clé, le mot de passe ou le kubeconfig avec lequel une étape se connecte est une [variable de runbook](/docs/runbooks/variables) secrète. Project Owner et Project Admin créent les variables, et Runbook Admin les choisit dans les étapes qu'il écrit. Une étape kubectl peut utiliser à la place l'accès propre de l'agent Runbook.
 - **Un fournisseur LLM, pour les étapes IA.** Voir [Fournisseurs LLM](/docs/ai/llm-provider).
 
@@ -64,7 +64,7 @@ Chaque étape comporte ces champs. Une étape automatisée affiche son **Titre**
 | [kubectl](#kubectl) | Un agent Runbook | Un agent Runbook, et une variable kubeconfig ou l'accès propre de l'agent Runbook |
 | [AI](#ai) | Le Worker OneUptime | Un fournisseur LLM |
 
-Dans chaque étape automatisée ci-dessous, **Plus de champs** de l'étape contient d'abord **Exiger une approbation** et **Continuer en cas d'échec**, puis les réglages propres à l'étape - les en-têtes d'un appel HTTP, le port et la phrase secrète de la clé d'une étape SSH, le fournisseur et les interrupteurs de contexte d'une étape d'IA - et enfin la **Description** et les délais.
+Dans chaque étape automatisée ci-dessous, **Plus de champs** de l'étape contient d'abord son **Agent Runbook**, pour une étape qui s'exécute sur un agent, puis **Exiger une approbation** et **Continuer en cas d'échec**, puis les réglages propres à l'étape - les en-têtes d'un appel HTTP, le port et la phrase secrète de la clé d'une étape SSH, le fournisseur et les interrupteurs de contexte d'une étape d'IA - et enfin la **Description** et les délais. Replié, il nomme l'agent de l'étape, pour que vous voyiez où une étape s'exécute sans l'ouvrir.
 
 ### Manual
 
@@ -78,7 +78,7 @@ Un extrait de JavaScript, exécuté dans un bac à sable `isolated-vm` sur un [a
 
 | Champ | Ce qu'il fait | Valeur par défaut |
 | --- | --- | --- |
-| **Agent Runbook** | L'agent Runbook qui exécute l'étape : **Agent Runbook global**, ou l'un des vôtres. Seul l'agent que vous choisissez peut prendre en charge la tâche ; n'importe quel agent global peut prendre en charge une étape sur **Agent Runbook global**. | **Agent Runbook global**, s'il y en a un |
+| **Agent Runbook** | Sous **Plus de champs**. L'agent Runbook qui exécute l'étape : **Agent Runbook global**, ou l'un des vôtres. Seul l'agent que vous choisissez peut prendre en charge la tâche ; n'importe quel agent global peut prendre en charge une étape sur **Agent Runbook global**. | L'[agent Runbook par défaut du projet](/docs/runbooks/agents#lagent-runbook-par-défaut-du-projet), si vous en avez défini un ; sinon **Agent Runbook global**, s'il y en a un |
 | **Script** | Le JavaScript à exécuter. Renvoyez une valeur avec `return` pour la capturer ; chaque ligne de `console.log` est capturée aussi. Lever une erreur fait échouer l'étape. | — |
 | **Délai d'exécution** | Combien de temps l'agent Runbook laisse tourner l'extrait avant de détruire le bac à sable. Un agent Runbook global le laisse tourner 5 minutes au plus. | 30 secondes |
 | **Délai de prise en charge** | Combien de temps le Worker attend que l'agent Runbook prenne la tâche en charge. | 2 minutes |
@@ -117,7 +117,7 @@ Un script bash, exécuté avec `bash -c <script>` sur un [agent Runbook](/docs/r
 
 | Champ | Ce qu'il fait | Valeur par défaut |
 | --- | --- | --- |
-| **Agent Runbook** | L'agent Runbook qui exécute l'étape. Seul cet agent peut prendre en charge la tâche. | — |
+| **Agent Runbook** | Sous **Plus de champs**. L'agent Runbook qui exécute l'étape. Seul cet agent peut prendre en charge la tâche. Les agents Runbook globaux n'exécutent que les étapes JavaScript. | L'agent Runbook par défaut du projet, si vous en avez défini un |
 | **Script Bash** | Le script. La sortie (stdout et stderr) est capturée jusqu'à 50 Ko, et un code de sortie non nul fait échouer l'étape. | — |
 | **Délai d'exécution** | Combien de temps l'agent Runbook laisse tourner le script avant de le tuer avec `SIGKILL`. Augmentez-le pour les étapes qui prennent légitimement des minutes. | 30 secondes |
 | **Délai de prise en charge** | Combien de temps le Worker attend que l'agent Runbook prenne la tâche en charge. | 2 minutes |
@@ -146,7 +146,7 @@ Se connecter à une machine en SSH et y exécuter un script bash. L'agent Runboo
 
 | Champ | Ce qu'il fait |
 | --- | --- |
-| **Agent Runbook** | L'agent Runbook qui ouvre la connexion. Il doit pouvoir joindre la machine sur le réseau. |
+| **Agent Runbook** | Sous **Plus de champs**. L'agent Runbook qui ouvre la connexion. Il doit pouvoir joindre la machine sur le réseau. Une étape qui n'en choisit aucun s'exécute sur l'agent Runbook par défaut du projet. |
 | **SSH vers** | L'utilisateur et la machine, comme vous les écririez après `ssh` : `deploy@10.0.4.21`. |
 | **Se connecter avec** | La variable secrète qui contient la clé privée ou le mot de passe ; la valeur indique de quoi il s'agit. Seules les variables secrètes sont proposées, et l'étape signale quand son agent Runbook n'a pas le droit d'utiliser celle choisie. |
 | **Script Bash** | S'exécute avec `bash` sur la machine, sous l'utilisateur avec lequel l'étape se connecte. La sortie est capturée jusqu'à 50 Ko, et un code de sortie non nul fait échouer l'étape. |
@@ -168,7 +168,7 @@ Exécuter des commandes kubectl sur un cluster. Le script s'exécute avec bash s
 
 | Champ | Ce qu'il fait |
 | --- | --- |
-| **Agent Runbook** | L'agent Runbook qui exécute kubectl. Il doit pouvoir joindre le serveur d'API du cluster. |
+| **Agent Runbook** | Sous **Plus de champs**. L'agent Runbook qui exécute kubectl. Il doit pouvoir joindre le serveur d'API du cluster. Une étape qui n'en choisit aucun s'exécute sur l'agent Runbook par défaut du projet. |
 | **Kubeconfig** | La variable secrète qui contient le kubeconfig du cluster, ou **L'accès propre de l'agent Runbook** : le kubeconfig propre de l'agent Runbook, ou son compte de service quand il s'exécute dans le cluster. L'agent Runbook écrit un kubeconfig dans un fichier que lui seul peut lire, et le supprime quand le script se termine. |
 | **Script** | Les commandes kubectl. La sortie est capturée jusqu'à 50 Ko, et un code de sortie non nul fait échouer l'étape. |
 | **Délai d'exécution** | Le temps pendant lequel l'agent Runbook laisse le script s'exécuter avant de l'arrêter avec `SIGKILL`. 30 secondes par défaut. |
@@ -190,7 +190,7 @@ Demandez à l'IA d'analyser, de résumer ou de décider quelque chose en cours d
 | Champ | Ce qu'il fait |
 | --- | --- |
 | **Prompt** | Ce que l'IA doit faire. Par exemple : « Examine la sortie des étapes précédentes et dis s'il est sûr de poursuivre la remédiation. » |
-| **LLM provider** | Facultatif. **Project default** utilise le fournisseur par défaut du projet. Fixez un fournisseur quand l'étape a besoin d'un modèle précis, par exemple un modèle auto-hébergé pour des données qui ne doivent pas quitter votre réseau. Voir [Fournisseurs LLM](/docs/ai/llm-provider). |
+| **LLM provider** | Facultatif. **Par défaut du projet** utilise le fournisseur par défaut du projet. Fixez un fournisseur quand l'étape a besoin d'un modèle précis, par exemple un modèle auto-hébergé pour des données qui ne doivent pas quitter votre réseau. Voir [Fournisseurs LLM](/docs/ai/llm-provider). |
 | **Inclure le contexte des étapes précédentes** | Si activé, l'IA voit tout des étapes exécutées avant celle-ci : titre, type, statut, sortie et messages d'erreur. Elle reçoit jusqu'à 4 000 caractères de la sortie de chaque étape. |
 | **Inclure le contexte du déclencheur** | Si activé, l'IA voit ce qui a lancé l'exécution : l'incident, l'alerte ou l'événement de maintenance planifiée lié (sa description, sa gravité, son état actuel, les moniteurs touchés, la cause racine, la chronologie des états et les notes publiques), ou la personne qui a lancé le runbook à la main. |
 

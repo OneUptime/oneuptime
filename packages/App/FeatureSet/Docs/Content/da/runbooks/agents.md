@@ -1,10 +1,11 @@
 # Runbook-agenter
 
-En **runbook-agent**, der kaldes **Runner** i dashboardet, er en lille selvhostet proces, der kører JavaScript-, Bash-, SSH- og kubectl-trinnene i dine runbooks **i din egen infrastruktur**. OneUptime Worker kører aldrig dine scripts: den sætter dem i kø, og den Runner, som trinnets forfatter valgte, overtager hvert job, kører det og sender resultatet tilbage. Denne side er til dem, der installerer og driver Runners. Et JavaScript-trin, der ikke vælger nogen Runner, kører i stedet på en [global Runner](#globale-runnere), en af dem, OneUptime kører for alle projekter.
+En **runbook-agent**, der kaldes **Runner** i dashboardet, er en lille selvhostet proces, der kører JavaScript-, Bash-, SSH- og kubectl-trinnene i dine runbooks **i din egen infrastruktur**. OneUptime Worker kører aldrig dine scripts: den sætter dem i kø, og den Runner, som trinnets forfatter valgte, overtager hvert job, kører det og sender resultatet tilbage. Denne side er til dem, der installerer og driver Runners. Et trin, der ikke vælger nogen Runner, kører på [projektets standard-Runner](#projektets-standard-runner), hvis du har angivet en; ellers kører et JavaScript-trin på en [global Runner](#globale-runnere), en af dem, OneUptime kører for alle projekter.
 
 :::cards
 - [Installer en Runner](#installer-en-runner): Fra dashboardet til en forbundet container i fem trin.
 - [Peg et trin mod en Runner](#peg-et-trin-mod-en-runner): Bind et trin til den Runner, der skal køre det.
+- [Projektets standard-Runner](#projektets-standard-runner): Den Runner, et trin kører på, når det ikke vælger nogen.
 - [Globale Runnere](#globale-runnere): De Runnere, OneUptime kører for alle projekter, og hvad de kører.
 - [Timeouts](#timeouts): Claim- og udførelsestimeouts, og hvordan de spiller sammen.
 - [Miljøvariabler](#miljøvariabler): Hvad containeren læser ved opstart.
@@ -33,7 +34,7 @@ flowchart TB
 1. Du opretter en Runner i OneUptime. OneUptime genererer et ID og en hemmelig nøgle til den.
 2. Du kører Runner-containeren på en vært i din infrastruktur med det ID, den nøgle og din OneUptime-URL.
 3. Runneren beder OneUptime om arbejde hvert 5. sekund og melder hvert 60. sekund, at den er i live.
-4. Når du skriver et JavaScript-, Bash-, SSH- eller kubectl-trin, vælger du Runneren fra en rulleliste. Trinnet bindes til den Runner. Et JavaScript-trin kan beholde **Global Runner**, som rullelisten vælger for det.
+4. Når du skriver et JavaScript-, Bash-, SSH- eller kubectl-trin, vælger du Runneren fra en rulleliste under trinnets **Flere felter**. Trinnet bindes til den Runner. Et trin, der ikke vælger nogen, kører på projektets standard-Runner, hvis du har angivet en, og ellers kører et JavaScript-trin på **Global Runner**.
 5. Når trinnet kører, sætter Workeren et job i kø med `targetAgentId` sat til den Runner. Kun den Runner kan overtage det.
 6. Runneren kører jobbet lokalt — `bash -c <script>` for Bash og kubectl, en `isolated-vm`-sandkasse for JavaScript, en SSH-forbindelse, der kører scriptet med bash på maskinen — gemmer resultatet, skjuler trinnets hemmeligheder i det og sender det tilbage. Worker genoptager runbooket med resultatet.
 
@@ -52,7 +53,7 @@ Med Runners kører de trin på en vært, du styrer, og du bestemmer, hvad den v�
 
 ## Globale Runnere
 
-Globale Runnere er de Runnere, OneUptime kører for alle projekter. Et JavaScript-trin, der ikke vælger sin egen Runner, kører på en af dem, så du kan skrive det, før du installerer noget som helst. **Runbooks → Runbook-agenter** viser dem under **Globale Runnere**, over dine egne Runnere, og rullelisten **Runner** i et JavaScript-trin tilbyder **Global Runner** først.
+Globale Runnere er de Runnere, OneUptime kører for alle projekter. Et JavaScript-trin, der ikke vælger sin egen Runner, kører på en af dem, medmindre projektet har en [standard-Runner](#projektets-standard-runner), så du kan skrive det, før du installerer noget som helst. **Runbooks → Runbook-agenter** viser dem under **Globale Runnere**, over dine egne Runnere, og rullelisten **Runner** i et JavaScript-trin tilbyder **Global Runner** først, eller lige efter projektets standard-Runner. Rullelisten i et Bash-, SSH- eller kubectl-trin viser den sidst, nedtonet, med **Kører kun JavaScript-trin.** De trin kører på en af dine egne Runnere, inde i dit netværk, aldrig på en, som alle projekter deler.
 
 | | Global Runner | Din egen Runner |
 | --- | --- | --- |
@@ -69,7 +70,7 @@ En global Runner kører trinnene fra mange projekter, så hvert trin holdes adsk
 - Den får kun en hemmelig variabel, når variablens kontakt **Globale Runnere må bruge den** er slået til, og kun for et trin i variablens eget projekt. Den får aldrig en loginoplysning.
 - Et projekt kører højst tre trin ad gangen på globale Runnere, så intet projekt holder dem for sig selv.
 
-Vælg en af dine egne Runnere til et trin, der skal nå dit netværk, eller for at holde trinnet på værter, du styrer. For at holde hvert trin på dine egne Runnere skal du slå **Brug globale Runnere** fra nederst på **Runbooks → Runbook-agenter**. Et JavaScript-trin, der ikke vælger nogen Runner, fejler så og siger det, indtil det vælger en af dine; et trin, der vælger en af dine Runnere, beholder den under alle omstændigheder. Et koderepositorie, der ikke vælger nogen Runner i sine indstillinger i Kode, arbejder også på en global Runner og skal bruge en af dine, mens kontakten er slået fra; se [Kode](/docs/ai/ai-agent#vælg-repositoriets-runner).
+Vælg en af dine egne Runnere til et trin, der skal nå dit netværk, eller for at holde trinnet på værter, du styrer. For at holde hvert trin på dine egne Runnere skal du slå **Brug globale Runnere** fra nederst på **Runbooks → Runbook-agenter**. Et JavaScript-trin, der ikke vælger nogen Runner, kører så på projektets standard-Runner eller fejler, hvis der ikke er angivet en, og siger det, indtil det vælger en af dine; et trin, der vælger en af dine Runnere, beholder den under alle omstændigheder. Et koderepositorie, der ikke vælger nogen Runner i sine indstillinger i Kode, arbejder også på en global Runner og skal bruge en af dine, mens kontakten er slået fra; se [Kode](/docs/ai/ai-agent#vælg-repositoriets-runner).
 
 ### Hvor globale Runnere kommer fra
 
@@ -142,7 +143,7 @@ Tilføj et JavaScript-, Bash-, SSH- eller kubectl-trin i dit runbooks **Trin**.
 
 ### Vælg Runneren
 
-Trinnets rulleliste **Runner** viser alle Runners i projektet, og om de er forbundet. Har projektet endnu ingen, siger trinnet det og henviser dig til **Runbooks › Runners**. Rullelisten i et JavaScript-trin tilbyder også **Global Runner**, som den første, og vælger den, indtil du vælger en af dine egne.
+Åbn trinnets **Flere felter**: Dets rulleliste **Runner** viser alle Runners i projektet, og om de er forbundet, og den sammenfoldede linje nævner den Runner, trinnet kører på. Har projektet endnu ingen, siger trinnet det og henviser dig til **Runbooks › Runners**. Det første valg er det, et trin, der ikke vælger nogen Runner, kører på: [projektets standard-Runner](#projektets-standard-runner), markeret med **Projektstandard**, eller ellers, for et JavaScript-trin, **Global Runner**.
 
 ### Gem trinnene
 
@@ -152,6 +153,26 @@ Klik på **Save Steps**. Når en kørsel når trinnet, sætter Workeren et job i
 Bash køres med `bash -c`. JavaScript kører i en `isolated-vm`-sandkasse på Runneren uden adgang til filsystemet eller processer; det kan kalde offentlige HTTP-API'er med `axios`, men ikke adresser på et privat netværk. Et SSH- eller kubectl-trin logger ind med en hemmelig [runbook-variabel](/docs/runbooks/variables), som skal vise trinnets Runner under **Dine Runnere, der må bruge den**.
 
 Brug for mere end én Runner? Opret dem, og peg hvert trin mod den rette. For redundans kører du en ekstra Runner og deler dine trin mellem dem, eller du holder et reserve-runbook, hvis trin peger mod den anden Runner.
+
+## Projektets standard-Runner
+
+Et projekt kan gøre en af sine egne Runnere til sin standard, ligesom det gør en Twilio-konfiguration til sin standard. Hvert runbook-trin, der ikke vælger nogen Runner, kører så på den: Bash-, SSH- og kubectl-trin og JavaScript-trin, som ellers ville køre på en global Runner.
+
+For at gøre en Runner til standard skal du gå til **Runbooks → Runbook-agenter**, åbne menuen **⋯** i Runnerens række, klikke på **Indstil som projektstandard** og bekræfte med **Gør til projektstandard**. Eller åbn Runneren, og slå **Brug som projektstandard** til på dens kort **Projektstandard**. Listen markerer standarden med **Projektstandard** ved siden af dens navn, og det samme gør et trins rulleliste **Runner** ved det første valg. Et projekt har én standard-Runner: At gøre en anden Runner til standard erstatter den. **Stop med at bruge som projektstandard** i samme menu, eller kontakten på Runnerens side, holder op med at bruge den.
+
+Hvor et trin, der ikke vælger nogen Runner, kører:
+
+| Projektet | Et JavaScript-trin | Et Bash-, SSH- eller kubectl-trin |
+| --- | --- | --- |
+| Har en standard-Runner | Standard-Runneren | Standard-Runneren |
+| Har ingen og bruger globale Runnere | En global Runner | Ingen steder: Trinnet fejler og siger, at det ikke har nogen Runner |
+| Har ingen og bruger ikke globale Runnere | Ingen steder: Trinnet fejler og siger det | Ingen steder: Trinnet fejler og siger, at det ikke har nogen Runner |
+
+Et trin, der har valgt en Runner, beholder den, uanset hvad standarden er, og et JavaScript-trin kan stadig selv vælge **Global Runner**. At angive en standard ændrer ikke noget gemt trin.
+
+Standarden er en af projektets egne Runnere, der kører runbook-trin: ikke en global Runner, ikke den Runner i klyngen, som Kubernetes-agenten installerede, og ikke en med **Kører runbooks** slået fra. Så længe en Runner er standarden, forbliver dens **Kører runbooks** slået til. Når standarden ikke er forbundet, siger et trins rulleliste det, og et trin på den venter på den, som på enhver Runner, indtil dets claim timeout er gået.
+
+Kun runbook-trin bruger standarden. Et koderepositorie vælger sin Runner i sine indstillinger i Kode, og en regel for automatisk afhjælpning vælger sin egen.
 
 ## Driftsnoter
 

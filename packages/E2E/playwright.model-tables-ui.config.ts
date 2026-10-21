@@ -10,13 +10,14 @@ import path from "path";
  * a row's name using the room a table that fits has, the Actions column in
  * sight when the rows scroll sideways, a header that sticks while a long
  * page scrolls, a row that opens its record, the phone's cards and the dark
- * theme as drawn.
+ * theme as drawn - and, in CardHeaders.spec.ts, where every card header
+ * shape puts its description under its title.
  */
 const port: string = process.env["MODEL_TABLES_FIXTURE_PORT"] || "4319";
 
 export default defineConfig({
   testDir: "./ModelTables",
-  testMatch: "ModelTables.spec.ts",
+  testMatch: ["ModelTables.spec.ts", "CardHeaders.spec.ts"],
   fullyParallel: false,
   workers: 1,
   timeout: 90000,

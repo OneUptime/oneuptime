@@ -22,6 +22,7 @@ flowchart TB
 - Un canale attivo invia a ogni metodo verificato che avete su di esso in questo progetto, non a uno solo.
 - Un canale attivo senza un metodo verificato dietro non invia nulla. **Your setup checklist** lo segnala in **Staying informed**.
 - Un aggiornamento va ai proprietari dell'elemento: le persone indicate come proprietari e i membri dei suoi team proprietari. Quando un elemento non ha proprietari, va invece ai proprietari del progetto. Un evento sull'essere stati aggiunti come proprietari va solo alla persona aggiunta.
+- I casi di sicurezza non hanno proprietari. Un nuovo caso va a tutti coloro che possono vedere i casi del progetto, a partire dalla priorità che ciascuno sceglie, e un caso assegnato alle persone a cui è assegnato. Vedete [Casi di sicurezza](/docs/telemetry/security-cases#notifiche).
 - Ogni e-mail ai proprietari termina con un link "Manage notification preferences" che riporta a questa pagina.
 
 ## Cambiare un'impostazione
@@ -29,7 +30,7 @@ flowchart TB
 :::steps
 ### Aprite le vostre impostazioni
 
-Andate in **Impostazioni utente → Impostazioni notifiche**. Le schede sono **Incidenti**, **Avvisi**, **Monitoraggio**, **Pagine di stato**, **Manutenzione programmata** e **Reperibilità**.
+Andate in **Impostazioni utente → Impostazioni notifiche**. Le schede sono **Incidenti**, **Avvisi**, **Monitoraggio**, **Pagine di stato**, **Manutenzione programmata**, **Reperibilità** e **Sicurezza**.
 
 ### Trovate l'evento
 
@@ -52,6 +53,7 @@ Quando entrate in un progetto, questi eventi partono attivi, via e-mail. Tutto i
 | **Pagine di stato** | Nessuno | **Pagina di stato creata**, **Annuncio della pagina di stato pubblicato**, **Aggiunto come proprietario della pagina di stato** |
 | **Manutenzione programmata** | **Maintenance reminder** | **Evento di manutenzione creato**, **Stato della manutenzione modificato**, **Nota di manutenzione pubblicata**, **Aggiunto come proprietario della manutenzione** |
 | **Reperibilità** | **Inizi la reperibilità**, **Sei il prossimo in reperibilità**, **Termini la reperibilità**, **Aggiunto al criterio di reperibilità**, **Rimosso dal criterio di reperibilità**, **Chiamata persa**, e anche via push: **Prima dell'inizio del mio turno di reperibilità**, **Il mio prossimo turno di reperibilità viene riassegnato** | Nessuno |
+| **Sicurezza** | Anche via push: **Nuovo caso di sicurezza** (casi con priorità Alta e Critica), **Caso di sicurezza assegnato a me**, **Passaggio di playbook in attesa della mia approvazione** | Nessuno |
 
 > [!IMPORTANT]
 > **Stato del monitor modificato** parte disattivato. Per sapere quando un monitor vostro va giù o torna su, attivatelo nella scheda **Monitoraggio**.
@@ -64,6 +66,16 @@ La scheda **Reperibilità** riguarda voi, non gli elementi vostri:
 - **Aggiunto al criterio di reperibilità** e **Rimosso dal criterio di reperibilità** vi dicono quando una politica di reperibilità inizia o smette di nominarvi.
 - **Prima dell'inizio del mio turno di reperibilità** invia promemoria agli orari che scegliete in **Impostazioni utente → Calendario → Feed calendario**, e **Il mio prossimo turno di reperibilità viene riassegnato** vi dice quando qualcun altro copre un turno di cui avevate ricevuto il promemoria. Vedete [Feed calendario](/docs/on-call/calendar-feeds#promemoria-e-avvisi-di-riassegnazione).
 - **Chiamata persa**, nel riquadro **Policy chiamate in entrata**, dice ai proprietari di una policy di chiamate in entrata che chi ha chiamato non ha raggiunto nessuno. Vedete [Politica chiamate in arrivo](/docs/on-call/incoming-call-policy#chiamate-perse).
+
+## Casi di sicurezza
+
+La scheda **Sicurezza** riguarda i casi di sicurezza che potete vedere:
+
+- **Nuovo caso di sicurezza** ha una priorità sotto il suo nome: la priorità minima dei casi che vi vengono notificati. È **Alta e Critica**, a meno che non scegliate **Solo Critica**, **Media e superiori**, **Bassa e superiori** o **Ogni caso**.
+- **Caso di sicurezza assegnato a me** segue i casi assegnati a voi e ai team di cui fate parte.
+- **Passaggio di playbook in attesa della mia approvazione** vi chiede di approvare o rifiutare un passo di playbook su un caso in cui potete approvare.
+
+Vedete [Casi di sicurezza](/docs/telemetry/security-cases#notifiche).
 
 ## Meno e-mail
 

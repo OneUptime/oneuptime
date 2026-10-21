@@ -635,9 +635,12 @@ describe("MonitorRecommendations seeds its search and status from the URL", () =
     expect(initialFilterState.trimStart()).toMatch(
       /^\(\): RecommendationFilterState => \{/,
     );
-    // Two reads - search and status - in the initial state and nowhere else.
+    /*
+     * Three reads in all: search and status in the initial filter state,
+     * and select in the initial selection (below) - nowhere else.
+     */
     expect(PAGE_CODE.split("Navigation.getQueryStringByName(").length - 1).toBe(
-      2,
+      3,
     );
     expect(
       initialFilterState.split("Navigation.getQueryStringByName(").length - 1,
@@ -668,6 +671,96 @@ describe("MonitorRecommendations seeds its search and status from the URL", () =
     expect(PAGE_CODE).toContain(
       squash(
         "RecommendationFilterUtil.filter({ viewModels: viewModels, filterState: filterState, })",
+      ),
+    );
+  });
+});
+
+/*
+ * `?select=<id>,<id>` ticks recommendations as the page opens, so a link
+ * can hand over a batch one button away from created: an ESXi host's "Turn
+ * on N alerts" opens its vCenter's Recommendations with the host alerts not
+ * yet on ticked. Read once, lazily, through the shared parser; what is
+ * counted and created stays getSelectableViewModels' answer, so a ticked id
+ * that is created or dismissed by then is never created twice.
+ */
+describe("MonitorRecommendations seeds its selection from the URL", () => {
+  const PAGE_CODE: string = readCode(
+    "Components",
+    "Recommendations",
+    "MonitorRecommendations.tsx",
+  );
+
+  const initialSelection: string = PAGE_CODE.split(
+    "const [selectedRecommendationIds, setSelectedRecommendationIds] = useState< Set<string> >(",
+  )[1]!.split("const [filterState, setFilterState]")[0]!;
+
+  test("the selection starts from ?select=, parsed by RecommendationFilterUtil", () => {
+    expect(PAGE_CODE).toContain(
+      squash(
+        'import RecommendationFilterUtil, { RECOMMENDATION_SELECTION_QUERY_PARAM, } from "./RecommendationFilterUtil";',
+      ),
+    );
+    expect(initialSelection).toContain(
+      squash(
+        "return RecommendationFilterUtil.parseSelectionQuery( Navigation.getQueryStringByName(RECOMMENDATION_SELECTION_QUERY_PARAM), );",
+      ),
+    );
+  });
+
+  test("it is a lazy initializer, read for the first render only", () => {
+    expect(initialSelection.trimStart()).toMatch(/^\(\): Set<string> => \{/);
+  });
+
+  test("the first ticked card is brought into view once the list is drawn, once", () => {
+    /*
+     * The page opened at the scroll position the link was clicked from (an
+     * ESXi host's "Turn on N alerts" sits far down the host's page), with
+     * the ticked cards out of sight. The browser suite VMwareHostPage checks
+     * the card is in view; this pins how.
+     */
+    const effect: string = PAGE_CODE.split(
+      "const hasShownLinkedSelection",
+    )[1]!.split("if (isLoading) {")[0]!;
+
+    expect(PAGE_CODE.split("const hasShownLinkedSelection").length).toBe(2);
+    expect(effect).toContain(
+      squash(
+        "if (isLoading || hasShownLinkedSelection.current) { return; } hasShownLinkedSelection.current = true;",
+      ),
+    );
+    // What the link ticked: nothing can be ticked by hand before the list.
+    expect(effect).toContain(
+      "const linked: Set<string> = selectedRecommendationIds;",
+    );
+    expect(effect).toContain('firstCard.scrollIntoView({ block: "center" });');
+    expect(effect).toContain("}, [isLoading]);");
+    /*
+     * Cards are matched by comparing their own ids: no selector is built
+     * from the address, which a pasted link could fill with anything.
+     */
+    expect(effect).not.toContain("Navigation.getQueryStringByName(");
+    expect(effect).toContain(
+      squash(
+        'return linked.has( (card.getAttribute("data-testid") || "").slice(prefix.length), );',
+      ),
+    );
+  });
+
+  test("what is counted and created is still the selectable ones only", () => {
+    expect(PAGE_CODE).toContain(
+      squash(
+        "const selectedRecommendations: Array<RecommendationViewModel> = RecommendationFilterUtil.getSelectableViewModels({ viewModels: viewModels, selectedRecommendationIds: selectedRecommendationIds, });",
+      ),
+    );
+  });
+
+  test("the parameter is select", () => {
+    expect(
+      readCode("Components", "Recommendations", "RecommendationFilterUtil.ts"),
+    ).toContain(
+      squash(
+        'export const RECOMMENDATION_SELECTION_QUERY_PARAM: string = "select";',
       ),
     );
   });

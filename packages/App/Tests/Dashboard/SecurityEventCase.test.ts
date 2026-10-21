@@ -73,6 +73,22 @@ describe("opening a case from a security event", () => {
     ]);
   });
 
+  test("names the process a launch started and the one that started it, as processes", () => {
+    expect(
+      getEventEntities({
+        principalHost: "laptop-7",
+        principalProcess: "winword.exe",
+        processName: "powershell.exe",
+        parentProcessName: "WINWORD.EXE",
+      }),
+    ).toEqual([
+      { type: SecurityEntityType.Host, value: "laptop-7" },
+      // The acting process and the parent are one process: named once.
+      { type: SecurityEntityType.Process, value: "winword.exe" },
+      { type: SecurityEntityType.Process, value: "powershell.exe" },
+    ]);
+  });
+
   test("carries the event's ATT&CK mapping", () => {
     const draft: SecurityCaseDraft = buildCaseFromSecurityEvent({
       mitreTactics: ["TA0006"],

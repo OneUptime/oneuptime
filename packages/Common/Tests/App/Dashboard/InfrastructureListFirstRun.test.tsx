@@ -212,7 +212,8 @@ const agentList: (
 };
 
 const FIRST_RUN_CASES: Array<FirstRunCase> = [
-  agentList("Hosts", HostsPage, Host, "Getting Started with Host Monitoring"),
+  // #5137: Hosts' first run is Add Host's one command (AddHostGuide).
+  agentList("Hosts", HostsPage, Host, "Add your first host"),
   agentList(
     "Kubernetes Clusters",
     KubernetesClustersPage,
@@ -398,9 +399,26 @@ beforeEach(() => {
     .mockImplementation(
       async (options: {
         modelType: { new (): BaseModel };
+        query?: unknown;
         skip?: number;
         limit?: number;
       }): Promise<ListResult<BaseModel>> => {
+        /*
+         * Hosts' guide (AddHostGuide, #5137) waits for a host whose collector
+         * registered since it opened - its own check, not the table's. No
+         * collector registers here: the first-record watch is what finds
+         * the first one.
+         */
+        if (
+          JSON.stringify(options.query || {}).includes("collectorRegisteredAt")
+        ) {
+          return {
+            data: [],
+            count: 0,
+            skip: options.skip || 0,
+            limit: options.limit || 10,
+          } as ListResult<BaseModel>;
+        }
         const isTheList: boolean = Boolean(
           currentCase && options.modelType === currentCase.modelType,
         );
@@ -470,8 +488,11 @@ function tableCard(): HTMLElement {
   return card;
 }
 
-// "Create Host", or "Connect vCenter" where the list names its verb.
-const CREATE_BUTTON_TEXT: RegExp = /^(Create|Connect) /;
+/*
+ * "Create Docker Host", or "Connect vCenter" or "Add Host" (#5137: one
+ * command, not a form) where the list names its verb.
+ */
+const CREATE_BUTTON_TEXT: RegExp = /^(Create|Connect|Add) /;
 
 function headerCreateButtons(): Array<HTMLElement> {
   const actions: HTMLElement | null = within(tableCard()).queryByTestId(

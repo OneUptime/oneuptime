@@ -193,6 +193,24 @@ export const SECURITY_EVENT_FACETS: ReadonlyArray<SecurityEventFacetDefinition> 
       pluralTitle: "Principal Hosts",
       priority: 10,
     },
+    {
+      /*
+       * The process the event is about (the one started, in a process
+       * launch) and the one that started it, by file name: what a responder
+       * scans an endpoint's events for. Their paths and command lines are
+       * as unique as the events, so they are searched, not faceted.
+       */
+      key: "processName",
+      title: "Process",
+      pluralTitle: "Processes",
+      priority: 11,
+    },
+    {
+      key: "parentProcessName",
+      title: "Parent Process",
+      pluralTitle: "Parent Processes",
+      priority: 12,
+    },
   ];
 
 export const SECURITY_EVENT_FACET_KEYS: ReadonlyArray<string> =

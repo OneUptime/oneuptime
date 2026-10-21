@@ -215,38 +215,63 @@ async function tileBoxes(page: Page): Promise<Array<Box>> {
 }
 
 test.describe("a runbook's steps, at a laptop's width", () => {
-  test("every step type: what most people need on the card, the rest folded - the approval switch first", async ({
+  test("every step type: what most people need on the card, the rest folded - the Runner named first, then the approval switch", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openSteps(page);
 
-    const automated: Array<[number, string, Array<string>]> = [
-      [1, "Work out the new primary", ["Description", "Timeouts"]],
-      [2, "Page the database team", ["Headers (JSON): 1", "Description"]],
-      [3, "Capture the database's state", ["Description", "Timeouts"]],
-      [4, "Stop writes on the old primary", ["Port", "Key passphrase"]],
-      [5, "Promote the replica", ["Description", "Timeouts"]],
+    /*
+     * A step that runs on a Runner names it first - which Runner, the
+     * default included ("Runner: Global Runner" for the JavaScript step that
+     * picked none) - so nobody opens the fold to learn where it runs.
+     */
+    const automated: Array<[number, string, string | null, Array<string>]> = [
+      [
+        1,
+        "Work out the new primary",
+        "Runner: Global Runner",
+        ["Description", "Timeouts"],
+      ],
+      [2, "Page the database team", null, ["Headers (JSON): 1", "Description"]],
+      [
+        3,
+        "Capture the database's state",
+        "Runner: prod-bastion",
+        ["Description", "Timeouts"],
+      ],
+      // Seven names: the Runner, the two switches and Port, then "3 more".
+      [4, "Stop writes on the old primary", "Runner: prod-bastion", ["Port"]],
+      [
+        5,
+        "Promote the replica",
+        "Runner: prod-bastion",
+        ["Description", "Timeouts"],
+      ],
       [
         6,
         "Summarize the failover",
+        null,
         ["LLM provider", "Include previous step context"],
       ],
     ];
 
-    for (const [index, title, alsoFolded] of automated) {
+    for (const [index, title, runner, alsoFolded] of automated) {
       await openStep(page, title);
 
       const line: Array<string> = await foldedLine(moreFields(page, index));
+      const first: Array<string> = runner ? [runner] : [];
 
-      // The approval switch and Continue on failure come first in the line.
-      expect({ title, first: line.slice(0, 2) }).toEqual({
+      // Then the approval switch and Continue on failure.
+      first.push(
+        index === 5 ? "Require approval: On" : "Require approval",
+        index === 2 ? "Continue on failure: On" : "Continue on failure",
+      );
+
+      expect({ title, first: line.slice(0, first.length) }).toEqual({
         title,
-        first: [
-          index === 5 ? "Require approval: On" : "Require approval",
-          index === 2 ? "Continue on failure: On" : "Continue on failure",
-        ],
+        first,
       });
 
       for (const folded of alsoFolded) {

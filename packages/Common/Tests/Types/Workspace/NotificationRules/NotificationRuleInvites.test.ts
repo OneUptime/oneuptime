@@ -57,6 +57,8 @@ describe("NotificationRuleInvites.getInvitees", () => {
       NotificationRuleEventType.OnCallDutyPolicy,
       [NotificationRuleInvitee.Owners],
     ],
+    // No owners, and no channel of its own: a case's rules post to channels that exist.
+    [NotificationRuleEventType.SecurityCase, []],
   ] as Array<[NotificationRuleEventType, Array<NotificationRuleInvitee>]>)(
     "a %s rule can add %j, in the form's order",
     (
@@ -67,8 +69,12 @@ describe("NotificationRuleInvites.getInvitees", () => {
     },
   );
 
-  test("every kind of record is answered, and only records an on-call policy pages for have on-call responders", () => {
-    for (const eventType of ALL_EVENT_TYPES) {
+  test("every kind of record with owners is answered, and only records an on-call policy pages for have on-call responders", () => {
+    for (const eventType of ALL_EVENT_TYPES.filter(
+      (kind: NotificationRuleEventType): boolean => {
+        return kind !== NotificationRuleEventType.SecurityCase;
+      },
+    )) {
       const invitees: Array<NotificationRuleInvitee> =
         NotificationRuleInvites.getInvitees(eventType);
 

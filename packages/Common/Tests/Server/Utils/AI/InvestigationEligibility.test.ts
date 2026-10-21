@@ -770,7 +770,7 @@ describe.each(subjects)(
         .spyOn(AIRunService, "create")
         .mockResolvedValue(new AIRun(ObjectID.generate()));
       jest
-        .spyOn(AIInvestigationQueue, "processRun")
+        .spyOn(AIInvestigationQueue, "sendToWorkers")
         .mockResolvedValue(undefined);
     });
     function expectRecorded(code: InvestigationNotStartedCode): void {
@@ -862,7 +862,7 @@ describe.each(subjects)(
         .mockRejectedValue(new Error("insert failed"));
       expect(await trigger(subject)).toBe(false);
       expectRecorded("enqueue_failed");
-      expect(AIInvestigationQueue.processRun).not.toHaveBeenCalled();
+      expect(AIInvestigationQueue.sendToWorkers).not.toHaveBeenCalled();
     });
     it("keeps the failed admission result even if diagnostic persistence fails", async () => {
       jest
@@ -883,7 +883,7 @@ describe.each(subjects)(
       expect(
         IncidentService.updateColumnsByIdWithoutHooks,
       ).not.toHaveBeenCalled();
-      expect(AIInvestigationQueue.processRun).toHaveBeenCalled();
+      expect(AIInvestigationQueue.sendToWorkers).toHaveBeenCalled();
     });
     it("records an empty AI balance through the real engine gate and never creates a run", async () => {
       (
@@ -900,7 +900,7 @@ describe.each(subjects)(
       expect(await trigger(subject)).toBe(false);
       expectRecorded("insufficient_ai_balance");
       expect(AIRunService.create).not.toHaveBeenCalled();
-      expect(AIInvestigationQueue.processRun).not.toHaveBeenCalled();
+      expect(AIInvestigationQueue.sendToWorkers).not.toHaveBeenCalled();
     });
     it("still starts the investigation through the real engine gate when the balance cannot be read", async () => {
       (

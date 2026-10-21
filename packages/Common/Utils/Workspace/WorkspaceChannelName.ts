@@ -119,6 +119,8 @@ const RECORD_WORDS: Record<NotificationRuleEventType, string> = {
   [NotificationRuleEventType.ScheduledMaintenance]: "maintenance",
   [NotificationRuleEventType.Monitor]: "monitor",
   [NotificationRuleEventType.OnCallDutyPolicy]: "on-call-policy",
+  // A security case gets no channel of its own; listed so every kind has a word.
+  [NotificationRuleEventType.SecurityCase]: "security-case",
 };
 
 /*

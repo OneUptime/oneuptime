@@ -69,9 +69,14 @@ import {
   CHANNEL_NAME_SHORTENED_NOTES,
   CHANNEL_NAME_TAKEN_NOTES,
   ChannelNamePreview,
+  getChannelNameExample,
   getChannelNameTakenNote,
   getShownChannelName,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/ChannelNamePreview";
+import {
+  CHANNEL_RECORD_EVENT_TYPES,
+  ChannelRecordEventType,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleOwnChannel";
 import NotificationRuleEventType from "../../../Types/Workspace/NotificationRules/EventType";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import { WorkspaceChannelNumberPrefixes } from "../../../Utils/Workspace/WorkspaceChannelName";
@@ -85,9 +90,12 @@ const PREFIXES: WorkspaceChannelNumberPrefixes = {
   [NotificationRuleEventType.ScheduledMaintenance]: "SM-",
 };
 
-const ALL_EVENT_TYPES: Array<NotificationRuleEventType> = Object.values(
-  NotificationRuleEventType,
-);
+/*
+ * Every kind of record a rule can create a channel for: all but a security
+ * case, whose rules only post to channels and chats people have.
+ */
+const CHANNEL_EVENT_TYPES: ReadonlyArray<ChannelRecordEventType> =
+  CHANNEL_RECORD_EVENT_TYPES;
 
 afterEach(() => {
   cleanup();
@@ -330,9 +338,45 @@ describe("the preview under the Channel Name Prefix field", () => {
  * Name Prefix row of its own: WorkspaceNotificationRuleCard.test.tsx.
  */
 
+describe("a rule that creates no channel", () => {
+  test("a security case rule has no name to preview, and no words for one", () => {
+    expect(
+      getChannelNameExample({
+        workspaceType: WorkspaceType.Slack,
+        eventType: NotificationRuleEventType.SecurityCase,
+        prefix: "sec-",
+        numberPrefixes: PREFIXES,
+        exampleRecordName: "Ransomware on build-01",
+      }),
+    ).toBeNull();
+
+    renderPreview({
+      prefix: "sec-",
+      eventType: NotificationRuleEventType.SecurityCase,
+    });
+
+    expect(screen.queryByTestId("preview")).toBeNull();
+    expect(screen.queryByTestId("channel-name-preview")).toBeNull();
+    expect(
+      (CHANNEL_NAME_PREFIX_DESCRIPTIONS as Record<string, string>)[
+        NotificationRuleEventType.SecurityCase
+      ],
+    ).toBeUndefined();
+    expect(
+      (CHANNEL_NAME_EXAMPLE_RECORD_SENTENCES as Record<string, string>)[
+        NotificationRuleEventType.SecurityCase
+      ],
+    ).toBeUndefined();
+  });
+});
+
 describe("the words", () => {
-  test("one description, one record sentence for every kind of record", () => {
-    for (const eventType of ALL_EVENT_TYPES) {
+  test("one description, one record sentence for every kind of record a rule can create a channel for", () => {
+    expect(CHANNEL_EVENT_TYPES).toHaveLength(
+      Object.values(NotificationRuleEventType).length - 1,
+    );
+
+    for (const eventType of CHANNEL_EVENT_TYPES) {
       /*
        * A prefix goes in front of the record's own name - but a scheduled
        * maintenance event's takes the place of its number prefix (sm-42,

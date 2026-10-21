@@ -178,7 +178,7 @@ window.ONEUPTIME.endDate; // ISO 8601 string, end of it
 | **Docker Swarm** | **Узлы**, **Службы** | Агент Docker Swarm |
 | **Podman** | **Хосты**, **Контейнеры**, **Образы**, **Сети**, **Тома** | Агент Podman |
 | **Proxmox** | **Узлы**, **Guests** | Агент Proxmox |
-| **VMware** | **Хосты**, **Virtual Machines** | Агент VMware или подключённый вами vCenter |
+| **VMware** | **Хосты**, **Виртуальные машины** | Агент VMware или подключённый вами vCenter |
 | **Ceph** | **OSDs** в виде стены, окрашенной по состоянию, и **Pools** | Агент Ceph |
 | **Системы хранения** | **Тома** и **Hardware** в виде стены, окрашенной по статусу | Агент Storage Array |
 

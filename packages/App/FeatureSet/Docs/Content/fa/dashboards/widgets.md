@@ -178,7 +178,7 @@ window.ONEUPTIME.endDate; // ISO 8601 string, end of it
 | **Docker Swarm** | **گره‌ها**، **سرویس‌ها** | عامل Docker Swarm |
 | **Podman** | **میزبان‌ها**، **کانتینرها**، **ایمیج‌ها**، **شبکه‌ها**، **حجم‌ها** | عامل Podman |
 | **Proxmox** | **گره‌ها**، **Guests** | عامل Proxmox |
-| **VMware** | **میزبان‌ها**، **Virtual Machines** | عامل VMware، یا یک vCenter که وصل می‌کنید |
+| **VMware** | **میزبان‌ها**، **ماشین‌های مجازی** | عامل VMware، یا یک vCenter که وصل می‌کنید |
 | **Ceph** | **OSDs**، به‌صورت دیواری رنگ‌شده بر پایه وضعیت، و **Pools** | عامل Ceph |
 | **آرایه‌های ذخیره‌سازی** | **حجم‌ها**، و **Hardware** به‌صورت دیواری رنگ‌شده بر پایه وضعیت | عامل Storage Array |
 

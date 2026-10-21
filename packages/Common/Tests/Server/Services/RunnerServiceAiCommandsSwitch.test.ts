@@ -187,8 +187,9 @@ describe('RunnerService - "Runs AI Remediation Commands" without runbook credent
 
   /*
    * The credential lock's hooks are gone from the service, with the module
-   * that held the lock: a Runner update is written by DatabaseService's own
-   * update path, with nothing held across it.
+   * that held the lock: a Runner update holds nothing across its write. (Its
+   * one success hook moves the project's default Runner, ProjectDefaultRow,
+   * and gives nothing back.)
    */
   it("keeps no lock across the update: the credential lock's hooks and module are gone", () => {
     const source: string = fs.readFileSync(
@@ -198,10 +199,11 @@ describe('RunnerService - "Runs AI Remediation Commands" without runbook credent
 
     for (const gone of [
       "onUpdatePermitted",
-      "onUpdateSuccess",
       "onUpdateError",
       "AiCommandCredentialReach",
       "RunbookCredential",
+      "giveBack",
+      "keepForUpdate",
     ]) {
       expect({ gone, found: source.includes(gone) }).toEqual({
         gone,

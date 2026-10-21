@@ -711,8 +711,11 @@ async function expectAbove(
 /*
  * Where a card header keeps what the card offers (Edit, Create, the ⋯ menu,
  * a status pill): at the header's right edge, and under the title only when
- * it does not fit beside it - never under the description, never at the
- * left, never centred. "Why are edit buttons not on the right?"
+ * it does not fit beside it - never at the left, never centred. "Why are
+ * edit buttons not on the right?" And the description stays right under the
+ * title ("There's a lot of gap between the title of the card and the
+ * description of the card"): beside the title the actions come before it,
+ * which runs under both; on a line of their own they follow it.
  */
 async function expectHeaderActionsOnTheRight(
   cardLocator: Locator,
@@ -752,13 +755,29 @@ async function expectHeaderActionsOnTheRight(
     );
   }
 
-  // Never under the description: that comes after the actions, or beside them.
+  /*
+   * The description stays right under the title: beside the title the
+   * actions come before it (it runs under both, or beside them in the
+   * default header); on a line of their own they follow it.
+   */
   const description: Locator = header.getByTestId("card-description");
   if ((await description.count()) > 0 && (await description.isVisible())) {
     const descriptionBox: Box = await documentBox(description);
-    expect(actions.y, `${label} is not under the description`).toBeLessThan(
-      descriptionBox.y + 1,
-    );
+
+    if (isOnTitleLine) {
+      expect(actions.y, `${label} is not under the description`).toBeLessThan(
+        descriptionBox.y + 1,
+      );
+    } else {
+      expect(
+        descriptionBox.y - (title.y + title.height),
+        `${label}'s description right under the title`,
+      ).toBeLessThanOrEqual(7);
+      expect(
+        actions.y,
+        `${label} follows the description on a line of its own`,
+      ).toBeGreaterThanOrEqual(descriptionBox.y + descriptionBox.height - 1);
+    }
   }
 }
 
@@ -9016,8 +9035,9 @@ test.describe("responsive", () => {
    * "Why are edit buttons not on the right?" Every card on the page - the
    * wide ones on the left, the narrow column on the right - keeps what it
    * offers at its header's right edge: on the title's line on a desktop, and
-   * under the title, still at the right edge, only where the two do not fit.
-   * Never under the description, at the left, or in the middle.
+   * under the title, still at the right edge, only where the two do not fit
+   * - after the title's description, which stays right under the title.
+   * Never at the left or in the middle.
    */
   for (const eventPage of EVENT_PAGES) {
     for (const width of [1440, 1280, 390]) {
@@ -9052,6 +9072,57 @@ test.describe("responsive", () => {
         await expectNoHorizontalOverflow(page);
       });
     }
+  }
+
+  /*
+   * A card's title stands at the card's padding whatever its header holds:
+   * the episode's members card (a count pill and a link beside its title)
+   * and Episode Details (Edit, centred on its title) open the two columns
+   * side by side, and their titles line up.
+   */
+  for (const [eventPage, membersTitle] of [
+    [INCIDENT_EPISODE_PAGE, /^Incidents in this episode/],
+    [ALERT_EPISODE_PAGE, /^Alerts in this episode/],
+  ] as Array<[EventPage, RegExp]>) {
+    test(`${eventPage.name} lines up the titles of the two cards that open its columns at 1280px`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await openReady(page, eventPage);
+
+      const members: Locator = card(page, membersTitle).first();
+      const details: Locator = card(page, "Episode Details").first();
+      const membersBox: Box = await documentBox(members);
+      const detailsBox: Box = await documentBox(details);
+      const membersTitleBox: Box = await documentBox(
+        members.getByTestId("card-details-heading").first(),
+      );
+      const detailsTitleBox: Box = await documentBox(
+        details.getByTestId("card-details-heading").first(),
+      );
+      const edit: Box = await documentBox(
+        details.getByTestId("card-header-actions").first(),
+      );
+
+      expect(
+        Math.abs(membersBox.y - detailsBox.y),
+        "the two cards start the row together",
+      ).toBeLessThanOrEqual(1);
+      expect(
+        Math.abs(membersTitleBox.y - detailsTitleBox.y),
+        "their titles line up",
+      ).toBeLessThanOrEqual(1);
+      expect(
+        Math.abs(
+          edit.y +
+            edit.height / 2 -
+            (detailsTitleBox.y + detailsTitleBox.height / 2),
+        ),
+        "Edit is centred on the title",
+      ).toBeLessThanOrEqual(1);
+    });
   }
 
   for (const eventPage of EVENT_PAGES) {

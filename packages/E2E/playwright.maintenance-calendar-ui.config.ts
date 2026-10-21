@@ -1,5 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 import path from "path";
+import { HOST_RESOLVER_RULE } from "./MaintenanceCalendar/StatusPageOrigins";
 
 /*
  * Scheduled maintenance calendars in a real browser, with no backend:
@@ -14,12 +15,18 @@ import path from "path";
  *                                grids, Schedule maintenance on a day, and
  *                                the Subscribe to calendar dialog;
  *   StatusPageCalendar.spec.ts   a status page's Scheduled Events: Subscribe
- *                                to calendar, and Add to calendar on an
- *                                event's page.
+ *                                to calendar, Add to calendar on an event's
+ *                                page, and Copy link's copy on a page served
+ *                                over plain http.
  *
  * The browser's clock is fixed at 2026-10-15 10:20 UTC (a Thursday) in
  * every test, so the grids open on October 2026 with the 15th as today.
+ *
+ * The browser also reads one name as the fixture server: a status page
+ * served over plain http from a name that is not localhost, where it has no
+ * navigator.clipboard (MaintenanceCalendar/StatusPageOrigins.ts, #5132).
  */
+
 const port: string = process.env["MAINTENANCE_CALENDAR_FIXTURE_PORT"] || "4341";
 
 export default defineConfig({
@@ -44,6 +51,7 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1280, height: 900 },
+        launchOptions: { args: [HOST_RESOLVER_RULE] },
       },
     },
   ],

@@ -333,3 +333,104 @@ describe("what OneUptime sends, OneUptime reads back the same", () => {
     expect(readBack?.observables.length).toBeGreaterThan(0);
   });
 });
+
+/*
+ * A launched process is the target's process in UDM and the process that
+ * started it the principal's - the other way round from where OCSF's actor
+ * puts the parent. Forwarding the acting process as the launched one would
+ * hand SecOps the parent's command line under the child's name.
+ */
+describe("the process an event is about, forwarded", () => {
+  const POWERSHELL_LAUNCH: SecurityEventRecord = securityEventRecord({
+    ...SUDO_COMMAND,
+    vendorName: "Microsoft",
+    productName: "Sysmon",
+    principalHost: "wkstn-042",
+    principalProcess: "WINWORD.EXE",
+    processName: "powershell.exe",
+    processPath:
+      "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    processCommandLine: "powershell.exe -nop -enc JABzAD0A",
+    parentProcessName: "WINWORD.EXE",
+    parentProcessPath:
+      "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE",
+    parentProcessCommandLine: '"WINWORD.EXE" /n "C:\\Users\\a\\invoice.docm"',
+  });
+
+  test("a launch: the process that started is the target's, its parent the principal's", () => {
+    const udm: JSONObject = toUdmEvent(POWERSHELL_LAUNCH);
+
+    expect(read(udm, "metadata.eventType")).toBe("PROCESS_LAUNCH");
+    expect(read(udm, "target.process.commandLine")).toBe(
+      "powershell.exe -nop -enc JABzAD0A",
+    );
+    expect(read(udm, "target.process.file.fullPath")).toBe(
+      "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    );
+    expect(read(udm, "principal.process.commandLine")).toBe(
+      '"WINWORD.EXE" /n "C:\\Users\\a\\invoice.docm"',
+    );
+    expect(read(udm, "principal.process.file.fullPath")).toBe(
+      "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE",
+    );
+  });
+
+  test("SecOps reads the forwarded launch back as the same process and parent", () => {
+    const back: NormalizedSecurityEvent = UdmNormalizer.normalize(
+      toUdmEvent(POWERSHELL_LAUNCH),
+    );
+
+    expect(back.processCommandLine).toBe(POWERSHELL_LAUNCH.processCommandLine);
+    expect(back.processPath).toBe(POWERSHELL_LAUNCH.processPath);
+    expect(back.processName).toBe("powershell.exe");
+    expect(back.parentProcessPath).toBe(POWERSHELL_LAUNCH.parentProcessPath);
+    expect(back.parentProcessCommandLine).toBe(
+      POWERSHELL_LAUNCH.parentProcessCommandLine,
+    );
+  });
+
+  test("any other event: the process that acted is the principal's, with its parent", () => {
+    const udm: JSONObject = toUdmEvent(
+      securityEventRecord({
+        ...NETWORK_CONNECTION,
+        principalProcess: "powershell.exe",
+        processName: "powershell.exe",
+        processPath:
+          "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        processCommandLine: "powershell.exe -nop -enc JABzAD0A",
+        parentProcessPath: "C:\\Windows\\System32\\cmd.exe",
+        parentProcessCommandLine: "cmd.exe /c start powershell",
+      }),
+    );
+
+    expect(read(udm, "metadata.eventType")).toBe("NETWORK_CONNECTION");
+    expect(read(udm, "principal.process.commandLine")).toBe(
+      "powershell.exe -nop -enc JABzAD0A",
+    );
+    expect(read(udm, "principal.process.parentProcess.file.fullPath")).toBe(
+      "C:\\Windows\\System32\\cmd.exe",
+    );
+    expect(read(udm, "target.process")).toBeUndefined();
+  });
+
+  test("a row stored before the process fields still forwards its principalProcess", () => {
+    const udm: JSONObject = toUdmEvent(SUDO_COMMAND);
+
+    expect(SUDO_COMMAND.processCommandLine).toBe("");
+    expect(read(udm, "target.process.commandLine")).toBe(
+      SUDO_COMMAND.principalProcess,
+    );
+    expect(read(udm, "target.process.file")).toBeUndefined();
+  });
+
+  test("a long path is cut to what UDM takes", () => {
+    const udm: JSONObject = toUdmEvent(
+      securityEventRecord({
+        ...POWERSHELL_LAUNCH,
+        processPath: `C:\\${"a".repeat(5000)}.exe`,
+      }),
+    );
+
+    expect(String(read(udm, "target.process.file.fullPath")).length).toBe(1024);
+  });
+});

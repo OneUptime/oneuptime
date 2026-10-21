@@ -94,7 +94,7 @@ Monitors, incidenten, waarschuwingen, statuspagina's, SLO's en veel andere resou
 | Collectorconfiguraties | `Collector Config` |
 | vCenters | `vCenter` |
 | Pakketopnames, en hun downloads | `Packet Capture` |
-| Beveiligingszaken en playbooks | `Security Case`, `Security Playbook` |
+| Beveiligingszaken, playbooks en hun uitvoeringen, en beschermde entiteiten | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 
 Ook wordt vastgelegd wanneer een beheerder een meldingsmethode of een persoonlijke piketregel aan het account van iemand anders toevoegt of ervan verwijdert, zonder het adres of nummer zelf.
 

@@ -134,7 +134,7 @@ The runbook's **Run this runbook** switch is off, on its **Settings** page, or i
 :::
 
 :::details A step failed because it is missing a Runner
-The message reads, for example, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." The step was saved without a **Runner**. A JavaScript step needs a Runner of its own only when no [global Runner](/docs/runbooks/agents#global-runners) can run it. Open the runbook's **Steps**, pick the step's Runner, click **Save Steps** and run the runbook again.
+The message reads, for example, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." The step was saved without a **Runner**, and the project has no [default Runner](/docs/runbooks/agents#the-projects-default-runner). A JavaScript step needs a Runner of its own only when no [global Runner](/docs/runbooks/agents#global-runners) can run it. Open the runbook's **Steps**, pick the step's Runner under its **More fields**, click **Save Steps** and run the runbook again.
 :::
 
 :::details A step failed because it names variables it cannot use

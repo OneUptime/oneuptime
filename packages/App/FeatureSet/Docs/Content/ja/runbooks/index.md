@@ -36,7 +36,7 @@ flowchart TB
 
 Runbook を実行するたびに **実行** が作成されます。開始時に Runbook のステップがコピーされ、OneUptime はそれを順に処理します。Manual ステップや承認が必要なステップは、誰かが対応するまで実行を一時停止します。
 
-HTTP と AI のステップは OneUptime Worker で実行されます。Bash、SSH、kubectl のステップは自社インフラにインストールした [Runner](/docs/runbooks/agents) で実行されるため、それらのスクリプトが OneUptime のサーバーで実行されることはありません。JavaScript のステップも自社の Runner で実行されるか、Runner を選ばない場合は、インターネットにしかアクセスできないサンドボックスで [グローバル Runner](/docs/runbooks/agents#グローバル-runner) によって実行されます。各ステップのステータス、出力、エラーメッセージは実行に記録され、実行は対象のインシデント、アラート、イベントに残ります。
+HTTP と AI のステップは OneUptime Worker で実行されます。Bash、SSH、kubectl のステップは自社インフラにインストールした [Runner](/docs/runbooks/agents) で実行されるため、それらのスクリプトが OneUptime のサーバーで実行されることはありません。JavaScript のステップも自社の Runner で実行されるか、Runner を選ばずプロジェクトに [デフォルト Runner](/docs/runbooks/agents#プロジェクトのデフォルト-runner) もない場合は、インターネットにしかアクセスできないサンドボックスで [グローバル Runner](/docs/runbooks/agents#グローバル-runner) によって実行されます。各ステップのステータス、出力、エラーメッセージは実行に記録され、実行は対象のインシデント、アラート、イベントに残ります。
 
 ## 主な概念
 
@@ -47,7 +47,7 @@ HTTP と AI のステップは OneUptime Worker で実行されます。Bash、S
 | **Runbook ルール** | 条件（モニター、重大度、ラベル、モニターのラベル、タイトル、説明）を満たすインシデント、アラート、定期メンテナンスイベントに、1 つ以上の Runbook を自動で関連付けるルールです。 |
 | **実行** | Runbook の 1 回の実行です。ルールが発火したとき、誰かがイベントで **Runbook を実行** をクリックしたとき、または Runbook 自体で **今すぐ実行** をクリックしたときに作成されます。ステップのスナップショットと、各ステップのステータスと出力を保持します。 |
 | **スナップショット** | 各実行に保存される、Runbook のステップの固定されたコピーです。後から Runbook を編集しても、過去の実行の履歴は書き換わりません。 |
-| **Runner** | 自社インフラのホストで動かす小さなエージェントです。自分を指定した JavaScript、Bash、SSH、kubectl のステップを実行します。Runbook エージェントとも呼ばれます。 OneUptime がすべてのプロジェクトのために動かすグローバル Runner は、Runner を指定しない JavaScript のステップを実行します。 |
+| **Runner** | 自社インフラのホストで動かす小さなエージェントです。自分を指定した JavaScript、Bash、SSH、kubectl のステップを実行します。Runbook エージェントとも呼ばれます。 OneUptime がすべてのプロジェクトのために動かすグローバル Runner は、プロジェクトにデフォルト Runner がない限り、Runner を指定しない JavaScript のステップを実行します。 |
 | **変数** | ステップが名前で使う値です。ホストや URL などで、すべての Runbook が使えるプロジェクトの変数は `{{global.variables.NAME}}`、Runbook 自身の変数は `{{local.variables.NAME}}` と書きます。 |
 | **シークレット** | 値が保存時に暗号化され、二度と表示されず、ステップの出力では隠される変数です。SSH の鍵、パスワード、kubeconfig、API トークンなどに使います。使用を許可した Runner にだけ渡され、グローバル Runner には許可した場合にだけ渡されます。 |
 
@@ -141,7 +141,7 @@ Runbooks:    [DB primary failover]
 
 モニターがインシデント `INC-4821 · db-primary connection timeout` を開きます。ルールが一致し、実行が始まります。
 
-- ステップ 1（JavaScript）は、そのステップ用に選んだ Runner で実行されます。`{ lagMs: 412 }` のような戻り値が記録されます。 Runner を選ばないステップは、グローバル Runner で実行されます。
+- ステップ 1（JavaScript）は、そのステップ用に選んだ Runner で実行されます。`{ lagMs: 412 }` のような戻り値が記録されます。 Runner を選ばないステップは、プロジェクトのデフォルト Runner で、それがなければグローバル Runner で実行されます。
 - ステップ 2（Manual）で実行が一時停止し、 **あなたの対応待ち** と表示されます。オンコール担当者がダッシュボードを確認して **完了にする** をクリックします。
 - ステップ 3（HTTP request）が実行され、`POST` のレスポンスが記録されます。
 - ステップ 4（Manual）で、誰かが完了するまで実行が再び一時停止します。

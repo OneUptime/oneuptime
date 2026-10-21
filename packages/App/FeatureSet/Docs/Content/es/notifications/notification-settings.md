@@ -22,6 +22,7 @@ flowchart TB
 - Un canal activado envía a cada método verificado que tengas en él en este proyecto, no solo a uno.
 - Un canal activado sin un método verificado detrás no envía nada. **Tu lista de configuración** lo indica en **Mantenerse informado**.
 - Una novedad va a los propietarios del registro: las personas nombradas como propietarias y los miembros de sus equipos propietarios. Cuando un registro no tiene propietarios, va en cambio a los propietarios del proyecto. Un evento sobre haber sido añadido como propietario solo va a la persona añadida.
+- Los casos de seguridad no tienen propietarios. Un caso nuevo va a todas las personas que pueden ver los casos del proyecto, a partir de la prioridad que elige cada una, y un caso asignado, a las personas a las que está asignado. Consulta [Casos de seguridad](/docs/telemetry/security-cases#notificaciones).
 - Cada correo a los propietarios termina con un enlace "Manage notification preferences" que lleva de vuelta a esta página.
 
 ## Cambia un ajuste
@@ -29,7 +30,7 @@ flowchart TB
 :::steps
 ### Abre tus ajustes
 
-Ve a **Ajustes de usuario → Ajustes de notificaciones**. Las pestañas son **Incidentes**, **Alertas**, **Monitoreo**, **Páginas de estado**, **Mantenimiento programado** y **De guardia**.
+Ve a **Ajustes de usuario → Ajustes de notificaciones**. Las pestañas son **Incidentes**, **Alertas**, **Monitoreo**, **Páginas de estado**, **Mantenimiento programado**, **De guardia** y **Seguridad**.
 
 ### Busca el evento
 
@@ -52,6 +53,7 @@ Cuando te unes a un proyecto, estos eventos empiezan activados, por correo. Todo
 | **Páginas de estado** | Ninguno | **Página de estado creada**, **Anuncio de página de estado publicado**, **Añadido como propietario de la página de estado** |
 | **Mantenimiento programado** | **Recordatorio de mantenimiento** | **Evento de mantenimiento creado**, **Estado de mantenimiento cambiado**, **Nota de mantenimiento publicada**, **Añadido como propietario del mantenimiento** |
 | **De guardia** | **Entras en la guardia**, **Eres el siguiente en la guardia**, **Sales de la guardia**, **Añadido a la política de guardia**, **Eliminado de la política de guardia**, **Llamada perdida**, y también por push: **Antes de que empiece mi turno de guardia**, **Mi próximo turno de guardia se reasigna** | Ninguno |
+| **Seguridad** | También por push: **Nuevo caso de seguridad** (casos de prioridad Alta y Crítica), **Caso de seguridad asignado a mí**, **Paso de playbook esperando mi aprobación** | Ninguno |
 
 > [!IMPORTANT]
 > **Estado del monitor cambiado** empieza desactivado. Para enterarte de cuándo un monitor que es tuyo cae o vuelve, actívalo en la pestaña **Monitoreo**.
@@ -64,6 +66,16 @@ La pestaña **De guardia** trata de ti, no de los registros que son tuyos:
 - **Añadido a la política de guardia** y **Eliminado de la política de guardia** te dicen cuándo una política de guardia empieza o deja de nombrarte.
 - **Antes de que empiece mi turno de guardia** envía recordatorios en los momentos que eliges en **Ajustes de usuario → Calendario → Feed de calendario**, y **Mi próximo turno de guardia se reasigna** te dice cuándo otra persona cubre un turno del que recibiste un recordatorio. Consulta [Feeds de calendario](/docs/on-call/calendar-feeds#recordatorios-y-avisos-de-reasignación).
 - **Llamada perdida**, en la tarjeta **Políticas de llamadas entrantes**, avisa a los propietarios de una política de llamadas entrantes de que una persona que llamó no contactó con nadie. Consulta [Política de llamadas entrantes](/docs/on-call/incoming-call-policy#llamadas-perdidas).
+
+## Casos de seguridad
+
+La pestaña **Seguridad** trata de los casos de seguridad que puedes ver:
+
+- **Nuevo caso de seguridad** tiene una prioridad debajo de su nombre: la prioridad mínima de los casos que te avisan. Es **Alta y Crítica** salvo que elijas **Solo Crítica**, **Media y superior**, **Baja y superior** o **Todos los casos**.
+- **Caso de seguridad asignado a mí** sigue los casos asignados a ti y a los equipos de los que formas parte.
+- **Paso de playbook esperando mi aprobación** te pide que apruebes o rechaces un paso de playbook en un caso en el que puedes aprobar.
+
+Consulta [Casos de seguridad](/docs/telemetry/security-cases#notificaciones).
 
 ## Menos correos
 

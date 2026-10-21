@@ -158,7 +158,7 @@ const PROSE: Record<string, Array<string>> = {
  */
 const SERVER_MESSAGES: Record<string, Array<string>> = {
   "runbooks/running": [
-    "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.",
+    "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners.",
     "This step names variables it cannot use, so it was not run:",
     "No runbook agent picked up this step before the wait window expired.",
     "No global Runner picked up this step before the wait window expired.",

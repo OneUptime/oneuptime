@@ -121,16 +121,18 @@ function toStepResult(job: RunnerJob): StepRunResult {
  * Only the stepType differs — the Runner uses it to pick the right local
  * executor.
  *
- * Where it runs is the one "global by default" rule (GlobalRunnerChoice): the
- * Runner the step picked, always, when it picked one of its project's own;
- * the global Runners - the ones OneUptime runs for every project - when it
- * picked none and they may run it; otherwise nowhere, and the step fails
- * saying why and what to do.
+ * Where it runs is the one rule, in its default order (GlobalRunnerChoice):
+ * the Runner the step picked, always, when it picked one of its project's
+ * own; its project's default Runner when it picked none and the project has
+ * one; the global Runners - the ones OneUptime runs for every project - when
+ * it picked none (or picked the Global Runner) and they may run it;
+ * otherwise nowhere, and the step fails saying why and what to do.
  *
  * What the step says alone is checked first, before anything is read: a
  * step that names its Runner by something that is not an ID, or a Bash, SSH
- * or Kubernetes step with no Runner, can never run, and never could have
- * been sent. After that the rule's server facts decide a NEW dispatch only. A
+ * or Kubernetes step that picked the Global Runner, can never run, and never
+ * could have been sent. After that the rule's server facts decide a NEW
+ * dispatch only. A
  * step that already has a job - the Worker restarted mid-step and walked
  * back to it - adopts that job's result, or waits on it, whatever the facts
  * say now: the job was sent where the rule said when it was sent, and may be

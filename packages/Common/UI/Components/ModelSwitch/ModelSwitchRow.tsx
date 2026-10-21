@@ -11,6 +11,7 @@ import PermissionGate, {
 } from "../../Utils/PermissionGate";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import Alert, { AlertType } from "../Alerts/Alert";
 import { ButtonStyleType } from "../Button/Button";
 import Icon from "../Icon/Icon";
 import ConfirmModal from "../Modal/ConfirmModal";
@@ -95,7 +96,20 @@ export interface ModelSwitchConfirmation {
   submitButtonText: string;
   // PRIMARY when left out. DANGER for a change that can lock people out.
   submitButtonType?: ButtonStyleType | undefined;
+  /*
+   * What goes wrong if the change is made now ("prod-runner is not
+   * connected right now, ..."): drawn under the description as a warning of
+   * its own, not run into its sentences. English, or already translated.
+   */
+  warning?: string | undefined;
 }
+
+// The data-testid of a confirmation's warning, under the switch's own.
+export const getModelSwitchConfirmationWarningTestId: (
+  switchTestId: string | undefined,
+) => string = (switchTestId: string | undefined): string => {
+  return `${switchTestId || "model-switch"}-confirm-warning`;
+};
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };
@@ -580,7 +594,16 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
           description={description}
           value={isOn}
           disabled={isLocked}
-          tooltip={lockedReason}
+          /*
+           * Why it is locked, behind the help icon - unless the switch's own
+           * line says it already (a page whose line gives the reason, so a
+           * phone shows it too): said once, not twice.
+           */
+          tooltip={
+            lockedReason && lockedReason !== descriptionText
+              ? lockedReason
+              : undefined
+          }
           error={error || undefined}
           dataTestId={props.dataTestId}
           onChange={(value: boolean) => {
@@ -630,7 +653,17 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
           }
           onClose={cancelPending}
           onSubmit={confirmPending}
-        />
+        >
+          {pending.confirmation.warning ? (
+            <Alert
+              type={AlertType.WARNING}
+              title={pending.confirmation.warning}
+              dataTestId={getModelSwitchConfirmationWarningTestId(
+                props.dataTestId,
+              )}
+            />
+          ) : undefined}
+        </ConfirmModal>
       ) : (
         <></>
       )}

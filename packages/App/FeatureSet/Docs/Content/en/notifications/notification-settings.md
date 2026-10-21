@@ -22,6 +22,7 @@ flowchart TB
 - A channel that is on sends to every verified method you have on it in this project, not just one.
 - A channel that is on, with no verified method behind it, sends nothing. **Your setup checklist** says so under **Staying informed**.
 - An update goes to the record's owners: the people named as owners, and the members of its owner teams. When a record has no owners, it goes to the project's owners instead. An event about being added as an owner goes only to the person added.
+- Security cases have no owners. A new case goes to everyone who can see the project's cases, at the priority each of them chooses, and an assigned case to the people it is assigned to. See [Security Cases](/docs/telemetry/security-cases#notifications).
 - Every owner email ends with a "Manage notification preferences" link back to this page.
 
 ## Change a setting
@@ -29,7 +30,7 @@ flowchart TB
 :::steps
 ### Open your settings
 
-Go to **User Settings → Notification Settings**. The tabs are **Incidents**, **Alerts**, **Monitoring**, **Status Pages**, **Scheduled Maintenance** and **On-Call**.
+Go to **User Settings → Notification Settings**. The tabs are **Incidents**, **Alerts**, **Monitoring**, **Status Pages**, **Scheduled Maintenance**, **On-Call** and **Security**.
 
 ### Find the event
 
@@ -52,6 +53,7 @@ When you join a project, these events start on, by email. Everything else starts
 | **Status Pages** | None | **Status page created**, **Status page announcement posted**, **Added as status page owner** |
 | **Scheduled Maintenance** | **Maintenance reminder** | **Maintenance event created**, **Maintenance state changed**, **Maintenance note posted**, **Added as maintenance owner** |
 | **On-Call** | **You go on-call**, **You are up next on-call**, **You go off-call**, **Added to on-call policy**, **Removed from on-call policy**, **Missed call**, and by push too: **Before my on-call shift starts**, **My upcoming on-call shift is reassigned** | None |
+| **Security** | By push too: **New security case** (High and Critical cases), **Security case assigned to me**, **Playbook step waiting for my approval** | None |
 
 > [!IMPORTANT]
 > **Monitor status changed** starts off. To hear when a monitor you own goes down or comes back, switch it on, on the **Monitoring** tab.
@@ -64,6 +66,16 @@ The **On-Call** tab is about you, not about records you own:
 - **Added to on-call policy** and **Removed from on-call policy** tell you when an on-call policy starts or stops naming you.
 - **Before my on-call shift starts** sends reminders at the times you pick on **User Settings → Calendar → Calendar Feed**, and **My upcoming on-call shift is reassigned** tells you when someone else covers a shift you were reminded about. See [Calendar Feeds](/docs/on-call/calendar-feeds#reminders-and-reassignment-notices).
 - **Missed call**, on the **Incoming Call Policies** card, tells the owners of an incoming call policy that a caller reached nobody. See [Incoming Call Policy](/docs/on-call/incoming-call-policy#missed-calls).
+
+## Security cases
+
+The **Security** tab is about the security cases you can see:
+
+- **New security case** has a priority under its name: the lowest priority of case that notifies you. It is **High and Critical** unless you choose **Critical only**, **Medium and above**, **Low and above** or **Every case**.
+- **Security case assigned to me** follows the cases assigned to you, and to the teams you are on.
+- **Playbook step waiting for my approval** asks you to approve or reject a playbook step on a case you can approve.
+
+See [Security Cases](/docs/telemetry/security-cases#notifications).
 
 ## Fewer emails
 

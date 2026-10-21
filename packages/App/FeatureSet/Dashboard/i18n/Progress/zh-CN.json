@@ -1,10 +1,11 @@
 {
   "baseline": {
-    "keys": 32062,
-    "untranslated": 16109
+    "keys": 32602,
+    "untranslated": 16029
   },
   "sameAsEnglish": [
     "AI / LLM",
+    "CPU Ready {{percent}}",
     "Gemini for Google Workspace",
     "Goroutines",
     "PR #{{number}}",

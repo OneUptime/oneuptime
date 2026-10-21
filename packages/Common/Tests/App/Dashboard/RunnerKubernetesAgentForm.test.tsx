@@ -151,9 +151,8 @@ function nameField(fields: Fields<Runner>): Field<Runner> {
 
 /*
  * No AI switch of any kind: a code repository picks the Runner AI works in
- * it on, in its settings in Code, and an auto remediation rule or a
- * Kubernetes cluster's AI settings pick the Runner OneUptime AI runs its
- * commands on.
+ * it on, in its settings in Code, and an auto remediation rule picks the
+ * Runner OneUptime AI runs its commands on.
  */
 const FULL_FORM: Array<string> = [
   "name",

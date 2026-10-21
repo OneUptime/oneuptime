@@ -8,8 +8,10 @@ import path from "path";
  * pages that show them, in a browser, against the offline fixture
  * (GlobalRunners/Fixture): Runbooks -> Runners with its Global Runners,
  * Custom Runners and Global Runners in This Project cards; a runbook step's
- * Runner picker, opened and picked by mouse and by keyboard, and the line
- * under each folded step that says where it runs; whether global Runners
+ * Runner picker, under the step's More fields, opened and picked by mouse
+ * and by keyboard, and the line under each folded step that says where it
+ * runs; the project's default Runner, set from the Runners list and a
+ * Runner's own page, and the steps that run on it; whether global Runners
  * may use a secret runbook variable; and a Runner's own page, which lists
  * the code repositories that pick it - a Runner has no AI code fix switch,
  * in the Create Runner dialog or on its page. Then a phone, dark mode and
@@ -21,17 +23,24 @@ import path from "path";
  * runbooks - do not show 'No runners added' - if there are global runner,
  * pick them by default but you should be able to pick a custom local runner
  * as well. Please make the UI simple and natural to understand as this
- * reduces decision paralysis." The fixture records every save and create
- * the pages make, so the tests check what was sent as well as what was
- * drawn.
+ * reduces decision paralysis." And then, on a Bash step's picker that
+ * listed one Runner and no Global Runner: "Why can't I select a global
+ * runner here when I have one? ... Please also have this runner drop down,
+ * hidden in More, and by default select the global runner unless I have
+ * custom runner set to default runner for the project". The fixture
+ * records every save and create the pages make, so the tests check what
+ * was sent as well as what was drawn.
  */
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-0000000000a1";
 const RUNBOOK_ID: string = "20000000-0000-4000-8000-0000000000b1";
 const PROD_RUNNER_ID: string = "40000000-0000-4000-8000-0000000000d1";
+const OFFICE_RUNNER_ID: string = "40000000-0000-4000-8000-0000000000d2";
 
 const RUNNERS_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/runners`;
 const RUNNER_PAGE: string = `${RUNNERS_PAGE}/${PROD_RUNNER_ID}`;
+// office-runner's own page (the fixture's runner=2).
+const OFFICE_RUNNER_PAGE: string = `${RUNNERS_PAGE}/${OFFICE_RUNNER_ID}`;
 const CHECKOUT_REPOSITORY_ID: string = "90000000-0000-4000-8000-000000000c01";
 const STEPS_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}/steps`;
 const VARIABLES_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/settings/variables`;
@@ -130,7 +139,23 @@ async function openRunners(page: Page, search: string = ""): Promise<void> {
   await expect(headings(page).first()).toBeVisible();
 }
 
-// The Steps page, with every step opened.
+// A step's More fields fold, where its Runner is.
+function moreFields(page: Page, stepIndex: number): Locator {
+  return page.getByTestId(`runbook-step-${stepIndex}-more-fields`);
+}
+
+// Opens a step's More fields, if it is folded.
+async function openMoreFields(page: Page, stepIndex: number): Promise<void> {
+  const header: Locator = moreFields(page, stepIndex).getByTestId(
+    "folded-section-header",
+  );
+  if ((await header.getAttribute("aria-expanded")) === "false") {
+    await header.click();
+  }
+  await expect(header).toHaveAttribute("aria-expanded", "true");
+}
+
+// The Steps page, with every step opened, and each one's More fields.
 async function openSteps(page: Page, search: string): Promise<void> {
   await page.goto(`${STEPS_PAGE}?page=steps${search ? `&${search}` : ""}`);
   for (const title of ["Look up the status page", "Restart the web service"]) {
@@ -143,6 +168,16 @@ async function openSteps(page: Page, search: string): Promise<void> {
       await toggle.first().click();
     }
   }
+  for (const stepIndex of [0, 1]) {
+    await openMoreFields(page, stepIndex);
+  }
+}
+
+// What a step's folded More fields line says its Runner is.
+function foldedRunner(page: Page, stepIndex: number): Locator {
+  return moreFields(page, stepIndex).locator(
+    '[data-testid="folded-section-item"][data-item-key="runner"]',
+  );
 }
 
 function picker(page: Page, stepIndex: number): Locator {
@@ -460,7 +495,12 @@ test.describe("a step's Runner picker", () => {
     expect(saved[0]!.config.agentId).toBe("");
   });
 
-  test("a Bash step offers only the project's own Runners", async ({
+  /*
+   * "Why can't I select a global runner here when I have one?" It is in
+   * the list - last, saying it runs JavaScript steps only - and cannot be
+   * picked.
+   */
+  test("a Bash step offers the project's own Runners, and shows the Global Runner last as not open to it", async ({
     page,
   }: {
     page: Page;
@@ -468,10 +508,40 @@ test.describe("a step's Runner picker", () => {
     await openSteps(page, "custom=2");
 
     const options: Locator = await openPicker(page, 1);
-    await expect(options).toHaveText([
-      "prod-eu-west-1 · Connected",
-      "office-runner · Disconnected",
-    ]);
+    await expect(options).toHaveCount(3);
+    await expect(options.nth(0)).toHaveText("prod-eu-west-1 · Connected");
+    await expect(options.nth(1)).toHaveText("office-runner · Disconnected");
+    await expect(options.nth(2)).toContainText("Global Runner");
+    await expect(options.nth(2)).toContainText("Runs JavaScript steps only.");
+    await expect(options.nth(2)).toHaveAttribute("aria-disabled", "true");
+    await screenshot(page, "bash-picker-global-not-open");
+
+    /*
+     * Picking it does nothing: the step still has no Runner. (Clicked
+     * anyway - force skips Playwright's own wait for an enabled option.)
+     */
+    await options.nth(2).click({ force: true });
+    await expect(options.nth(2)).toHaveAttribute("aria-disabled", "true");
+    await expect(picker(page, 1)).toContainText("Select a Runner");
+    expect((await recorded(page)).updates).toEqual([]);
+  });
+
+  test("a Bash step that picked none says why the Global Runner is not open to it, and how to go on", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSteps(page, "custom=2");
+
+    const help: Locator = picker(page, 1).getByTestId(
+      "runbook-step-1-runner-help",
+    );
+    await expect(help).toHaveText(
+      "Bash steps run on a Runner of your own, inside your network: the Global Runner runs JavaScript steps only. Pick one, or make one the project default under Runbooks › Runners.",
+    );
+    await expect(
+      help.getByRole("link", { name: "Runbooks › Runners" }),
+    ).toHaveAttribute("target", "_blank");
   });
 
   test("with no Runner of its own, a Bash step says what to do instead of an empty box", async ({
@@ -484,7 +554,7 @@ test.describe("a step's Runner picker", () => {
     await expect(
       page.getByTestId("runbook-step-1-runner-nothing-to-pick"),
     ).toHaveText(
-      "Bash steps run on a Runner of your own, inside your network. Add one under Runbooks › Runners, then pick it here.",
+      "Bash steps run on a Runner of your own, inside your network: the Global Runner runs JavaScript steps only. Add one under Runbooks › Runners, then pick it here.",
     );
     // The JavaScript step still runs: on Global Runner, the one choice.
     await expect(picker(page, 0)).toContainText(GLOBAL_CHOICE);
@@ -504,9 +574,13 @@ test.describe("a step's Runner picker", () => {
     ).toHaveText(
       "This project does not use global Runners: pick one of your Runners for this step.",
     );
-    await expect(await openPicker(page, 0)).toHaveText([
-      "prod-eu-west-1 · Connected",
-    ]);
+    const options: Locator = await openPicker(page, 0);
+    await expect(options).toHaveCount(2);
+    await expect(options.nth(0)).toHaveText("prod-eu-west-1 · Connected");
+    await expect(options.nth(1)).toContainText(
+      "This project does not use global Runners.",
+    );
+    await expect(options.nth(1)).toHaveAttribute("aria-disabled", "true");
 
     await openSteps(page, "uses=0&custom=0");
     await expect(
@@ -541,13 +615,7 @@ test.describe("a step's Runner picker", () => {
       .filter({ has: picker(page, 0) });
     await expect(step).toContainText("Allowed range: 1–300 seconds.");
 
-    // The timeouts are folded under the step's More fields.
-    await step
-      .getByTestId("runbook-step-0-more-fields")
-      .getByRole("button", { expanded: false })
-      .first()
-      .click();
-
+    // The timeouts are under the step's More fields, which openSteps opened.
     const timeout: Locator = step.getByLabel(EXECUTION_TIMEOUT_LABEL);
     await timeout.fill("600");
     await expect(step).toContainText("Maximum is 300 seconds (5 minutes).");
@@ -589,9 +657,10 @@ test.describe("a step's Runner picker", () => {
     });
 
     await expect(box).toHaveCount(0);
-    await expect(await openPicker(page, 1)).toHaveText([
-      "new-runner · Connected",
-    ]);
+    const options: Locator = await openPicker(page, 1);
+    await expect(options).toHaveCount(2);
+    await expect(options.nth(0)).toHaveText("new-runner · Connected");
+    await expect(options.nth(1)).toHaveAttribute("aria-disabled", "true");
     // Nothing was saved behind the person's back.
     expect((await recorded(page)).updates).toEqual([]);
   });
@@ -616,6 +685,457 @@ test.describe("a step's Runner picker", () => {
     await expect(
       page.getByTestId("runbook-step-0-runner-global-waiting"),
     ).toHaveCount(0);
+  });
+});
+
+test.describe("each step's Runner, under its More fields", () => {
+  async function stepsOpened(page: Page, search: string): Promise<void> {
+    await page.goto(`${STEPS_PAGE}?page=steps${search ? `&${search}` : ""}`);
+    for (const title of [
+      "Look up the status page",
+      "Restart the web service",
+    ]) {
+      const toggle: Locator = page
+        .getByTestId("runbook-step-header")
+        .filter({ hasText: title })
+        .getByRole("button", { expanded: false });
+      if ((await toggle.count()) > 0) {
+        await toggle.first().click();
+      }
+    }
+  }
+
+  for (const width of [1280, 390]) {
+    for (const theme of ["light", "dark"]) {
+      test(`${width}px, ${theme}: a JavaScript step's Runner is folded and named; a Bash step that needs one opens on it`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await page.setViewportSize({
+          width,
+          height: width === 390 ? 844 : 900,
+        });
+        await stepsOpened(
+          page,
+          `custom=2${theme === "dark" ? "&theme=dark" : ""}`,
+        );
+
+        // The JavaScript step runs on Global Runner: folded, its line says so.
+        await expect(moreFields(page, 0)).toHaveAttribute(
+          "data-collapsed",
+          "true",
+        );
+        await expect(foldedRunner(page, 0)).toHaveText("Runner: Global Runner");
+        await expect(picker(page, 0)).toBeHidden();
+
+        // The Bash step needs a Runner: its fold starts open, on the Runner.
+        await expect(moreFields(page, 1)).toHaveAttribute(
+          "data-collapsed",
+          "false",
+        );
+        await expect(picker(page, 1)).toBeVisible();
+        await expect(
+          picker(page, 1).getByTestId("runbook-step-1-runner-help"),
+        ).toContainText("the Global Runner runs JavaScript steps only");
+
+        expect(await noHorizontalScroll(page)).toBeLessThanOrEqual(0);
+        await screenshot(page, `steps-runner-in-more-fields-${width}-${theme}`);
+
+        // The open menu fits the screen, the Global Runner last and not open.
+        const options: Locator = await openPicker(page, 1);
+        await expect(options.last()).toHaveAttribute("aria-disabled", "true");
+        for (const index of [0, 1, 2]) {
+          const box: { x: number; width: number } | null = await options
+            .nth(index)
+            .boundingBox();
+          expect(box).not.toBeNull();
+          expect(box!.x).toBeGreaterThanOrEqual(0);
+          expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+        }
+        await screenshot(page, `steps-bash-picker-${width}-${theme}`);
+      });
+    }
+  }
+
+  test("picking a Runner for the Bash step names it on its folded line, and Save sends it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await stepsOpened(page, "custom=2");
+
+    await (await openPicker(page, 1))
+      .filter({ hasText: "prod-eu-west-1" })
+      .click();
+    await moreFields(page, 1).getByTestId("folded-section-header").click();
+    await expect(foldedRunner(page, 1)).toHaveText("Runner: prod-eu-west-1");
+
+    const saved: Array<SavedStep> = await saveSteps(page);
+    expect(
+      saved.map((step: SavedStep) => {
+        return step.config.agentId;
+      }),
+    ).toEqual(["", PROD_RUNNER_ID]);
+  });
+});
+
+test.describe("a project with a default Runner", () => {
+  test("a step that picked no Runner runs on it - the Bash step too - and each says so, folded", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${STEPS_PAGE}?page=steps&custom=2&default=1`);
+    const headers: Locator = page.getByTestId("runbook-step-header");
+    await expect(headers).toHaveCount(2);
+
+    await expect(headers.nth(0)).toContainText("JavaScript on prod-eu-west-1");
+    await expect(headers.nth(1)).toContainText("Bash script on prod-eu-west-1");
+    await screenshot(page, "steps-default-folded");
+  });
+
+  test("the picker offers the default first, then the Global Runner; picking it stores 'global', and the rest keep following the default", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSteps(page, "custom=2&default=1");
+
+    await expect(picker(page, 0)).toContainText(
+      "prod-eu-west-1 · Project default · Connected",
+    );
+    const options: Locator = await openPicker(page, 0);
+    await expect(options).toHaveCount(3);
+    await expect(options.nth(0)).toHaveText(
+      "prod-eu-west-1 · Project default · Connected",
+    );
+    await expect(options.nth(1)).toContainText(GLOBAL_CHOICE);
+    await expect(options.nth(2)).toHaveText("office-runner · Disconnected");
+    await screenshot(page, "steps-default-picker");
+
+    await options.nth(1).click();
+    await expect(picker(page, 0)).toContainText(GLOBAL_CHOICE);
+
+    const saved: Array<SavedStep> = await saveSteps(page);
+    expect(
+      saved.map((step: SavedStep) => {
+        return step.config.agentId;
+      }),
+    ).toEqual(["global", ""]);
+  });
+
+  test("a Bash step is shown the default first and the Global Runner last, not open", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSteps(page, "custom=2&default=1");
+
+    const options: Locator = await openPicker(page, 1);
+    await expect(options).toHaveCount(3);
+    await expect(options.nth(0)).toHaveText(
+      "prod-eu-west-1 · Project default · Connected",
+    );
+    await expect(options.nth(2)).toHaveAttribute("aria-disabled", "true");
+  });
+
+  test("a default that is not connected is said so on the line, and in the fold", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${STEPS_PAGE}?page=steps&custom=2&default=2`);
+    await page
+      .getByTestId("runbook-step-header")
+      .filter({ hasText: "Look up the status page" })
+      .getByRole("button", { expanded: false })
+      .click();
+
+    await expect(foldedRunner(page, 0)).toHaveText(
+      "Runner: office-runner · Disconnected",
+    );
+
+    await openMoreFields(page, 0);
+    await expect(
+      page.getByTestId("runbook-step-0-runner-runner-waiting"),
+    ).toHaveText(
+      "office-runner is not connected right now. The step fails if this Runner does not pick it up within its claim timeout.",
+    );
+  });
+
+  test("Runbooks → Runners says which Runner is the default, and Set as Project Default moves it after asking", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunners(page, "custom=2&default=1");
+
+    const customCard: Locator = card(page, "Custom Runners");
+    const prodRow: Locator = customCard
+      .locator("tr")
+      .filter({ hasText: "prod-eu-west-1" });
+    const officeRow: Locator = customCard
+      .locator("tr")
+      .filter({ hasText: "office-runner" });
+
+    await expect(prodRow.getByTestId("runner-project-default-pill")).toHaveText(
+      "Project default",
+    );
+    await expect(
+      officeRow.getByTestId("runner-project-default-pill"),
+    ).toHaveCount(0);
+    await screenshot(page, "runners-default-pill");
+
+    await officeRow.getByTestId("row-actions-more-button").click();
+    await page
+      .getByRole("menuitem", { name: "Set as Project Default" })
+      .click();
+
+    const dialog: Locator = page.getByTestId("modal");
+    await expect(dialog).toContainText(
+      "Make office-runner the project default?",
+    );
+    await expect(dialog.getByTestId("confirm-modal-description")).toHaveText(
+      "Runbook steps that pick no Runner will run on it instead of prod-eu-west-1.",
+    );
+    // Not connected: a warning of its own, under what moves.
+    await expect(
+      dialog.getByTestId("project-default-not-connected-warning"),
+    ).toHaveText(
+      "office-runner is not connected right now, so the steps that run on it fail until it is.",
+    );
+    await screenshot(page, "runners-make-default-dialog");
+
+    await dialog.getByRole("button", { name: "Make Project Default" }).click();
+    await expect(dialog).toBeHidden();
+
+    expect((await recorded(page)).updates).toEqual([
+      {
+        model: "Runner",
+        id: OFFICE_RUNNER_ID,
+        data: { isProjectDefault: true },
+      },
+    ]);
+    await expect(
+      officeRow.getByTestId("runner-project-default-pill"),
+    ).toHaveText("Project default");
+    await expect(
+      prodRow.getByTestId("runner-project-default-pill"),
+    ).toHaveCount(0);
+  });
+
+  test("Stop Using as Project Default asks, then clears it; the card says one can be made again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunners(page, "custom=2&default=1");
+
+    await card(page, "Custom Runners")
+      .locator("tr")
+      .filter({ hasText: "prod-eu-west-1" })
+      .getByTestId("row-actions-more-button")
+      .click();
+    await page
+      .getByRole("menuitem", { name: "Stop Using as Project Default" })
+      .click();
+
+    const dialog: Locator = page.getByTestId("modal");
+    await expect(dialog).toContainText(
+      "Stop using prod-eu-west-1 as the project default?",
+    );
+    await dialog.getByRole("button", { name: "Stop Using as Default" }).click();
+    await expect(dialog).toBeHidden();
+
+    expect((await recorded(page)).updates).toEqual([
+      {
+        model: "Runner",
+        id: PROD_RUNNER_ID,
+        data: { isProjectDefault: false },
+      },
+    ]);
+    await expect(page.getByTestId("project-default-runner-hint")).toBeVisible();
+  });
+
+  test("a Runner with Runs Runbooks off cannot be made the default: the action is locked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunners(page, "custom=2&norunbooks=1");
+
+    await card(page, "Custom Runners")
+      .locator("tr")
+      .filter({ hasText: "office-runner" })
+      .getByTestId("row-actions-more-button")
+      .click();
+    await expect(
+      page.getByRole("menuitem", { name: "Set as Project Default" }),
+    ).toHaveAttribute("aria-disabled", "true");
+  });
+
+  test("a Runner's own page: the Project Default card's switch asks, then makes it the default", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${RUNNER_PAGE}?page=runner&custom=2`);
+
+    const control: Locator = page.getByTestId("runner-project-default-switch");
+    await expect(control).toHaveAttribute("aria-checked", "false");
+    await expect(card(page, "Project Default")).toContainText(
+      "The project's default Runner runs the runbook steps that pick no Runner of their own, in place of the Global Runner.",
+    );
+    // After what the Runner is and how it is doing, before its setup command.
+    const titles: Array<string> = await headings(page).allInnerTexts();
+    expect(titles.indexOf("Runner Status")).toBeGreaterThan(
+      titles.indexOf("Runner Details"),
+    );
+    expect(titles.indexOf("Project Default")).toBeGreaterThan(
+      titles.indexOf("Runner Status"),
+    );
+    expect(titles.indexOf("Setup Instructions")).toBeGreaterThan(
+      titles.indexOf("Project Default"),
+    );
+    await screenshot(page, "runner-page-project-default");
+
+    await control.click();
+    const dialog: Locator = page.getByTestId("modal");
+    await expect(dialog).toContainText(
+      "Make prod-eu-west-1 the project default?",
+    );
+    await dialog.getByRole("button", { name: "Make Project Default" }).click();
+
+    await expect(control).toHaveAttribute("aria-checked", "true");
+    expect((await recorded(page)).updates).toEqual([
+      {
+        model: "Runner",
+        id: PROD_RUNNER_ID,
+        data: { isProjectDefault: true },
+      },
+    ]);
+  });
+
+  test("while another Runner is the default, a Runner's page names it, and making this one the default warns it is not connected", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(
+      `${OFFICE_RUNNER_PAGE}?page=runner&runner=2&custom=2&default=1`,
+    );
+
+    const projectDefault: Locator = card(page, "Project Default");
+    const control: Locator = page.getByTestId("runner-project-default-switch");
+    await expect(control).toHaveAttribute("aria-checked", "false");
+    await expect(projectDefault).toContainText(
+      "Runbook steps that pick no Runner run on prod-eu-west-1, the project default.",
+    );
+
+    await control.click();
+    const dialog: Locator = page.getByTestId("modal");
+    await expect(dialog.getByTestId("confirm-modal-description")).toHaveText(
+      "Runbook steps that pick no Runner will run on it instead of prod-eu-west-1.",
+    );
+    await expect(
+      dialog.getByTestId("runner-project-default-switch-confirm-warning"),
+    ).toHaveText(
+      "office-runner is not connected right now, so the steps that run on it fail until it is.",
+    );
+    await screenshot(page, "runner-page-make-default-dialog");
+
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(control).toHaveAttribute("aria-checked", "false");
+    expect((await recorded(page)).updates).toEqual([]);
+  });
+
+  test("a Runner with Runs Runbooks off: its page's switch is locked, and its line says why", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(
+      `${OFFICE_RUNNER_PAGE}?page=runner&runner=2&custom=2&norunbooks=1`,
+    );
+
+    const control: Locator = page.getByTestId("runner-project-default-switch");
+    await expect(control).toHaveAttribute("aria-disabled", "true");
+    // Said where it is read, not only in the tooltip a phone never shows.
+    await expect(card(page, "Project Default")).toContainText(
+      "This Runner does not run runbooks. Turn on Runs Runbooks for it first.",
+    );
+
+    await control.click({ force: true });
+    await expect(page.getByTestId("modal")).toHaveCount(0);
+    expect((await recorded(page)).updates).toEqual([]);
+    await screenshot(page, "runner-page-project-default-locked");
+  });
+
+  test("a long name ends in an ellipsis of its own in the list, its pill under it, and the row shows it in full under the pointer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const longName: string =
+      "production-eu-west-1-bastion-primary-runner-for-databases";
+    await openRunners(page, "custom=2&default=1&longname=1");
+
+    const name: Locator = card(page, "Custom Runners")
+      .getByTestId("runner-name")
+      .filter({ hasText: longName });
+    await expect(name).toHaveText(longName);
+
+    const drawn: { isCutShort: boolean; textOverflow: string } =
+      await name.evaluate(
+        (element: Element): { isCutShort: boolean; textOverflow: string } => {
+          return {
+            isCutShort: element.scrollWidth > element.clientWidth,
+            textOverflow: window.getComputedStyle(element).textOverflow,
+          };
+        },
+      );
+    expect(drawn).toEqual({ isCutShort: true, textOverflow: "ellipsis" });
+
+    // The pill is not pushed off the cell by the name: it starts under it.
+    const nameBox: { x: number; y: number; height: number } | null =
+      await name.boundingBox();
+    const pillBox: { x: number; y: number } | null = await card(
+      page,
+      "Custom Runners",
+    )
+      .getByTestId("runner-project-default-pill")
+      .boundingBox();
+    expect(nameBox).not.toBeNull();
+    expect(pillBox).not.toBeNull();
+    expect(pillBox!.y).toBeGreaterThanOrEqual(nameBox!.y + nameBox!.height);
+    expect(Math.abs(pillBox!.x - nameBox!.x)).toBeLessThanOrEqual(1);
+
+    // Pointed at, the cell names the Runner in full.
+    await name.hover();
+    await expect
+      .poll(async (): Promise<string> => {
+        return (await name.locator("xpath=../..").getAttribute("title")) || "";
+      })
+      .toContain(longName);
+    expect(await noHorizontalScroll(page)).toBeLessThanOrEqual(0);
+    await screenshot(page, "runners-default-long-name");
+  });
+
+  test("a phone, dark: the default's pill and the Runners list stay on the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openRunners(page, "custom=2&default=1&theme=dark");
+
+    await expect(
+      page.getByTestId("runner-project-default-pill").first(),
+    ).toBeVisible();
+    expect(await noHorizontalScroll(page)).toBeLessThanOrEqual(0);
+    await screenshot(page, "phone-dark-runners-default");
   });
 });
 
@@ -996,6 +1516,12 @@ test.describe("on every screen", () => {
     await openSteps(page, "lang=de&custom=1");
     await expect(picker(page, 0)).toContainText(
       `${GERMAN["Global Runner"]} · ${GERMAN["Connected"]}`,
+    );
+
+    // The project's default Runner, tagged in German.
+    await openSteps(page, "lang=de&custom=1&default=1");
+    await expect(picker(page, 0)).toContainText(
+      `prod-eu-west-1 · ${GERMAN["Project default"]} · ${GERMAN["Connected"]}`,
     );
   });
 });

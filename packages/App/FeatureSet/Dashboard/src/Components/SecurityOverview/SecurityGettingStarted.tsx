@@ -213,7 +213,13 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
             {isAllDone ? (
               <></>
             ) : (
-              <div className="flex-shrink-0">
+              /*
+               * Dismiss (28px with its padding) hangs 2px over the title's
+               * 24px line above and below, centred on it. Taller than the
+               * line, it made the line 28px and pushed the description 8px
+               * under the title, where it keeps 4px.
+               */
+              <div className="-my-0.5 flex-shrink-0">
                 <Button
                   title="Dismiss"
                   buttonStyle={ButtonStyleType.SECONDARY_LINK}

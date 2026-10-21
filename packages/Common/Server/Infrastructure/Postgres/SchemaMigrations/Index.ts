@@ -151,7 +151,10 @@ import { AddCloudResourceCloudConnectionIndexAndKey1805450000000 } from "./18054
 import { AddHostCollectorManagement1805500000000 } from "./1805500000000-AddHostCollectorManagement";
 import { AddHostCollectorManagementIndexesAndKeys1805550000000 } from "./1805550000000-AddHostCollectorManagementIndexesAndKeys";
 import { AddSecurityProtectedEntity1805600000000 } from "./1805600000000-AddSecurityProtectedEntity";
-import { RemoveRunbookCredentials1805650000000 } from "./1805650000000-RemoveRunbookCredentials";
+import { AddAIRunHandedBackCount1805650000000 } from "./1805650000000-AddAIRunHandedBackCount";
+import { AddSecurityCaseNotifications1805700000000 } from "./1805700000000-AddSecurityCaseNotifications";
+import { AddRunnerProjectDefault1805720000000 } from "./1805720000000-AddRunnerProjectDefault";
+import { RemoveRunbookCredentials1805750000000 } from "./1805750000000-RemoveRunbookCredentials";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1505,5 +1508,8 @@ export default [
   AddHostCollectorManagement1805500000000,
   AddHostCollectorManagementIndexesAndKeys1805550000000,
   AddSecurityProtectedEntity1805600000000,
-  RemoveRunbookCredentials1805650000000,
+  AddAIRunHandedBackCount1805650000000,
+  AddSecurityCaseNotifications1805700000000,
+  AddRunnerProjectDefault1805720000000,
+  RemoveRunbookCredentials1805750000000,
 ];

@@ -134,7 +134,7 @@ De schakelaar **Dit runbook uitvoeren** van het runbook staat uit, op de pagina 
 :::
 
 :::details Een stap is mislukt omdat er een Runner ontbreekt
-De melding luidt bijvoorbeeld "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." De stap is opgeslagen zonder **Runner**. Een JavaScript-stap heeft alleen een eigen Runner nodig als geen [globale Runner](/docs/runbooks/agents#globale-runners) hem kan uitvoeren. Open de **Stappen** van het runbook, kies de Runner van de stap, klik op **Save Steps** en voer het runbook opnieuw uit.
+De melding luidt bijvoorbeeld "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." De stap is opgeslagen zonder **Runner**, en het project heeft geen [standaard-Runner](/docs/runbooks/agents#de-standaard-runner-van-het-project). Een JavaScript-stap heeft alleen een eigen Runner nodig als geen [globale Runner](/docs/runbooks/agents#globale-runners) hem kan uitvoeren. Open de **Stappen** van het runbook, kies de Runner van de stap onder **Meer velden**, klik op **Save Steps** en voer het runbook opnieuw uit.
 :::
 
 :::details Een stap is mislukt omdat hij variabelen noemt die hij niet kan gebruiken
