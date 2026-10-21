@@ -20,6 +20,10 @@ The suite drives archiving the way a person does:
 - Unarchive puts a value back, and the section goes when nothing is archived;
 - an archive the server refuses keeps the dialog open, in the server's words
   (`?refuse-archive=1`);
+- while what uses a value is still being read (`?slow-usage=1`, a second and
+  a half): the Archive dialog opens on the click and says it is checking, the
+  Delete dialog opens saying it is checking with its Delete disabled, and a
+  dialog closed meanwhile never reopens when the answer comes;
 - Delete of a value records still have is refused, with Archive instead as the
   dialog's action; Delete of a value only a rule uses says what it changes,
   beside Archive instead;

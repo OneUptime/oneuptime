@@ -210,7 +210,7 @@ test.describe("the Incident Severity settings page", () => {
       "Nobody can pick an archived severity for a new incident",
     );
     await expect(dialog(page)).toContainText(
-      "These are set up to use it, and keep using it until you change them:",
+      "These keep using it until you change them:",
     );
     await expect(dialog(page)).toContainText("Incident On-Call Rules (3)");
     // The incidents that have it are not listed: archiving keeps them.
@@ -341,6 +341,113 @@ test.describe("the Incident Severity settings page", () => {
     expect(await deletesSent(page)).toEqual([
       { tableName: "IncidentSeverity", id: IDS["major"] },
     ]);
+  });
+});
+
+/*
+ * What uses a value is read from the server, and on a big project that
+ * takes a moment: a click is never left without an answer while it is read.
+ */
+test.describe("while what uses a value is still being read", () => {
+  test("Archive opens on the click, says it is checking, then lists what keeps using it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "?page=severities&slow-usage=1");
+
+    const menu: Locator = await openRowMenu(page, "Critical");
+    await menu.getByRole("menuitem", { name: "Archive" }).click();
+
+    // Open before the answer: what archiving does, and that it is checking.
+    await expect(dialog(page)).toContainText("Archive Critical?");
+    await expect(dialog(page)).toContainText(
+      "Nobody can pick an archived severity for a new incident",
+    );
+
+    const checking: Locator = dialog(page).getByTestId(
+      "archivable-value-checking",
+    );
+
+    await expect(checking).toHaveText("Checking what still uses it…");
+    await expect(checking).toHaveAttribute("role", "status");
+
+    await dialogScreenshot(page, "archive-dialog-checking-1280-light");
+
+    // The answer replaces the line in place.
+    await expect(dialog(page)).toContainText("Incident On-Call Rules (3)");
+    await expect(checking).toHaveCount(0);
+    await expect(dialog(page)).toContainText(
+      "These keep using it until you change them:",
+    );
+  });
+
+  test("Delete opens saying it is checking, and its Delete waits for the words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "?page=severities&slow-usage=1");
+
+    const menu: Locator = await openRowMenu(page, "Major");
+    await menu.getByRole("menuitem", { name: "Delete" }).click();
+
+    const checking: Locator = dialog(page).getByTestId(
+      "delete-confirmation-loading",
+    );
+
+    await expect(checking).toHaveText(
+      "Checking what deleting it would change…",
+    );
+
+    const deleteButton: Locator = dialog(page).getByRole("button", {
+      name: "Delete",
+      exact: true,
+    });
+
+    await expect(deleteButton).toBeDisabled();
+    // No Archive instead until it knows what the delete would change.
+    await expect(
+      dialog(page).getByRole("button", { name: "Archive instead" }),
+    ).toHaveCount(0);
+
+    await dialogScreenshot(page, "delete-dialog-checking-1280-light");
+
+    await expect(dialog(page)).toContainText(
+      "Removed from: Incident Label Rules (1)",
+    );
+    await expect(checking).toHaveCount(0);
+    await expect(deleteButton).toBeEnabled();
+    await expect(
+      dialog(page).getByRole("button", { name: "Archive instead" }),
+    ).toBeVisible();
+
+    // Nothing was deleted while it was checking.
+    expect(await deletesSent(page)).toEqual([]);
+  });
+
+  test("closed while it is checking, the late answer never reopens it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "?page=severities&slow-usage=1");
+
+    const menu: Locator = await openRowMenu(page, "Major");
+    await menu.getByRole("menuitem", { name: "Delete" }).click();
+
+    await expect(
+      dialog(page).getByTestId("delete-confirmation-loading"),
+    ).toBeVisible();
+
+    await dialog(page).getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog(page)).toHaveCount(0);
+
+    // Longer than the answer takes.
+    await page.waitForTimeout(2000);
+
+    await expect(dialog(page)).toHaveCount(0);
+    expect(await deletesSent(page)).toEqual([]);
   });
 });
 

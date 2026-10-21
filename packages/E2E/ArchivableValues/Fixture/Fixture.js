@@ -16,6 +16,8 @@
  *   - page=templates    Incidents > Settings > Incident Templates
  *   - theme=dark        the Dashboard's dark mode
  *   - refuse-archive=1  the server refuses every archive, in its own words
+ *   - slow-usage=1      what uses a value takes a second and a half to answer,
+ *                       as on a big project: the dialogs say they are checking
  *
  * Every update is recorded on `window.__fixture.updates`, every delete on
  * `window.__fixture.deletes`, every list request on
@@ -58,6 +60,7 @@ const USER_ID = "80000000-0000-4000-8000-000000000001";
 const params = new URLSearchParams(window.location.search);
 const page = params.get("page") || "severities";
 const refuseArchive = params.get("refuse-archive") === "1";
+const slowUsage = params.get("slow-usage") === "1";
 
 window.__fixture = {
   updates: [],
@@ -450,6 +453,13 @@ API.post = async (options) => {
 
   if (match) {
     window.__fixture.usageReads.push(match[1]);
+
+    if (slowUsage) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1500);
+      });
+    }
+
     return { data: { usage: USAGE[match[1]] || [] } };
   }
 
