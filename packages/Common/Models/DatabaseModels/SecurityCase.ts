@@ -649,6 +649,29 @@ export default class SecurityCase extends BaseModel {
   })
   public groupingKey?: string = undefined;
 
+  /*
+   * The highest priority people have been told about this case at
+   * (SecurityCaseNotifications): the New Security Case notification goes out
+   * again only when the case rises above it, and then only to the people
+   * whose chosen priority it now reaches. Empty until the case first reaches
+   * somebody's priority. Written by OneUptime in one compare-and-set, so two
+   * workers handed the same rise tell people once.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    computed: true,
+    title: "Notified Priority",
+    description:
+      "The highest priority people have been told about this case at. They are told again only when it rises above it.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public notifiedPriority?: SecurityCasePriority = undefined;
+
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     manyToOneRelationColumn: "incidentId",

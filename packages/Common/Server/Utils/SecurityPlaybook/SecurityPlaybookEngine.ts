@@ -10,6 +10,7 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import SecurityPlaybookActions, {
   PlaybookStepOutcome,
 } from "./SecurityPlaybookActions";
+import SecurityCaseNotifications from "../SecurityCase/SecurityCaseNotifications";
 import {
   Green500,
   Indigo500,
@@ -341,6 +342,13 @@ export default class SecurityPlaybookEngine {
             }).toString(),
             eventType: SecurityCaseFeedEventType.ApprovalRequested,
             displayColor: Yellow500,
+          });
+
+          // The people who can decide are asked (SecurityCaseNotifications).
+          await SecurityCaseNotifications.approvalRequested({
+            projectId,
+            securityCaseId,
+            runId,
           });
         }
 

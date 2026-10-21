@@ -33,6 +33,7 @@ export enum RollupCategory {
   AIAgents = "ai-agents",
   Slos = "slos",
   IncomingCalls = "incoming-calls",
+  SecurityCases = "security-cases",
   OnCall = "on-call",
   Other = "other",
 }
@@ -54,6 +55,7 @@ export const ROLLUP_CATEGORY_LABEL: Record<RollupCategory, string> = {
   [RollupCategory.AIAgents]: "AI Agents",
   [RollupCategory.Slos]: "SLOs",
   [RollupCategory.IncomingCalls]: "Incoming Calls",
+  [RollupCategory.SecurityCases]: "Security Cases",
   [RollupCategory.OnCall]: "On Call",
   [RollupCategory.Other]: "Other",
 };
@@ -185,6 +187,19 @@ export const ROLLUP_CATEGORY_BY_EVENT_TYPE: Record<
     RollupCategory.IncomingCalls,
 
   /*
+   * Security Cases. A category of their own, so an attack that opens twenty
+   * cases in ten minutes rolls up with itself and never holds back an
+   * incident's email. A Critical case is sent at once whatever the count
+   * (SecurityCaseNotifications passes forceImmediate).
+   */
+  [NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION]:
+    RollupCategory.SecurityCases,
+  [NotificationSettingEventType.SEND_SECURITY_CASE_ASSIGNED_NOTIFICATION]:
+    RollupCategory.SecurityCases,
+  [NotificationSettingEventType.SEND_SECURITY_PLAYBOOK_APPROVAL_NOTIFICATION]:
+    RollupCategory.SecurityCases,
+
+  /*
    * On Call Notifications, including the two shift reminders. Five of these
    * seven are never rolled up at all (see NotificationEmailRollupPolicy); they
    * are classified anyway so the Record stays exhaustive, and so that the one
@@ -234,6 +249,7 @@ export const ROLLUP_CATEGORY_ORDER: ReadonlyArray<RollupCategory> = [
   RollupCategory.Alerts,
   RollupCategory.AlertEpisodes,
   RollupCategory.IncomingCalls,
+  RollupCategory.SecurityCases,
   RollupCategory.Slos,
   RollupCategory.Monitors,
   RollupCategory.ScheduledMaintenance,

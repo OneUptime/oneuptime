@@ -5,6 +5,7 @@ Security Events turns what your detection rules, threat intelligence and connect
 :::cards
 - [Where cases come from](#where-cases-come-from): Detection rules, threat intelligence, connected products and people.
 - [Work a case](#work-a-case): Assign it, investigate its entities, close it with a verdict.
+- [Notifications](#notifications): Who is told about a new case, an assignment and a step waiting for approval.
 - [Playbooks](#playbooks): Steps that run on a case, with approval where it matters.
 - [The overview](#the-overview): What needs someone now, and how fast cases are handled.
 :::
@@ -107,6 +108,51 @@ The verdicts are counted on the overview. A rule whose cases keep closing as Fal
 ### Declare an incident
 
 **Declare Incident** opens a OneUptime incident for the case, at the severity you choose, and links the two both ways: the incident's description names the case, and the case's header links to the incident. On-call, status pages and the postmortem take over from there. It takes a role that can both work cases and create incidents.
+
+## Notifications
+
+OneUptime tells people about three things on a case. Nobody has to set anything up: a project that only clicked **Turn on recommended** hears about its High and Critical cases by email and push.
+
+| Notification | Who is told | By default |
+| --- | --- | --- |
+| New security case | Everyone who can see the project's cases, when a case opens, or rises, at the priority they chose or above | Email and push, for High and Critical cases |
+| Security case assigned to me | The person the case is assigned to, and the members of the team it is assigned to | Email and push |
+| Playbook step waiting for my approval | The people on the case who can approve the step: the person it is assigned to and the members of its team. When none of them can approve, everyone in the project who can | Email and push |
+
+- Only people who can see the case are told about it: Project Owners, Project Admins, and the Security Admin, Security Member and Security Viewer roles. A role limited to some labels is told only about the cases with those labels.
+- Nobody is told about what they did: the person who opens a case by hand, assigns it or starts a run is not notified of it.
+- Each person hears about a case once. A case that opens at Medium and later rises to Critical reaches the people who chose High or Critical when it rises, and not again the people who chose Medium, who heard about it when it opened.
+- The test attack from **Send a test attack** opens a case that notifies nobody.
+- A Critical case and a step waiting for approval are sent at once, never held back in an [email rollup](/docs/emails/notification-rollup).
+- The case's **Timeline** says who was told, and when.
+
+### Choose what you are told
+
+Each person chooses for themselves, under **User Settings → Notification Settings → Security**: the channels for each notification (email, SMS, call, push, Telegram, Slack, Microsoft Teams or webhook), and under **New security case**, the priority that notifies them:
+
+| Choice | Notifies about cases at |
+| --- | --- |
+| Critical only | Critical |
+| High and Critical | High and Critical (the default) |
+| Medium and above | Critical, High and Medium |
+| Low and above | Every priority but Informational |
+| Every case | Every priority |
+
+WhatsApp messages are not sent for security cases. A push notification opens the OneUptime app, and its link opens the case in the browser.
+
+### Post to Slack and Microsoft Teams channels
+
+To post to a channel, connect Slack or Microsoft Teams and add a rule under **Products → Security Events → Workspace → Slack** (or **Microsoft Teams**). A rule names the channels to post to (and, in Microsoft Teams, the chats) and, if you want, the cases it is for:
+
+| Condition | Matches on |
+| --- | --- |
+| Security Case Priority | Critical, High, Medium, Low or Informational |
+| Security Case Title, Security Case Description | Text the case's title or description contains, starts with or ends with |
+| Security Case Status | New, Investigating, Contained or Closed |
+| Security Case Source | Detection Rule, Threat Intel, Connected Product or Manual |
+| Security Case Labels | The case's labels |
+
+The three notifications are each posted to the channels of every rule the case matches at that moment. A rule with **Security Case Priority** contains any of **Critical** and **High** posts High and Critical cases as they open, and a Medium case when it rises to High. A security case never gets a channel of its own.
 
 ## Playbooks
 
@@ -230,6 +276,10 @@ Above them, a strip shows how Security is set up: its sources, detections, cases
 
 :::details A rule matches, but no case opens
 Check **Open a Case on Match** on the rule's **On Match** step. A detection about an entity that already has an open case joins that case instead of opening another: look for it under **Detections** on the open case.
+:::
+
+:::details Nobody was told about a case
+Look at the case's **Timeline**, which says who was notified. A **New security case** notification goes to the people whose chosen priority the case reaches, so a Medium case notifies nobody who kept the default, **High and Critical**. Check that the people who should hear can see security cases (a Security role, or Project Owner or Admin), and that the notification is on for them under **User Settings → Notification Settings → Security**.
 :::
 
 :::details A playbook did not run

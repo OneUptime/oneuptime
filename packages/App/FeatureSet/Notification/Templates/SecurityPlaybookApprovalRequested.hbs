@@ -1,0 +1,40 @@
+{{> Start this}}
+
+{{!--
+  A playbook step on a security case waiting for somebody to approve or
+  reject it (SecurityCaseNotifications). The run does nothing until then.
+  Every value is written with a double stash: playbook, step and case names
+  are text people and detections wrote.
+--}}
+{{> Logo this}}
+{{> EmailTitle title=emailTitle }}
+
+{{#if priorityBadgeText}}
+{{> SeverityBadge badgeText=priorityBadgeText badgeColor=priorityColor badgeTextColor=priorityTextColor }}
+{{/if}}
+
+{{> InfoBlock plainInfo=leadSentence }}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Playbook: " plainText=playbookName }}
+{{> DetailBoxField title="Step Waiting: " plainText=stepDescription }}
+{{> DetailBoxField title="Started: " plainText=startedBy }}
+{{> DetailBoxField title="Case: " plainText=caseTitle }}
+{{> DetailBoxField title="Priority: " plainText=casePriority color=priorityColor textColor=priorityTextColor }}
+{{> DetailBoxField title="Assigned To: " plainText=caseAssignee }}
+{{> DetailBoxField title="Entities: " plainText=caseEntities }}
+{{> DetailBoxField title="Project: " plainText=projectName }}
+{{> DetailBoxEnd this }}
+
+{{> ButtonBlock buttonUrl=caseViewLink buttonText="Approve or Reject"}}
+
+{{> LinkBlock linkUrl=caseViewLink linkLabel="You can also copy and paste this link:"}}
+
+{{> TitleBlock title="Why am I receiving this email?"}}
+{{> InfoBlock plainInfo=reasonSentence }}
+
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

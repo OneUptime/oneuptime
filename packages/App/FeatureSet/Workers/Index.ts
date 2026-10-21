@@ -284,6 +284,7 @@ import "./Jobs/ThreatIntel/PollThreatIntelFeeds";
 import "./Jobs/ThreatIntel/MatchThreatIntelIndicators";
 import "./Jobs/SecurityPlaybooks/RunSecurityPlaybook";
 import "./Jobs/SecurityPlaybooks/RecoverSecurityPlaybookRuns";
+import "./Jobs/SecurityCases/SendSecurityCaseNotification";
 
 /*
  * Instance capacity management (Community Edition). The Postgres and Redis

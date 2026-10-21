@@ -90,6 +90,9 @@ const ownerTemplates: Array<EmailTemplateType> = [
   EmailTemplateType.UserOnCallShiftReassigned,
   EmailTemplateType.UserOnCallShiftReminder,
   EmailTemplateType.UserRemovedFromOnCallPolicy,
+  EmailTemplateType.SecurityCaseOpened,
+  EmailTemplateType.SecurityCaseAssigned,
+  EmailTemplateType.SecurityPlaybookApprovalRequested,
 ];
 
 beforeAll(() => {

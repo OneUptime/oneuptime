@@ -1,5 +1,7 @@
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate } from "../Types/Database/Hooks";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import QueryHelper from "../Types/Database/QueryHelper";
+import UpdateBy from "../Types/Database/UpdateBy";
 import logger from "../Utils/Logger";
 import CallService from "./CallService";
 import DatabaseService from "./DatabaseService";
@@ -26,6 +28,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
+import { isSecurityCasePriority } from "../../Types/SecurityCase/SecurityCasePriority";
 import { SMSMessage } from "../../Types/SMS/SMS";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import TelegramMessage, {
@@ -59,6 +62,45 @@ import URL from "../../Types/API/URL";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import { fitNotificationSmsForSending } from "../../Utils/Sms/NotificationSms";
 import ProductBrandingText from "../Utils/ProductBrandingText";
+
+// The events SecurityCaseNotifications sends, in the order the settings list them.
+export const SECURITY_CASE_NOTIFICATION_EVENT_TYPES: ReadonlyArray<NotificationSettingEventType> =
+  [
+    NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
+    NotificationSettingEventType.SEND_SECURITY_CASE_ASSIGNED_NOTIFICATION,
+    NotificationSettingEventType.SEND_SECURITY_PLAYBOOK_APPROVAL_NOTIFICATION,
+  ];
+
+/*
+ * A setting's priority choice (minimumSecurityCasePriority) is a priority or
+ * nothing, and only the New Security Case setting has one.
+ */
+function checkMinimumSecurityCasePriority(data: {
+  minimumSecurityCasePriority: unknown;
+  eventType: unknown;
+}): void {
+  const value: unknown = data.minimumSecurityCasePriority;
+
+  if (value === undefined || value === null || value === "") {
+    return;
+  }
+
+  if (!isSecurityCasePriority(value)) {
+    throw new BadDataException(
+      "The priority must be Critical, High, Medium, Low or Informational.",
+    );
+  }
+
+  if (
+    data.eventType !== undefined &&
+    data.eventType !==
+      NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION
+  ) {
+    throw new BadDataException(
+      "Only the New Security Case setting has a priority to choose.",
+    );
+  }
+}
 
 export class Service extends DatabaseService<UserNotificationSetting> {
   public constructor() {
@@ -100,6 +142,8 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     scheduledMaintenanceId?: ObjectID | undefined;
     statusPageId?: ObjectID | undefined;
     statusPageAnnouncementId?: ObjectID | undefined;
+    // The case a security notification is about, for the person's webhook.
+    securityCaseId?: ObjectID | undefined;
     teamId?: ObjectID | undefined;
     // OnCall-related fields
     onCallPolicyId?: ObjectID | undefined;
@@ -735,6 +779,9 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           webhookPayload["statusPageAnnouncementId"] =
             data.statusPageAnnouncementId.toString();
         }
+        if (data.securityCaseId) {
+          webhookPayload["securityCaseId"] = data.securityCaseId.toString();
+        }
         if (data.onCallPolicyId) {
           webhookPayload["onCallPolicyId"] = data.onCallPolicyId.toString();
         }
@@ -826,6 +873,32 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     await this.addScheduledMaintenanceNotificationSettings(userId, projectId);
     await this.addSloNotificationSettings(userId, projectId);
     await this.addIncomingCallNotificationSettings(userId, projectId);
+    await this.addSecurityCaseNotificationSettings(userId, projectId);
+  }
+
+  /*
+   * The three security case events (SecurityCaseNotifications), by email and
+   * push: a Critical case, a case handed to you and a containment step
+   * waiting for your approval each need somebody now, and a phone is where
+   * they are seen first. Every member gets them, as with every other event;
+   * only the people who can read a case are ever told about it. Idempotent -
+   * the AddSecurityCaseNotificationSettingsForUsers data migration calls
+   * this for every existing member, and the notifications seed it too before
+   * sending.
+   */
+  @CaptureSpan()
+  public async addSecurityCaseNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    for (const eventType of SECURITY_CASE_NOTIFICATION_EVENT_TYPES) {
+      await this.addNotificationSettingIfNotExists(
+        userId,
+        projectId,
+        eventType,
+        { alertByPush: true },
+      );
+    }
   }
 
   /*
@@ -1164,9 +1237,61 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       );
     }
 
+    checkMinimumSecurityCasePriority({
+      minimumSecurityCasePriority: createBy.data.minimumSecurityCasePriority,
+      eventType: createBy.data.eventType,
+    });
+
     return {
       createBy,
       carryForward: undefined,
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<UserNotificationSetting>,
+  ): Promise<OnUpdate<UserNotificationSetting>> {
+    /*
+     * The event a row is for is fixed (the matrix only switches channels),
+     * so a priority choice is checked against the rows it lands on.
+     */
+    const minimumSecurityCasePriority: unknown = (
+      updateBy.data as unknown as Record<string, unknown>
+    )["minimumSecurityCasePriority"];
+
+    if (
+      minimumSecurityCasePriority !== undefined &&
+      minimumSecurityCasePriority !== null &&
+      minimumSecurityCasePriority !== ""
+    ) {
+      checkMinimumSecurityCasePriority({
+        minimumSecurityCasePriority,
+        eventType: undefined,
+      });
+
+      const otherEventRows: PositiveNumber = await this.countBy({
+        query: {
+          ...updateBy.query,
+          eventType: QueryHelper.notEquals(
+            NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
+          ),
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (otherEventRows.toNumber() > 0) {
+        throw new BadDataException(
+          "Only the New Security Case setting has a priority to choose.",
+        );
+      }
+    }
+
+    return {
+      updateBy,
+      carryForward: null,
     };
   }
 }
