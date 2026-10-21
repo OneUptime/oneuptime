@@ -1,6 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import { Column } from "typeorm";
-import { getMetadataArgsStorage } from "typeorm";
+import { Column, getMetadataArgsStorage } from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import BaseModel, {
   DatabaseBaseModelType,

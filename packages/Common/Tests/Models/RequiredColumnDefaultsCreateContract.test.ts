@@ -39,7 +39,9 @@ type RequiredFieldsCheck = {
   modelType: DatabaseBaseModelType;
 };
 
-function checkOf(contract: RequiredColumnDefaultsContract): RequiredFieldsCheck {
+function checkOf(
+  contract: RequiredColumnDefaultsContract,
+): RequiredFieldsCheck {
   return contract.service as RequiredFieldsCheck;
 }
 

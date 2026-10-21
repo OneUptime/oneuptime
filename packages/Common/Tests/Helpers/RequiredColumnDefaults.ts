@@ -68,128 +68,127 @@ export interface RequiredColumnDefaultsContract {
   defaults: Array<[string, unknown]>;
 }
 
-export const REQUIRED_COLUMN_DEFAULTS: Array<RequiredColumnDefaultsContract> =
-  [
-    {
-      modelType: DetectionRule,
-      service: DetectionRuleService,
-      defaults: [
-        ["isEnabled", true],
-        ["evaluationIntervalInMinutes", 1],
-        ["shouldCreateAlert", true],
-        ["shouldWriteDetectionFinding", true],
-      ],
-    },
-    {
-      modelType: LogPipelineProcessor,
-      service: LogPipelineProcessorService,
-      defaults: [["isEnabled", true]],
-    },
-    {
-      modelType: LogRecordingRule,
-      service: LogRecordingRuleService,
-      defaults: [["isEnabled", true]],
-    },
-    {
-      modelType: LogSavedView,
-      service: LogSavedViewService,
-      defaults: [
-        ["pageSize", 100],
-        ["isDefault", false],
-      ],
-    },
-    {
-      modelType: MetricPipelineRule,
-      service: MetricPipelineRuleService,
-      defaults: [
-        ["filterCondition", FilterCondition.All],
-        ["isEnabled", true],
-      ],
-    },
-    {
-      modelType: MetricRecordingRule,
-      service: MetricRecordingRuleService,
-      defaults: [["isEnabled", true]],
-    },
-    {
-      modelType: MetricSavedView,
-      service: MetricSavedViewService,
-      defaults: [["isDefault", false]],
-    },
-    {
-      modelType: MonitorTest,
-      service: MonitorTestService,
-      defaults: [["isInQueue", true]],
-    },
-    {
-      modelType: ProjectSmtpConfig,
-      service: ProjectSmtpConfigService,
-      defaults: [
-        ["transportType", MailTransportType.SMTP],
-        ["authType", SMTPAuthenticationType.UsernamePassword],
-      ],
-    },
-    {
-      modelType: SecurityEventConnection,
-      service: SecurityEventConnectionService,
-      defaults: [
-        ["isEnabled", true],
-        ["pollIntervalInMinutes", 5],
-        ["alertingOnly", true],
-      ],
-    },
-    {
-      modelType: SecurityEventDestination,
-      service: SecurityEventDestinationService,
-      defaults: [
-        ["isEnabled", true],
-        ["sendScope", SecurityEventDestinationScope.Detections],
-      ],
-    },
-    {
-      modelType: SecurityLogSource,
-      service: SecurityLogSourceService,
-      defaults: [["isEnabled", true]],
-    },
-    {
-      modelType: TableView,
-      service: TableViewService,
-      defaults: [["itemsOnPage", 10]],
-    },
-    {
-      modelType: ThreatIntelFeed,
-      service: ThreatIntelFeedService,
-      defaults: [["isEnabled", true]],
-    },
-    {
-      modelType: ToolImportRecord,
-      service: ToolImportRecordService,
-      defaults: [["isComplete", true]],
-    },
-    {
-      modelType: TracePipelineProcessor,
-      service: TracePipelineProcessorService,
-      defaults: [["isEnabled", true]],
-    },
-    {
-      modelType: TraceRecordingRule,
-      service: TraceRecordingRuleService,
-      defaults: [["isEnabled", true]],
-    },
-    {
-      modelType: TraceSavedView,
-      service: TraceSavedViewService,
-      defaults: [["isDefault", false]],
-    },
-    {
-      modelType: WorkflowVariable,
-      service: WorkflowVariableService,
-      defaults: [
-        ["isSecret", false],
-        ["variableType", WorkflowVariableType.Static],
-      ],
-    },
-  ];
+export const REQUIRED_COLUMN_DEFAULTS: Array<RequiredColumnDefaultsContract> = [
+  {
+    modelType: DetectionRule,
+    service: DetectionRuleService,
+    defaults: [
+      ["isEnabled", true],
+      ["evaluationIntervalInMinutes", 1],
+      ["shouldCreateAlert", true],
+      ["shouldWriteDetectionFinding", true],
+    ],
+  },
+  {
+    modelType: LogPipelineProcessor,
+    service: LogPipelineProcessorService,
+    defaults: [["isEnabled", true]],
+  },
+  {
+    modelType: LogRecordingRule,
+    service: LogRecordingRuleService,
+    defaults: [["isEnabled", true]],
+  },
+  {
+    modelType: LogSavedView,
+    service: LogSavedViewService,
+    defaults: [
+      ["pageSize", 100],
+      ["isDefault", false],
+    ],
+  },
+  {
+    modelType: MetricPipelineRule,
+    service: MetricPipelineRuleService,
+    defaults: [
+      ["filterCondition", FilterCondition.All],
+      ["isEnabled", true],
+    ],
+  },
+  {
+    modelType: MetricRecordingRule,
+    service: MetricRecordingRuleService,
+    defaults: [["isEnabled", true]],
+  },
+  {
+    modelType: MetricSavedView,
+    service: MetricSavedViewService,
+    defaults: [["isDefault", false]],
+  },
+  {
+    modelType: MonitorTest,
+    service: MonitorTestService,
+    defaults: [["isInQueue", true]],
+  },
+  {
+    modelType: ProjectSmtpConfig,
+    service: ProjectSmtpConfigService,
+    defaults: [
+      ["transportType", MailTransportType.SMTP],
+      ["authType", SMTPAuthenticationType.UsernamePassword],
+    ],
+  },
+  {
+    modelType: SecurityEventConnection,
+    service: SecurityEventConnectionService,
+    defaults: [
+      ["isEnabled", true],
+      ["pollIntervalInMinutes", 5],
+      ["alertingOnly", true],
+    ],
+  },
+  {
+    modelType: SecurityEventDestination,
+    service: SecurityEventDestinationService,
+    defaults: [
+      ["isEnabled", true],
+      ["sendScope", SecurityEventDestinationScope.Detections],
+    ],
+  },
+  {
+    modelType: SecurityLogSource,
+    service: SecurityLogSourceService,
+    defaults: [["isEnabled", true]],
+  },
+  {
+    modelType: TableView,
+    service: TableViewService,
+    defaults: [["itemsOnPage", 10]],
+  },
+  {
+    modelType: ThreatIntelFeed,
+    service: ThreatIntelFeedService,
+    defaults: [["isEnabled", true]],
+  },
+  {
+    modelType: ToolImportRecord,
+    service: ToolImportRecordService,
+    defaults: [["isComplete", true]],
+  },
+  {
+    modelType: TracePipelineProcessor,
+    service: TracePipelineProcessorService,
+    defaults: [["isEnabled", true]],
+  },
+  {
+    modelType: TraceRecordingRule,
+    service: TraceRecordingRuleService,
+    defaults: [["isEnabled", true]],
+  },
+  {
+    modelType: TraceSavedView,
+    service: TraceSavedViewService,
+    defaults: [["isDefault", false]],
+  },
+  {
+    modelType: WorkflowVariable,
+    service: WorkflowVariableService,
+    defaults: [
+      ["isSecret", false],
+      ["variableType", WorkflowVariableType.Static],
+    ],
+  },
+];
 
 export function defaultedColumnsOf(
   contract: RequiredColumnDefaultsContract,
@@ -256,13 +255,17 @@ export function columnWithoutDefault(modelType: DatabaseBaseModelType): {
     });
 
   if (!column) {
-    throw new Error(`${modelType.name} has no required column without a default.`);
+    throw new Error(
+      `${modelType.name} has no required column without a default.`,
+    );
   }
 
   const relations: Array<string> = model
     .getTableColumns()
     .columns.filter((name: string): boolean => {
-      return model.getTableColumnMetadata(name).manyToOneRelationColumn === column;
+      return (
+        model.getTableColumnMetadata(name).manyToOneRelationColumn === column
+      );
     });
 
   return { column, leftOut: [column, ...relations] };
