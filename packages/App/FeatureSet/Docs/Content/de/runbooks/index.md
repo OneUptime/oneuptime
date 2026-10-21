@@ -36,7 +36,7 @@ flowchart TB
 
 Jeder Lauf ist eine **Ausführung**. Beim Start werden die Schritte des Runbooks auf sie kopiert, und OneUptime arbeitet sie der Reihe nach ab. Ein Manual-Schritt oder ein Schritt, der eine Freigabe braucht, hält den Lauf an, bis jemand handelt.
 
-HTTP- und KI-Schritte laufen auf dem OneUptime Worker. Bash-, SSH- und kubectl-Schritte laufen auf einem [Runner](/docs/runbooks/agents), den Sie in Ihrer eigenen Infrastruktur installieren, sodass diese Skripte nie auf den Servern von OneUptime laufen. Ein JavaScript-Schritt läuft ebenfalls auf einem Ihrer Runner oder, wenn er keinen wählt, auf einem [globalen Runner](/docs/runbooks/agents#globale-runner), in einer Sandbox, die nur das Internet erreicht. Status, Ausgabe und Fehlermeldung jedes Schritts werden auf der Ausführung aufgezeichnet, die beim Vorfall, bei der Warnung oder beim Ereignis bleibt, für das sie lief.
+HTTP- und KI-Schritte laufen auf dem OneUptime Worker. Bash-, SSH- und kubectl-Schritte laufen auf einem [Runner](/docs/runbooks/agents), den Sie in Ihrer eigenen Infrastruktur installieren, sodass diese Skripte nie auf den Servern von OneUptime laufen. Ein JavaScript-Schritt läuft ebenfalls auf einem Ihrer Runner oder, wenn er keinen wählt und das Projekt keinen [Standard-Runner](/docs/runbooks/agents#der-standard-runner-des-projekts) hat, auf einem [globalen Runner](/docs/runbooks/agents#globale-runner), in einer Sandbox, die nur das Internet erreicht. Status, Ausgabe und Fehlermeldung jedes Schritts werden auf der Ausführung aufgezeichnet, die beim Vorfall, bei der Warnung oder beim Ereignis bleibt, für das sie lief.
 
 ## Zentrale Begriffe
 
@@ -47,7 +47,7 @@ HTTP- und KI-Schritte laufen auf dem OneUptime Worker. Bash-, SSH- und kubectl-S
 | **Runbook-Regel** | Eine Regel, die ein oder mehrere Runbooks automatisch an Vorfälle, Warnungen oder geplante Wartungsereignisse hängt, die ihren Bedingungen entsprechen: ihren Monitoren, ihrem Schweregrad, ihren Beschriftungen, den Beschriftungen ihrer Monitore, ihrem Titel oder ihrer Beschreibung. |
 | **Ausführung** | Ein Lauf eines Runbooks. Sie entsteht, wenn eine Regel greift, wenn jemand an einem Ereignis auf **Runbook ausführen** klickt oder wenn jemand am Runbook selbst auf **Jetzt ausführen** klickt. Sie enthält eine Momentaufnahme der Schritte sowie Status und Ausgabe jedes Schritts. |
 | **Momentaufnahme** | Die eingefrorene Kopie der Runbook-Schritte, die auf jeder Ausführung liegt. Sie können das Runbook später bearbeiten, ohne die Geschichte früherer Läufe umzuschreiben. |
-| **Runner** | Ein kleiner Agent, den Sie auf einem Host in Ihrer eigenen Infrastruktur betreiben. Er führt die JavaScript-, Bash-, SSH- und kubectl-Schritte aus, die ihn benennen. Auch Runbook-Agent genannt. Ein globaler Runner, einer, den OneUptime für jedes Projekt betreibt, führt die JavaScript-Schritte aus, die keinen nennen. |
+| **Runner** | Ein kleiner Agent, den Sie auf einem Host in Ihrer eigenen Infrastruktur betreiben. Er führt die JavaScript-, Bash-, SSH- und kubectl-Schritte aus, die ihn benennen. Auch Runbook-Agent genannt. Ein globaler Runner, einer, den OneUptime für jedes Projekt betreibt, führt die JavaScript-Schritte aus, die keinen nennen, sofern das Projekt keinen Standard-Runner hat. |
 | **Variable** | Ein Wert, den Schritte über seinen Namen verwenden, etwa ein Host oder eine URL: `{{global.variables.NAME}}` für einen des Projekts, den jedes Runbook verwenden kann, oder `{{local.variables.NAME}}` für einen des Runbooks selbst. |
 | **Geheimnis** | Eine Variable, deren Wert im Ruhezustand verschlüsselt ist, nie wieder angezeigt und in dem verborgen wird, was Schritte ausgeben, etwa ein SSH-Schlüssel, ein Passwort, eine kubeconfig oder ein API-Token. Nur an die Runner übergeben, denen Sie die Nutzung erlauben; globale Runner erhalten es nur, wenn Sie es ihnen erlauben. |
 
@@ -141,7 +141,7 @@ Runbooks:    [DB primary failover]
 
 Ein Monitor öffnet den Vorfall `INC-4821 · db-primary connection timeout`. Die Regel greift, und eine Ausführung startet:
 
-- Schritt 1 (JavaScript) läuft auf dem Runner, den Sie für ihn gewählt haben. Sein Rückgabewert, etwa `{ lagMs: 412 }`, wird erfasst. Ein Schritt, der keinen Runner wählt, läuft auf einem globalen Runner.
+- Schritt 1 (JavaScript) läuft auf dem Runner, den Sie für ihn gewählt haben. Sein Rückgabewert, etwa `{ lagMs: 412 }`, wird erfasst. Ein Schritt, der keinen Runner wählt, läuft auf dem Standard-Runner des Projekts oder, wenn keiner festgelegt ist, auf einem globalen Runner.
 - Schritt 2 (Manual) hält den Lauf an, der dann **Wartet auf Sie** zeigt. Die Person in Bereitschaft prüft das Dashboard und klickt auf **Als abgeschlossen markieren**.
 - Schritt 3 (HTTP request) läuft, und die Antwort auf den `POST` wird erfasst.
 - Schritt 4 (Manual) hält den Lauf erneut an, bis jemand ihn abschließt.

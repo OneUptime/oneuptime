@@ -56,6 +56,7 @@ import {
   NEEDS_APPROVAL_LABEL,
   REQUIRE_APPROVAL_FOLDED_TITLE,
   REQUIRE_APPROVAL_TITLE,
+  RUNNER_FIELD_TITLE,
   getStepMoreFieldsItems,
 } from "../../../FeatureSet/Dashboard/src/Components/Runbook/Steps/RunbookStepEditorModel";
 import {
@@ -1195,7 +1196,11 @@ describe("the Runner the runbook pages describe", () => {
 
 describe("a step's options on the authoring page", () => {
   // The keys of what a new step of this type folds under More fields, in order.
-  function foldedKeys(type: RunbookStepType): Array<string> {
+  // `runner`: what the Steps page names the step's Runner, for a step that runs on one.
+  function foldedKeys(
+    type: RunbookStepType,
+    runner?: string | undefined,
+  ): Array<string> {
     const step: RunbookStep = {
       id: "step",
       order: 0,
@@ -1204,7 +1209,7 @@ describe("a step's options on the authoring page", () => {
       config: {},
     } as RunbookStep;
 
-    return getStepMoreFieldsItems(step).map(
+    return getStepMoreFieldsItems(step, runner ? { runner } : {}).map(
       (item: FoldedSectionItem): string => {
         return item.key;
       },
@@ -1258,9 +1263,27 @@ describe("a step's options on the authoring page", () => {
       ]);
     }
 
+    /*
+     * A step that runs on a Runner names it first - the one item the line
+     * always says the value of, set or not (the Steps page passes it).
+     */
+    for (const type of [
+      RunbookStepType.JavaScript,
+      RunbookStepType.Bash,
+      RunbookStepType.SSH,
+      RunbookStepType.Kubernetes,
+    ]) {
+      expect(foldedKeys(type, "Global Runner").slice(0, 3)).toEqual([
+        "runner",
+        ...switches,
+      ]);
+    }
+
     expect(AUTHORING).toContain(
-      `In every automated step below, the step's **More fields** holds **${REQUIRE_APPROVAL_FOLDED_TITLE}** and **${CONTINUE_ON_FAILURE_TITLE}** first, then the step's own extra settings - an HTTP request's headers, an SSH step's port and key passphrase, an AI step's provider and context switches - and last the **Description** and the timeouts.`,
+      `In every automated step below, the step's **More fields** holds its **${RUNNER_FIELD_TITLE}** first, for a step that runs on one, then **${REQUIRE_APPROVAL_FOLDED_TITLE}** and **${CONTINUE_ON_FAILURE_TITLE}**, then the step's own extra settings - an HTTP request's headers, an SSH step's port and key passphrase, an AI step's provider and context switches - and last the **Description** and the timeouts. Folded, it names the step's Runner, so you see where a step runs without opening it.`,
     );
+    expect(STEPS_PAGE).toContain("getStepMoreFieldsItems(");
+    expect(STEPS_PAGE).toContain("{ runner: getRunnerFoldedValue(runnerModel) }");
     expect(AUTHORING).toContain(
       `| **${HTTP_HEADERS_TITLE}** | Under **More fields**.`,
     );
@@ -1459,10 +1482,10 @@ describe("running a runbook", () => {
     });
 
     expect(missingRunner).toBe(
-      "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.",
+      "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners.",
     );
     expect(RUNNER_CHOICE).toContain(
-      "steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.`;",
+      "steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners.`;",
     );
     expect(STEP_EXECUTORS).toContain("getRunnerChoiceRefusalFromStep({");
     expect(RUNNING).toContain(`"${missingRunner}"`);

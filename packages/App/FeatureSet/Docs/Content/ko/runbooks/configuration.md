@@ -40,12 +40,12 @@ flowchart TB
 
 ## Runner 단계가 전달되는 방식
 
-JavaScript, Bash, SSH, kubectl 단계는 **OneUptime Worker에서 절대 실행되지 않습니다**. 이 단계들은 특정 [Runbook 에이전트](/docs/runbooks/agents)에 작업으로 전달됩니다. Runbook 에이전트는 자체 인프라의 호스트에 설치하는 작은 프로세스입니다. 아무것도 고르지 않은 JavaScript 단계는 OneUptime이 모든 프로젝트를 위해 실행하는 [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)로 갑니다.
+JavaScript, Bash, SSH, kubectl 단계는 **OneUptime Worker에서 절대 실행되지 않습니다**. 이 단계들은 특정 [Runbook 에이전트](/docs/runbooks/agents)에 작업으로 전달됩니다. Runbook 에이전트는 자체 인프라의 호스트에 설치하는 작은 프로세스입니다. 아무것도 고르지 않은 단계는 프로젝트에 있으면 [프로젝트 기본 Runner](/docs/runbooks/agents#프로젝트-기본-runner)로 가고, 없으면 JavaScript 단계는 OneUptime이 모든 프로젝트를 위해 실행하는 [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)로 갑니다.
 
 전달 모델:
 
 1. Runbook 단계 작성자가 단계를 작성할 때 드롭다운에서 Runner를 고릅니다.
-2. 단계가 실행되면 Worker는 `targetAgentId`를 그 Runner의 ID로, 상태를 `Pending`으로 설정한 행을 `RunnerJob`에 넣습니다. 글로벌 Runner를 사용하는 프로젝트에서 아무것도 고르지 않은 JavaScript 단계에는 대신 `runsOnGlobalRunner`가 설정됩니다.
+2. 단계가 실행되면 Worker는 `targetAgentId`를 그 Runner의 ID(아무것도 고르지 않은 단계라면 프로젝트 기본 Runner의 ID)로, 상태를 `Pending`으로 설정한 행을 `RunnerJob`에 넣습니다. 기본 Runner가 없고 글로벌 Runner를 사용하는 프로젝트에서 아무것도 고르지 않은 JavaScript 단계에는 대신 `runsOnGlobalRunner`가 설정됩니다.
 3. 바로 그 Runner(그 Runner만)가 작업을 원자적으로 가져가 로컬에서 실행하고(Bash와 kubectl은 `bash -c <script>`, JavaScript는 `isolated-vm` 샌드박스, SSH는 머신으로의 연결로, 모두 지정한 변수를 채워서 실행) 결과를 돌려보냅니다. `runsOnGlobalRunner`가 있는 작업은 어느 글로벌 Runner든 가져갈 수 있습니다.
 4. Worker는 그 결과로 Runbook을 재개합니다.
 
@@ -92,7 +92,7 @@ Manual 단계가 API로 체크되면 실행은 다음 단계부터 계속하기 
 
 ## 보안 강화 참고 사항
 
-- **JavaScript, Bash, SSH, kubectl**는 OneUptime Worker가 아니라 여러분이 관리하는 Runner 호스트에서 실행됩니다. JavaScript는 메모리 128 MB의 별도 `isolated-vm` 격리 환경에서 실행되며 Runner의 파일 시스템이나 프로세스에 접근할 수 없습니다. `axios`로 HTTP 요청을 보낼 수 있지만 사설 네트워크, 루프백, 링크 로컬 주소로 가는 요청은 거부됩니다. Bash는 `bash -c`로 실행되며 타임아웃은 Runner에서 적용됩니다. 아무것도 고르지 않은 JavaScript 단계는 대신 글로벌 Runner에서 실행됩니다.
+- **JavaScript, Bash, SSH, kubectl**는 OneUptime Worker가 아니라 여러분이 관리하는 Runner 호스트에서 실행됩니다. JavaScript는 메모리 128 MB의 별도 `isolated-vm` 격리 환경에서 실행되며 Runner의 파일 시스템이나 프로세스에 접근할 수 없습니다. `axios`로 HTTP 요청을 보낼 수 있지만 사설 네트워크, 루프백, 링크 로컬 주소로 가는 요청은 거부됩니다. Bash는 `bash -c`로 실행되며 타임아웃은 Runner에서 적용됩니다. 아무것도 고르지 않은 JavaScript 단계는 프로젝트 기본 Runner에서, 그것이 없으면 글로벌 Runner에서 실행됩니다.
 - **HTTP 단계**는 관대한 상태 검증기를 쓰므로 4xx나 5xx 응답이 예외로 던져지지 않고 실패한 단계로 기록되며, 기록된 출력은 상대편이 실제로 돌려준 내용을 반영합니다. 리디렉션은 따라가지 않습니다. Worker는 클라우드 메타데이터 엔드포인트 같은 루프백 또는 링크 로컬 주소를 절대 호출하지 않습니다. OneUptime Cloud에서는 사설 네트워크 주소도 거부하며, 자체 호스팅 OneUptime은 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`일 때 거부합니다.
 - **AI 단계**는 인시던트의 비공개 메모나 Slack과 Microsoft Teams 메시지를 절대 보지 않으며, 이전 단계의 출력은 시크릿이 있는지 검사해 모델에 닿기 전에 가립니다. 포함된 이미지와 긴 인코딩 데이터는 프롬프트에서 제외됩니다. [AI](/docs/runbooks/authoring#ai)를 참조하세요.
 - **글로벌 Runner**는 JavaScript 단계만 실행합니다. 각 단계는 그 단계를 위해 만들어지고 끝나면 버려지는 샌드박스에서, 공용 인터넷 주소에만 접근하며, 최대 5분 동안, 한 프로젝트당 동시에 최대 세 단계까지 실행됩니다. 글로벌 Runner는 단계가 속한 프로젝트의 시크릿 변수 중 글로벌 Runner에 켜 둔 것만 받으며, 자격 증명은 절대 받지 않습니다. 함께 제공되는 글로벌 Runner는 자체 키를 가지며 서버의 다른 것은 아무것도 갖지 않습니다. [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)를 참조하세요.
@@ -106,7 +106,7 @@ Manual 단계가 API로 체크되면 실행은 다음 단계부터 계속하기 
 | `Runbook` | 템플릿: 이름, slug, 설명, `isEnabled`, 레이블, JSON 형식의 단계. |
 | `RunbookExecution` | 실행마다 한 행. null을 허용하는 외래 키 `incidentId`, `alertId`, `scheduledMaintenanceId`와, 단계와 각 단계의 상태를 스냅샷으로 담은 JSON 배열 `stepExecutions`가 있습니다. |
 | `RunbookRule` | 자동 트리거 규칙. 판별자 `triggerEntityType`(Incident, Alert, ScheduledMaintenance), 시작할 Runbook과의 다대다 관계, 그리고 일치 대상(JSON 열 `criteria`(조건)와 모니터, 인시던트 심각도, 알림 심각도, 레이블, 모니터 레이블에 대한 다대다 링크, 제목, 설명, 모니터 이름, 모니터 설명 패턴)이 있습니다. |
-| `Runner` | 설치된 Runner마다 한 행: 이름, 비밀 키, `lastAlive`, `connectionStatus`, 호스트 정보, 기능. 글로벌 Runner는 `isGlobalRunner`가 설정되어 있고 프로젝트가 없습니다. |
+| `Runner` | 설치된 Runner마다 한 행: 이름, 비밀 키, `lastAlive`, `connectionStatus`, 호스트 정보, 기능. 글로벌 Runner는 `isGlobalRunner`가 설정되어 있고 프로젝트가 없습니다. 프로젝트 기본 Runner는 `isProjectDefault`가 설정되어 있습니다. |
 | `RunnerJob` | Runner에 보낸 단계마다 한 행: `targetAgentId`(단계 작성자가 고른 Runner), 단계 유형, 스크립트 또는 페이로드, 상태(`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` 또는 `Cancelled`), claim 기한, 리스, 출력, 종료 코드. `runsOnGlobalRunner`는 어느 글로벌 Runner든 가져갈 수 있는 단계를 표시합니다. |
 | `RunbookCredential` | OneUptime AI의 명령이 사용하는 SSH와 Kubernetes 자격 증명. 시크릿 필드는 암호화되며, 할당된 Runner도 저장합니다. |
 | `RunbookVariable` | Runbook 변수. 프로젝트의 전역 변수와, `runbookId`로 Runbook을 지정하는 Runbook 자체 변수입니다. 시크릿 값은 암호화되며, 시크릿을 받을 수 있는 Runner도 저장합니다. |

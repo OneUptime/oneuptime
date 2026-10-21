@@ -12,7 +12,7 @@ Você escreve um runbook como uma lista ordenada de etapas na página **Etapas**
 ## Antes de começar
 
 - **Uma função que escreve runbooks.** Project Owner, Project Admin e Runbook Admin criam runbooks e salvam suas etapas. Com permissões granulares, você precisa de **Create Runbook** e **Edit Runbook**. Consulte [Permissões](/docs/runbooks/configuration#permissões).
-- **Um Runner, para etapas Bash, SSH e kubectl.** Essas etapas são executadas em um [Runner](/docs/runbooks/agents) dentro da sua própria infraestrutura, nunca no Worker do OneUptime. Instale um primeiro. Uma etapa JavaScript roda em um [Runner global](/docs/runbooks/agents#runners-globais), a menos que você escolha um dos seus.
+- **Um Runner, para etapas Bash, SSH e kubectl.** Essas etapas são executadas em um [Runner](/docs/runbooks/agents) dentro da sua própria infraestrutura, nunca no Worker do OneUptime. Instale um primeiro. Uma etapa que não escolhe nenhum Runner roda no [Runner padrão do projeto](/docs/runbooks/agents#o-runner-padrão-do-projeto), se você definiu um; caso contrário, uma etapa JavaScript roda em um [Runner global](/docs/runbooks/agents#runners-globais).
 - **Uma variável secreta, para etapas SSH e kubectl.** A chave, a senha ou o kubeconfig com que uma etapa entra é uma [variável de runbook](/docs/runbooks/variables) secreta. Project Owner e Project Admin criam as variáveis, e Runbook Admin as escolhe nas etapas que escreve. Uma etapa kubectl pode usar, em vez disso, o acesso próprio do Runner.
 - **Um provedor de LLM, para etapas de IA.** Consulte [Provedores de LLM](/docs/ai/llm-provider).
 
@@ -64,7 +64,7 @@ Toda etapa tem estes campos. Uma etapa automatizada mostra seu **Título** e as 
 | [kubectl](#kubectl) | Um Runner | Um Runner, e uma variável de kubeconfig ou o acesso próprio do Runner |
 | [AI](#ai) | O Worker do OneUptime | Um provedor de LLM |
 
-Em cada etapa automatizada abaixo, **Mais campos** da etapa traz primeiro **Exigir aprovação** e **Continuar em caso de falha**, depois as configurações próprias da etapa - os headers de uma chamada HTTP, a porta e a frase secreta da chave de uma etapa SSH, o provedor e os interruptores de contexto de uma etapa de IA - e por último a **Descrição** e os tempos limite.
+Em cada etapa automatizada abaixo, **Mais campos** da etapa traz primeiro o **Runner** dela, para uma etapa que roda em um, depois **Exigir aprovação** e **Continuar em caso de falha**, depois as configurações próprias da etapa - os headers de uma chamada HTTP, a porta e a frase secreta da chave de uma etapa SSH, o provedor e os interruptores de contexto de uma etapa de IA - e por último a **Descrição** e os tempos limite. Recolhido, ele nomeia o Runner da etapa, para você ver onde uma etapa roda sem abri-la.
 
 ### Manual
 
@@ -78,7 +78,7 @@ Um trecho de JavaScript, executado em um sandbox `isolated-vm` em um [agente de 
 
 | Campo | O que faz | Padrão |
 | --- | --- | --- |
-| **Runner** | O Runner que executa a etapa: **Runner global**, ou um dos seus. Só o Runner que você escolhe pode assumir o trabalho; qualquer Runner global pode assumir uma etapa em **Runner global**. | **Runner global**, quando houver um |
+| **Runner** | Em **Mais campos**. O Runner que executa a etapa: **Runner global**, ou um dos seus. Só o Runner que você escolhe pode assumir o trabalho; qualquer Runner global pode assumir uma etapa em **Runner global**. | O [Runner padrão do projeto](/docs/runbooks/agents#o-runner-padrão-do-projeto), se você definiu um; caso contrário, **Runner global**, quando houver um |
 | **Script** | O JavaScript a executar. Retorne um valor com `return` para capturá-lo; cada linha de `console.log` também é capturada. Lançar um erro faz a etapa falhar. | — |
 | **Tempo limite de execução** | Por quanto tempo o Runner deixa o trecho rodar antes de destruir o sandbox. Um Runner global o deixa rodar no máximo 5 minutos. | 30 segundos |
 | **Tempo limite para assumir** | Por quanto tempo o Worker espera o Runner assumir o trabalho. | 2 minutos |
@@ -117,7 +117,7 @@ Um script bash, executado com `bash -c <script>` em um [agente de runbook](/docs
 
 | Campo | O que faz | Padrão |
 | --- | --- | --- |
-| **Runner** | O Runner que executa a etapa. Só esse Runner pode assumir o trabalho. | — |
+| **Runner** | Em **Mais campos**. O Runner que executa a etapa. Só esse Runner pode assumir o trabalho. Runners globais rodam só etapas JavaScript. | O Runner padrão do projeto, se você definiu um |
 | **Script Bash** | O script. A saída (stdout e stderr) é capturada até 50 KB, e um código de saída diferente de zero faz a etapa falhar. | — |
 | **Tempo limite de execução** | Por quanto tempo o Runner deixa o script rodar antes de matá-lo com `SIGKILL`. Aumente-o para etapas que legitimamente levam minutos. | 30 segundos |
 | **Tempo limite para assumir** | Por quanto tempo o Worker espera o Runner assumir o trabalho. | 2 minutos |
@@ -146,7 +146,7 @@ Entrar em uma máquina por SSH e executar um script bash nela. O Runner abre a c
 
 | Campo | O que faz |
 | --- | --- |
-| **Runner** | O Runner que abre a conexão. Ele precisa alcançar a máquina pela rede. |
+| **Runner** | Em **Mais campos**. O Runner que abre a conexão. Ele precisa alcançar a máquina pela rede. Uma etapa que não escolhe nenhum roda no Runner padrão do projeto. |
 | **SSH para** | O usuário e a máquina, como você os escreveria depois de `ssh`: `deploy@10.0.4.21`. |
 | **Entrar com** | A variável secreta que guarda a chave privada ou a senha; o valor diz qual é. Só variáveis secretas são oferecidas, e a etapa avisa quando seu Runner não pode usar a escolhida. |
 | **Script Bash** | Executa com `bash` na máquina, como o usuário com que entra. A saída é capturada até 50 KB, e um código de saída diferente de zero faz a etapa falhar. |
@@ -168,7 +168,7 @@ Executar comandos kubectl em um cluster. O script roda com bash no Runner, que t
 
 | Campo | O que faz |
 | --- | --- |
-| **Runner** | O Runner que executa o kubectl. Ele precisa alcançar o servidor de API do cluster. |
+| **Runner** | Em **Mais campos**. O Runner que executa o kubectl. Ele precisa alcançar o servidor de API do cluster. Uma etapa que não escolhe nenhum roda no Runner padrão do projeto. |
 | **Kubeconfig** | A variável secreta que guarda o kubeconfig do cluster, ou **O acesso próprio do Runner**: o kubeconfig do próprio Runner, ou a conta de serviço dele quando roda dentro do cluster. O Runner grava um kubeconfig em um arquivo que só ele pode ler, e o remove quando o script termina. |
 | **Script** | Os comandos kubectl. A saída é capturada até 50 KB, e um código de saída diferente de zero faz a etapa falhar. |
 | **Tempo limite de execução** | Por quanto tempo o Runner deixa o script rodar antes de pará-lo com `SIGKILL`. Padrão de 30 segundos. |
@@ -190,7 +190,7 @@ Peça à IA para analisar, resumir ou decidir algo no meio da execução. A resp
 | Campo | O que faz |
 | --- | --- |
 | **Prompt** | O que a IA deve fazer. Por exemplo: "Revise a saída das etapas anteriores e diga se é seguro prosseguir com a remediação." |
-| **LLM provider** | Opcional. **Project default** usa o provedor padrão do projeto. Fixe um provedor quando a etapa precisar de um modelo específico, como um auto-hospedado para dados que não podem sair da sua rede. Consulte [Provedores de LLM](/docs/ai/llm-provider). |
+| **LLM provider** | Opcional. **Padrão do projeto** usa o provedor padrão do projeto. Fixe um provedor quando a etapa precisar de um modelo específico, como um auto-hospedado para dados que não podem sair da sua rede. Consulte [Provedores de LLM](/docs/ai/llm-provider). |
 | **Include previous step context** | Se ligado, a IA vê tudo sobre as etapas que rodaram antes desta: título, tipo, status, saída e mensagens de erro. Ela recebe até 4.000 caracteres da saída de cada etapa. |
 | **Include trigger context** | Se ligado, a IA vê o que iniciou a execução: o incidente, alerta ou evento de manutenção programada vinculado (descrição, severidade, estado atual, monitores afetados, causa raiz, histórico de estados e notas públicas), ou quem executou o runbook manualmente. |
 

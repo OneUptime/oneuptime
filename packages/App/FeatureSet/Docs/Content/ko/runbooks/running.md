@@ -134,7 +134,7 @@ Runbook의 **설정** 페이지에서 **이 런북 실행** 스위치가 꺼져 
 :::
 
 :::details Runner가 없어서 단계가 실패함
-메시지는 예를 들어 "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners."입니다. 단계가 **Runner** 없이 저장되었습니다. JavaScript 단계에 자체 Runner가 필요한 것은 그 단계를 실행할 수 있는 [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)가 없을 때뿐입니다. Runbook의 **단계**를 열어 단계의 Runner를 고르고 **Save Steps**를 클릭한 뒤 Runbook을 다시 실행하세요.
+메시지는 예를 들어 "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners."입니다. 단계가 **Runner** 없이 저장되었고, 프로젝트에 [기본 Runner](/docs/runbooks/agents#프로젝트-기본-runner)도 없습니다. JavaScript 단계에 자체 Runner가 필요한 것은 그 단계를 실행할 수 있는 [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)가 없을 때뿐입니다. Runbook의 **단계**를 열어 단계의 **추가 필드**에서 Runner를 고르고 **Save Steps**를 클릭한 뒤 Runbook을 다시 실행하세요.
 :::
 
 :::details 사용할 수 없는 변수를 지정해서 단계가 실패함

@@ -1,10 +1,11 @@
 # Runbook 代理程式
 
-**Runbook 代理程式** 在儀表板中稱為 **Runner** ，是一個小型的自行託管處理程序，它 **在您自己的基礎架構中** 執行 Runbook 的 JavaScript、Bash、SSH 和 kubectl 步驟。OneUptime Worker 絕不會執行您的指令碼：它把指令碼放入佇列，由步驟作者選擇的 Runner 認領每項工作、執行它並傳回結果。本頁面向安裝和維運 Runner 的人員。 未選擇 Runner 的 JavaScript 步驟改為在 [全域 Runner](#全域-runner) 上執行，也就是 OneUptime 為所有專案執行的 Runner。
+**Runbook 代理程式** 在儀表板中稱為 **Runner** ，是一個小型的自行託管處理程序，它 **在您自己的基礎架構中** 執行 Runbook 的 JavaScript、Bash、SSH 和 kubectl 步驟。OneUptime Worker 絕不會執行您的指令碼：它把指令碼放入佇列，由步驟作者選擇的 Runner 認領每項工作、執行它並傳回結果。本頁面向安裝和維運 Runner 的人員。 未選擇 Runner 的步驟會在您設定的 [專案預設 Runner](#專案預設-runner) 上執行；如果沒有設定，JavaScript 步驟會在 [全域 Runner](#全域-runner) 上執行，也就是 OneUptime 為所有專案執行的 Runner。
 
 :::cards
 - [安裝 Runner](#安裝-runner): 五個步驟，從儀表板到已連線的容器。
 - [為步驟指定 Runner](#為步驟指定-runner): 把步驟繫結到應執行它的 Runner。
+- [專案預設 Runner](#專案預設-runner): 未選擇 Runner 的步驟執行所在的 Runner。
 - [全域 Runner](#全域-runner): OneUptime 為所有專案執行的 Runner，以及它們執行什麼。
 - [逾時](#逾時): 認領逾時和執行逾時，以及兩者如何搭配。
 - [環境變數](#環境變數): 容器啟動時讀取的內容。
@@ -33,7 +34,7 @@ flowchart TB
 1. 您在 OneUptime 中建立一個 Runner。OneUptime 會為它產生一個 ID 和一把秘密金鑰。
 2. 您在自己基礎架構中的一台主機上執行 Runner 容器，並提供該 ID、金鑰和您的 OneUptime URL。
 3. Runner 每 5 秒向 OneUptime 要求一次工作，每 60 秒回報一次自己仍在運作。
-4. 撰寫 JavaScript、Bash、SSH 或 kubectl 步驟時，您從下拉式清單中選擇 Runner。步驟會繫結到該 Runner。 JavaScript 步驟可以保留下拉式清單為它選擇的 **全域 Runner** 。
+4. 撰寫 JavaScript、Bash、SSH 或 kubectl 步驟時，您從步驟 **更多欄位** 中的下拉式清單選擇 Runner。步驟會繫結到該 Runner。 未選擇 Runner 的步驟會在您設定的專案預設 Runner 上執行；如果沒有設定，JavaScript 步驟會在 **全域 Runner** 上執行。
 5. 步驟執行時，Worker 會把一項 `targetAgentId` 設為該 Runner 的工作放入佇列。只有該 Runner 能認領它。
 6. Runner 在本機執行該工作（Bash 和 kubectl 使用 `bash -c <script>`，JavaScript 使用 `isolated-vm` 沙箱，SSH 使用在機器上以 bash 執行指令碼的 SSH 連線），記錄結果，隱藏其中步驟的機密，然後回傳。Worker 用該結果繼續執行 Runbook。
 
@@ -52,7 +53,7 @@ Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一
 
 ## 全域 Runner
 
-全域 Runner 是 OneUptime 為所有專案執行的 Runner。未選擇自己 Runner 的 JavaScript 步驟會在其中一個上執行，因此您可以在安裝任何東西之前就撰寫它。 **運行手冊 → Runbook 代理程式** 會在 **全域 Runner** 下列出它們，位於您自己的 Runner 上方；JavaScript 步驟的 **Runner** 下拉式清單會最先提供 **全域 Runner** 。
+全域 Runner 是 OneUptime 為所有專案執行的 Runner。未選擇自己 Runner 的 JavaScript 步驟會在其中一個上執行（除非專案有 [預設 Runner](#專案預設-runner) ），因此您可以在安裝任何東西之前就撰寫它。 **運行手冊 → Runbook 代理程式** 會在 **全域 Runner** 下列出它們，位於您自己的 Runner 上方；JavaScript 步驟的 **Runner** 下拉式清單會最先提供 **全域 Runner** ，或緊接在專案預設 Runner 之後提供。 Bash、SSH 或 kubectl 步驟的下拉式清單會把它以灰色顯示在最後，並顯示 **僅執行 JavaScript 步驟。** 這些步驟在您自己網路內的 Runner 上執行，絕不會在所有專案共用的 Runner 上執行。
 
 | | 全域 Runner | 您自己的 Runner |
 | --- | --- | --- |
@@ -69,7 +70,7 @@ Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一
 - 只有當機密變數的 **全域 Runner 可以使用** 開關開啟時，它才會收到該變數，而且只用於該變數所屬專案的步驟。它永遠不會收到憑證。
 - 一個專案在全域 Runner 上同時最多執行三個步驟，因此沒有專案能獨占它們。
 
-對於需要存取您網路的步驟，或要讓步驟留在您掌控的主機上，請為它選擇您自己的 Runner。若要讓每個步驟都在您自己的 Runner 上執行，請在 **運行手冊 → Runbook 代理程式** 底部關閉 **使用全域 Runner** 。之後，未選擇 Runner 的 JavaScript 步驟會失敗並說明原因，直到它選擇您的某個 Runner；選擇了您的某個 Runner 的步驟無論如何都會保留它。在程式碼的設定中沒有選擇 Runner 的程式碼儲存庫同樣在全域 Runner 上工作，而在關閉該開關時需要您的某個 Runner；請參閱 [程式碼](/docs/ai/ai-agent#選擇儲存庫的-runner)。
+對於需要存取您網路的步驟，或要讓步驟留在您掌控的主機上，請為它選擇您自己的 Runner。若要讓每個步驟都在您自己的 Runner 上執行，請在 **運行手冊 → Runbook 代理程式** 底部關閉 **使用全域 Runner** 。之後，未選擇 Runner 的 JavaScript 步驟會在專案預設 Runner 上執行；如果沒有設定預設 Runner，它會失敗並說明原因，直到它選擇您的某個 Runner；選擇了您的某個 Runner 的步驟無論如何都會保留它。在程式碼的設定中沒有選擇 Runner 的程式碼儲存庫同樣在全域 Runner 上工作，而在關閉該開關時需要您的某個 Runner；請參閱 [程式碼](/docs/ai/ai-agent#選擇儲存庫的-runner)。
 
 ### 全域 Runner 從哪裡來
 
@@ -142,7 +143,7 @@ docker rm -f oneuptime-runner
 
 ### 選擇 Runner
 
-步驟的 **Runner** 下拉式清單會列出專案中的所有 Runner 以及它們是否已連線。如果專案中還沒有 Runner，步驟會提示這一點，並引導您前往 **Runbooks › Runners** 。 JavaScript 步驟的下拉式清單也會最先提供 **全域 Runner** ，並在您選擇自己的 Runner 之前一直選取它。
+開啟步驟的 **更多欄位** ：其中的 **Runner** 下拉式清單會列出專案中的所有 Runner 以及它們是否已連線，摺疊後的那一行會顯示步驟執行所在的 Runner。如果專案中還沒有 Runner，步驟會提示這一點，並引導您前往 **Runbooks › Runners** 。 第一個選項就是未選擇 Runner 的步驟執行所在的位置：標有 **專案預設** 的 [專案預設 Runner](#專案預設-runner) ；如果沒有，對於 JavaScript 步驟則是 **全域 Runner** 。
 
 ### 儲存步驟
 
@@ -152,6 +153,26 @@ docker rm -f oneuptime-runner
 Bash 以 `bash -c` 執行。JavaScript 在 Runner 上的 `isolated-vm` 沙箱中執行，無法存取檔案系統或處理程序；它可以用 `axios` 呼叫公開的 HTTP API，但無法呼叫私人網路上的位址。SSH 和 kubectl 步驟使用機密 [Runbook 變數](/docs/runbooks/variables) 登入，該變數必須在 **可以使用它的 Runner** 中列出步驟的 Runner。
 
 需要多個 Runner？分別建立，並為每個步驟指定合適的 Runner。若要備援，可以再執行一個 Runner 並把步驟分配給兩者，或者準備一個步驟指向另一個 Runner 的備用 Runbook。
+
+## 專案預設 Runner
+
+專案可以把自己的某個 Runner 設為預設，就像把某個 Twilio 設定設為預設一樣。之後，所有未選擇 Runner 的運行手冊步驟都會在它上面執行：Bash、SSH 和 kubectl 步驟，以及原本會在全域 Runner 上執行的 JavaScript 步驟。
+
+若要把某個 Runner 設為預設，請前往 **運行手冊 → Runbook 代理程式** ，開啟該 Runner 所在列的 **⋯** 選單，點選 **設為專案預設** ，然後在對話方塊中確認。也可以開啟該 Runner，在它的 **專案預設值** 卡片上開啟 **用作專案預設** 。清單會在預設 Runner 的名稱旁標出 **專案預設** ，步驟的 **Runner** 下拉式清單也會在第一個選項上這樣標出。一個專案只有一個預設 Runner：把另一個 Runner 設為預設會取代它。同一選單中的 **不再用作專案預設** ，或 Runner 頁面上的開關，可以停止使用它。
+
+未選擇 Runner 的步驟在哪裡執行：
+
+| 專案 | JavaScript 步驟 | Bash、SSH 或 kubectl 步驟 |
+| --- | --- | --- |
+| 有預設 Runner | 預設 Runner | 預設 Runner |
+| 沒有，並且使用全域 Runner | 全域 Runner | 無處可執行：步驟失敗，並說明它沒有 Runner |
+| 沒有，並且不使用全域 Runner | 無處可執行：步驟失敗並說明原因 | 無處可執行：步驟失敗，並說明它沒有 Runner |
+
+選擇了 Runner 的步驟無論預設是什麼都會保留它，JavaScript 步驟仍然可以自己選擇 **全域 Runner** 。設定預設 Runner 不會變更任何已儲存的步驟。
+
+預設 Runner 必須是專案自己的、執行運行手冊步驟的 Runner：不能是全域 Runner，不能是 Kubernetes 代理程式安裝的叢集內 Runner，也不能是關閉了 **執行操作手冊** 的 Runner。只要某個 Runner 是預設 Runner，它的 **執行操作手冊** 就保持開啟。預設 Runner 未連線時，步驟的下拉式清單會提示這一點，在它上面的步驟會像對待任何 Runner 一樣等待它，直到 claim timeout 結束。
+
+只有運行手冊步驟使用預設 Runner。程式碼儲存庫在程式碼的設定中選擇自己的 Runner，自動補救規則也選擇自己的 Runner。
 
 ## 維運說明
 

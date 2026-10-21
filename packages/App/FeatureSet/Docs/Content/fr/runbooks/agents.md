@@ -1,10 +1,11 @@
 # Agents de runbook
 
-Un **agent de runbook**, que le tableau de bord appelle **Agent Runbook** (le Runner), est un petit processus auto-hébergé qui exécute les étapes JavaScript, Bash, SSH et kubectl de vos runbooks **dans votre propre infrastructure**. Le Worker OneUptime n'exécute jamais vos scripts : il les met en file, et l'agent Runbook choisi par l'auteur de l'étape prend chacun en charge, l'exécute et renvoie le résultat. Cette page s'adresse à qui installe et exploite les agents Runbook. Une étape JavaScript qui ne choisit aucun agent s'exécute plutôt sur un [agent Runbook global](#agents-runbook-globaux), l'un de ceux qu'OneUptime fait tourner pour chaque projet.
+Un **agent de runbook**, que le tableau de bord appelle **Agent Runbook** (le Runner), est un petit processus auto-hébergé qui exécute les étapes JavaScript, Bash, SSH et kubectl de vos runbooks **dans votre propre infrastructure**. Le Worker OneUptime n'exécute jamais vos scripts : il les met en file, et l'agent Runbook choisi par l'auteur de l'étape prend chacun en charge, l'exécute et renvoie le résultat. Cette page s'adresse à qui installe et exploite les agents Runbook. Une étape qui ne choisit aucun agent s'exécute sur l'[agent Runbook par défaut du projet](#lagent-runbook-par-défaut-du-projet), si vous en avez défini un ; une étape JavaScript s'exécute sinon sur un [agent Runbook global](#agents-runbook-globaux), l'un de ceux qu'OneUptime fait tourner pour chaque projet.
 
 :::cards
 - [Installer un agent Runbook](#installer-un-agent-runbook): Du tableau de bord à un conteneur connecté, en cinq étapes.
 - [Diriger une étape vers un agent Runbook](#diriger-une-étape-vers-un-agent-runbook): Lier une étape à l'agent Runbook qui doit l'exécuter.
+- [L'agent Runbook par défaut du projet](#lagent-runbook-par-défaut-du-projet): L'agent Runbook sur lequel s'exécute une étape qui n'en choisit aucun.
 - [Agents Runbook globaux](#agents-runbook-globaux): Les agents qu'OneUptime fait tourner pour chaque projet, et ce qu'ils exécutent.
 - [Délais](#délais): Délais de prise en charge et d'exécution, et leur interaction.
 - [Variables d'environnement](#variables-denvironnement): Ce que lit le conteneur au démarrage.
@@ -33,7 +34,7 @@ flowchart TB
 1. Vous créez un agent Runbook dans OneUptime. OneUptime génère pour lui un ID et une clé secrète.
 2. Vous lancez le conteneur de l'agent sur un hôte de votre infrastructure, avec cet ID, cette clé et l'URL de votre OneUptime.
 3. L'agent demande du travail à OneUptime toutes les 5 secondes, et signale qu'il est vivant toutes les 60 secondes.
-4. Quand vous écrivez une étape JavaScript, Bash, SSH ou kubectl, vous choisissez l'agent Runbook dans une liste déroulante. L'étape est liée à cet agent. Une étape JavaScript peut garder **Agent Runbook global**, que la liste déroulante choisit pour elle.
+4. Quand vous écrivez une étape JavaScript, Bash, SSH ou kubectl, vous choisissez l'agent Runbook dans une liste déroulante, sous **Plus de champs** de l'étape. L'étape est liée à cet agent. Une étape qui n'en choisit aucun s'exécute sur l'agent Runbook par défaut du projet, si vous en avez défini un, et une étape JavaScript sinon sur **Agent Runbook global**.
 5. Quand l'étape s'exécute, le Worker met en file une tâche dont `targetAgentId` désigne cet agent. Seul cet agent peut la prendre en charge.
 6. L'agent exécute la tâche localement — `bash -c <script>` pour Bash et kubectl, un bac à sable `isolated-vm` pour JavaScript, une connexion SSH qui exécute le script avec bash sur la machine —, capture le résultat, y masque les secrets de l'étape et le renvoie. Le Worker reprend le runbook avec ce résultat.
 
@@ -52,7 +53,7 @@ Avec les agents Runbook, ces étapes s'exécutent sur un hôte que vous contrôl
 
 ## Agents Runbook globaux
 
-Les agents Runbook globaux sont les agents qu'OneUptime fait tourner pour chaque projet. Une étape JavaScript qui ne choisit aucun agent à elle s'exécute sur l'un d'eux, ce qui vous permet de l'écrire avant d'installer quoi que ce soit. **Runbooks → Agents de runbook** les liste sous **Agents Runbook globaux**, au-dessus de vos propres agents, et la liste déroulante **Agent Runbook** d'une étape JavaScript propose **Agent Runbook global** en premier.
+Les agents Runbook globaux sont les agents qu'OneUptime fait tourner pour chaque projet. Une étape JavaScript qui ne choisit aucun agent à elle s'exécute sur l'un d'eux, sauf si le projet a un [agent Runbook par défaut](#lagent-runbook-par-défaut-du-projet), ce qui vous permet de l'écrire avant d'installer quoi que ce soit. **Runbooks → Agents de runbook** les liste sous **Agents Runbook globaux**, au-dessus de vos propres agents, et la liste déroulante **Agent Runbook** d'une étape JavaScript propose **Agent Runbook global** en premier, ou juste après l'agent Runbook par défaut du projet. La liste déroulante d'une étape Bash, SSH ou kubectl l'affiche en dernier, grisé, avec **N'exécute que les étapes JavaScript.** Ces étapes s'exécutent sur un agent à vous, dans votre réseau, jamais sur un agent que tous les projets partagent.
 
 | | Agent Runbook global | Votre propre agent |
 | --- | --- | --- |
@@ -69,7 +70,7 @@ Un agent Runbook global exécute les étapes de nombreux projets, c'est pourquoi
 - Il ne reçoit une variable secrète que lorsque son réglage **Les agents Runbook globaux peuvent l'utiliser** est activé, et seulement pour une étape du propre projet de la variable. Il ne reçoit jamais d'identifiant.
 - Un projet exécute au plus trois étapes à la fois sur les agents globaux, si bien qu'aucun projet ne les garde pour lui seul.
 
-Choisissez l'un de vos propres agents pour une étape qui doit atteindre votre réseau, ou pour garder l'étape sur des hôtes que vous contrôlez. Pour garder chaque étape sur vos propres agents, désactivez **Utiliser les agents Runbook globaux** en bas de **Runbooks → Agents de runbook**. Une étape JavaScript qui ne choisit aucun agent échoue alors, en le disant, jusqu'à ce qu'elle choisisse l'un des vôtres ; une étape qui choisit l'un de vos agents le garde dans tous les cas. Un dépôt de code qui ne choisit aucun agent dans ses paramètres dans Code travaille lui aussi sur un agent Runbook global, et a besoin de l'un des vôtres tant que l'option est désactivée ; voir [Code](/docs/ai/ai-agent#choisir-le-runner-du-dépôt).
+Choisissez l'un de vos propres agents pour une étape qui doit atteindre votre réseau, ou pour garder l'étape sur des hôtes que vous contrôlez. Pour garder chaque étape sur vos propres agents, désactivez **Utiliser les agents Runbook globaux** en bas de **Runbooks → Agents de runbook**. Une étape JavaScript qui ne choisit aucun agent s'exécute alors sur l'agent Runbook par défaut du projet ou, s'il n'y en a pas, échoue, en le disant, jusqu'à ce qu'elle choisisse l'un des vôtres ; une étape qui choisit l'un de vos agents le garde dans tous les cas. Un dépôt de code qui ne choisit aucun agent dans ses paramètres dans Code travaille lui aussi sur un agent Runbook global, et a besoin de l'un des vôtres tant que l'option est désactivée ; voir [Code](/docs/ai/ai-agent#choisir-le-runner-du-dépôt).
 
 ### D'où viennent les agents Runbook globaux
 
@@ -142,7 +143,7 @@ Dans les **Étapes** de votre runbook, ajoutez une étape JavaScript, Bash, SSH 
 
 ### Choisir l'agent Runbook
 
-La liste déroulante **Agent Runbook** de l'étape affiche chaque agent du projet, et s'il est connecté. Si le projet n'en a encore aucun, l'étape le dit et vous renvoie à **Runbooks › Runners**. La liste déroulante d'une étape JavaScript propose aussi **Agent Runbook global**, en premier, et le choisit jusqu'à ce que vous choisissiez l'un des vôtres.
+Ouvrez **Plus de champs** de l'étape : sa liste déroulante **Agent Runbook** affiche chaque agent du projet, et s'il est connecté, et la ligne repliée nomme l'agent sur lequel l'étape s'exécute. Si le projet n'en a encore aucun, l'étape le dit et vous renvoie à **Runbooks › Runners**. Le premier choix est ce sur quoi s'exécute une étape qui ne choisit aucun agent : l'[agent Runbook par défaut du projet](#lagent-runbook-par-défaut-du-projet), marqué **Par défaut du projet**, ou sinon, pour une étape JavaScript, **Agent Runbook global**.
 
 ### Enregistrer les étapes
 
@@ -152,6 +153,26 @@ Cliquez sur **Save Steps**. Quand une exécution atteint l'étape, le Worker met
 Bash est exécuté avec `bash -c`. JavaScript s'exécute dans un bac à sable `isolated-vm` sur l'agent, sans accès au système de fichiers ni aux processus ; il peut appeler des API HTTP publiques avec `axios`, mais pas des adresses d'un réseau privé. Une étape SSH ou kubectl se connecte avec une [variable de runbook](/docs/runbooks/variables) secrète, qui doit lister l'agent Runbook de l'étape sous **Vos agents Runbook qui peuvent l'utiliser**.
 
 Besoin de plus d'un agent ? Créez-les, puis dirigez chaque étape vers celui qui convient. Pour la redondance, faites tourner un second agent et répartissez vos étapes entre les deux, ou gardez un runbook de secours dont les étapes visent l'autre agent.
+
+## L'agent Runbook par défaut du projet
+
+Un projet peut faire de l'un de ses propres agents Runbook son agent par défaut, comme il fait d'une configuration Twilio sa configuration par défaut. Chaque étape de runbook qui ne choisit aucun agent s'exécute alors sur lui : les étapes Bash, SSH et kubectl, et les étapes JavaScript, qui s'exécuteraient sinon sur un agent Runbook global.
+
+Pour faire d'un agent l'agent par défaut, allez dans **Runbooks → Agents de runbook**, ouvrez le menu **⋯** sur la ligne de l'agent, cliquez sur **Définir par défaut pour le projet**, puis confirmez dans la boîte de dialogue. Ou ouvrez l'agent et, sur sa carte **Valeur par défaut du projet**, activez **Utiliser par défaut pour le projet**. La liste marque l'agent par défaut **Par défaut du projet**, à côté de son nom, tout comme la liste déroulante **Agent Runbook** d'une étape, sur son premier choix. Un projet a un seul agent par défaut : faire d'un autre agent l'agent par défaut le remplace. **Ne plus utiliser par défaut pour le projet**, dans le même menu, ou l'interrupteur sur la page de l'agent, cesse de l'utiliser.
+
+Où s'exécute une étape qui ne choisit aucun agent :
+
+| Le projet | Une étape JavaScript | Une étape Bash, SSH ou kubectl |
+| --- | --- | --- |
+| A un agent par défaut | L'agent par défaut | L'agent par défaut |
+| N'en a pas, et utilise les agents Runbook globaux | Un agent Runbook global | Nulle part : l'étape échoue, en disant qu'elle n'a pas d'agent |
+| N'en a pas, et n'utilise pas les agents Runbook globaux | Nulle part : l'étape échoue, en le disant | Nulle part : l'étape échoue, en disant qu'elle n'a pas d'agent |
+
+Une étape qui a choisi un agent le garde, quel que soit l'agent par défaut, et une étape JavaScript peut toujours choisir elle-même **Agent Runbook global**. Définir un agent par défaut ne modifie aucune étape enregistrée.
+
+L'agent par défaut est l'un des agents propres au projet qui exécute les étapes de runbook : pas un agent Runbook global, pas l'agent dans le cluster que l'agent Kubernetes a installé, et pas un agent dont **Exécute les runbooks** est désactivé. Tant qu'un agent est l'agent par défaut, son **Exécute les runbooks** reste activé. Quand l'agent par défaut n'est pas connecté, la liste déroulante d'une étape le dit, et une étape sur lui l'attend, comme pour tout agent, jusqu'à l'expiration de son délai de prise en charge.
+
+Seules les étapes de runbook utilisent l'agent par défaut. Un dépôt de code choisit son agent dans ses paramètres dans Code, et une règle de remédiation automatique choisit le sien.
 
 ## Notes d'exploitation
 

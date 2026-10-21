@@ -121,6 +121,14 @@ beforeEach(() => {
     return undefined;
   });
 
+  /*
+   * The project has no default Runner, so a step that picked none is
+   * refused (InfraStepExecutors covers a project that has one).
+   */
+  jest
+    .spyOn(RunnerService, "findProjectDefaultRunner")
+    .mockResolvedValue(null);
+
   // The step's Runner is one of its project's own.
   jest
     .spyOn(RunnerService, "findOneById")
@@ -305,7 +313,7 @@ describe("an SSH step that takes a script", () => {
     );
 
     expect(result.errorMessage).toBe(
-      "This SSH step has no Runner. SSH steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.",
+      "This SSH step has no Runner. SSH steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners.",
     );
     expect(enqueueSpy).not.toHaveBeenCalled();
   });

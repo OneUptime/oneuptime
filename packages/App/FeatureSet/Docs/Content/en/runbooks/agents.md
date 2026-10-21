@@ -1,10 +1,11 @@
 # Runbook Agents
 
-A **Runbook Agent**, called a **Runner** in the dashboard, is a small self-hosted process that runs the JavaScript, Bash, SSH and kubectl steps of your runbooks **inside your own infrastructure**. The OneUptime Worker never runs your scripts: it queues them, and the Runner the step's author picked claims each one, runs it and posts the result back. This page is for whoever installs and operates Runners. A JavaScript step that picks no Runner runs on a [global Runner](#global-runners) instead, one OneUptime runs for every project.
+A **Runbook Agent**, called a **Runner** in the dashboard, is a small self-hosted process that runs the JavaScript, Bash, SSH and kubectl steps of your runbooks **inside your own infrastructure**. The OneUptime Worker never runs your scripts: it queues them, and the Runner the step's author picked claims each one, runs it and posts the result back. This page is for whoever installs and operates Runners. A step that picks no Runner runs on the project's [default Runner](#the-projects-default-runner), if you set one; a JavaScript step otherwise runs on a [global Runner](#global-runners), one OneUptime runs for every project.
 
 :::cards
 - [Install a Runner](#install-a-runner): From the dashboard to a connected container, in five steps.
 - [Point a step at a Runner](#point-a-step-at-a-runner): Bind a step to the Runner that should run it.
+- [The project's default Runner](#the-projects-default-runner): The Runner a step runs on when it picks none.
 - [Global Runners](#global-runners): The Runners OneUptime runs for every project, and what they run.
 - [Timeouts](#timeouts): Claim and execution timeouts, and how they interact.
 - [Environment variables](#environment-variables): What the container reads when it starts.
@@ -33,7 +34,7 @@ flowchart TB
 1. You create a Runner in OneUptime. OneUptime generates an ID and a secret key for it.
 2. You run the Runner container on a host inside your infrastructure, with that ID and key and your OneUptime URL.
 3. The Runner asks OneUptime for work every 5 seconds, and reports that it is alive every 60 seconds.
-4. When you write a JavaScript, Bash, SSH or kubectl step, you pick the Runner from a dropdown. The step is bound to that Runner. A JavaScript step can keep **Global Runner**, which the dropdown picks for it.
+4. When you write a JavaScript, Bash, SSH or kubectl step, you pick the Runner from a dropdown under the step's **More fields**. The step is bound to that Runner. A step that picks none runs on the project's default Runner, if you set one, and a JavaScript step otherwise on **Global Runner**.
 5. When the step runs, the Worker queues a job with `targetAgentId` set to that Runner. Only that Runner can claim it.
 6. The Runner runs the job locally — `bash -c <script>` for Bash and kubectl, an `isolated-vm` sandbox for JavaScript, an SSH connection that runs the script with bash on the machine — captures the result, hides the step's secrets in it, and posts it back. The Worker resumes the runbook with the result.
 
@@ -52,7 +53,7 @@ With Runners, those steps run on a host you control, and you decide what that ho
 
 ## Global Runners
 
-Global Runners are the Runners OneUptime runs for every project. A JavaScript step that picks no Runner of its own runs on one, so you can write one before you install anything. **Runbooks → Runners** lists them under **Global Runners**, above your own Runners, and a JavaScript step's **Runner** dropdown offers **Global Runner** first.
+Global Runners are the Runners OneUptime runs for every project. A JavaScript step that picks no Runner of its own runs on one, unless the project has a [default Runner](#the-projects-default-runner), so you can write one before you install anything. **Runbooks → Runners** lists them under **Global Runners**, above your own Runners, and a JavaScript step's **Runner** dropdown offers **Global Runner** first, or right after the project's default Runner. A Bash, SSH or kubectl step's dropdown shows it last, greyed out, saying **Runs JavaScript steps only.** Those steps run on a Runner of your own, inside your network, never on one every project shares.
 
 | | Global Runner | Your own Runner |
 | --- | --- | --- |
@@ -69,7 +70,7 @@ A global Runner runs the steps of many projects, so each step is kept apart from
 - It gets a secret variable only when the variable's **Global Runners can use it** switch is on, and only for a step of the variable's own project. It never gets a credential.
 - A project runs at most three steps on global Runners at once, so no project keeps them to itself.
 
-Pick one of your own Runners for a step that must reach your network, or to keep the step on hosts you control. To keep every step on your own Runners, turn **Use global Runners** off at the bottom of **Runbooks → Runners**. A JavaScript step that picks no Runner then fails, saying so, until it picks one of yours; a step that picks one of your Runners keeps it either way. A code repository that picks no Runner in its settings in Code works on a global Runner too, and needs one of yours while the switch is off; see [Code](/docs/ai/ai-agent#pick-the-repositorys-runner).
+Pick one of your own Runners for a step that must reach your network, or to keep the step on hosts you control. To keep every step on your own Runners, turn **Use global Runners** off at the bottom of **Runbooks → Runners**. A JavaScript step that picks no Runner then runs on the project's default Runner or, with none set, fails, saying so, until it picks one of yours; a step that picks one of your Runners keeps it either way. A code repository that picks no Runner in its settings in Code works on a global Runner too, and needs one of yours while the switch is off; see [Code](/docs/ai/ai-agent#pick-the-repositorys-runner).
 
 ### Where global Runners come from
 
@@ -142,7 +143,7 @@ In your runbook's **Steps**, add a JavaScript, Bash, SSH or kubectl step.
 
 ### Pick the Runner
 
-The step's **Runner** dropdown lists every Runner in the project, with whether it is connected. If the project has none yet, the step says so and points you to **Runbooks › Runners**. A JavaScript step's dropdown also offers **Global Runner**, first, and picks it until you pick one of yours.
+Open the step's **More fields**: its **Runner** dropdown lists every Runner in the project, with whether it is connected, and the folded line names the Runner the step runs on. If the project has none yet, the step says so and points you to **Runbooks › Runners**. The first choice is what a step that picks no Runner runs on: the project's [default Runner](#the-projects-default-runner), marked **Project default**, or else, for a JavaScript step, **Global Runner**.
 
 ### Save the steps
 
@@ -152,6 +153,26 @@ Click **Save Steps**. When a run reaches the step, the Worker queues a job for t
 Bash is executed with `bash -c`. JavaScript runs in an `isolated-vm` sandbox on the Runner, with no filesystem or process access; it can call public HTTP APIs with `axios`, but not addresses on a private network. An SSH or kubectl step signs in with a secret [runbook variable](/docs/runbooks/variables), which must list the step's Runner under **Your Runners that can use it**.
 
 Need more than one Runner? Create them, then point each step at the one that fits. For redundancy, run a second Runner and split your steps between them, or keep a backup runbook whose steps target the other Runner.
+
+## The project's default Runner
+
+A project can make one of its own Runners its default, as it makes one Twilio configuration its default. Every runbook step that picks no Runner then runs on it: Bash, SSH and kubectl steps, and JavaScript steps, which would otherwise run on a global Runner.
+
+To make a Runner the default, go to **Runbooks → Runners**, open the **⋯** menu on the Runner's row, click **Set as Project Default** and confirm with **Make Project Default**. Or open the Runner, and on its **Project Default** card turn on **Use as the project default**. The list marks the default **Project default**, beside its name, and so does a step's **Runner** dropdown, on its first choice. A project has one default Runner: making another Runner the default replaces it. **Stop Using as Project Default**, in the same menu, or the switch on the Runner's page, stops using it.
+
+Where a step that picks no Runner runs:
+
+| The project | A JavaScript step | A Bash, SSH or kubectl step |
+| --- | --- | --- |
+| Has a default Runner | The default Runner | The default Runner |
+| Has none, and uses global Runners | A global Runner | Nowhere: the step fails, saying it has no Runner |
+| Has none, and does not use global Runners | Nowhere: the step fails, saying so | Nowhere: the step fails, saying it has no Runner |
+
+A step that picked a Runner keeps it, whatever the default is, and a JavaScript step can still pick **Global Runner** itself. Setting a default changes no saved step.
+
+The default is one of the project's own Runners that runs runbook steps: not a global Runner, not the in-cluster Runner the Kubernetes agent installed, and not one with **Runs Runbooks** off. While a Runner is the default, its **Runs Runbooks** stays on. When the default is not connected, a step's dropdown says so, and a step on it waits for it, as for any Runner, until its claim timeout.
+
+Only runbook steps use the default. A code repository picks its Runner in its settings in Code, and an auto remediation rule picks its own.
 
 ## Operational notes
 

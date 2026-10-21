@@ -12,7 +12,7 @@
 ## 开始之前
 
 - **能编写 Runbook 的角色。** Project Owner、Project Admin 和 Runbook Admin 可以创建 Runbook 并保存其步骤。使用细粒度权限时，你需要 **Create Runbook** 和 **Edit Runbook** 。参见 [权限](/docs/runbooks/configuration#权限)。
-- **用于 Bash、SSH 和 kubectl 步骤的 Runner。** 这些步骤在你自己基础设施中的 [Runner](/docs/runbooks/agents) 上运行，从不在 OneUptime Worker 上运行。请先安装一个。除非你选择自己的某个 Runner，否则 JavaScript 步骤会在 [全局 Runner](/docs/runbooks/agents#全局-runner) 上运行。
+- **用于 Bash、SSH 和 kubectl 步骤的 Runner。** 这些步骤在你自己基础设施中的 [Runner](/docs/runbooks/agents) 上运行，从不在 OneUptime Worker 上运行。请先安装一个。未选择 Runner 的步骤会在你设置的 [项目默认 Runner](/docs/runbooks/agents#项目默认-runner) 上运行；如果没有设置，JavaScript 步骤会在 [全局 Runner](/docs/runbooks/agents#全局-runner) 上运行。
 - **用于 SSH 和 kubectl 步骤的机密变量。** 步骤登录所用的密钥、密码或 kubeconfig 是一个机密 [Runbook 变量](/docs/runbooks/variables)。变量由 Project Owner 和 Project Admin 创建，Runbook Admin 在自己编写的步骤中选择它们。kubectl 步骤也可以改用 Runner 自身的访问权限。
 - **用于 AI 步骤的 LLM 提供商。** 参见 [LLM 提供商](/docs/ai/llm-provider)。
 
@@ -64,7 +64,7 @@
 | [kubectl](#kubectl) | Runner | 一个 Runner，以及一个 kubeconfig 变量或 Runner 自身的访问权限 |
 | [AI](#ai) | OneUptime Worker | 一个 LLM 提供商 |
 
-在下面的每个自动步骤中，步骤的 **更多字段** 先放 **需要批准** 和 **失败时继续** ，然后是步骤自己的设置（HTTP request 步骤的请求头、SSH 步骤的端口和密钥口令、AI 步骤的提供商和上下文开关），最后是 **描述** 和超时。
+在下面的每个自动步骤中，步骤的 **更多字段** 先放步骤的 **Runner** （对于在 Runner 上运行的步骤），再放 **需要批准** 和 **失败时继续** ，然后是步骤自己的设置（HTTP request 步骤的请求头、SSH 步骤的端口和密钥口令、AI 步骤的提供商和上下文开关），最后是 **描述** 和超时。折叠时，它会显示步骤的 Runner，这样无需打开就能看到步骤在哪里运行。
 
 ### Manual
 
@@ -78,7 +78,7 @@
 
 | 字段 | 作用 | 默认值 |
 | --- | --- | --- |
-| **Runner** | 运行该步骤的 Runner： **全局 Runner** ，或你自己的某个 Runner。只有你选择的 Runner 可以领取该作业；任何全局 Runner 都可以领取选择 **全局 Runner** 的步骤。 | **全局 Runner** （如果有） |
+| **Runner** | 位于 **更多字段** 中。运行该步骤的 Runner： **全局 Runner** ，或你自己的某个 Runner。只有你选择的 Runner 可以领取该作业；任何全局 Runner 都可以领取选择 **全局 Runner** 的步骤。 | 你设置的 [项目默认 Runner](/docs/runbooks/agents#项目默认-runner) ；否则为 **全局 Runner** （如果有） |
 | **Script** | 要运行的 JavaScript。用 `return` 返回一个值即可记录它；`console.log` 的每一行也会被记录。抛出的错误会使步骤失败。 | — |
 | **执行超时** | Runner 在销毁沙箱之前允许代码运行的时长。 全局 Runner 最多让它运行 5 分钟。 | 30 秒 |
 | **领取超时** | Worker 等待 Runner 领取作业的时长。 | 2 分钟 |
@@ -117,7 +117,7 @@ return { durationMs: Date.now() - start };
 
 | 字段 | 作用 | 默认值 |
 | --- | --- | --- |
-| **Runner** | 运行该步骤的 Runner。只有这个 Runner 可以领取该作业。 | — |
+| **Runner** | 位于 **更多字段** 中。运行该步骤的 Runner。只有这个 Runner 可以领取该作业。全局 Runner 只运行 JavaScript 步骤。 | 你设置的项目默认 Runner |
 | **Bash 脚本** | 脚本。输出（stdout 和 stderr）最多记录 50 KB，非零退出码会使步骤失败。 | — |
 | **执行超时** | Runner 在用 `SIGKILL` 终止脚本之前允许其运行的时长。对于确实需要几分钟的步骤，请调高它。 | 30 秒 |
 | **领取超时** | Worker 等待 Runner 领取作业的时长。 | 2 分钟 |
@@ -146,7 +146,7 @@ fi
 
 | 字段 | 作用 |
 | --- | --- |
-| **Runner** | 打开连接的 Runner。它必须能通过网络访问该机器。 |
+| **Runner** | 位于 **更多字段** 中。打开连接的 Runner。它必须能通过网络访问该机器。未选择 Runner 的步骤在项目默认 Runner 上运行。 |
 | **SSH 目标** | 用户和机器，写法与在 `ssh` 之后相同：`deploy@10.0.4.21`。 |
 | **登录方式** | 保存私钥或密码的机密变量；值本身表明是哪一种。只提供机密变量；当步骤的 Runner 不能使用所选变量时，步骤会提示。 |
 | **Bash 脚本** | 以登录的用户身份在机器上用 `bash` 运行。输出最多记录 50 KB，退出码非零会让步骤失败。 |
@@ -168,7 +168,7 @@ systemctl status nginx --no-pager
 
 | 字段 | 作用 |
 | --- | --- |
-| **Runner** | 运行 kubectl 的 Runner。它必须能访问集群的 API 服务器。 |
+| **Runner** | 位于 **更多字段** 中。运行 kubectl 的 Runner。它必须能访问集群的 API 服务器。未选择 Runner 的步骤在项目默认 Runner 上运行。 |
 | **Kubeconfig** | 保存集群 kubeconfig 的机密变量，或 **Runner 自身的访问权限** ：使用 Runner 自己的 kubeconfig，或在集群内运行时使用其服务账号。Runner 会把 kubeconfig 写入只有它能读取的文件，并在脚本结束时删除。 |
 | **Script** | kubectl 命令。输出最多记录 50 KB，退出码非零会让步骤失败。 |
 | **执行超时** | Runner 在用 `SIGKILL` 停止脚本之前允许它运行的时长。默认 30 秒。 |
@@ -190,7 +190,7 @@ kubectl rollout status deployment/checkout-api --namespace checkout --timeout=12
 | 字段 | 作用 |
 | --- | --- |
 | **Prompt** | 希望 AI 做什么。例如：“查看前面步骤的输出，判断继续修复是否安全。” |
-| **LLM provider** | 可选。 **Project default** 使用项目的默认提供商。当步骤需要特定模型时（例如处理不能离开你网络的数据的自托管模型），请固定一个提供商。参见 [LLM 提供商](/docs/ai/llm-provider)。 |
+| **LLM provider** | 可选。 **项目默认** 使用项目的默认提供商。当步骤需要特定模型时（例如处理不能离开你网络的数据的自托管模型），请固定一个提供商。参见 [LLM 提供商](/docs/ai/llm-provider)。 |
 | **Include previous step context** | 开启后，AI 会看到此步骤之前运行过的所有步骤：标题、类型、状态、输出和错误消息。每个步骤的输出最多提供 4,000 个字符。 |
 | **Include trigger context** | 开启后，AI 会看到启动这次执行的内容：关联的事件、警报或计划维护事件（描述、严重性、当前状态、受影响的监视器、根本原因、状态时间线和公开备注），或手动运行 Runbook 的人。 |
 
