@@ -18,6 +18,7 @@ import {
 import React, { FunctionComponent, ReactElement } from "react";
 import StatusTimelineViewSwitch, {
   readStatusTimelineView,
+  STATUS_TIMELINE_VIEW_OPTION_PADDING_CLASS_NAME,
   STATUS_TIMELINE_VIEW_STORAGE_KEY,
   StatusTimelineView,
   useStatusTimelineView,
@@ -35,6 +36,7 @@ import {
   wordsIn,
 } from "../../../Helpers/TailwindContrast";
 import { getGlyphOfIcon, getGlyphOfSvg } from "../MenuItemIcons";
+import { TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME } from "../../../../UI/Components/Table/TableHeaderControls";
 
 /*
  * Timeline | Table: how a status timeline page shows its history.
@@ -183,6 +185,50 @@ describe("switching", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Table" }));
     expect(onChange).toHaveBeenCalledWith(StatusTimelineView.Table);
+  });
+});
+
+/*
+ * "There are buttons which do not match the sizes": the switch stood 32px
+ * beside the 38px buttons of the card's header (Create, the ⋯). Measured in
+ * Chromium by the StatusTimeline offline suite; the classes are held here.
+ */
+describe("its height", () => {
+  test("is the header's buttons': 42px on a phone, 38px from md up", () => {
+    /*
+     * The track's 2px on each side, a 20px line, and 9px (phone) or 7px
+     * (md up) above and below it: 2 + 9 + 20 + 9 + 2 = 42, and
+     * 2 + 7 + 20 + 7 + 2 = 38 - the buttons' py-2.5 / md:py-2 inside a
+     * 1px border (TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME).
+     */
+    expect(STATUS_TIMELINE_VIEW_OPTION_PADDING_CLASS_NAME.split(" ")).toEqual([
+      "px-2.5",
+      "py-[9px]",
+      "md:py-[7px]",
+    ]);
+    expect(TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME.split(" ")).toEqual([
+      "py-2.5",
+      "md:py-2",
+    ]);
+
+    render(<Page name="Incident" />);
+
+    const group: HTMLElement = within(pageNamed("Incident")).getByRole("group");
+
+    expect(group).toHaveClass("p-0.5");
+
+    for (const name of ["Timeline", "Table"]) {
+      const option: HTMLElement = within(group).getByRole("button", {
+        name: name,
+      });
+
+      expect(option).toHaveClass(
+        ...STATUS_TIMELINE_VIEW_OPTION_PADDING_CLASS_NAME.split(" "),
+        "text-sm",
+        "leading-5",
+      );
+      expect(option).not.toHaveClass("py-1");
+    }
   });
 });
 
