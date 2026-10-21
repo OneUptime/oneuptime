@@ -235,6 +235,7 @@ export default class SecurityEventDestination extends BaseModel {
     title: "Enabled",
     description: "Whether events are sent to this destination.",
     defaultValue: true,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,
@@ -256,6 +257,7 @@ export default class SecurityEventDestination extends BaseModel {
     description:
       "'detections' sends what OneUptime found (its detection rules' and threat intel's matches and imported alerts); 'all-events' sends every security event.",
     defaultValue: SecurityEventDestinationScope.Detections,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,

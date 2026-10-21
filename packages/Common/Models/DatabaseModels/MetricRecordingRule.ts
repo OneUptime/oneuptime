@@ -319,6 +319,7 @@ export default class MetricRecordingRule extends BaseModel {
     title: "Enabled",
     description: "Whether this rule is evaluated by the recording rule cron.",
     defaultValue: true,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,

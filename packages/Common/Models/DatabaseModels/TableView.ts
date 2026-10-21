@@ -520,6 +520,7 @@ export default class TableView extends BaseModel {
     canReadOnRelationQuery: true,
     description: "Items on page",
     defaultValue: 10,
+    isDefaultValueColumn: true,
     example: 10,
   })
   @Column({
