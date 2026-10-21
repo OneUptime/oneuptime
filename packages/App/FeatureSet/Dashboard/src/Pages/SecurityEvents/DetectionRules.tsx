@@ -61,7 +61,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   /*
-   * Same reseller-telemetry gate as every other Security Events tab —
+   * Same reseller-telemetry gate as every other Security Events page —
    * detection rules run over telemetry-billed security events, so a plan
    * without telemetry features has nothing for them to evaluate.
    */
@@ -88,10 +88,8 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
 
   return (
     /*
-     * The page's own vertical rhythm. `Page` only wraps its children in
-     * `space-y-6` on the side-menu branch, and this product moved its
-     * destinations into header tabs — so without this the How-it-works card
-     * and the table under it sit flush against each other.
+     * The page's own vertical rhythm: without it the How-it-works card and
+     * the table under it sit flush against each other.
      */
     <div className="space-y-6">
       <SecurityEventsHowItWorksCard guide={DetectionRulesGuide} />
@@ -112,8 +110,6 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
         sortBy="name"
         sortOrder={SortOrder.Ascending}
         cardProps={{
-          // Its search and buttons drop under the title beside the side menu.
-          headerLayout: "stacked",
           title: "Detection Rules",
           description:
             "Sigma rules run on a schedule against your security events. A matching rule can raise an alert and open a case.",

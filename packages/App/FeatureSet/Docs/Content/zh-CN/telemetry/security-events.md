@@ -25,12 +25,16 @@ flowchart TB
     monitors --> act
 ```
 
-在 **可观测性** 下打开 **产品 → Security Events**。它的菜单如下：
+在 **可观测性** 下打开 **产品 → Security Events**。它的菜单为安全的每个部分设了一个分区，其中每一项都有自己的页面：
 
-| 页面 | 菜单项 | 用途 |
+| 页面 | 分区 | 用途 |
 | --- | --- | --- |
 | **概览** | 概览 | 安全的设置情况、现在需要有人处理的内容，以及案例处理的速度 |
-| **Security Cases** | Security Cases | 检测到的问题组成的队列，按所涉及的对象分组 |
+| **未结案例** | 安全案例 | 队列：每个尚未关闭的案例，按所涉及的对象分组 |
+| **分配给我** | 安全案例 | 分配给你的未结案例 |
+| **无人认领** | 安全案例 | 还没有人认领的未结案例 |
+| **已关闭案例** | 安全案例 | 已给出结论并关闭的案例，最近的在前 |
+| **全部案例** | 安全案例 | 每个案例，无论未结还是已关闭 |
 | **事件** | 事件 | 搜索和过滤每个事件，并打开某个事件查看它的所有字段 |
 | **实体** | 事件 | 你的检测结果中最常提及的用户、主机和地址 |
 | **关联分析** | 事件 | 共享同一主机、用户或 IP 地址的事件构成的图 |
@@ -39,11 +43,12 @@ flowchart TB
 | **Threat Intel** | Detections | 已知恶意指标的 STIX/TAXII 源 |
 | **ATT&CK Coverage** | Detections | 你的规则覆盖的 MITRE ATT&CK 技术 |
 | **Playbooks** | Playbooks | 在案例上自动或手动运行的步骤 |
-| **Playbook Runs** | Playbooks | 每个剧本做了什么，以及等待审批的步骤 |
+| **等待审批** | Playbooks | 等待有人批准或拒绝的剧本步骤 |
+| **剧本运行记录** | Playbooks | 每个剧本逐步做了什么 |
 | **Connections** | Connections | 您的日志、OneUptime 轮询的安全产品，以及它发送到的 SIEM |
 | **设置指南** | Connections | 发送事件的代码片段，已填好你的摄取密钥 |
 
-同一菜单项下的页面会以页面顶部的标签页打开。刚开始使用安全功能？[安全入门](/docs/telemetry/security-getting-started) 两次点击即可完成设置。
+只需设置一次的 **Detections** 和 **Connections** 会保持折叠，直到你打开它们。刚开始使用安全功能？[安全入门](/docs/telemetry/security-getting-started) 两次点击即可完成设置。
 
 ## 开始之前
 
@@ -152,7 +157,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
     Retry_Limit      5
 ```
 
-**设置指南** 标签页提供这些代码片段，并已填好你自己的主机和密钥。
+**Connections** 下的 **设置指南** 页面提供这些代码片段，并已填好你自己的主机和密钥。
 
 ### 在日志中查找安全事件
 
@@ -238,7 +243,7 @@ flowchart TB
 ### 创建规则
 
 :::steps
-1. 打开 **产品 → Security Events → Detections** ，点击 **创建Detection Rule** 。
+1. 打开 **产品 → Security Events → Detections → Detection Rules** ，点击 **创建Detection Rule** 。
 2. 在 **Sigma Rule** 中，把规则的 YAML 粘贴到 **Sigma Rule (YAML)** 中。保存时会解析它，所以错误会显示在表单中。
 3. **名称** 会用规则的 `title` 填好：改写它即可给规则起别的名字。新规则会直接运行；**已启用** 在它的编辑表单中。
 4. 在 **匹配时** 中保持 **Open a Case on Match** 打开，按规则的分组值把它的匹配归入案例。

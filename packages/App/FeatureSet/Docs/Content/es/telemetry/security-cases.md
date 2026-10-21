@@ -26,7 +26,7 @@ flowchart TB
     work --> close["Cerrado con un veredicto"]
 ```
 
-Abre **Productos → Eventos de seguridad → Security Cases**. La cola se abre mostrando los casos abiertos; **Assigned to Me**, **Unassigned**, **Cerrado** y **Todos** son las otras vistas.
+Abre **Productos → Eventos de seguridad → Casos de seguridad → Casos abiertos** para la cola. **Asignados a mí**, **Sin asignar**, **Casos cerrados** y **Todos los casos** son páginas propias a su lado, y cada una lista los casos que dice su nombre.
 
 ## Antes de empezar
 
@@ -47,7 +47,7 @@ Cada uno de estos permisos también se puede conceder por separado, desde crear 
 | Reglas de detección | Una regla coincide | **Open a Case on Match**, en el paso **Al coincidir** de la regla |
 | Inteligencia de amenazas | Un evento nombra un indicador conocido | **Open a Case on Match**, en el paso **Al coincidir** del feed |
 | Productos conectados | Se importa una alerta propia del producto con un nivel igual o superior al umbral de la conexión | **Open Cases From** con el valor **Nunca**, en el paso **Sondeo** de la conexión |
-| Personas | Alguien abre uno desde **Security Cases**, o con **Open Case** en el panel de un evento | No se puede desactivar |
+| Personas | Alguien abre uno desde **Casos de seguridad**, o con **Open Case** en el panel de un evento | No se puede desactivar |
 
 Todos los orígenes están activados por defecto. Una conexión abre casos para **High and above** salvo que elijas otro nivel; las alertas por debajo de ese nivel se siguen importando como eventos.
 
@@ -86,7 +86,7 @@ La página del caso tiene todo lo necesario para gestionarlo:
 - **Detecciones**: lo que se disparó para abrir el caso o sumarse a él, cuántas veces y el último evento coincidente.
 - **Entidades**: los usuarios, hosts y direcciones de los que trata el caso, con su actividad en todos tus eventos de seguridad de los últimos 7 días. Cada una se abre en **Correlacionar**.
 - **MITRE ATT&CK**: las tácticas y técnicas a las que corresponden sus detecciones, cada una enlazada a su página en attack.mitre.org.
-- **Playbook Runs**: lo que hizo cada playbook en el caso, paso a paso, y los pasos que esperan aprobación.
+- **Ejecuciones de playbooks**: lo que hizo cada playbook en el caso, paso a paso, y los pasos que esperan aprobación.
 - **Notas** y **Cronología**: lo que escribió el equipo y todo lo que pasó, con quién lo hizo.
 
 Para gestionar varios casos a la vez, selecciónalos en la cola y usa **Assign to Me**, **Change Status** o **Change Priority**.
@@ -188,7 +188,7 @@ Un email o una publicación sin mensaje propio envía un resumen del caso.
 
 ### Ejecuciones y aprobaciones
 
-Cada ejecución aparece, paso a paso, en su caso y en **Productos → Eventos de seguridad → Playbooks → Playbook Runs**:
+Cada ejecución aparece, paso a paso, en su caso y en **Productos → Eventos de seguridad → Playbooks → Ejecuciones de playbooks**:
 
 | Estado de la ejecución | Significado |
 | --- | --- |
@@ -199,7 +199,7 @@ Cada ejecución aparece, paso a paso, en su caso y en **Productos → Eventos de
 | Fallido | Un paso falló y la ejecución se detuvo |
 | Cancelado | Alguien la canceló o rechazó un paso |
 
-Un paso que espera aprobación muestra **Approve** y **Rechazar** en la ejecución, con un comentario opcional. Aprobar hace que la ejecución continúe desde ese paso; rechazar la termina. La decisión, quién la tomó y su comentario se guardan en el paso y en la cronología del caso. **Playbook Runs** se abre en las ejecuciones que esperan aprobación, y la entrada del menú **Playbooks** las cuenta.
+Un paso que espera aprobación muestra **Approve** y **Rechazar** en la ejecución, con un comentario opcional. Aprobar hace que la ejecución continúe desde ese paso; rechazar la termina. La decisión, quién la tomó y su comentario se guardan en el paso y en la cronología del caso. **Esperando aprobación**, en **Playbooks** en el menú, lista las ejecuciones que esperan una decisión y las cuenta; **Ejecuciones de playbooks** lista todas las ejecuciones.
 
 Una ejecución que deja de recibir noticias de su worker, por ejemplo tras un reinicio, se retoma: una ejecución en cola vuelve a ponerse en cola a los 2 minutos, y una ejecución que lleva 30 minutos sin dar señales se marca como fallida.
 
@@ -207,7 +207,7 @@ Una ejecución que deja de recibir noticias de su worker, por ejemplo tras un re
 
 El producto se abre en **Productos → Eventos de seguridad → Vista general**:
 
-- Los casos abiertos asignados a ti, los casos abiertos que nadie ha tomado todavía y los pasos de playbook que esperan aprobación.
+- Los casos abiertos asignados a ti, los casos abiertos que nadie ha tomado todavía y los pasos de playbook que esperan aprobación; cada uno abre la página que los lista.
 - **Tiempo medio de reconocimiento**, **Tiempo medio de contención** y **Tiempo medio de cierre**, sobre los casos abiertos en los últimos 30 días: desde que se abre un caso hasta que alguien se hace cargo de él (se asigna a una persona o sale de Nuevo), hasta que pasa a Contenido y hasta que pasa a Cerrado. Un caso que sigue esperando no cuenta en la media.
 - Los casos abiertos cada día durante 30 días, por prioridad, y las detecciones generadas cada día durante 14 días, por origen.
 - Los casos abiertos por prioridad y por estado, los veredictos de los últimos 30 días, las tácticas de ATT&CK detrás de los casos, las detecciones que más se dispararon y las entidades que nombran más hallazgos.

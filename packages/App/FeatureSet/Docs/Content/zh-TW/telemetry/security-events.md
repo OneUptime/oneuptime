@@ -25,12 +25,16 @@ flowchart TB
     monitors --> act
 ```
 
-在 **可觀測性** 下開啟 **產品 → Security Events**。它的選單如下：
+在 **可觀測性** 下開啟 **產品 → Security Events**。它的選單為安全性的每個部分設了一個區段，其中每一項都有自己的頁面：
 
-| 頁面 | 選單項目 | 用途 |
+| 頁面 | 區段 | 用途 |
 | --- | --- | --- |
 | **概覽** | 概覽 | 安全性的設定情況、現在需要有人處理的內容，以及案件處理的速度 |
-| **Security Cases** | Security Cases | 偵測到的問題所組成的佇列，依所涉及的對象分組 |
+| **未結案例** | 安全案例 | 佇列：每個尚未關閉的案件，依所涉及的對象分組 |
+| **指派給我** | 安全案例 | 指派給你的未結案件 |
+| **無人認領** | 安全案例 | 還沒有人認領的未結案件 |
+| **已關閉案例** | 安全案例 | 已給出結論並關閉的案件，最近的在前 |
+| **全部案例** | 安全案例 | 每個案件，無論未結還是已關閉 |
 | **事件** | 事件 | 搜尋和篩選每個事件，並開啟某個事件查看它的所有欄位 |
 | **實體** | 事件 | 你的偵測結果中最常提到的使用者、主機和位址 |
 | **關聯分析** | 事件 | 共用同一主機、使用者或 IP 位址的事件構成的圖 |
@@ -39,11 +43,12 @@ flowchart TB
 | **Threat Intel** | Detections | 已知惡意指標的 STIX/TAXII 情資來源 |
 | **ATT&CK Coverage** | Detections | 你的規則涵蓋的 MITRE ATT&CK 技術 |
 | **Playbooks** | Playbooks | 在案件上自動或手動執行的步驟 |
-| **Playbook Runs** | Playbooks | 每個劇本做了什麼，以及等待核准的步驟 |
+| **等待核准** | Playbooks | 等待有人核准或拒絕的劇本步驟 |
+| **劇本執行記錄** | Playbooks | 每個劇本逐步做了什麼 |
 | **Connections** | Connections | 您的日誌、OneUptime 輪詢的安全產品，以及它傳送到的 SIEM |
 | **設定指南** | Connections | 傳送事件的程式碼片段，已填入你的擷取金鑰 |
 
-同一選單項目下的頁面會以頁面頂端的分頁開啟。剛開始使用安全性功能？[安全性入門](/docs/telemetry/security-getting-started) 按兩下即可完成設定。
+只需設定一次的 **Detections** 和 **Connections** 會保持摺疊，直到你開啟它們。剛開始使用安全性功能？[安全性入門](/docs/telemetry/security-getting-started) 按兩下即可完成設定。
 
 ## 開始之前
 
@@ -152,7 +157,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
     Retry_Limit      5
 ```
 
-**設定指南** 分頁提供這些程式碼片段，並已填入你自己的主機和金鑰。
+**Connections** 下的 **設定指南** 頁面提供這些程式碼片段，並已填入你自己的主機和金鑰。
 
 ### 在日誌中尋找安全性事件
 
@@ -238,7 +243,7 @@ flowchart TB
 ### 建立規則
 
 :::steps
-1. 開啟 **產品 → Security Events → Detections** ，按一下 **建立Detection Rule** 。
+1. 開啟 **產品 → Security Events → Detections → Detection Rules** ，按一下 **建立Detection Rule** 。
 2. 在 **Sigma Rule** 中，把規則的 YAML 貼到 **Sigma Rule (YAML)** 中。儲存時會剖析它，所以錯誤會顯示在表單中。
 3. **名稱** 會用規則的 `title` 填好：改寫它即可給規則取別的名字。新規則會直接執行；**已啟用** 在它的編輯表單中。
 4. 在 **符合時** 中讓 **Open a Case on Match** 保持開啟，依規則的分組值把它的符合項目歸入案件。

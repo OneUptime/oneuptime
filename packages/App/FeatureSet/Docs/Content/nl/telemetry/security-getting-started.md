@@ -45,7 +45,7 @@ flowchart LR
 | --- | --- | --- |
 | **Bronnen** | **Connections** | Uw logs, de beveiligingsproducten die OneUptime opvraagt en alles wat u stuurt |
 | **Detections** | **Detections** | Sigma-regels en feeds met dreigingsinformatie die in elke gebeurtenis naar bedreigingen zoeken |
-| **Security Cases** | **Security Cases** | Wat er gevonden is, gegroepeerd per gebruiker, host of adres waar het om gaat |
+| **Beveiligingszaken** | **Beveiligingszaken** | Wat er gevonden is, gegroepeerd per gebruiker, host of adres waar het om gaat |
 | **Playbooks** | **Playbooks** | Stappen die op nieuwe zaken draaien: ze verrijken, waarschuwen, een incident openen of indammen |
 
 De strook boven aan **Overzicht** toont elk onderdeel met zijn cijfers: de bronnen en hun gebeurtenissen van de afgelopen 24 uur, de regels die aanstaan, de open zaken en de playbooks die reageren.
@@ -75,7 +75,7 @@ Uw rol mag geen detectieregels, playbooks of de logbron toevoegen. Vraag het een
 :::
 
 :::details De testaanval heeft geen zaak geopend
-Meestal is de zaak al open voordat de knop antwoordt; loopt de regel nog achter, dan meldt hij dat en opent de zaak binnen een minuut. Kijk opnieuw bij **Security Cases** en controleer onder **Detections** of de brute-forceregel aanstaat.
+Meestal is de zaak al open voordat de knop antwoordt; loopt de regel nog achter, dan meldt hij dat en opent de zaak binnen een minuut. Kijk opnieuw bij **Beveiligingszaken** en controleer onder **Detections** of de brute-forceregel aanstaat.
 :::
 
 :::details Uit mijn logs komt geen beveiligingsgebeurtenis

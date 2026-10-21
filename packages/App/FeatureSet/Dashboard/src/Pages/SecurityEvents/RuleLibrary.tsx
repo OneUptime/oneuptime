@@ -49,6 +49,19 @@ import React, {
   useState,
 } from "react";
 
+/*
+ * What the library can be narrowed to: every rule, the recommended ones,
+ * or one category - in the order the select offers them.
+ */
+export const RULE_LIBRARY_FILTERS: ReadonlyArray<LibraryRuleFilter> = [
+  "",
+  RECOMMENDED_FILTER,
+  ...DETECTION_RULE_LIBRARY_CATEGORIES,
+];
+
+export const RULE_LIBRARY_CATEGORY_SELECT_TEST_ID: string =
+  "rule-library-category";
+
 const CATEGORY_ICONS: Record<DetectionRuleLibraryCategory, IconProp> = {
   [DetectionRuleLibraryCategory.Identity]: IconProp.User,
   [DetectionRuleLibraryCategory.Endpoint]: IconProp.ServerStack,
@@ -347,63 +360,49 @@ const RuleLibraryPage: FunctionComponent<
         ]}
       >
         <div className="space-y-4">
-          <div className="space-y-3">
+          {/*
+           * The search, and beside it one select for what to narrow the
+           * library to - every rule, the recommended ones or a category -
+           * the way the template pickers narrow theirs. A row of buttons
+           * here read as tabs across the card. On a phone the two stack.
+           */}
+          <div
+            className="flex flex-col gap-2 sm:flex-row sm:items-center"
+            data-testid="rule-library-filters"
+          >
             <div className="w-full sm:max-w-sm">
               <Input
                 placeholder="Search rules"
                 value={search}
+                outerDivClassName="relative w-full rounded-md shadow-sm"
                 onChange={(value: string) => {
                   setSearch(value);
                 }}
               />
             </div>
-            <div
-              className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0"
-              data-testid="rule-library-filters"
+            <select
+              data-testid={RULE_LIBRARY_CATEGORY_SELECT_TEST_ID}
+              aria-label={translator.translateText("Rule categories")}
+              value={category}
+              onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
+                setCategory(event.target.value as LibraryRuleFilter);
+              }}
+              className="block w-full min-w-0 rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm text-gray-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:w-auto"
             >
-              {(
-                [
-                  "",
-                  RECOMMENDED_FILTER,
-                  ...DETECTION_RULE_LIBRARY_CATEGORIES,
-                ] as Array<LibraryRuleFilter>
-              ).map((item: LibraryRuleFilter): ReactElement => {
-                const isActive: boolean = item === category;
-
-                return (
-                  <button
-                    key={item || "all"}
-                    type="button"
-                    aria-pressed={isActive}
-                    data-testid={`rule-library-category-${item || "all"}`}
-                    className={`inline-flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                      isActive
-                        ? "bg-indigo-50 text-indigo-700"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                    }`}
-                    onClick={() => {
-                      setCategory(item);
-                    }}
-                  >
-                    {item ? (
-                      <Icon
-                        icon={
-                          item === RECOMMENDED_FILTER
-                            ? IconProp.Star
-                            : CATEGORY_ICONS[item]
-                        }
-                        className="h-3.5 w-3.5"
-                      />
-                    ) : (
-                      <></>
-                    )}
-                    {item === RECOMMENDED_FILTER
-                      ? translator.translateText("Recommended")
-                      : translator.translateText(item || "All")}
-                  </button>
-                );
-              })}
-            </div>
+              {RULE_LIBRARY_FILTERS.map(
+                (item: LibraryRuleFilter): ReactElement => {
+                  return (
+                    <option key={item || "all"} value={item}>
+                      {item === RECOMMENDED_FILTER
+                        ? translator.translateText("Recommended")
+                        : item
+                          ? translator.translateText(item)
+                          : translator.translateText("All categories")}
+                    </option>
+                  );
+                },
+              )}
+            </select>
           </div>
 
           {error ? <ErrorMessage message={error} /> : <></>}
