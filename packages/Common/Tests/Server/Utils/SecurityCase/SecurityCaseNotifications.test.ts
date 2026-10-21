@@ -45,7 +45,13 @@ import SecurityDetectionSource from "../../../../Types/SecurityCase/SecurityDete
 import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntity";
 import { SETUP_TEST_SOURCE_IP } from "../../../../Types/SecurityEvent/SecuritySetupTest";
 import { SecurityPlaybookActionType } from "../../../../Types/SecurityPlaybook/SecurityPlaybookAction";
-import SecurityPlaybookRunStatus from "../../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
+import {
+  SecurityPlaybookTargetReason,
+  SecurityPlaybookTargetState,
+} from "../../../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
+import SecurityPlaybookRunStatus, {
+  SecurityPlaybookStepStatus,
+} from "../../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import SecurityPlaybookTrigger from "../../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { getJestSpyOn } from "../../../Spy";
 import {
@@ -841,6 +847,77 @@ describe("who is asked to approve a playbook step", () => {
     expect(sent[0]!.data["forceImmediate"]).toBe(true);
     expect(feedItems[0]!["feedInfoInMarkdown"]).toBe(
       "🔔 Asked 2 people to approve step 2 (Contain the host in CrowdStrike) of playbook **Contain compromised host**.",
+    );
+  });
+
+  test("the approver is told which hosts the step would contain, and not the ones it leaves alone", async () => {
+    members = [member("Admin", 1, [Permission.SecurityAdmin])];
+    waitingRun({
+      stepResults: [
+        { stepId: "s1", action: SecurityPlaybookActionType.CheckThreatIntel },
+        {
+          stepId: "s2",
+          action: SecurityPlaybookActionType.ContainCrowdStrikeHost,
+          status: SecurityPlaybookStepStatus.WaitingForApproval,
+          targets: [
+            {
+              type: SecurityEntityType.Host,
+              value: "web-01",
+              reason: SecurityPlaybookTargetReason.GroupedOn,
+              state: SecurityPlaybookTargetState.Proposed,
+            },
+            {
+              type: SecurityEntityType.Host,
+              value: "dc-01",
+              reason: SecurityPlaybookTargetReason.GroupedOn,
+              state: SecurityPlaybookTargetState.Protected,
+            },
+            {
+              type: SecurityEntityType.Host,
+              value: "db-02",
+              reason: SecurityPlaybookTargetReason.ThreatIntel,
+              state: SecurityPlaybookTargetState.Proposed,
+            },
+          ],
+        },
+      ] as unknown as JSONArray,
+    });
+
+    await SecurityCaseNotifications.notifyApprovalRequested({
+      projectId: PROJECT_ID,
+      securityCaseId: CASE_ID,
+      runId: RUN_ID,
+    });
+
+    const vars: JSONObject = (
+      sent[0]!.data["emailEnvelope"] as unknown as { vars: JSONObject }
+    ).vars;
+    expect(vars["stepTargets"]).toBe("web-01, db-02");
+    expect(
+      (sent[0]!.data["smsMessage"] as unknown as { message: string }).message,
+    ).toContain(
+      "playbook Contain compromised host, step 2 (Contain the host in CrowdStrike) on web-01, db-02.",
+    );
+  });
+
+  test("a step that acts on nobody in particular names no targets", async () => {
+    members = [member("Admin", 1, [Permission.SecurityAdmin])];
+    waitingRun();
+
+    await SecurityCaseNotifications.notifyApprovalRequested({
+      projectId: PROJECT_ID,
+      securityCaseId: CASE_ID,
+      runId: RUN_ID,
+    });
+
+    const vars: JSONObject = (
+      sent[0]!.data["emailEnvelope"] as unknown as { vars: JSONObject }
+    ).vars;
+    expect(vars["stepTargets"]).toBe("");
+    expect(
+      (sent[0]!.data["smsMessage"] as unknown as { message: string }).message,
+    ).toContain(
+      "playbook Contain compromised host, step 2 (Contain the host in CrowdStrike).",
     );
   });
 

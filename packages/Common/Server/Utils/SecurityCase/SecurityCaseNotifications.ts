@@ -64,6 +64,11 @@ import {
   SecurityPlaybookStep,
   parseSecurityPlaybookSteps,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookStep";
+import {
+  SecurityPlaybookTarget,
+  SecurityPlaybookTargetState,
+  readStepResults,
+} from "../../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
 import EmailColorUtil from "../../../Utils/Email/EmailColorUtil";
 import FeedMarkdown, {
   MarkdownText,
@@ -349,8 +354,11 @@ export function buildApprovalRequestedMessage(data: {
   stepDescription: string;
   startedBy: string;
   isOnCase: boolean;
+  // What a Contain step proposes to act on, for the approver to check.
+  targets?: Array<string> | undefined;
 }): SecurityCaseMessage {
   const { facts } = data;
+  const targets: string = (data.targets || []).join(", ");
 
   return {
     eventType:
@@ -366,10 +374,11 @@ export function buildApprovalRequestedMessage(data: {
         : "You can approve playbook steps, and nobody the case is assigned to can. Change these emails in User Settings > Notification Settings.",
       playbookName: data.playbookName,
       stepDescription: data.stepDescription,
+      stepTargets: targets,
       startedBy: data.startedBy,
     },
     smsText: buildNotificationSms(
-      `Approval needed on security case ${facts.number}: playbook ${data.playbookName}, ${data.stepDescription}.`,
+      `Approval needed on security case ${facts.number}: playbook ${data.playbookName}, ${data.stepDescription}${targets ? ` on ${targets}` : ""}.`,
     ),
     callText: `This is a message from OneUptime. Playbook ${data.playbookName} is waiting for your approval on security case ${facts.number}: ${facts.title}. To change these calls go to User Settings in the OneUptime Dashboard. Good bye.`,
     pushTitle: `Approval needed: ${data.playbookName}`,
@@ -893,6 +902,7 @@ export default class SecurityCaseNotifications {
           playbookName: true,
           steps: true,
           currentStepIndex: true,
+          stepResults: true,
           triggeredByUserId: true,
           trigger: true,
         },
@@ -923,6 +933,16 @@ export default class SecurityCaseNotifications {
     const startedBy: string = run.triggeredByUserId
       ? (await this.getUser(run.triggeredByUserId))?.name || "By hand"
       : describeRunTrigger(run.trigger);
+    // For a step that acts on users or hosts: the ones it would act on.
+    const targets: Array<string> = (
+      readStepResults(run.stepResults, steps)[stepIndex]?.targets || []
+    )
+      .filter((target: SecurityPlaybookTarget): boolean => {
+        return target.state === SecurityPlaybookTargetState.Proposed;
+      })
+      .map((target: SecurityPlaybookTarget): string => {
+        return target.value;
+      });
 
     /*
      * Who may decide: whoever can read the case and move its runs along
@@ -990,6 +1010,7 @@ export default class SecurityCaseNotifications {
           stepDescription,
           startedBy,
           isOnCase,
+          targets,
         });
       },
     });

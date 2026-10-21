@@ -25,6 +25,7 @@ import SecurityCaseNotifications, {
   SECURITY_CASE_NOTIFICATION_JOB,
 } from "../../../../Server/Utils/SecurityCase/SecurityCaseNotifications";
 import SecurityPlaybookEngine from "../../../../Server/Utils/SecurityPlaybook/SecurityPlaybookEngine";
+import SecurityPlaybookTargets from "../../../../Server/Utils/SecurityPlaybook/SecurityPlaybookTargets";
 import WorkspaceUtil from "../../../../Server/Utils/Workspace/Workspace";
 import { WorkspaceSendMessageResponse } from "../../../../Server/Utils/Workspace/WorkspaceBase";
 import Project from "../../../../Models/DatabaseModels/Project";
@@ -52,7 +53,11 @@ import SecurityDetectionSource from "../../../../Types/SecurityCase/SecurityDete
 import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntity";
 import { SecurityPlaybookActionType } from "../../../../Types/SecurityPlaybook/SecurityPlaybookAction";
 import SecurityPlaybookRunStatus from "../../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
-import { buildPendingStepResults } from "../../../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
+import {
+  SecurityPlaybookTargetReason,
+  SecurityPlaybookTargetState,
+  buildPendingStepResults,
+} from "../../../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
 import { SecurityPlaybookStep } from "../../../../Types/SecurityPlaybook/SecurityPlaybookStep";
 import NotificationRuleEventType from "../../../../Types/Workspace/NotificationRules/EventType";
 import {
@@ -724,13 +729,27 @@ describe("a security case from opening to approval", () => {
       run!.status = data["status"] as SecurityPlaybookRunStatus;
       return true;
     });
-    getJestSpyOn(SecurityPlaybookRunService, "updateOneById").mockResolvedValue(
-      undefined as never,
-    );
+    // What the engine saves is what the job reads back, as from the database.
+    getJestSpyOn(
+      SecurityPlaybookRunService,
+      "updateOneById",
+    ).mockImplementation(async (args: unknown) => {
+      Object.assign(run!, (args as { data: JSONObject }).data);
+    });
     getJestSpyOn(
       SecurityPlaybookRunService,
       "updateColumnsByIdWithoutHooks",
     ).mockResolvedValue(undefined as never);
+
+    // The step proposes the host the case is about (SecurityPlaybookTargets).
+    getJestSpyOn(SecurityPlaybookTargets, "selectTargets").mockResolvedValue([
+      {
+        type: SecurityEntityType.Host,
+        value: "web-01",
+        reason: SecurityPlaybookTargetReason.GroupedOn,
+        state: SecurityPlaybookTargetState.Proposed,
+      },
+    ] as never);
 
     await SecurityPlaybookEngine.executeRun(RUN_ID);
     expect(run.status).toBe(SecurityPlaybookRunStatus.WaitingForApproval);
@@ -747,6 +766,8 @@ describe("a security case from opening to approval", () => {
           "[CASE-12] Approval needed: Contain compromised host, step 1 (Contain the host in CrowdStrike)",
       }),
     ]);
+    // The approver is told what the step would act on.
+    expect(emails[0]!.vars["stepTargets"]).toBe("web-01");
     expect(pushes).toEqual([
       {
         userId: ANALYST_ID.toString(),
