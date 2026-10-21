@@ -544,7 +544,7 @@ export function buildVMwareTopology(
 
   // Clusters, under their datacenter.
   const clusterIds: Map<string, string> = new Map<string, string>();
-  const clusterKey: (dc: string | undefined, cluster: string) => string = (
+  const clusterLookup: (dc: string | undefined, cluster: string) => string = (
     dc: string | undefined,
     cluster: string,
   ): string => {
@@ -555,7 +555,7 @@ export function buildVMwareTopology(
     const name: string = row.clusterName || displayName(row);
     const id: string = nodeIdFor("vmware.cluster", row.externalId!);
     const assessment: Assessment = assessCluster(row);
-    clusterIds.set(clusterKey(row.datacenterName, name), id);
+    clusterIds.set(clusterLookup(row.datacenterName, name), id);
     nodes.push({
       id: id,
       parentId: ensureDatacenter(row.datacenterName),
@@ -584,7 +584,7 @@ export function buildVMwareTopology(
       return ensureDatacenter(dc);
     }
 
-    const key: string = clusterKey(dc, cluster);
+    const key: string = clusterLookup(dc, cluster);
     const existing: string | undefined = clusterIds.get(key);
 
     if (existing) {
