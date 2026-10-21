@@ -16,6 +16,7 @@ import SecurityCaseNote from "../../../../../Models/DatabaseModels/SecurityCaseN
 import SecurityDetection from "../../../../../Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "../../../../../Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "../../../../../Models/DatabaseModels/SecurityPlaybookRun";
+import SecurityProtectedEntity from "../../../../../Models/DatabaseModels/SecurityProtectedEntity";
 import TelemetryException from "../../../../../Models/DatabaseModels/TelemetryException";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
@@ -153,6 +154,7 @@ const SIEM_MODELS: Array<[string, ModelType]> = [
   ["SecurityDetection", SecurityDetection],
   ["SecurityPlaybook", SecurityPlaybook],
   ["SecurityPlaybookRun", SecurityPlaybookRun],
+  ["SecurityProtectedEntity", SecurityProtectedEntity],
 ];
 
 describe("Security roles reach the SIEM", () => {
@@ -285,6 +287,10 @@ describe("Security roles reach the SIEM", () => {
       DatabaseRequestType.Delete,
     ]) {
       expect(can(SecurityPlaybook, securityMember, requestType)).toBe(false);
+      // Nor the users and hosts playbooks never contain: that list is a safety control.
+      expect(can(SecurityProtectedEntity, securityMember, requestType)).toBe(
+        false,
+      );
     }
   });
 
@@ -299,6 +305,9 @@ describe("Security roles reach the SIEM", () => {
       DatabaseRequestType.Delete,
     ]) {
       expect(can(SecurityPlaybook, securityAdmin, requestType)).toBe(true);
+      expect(can(SecurityProtectedEntity, securityAdmin, requestType)).toBe(
+        true,
+      );
     }
   });
 

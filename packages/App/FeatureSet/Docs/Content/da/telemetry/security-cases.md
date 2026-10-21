@@ -144,16 +144,19 @@ En deaktiveret playbook kører hverken af sig selv eller manuelt.
 | Notify | Post to Microsoft Teams | Slår en opsummering af sagen op i en Microsoft Teams-kanal |
 | Escalate | Page on-call | Kører en vagtpolitik |
 | Escalate | Declare an incident | Åbner en OneUptime-hændelse, der er knyttet til sagen |
-| Contain | Suspend the user in Okta | Suspenderer hver af sagens brugere i Okta |
-| Contain | End the user's Okta sessions | Logger hver af sagens brugere ud af Okta og tilbagekalder deres tokens |
-| Contain | Contain the host in CrowdStrike | Isolerer hver af sagens værter fra netværket med CrowdStrike Falcon |
-| Contain | Isolate the device in Microsoft Defender | Isolerer hver af sagens værter med Microsoft Defender for Endpoint |
+| Contain | Suspend the user in Okta | Suspenderer den bruger, sagen handler om, i Okta |
+| Contain | End the user's Okta sessions | Logger den bruger, sagen handler om, ud af Okta og tilbagekalder deres tokens |
+| Contain | Contain the host in CrowdStrike | Isolerer den vært, sagen handler om, fra netværket med CrowdStrike Falcon |
+| Contain | Isolate the device in Microsoft Defender | Isolerer den vært, sagen handler om, med Microsoft Defender for Endpoint |
+| Contain | Unsuspend the user in Okta | Ophæver suspenderingen af den bruger, sagen handler om, i Okta |
+| Contain | Lift containment in CrowdStrike | Ophæver CrowdStrike Falcons netværksisolering af den vært, sagen handler om |
+| Contain | Release the device in Microsoft Defender | Frigiver den vært, sagen handler om, fra isoleringen i Microsoft Defender for Endpoint |
 | Automate | Send a webhook | Sender sagen som JSON til en URL |
 | Automate | Run a workflow | Starter et OneUptime-workflow med sagen som input |
 
 En playbook har højst 25 trin. De kører i rækkefølge, hvert trin, når det foregående er færdigt. Hvert trin kan også:
 
-- **Needs Approval**: stoppe kørslen før trinnet, indtil nogen godkender det på sagen. Det er slået til som standard for de fire Contain-trin, som handler uden for OneUptime.
+- **Needs Approval**: stoppe kørslen før trinnet, indtil nogen godkender det på sagen. De fire trin, der lukker nogen ude, stopper altid kørslen, medmindre en Security Admin slår det fra.
 - **Only If Threat Intel Matched**: springe trinnet over, medmindre et tidligere trin **Check entities against threat intel** i kørslen fandt en kendt indikator.
 - **Carry On If It Fails**: køre det næste trin, selv om dette mislykkes. Er den slået fra, stopper et mislykket trin kørslen.
 
@@ -163,11 +166,28 @@ Contain-trinnene handler gennem en [forbindelse for sikkerhedsbegivenheder](/doc
 
 | Trin | Forbindelse | Kræver |
 | --- | --- | --- |
-| Suspend the user in Okta, End the user's Okta sessions | Okta System Log | Et API-token, der må administrere brugere |
-| Contain the host in CrowdStrike | CrowdStrike Falcon | En API-klient med skriveadgang til scopet Hosts |
-| Isolate the device in Microsoft Defender | Microsoft Defender XDR | En app med tilladelsen Machine.Isolate |
+| Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Et API-token, der må administrere brugere |
+| Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | En API-klient med skriveadgang til scopet Hosts |
+| Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | En app med tilladelsen Machine.Isolate |
 
-Et Contain-trin handler på højst 10 af sagens brugere eller værter. Det finder hver af dem i produktet ud fra navnet og skriver på sagen, hvad det gjorde med hver enkelt: inddæmmet, allerede inddæmmet, ikke fundet eller afvist.
+Et Contain-trin handler kun på de brugere eller værter, sagen handler om, aldrig på alle dem, den nævner:
+
+- Den værdi, en af sagens detektioner er grupperet efter, f.eks. den konto, en regel for umulige rejser grupperer efter, eller den vært, en advarsel fra et forbundet produkt nævner.
+- En bruger eller vært i sagen, som din trusselsintelligens kender som en indikator.
+
+En sag, der er grupperet efter en adresse, f.eks. et brute force-angreb mod din VPN, handler om ingen af delene: dens Contain-trin springes over, og den forsøgte konto og den ramte gateway lades i fred. Et trin handler på højst 10 brugere eller værter. Det finder hver af dem i produktet ud fra navnet og skriver på kørslen, hvad det gjorde med hver enkelt: udført, allerede udført, ikke fundet, afvist eller beskyttet.
+
+#### Beskyttede entiteter
+
+**Protected Entities**, under **Playbooks** i menuen, viser de brugere og værter, som ingen playbook inddæmmer, f.eks. nødadgangskonti, domænecontrollere og VPN-gateways. En værdi matcher uden forskel på store og små bogstaver, og `*` står for en vilkårlig række tegn: `svc-*` beskytter alle tjenestekonti. Et trin melder en beskyttet bruger eller vært som beskyttet og lader den være i fred. Security Admins vedligeholder listen.
+
+#### Godkendelse
+
+De fire trin, der lukker nogen ude, venter på godkendelse. Kun en Security Admin kan slå **Needs Approval** fra for et af dem, og OneUptime registrerer, hvem der gjorde det. Godkendelsen viser under **Act On** de brugere eller værter, trinnet ville handle på, alle markeret: fjern markeringen ved dem, det skal lade være i fred. Beskyttede brugere og værter tilbydes ikke. Den, der startede en kørsel, kan ikke godkende dens trin: det gør en anden, men vedkommende kan stadig afvise det.
+
+#### Fortryd
+
+Fortryd-trinnene handler på de brugere eller værter, sagen handler om, ligesom de trin, de fortryder. Når kørslen er stoppet, har en inddæmmet bruger eller vært også sin egen knap på sit trin: **Unsuspend**, **Lift Containment** eller **Frigiv**. En afsluttet Okta-session kan ikke fortrydes. Alt, hvad der fortrydes, gemmes på sagens tidslinje og i projektets auditlog.
 
 ### Beskeder
 
@@ -199,7 +219,7 @@ Hver kørsel vises på sin sag og under **Produkter → Security Events → Play
 | Mislykkedes | Et trin mislykkedes, og kørslen stoppede |
 | Annulleret | Nogen annullerede den eller afviste et trin |
 
-Et trin, der venter på godkendelse, viser **Approve** og **Reject** på kørslen med en valgfri kommentar. En godkendelse fører kørslen videre fra det trin; en afvisning afslutter den. Beslutningen, hvem der traf den, og deres kommentar gemmes på trinnet og på sagens tidslinje. **Venter på godkendelse**, under **Playbooks** i menuen, viser de kørsler, der venter på en beslutning, og tæller dem; **Playbook-kørsler** viser hver kørsel.
+Et trin, der venter på godkendelse, viser **Approve** og **Reject** på kørslen med en valgfri kommentar. En godkendelse fører kørslen videre fra det trin; en afvisning afslutter den. Beslutningen, hvem der traf den, og deres kommentar gemmes på trinnet, på sagens tidslinje og i projektets auditlog. **Venter på godkendelse**, under **Playbooks** i menuen, viser de kørsler, der venter på en beslutning, og tæller dem; **Playbook-kørsler** viser hver kørsel.
 
 En kørsel, der holder op med at høre fra sin worker, f.eks. efter en genstart, bliver samlet op igen: en kørsel i kø sættes i kø igen efter 2 minutter, og en kørsel, der ikke har meldt noget i 30 minutter, markeres som mislykket.
 
@@ -223,7 +243,7 @@ Over dem viser et bånd, hvordan sikkerhed er sat op: dens kilder, detektioner, 
 ## Automatisér
 
 - **Arbejdsgange**: en sag eller en note kan starte et workflow, når den oprettes, opdateres eller slettes. Et trin **Run a workflow** starter et workflow, hvis trigger er en webhook.
-- **API**: sager, noter, detektioner, playbooks og kørsler har det samme REST API som resten af OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook` og `/security-playbook-run`. Se [API-reference](/docs/api-reference/api-reference).
+- **API**: sager, noter, detektioner, playbooks, kørsler og beskyttede entiteter har det samme REST API som resten af OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` og `/security-protected-entity`. Se [API-reference](/docs/api-reference/api-reference).
 - AI-agenter: MCP-serveren har værktøjer til sager, noter, detektioner og playbooks. Se [MCP-server](/docs/ai/mcp-server).
 
 ## Fejlfinding
@@ -238,6 +258,10 @@ Tjek, at den er aktiveret, at dens indstilling **Trigger** passer (Case Opened k
 
 :::details Et Contain-trin mislykkedes
 Åbn kørslen på sagen: trinnet fortæller for hver bruger eller vært, om produktet afviste den, ikke fandt den eller ikke kunne nås. Tjek, at forbindelsens legitimation må foretage ændringen, og brug **Test forbindelse** i dens række.
+:::
+
+:::details Et Contain-trin blev sprunget over
+Sagen handler ikke om nogen bruger eller vært, f.eks. kun om en adresse, eller alle de brugere eller værter, den handler om, er beskyttede. Åbn kørslen på sagen: trinnet fortæller, hvilken af de to det er.
 :::
 
 ## Næste trin

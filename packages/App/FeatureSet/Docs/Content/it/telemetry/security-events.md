@@ -45,6 +45,7 @@ Apri **Prodotti → Security Events**, sotto **Osservabilità**. Il suo menu ha 
 | **Playbooks** | Playbooks | Passi che vengono eseguiti sui casi, da soli o a mano |
 | **In attesa di approvazione** | Playbooks | I passi dei playbook in attesa che qualcuno li approvi o li rifiuti |
 | **Esecuzioni dei playbook** | Playbooks | Cosa ha fatto ogni playbook, passo per passo |
+| **Protected Entities** | Playbooks | Gli utenti e gli host a cui nessun playbook applica il contenimento |
 | **Connections** | Connections | I tuoi log, i prodotti di sicurezza che OneUptime interroga e i SIEM a cui invia |
 | **Guida alla configurazione** | Connections | Frammenti per inviare eventi, compilati con la tua chiave di ingestione |
 

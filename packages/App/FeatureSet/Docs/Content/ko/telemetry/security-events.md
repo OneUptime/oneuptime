@@ -45,6 +45,7 @@ flowchart TB
 | **Playbooks** | Playbooks | 케이스에 대해 자동으로 또는 직접 실행되는 단계 |
 | **승인 대기 중** | Playbooks | 누군가 승인하거나 거부하기를 기다리는 플레이북 단계 |
 | **플레이북 실행** | Playbooks | 각 플레이북이 한 일을 단계별로 |
+| **Protected Entities** | Playbooks | 어떤 플레이북도 봉쇄하지 않는 사용자와 호스트 |
 | **Connections** | Connections | 로그, OneUptime이 가져오는 보안 제품, 그리고 이벤트를 보내는 SIEM |
 | **설정 가이드** | Connections | 이벤트를 보내는 스니펫. 수집 키가 미리 채워져 있음 |
 
