@@ -135,7 +135,7 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 
 ### OneUptime에서 클러스터 찾기
 
-**제품 → 인프라 → Kubernetes → 모든 클러스터**를 엽니다. 몇 분 안에 클러스터가 `clusterName`으로 나타나고 노드, Pod, 워크로드가 채워집니다. Kubernetes AI 에이전트는 클러스터의 **AI** 아래 **에이전트** 페이지에 연결됨으로 표시됩니다.
+**제품 → 인프라 → Kubernetes → 모든 클러스터**를 엽니다. 몇 분 안에 클러스터가 `clusterName`으로 나타나고 노드, Pod, 워크로드가 채워집니다. Kubernetes AI 에이전트는 클러스터의 **AI** 아래 **에이전트** 페이지에 연결됨으로 표시됩니다. 클러스터의 **토폴로지** 페이지는 네임스페이스, 워크로드, 파드, 노드를 하나의 지도로 그리고 확인이 필요한 것을 표시합니다. [토폴로지](/docs/telemetry/topology#리소스별-지도-열기)를 참고하세요.
 :::
 
 ## Amazon EKS 추가 기능으로 설치

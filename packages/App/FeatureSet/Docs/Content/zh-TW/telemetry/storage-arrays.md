@@ -134,7 +134,7 @@ Everything is ready. Begin running and processing data.
 
 ### 在 OneUptime 中找到陣列
 
-開啟 **產品 → 基礎設施 → Storage Arrays → All Storage Arrays**。第一次抓取之後（大約一分鐘），陣列就會出現，帶有它的容量、效能、未結的警示和硬體。磁碟區、主機和 Pod 會在 2 分鐘內出現，FlashBlade 的檔案系統和儲存貯體在 5 分鐘內出現，FlashArray 目錄在 30 分鐘內出現。
+開啟 **產品 → 基礎設施 → Storage Arrays → All Storage Arrays**。第一次抓取之後（大約一分鐘），陣列就會出現，帶有它的容量、效能、未結的警示和硬體。磁碟區、主機和 Pod 會在 2 分鐘內出現，FlashBlade 的檔案系統和儲存貯體在 5 分鐘內出現，FlashArray 目錄在 30 分鐘內出現。陣列的 **拓撲** 頁面將其主機、磁碟區、檔案系統和硬體繪製在一張地圖上：請參閱 [拓撲](/docs/telemetry/topology#開啟資源自己的地圖)。
 :::
 
 ## 環境變數

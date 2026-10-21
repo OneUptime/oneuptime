@@ -93,7 +93,7 @@ docker compose logs --tail 50 oneuptime-docker-swarm-agent oneuptime-docker-swar
 
 ### Find klyngen i OneUptime
 
-Åbn **Produkter → Infrastruktur → Docker Swarm → Alle klynger**. Klyngen vises inden for få minutter, og dens sider **Noder**, **Tjenester**, **Opgaver**, **Stacks**, **Netværk**, **Hemmeligheder**, **Configs** og **Diskenheder** fyldes ud efter det første inventar-snapshot, inden for 5 minutter.
+Åbn **Produkter → Infrastruktur → Docker Swarm → Alle klynger**. Klyngen vises inden for få minutter, og dens sider **Noder**, **Tjenester**, **Opgaver**, **Stacks**, **Netværk**, **Hemmeligheder**, **Configs** og **Diskenheder** fyldes ud efter det første inventar-snapshot, inden for 5 minutter. Klyngens side **Topologi** tegner dens stacks, tjenester, opgaver og noder på ét kort: se [Topologi](/docs/telemetry/topology#åbn-en-ressources-eget-kort).
 :::
 
 ## Miljøvariabler

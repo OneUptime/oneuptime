@@ -17,6 +17,12 @@ export function getKubernetesBreadcrumbs(
       "Kubernetes",
       "View Cluster",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_TOPOLOGY, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "Topology",
+    ]),
     /*
      * The AI section. ":id/ai" itself only redirects to the AI agent page;
      * its crumb stays so an old link still shows a trail while it does.

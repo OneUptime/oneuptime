@@ -6,6 +6,7 @@ Topology draws how your systems connect: which services call which, what runs wh
 - [Open Topology](#open-topology): Three views of one page.
 - [Read the service map](#read-the-service-map): Who calls whom, and how healthy the calls are.
 - [Explore your infrastructure](#explore-your-infrastructure): Where every service runs.
+- [Open a resource's own map](#open-a-resources-own-map): One vCenter, cluster or host in depth.
 - [See your network](#see-your-network): Devices and their links, live.
 :::
 
@@ -80,6 +81,14 @@ Click an arrow for its request rate, error rate and average latency. Between two
 - **Browse it your way.** Show it as a **List** or a **Map**, from all your infrastructure down to one pod. The counts above it say how many resources and workloads it draws, how many services it can place, and how many silent resources it leaves out.
 - **Find a resource.** Search for it by name, and click **View details** to open its page.
 - **Move between views.** A service listed on a resource opens on the **Service Map**, and the resources a service runs on open on **Infrastructure**.
+
+## Open a resource's own map
+
+A vCenter, a Kubernetes cluster, a host, a Docker or Podman host, a Docker Swarm, Proxmox or Ceph cluster and a storage array each have a **Topology** page of their own. It draws that one resource in depth, from its own inventory: what is inside what, each part coloured by how it is doing, and each open incident and alert on the part it is about.
+
+- **Find what needs attention.** **Needs attention** keeps only the troubled parts and the path to each, and the search finds a part anywhere in the resource.
+- **Look closer.** Click a part for what it is and a link to its own page, and **Focus on this** to draw only that part, what is inside it and what it is related to.
+- **Go both ways.** **Open in Topology** opens the resource on **Infrastructure**, and its **Open vCenter topology**, **Open cluster topology**, **Open host topology** or **Open storage array topology** button leads back.
 
 ## See your network
 

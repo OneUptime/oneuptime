@@ -10,6 +10,8 @@
     "ICMP (ping)",
     "Null",
     "PR #{{number}}",
+    "PV",
+    "PVC",
     "Runner",
     "VMware vCenter",
     "kubectl set image deployment/web * -n web",

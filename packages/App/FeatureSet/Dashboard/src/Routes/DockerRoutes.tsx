@@ -1,6 +1,7 @@
 import ComponentProps from "../Pages/PageComponentProps";
 import DockerLayout from "../Pages/Docker/Layout";
 import DockerHostViewLayout from "../Pages/Docker/View/Layout";
+import DockerHostTopology from "../Pages/Docker/View/Topology";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, DockerRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -133,6 +134,16 @@ const DockerRoutes: FunctionComponent<ComponentProps> = (
             <DockerHostOverview
               {...props}
               pageRoute={RouteMap[PageMap.DOCKER_HOST_VIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.DOCKER_HOST_VIEW_TOPOLOGY)}
+          element={
+            <DockerHostTopology
+              {...props}
+              pageRoute={RouteMap[PageMap.DOCKER_HOST_VIEW_TOPOLOGY] as Route}
             />
           }
         />

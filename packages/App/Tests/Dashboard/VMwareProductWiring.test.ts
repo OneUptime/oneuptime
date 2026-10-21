@@ -63,6 +63,8 @@ const VMWARE_PAGE_KEYS: ReadonlyArray<string> = [
   "VMWARE_ROOT",
   "VMWARE_VCENTERS",
   "VMWARE_VCENTER_VIEW",
+  // The vCenter drawn as one map: Components/ResourceTopology.
+  "VMWARE_VCENTER_VIEW_TOPOLOGY",
   "VMWARE_VCENTER_VIEW_HOSTS",
   "VMWARE_VCENTER_VIEW_HOST_DETAIL",
   "VMWARE_VCENTER_VIEW_VIRTUAL_MACHINES",
@@ -119,6 +121,7 @@ const BREADCRUMB_PAGE_KEYS: ReadonlyArray<string> = NAVIGABLE_PAGE_KEYS.filter(
  */
 const VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["Index.tsx", "VMWARE_VCENTER_VIEW"],
+  ["Topology.tsx", "VMWARE_VCENTER_VIEW_TOPOLOGY"],
   ["Hosts.tsx", "VMWARE_VCENTER_VIEW_HOSTS"],
   ["HostDetail.tsx", "VMWARE_VCENTER_VIEW_HOST_DETAIL"],
   ["VirtualMachines.tsx", "VMWARE_VCENTER_VIEW_VIRTUAL_MACHINES"],

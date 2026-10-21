@@ -129,7 +129,7 @@ Everything is ready. Begin running and processing data.
 
 ### 在 OneUptime 中找到主机
 
-打开 **产品 → 基础设施 → Docker → 所有主机**。大约一分钟内，主机会以其 `DOCKER_HOST_NAME` 出现，并带有其容器、指标和日志。AI 代理会在主机的 **AI 代理** 页面上以及其 **概览** 底部显示为已连接。
+打开 **产品 → 基础设施 → Docker → 所有主机**。大约一分钟内，主机会以其 `DOCKER_HOST_NAME` 出现，并带有其容器、指标和日志。AI 代理会在主机的 **AI 代理** 页面上以及其 **概览** 底部显示为已连接。主机的 **拓扑** 页面将其 Compose 项目、容器、镜像、网络和卷绘制在一张地图上：请参阅 [拓扑](/docs/telemetry/topology#打开资源自己的地图)。
 :::
 
 ## 环境变量

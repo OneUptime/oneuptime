@@ -6,6 +6,7 @@ Topologi tegner hvordan systemene dine henger sammen: hvilke tjenester som kalle
 - [Åpne Topologi](#åpne-topologi): Tre visninger av én side.
 - [Les tjenestekartet](#les-tjenestekartet): Hvem som kaller hvem, og hvor sunne kallene er.
 - [Utforsk infrastrukturen din](#utforsk-infrastrukturen-din): Hvor hver tjeneste kjører.
+- [Åpne en ressurs sitt eget kart](#åpne-en-ressurs-sitt-eget-kart): Ett vCenter, én klynge eller én vert i dybden.
 - [Se nettverket ditt](#se-nettverket-ditt): Enheter og forbindelsene deres, live.
 :::
 
@@ -80,6 +81,14 @@ Klikk på en pil for å se forespørselsraten, feilraten og gjennomsnittlig vent
 - **Bla gjennom den på din måte.** Vis den som **Liste** eller **Map**, fra hele infrastrukturen ned til én pod. Tallene over den sier hvor mange ressurser og arbeidslaster den tegner, hvor mange tjenester den kan plassere, og hvor mange stille ressurser den utelater.
 - **Finn en ressurs.** Søk etter den med navn, og klikk på **View details** for å åpne siden dens.
 - **Bytt mellom visninger.** En tjeneste som står på en ressurs, åpnes på **Service Map**, og ressursene en tjeneste kjører på, åpnes på **Infrastruktur**.
+
+## Åpne en ressurs sitt eget kart
+
+Et vCenter, en Kubernetes-klynge, en vert, en Docker- eller Podman-vert, en Docker Swarm-, Proxmox- eller Ceph-klynge og et lagringsarray har hver sin egen side **Topologi**. Den tegner nettopp den ressursen i dybden ut fra dens eget inventar: hva som ligger i hva, hver del farget etter hvordan den har det, og hver åpen hendelse og hvert åpent varsel på delen det gjelder.
+
+- **Finn det som krever oppmerksomhet.** **Krever oppmerksomhet** beholder bare delene med problemer og veien til hver av dem, og søket finner en del hvor som helst i ressursen.
+- **Se nærmere.** Klikk på en del for å se hva den er, med en lenke til dens egen side, og på **Fokuser på dette** for å tegne bare den delen, hva den inneholder og hva den henger sammen med.
+- **Gå begge veier.** **Åpne i Topologi** åpner ressursen på **Infrastruktur**, og knappen **Åpne vCenter-topologi**, **Åpne klyngetopologi**, **Åpne vertstopologi** eller **Åpne topologien til lagringsarrayet** fører tilbake.
 
 ## Se nettverket ditt
 

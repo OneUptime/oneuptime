@@ -1,6 +1,7 @@
 import ComponentProps from "../Pages/PageComponentProps";
 import CephLayout from "../Pages/Ceph/Layout";
 import CephClusterViewLayout from "../Pages/Ceph/View/Layout";
+import CephClusterTopology from "../Pages/Ceph/View/Topology";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, CephRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -136,6 +137,16 @@ const CephRoutes: FunctionComponent<ComponentProps> = (
             <CephClusterOverview
               {...props}
               pageRoute={RouteMap[PageMap.CEPH_CLUSTER_VIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.CEPH_CLUSTER_VIEW_TOPOLOGY)}
+          element={
+            <CephClusterTopology
+              {...props}
+              pageRoute={RouteMap[PageMap.CEPH_CLUSTER_VIEW_TOPOLOGY] as Route}
             />
           }
         />
