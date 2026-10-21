@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { Mock } from "jest-mock";
 import ObjectID from "Common/Types/ObjectID";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import {
@@ -32,8 +33,8 @@ import * as Links from "../../FeatureSet/Dashboard/src/Components/ResourceTopolo
  * topology and the master Topology.
  */
 
-const mockGetList: jest.Mock = jest.fn();
-const getList: jest.Mock = mockGetList;
+const mockGetList: Mock<(...args: Array<unknown>) => unknown> = jest.fn();
+const getList: Mock<(...args: Array<unknown>) => unknown> = mockGetList;
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 
 jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
