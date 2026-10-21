@@ -207,11 +207,17 @@ export async function openDedupedIncidents(data: {
  * "least severe" the last. An explicit id that is not in the list
  * (deleted, or belonging to another project) falls through silently
  * rather than failing the source.
+ *
+ * The explicit severity is the source's own setup, and is kept even when it
+ * has been archived since: an automation keeps the values it was set up
+ * with (Common/Utils/ArchivableValues). The ones OneUptime picks itself -
+ * by name, or by rank - are never archived ones.
  */
 export function pickSeverityByPrecedence<
   TSeverity extends {
     id?: ObjectID | null | undefined;
     name?: string | undefined;
+    isArchived?: boolean | undefined;
   },
 >(data: {
   severities: Array<TSeverity>;
@@ -239,7 +245,17 @@ export function pickSeverityByPrecedence<
     }
   }
 
-  const nameMatch: TSeverity | undefined = severities.find(
+  const liveSeverities: Array<TSeverity> = severities.filter(
+    (severity: TSeverity): boolean => {
+      return severity.isArchived !== true;
+    },
+  );
+
+  if (liveSeverities.length === 0) {
+    return null;
+  }
+
+  const nameMatch: TSeverity | undefined = liveSeverities.find(
     (severity: TSeverity): boolean => {
       return (
         (severity.name || "").toLowerCase() === severityLabel.toLowerCase()
@@ -252,8 +268,8 @@ export function pickSeverityByPrecedence<
   }
 
   const chosen: TSeverity = isSevere
-    ? severities[0]!
-    : severities[severities.length - 1]!;
+    ? liveSeverities[0]!
+    : liveSeverities[liveSeverities.length - 1]!;
 
   return chosen.id || null;
 }
@@ -271,6 +287,7 @@ export async function resolveAlertSeverityIdForProject(data: {
     select: {
       _id: true,
       name: true,
+      isArchived: true,
     },
     sort: {
       order: SortOrder.Ascending,
@@ -304,6 +321,7 @@ export async function resolveIncidentSeverityIdForProject(data: {
       select: {
         _id: true,
         name: true,
+        isArchived: true,
       },
       sort: {
         order: SortOrder.Ascending,

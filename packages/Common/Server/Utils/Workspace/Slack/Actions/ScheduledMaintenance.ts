@@ -452,6 +452,8 @@ export default class SlackScheduledMaintenanceActions {
         props: props,
         query: {
           projectId: data.slackRequest.projectId!,
+          // Offered for a new pick: never an archived value.
+          isArchived: false,
         },
         select: {
           name: true,
@@ -466,6 +468,8 @@ export default class SlackScheduledMaintenanceActions {
         props: props,
         query: {
           projectId: data.slackRequest.projectId!,
+          // Offered for a new pick: never an archived value.
+          isArchived: false,
         },
         select: {
           name: true,
