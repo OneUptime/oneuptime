@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import OneUptimeDate from "Common/Types/Date";
@@ -891,7 +892,8 @@ const IncidentCreate: FunctionComponent<
       const result: ListResult<IncidentSeverity> =
         await ModelAPI.getList<IncidentSeverity>({
           modelType: IncidentSeverity,
-          query: {},
+          // The severity is prefilled with one a new incident may take.
+          query: { isArchived: false },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
           select: { _id: true, name: true, order: true },
@@ -921,6 +923,14 @@ const IncidentCreate: FunctionComponent<
           incidentSeverityId: true,
           initialIncidentStateId: true,
           /*
+           * Whether the values the template names are archived: an archived
+           * one is not prefilled - nobody can pick it for a new incident -
+           * and its field is left for the declarer to pick.
+           */
+          incidentSeverity: { _id: true, isArchived: true },
+          initialIncidentState: { _id: true, isArchived: true },
+          changeMonitorStatusTo: { _id: true, isArchived: true },
+          /*
            * Pull `name` alongside `_id` for every affected-resource
            * relation. `relation: true` on the server collapses to
            * `{ _id: true }` for security, which leaves the picker with
@@ -933,7 +943,7 @@ const IncidentCreate: FunctionComponent<
           podmanHosts: { _id: true, name: true },
           services: { _id: true, name: true },
           onCallDutyPolicies: true,
-          labels: true,
+          labels: { _id: true, isArchived: true },
           changeMonitorStatusToId: true,
           // Declaring from a template that has status pages scopes the incident.
           statusPages: true,
@@ -1033,9 +1043,16 @@ const IncidentCreate: FunctionComponent<
 
       const initialValue: JSONObject = {
         ...BaseModel.toJSONObject(incidentTemplate, IncidentTemplate),
-        incidentSeverity: incidentTemplate.incidentSeverityId?.toString(),
-        currentIncidentState:
-          incidentTemplate.initialIncidentStateId?.toString(),
+        incidentSeverity: ArchivedValuePicker.isArchived(
+          incidentTemplate.incidentSeverity,
+        )
+          ? undefined
+          : incidentTemplate.incidentSeverityId?.toString(),
+        currentIncidentState: ArchivedValuePicker.isArchived(
+          incidentTemplate.initialIncidentState,
+        )
+          ? undefined
+          : incidentTemplate.initialIncidentStateId?.toString(),
         /*
          * Keep `{_id, name}` shape (not bare ID strings) so the picker can
          * render the resource's real name on first paint and seed its
@@ -1083,7 +1100,9 @@ const IncidentCreate: FunctionComponent<
             name: service.name || "",
           };
         }),
-        labels: incidentTemplate.labels?.map((label: Label) => {
+        labels: ArchivedValuePicker.getLiveValues(
+          incidentTemplate.labels || [],
+        ).map((label: Label) => {
           return label.id!.toString();
         }),
         statusPages: incidentTemplate.statusPages?.map(
@@ -1091,8 +1110,11 @@ const IncidentCreate: FunctionComponent<
             return statusPage.id!.toString();
           },
         ),
-        changeMonitorStatusTo:
-          incidentTemplate.changeMonitorStatusToId?.toString(),
+        changeMonitorStatusTo: ArchivedValuePicker.isArchived(
+          incidentTemplate.changeMonitorStatusTo,
+        )
+          ? undefined
+          : incidentTemplate.changeMonitorStatusToId?.toString(),
         onCallDutyPolicies: incidentTemplate.onCallDutyPolicies?.map(
           (onCallPolicy: OnCallDutyPolicy) => {
             return onCallPolicy.id!.toString();

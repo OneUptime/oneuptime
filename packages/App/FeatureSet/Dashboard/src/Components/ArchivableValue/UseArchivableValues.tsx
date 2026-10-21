@@ -11,6 +11,7 @@ import {
   DELETE_REFUSED_ALREADY_ARCHIVED,
   DELETE_REFUSED_ARCHIVE_INSTEAD,
   DELETE_REFUSED_INTRO,
+  DELETE_REFUSED_NAMED,
   STILL_SET_UP_TO_USE_IT,
   UNARCHIVE_ACTION,
 } from "./ArchivableValueCopy";
@@ -45,6 +46,7 @@ import ActionButtonSchema, {
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CardSections from "Common/UI/Components/Card/CardSections";
 import DeleteConfirmationMessage from "Common/UI/Components/DeleteConfirmation/DeleteConfirmationMessage";
+import NamedSentence from "Common/UI/Components/DeleteConfirmation/NamedSentence";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { DeleteConfirmation } from "Common/UI/Components/ModelTable/BaseModelTable";
@@ -363,16 +365,41 @@ const useArchivableValues: <T extends BaseModel>(data: {
           ? DELETE_CHANGES_ARCHIVE_INSTEAD
           : DELETE_CHANGES_CANNOT_UNDO;
 
+      const name: string = readName(item).trim();
+
       return {
-        description: (
+        description: refused ? (
+          /*
+           * Records still have it, so the delete cannot go through: no
+           * question, only why, what has it, and what to do instead.
+           */
+          <div data-testid="archivable-value-delete-confirmation">
+            <p className="font-medium text-gray-900">
+              {name ? (
+                <NamedSentence template={DELETE_REFUSED_NAMED} name={name} />
+              ) : (
+                translator.translateText(DELETE_REFUSED_INTRO)
+              )}
+            </p>
+            <UsageList
+              items={groups.flatMap((group: UsageGroup) => {
+                return group.items;
+              })}
+              dataTestId="archivable-value-delete-refused-by"
+            />
+            {closing ? (
+              <p className="mt-3">{translator.translateText(closing)}</p>
+            ) : (
+              <></>
+            )}
+          </div>
+        ) : (
           <div data-testid="archivable-value-delete-confirmation">
             <p>{question}</p>
             <p className="mt-3 font-medium text-gray-900">
-              {translator.translateText(
-                refused ? DELETE_REFUSED_INTRO : DELETE_CHANGES_INTRO,
-              )}
+              {translator.translateText(DELETE_CHANGES_INTRO)}
             </p>
-            <UsageGroups groups={groups} showLabels={!refused} />
+            <UsageGroups groups={groups} showLabels={true} />
             {closing ? (
               <p className="mt-3">{translator.translateText(closing)}</p>
             ) : (

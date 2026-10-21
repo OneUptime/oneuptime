@@ -163,11 +163,15 @@ export const UNARCHIVE_ACTION: string = translationKey("Unarchive");
 // The Archive dialog.
 export const ARCHIVE_DIALOG_TITLE: string = translationKey("Archive {{name}}?");
 export const STILL_SET_UP_TO_USE_IT: string = translationKey(
-  "Still set up to use it, and they keep using it until you change them:",
+  "These are set up to use it, and keep using it until you change them:",
 );
 
 // The Delete dialog, for a value records use.
 export const ARCHIVE_INSTEAD: string = translationKey("Archive instead");
+// The value's name, in bold (NamedSentence); the other for one with none.
+export const DELETE_REFUSED_NAMED: string = translationKey(
+  "{{name}} can't be deleted while these have it:",
+);
 export const DELETE_REFUSED_INTRO: string = translationKey(
   "It can't be deleted while these have it:",
 );
@@ -196,7 +200,7 @@ export const DELETE_EFFECT_LABELS: Record<ArchivableValueDeleteEffect, string> =
     [ArchivableValueDeleteEffect.Deleted]: translationKey("Deleted with it"),
     [ArchivableValueDeleteEffect.Cleared]: translationKey("Cleared on"),
     [ArchivableValueDeleteEffect.LeftDangling]: translationKey(
-      "Still named in, with nothing behind it",
+      "Left pointing at nothing",
     ),
   };
 
@@ -233,6 +237,7 @@ export const getArchivableValueStrings: () => Array<string> =
       ARCHIVE_DIALOG_TITLE,
       STILL_SET_UP_TO_USE_IT,
       ARCHIVE_INSTEAD,
+      DELETE_REFUSED_NAMED,
       DELETE_REFUSED_INTRO,
       DELETE_REFUSED_ARCHIVE_INSTEAD,
       DELETE_REFUSED_ALREADY_ARCHIVED,

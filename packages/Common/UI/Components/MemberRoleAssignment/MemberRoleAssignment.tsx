@@ -19,6 +19,7 @@ import ConfirmModal from "../Modal/ConfirmModal";
 import Modal from "../Modal/Modal";
 import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import { ButtonStyleType } from "../Button/Button";
+import { ARCHIVED_VALUE_TAG } from "../../Utils/ArchivedValuePicker";
 
 export interface MemberRole {
   id: ObjectID;
@@ -27,6 +28,11 @@ export interface MemberRole {
   isPrimaryRole?: boolean;
   icon?: IconProp;
   canAssignMultipleUsers?: boolean;
+  /*
+   * An archived role (Common/Utils/ArchivableValues): its people keep it and
+   * can be taken off, and nobody new is given it - no Assign or Add More.
+   */
+  isArchived?: boolean;
 }
 
 export interface AssignedMember {
@@ -372,7 +378,8 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                 const availableUsers: Array<DropdownOption> =
                   getAvailableUsersForRole(role.id);
                 const canAddMore: boolean =
-                  role.canAssignMultipleUsers || members.length === 0;
+                  !role.isArchived &&
+                  (role.canAssignMultipleUsers || members.length === 0);
 
                 return (
                   <div
@@ -418,6 +425,14 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                             {role.isPrimaryRole && (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
                                 {translator.translateText("Primary")}
+                              </span>
+                            )}
+                            {role.isArchived && (
+                              <span
+                                data-testid="member-role-archived-tag"
+                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600"
+                              >
+                                {translator.translateText(ARCHIVED_VALUE_TAG)}
                               </span>
                             )}
                             {/*

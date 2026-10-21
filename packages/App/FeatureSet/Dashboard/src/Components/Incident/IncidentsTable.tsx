@@ -1,4 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
 import ResolvedStateUtil from "Common/Utils/ResolvedState";
 import { StateListType } from "Common/Utils/StateOrder";
 import AffectedResourcesCell from "../AffectedResources/AffectedResourcesCell";
@@ -401,6 +402,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 name: true,
                 color: true,
                 order: true,
+                isArchived: true,
                 isResolvedState: true,
                 isAcknowledgedState: true,
                 isCreatedState: true,
@@ -1169,7 +1171,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           description="Select the state to change incidents to. Incidents already at or past the selected state will be skipped."
           stateFieldKey="incidentStateId"
           stateOptions={DropdownUtil.getDropdownOptionsFromEntityArray({
-            array: incidentStates,
+            // Archived states are never offered as one to move to.
+            array: ArchivedValuePicker.getLiveValues(incidentStates),
             labelField: "name",
             valueField: "_id",
           })}

@@ -1,4 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
 import ResolvedStateUtil from "Common/Utils/ResolvedState";
 import { StateListType } from "Common/Utils/StateOrder";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -517,6 +518,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
               name: true,
               color: true,
               order: true,
+              isArchived: true,
               isResolvedState: true,
               isAcknowledgedState: true,
               isCreatedState: true,
@@ -1155,7 +1157,8 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
           description="Select the state to change alerts to. Alerts already at or past the selected state will be skipped."
           stateFieldKey="alertStateId"
           stateOptions={DropdownUtil.getDropdownOptionsFromEntityArray({
-            array: alertStates,
+            // Archived states are never offered as one to move to.
+            array: ArchivedValuePicker.getLiveValues(alertStates),
             labelField: "name",
             valueField: "_id",
           })}

@@ -1,4 +1,5 @@
 import { translationKey } from "./TranslateTemplate";
+import { DropdownOption } from "../Components/Dropdown/Dropdown";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import {
   ARCHIVED_COLUMN,
@@ -90,5 +91,123 @@ export default class ArchivedValuePicker {
     return ArchivedValuePicker.isArchivableValueModel(modelType)
       ? { [ARCHIVED_COLUMN]: true }
       : {};
+  }
+
+  // Whether a value read with its archive switch is archived.
+  public static isArchived(value: unknown): boolean {
+    if (!value || typeof value !== "object") {
+      return false;
+    }
+
+    const model: { getColumnValue?: (column: string) => unknown } = value as {
+      getColumnValue?: (column: string) => unknown;
+    };
+
+    if (typeof model.getColumnValue === "function") {
+      return model.getColumnValue(ARCHIVED_COLUMN) === true;
+    }
+
+    return (value as Record<string, unknown>)[ARCHIVED_COLUMN] === true;
+  }
+
+  /*
+   * The values a picker offers for a new choice, of a list read with the
+   * archive switch: the ones that are not archived.
+   */
+  public static getLiveValues<T>(values: Array<T>): Array<T> {
+    return values.filter((value: T): boolean => {
+      return !ArchivedValuePicker.isArchived(value);
+    });
+  }
+
+  /*
+   * The options of a dropdown built from a list the caller read itself
+   * (with the archive switch selected), one option per value, in order: the
+   * live values, and the archived values a record being edited still has -
+   * `keptIds` - so its form still shows them, marked Archived and never
+   * offered for a new pick (isDisabled). Every other archived value is left
+   * out.
+   */
+  public static getPickerOptions<T>(data: {
+    values: Array<T>;
+    options: Array<DropdownOption>;
+    keptIds?: Iterable<string> | undefined;
+  }): Array<DropdownOption> {
+    const kept: Set<string> = new Set<string>();
+
+    for (const id of data.keptIds || []) {
+      kept.add(id.toString().toLowerCase());
+    }
+
+    const archivedIds: Set<string> = new Set<string>();
+
+    for (const value of data.values) {
+      if (!ArchivedValuePicker.isArchived(value)) {
+        continue;
+      }
+
+      const record: Record<string, unknown> = value as Record<string, unknown>;
+      const id: unknown = record["_id"] || record["id"];
+
+      if (id) {
+        archivedIds.add(id.toString().toLowerCase());
+      }
+    }
+
+    const options: Array<DropdownOption> = [];
+
+    for (const option of data.options) {
+      const id: string = String(option.value).toLowerCase();
+
+      if (!archivedIds.has(id)) {
+        options.push(option);
+        continue;
+      }
+
+      if (kept.has(id)) {
+        options.push({
+          ...option,
+          isArchived: true,
+          isDisabled: true,
+          description: ARCHIVED_VALUE_TAG,
+        });
+      }
+    }
+
+    return options;
+  }
+
+  /*
+   * The ids of `ids` a saved record names anywhere in it - its JSON, such
+   * as a monitor's criteria - so a picker keeps showing an archived one it
+   * already has. A uuid is unique enough to be found in the text.
+   */
+  public static getIdsNamedIn(
+    record: unknown,
+    ids: Iterable<string>,
+  ): Array<string> {
+    if (record === undefined || record === null) {
+      return [];
+    }
+
+    let text: string = "";
+
+    try {
+      text = JSON.stringify(record).toLowerCase();
+    } catch {
+      return [];
+    }
+
+    const named: Array<string> = [];
+
+    for (const id of ids) {
+      const normalized: string = id.toString().toLowerCase();
+
+      if (normalized && text.indexOf(normalized) !== -1) {
+        named.push(normalized);
+      }
+    }
+
+    return named;
   }
 }

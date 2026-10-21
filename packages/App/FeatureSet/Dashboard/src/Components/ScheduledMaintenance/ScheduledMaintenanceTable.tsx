@@ -1,4 +1,5 @@
 import ProjectUtil from "Common/UI/Utils/Project";
+import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import AffectedResourcesCell from "../AffectedResources/AffectedResourcesCell";
 import StatusPagesElement from "../StatusPage/StatusPagesElement";
@@ -297,6 +298,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                 name: true,
                 color: true,
                 order: true,
+                isArchived: true,
                 isResolvedState: true,
                 isOngoingState: true,
                 isScheduledState: true,
@@ -1247,7 +1249,8 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           description="Select the state to change scheduled maintenance events to. Events already at or past the selected state will be skipped."
           stateFieldKey="scheduledMaintenanceStateId"
           stateOptions={DropdownUtil.getDropdownOptionsFromEntityArray({
-            array: scheduledMaintenanceStates,
+            // Archived states are never offered as one to move to.
+            array: ArchivedValuePicker.getLiveValues(scheduledMaintenanceStates),
             labelField: "name",
             valueField: "_id",
           })}
