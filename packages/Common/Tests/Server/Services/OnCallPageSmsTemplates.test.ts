@@ -316,8 +316,15 @@ describe.each(KINDS)("the SMS a page about $name sends", (kind: Kind) => {
 
 describe("a record without a number prefix", () => {
   test("is numbered with #", async () => {
-    const model: Alert = alert();
-    model.alertNumberWithPrefix = undefined;
+    const model: Alert = new Alert();
+    model.id = RECORD;
+    model.projectId = PROJECT;
+    model.project = project();
+    model.title = "Checkout API is down";
+    model.alertNumber = 512;
+    const severity: AlertSeverity = new AlertSeverity();
+    severity.name = "High";
+    model.alertSeverity = severity;
 
     const sms: SMS = await service.generateSmsTemplateForAlertCreated(
       TO_PHONE,
@@ -331,11 +338,10 @@ describe("a record without a number prefix", () => {
   });
 
   test("and one without a number, severity or project leaves them out", async () => {
-    const model: IncidentEpisode = incidentEpisode();
-    model.episodeNumber = undefined;
-    model.episodeNumberWithPrefix = undefined;
-    model.incidentSeverity = undefined;
-    model.project = undefined;
+    const model: IncidentEpisode = new IncidentEpisode();
+    model.id = RECORD;
+    model.projectId = PROJECT;
+    model.title = "Checkout API is down";
 
     const sms: SMS = await service.generateSmsTemplateForIncidentEpisodeCreated(
       TO_PHONE,
