@@ -440,30 +440,37 @@ export const buildOnCallPageSms: (
         );
         const plainTitle: string = parts.title
           .slice(0, getWholeCharacterCount(parts.title, longest))
-          .join("");
+          .join("")
+          .trimEnd();
 
         /*
          * Reading well never costs a part: the cut at a word if it fits,
-         * else the plain cut without trailing spaces, else the plain cut,
-         * which fits.
+         * else the plain cut without trailing spaces. Either keeps at least
+         * MIN_TITLE_CHARACTERS, or it is no cut at all: a cut that ends
+         * after a space, or before a letter's marks, can keep fewer than
+         * the characters it was measured with - and a shorter cut keeps
+         * fewer still, so then the text takes one more part instead.
          */
-        const candidates: Array<string> = [
-          ...(readableTitle === null ? [] : [readableTitle]),
-          plainTitle.trimEnd(),
-        ].map((title: string): string => {
-          return compose(parts, {
-            withProject: false,
-            title: title,
-            isTitleCut: true,
-          });
-        });
-
-        const best: string =
-          candidates.find((candidate: string): boolean => {
+        const best: string | undefined = [readableTitle, plainTitle]
+          .filter((title: string | null): title is string => {
+            return (
+              title !== null && Array.from(title).length >= MIN_TITLE_CHARACTERS
+            );
+          })
+          .map((title: string): string => {
+            return compose(parts, {
+              withProject: false,
+              title: title,
+              isTitleCut: true,
+            });
+          })
+          .find((candidate: string): boolean => {
             return fits(candidate);
-          }) || withTitleCutTo(longest);
+          });
 
-        return fitted(best, Boolean(parts.projectName), true);
+        if (best !== undefined) {
+          return fitted(best, Boolean(parts.projectName), true);
+        }
       }
     }
   }

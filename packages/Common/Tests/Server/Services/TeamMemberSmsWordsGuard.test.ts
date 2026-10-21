@@ -33,9 +33,29 @@ const SCAN_ROOTS: Array<string> = [
   "ee/Server",
 ];
 
-// An SMS message property (not a call's sayMessage) written the old way.
+/*
+ * An SMS message property (not a call's sayMessage) written the old way, in
+ * a template literal or a quoted string.
+ */
 const OLD_SMS_OPENING: RegExp =
-  /(?<![A-Za-z])(message|smsText):\s*`This is a message from OneUptime/g;
+  /(?<![A-Za-z])(message|smsText):\s*[`"']This is a message from OneUptime/g;
+
+/*
+ * Files that send a team member a notification with an SMS some other file
+ * writes, and the file that writes it.
+ */
+const SMS_WRITTEN_ELSEWHERE: Record<string, string> = {
+  "packages/Common/Server/Services/IncomingCallMissedCallNotificationService.ts":
+    "packages/Common/Server/Utils/IncomingCall/MissedCallNotification.ts",
+};
+
+// The service that sends them, which defines sendUserNotification.
+const NOTIFICATION_SETTING_SERVICE: string =
+  "packages/Common/Server/Services/UserNotificationSettingService.ts";
+
+const WHITESPACE_RUN: RegExp = /\s+/;
+const NUMBER_WITH_PREFIX_SELECTED: RegExp =
+  /(incident|alert|episode)NumberWithPrefix:true,/;
 
 // The old closing sentence inside a notification's SMS.
 const OLD_SMS_CLOSING: string =
@@ -133,6 +153,23 @@ describe("the SMS a team member gets", () => {
     ).toBe(true);
   });
 
+  test("the old opening is found in a template literal and in a quoted string alike", () => {
+    for (const written of [
+      "message: `This is a message from OneUptime. Probe x is down.`",
+      'message: "This is a message from OneUptime. Probe x is down."',
+      "smsText:\n  'This is a message from OneUptime. Probe x is down.'",
+    ]) {
+      expect(written.match(OLD_SMS_OPENING)).not.toBeNull();
+    }
+
+    for (const call of [
+      "sayMessage: `This is a message from OneUptime. Probe x is down.`",
+      'message: "This message is from OneUptime. Your verification code is 1"',
+    ]) {
+      expect(call.match(OLD_SMS_OPENING)).toBeNull();
+    }
+  });
+
   test("never opens the old way", () => {
     const offenders: Array<string> = [];
 
@@ -194,6 +231,41 @@ describe("the pages", () => {
     expect(body).toContain("message: this.buildOnCallPageSmsText({");
   });
 
+  /*
+   * The records a page is about are read with what its text names: a
+   * select that lost the severity or the project would leave them out of
+   * every page without a word.
+   */
+  test.each([
+    ["incident = await IncidentService.findOneById({", "incidentSeverity"],
+    ["alert = await AlertService.findOneById({", "alertSeverity"],
+    ["alertEpisode = await AlertEpisodeService.findOneById({", "alertSeverity"],
+    [
+      "incidentEpisode = await IncidentEpisodeService.findOneById({",
+      "incidentSeverity",
+    ],
+  ])(
+    "%s reads the title, number, project and severity names",
+    (assignment: string, severity: string) => {
+      const start: number = source.indexOf(assignment);
+
+      expect(start).toBeGreaterThan(-1);
+
+      const select: string = source
+        .slice(
+          source.indexOf("select: {", start),
+          source.indexOf("\n      });", start),
+        )
+        .split(WHITESPACE_RUN)
+        .join("");
+
+      expect(select).toContain("title:true,");
+      expect(select).toContain("project:{name:true,},");
+      expect(select).toContain(`${severity}:{name:true,`);
+      expect(select).toMatch(NUMBER_WITH_PREFIX_SELECTED);
+    },
+  );
+
   test("buildOnCallPageSmsText fits the text as the Notification service sends it", () => {
     const start: number = source.indexOf("private buildOnCallPageSmsText(");
     const body: string = source.slice(
@@ -208,6 +280,53 @@ describe("the pages", () => {
 });
 
 describe("the notifications", () => {
+  test("every sender of a team member's notification writes its SMS with buildNotificationSms", () => {
+    const senders: Array<string> = sourceFiles
+      .map((file: string): string => {
+        return path.relative(REPO_ROOT, file).split(path.sep).join("/");
+      })
+      .filter((file: string): boolean => {
+        return (
+          file !== NOTIFICATION_SETTING_SERVICE &&
+          read(file).includes("sendUserNotification(")
+        );
+      });
+
+    // The owner notices, on-call notices, reminders, SLA and SLO notices...
+    expect(senders.length).toBeGreaterThan(40);
+    expect(senders).toContain(
+      "packages/App/FeatureSet/Workers/Jobs/IncidentSla/CheckSlaBreaches.ts",
+    );
+    expect(senders).toContain(
+      "packages/App/FeatureSet/Workers/Jobs/Slo/EvaluateSlos.ts",
+    );
+
+    const offenders: Array<string> = senders.filter((file: string): boolean => {
+      const writer: string = SMS_WRITTEN_ELSEWHERE[file] || file;
+
+      return !read(writer).includes("buildNotificationSms(");
+    });
+
+    expect(offenders).toEqual([]);
+  });
+
+  test("the SLA breach and SLO status notices say their news in those words", () => {
+    const slaJob: string = read(
+      "packages/App/FeatureSet/Workers/Jobs/IncidentSla/CheckSlaBreaches.ts",
+    );
+    const sloJob: string = read(
+      "packages/App/FeatureSet/Workers/Jobs/Slo/EvaluateSlos.ts",
+    );
+
+    expect(slaJob).toContain(
+      "message: buildNotificationSms(\n          `SLA ${breachTypeStr} Breached for incident ${incident.title} ${incidentNumberStr}. Deadline was ${deadlineStr}.`,\n        ),",
+    );
+    expect(slaJob).not.toContain("View incident in OneUptime Dashboard.");
+    expect(sloJob).toContain("message: buildNotificationSms(news),");
+    // WhatsApp still says the news alone.
+    expect(sloJob).toContain("body: news,");
+  });
+
   test("UserNotificationSettingService sends the SMS copy fitted, and the other copies as written", () => {
     const source: string = read(
       "packages/Common/Server/Services/UserNotificationSettingService.ts",

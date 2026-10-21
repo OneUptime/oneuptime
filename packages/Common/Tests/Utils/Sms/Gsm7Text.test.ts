@@ -198,6 +198,30 @@ describe("toGsm7Text: letters", () => {
       expect(toGsm7Text(text)).toBe(written);
     },
   );
+
+  test.each([
+    ["a fraction", "Disk at 1\u{00BD} TB", "Disk at 1 1/2 TB"],
+    ["a fraction of several digits", "12\u{00BE} hours", "12 3/4 hours"],
+    ["a power", "10\u{00B2} requests", "10^2 requests"],
+    [
+      "a negative power",
+      "Error rate above 10\u{207B}\u{00B3}",
+      "Error rate above 10^-3",
+    ],
+    ["a power of several digits", "2\u{00B9}\u{2070} bytes", "2^10 bytes"],
+  ])(
+    "%s after a digit stays apart from the number, never read as more of it",
+    (_name: string, text: string, written: string) => {
+      expect(toGsm7Text(text)).toBe(written);
+      expect(isGsm7Text(toGsm7Text(text))).toBe(true);
+    },
+  );
+
+  test("a fraction or a superscript after a space or a letter is written as before", () => {
+    expect(toGsm7Text("1 \u{00BD} full")).toBe("1 1/2 full");
+    expect(toGsm7Text("m\u{00B2} and x\u{00B3}")).toBe("m2 and x3");
+    expect(toGsm7Text("\u{00BC} done")).toBe("1/4 done");
+  });
 });
 
 describe("toGsm7Text: what is left out", () => {
@@ -228,6 +252,19 @@ describe("toGsm7Text: what is left out", () => {
     ],
     ["control characters", "a\u{0000}b\u{0007}c\u{000B}d", "abcd"],
     ["a joiner between Latin letters", "a\u{200C}b\u{200D}c", "abc"],
+    [
+      "an icon font's private-use glyph",
+      "\u{E001} Checkout down",
+      " Checkout down",
+    ],
+    [
+      "a private-use glyph of the planes above",
+      "Disk \u{F0001}full",
+      "Disk full",
+    ],
+    ["half of a surrogate pair standing alone", "data\u{D800}base", "database"],
+    ["a mark with nothing written before it", "\u{0301}Checkout", "Checkout"],
+    ["a mark after a left-out emoji", "\u{1F525}\u{0301} down", " down"],
   ])("%s", (_name: string, text: string, written: string) => {
     expect(toGsm7Text(text)).toBe(written);
     expect(isGsm7Text(toGsm7Text(text))).toBe(true);

@@ -19,9 +19,13 @@ import { getGsm7Length } from "./SmsSegments";
  *     (á ç ł ő ș become a c l o s), while one it has stays (é è à ñ ü ø å
  *     ß...); ligatures, full-width letters and the other compatibility
  *     forms are written as the letters and digits they stand for (ﬁ Ａ ² ½
- *     become fi A 2 1/2, and ℃ the C of °C);
- *   - emoji, invisible formatting characters and symbols with no look-alike
- *     (° and the like) are left out: they say nothing the words do not.
+ *     become fi A 2 1/2, and ℃ the C of °C) - after a digit, a fraction
+ *     and a power stay apart from it (1½ is 1 1/2 and 10² is 10^2, never
+ *     the numbers 11/2 and 102);
+ *   - emoji, invisible formatting characters, symbols with no look-alike
+ *     (° and the like) and private-use characters (an icon font's glyphs,
+ *     which a phone shows as a box) are left out: they say nothing the
+ *     words do not.
  *
  * Letters of another script - Cyrillic, Greek, Arabic, Hebrew, Devanagari,
  * Chinese, Japanese, Korean and the rest - are kept exactly as written,
@@ -153,6 +157,30 @@ export const GSM_7_LOOK_ALIKES: ReadonlyMap<string, string> = new Map<
 
 // Greek small mu, which people type for the micro sign: 500μs.
 const GREEK_SMALL_MU: number = 0x03bc;
+
+// What a vulgar fraction decomposes around: ½ is 1, this slash, and 2.
+const FRACTION_SLASH: string = "\u{2044}";
+
+// Superscript digits and signs: right after a digit, a power (10², 10⁻³).
+const SUPERSCRIPTS: ReadonlySet<string> = new Set<string>([
+  "\u{00B2}",
+  "\u{00B3}",
+  "\u{00B9}",
+  "\u{2070}",
+  "\u{2071}",
+  "\u{2074}",
+  "\u{2075}",
+  "\u{2076}",
+  "\u{2077}",
+  "\u{2078}",
+  "\u{2079}",
+  "\u{207A}",
+  "\u{207B}",
+  "\u{207C}",
+  "\u{207D}",
+  "\u{207E}",
+  "\u{207F}",
+]);
 const ASCII_LETTER: RegExp = /^[A-Za-z]$/;
 const ASCII_DIGIT: RegExp = /^[0-9]$/;
 
@@ -173,6 +201,11 @@ const EMOJI_MODIFIER: RegExp = /\p{Emoji_Modifier}/u;
 const REGIONAL_INDICATOR: RegExp = /\p{Regional_Indicator}/u;
 const FORMAT_CHARACTER: RegExp = /\p{Cf}/u;
 const CONTROL_CHARACTER: RegExp = /\p{Cc}/u;
+/*
+ * A private-use character (an icon font's glyph, a box on a phone) or half
+ * of a surrogate pair standing alone: neither is anything a reader can read.
+ */
+const UNREADABLE_CHARACTER: RegExp = /\p{Co}|\p{Cs}/u;
 const SPACE_CHARACTER: RegExp = /\p{Zs}|\p{Zl}|\p{Zp}/u;
 const WHITESPACE: RegExp = /\s/u;
 const MARK: RegExp = /\p{M}/u;
@@ -316,12 +349,12 @@ export const toGsm7Text: (text: string) => string = (text: string): string => {
   // Precomposed first, so an é typed as e and an accent is the é GSM-7 has.
   const characters: Array<string> = Array.from(text.normalize("NFC"));
   let written: string = "";
-  // Whether the last character written is one of GSM-7's.
-  let lastWrittenIsGsm7: boolean = false;
+  // The last character written: none before the first.
+  let lastWritten: string | undefined;
 
   const write: (plain: string) => void = (plain: string): void => {
     written += plain;
-    lastWrittenIsGsm7 = isGsm7Character(Array.from(plain).pop());
+    lastWritten = Array.from(plain).pop();
   };
 
   for (let index: number = 0; index < characters.length; index++) {
@@ -358,18 +391,20 @@ export const toGsm7Text: (text: string) => string = (text: string): string => {
     if (
       isEmojiPart(character) ||
       FORMAT_CHARACTER.test(character) ||
-      CONTROL_CHARACTER.test(character)
+      CONTROL_CHARACTER.test(character) ||
+      UNREADABLE_CHARACTER.test(character)
     ) {
       continue;
     }
 
     /*
-     * A mark NFC could not join to the letter before it: left out after a
-     * letter written in GSM-7, as the marks of every other such letter are,
-     * and kept on a letter of another script.
+     * A mark NFC could not join to the letter before it: kept on a letter
+     * of another script, and left out everywhere else - after a letter
+     * written in GSM-7, as the marks of every other such letter are, and
+     * with nothing written before it to carry it.
      */
     if (MARK.test(character)) {
-      if (!lastWrittenIsGsm7) {
+      if (lastWritten !== undefined && !isGsm7Character(lastWritten)) {
         written += character;
       }
 
@@ -379,6 +414,21 @@ export const toGsm7Text: (text: string) => string = (text: string): string => {
     const decomposed: string | null = getDecomposedPlainText(character);
 
     if (decomposed !== null) {
+      /*
+       * After a digit, a fraction or a power is not more of the same
+       * number: 1½ is 1 1/2 (not 11/2), 10² is 10^2 (not 102).
+       */
+      if (lastWritten !== undefined && ASCII_DIGIT.test(lastWritten)) {
+        if (character.normalize("NFKD").includes(FRACTION_SLASH)) {
+          write(SPACE);
+        } else if (
+          SUPERSCRIPTS.has(character) &&
+          !SUPERSCRIPTS.has(characters[index - 1] || "")
+        ) {
+          write("^");
+        }
+      }
+
       write(decomposed);
       continue;
     }

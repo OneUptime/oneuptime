@@ -350,6 +350,89 @@ describe("the fitting rule", () => {
     expect(title.endsWith(" ")).toBe(false);
   });
 
+  test("never keeps fewer than MIN_TITLE_CHARACTERS where the cut ends after a space: the text takes a second part instead", () => {
+    /*
+     * The first 20 characters fit one part and end with a space; the Hindi
+     * after them makes the text UCS-2. Without the space the cut would keep
+     * 19 - so the page goes out whole, in two parts.
+     */
+    const title: string = "API API API API API \u{0928}\u{0947}";
+    const sms: OnCallPageSms = page({ title: title });
+
+    expect(sms.isTitleCut).toBe(false);
+    expect(sms.isProjectLeftOut).toBe(false);
+    expect(sms.text).toBe(
+      `OneUptime: Critical Incident INC-21033 in Acme Prod: ${title}.${tail(CLOUD_LINK)}`,
+    );
+    expect(sms.sent.encoding).toBe(SmsEncoding.Ucs2);
+    expect(sms.sent.segments).toBe(2);
+  });
+
+  test("never keeps fewer than MIN_TITLE_CHARACTERS where the next character is a mark of the letter before it", () => {
+    // The 20th character carries a mark: a cut there would keep 19.
+    const title: string = `${"a".repeat(19)}\u{0928}\u{0947}${"x".repeat(10)}`;
+    const sms: OnCallPageSms = page({ title: title });
+
+    expect(sms.sent.segments).toBe(2);
+
+    if (sms.isTitleCut) {
+      const kept: string = sms.text.slice(
+        sms.text.indexOf("INC-21033: ") + "INC-21033: ".length,
+        sms.text.indexOf(`...${tail(CLOUD_LINK)}`),
+      );
+
+      expect(Array.from(kept).length).toBeGreaterThanOrEqual(
+        MIN_TITLE_CHARACTERS,
+      );
+    } else {
+      expect(sms.text).toContain(`: ${title}.`);
+    }
+  });
+
+  test("a cut title keeps at least MIN_TITLE_CHARACTERS whatever its words, spaces, marks and scripts", () => {
+    const random: SeededRandom = seededRandom(51140);
+    const pieces: ReadonlyArray<string> = [
+      "API",
+      "down",
+      " ",
+      ",",
+      "-",
+      "\u{0928}\u{0947}",
+      "\u{6C7A}",
+      "\u{201C}x\u{201D}",
+      "[1]",
+      "y".repeat(19),
+    ];
+
+    for (let round: number = 0; round < 2000; round++) {
+      let title: string = "";
+
+      for (let index: number = random(30); index > 0; index--) {
+        title += pieces[random(pieces.length)];
+      }
+
+      const link: string = LINKS[random(LINKS.length)]!;
+      const sms: OnCallPageSms = page({ title: title, link: link });
+
+      if (!sms.isTitleCut) {
+        continue;
+      }
+
+      const kept: string = sms.text.slice(
+        sms.text.indexOf("INC-21033: ") + "INC-21033: ".length,
+        sms.text.lastIndexOf(`...${tail(link)}`),
+      );
+
+      expect({
+        title,
+        kept: Array.from(kept).length >= MIN_TITLE_CHARACTERS,
+      }).toEqual({
+        title,
+        kept: true,
+      });
+    }
+  });
+
   test("keeps at least MIN_TITLE_CHARACTERS of a title: else it takes a second part and says it all", () => {
     // A long installation name and a long address leave a title 15 characters.
     const renamed: (text: string) => string = (text: string): string => {
