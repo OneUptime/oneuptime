@@ -24,7 +24,10 @@ import {
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
-import { REMOVED_SSH_COMMAND_MESSAGE } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
+import {
+  REMOVED_SSH_COMMAND_MESSAGE,
+  REMOVED_SSH_COMMAND_NEXT_STEP,
+} from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import {
   ExpressRequest,
@@ -872,7 +875,7 @@ describe("POST /auto-remediation/approve — cluster rounds and the Kubernetes A
       );
 
       expect(error.message).toBe(
-        `Command 2 of this plan runs over SSH. ${REMOVED_SSH_COMMAND_MESSAGE}`,
+        `Command 2 of this plan runs over SSH. ${REMOVED_SSH_COMMAND_MESSAGE} ${REMOVED_SSH_COMMAND_NEXT_STEP}`,
       );
       expect(statusSpy).not.toHaveBeenCalled();
       expect(runnerFindSpy).not.toHaveBeenCalled();

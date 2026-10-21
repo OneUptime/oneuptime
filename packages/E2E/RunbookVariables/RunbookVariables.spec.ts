@@ -741,13 +741,41 @@ test.describe("steps written with a credential", () => {
   }) => {
     await openSteps(page, [], "legacy=1");
 
-    // Folded, each says what it is.
+    /*
+     * Folded, each says what it is, and that it no longer runs - beside its
+     * title, where the approval lock goes - while no other step says so.
+     */
     await expect(
       header(page, "Clear the cache (written through the API)"),
     ).toContainText("SSH with a runbook credential");
     await expect(
       header(page, "Scale workers (written through the API)"),
     ).toContainText("Kubernetes action with a runbook credential");
+    await expect(page.getByTestId("runbook-step-2-no-longer-runs")).toHaveText(
+      "No longer runs",
+    );
+    await expect(page.getByTestId("runbook-step-3-no-longer-runs")).toHaveText(
+      "No longer runs",
+    );
+    await expect(page.getByTestId("runbook-step-0-no-longer-runs")).toHaveCount(
+      0,
+    );
+    await expect(page.getByTestId("runbook-step-1-no-longer-runs")).toHaveCount(
+      0,
+    );
+    // The sign sits on the title's line, after the title.
+    const titleBox: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("runbook-step-2-title-text").boundingBox())!;
+    const signBox: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("runbook-step-2-no-longer-runs").boundingBox())!;
+    expect(signBox.x).toBeGreaterThan(titleBox.x + titleBox.width - 1);
+    // At a laptop's width it says it in words.
+    expect(signBox.width).toBeGreaterThan(60);
+    expect(
+      Math.abs(
+        signBox.y + signBox.height / 2 - (titleBox.y + titleBox.height / 2),
+      ),
+    ).toBeLessThan(4);
 
     for (const title of [
       "Clear the cache (written through the API)",
@@ -759,11 +787,16 @@ test.describe("steps written with a credential", () => {
         .click();
     }
 
-    await expect(page.getByTestId("runbook-step-2-legacy")).toContainText(
-      "This step signs in with a runbook credential and runs one command. Runbook credentials were removed, so it no longer runs.",
+    // The fact first, then what turning it into a script step leaves to do.
+    await expect(
+      page.getByTestId("runbook-step-2-legacy").locator("p"),
+    ).toHaveText(
+      "Runbook credentials were removed, so this step no longer runs. Turn it into a script step, then fill in the machine and the secret variable it signs in with.",
     );
-    await expect(page.getByTestId("runbook-step-3-legacy")).toContainText(
-      "This step restarts or scales one workload with a runbook credential. Runbook credentials were removed, so it no longer runs.",
+    await expect(
+      page.getByTestId("runbook-step-3-legacy").locator("p"),
+    ).toHaveText(
+      "Runbook credentials were removed, so this step no longer runs. Turn it into a kubectl script that does the same, then pick its kubeconfig.",
     );
     /*
      * Its More fields line names only what it folds: its credential holds
@@ -781,6 +814,12 @@ test.describe("steps written with a credential", () => {
     await page.getByTestId("runbook-step-3-legacy-convert").click();
 
     await expect(page.getByTestId("runbook-step-2-legacy")).toHaveCount(0);
+    await expect(page.getByTestId("runbook-step-2-no-longer-runs")).toHaveCount(
+      0,
+    );
+    await expect(page.getByTestId("runbook-step-3-no-longer-runs")).toHaveCount(
+      0,
+    );
     await expect(
       page.getByTestId("runbook-step-2-ssh-target-input"),
     ).toBeVisible();
@@ -796,6 +835,64 @@ test.describe("steps written with a credential", () => {
       `kubectl patch deployment workers --namespace jobs --subresource scale --patch '{"spec":{"replicas":4}}'`,
     );
     expect(steps[3]!.config).not.toHaveProperty("action");
+  });
+});
+
+test.describe("steps written with a credential, on every screen", () => {
+  test("a phone keeps the sign alone beside the title; dark mode and German say it too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // A phone: the sign alone, so the title keeps its room.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openSteps(page, [], "legacy=1");
+
+    const sign: Locator = page.getByTestId("runbook-step-2-no-longer-runs");
+    await expect(sign).toBeVisible();
+    // The sign alone: its padding and the 12-pixel icon, the words read out only.
+    expect((await sign.boundingBox())!.width).toBeLessThanOrEqual(26);
+    expect(
+      (await sign.getByText("No longer runs").boundingBox())!.width,
+    ).toBeLessThanOrEqual(1);
+    await expect(sign).toHaveAttribute("title", "No longer runs");
+    expect(await noHorizontalScroll(page)).toBeLessThanOrEqual(0);
+    await screenshot(page, "phone-legacy-steps");
+
+    // Dark mode, at a laptop's width: the sign and the notice read on dark.
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(`${STEPS_PAGE}?page=steps&legacy=1&theme=dark`);
+    await header(page, "Clear the cache (written through the API)")
+      .getByRole("button", { expanded: false })
+      .first()
+      .click();
+    await expect(page.getByTestId("runbook-step-2-legacy")).toBeVisible();
+    const signColor: string = await page
+      .getByTestId("runbook-step-2-no-longer-runs")
+      .evaluate((element: Element): string => {
+        return getComputedStyle(element).backgroundColor;
+      });
+    // Not the light amber-50 (rgb(255, 251, 235)) on a dark page.
+    expect(signColor).not.toBe("rgb(255, 251, 235)");
+    await screenshot(page, "dark-legacy-steps");
+
+    // German: the sign and the notice in the Dashboard's German words.
+    await page.goto(`${STEPS_PAGE}?page=steps&legacy=1&lang=de`);
+    await expect(page.getByTestId("runbook-step-2-no-longer-runs")).toHaveText(
+      GERMAN["No longer runs"]!,
+    );
+    await header(page, "Clear the cache (written through the API)")
+      .getByRole("button", { expanded: false })
+      .first()
+      .click();
+    await expect(
+      page.getByTestId("runbook-step-2-legacy").locator("p"),
+    ).toHaveText(
+      GERMAN[
+        "Runbook credentials were removed, so this step no longer runs. Turn it into a script step, then fill in the machine and the secret variable it signs in with."
+      ]!,
+    );
+    await screenshot(page, "german-legacy-steps");
   });
 });
 

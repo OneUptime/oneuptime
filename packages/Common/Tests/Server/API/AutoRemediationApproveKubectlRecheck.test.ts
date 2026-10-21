@@ -18,7 +18,10 @@ import {
   KubernetesClusterAiAccessStatus,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
-import { REMOVED_SSH_COMMAND_MESSAGE } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
+import {
+  REMOVED_SSH_COMMAND_MESSAGE,
+  REMOVED_SSH_COMMAND_NEXT_STEP,
+} from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -730,7 +733,7 @@ describe("POST /auto-remediation/approve — kubectl cluster re-check", () => {
     );
 
     expect(error.message).toBe(
-      `Command 1 of this plan runs over SSH. ${REMOVED_SSH_COMMAND_MESSAGE}`,
+      `Command 1 of this plan runs over SSH. ${REMOVED_SSH_COMMAND_MESSAGE} ${REMOVED_SSH_COMMAND_NEXT_STEP}`,
     );
     expect(runnerFindSpy).not.toHaveBeenCalled();
     expect(statusSpy).not.toHaveBeenCalled();

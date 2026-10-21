@@ -31309,8 +31309,6 @@
   "This Runner opens the SSH connection, so it must be able to reach the machine.": "此 Runner 負責建立 SSH 連線，因此必須能夠連到該機器。",
   "This Runner runs kubectl, so it must be able to reach the cluster's API server.": "此 Runner 負責執行 kubectl，因此必須能夠連到叢集的 API 伺服器。",
   "This step names {{reference}}, which is not one of this project's variables any more, so it will fail when it runs. Pick another.": "此步驟引用了 {{reference}}，但它已不再是此專案的變數，因此執行時會失敗。請另選一個。",
-  "This step restarts or scales one workload with a runbook credential. Runbook credentials were removed, so it no longer runs. Turn it into a kubectl script that does the same, then pick its kubeconfig.": "此步驟使用運行手冊憑證重新啟動或調整一個工作負載的規模。運行手冊憑證已移除，因此它不再執行。請將它轉換為執行相同操作的 kubectl 指令碼，然後選擇其 kubeconfig。",
-  "This step signs in with a runbook credential and runs one command. Runbook credentials were removed, so it no longer runs. Turn it into a script step to sign in with a variable instead.": "此步驟使用運行手冊憑證登入並執行一條命令。運行手冊憑證已移除，因此它不再執行。將它轉換為指令碼步驟，即可改用變數登入。",
   "Turn into a script step": "轉換為指令碼步驟",
   "Use a variable in the script as {{reference}}.": "在指令碼中以 {{reference}} 的形式使用變數。",
   "Use your own domain, such as {{example}}.": "使用您自己的網域，例如 {{example}}。",
@@ -31691,7 +31689,6 @@
   "AI agent on the cluster or host": "叢集或主機上的 AI 代理程式",
   "No Runner of yours: OneUptime AI fixes through the AI agent on the affected Kubernetes cluster or host.": "不使用您的 Runner：OneUptime AI 透過受影響的 Kubernetes 叢集或主機上的 AI 代理程式進行修正。",
   "Add a Runner under {{location}} for OneUptime AI to run commands on, then pick it here.": "在 {{location}} 中新增一個 Runner，供 OneUptime AI 在其上執行命令，然後在這裡選擇它。",
-  "OneUptime AI may also run Bash and SSH commands on this Runner, inside your network.": "OneUptime AI 也可以在您網路內的此 Runner 上執行 Bash 和 SSH 命令。",
   "This rule picks a Runner you do not have access to. Pick another Runner to change it.": "此規則選擇了您無權存取的 Runner。若要變更，請選擇其他 Runner。",
   "OneUptime AI is picking the runbook that fits this {{signal}}. It proposes it for your approval.": "OneUptime AI 正在為此{{signal}}挑選合適的運行手冊，並會提交給您核准。",
   "OneUptime AI could not start picking a runbook for this {{signal}}. The daily AI budget may be used up.": "OneUptime AI 無法開始為此{{signal}}挑選運行手冊。每日 AI 預算可能已用完。",
@@ -32654,5 +32651,12 @@
   "GitHub is not connected to this project, so AI cannot work in its repositories. Connect GitHub again to use them.": "GitHub 未連接到此專案，因此 AI 無法在其儲存庫中工作。請重新連接 GitHub 以使用它們。",
   "Adding this label to a GitHub issue hands the issue to the app, as a mention does.": "為 GitHub issue 加上此標籤會像提及一樣把該 issue 交給應用程式。",
   "A Runner of your own runs these after AI changes the code. AI now learns how to build and test from the repository's AGENTS.md, so you can remove them.": "您自己的 Runner 會在 AI 變更程式碼後執行它們。AI 現在會從儲存庫的 AGENTS.md 學習如何建置和測試，因此您可以移除它們。",
-  "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the pull request opens.": "AI 在 OneUptime 為所有專案執行的 Runner 上工作，它不會建置或測試 AI 的變更。選擇您的某個 Runner，讓 AI 在 Pull Request 開啟之前建置和測試它。"
+  "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the pull request opens.": "AI 在 OneUptime 為所有專案執行的 Runner 上工作，它不會建置或測試 AI 的變更。選擇您的某個 Runner，讓 AI 在 Pull Request 開啟之前建置和測試它。",
+  "No longer runs": "不再執行",
+  "OneUptime AI may also run Bash commands on this Runner, inside your network.": "OneUptime AI 也可以在您網路內的此 Runner 上執行 Bash 命令。",
+  "Runbook credentials were removed, so this step no longer runs. Turn it into a kubectl script that does the same, then pick its kubeconfig.": "運行手冊憑證已移除，因此此步驟不再執行。請將它轉換為執行相同操作的 kubectl 指令碼，然後選擇其 kubeconfig。",
+  "Runbook credentials were removed, so this step no longer runs. Turn it into a script step, then fill in the machine and the secret variable it signs in with.": "運行手冊憑證已移除，因此此步驟不再執行。請將它轉換為指令碼步驟，然後填寫它要登入的機器和用於登入的密鑰變數。",
+  "This plan can't be approved: OneUptime AI no longer runs SSH commands.": "無法核准此計畫：OneUptime AI 不再執行 SSH 命令。",
+  "no longer runs": "不再執行",
+  "Can't be approved": "無法核准"
 }

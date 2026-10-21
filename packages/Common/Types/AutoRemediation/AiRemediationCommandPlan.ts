@@ -91,11 +91,20 @@ export function isRemovedSshCommand(command: {
 }
 
 /*
- * What approving a plan that holds such a command is answered, and what
- * such a command's record says when a run reaches it.
+ * What such a command's record says when a run reaches it, and what
+ * approving a plan that holds one is answered, before
+ * REMOVED_SSH_COMMAND_NEXT_STEP.
  */
 export const REMOVED_SSH_COMMAND_MESSAGE: string =
-  "OneUptime AI no longer runs SSH commands: they reached a host with a runbook credential, and runbook credentials were removed. Dismiss this suggestion. A host with the Host AI agent is fixed through it, and a runbook with an SSH step can be picked for a fix.";
+  "OneUptime AI no longer runs SSH commands: they reached a host with a runbook credential, and runbook credentials were removed.";
+
+/*
+ * What to do with a plan whose approval is refused for such a command. Only
+ * the refusal says it: a command a run reached belongs to a plan that was
+ * approved already, which has nothing left to dismiss.
+ */
+export const REMOVED_SSH_COMMAND_NEXT_STEP: string =
+  "Dismiss this suggestion. A host with the Host AI agent is fixed through it, and a runbook with an SSH step can be picked for a fix.";
 
 export enum AiRemediationCommandExecutionStatus {
   Pending = "Pending",

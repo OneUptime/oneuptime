@@ -20,6 +20,11 @@ import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import Steps from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/Steps";
 import { GLOBAL_RUNNERS_ROUTE } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerChoices";
+import {
+  LEGACY_KUBERNETES_STEP_NOTICE,
+  LEGACY_SSH_STEP_NOTICE,
+  NO_LONGER_RUNS_LABEL,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Runbook/Steps/RunbookStepEditorModel";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -87,6 +92,9 @@ const MOVED_LEGACY: Record<string, unknown> = {
 };
 
 const WAIT: { timeout: number } = { timeout: 20000 };
+
+// The sign a step's header carries when the step no longer runs.
+const NO_LONGER_RUNS_SIGN_TEST_ID: RegExp = /^runbook-step-\d+-no-longer-runs$/;
 
 const STEPS: Array<RunbookStep> = [
   {
@@ -832,12 +840,68 @@ describe("a kubectl step", () => {
 });
 
 describe("a step written with a runbook credential", () => {
+  /*
+   * Folded, a runbook reads like a list of what runs. A step written with
+   * a runbook credential no longer runs (runbook credentials were removed),
+   * so its header says so beside its title - folded or open - and no other
+   * step's does.
+   */
+  test("its header says it no longer runs, folded or open, and no other step's does", async () => {
+    await renderSteps();
+
+    const signs: Array<HTMLElement> = screen.getAllByTestId(
+      NO_LONGER_RUNS_SIGN_TEST_ID,
+    );
+
+    expect(
+      signs.map((sign: HTMLElement): string => {
+        return sign.getAttribute("data-testid") || "";
+      }),
+    ).toEqual([
+      "runbook-step-4-no-longer-runs",
+      "runbook-step-5-no-longer-runs",
+    ]);
+
+    for (const [title, idx] of [
+      ["Old SSH step", 4],
+      ["Old Kubernetes step", 5],
+    ] as Array<[string, number]>) {
+      const sign: HTMLElement = within(header(title)).getByTestId(
+        `runbook-step-${idx}-no-longer-runs`,
+      );
+
+      expect(sign).toHaveTextContent(NO_LONGER_RUNS_LABEL);
+      // Hovered, and read out, it says the same.
+      expect(sign).toHaveAttribute("title", NO_LONGER_RUNS_LABEL);
+      // A phone shows the sign alone, as the approval lock does.
+      expect(within(sign).getByText(NO_LONGER_RUNS_LABEL)).toHaveClass(
+        "max-sm:sr-only",
+      );
+    }
+
+    // The kubectl step the data migration moved runs: no sign.
+    expect(
+      within(header("Scale the workers")).queryByText(NO_LONGER_RUNS_LABEL),
+    ).toBeNull();
+
+    // Opened, the sign stays where it was.
+    open("Old SSH step");
+    expect(
+      within(header("Old SSH step")).getByTestId(
+        "runbook-step-4-no-longer-runs",
+      ),
+    ).toBeInTheDocument();
+  });
+
   test("an SSH step says it no longer runs, and turns into a script step that runs its command", async () => {
     await renderSteps();
     open("Old SSH step");
 
     expect(screen.getByTestId("runbook-step-4-legacy")).toHaveTextContent(
-      "This step signs in with a runbook credential and runs one command. Runbook credentials were removed, so it no longer runs. Turn it into a script step to sign in with a variable instead.",
+      LEGACY_SSH_STEP_NOTICE,
+    );
+    expect(LEGACY_SSH_STEP_NOTICE).toBe(
+      "Runbook credentials were removed, so this step no longer runs. Turn it into a script step, then fill in the machine and the secret variable it signs in with.",
     );
 
     fireEvent.click(screen.getByTestId("runbook-step-4-legacy-convert"));
@@ -846,6 +910,8 @@ describe("a step written with a runbook credential", () => {
       await screen.findByTestId("runbook-step-4-ssh-target-input", {}, WAIT),
     ).toHaveValue("");
     expect(screen.queryByTestId("runbook-step-4-legacy")).toBeNull();
+    // A script step runs once its machine and secret are filled in: no sign.
+    expect(screen.queryByTestId("runbook-step-4-no-longer-runs")).toBeNull();
 
     const steps: Array<RunbookStep> = await save();
     const config: Record<string, unknown> = steps[4]!.config as Record<
@@ -890,10 +956,17 @@ describe("a step written with a runbook credential", () => {
     open("Old Kubernetes step");
 
     expect(screen.getByTestId("runbook-step-5-legacy")).toHaveTextContent(
-      "This step restarts or scales one workload with a runbook credential. Runbook credentials were removed, so it no longer runs. Turn it into a kubectl script that does the same, then pick its kubeconfig.",
+      LEGACY_KUBERNETES_STEP_NOTICE,
+    );
+    expect(LEGACY_KUBERNETES_STEP_NOTICE).toBe(
+      "Runbook credentials were removed, so this step no longer runs. Turn it into a kubectl script that does the same, then pick its kubeconfig.",
     );
 
     fireEvent.click(screen.getByTestId("runbook-step-5-legacy-convert"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("runbook-step-5-no-longer-runs")).toBeNull();
+    }, WAIT);
 
     const steps: Array<RunbookStep> = await save();
     const config: Record<string, unknown> = steps[5]!.config as Record<

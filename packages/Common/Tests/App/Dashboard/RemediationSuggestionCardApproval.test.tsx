@@ -29,16 +29,20 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 
 import RemediationSuggestionCard, {
   CommandApprovalPillKind,
+  REMOVED_SSH_PLAN_NOTE,
   getActionErrorTitle,
   getCommandApprovalPillKind,
+  hasRemovedSshCommand,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationSuggestionCard";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import {
+  AiRemediationCommand,
   AiRemediationCommandExecutionStatus,
   AiRemediationCommandPolicyVerdict,
   AiRemediationPlanExecutionStatus,
+  REMOVED_SSH_COMMAND_MESSAGE,
 } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "../../../Types/AutoRemediation/AutoRemediationSuggestionType";
@@ -698,5 +702,259 @@ describe("RemediationSuggestionCard rollback outcomes", () => {
     ).not.toBeInTheDocument();
     // The rollback command itself is still listed.
     expect(row).toHaveTextContent("kubectl rollout undo deployment/web -n web");
+  });
+});
+
+/*
+ * A plan composed before runbook credentials were removed may hold an SSH
+ * command, which reached another host with one. The server refuses to
+ * approve such a plan (AutoRemediationAPI), so the card says so before
+ * anyone clicks: no "Approve & Run", a line that says why, Dismiss left as
+ * the one thing to do, and the SSH command marked as no longer running
+ * instead of "needs approval". A plan without one, and a plan that is no
+ * longer waiting, read as before.
+ */
+describe("RemediationSuggestionCard with an SSH command from before runbook credentials were removed", () => {
+  const SSH_COMMAND_TEXT: string = "sudo systemctl restart nginx";
+  const BASH_COMMAND_TEXT: string = "curl -fsS https://web-01.internal/healthz";
+
+  function sshCommand(
+    sequence: number,
+    overrides: CommandOverrides = {},
+  ): JSONObject {
+    return {
+      sequence,
+      stepType: RunbookStepType.SSH,
+      runnerId: RUNNER_ID,
+      runnerNameSnapshot: "ops-bastion",
+      command: SSH_COMMAND_TEXT,
+      timeoutInMs: 60000,
+      rationale: "nginx stopped answering after the config reload.",
+      expectedEffect: "nginx answers on port 443 again.",
+      policyVerdict:
+        overrides.policyVerdict ??
+        AiRemediationCommandPolicyVerdict.RequiresApproval,
+      wasAutoExecuted: overrides.wasAutoExecuted ?? false,
+      ...(overrides.execution ? { execution: overrides.execution } : {}),
+    };
+  }
+
+  function bashCommand(sequence: number): JSONObject {
+    return {
+      sequence,
+      stepType: RunbookStepType.Bash,
+      runnerId: RUNNER_ID,
+      runnerNameSnapshot: "ops-bastion",
+      command: BASH_COMMAND_TEXT,
+      timeoutInMs: 60000,
+      rationale: "Check the site before changing anything.",
+      expectedEffect: "The health check answers 200.",
+      policyVerdict: AiRemediationCommandPolicyVerdict.RequiresApproval,
+      wasAutoExecuted: false,
+    };
+  }
+
+  interface PlanRows {
+    ssh: HTMLElement;
+    bash: HTMLElement | null;
+  }
+
+  // The card, once the plan's commands are on screen, and each command's row.
+  async function renderPlan(row: AutoRemediationSuggestion): Promise<PlanRows> {
+    serve(row);
+    render(<RemediationSuggestionCard incidentId={INCIDENT_ID} />);
+    const ssh: HTMLElement | null = (
+      await screen.findByText(SSH_COMMAND_TEXT)
+    ).closest("li");
+    const bash: HTMLElement | null =
+      screen.queryByText(BASH_COMMAND_TEXT)?.closest("li") || null;
+
+    if (!ssh) {
+      throw new Error("The SSH command is not rendered inside a command row.");
+    }
+
+    return { ssh, bash };
+  }
+
+  test("an SSH command that never ran, in a plan waiting for approval, no longer runs", () => {
+    for (const status of [
+      AutoRemediationSuggestionStatus.Suggested,
+      AutoRemediationSuggestionStatus.Planning,
+    ]) {
+      expect(
+        getCommandApprovalPillKind(
+          { wasAutoExecuted: false, stepType: RunbookStepType.SSH },
+          status,
+        ),
+      ).toBe(CommandApprovalPillKind.NoLongerRuns);
+      // Every other step type keeps asking for approval.
+      for (const stepType of [
+        RunbookStepType.Bash,
+        RunbookStepType.Kubectl,
+        RunbookStepType.ResourceCommand,
+      ]) {
+        expect(
+          getCommandApprovalPillKind(
+            { wasAutoExecuted: false, stepType },
+            status,
+          ),
+        ).toBe(CommandApprovalPillKind.NeedsApproval);
+      }
+    }
+  });
+
+  test("an SSH command that ran before the removal says what happened, not that it no longer runs", () => {
+    // Ran inline, unattended, while the plan was composed.
+    expect(
+      getCommandApprovalPillKind(
+        { wasAutoExecuted: true, stepType: RunbookStepType.SSH },
+        AutoRemediationSuggestionStatus.Suggested,
+      ),
+    ).toBe(CommandApprovalPillKind.RanWithoutApproval);
+    // It has a record of its own, which its execution pill tells.
+    expect(
+      getCommandApprovalPillKind(
+        {
+          wasAutoExecuted: false,
+          stepType: RunbookStepType.SSH,
+          execution: {
+            status: AiRemediationCommandExecutionStatus.Succeeded,
+          },
+        },
+        AutoRemediationSuggestionStatus.Suggested,
+      ),
+    ).toBe(CommandApprovalPillKind.NeedsApproval);
+    // A plan that is not waiting any more gets no approval pill at all.
+    for (const status of [
+      AutoRemediationSuggestionStatus.Approved,
+      AutoRemediationSuggestionStatus.Dismissed,
+      AutoRemediationSuggestionStatus.NoneApplicable,
+    ]) {
+      expect(
+        getCommandApprovalPillKind(
+          { wasAutoExecuted: false, stepType: RunbookStepType.SSH },
+          status,
+        ),
+      ).toBe(null);
+    }
+  });
+
+  test("hasRemovedSshCommand finds an SSH command anywhere in a plan, and nothing in a plan without one", () => {
+    expect(hasRemovedSshCommand(null)).toBe(false);
+    expect(hasRemovedSshCommand({ commands: [] })).toBe(false);
+    expect(
+      hasRemovedSshCommand({
+        commands: [
+          bashCommand(1) as unknown as AiRemediationCommand,
+          kubectlCommand() as unknown as AiRemediationCommand,
+        ],
+      }),
+    ).toBe(false);
+    expect(
+      hasRemovedSshCommand({
+        commands: [
+          bashCommand(1) as unknown as AiRemediationCommand,
+          sshCommand(2) as unknown as AiRemediationCommand,
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  test("a plan waiting for approval says it can't be approved, offers no Approve & Run, and keeps Dismiss", async () => {
+    const rows: PlanRows = await renderPlan(
+      suggestion(AutoRemediationSuggestionStatus.Suggested, [
+        bashCommand(1),
+        sshCommand(2),
+      ]),
+    );
+
+    expect(
+      screen.queryByTestId("remediation-approve-button"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Approve & Run")).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("remediation-removed-ssh-note"),
+    ).toHaveTextContent(REMOVED_SSH_PLAN_NOTE);
+    expect(REMOVED_SSH_PLAN_NOTE).toBe(
+      "This plan can't be approved: OneUptime AI no longer runs SSH commands.",
+    );
+    expect(screen.getByText("Dismiss").closest("button")).toBeEnabled();
+    // Nothing is waiting for an approval nobody can give.
+    expect(screen.getByText("Can't be approved")).toBeInTheDocument();
+    expect(screen.queryByText("Waiting for approval")).not.toBeInTheDocument();
+
+    /*
+     * The SSH command says it no longer runs, and nothing in the plan waits
+     * for an approval: the Bash command beside it carries no pill.
+     */
+    expect(within(rows.ssh).getByText("no longer runs")).toBeInTheDocument();
+    expect(within(rows.ssh).queryByText("needs approval")).toBeNull();
+    expect(within(rows.bash!).queryByText("needs approval")).toBeNull();
+    expect(within(rows.bash!).queryByText("no longer runs")).toBeNull();
+    expect(within(rows.bash!).getByText("Bash")).toBeInTheDocument();
+  });
+
+  test("Dismiss still dismisses such a plan", async () => {
+    const postSpy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(API, "post")
+      .mockResolvedValue(new HTTPResponse<JSONObject>(200, {}, {}) as never);
+    jest.spyOn(ModelAPI, "getCommonHeaders").mockReturnValue({});
+
+    await renderPlan(
+      suggestion(AutoRemediationSuggestionStatus.Suggested, [sshCommand(1)]),
+    );
+
+    act(() => {
+      screen.getByText("Dismiss").closest("button")!.click();
+    });
+
+    await waitFor(() => {
+      expect(postSpy).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      String((postSpy.mock.calls[0]![0] as JSONObject)["url"]).endsWith(
+        "/auto-remediation/dismiss",
+      ),
+    ).toBe(true);
+  });
+
+  test("negative control: a plan without an SSH command keeps Approve & Run and says nothing of SSH", async () => {
+    await renderCard(
+      suggestion(AutoRemediationSuggestionStatus.Suggested, [kubectlCommand()]),
+    );
+
+    expect(screen.getByTestId("remediation-approve-button")).toBeEnabled();
+    expect(
+      screen.queryByTestId("remediation-removed-ssh-note"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("no longer runs")).not.toBeInTheDocument();
+    expect(screen.getByText("Waiting for approval")).toBeInTheDocument();
+    expect(screen.queryByText("Can't be approved")).not.toBeInTheDocument();
+  });
+
+  test("an approved plan whose SSH command a run reached shows its record, and nothing to approve or dismiss", async () => {
+    const rows: PlanRows = await renderPlan(
+      suggestion(
+        AutoRemediationSuggestionStatus.Approved,
+        [
+          sshCommand(1, {
+            execution: {
+              status: AiRemediationCommandExecutionStatus.Failed,
+              errorMessage: REMOVED_SSH_COMMAND_MESSAGE,
+            },
+          }),
+        ],
+        AiRemediationPlanExecutionStatus.Failed,
+      ),
+    );
+
+    expect(within(rows.ssh).getByText("Failed")).toBeInTheDocument();
+    expect(rows.ssh).toHaveTextContent(REMOVED_SSH_COMMAND_MESSAGE);
+    expect(within(rows.ssh).queryByText("no longer runs")).toBeNull();
+    expect(
+      screen.queryByTestId("remediation-removed-ssh-note"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Approve & Run")).not.toBeInTheDocument();
+    expect(screen.queryByText("Dismiss")).not.toBeInTheDocument();
   });
 });

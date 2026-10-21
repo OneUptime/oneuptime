@@ -31309,8 +31309,6 @@
   "This Runner opens the SSH connection, so it must be able to reach the machine.": "Deze Runner opent de SSH-verbinding en moet de machine dus kunnen bereiken.",
   "This Runner runs kubectl, so it must be able to reach the cluster's API server.": "Deze Runner voert kubectl uit en moet de API-server van het cluster dus kunnen bereiken.",
   "This step names {{reference}}, which is not one of this project's variables any more, so it will fail when it runs. Pick another.": "Deze stap noemt {{reference}}, dat geen variabele van dit project meer is, dus hij mislukt wanneer hij wordt uitgevoerd. Kies een andere.",
-  "This step restarts or scales one workload with a runbook credential. Runbook credentials were removed, so it no longer runs. Turn it into a kubectl script that does the same, then pick its kubeconfig.": "Deze stap herstart of schaalt één workload met runbook-inloggegevens. Runbook-inloggegevens zijn verwijderd, dus hij draait niet meer. Zet hem om in een kubectl-script dat hetzelfde doet en kies daarna de kubeconfig.",
-  "This step signs in with a runbook credential and runs one command. Runbook credentials were removed, so it no longer runs. Turn it into a script step to sign in with a variable instead.": "Deze stap logt in met runbook-inloggegevens en voert één opdracht uit. Runbook-inloggegevens zijn verwijderd, dus hij draait niet meer. Zet hem om in een scriptstap om in plaats daarvan met een variabele in te loggen.",
   "Turn into a script step": "Omzetten in een scriptstap",
   "Use a variable in the script as {{reference}}.": "Gebruik een variabele in het script als {{reference}}.",
   "Use your own domain, such as {{example}}.": "Gebruik je eigen domein, zoals {{example}}.",
@@ -31691,7 +31689,6 @@
   "AI agent on the cluster or host": "AI-agent op het cluster of de host",
   "No Runner of yours: OneUptime AI fixes through the AI agent on the affected Kubernetes cluster or host.": "Geen eigen Runner: OneUptime AI herstelt via de AI-agent op het getroffen Kubernetes-cluster of de getroffen host.",
   "Add a Runner under {{location}} for OneUptime AI to run commands on, then pick it here.": "Voeg onder {{location}} een Runner toe waarop OneUptime AI opdrachten kan uitvoeren en kies hem daarna hier.",
-  "OneUptime AI may also run Bash and SSH commands on this Runner, inside your network.": "OneUptime AI mag op deze Runner ook Bash- en SSH-opdrachten uitvoeren, binnen je netwerk.",
   "This rule picks a Runner you do not have access to. Pick another Runner to change it.": "Deze regel kiest een Runner waartoe je geen toegang hebt. Kies een andere Runner om dat te wijzigen.",
   "OneUptime AI is picking the runbook that fits this {{signal}}. It proposes it for your approval.": "OneUptime AI kiest het runbook dat bij dit item ({{signal}}) past en stelt het voor ter goedkeuring.",
   "OneUptime AI could not start picking a runbook for this {{signal}}. The daily AI budget may be used up.": "OneUptime AI kon niet beginnen met het kiezen van een runbook voor dit item ({{signal}}). Het dagelijkse AI-budget is mogelijk op.",
@@ -32654,5 +32651,12 @@
   "GitHub is not connected to this project, so AI cannot work in its repositories. Connect GitHub again to use them.": "GitHub is niet met dit project verbonden, dus AI kan niet in de repository's van het project werken. Verbind GitHub opnieuw om ze te gebruiken.",
   "Adding this label to a GitHub issue hands the issue to the app, as a mention does.": "Dit label aan een GitHub-issue toevoegen geeft dat issue aan de app, zoals een vermelding doet.",
   "A Runner of your own runs these after AI changes the code. AI now learns how to build and test from the repository's AGENTS.md, so you can remove them.": "Een eigen Runner voert ze uit nadat AI de code heeft gewijzigd. AI leert nu uit de AGENTS.md van de repository hoe die gebouwd en getest wordt, dus je kunt ze verwijderen.",
-  "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the pull request opens.": "AI werkt op een Runner die OneUptime voor elk project draait en die zijn wijziging niet bouwt of test. Kies een van je Runners zodat AI de wijziging bouwt en test voordat de pull request opent."
+  "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the pull request opens.": "AI werkt op een Runner die OneUptime voor elk project draait en die zijn wijziging niet bouwt of test. Kies een van je Runners zodat AI de wijziging bouwt en test voordat de pull request opent.",
+  "No longer runs": "Draait niet meer",
+  "OneUptime AI may also run Bash commands on this Runner, inside your network.": "OneUptime AI mag op deze Runner ook Bash-opdrachten uitvoeren, binnen je netwerk.",
+  "Runbook credentials were removed, so this step no longer runs. Turn it into a kubectl script that does the same, then pick its kubeconfig.": "Runbook-inloggegevens zijn verwijderd, dus deze stap draait niet meer. Zet hem om in een kubectl-script dat hetzelfde doet en kies daarna de kubeconfig.",
+  "Runbook credentials were removed, so this step no longer runs. Turn it into a script step, then fill in the machine and the secret variable it signs in with.": "Runbook-inloggegevens zijn verwijderd, dus deze stap draait niet meer. Zet hem om in een scriptstap en vul daarna de machine in en de geheime variabele waarmee hij inlogt.",
+  "This plan can't be approved: OneUptime AI no longer runs SSH commands.": "Dit plan kan niet worden goedgekeurd: OneUptime AI voert geen SSH-opdrachten meer uit.",
+  "no longer runs": "draait niet meer",
+  "Can't be approved": "Kan niet worden goedgekeurd"
 }

@@ -31309,8 +31309,6 @@
   "This Runner opens the SSH connection, so it must be able to reach the machine.": "此 Runner 负责建立 SSH 连接，因此必须能够访问该机器。",
   "This Runner runs kubectl, so it must be able to reach the cluster's API server.": "此 Runner 负责运行 kubectl，因此必须能够访问集群的 API 服务器。",
   "This step names {{reference}}, which is not one of this project's variables any more, so it will fail when it runs. Pick another.": "此步骤引用了 {{reference}}，但它已不再是此项目的变量，因此运行时会失败。请另选一个。",
-  "This step restarts or scales one workload with a runbook credential. Runbook credentials were removed, so it no longer runs. Turn it into a kubectl script that does the same, then pick its kubeconfig.": "此步骤使用运行手册凭据重启或扩缩一个工作负载。运行手册凭据已移除，因此它不再运行。请将它转换为执行相同操作的 kubectl 脚本，然后选择其 kubeconfig。",
-  "This step signs in with a runbook credential and runs one command. Runbook credentials were removed, so it no longer runs. Turn it into a script step to sign in with a variable instead.": "此步骤使用运行手册凭据登录并运行一条命令。运行手册凭据已移除，因此它不再运行。将它转换为脚本步骤，即可改用变量登录。",
   "Turn into a script step": "转换为脚本步骤",
   "Use a variable in the script as {{reference}}.": "在脚本中以 {{reference}} 的形式使用变量。",
   "Use your own domain, such as {{example}}.": "使用您自己的域名，例如 {{example}}。",
@@ -31691,7 +31689,6 @@
   "AI agent on the cluster or host": "集群或主机上的 AI 代理",
   "No Runner of yours: OneUptime AI fixes through the AI agent on the affected Kubernetes cluster or host.": "不使用您的 Runner：OneUptime AI 通过受影响的 Kubernetes 集群或主机上的 AI 代理进行修复。",
   "Add a Runner under {{location}} for OneUptime AI to run commands on, then pick it here.": "在 {{location}} 中添加一个 Runner，供 OneUptime AI 在其上运行命令，然后在这里选择它。",
-  "OneUptime AI may also run Bash and SSH commands on this Runner, inside your network.": "OneUptime AI 还可以在您网络内的此 Runner 上运行 Bash 和 SSH 命令。",
   "This rule picks a Runner you do not have access to. Pick another Runner to change it.": "此规则选择了您无权访问的 Runner。要更改，请选择其他 Runner。",
   "OneUptime AI is picking the runbook that fits this {{signal}}. It proposes it for your approval.": "OneUptime AI 正在为此{{signal}}挑选合适的运行手册，并会提交给您批准。",
   "OneUptime AI could not start picking a runbook for this {{signal}}. The daily AI budget may be used up.": "OneUptime AI 无法开始为此{{signal}}挑选运行手册。每日 AI 预算可能已用完。",
@@ -32654,5 +32651,12 @@
   "GitHub is not connected to this project, so AI cannot work in its repositories. Connect GitHub again to use them.": "GitHub 未连接到此项目，因此 AI 无法在其存储库中工作。请重新连接 GitHub 以使用它们。",
   "Adding this label to a GitHub issue hands the issue to the app, as a mention does.": "为 GitHub issue 添加此标签会像提及一样把该 issue 交给应用。",
   "A Runner of your own runs these after AI changes the code. AI now learns how to build and test from the repository's AGENTS.md, so you can remove them.": "您自己的 Runner 会在 AI 更改代码后运行它们。AI 现在会从存储库的 AGENTS.md 学习如何构建和测试，因此您可以移除它们。",
-  "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the pull request opens.": "AI 在 OneUptime 为所有项目运行的 Runner 上工作，它不会构建或测试 AI 的更改。选择您的某个 Runner，让 AI 在拉取请求打开之前构建和测试它。"
+  "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the pull request opens.": "AI 在 OneUptime 为所有项目运行的 Runner 上工作，它不会构建或测试 AI 的更改。选择您的某个 Runner，让 AI 在拉取请求打开之前构建和测试它。",
+  "No longer runs": "不再运行",
+  "OneUptime AI may also run Bash commands on this Runner, inside your network.": "OneUptime AI 还可以在您网络内的此 Runner 上运行 Bash 命令。",
+  "Runbook credentials were removed, so this step no longer runs. Turn it into a kubectl script that does the same, then pick its kubeconfig.": "运行手册凭据已移除，因此此步骤不再运行。请将它转换为执行相同操作的 kubectl 脚本，然后选择其 kubeconfig。",
+  "Runbook credentials were removed, so this step no longer runs. Turn it into a script step, then fill in the machine and the secret variable it signs in with.": "运行手册凭据已移除，因此此步骤不再运行。请将它转换为脚本步骤，然后填写它要登录的机器和用于登录的密钥变量。",
+  "This plan can't be approved: OneUptime AI no longer runs SSH commands.": "无法批准此计划：OneUptime AI 不再运行 SSH 命令。",
+  "no longer runs": "不再运行",
+  "Can't be approved": "无法批准"
 }

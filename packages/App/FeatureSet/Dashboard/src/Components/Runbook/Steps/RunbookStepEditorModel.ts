@@ -253,6 +253,13 @@ export const REQUIRE_APPROVAL_FOLDED_TITLE: string =
   translationKey("Require approval");
 // On the header of a step that asks for approval, as a playbook step says it.
 export const NEEDS_APPROVAL_LABEL: string = translationKey("Needs approval");
+/*
+ * On the header of a step written with a runbook credential, open or
+ * folded: runbook credentials were removed, so it no longer runs
+ * (isLegacyCredentialStep). Without it a folded runbook read as if every
+ * step still ran.
+ */
+export const NO_LONGER_RUNS_LABEL: string = translationKey("No longer runs");
 export const LLM_PROVIDER_TITLE: string = translationKey("LLM provider");
 export const INCLUDE_PREVIOUS_STEP_CONTEXT_TITLE: string = translationKey(
   "Include previous step context",
@@ -545,6 +552,19 @@ export function setStepRequiresApproval(
  * step no longer runs: the editor shows it as it is, with a button that
  * turns it into a script step.
  */
+/*
+ * What such a step's body says above its one button: the fact first, then
+ * what turning it into a script step leaves to its author - an SSH step's
+ * machine and the secret it signs in with (its credential held them), a
+ * Kubernetes step's kubeconfig.
+ */
+export const LEGACY_SSH_STEP_NOTICE: string = translationKey(
+  "Runbook credentials were removed, so this step no longer runs. Turn it into a script step, then fill in the machine and the secret variable it signs in with.",
+);
+export const LEGACY_KUBERNETES_STEP_NOTICE: string = translationKey(
+  "Runbook credentials were removed, so this step no longer runs. Turn it into a kubectl script that does the same, then pick its kubeconfig.",
+);
+
 export function isLegacyCredentialStep(step: RunbookStep): boolean {
   if (step.type === RunbookStepType.SSH) {
     return isLegacySSHStepConfig(step.config);

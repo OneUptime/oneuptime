@@ -3175,6 +3175,47 @@ describe("RemediationExecutionRunner.executeRemediation — rule-driven runs and
   });
 
   /*
+   * Runbook credentials were removed, and with them the SSH commands
+   * OneUptime AI composed for a Runner (an SSH command reached another host
+   * with one). The prompts say what a Runner runs now - Bash, on its own
+   * host - and never send the model looking for an SSH credential.
+   */
+  it("tells a rule run its Runner commands are Bash on the Runner's own host, and names no SSH", async () => {
+    const personas: Array<string> = [];
+
+    for (const executionMode of [
+      AutoRemediationExecutionMode.Suggest,
+      AutoRemediationExecutionMode.FullAuto,
+    ]) {
+      mockRule({ executionMode, commandAllowlist: ALLOWLIST });
+      const request: { get: () => InvestigationRequest } = captureRequest();
+
+      await run();
+
+      personas.push(String(request.get().personaOverride));
+    }
+
+    for (const persona of personas) {
+      expect(persona).toContain(
+        "Commands run with the privileges of the Runner host",
+      );
+      expect(persona).not.toContain("SSH");
+      expect(persona).not.toContain("credentialId");
+    }
+
+    // The planning persona says where a Runner's commands run.
+    const planning: string | undefined = personas.find(
+      (persona: string): boolean => {
+        return persona.includes("REMEDIATION PLANNING run for COMMANDS");
+      },
+    );
+
+    expect(planning).toContain(
+      "Discover targets with list_command_targets — commands run on a Runner's host (Bash).",
+    );
+  });
+
+  /*
    * A cluster-level round and a rule-driven run started by the same signal
    * would otherwise both change the cluster — two agents applying different
    * fixes to one workload, each with its own verification and rollback.

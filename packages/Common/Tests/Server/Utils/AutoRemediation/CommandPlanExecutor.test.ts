@@ -580,6 +580,8 @@ describe("CommandPlanExecutor.executeApprovedPlan", () => {
     ] as Record<string, unknown>;
     expect(ssh["status"]).toBe("Failed");
     expect(ssh["errorMessage"]).toBe(REMOVED_SSH_COMMAND_MESSAGE);
+    // The plan was approved already: its record says why, never to dismiss it.
+    expect(String(ssh["errorMessage"])).not.toContain("Dismiss");
     expect(
       (commandInPlan(finalPlan, 1)["execution"] as Record<string, unknown>)[
         "status"

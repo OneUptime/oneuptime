@@ -1,6 +1,7 @@
 import {
   AI_COMMAND_STEP_TYPES,
   REMOVED_SSH_COMMAND_MESSAGE,
+  REMOVED_SSH_COMMAND_NEXT_STEP,
   STORED_AI_COMMAND_STEP_TYPES,
   isRemovedSshCommand,
   AiRemediationCommand,
@@ -52,6 +53,8 @@ import { describe, expect, test } from "@jest/globals";
 const RUNNER_ID: string = "22222222-2222-4222-8222-222222222222";
 const CREDENTIAL_ID: string = "33333333-3333-4333-8333-333333333333";
 const CLUSTER_ID: string = "44444444-4444-4444-8444-444444444444";
+// What to do with a plan an SSH command keeps from being approved: dismiss it, first.
+const DISMISS_FIRST: RegExp = /^Dismiss this suggestion\./;
 
 function makeCommand(overrides: JSONObject = {}): JSONObject {
   return {
@@ -206,6 +209,20 @@ describe("AI_COMMAND_STEP_TYPES", () => {
     expect(REMOVED_SSH_COMMAND_MESSAGE).toContain(
       "runbook credentials were removed",
     );
+  });
+
+  /*
+   * A command a run reaches belongs to a plan that was approved already,
+   * which has nothing left to dismiss: its record says why it did not
+   * run, and only the refusal to approve a plan says what to do with it.
+   */
+  test("an SSH command's record says why it did not run; only the approval refusal says to dismiss the plan", () => {
+    expect(REMOVED_SSH_COMMAND_MESSAGE).toBe(
+      "OneUptime AI no longer runs SSH commands: they reached a host with a runbook credential, and runbook credentials were removed.",
+    );
+    expect(REMOVED_SSH_COMMAND_MESSAGE).not.toContain("Dismiss");
+    expect(REMOVED_SSH_COMMAND_NEXT_STEP).toMatch(DISMISS_FIRST);
+    expect(REMOVED_SSH_COMMAND_NEXT_STEP).toContain("Host AI agent");
   });
 
   test("admits Kubectl but never the structured Kubernetes runbook step", () => {

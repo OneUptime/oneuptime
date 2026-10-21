@@ -19,6 +19,7 @@ import {
   AiRemediationCommandPlan,
   AiRemediationCommandPlanUtil,
   REMOVED_SSH_COMMAND_MESSAGE,
+  REMOVED_SSH_COMMAND_NEXT_STEP,
   isRemovedSshCommand,
 } from "../../Types/AutoRemediation/AiRemediationCommandPlan";
 import { DEFAULT_VERIFICATION_WINDOW_MINUTES } from "../Services/AutoRemediationRuleEngineService";
@@ -1038,7 +1039,7 @@ router.post(
 
         if (removedSshCommand) {
           throw new BadDataException(
-            `Command ${removedSshCommand.sequence} of this plan runs over SSH. ${REMOVED_SSH_COMMAND_MESSAGE}`,
+            `Command ${removedSshCommand.sequence} of this plan runs over SSH. ${REMOVED_SSH_COMMAND_MESSAGE} ${REMOVED_SSH_COMMAND_NEXT_STEP}`,
           );
         }
 
