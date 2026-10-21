@@ -60,6 +60,11 @@ import {
   READ_NOW_POLL_MS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectApi";
 import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
+import ActionButtonSchema from "../../../UI/Components/ActionButton/ActionButtonSchema";
+import splitActionButtons, {
+  SplitActionButtonsResult,
+  getActionButtonLock,
+} from "../../../UI/Components/ActionButton/SplitActionButtons";
 import Route from "../../../Types/API/Route";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudConnectionFailureKind } from "../../../Types/CloudConnection/CloudConnectionTest";
@@ -477,6 +482,63 @@ describe("a row", () => {
 });
 
 describe("its actions", () => {
+  test("the row's button: View error while it fails, else Read now - which keeps its place while it reads", () => {
+    renderTable();
+
+    const actions: Array<ActionButtonSchema<CloudConnection>> = tableProps()[
+      "actionButtons"
+    ] as Array<ActionButtonSchema<CloudConnection>>;
+    const button: (item: CloudConnection) => string | undefined = (
+      item: CloudConnection,
+    ): string | undefined => {
+      return splitActionButtons<CloudConnection>({
+        actionButtons: actions,
+        item,
+      }).primary?.button.title;
+    };
+
+    expect(
+      button(
+        connection({
+          lastError: "AccessDenied",
+          lastPulledAt: READ_AT,
+        }),
+      ),
+    ).toBe("View error");
+    expect(
+      button(
+        connection({ lastPulledAt: READ_AT, lastSuccessfulPullAt: READ_AT }),
+      ),
+    ).toBe("Read now");
+    expect(button(connection({ isEnabled: false }))).toBe("Turn on");
+  });
+
+  test("Read now stays the row's button, locked, while a read it started runs", async () => {
+    renderTable();
+    const item: CloudConnection = connection({
+      lastPulledAt: READ_AT,
+      lastSuccessfulPullAt: READ_AT,
+    });
+
+    await act(async () => {
+      await action("Read now").onClick(item, getJestMockFunction());
+    });
+
+    const split: SplitActionButtonsResult<CloudConnection> =
+      splitActionButtons<CloudConnection>({
+        actionButtons: tableProps()["actionButtons"] as Array<
+          ActionButtonSchema<CloudConnection>
+        >,
+        item,
+      });
+
+    expect(split.primary?.button.title).toBe("Read now");
+    expect(getActionButtonLock(split.primary!.button, item)).toEqual({
+      isDisabled: true,
+      tooltip: "Reading now…",
+    });
+  });
+
   test("each shown when it makes sense", () => {
     renderTable();
 

@@ -15,6 +15,7 @@ import OneUptimeDate from "Common/Types/Date";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
@@ -411,10 +412,16 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
             },
           ]}
           actionButtons={[
+            /*
+             * The row's button: View error while it is not working, else
+             * Read now - kept there, locked, while a read it started runs,
+             * rather than handing its place to the next action.
+             */
             {
               title: "View error",
               buttonStyleType: ButtonStyleType.OUTLINE,
               icon: IconProp.Error,
+              placement: ActionButtonPlacement.Primary,
               isVisible: (item: CloudConnection): boolean => {
                 return getCloudConnectionHealth(item).key === "failing";
               },
@@ -430,6 +437,7 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
               title: "Read now",
               icon: IconProp.Refresh,
               buttonStyleType: ButtonStyleType.OUTLINE,
+              placement: ActionButtonPlacement.Primary,
               isVisible: (item: CloudConnection): boolean => {
                 return item.isEnabled !== false;
               },
