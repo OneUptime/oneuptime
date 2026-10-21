@@ -138,7 +138,7 @@ Chaque minute, les indicateurs actifs de chaque flux activé sont confrontés au
 - La première vérification couvre les 15 dernières minutes. Après une panne, la vérification suivante rattrape au plus les 24 dernières heures.
 - Chaque fenêtre est vérifiée une fois. Le renseignement qui arrive après la vérification de sa fenêtre ne s'applique qu'aux événements ultérieurs.
 - Un événement arrivé en retard, avec une heure antérieure à la vérification précédente, est encore marqué à l'arrivée, mais n'est pas confronté.
-- Chaque vérification confronte au plus 100 valeurs d'indicateurs par flux : celles vues dans le plus d'événements.
+- Chaque vérification enregistre chaque valeur d'indicateur correspondante comme un Detection Finding, jusqu'à 10 000 par flux. Des alertes, des incidents et des dossiers s'ouvrent pour les 100 valeurs vues dans le plus d'événements ; les autres partagent un dossier sur le flux, et l'**Erreur de la dernière correspondance** du flux indique combien ont correspondu.
 
 ### Ce que fait une correspondance
 

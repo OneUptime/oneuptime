@@ -307,7 +307,7 @@ OneUptime comprueba cada minuto qué reglas habilitadas han cumplido su interval
 - Las ventanas van una tras otra, no se deslizan. Con un intervalo de 10 minutos, unos fallos a las 09:58 y a las 10:01 pueden caer en ejecuciones distintas y se cuentan por separado, así que deja margen al elegir un umbral.
 - Tras un hueco, como una caída del worker o una regla que se vuelve a activar, la siguiente ejecución cubre el hueco entero, hasta las últimas 24 horas.
 - Un evento que llega con más de dos minutos de retraso, cuando una ejecución ya ha cubierto su hora, se guarda y se puede buscar, pero esa regla nunca lo lee.
-- Como mucho se disparan 100 grupos por ejecución: los de recuentos más altos.
+- Cada grupo que alcanza el umbral se convierte en un Detection Finding, hasta 10.000 por ejecución. Se abren alertas, incidentes y casos para los 100 con los recuentos más altos; el resto comparte un caso sobre la regla, y el **Último error** de la regla dice cuántos grupos coincidieron.
 
 ### Gravedad
 
