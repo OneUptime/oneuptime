@@ -96,9 +96,9 @@ that list is not empty.
   its card; the rule library marks the rules the project has and the recommended ones, filters to
   them and adds the missing ones in one click, its description running under its two buttons the
   card's whole width, and narrows by one select beside its search; Detections is a section of
-  pages, each its own address and entry; the side menu is six sections of pages, the ones set up
-  once folded, and on a phone it names the section and the page; entities ranks what the findings
-  name.
+  pages, each its own address and entry; the side menu is seven sections of pages, the ones set up
+  once folded, its Workspace section listing only the connected Slack, and on a phone it names the
+  section and the page; entities ranks what the findings name.
 - **Every page at 1280, 1024, 768 and 390**: none scrolls sideways.
 
 Every test pins the clock and puts up a network fence that aborts anything leaving the fixture
