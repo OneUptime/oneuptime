@@ -178,7 +178,7 @@ auditd、syslog、Falco など、すでに収集しているセキュリティ�
 | AWS Security Hub | Finding を Detection Finding と Compliance Finding として | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | サインイン、MFA、アカウント、ポリシーのイベント | [Okta System Log](/docs/integrations/okta) |
 
-- 製品自身のアラートのうち **Open Cases From** (別のレベルを選ばない限り **High and above**、または **なし**) 以上のものは、対象のユーザー、ホスト、アドレスごとにまとめられて [ケース](/docs/telemetry/security-cases) を開きます。
+- 製品自身のアラートのうち **Open Cases From** (別のレベルを選ばない限り **高以上**、または **なし**) 以上のものは、対象のユーザー、ホスト、アドレスごとにまとめられて [ケース](/docs/telemetry/security-cases) を開きます。
 - 接続は、レコードが表すアクティビティの時刻ではなく、製品がレコードを作成した時刻で読み取ります。1 時間ごとに実行される SIEM ルールは一致したイベントよりずっと後に検出を作成しますが、それも取り込まれます。
 - 最初のポーリングは 24 時間さかのぼるので、新しい接続ではすぐに最近のレコードが表示されます。
 - 接続の行にある **接続をテスト** は、製品へのアクセスと OneUptime 自身のワーカーが動いているかを確認し、何も取り込みません。 **今すぐ実行** はすぐにポーリングします。

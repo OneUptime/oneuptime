@@ -5,6 +5,7 @@ Eventos de seguridad convierte en casos lo que encuentran tus reglas de detecci�
 :::cards
 - [De dónde vienen los casos](#de-dónde-vienen-los-casos): Reglas de detección, inteligencia de amenazas, productos conectados y personas.
 - [Gestionar un caso](#gestionar-un-caso): Asígnalo, investiga sus entidades y ciérralo con un veredicto.
+- [Notificaciones](#notificaciones): A quién se avisa de un caso nuevo, de una asignación y de un paso que espera aprobación.
 - [Playbooks](#playbooks): Pasos que se ejecutan sobre un caso, con aprobación donde importa.
 - [La vista general](#la-vista-general): Lo que necesita atención ahora y la rapidez con que se gestionan los casos.
 :::
@@ -49,7 +50,7 @@ Cada uno de estos permisos también se puede conceder por separado, desde crear 
 | Productos conectados | Se importa una alerta propia del producto con un nivel igual o superior al umbral de la conexión | **Open Cases From** con el valor **Nunca**, en el paso **Sondeo** de la conexión |
 | Personas | Alguien abre uno desde **Casos de seguridad**, o con **Open Case** en el panel de un evento | No se puede desactivar |
 
-Todos los orígenes están activados por defecto. Una conexión abre casos para **High and above** salvo que elijas otro nivel; las alertas por debajo de ese nivel se siguen importando como eventos.
+Todos los orígenes están activados por defecto. Una conexión abre casos para **Alta y superior** salvo que elijas otro nivel; las alertas por debajo de ese nivel se siguen importando como eventos.
 
 ### Cómo se agrupan las detecciones
 
@@ -107,6 +108,51 @@ Los veredictos se cuentan en la vista general. Una regla cuyos casos se cierran 
 ### Declarar un incidente
 
 **Declarar incidente** abre un incidente de OneUptime para el caso, con la gravedad que elijas, y enlaza los dos en ambos sentidos: la descripción del incidente nombra el caso, y la cabecera del caso enlaza al incidente. A partir de ahí toman el relevo la guardia, las páginas de estado y el postmortem. Requiere un rol que pueda tanto gestionar casos como crear incidentes.
+
+## Notificaciones
+
+OneUptime avisa a las personas de tres cosas de un caso. Nadie tiene que configurar nada: un proyecto que solo hizo clic en **Activar lo recomendado** se entera de sus casos de prioridad Alta y Crítica por correo y por push.
+
+| Notificación | A quién se avisa | Por defecto |
+| --- | --- | --- |
+| Nuevo caso de seguridad | Todas las personas que pueden ver los casos del proyecto, cuando un caso se abre o sube de prioridad, a partir de la prioridad que eligieron | Por correo y por push, para los casos de prioridad Alta y Crítica |
+| Caso de seguridad asignado a mí | La persona a la que está asignado el caso y los miembros del equipo al que está asignado | Por correo y por push |
+| Paso de playbook esperando mi aprobación | Las personas del caso que pueden aprobar el paso: la persona a la que está asignado y los miembros de su equipo. Si ninguna de ellas puede aprobarlo, todas las personas del proyecto que pueden hacerlo | Por correo y por push |
+
+- Solo se avisa a las personas que pueden ver el caso: Project Owner, Project Admin y los roles Security Admin, Security Member y Security Viewer. A un rol limitado a algunas etiquetas solo se le avisa de los casos con esas etiquetas.
+- A nadie se le avisa de lo que hizo: quien abre un caso a mano, lo asigna o inicia una ejecución no recibe una notificación de ello.
+- Cada persona se entera de un caso una sola vez. Un caso que se abre con prioridad Medium y después sube a Crítico llega, al subir, a las personas que eligieron Alta y Crítica o Solo Crítica, y no otra vez a las que eligieron Media y superior, que ya se enteraron cuando se abrió.
+- El ataque de prueba de **Enviar un ataque de prueba** abre un caso que no avisa a nadie.
+- Un caso Crítico y un paso que espera aprobación se envían al instante, nunca se retienen en un [resumen de correos](/docs/emails/notification-rollup).
+- La **Cronología** del caso indica a quién se avisó y cuándo.
+
+### Elegir de qué se te avisa
+
+Cada persona elige por sí misma, en **Ajustes de usuario → Ajustes de notificaciones → Seguridad**: los canales de cada notificación (correo, SMS, llamada, push, Telegram, Slack, Microsoft Teams o webhook) y, en **Nuevo caso de seguridad**, la prioridad a partir de la cual se le avisa:
+
+| Opción | Avisa de los casos de prioridad |
+| --- | --- |
+| Solo Crítica | Crítico |
+| Alta y Crítica | Alta y Crítico (la opción predeterminada) |
+| Media y superior | Crítico, Alta y Medium |
+| Baja y superior | Todas menos Informativos |
+| Todos los casos | Todas |
+
+No se envían mensajes de WhatsApp para los casos de seguridad. Una notificación push abre la app de OneUptime, y su enlace abre el caso en el navegador.
+
+### Publicar en canales de Slack y Microsoft Teams
+
+Para publicar en un canal, añade una regla en **Productos → Eventos de seguridad → Espacio de trabajo → Slack** (o **Microsoft Teams**). Si no hay ninguno de los dos conectado, la única entrada de la sección es **Conectar Slack o Teams**. Una regla nombra los canales en los que publicar (y, en Microsoft Teams, los chats) y, si quieres, los casos a los que se aplica:
+
+| Condición | Coincide con |
+| --- | --- |
+| Prioridad del caso de seguridad | Crítico, Alta, Medium, Low o Informativos |
+| Título del caso de seguridad, Descripción del caso de seguridad | Un texto que el título o la descripción del caso contiene, por el que empieza o con el que termina |
+| Estado del caso de seguridad | Nuevo, Investigando, Contenido o Cerrado |
+| Origen del caso de seguridad | Regla de detección, Inteligencia de amenazas, Connected Product o Manual |
+| Etiquetas del caso de seguridad | Las etiquetas del caso |
+
+Cada una de las tres notificaciones se publica en los canales de todas las reglas con las que coincide el caso en ese momento. Una regla en la que **Prioridad del caso de seguridad** contiene cualquiera de **Crítico** y **Alta** publica los casos de prioridad Alta y Crítico en cuanto se abren, y un caso Medium cuando sube a Alta. Un caso de seguridad nunca tiene un canal propio.
 
 ## Playbooks
 
@@ -230,6 +276,10 @@ Encima, una franja muestra cómo está configurada la seguridad: sus orígenes, 
 
 :::details Una regla coincide, pero no se abre ningún caso
 Comprueba **Open a Case on Match** en el paso **Al coincidir** de la regla. Una detección sobre una entidad que ya tiene un caso abierto se suma a ese caso en lugar de abrir otro: búscala en **Detecciones** dentro del caso abierto.
+:::
+
+:::details No se avisó a nadie de un caso
+Mira la **Cronología** del caso, que indica a quién se notificó. Una notificación **Nuevo caso de seguridad** va a las personas cuya prioridad elegida alcanza el caso, así que un caso Medium no avisa a nadie que haya mantenido la opción predeterminada, **Alta y Crítica**. Comprueba que las personas que deberían enterarse pueden ver los casos de seguridad (con un rol de seguridad, o como Project Owner o Project Admin) y que tienen la notificación activada en **Ajustes de usuario → Ajustes de notificaciones → Seguridad**.
 :::
 
 :::details Un playbook no se ejecutó

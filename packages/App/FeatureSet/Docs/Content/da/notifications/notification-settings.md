@@ -22,6 +22,7 @@ flowchart TB
 - En kanal, der er slået til, sender til hver bekræftet metode, du har på den i dette projekt, ikke kun til én.
 - En kanal, der er slået til uden en bekræftet metode bagved, sender intet. **Your setup checklist** siger det under **Staying informed**.
 - En nyhed går til tingens ejere: de personer, der er angivet som ejere, og medlemmerne af dens ejerteams. Har en ting ingen ejere, går den i stedet til projektets ejere. En begivenhed om at være blevet tilføjet som ejer går kun til den person, der blev tilføjet.
+- Sikkerhedssager har ingen ejere. En ny sag går til alle, der kan se projektets sager, ved den prioritet, hver af dem vælger, og en tildelt sag går til de personer, den er tildelt. Se [Sikkerhedssager](/docs/telemetry/security-cases#notifikationer).
 - Hver e-mail til ejere slutter med et link, "Manage notification preferences", der fører tilbage hertil.
 
 ## Skift en indstilling
@@ -29,7 +30,7 @@ flowchart TB
 :::steps
 ### Åbn dine indstillinger
 
-Gå til **Brugerindstillinger → Notifikationsindstillinger**. Fanerne er **Hændelser**, **Advarsler**, **Overvågning**, **Statussider**, **Planlagt vedligeholdelse** og **Vagt**.
+Gå til **Brugerindstillinger → Notifikationsindstillinger**. Fanerne er **Hændelser**, **Advarsler**, **Overvågning**, **Statussider**, **Planlagt vedligeholdelse**, **Vagt** og **Sikkerhed**.
 
 ### Find begivenheden
 
@@ -52,6 +53,7 @@ Når du bliver medlem af et projekt, er disse begivenheder slået til, via e-mai
 | **Statussider** | Ingen | **Statusside oprettet**, **Statusside-meddelelse offentliggjort**, **Tilføjet som statussideejer** |
 | **Planlagt vedligeholdelse** | **Maintenance reminder** | **Vedligeholdelseshændelse oprettet**, **Vedligeholdelsestilstand ændret**, **Vedligeholdelsesnote oprettet**, **Tilføjet som vedligeholdelsesejer** |
 | **Vagt** | **Du går på vagt**, **Du er den næste på vagt**, **Du går af vagt**, **Tilføjet til vagtordningspolitik**, **Fjernet fra vagtordningspolitik**, **Ubesvaret opkald**, og også via push: **Før min vagt starter**, **Min kommende vagt bliver tildelt en anden** | Ingen |
+| **Sikkerhed** | Også via push: **Ny sikkerhedssag** (sager med prioritet High og Kritisk), **Sikkerhedssag tildelt mig**, **Playbook-trin venter på min godkendelse** | Ingen |
 
 > [!IMPORTANT]
 > **Overvågningsstatus ændret** starter slået fra. Vil du vide, når en overvågning, du ejer, går ned eller kommer op igen, så slå den til på fanen **Overvågning**.
@@ -64,6 +66,16 @@ Fanen **Vagt** handler om dig, ikke om de ting, du ejer:
 - **Tilføjet til vagtordningspolitik** og **Fjernet fra vagtordningspolitik** fortæller dig, når en vagtpolitik begynder eller holder op med at nævne dig.
 - **Før min vagt starter** sender påmindelser på de tidspunkter, du vælger under **Brugerindstillinger → Kalender → Kalenderfeed**, og **Min kommende vagt bliver tildelt en anden** fortæller dig, når en anden dækker en vagt, du er blevet mindet om. Se [Kalenderfeeds](/docs/on-call/calendar-feeds#påmindelser-og-meddelelser-om-ny-tildeling).
 - **Ubesvaret opkald**, på kortet **Indgående opkaldspolitikker**, fortæller ejerne af en politik for indgående opkald, at en, der ringede, ikke nåede nogen. Se [Politik for indgående opkald](/docs/on-call/incoming-call-policy#ubesvarede-opkald).
+
+## Sikkerhedssager
+
+Fanen **Sikkerhed** handler om de sikkerhedssager, du kan se:
+
+- **Ny sikkerhedssag** har en prioritet under sit navn: den laveste prioritet, en sag skal have for at give dig besked. Den er **Høj og Kritisk**, medmindre du vælger **Kun Kritisk**, **Mellem og højere**, **Lav og højere** eller **Alle sager**.
+- **Sikkerhedssag tildelt mig** følger de sager, der er tildelt dig, og dem, der er tildelt de teams, du er med i.
+- **Playbook-trin venter på min godkendelse** beder dig godkende eller afvise et playbook-trin på en sag, hvor du må godkende trin.
+
+Se [Sikkerhedssager](/docs/telemetry/security-cases#notifikationer).
 
 ## Færre e-mails
 

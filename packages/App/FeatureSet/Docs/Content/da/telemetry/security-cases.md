@@ -5,6 +5,7 @@ Security Events gør det, som dine detektionsregler, din trusselsintelligens og 
 :::cards
 - [Hvor sager kommer fra](#hvor-sager-kommer-fra): Detektionsregler, trusselsintelligens, forbundne produkter og personer.
 - [Behandl en sag](#behandl-en-sag): Tildel den, undersøg dens entiteter, og luk den med en konklusion.
+- [Notifikationer](#notifikationer): Hvem der får besked om en ny sag, en tildeling og et trin, der venter på godkendelse.
 - [Playbooks](#playbooks): Trin, der kører på en sag, med godkendelse, hvor det betyder noget.
 - [Oversigten](#oversigten): Det, der kræver nogens indsats nu, og hvor hurtigt sager bliver håndteret.
 :::
@@ -49,7 +50,7 @@ Hver af disse rettigheder kan også tildeles for sig, fra at oprette en sag til 
 | Forbundne produkter | En advarsel fra selve produktet importeres på eller over forbindelsens tærskel | **Open Cases From** sat til **Aldrig** i forbindelsens trin **Polling** |
 | Personer | Nogen åbner en fra **Sikkerhedssager** eller med **Open Case** i en begivenheds panel | Ingen |
 
-Alle kilder er slået til som standard. En forbindelse åbner sager for **High and above**, medmindre du vælger et andet niveau; advarslerne under det importeres stadig som begivenheder.
+Alle kilder er slået til som standard. En forbindelse åbner sager for **Høj og højere**, medmindre du vælger et andet niveau; advarslerne under det importeres stadig som begivenheder.
 
 ### Sådan grupperes detektioner
 
@@ -107,6 +108,51 @@ Konklusionerne tælles på oversigten. En regel, hvis sager bliver ved med at bl
 ### Erklær en hændelse
 
 **Erklær hændelse** åbner en OneUptime-hændelse for sagen med den alvorlighed, du vælger, og forbinder de to begge veje: hændelsens beskrivelse nævner sagen, og sagens hoved linker til hændelsen. Vagtordningen, statussider og postmortem tager over derfra. Det kræver en rolle, der både kan behandle sager og oprette hændelser.
+
+## Notifikationer
+
+OneUptime giver folk besked om tre ting på en sag. Ingen behøver at sætte noget op: et projekt, der kun har klikket på **Slå anbefalet til**, får besked om sine sager med prioritet High og Kritisk via e-mail og push.
+
+| Notifikation | Hvem får besked | Som standard |
+| --- | --- | --- |
+| Ny sikkerhedssag | Alle, der kan se projektets sager, når en sag åbnes eller stiger, ved den prioritet, de har valgt, eller højere | E-mail og push, for sager med High og Kritisk |
+| Sikkerhedssag tildelt mig | Den person, sagen er tildelt, og medlemmerne af det team, den er tildelt | E-mail og push |
+| Playbook-trin venter på min godkendelse | De personer på sagen, der kan godkende trinnet: den person, sagen er tildelt, og medlemmerne af dens team. Kan ingen af dem godkende, alle i projektet, der kan | E-mail og push |
+
+- Kun personer, der kan se sagen, får besked om den: Project Owners, Project Admins og rollerne Security Admin, Security Member og Security Viewer. En rolle, der er begrænset til bestemte etiketter, får kun besked om sagerne med de etiketter.
+- Ingen får besked om det, de selv gjorde: den, der åbner en sag manuelt, tildeler den eller starter en kørsel, får ingen notifikation om det.
+- Hver person hører om en sag én gang. En sag, der åbnes på Medium og senere stiger til Kritisk, når ved stigningen frem til dem, der har valgt High eller Kritisk, og ikke igen til dem, der har valgt Medium, for de hørte om den, da den blev åbnet.
+- Testangrebet fra **Send et testangreb** åbner en sag, der ikke giver nogen besked.
+- En sag med Kritisk og et trin, der venter på godkendelse, sendes med det samme og holdes aldrig tilbage i en [e-mailoversigt](/docs/emails/notification-rollup).
+- Sagens **Tidslinje** viser, hvem der fik besked, og hvornår.
+
+### Vælg, hvad du får besked om
+
+Hver person vælger selv under **Brugerindstillinger → Notifikationsindstillinger → Sikkerhed**: kanalerne for hver notifikation (e-mail, sms, opkald, push, Telegram, Slack, Microsoft Teams eller webhook) og, under **Ny sikkerhedssag**, den prioritet, der giver dem besked:
+
+| Valg | Giver besked om sager med |
+| --- | --- |
+| Kun Kritisk | Kritisk |
+| Høj og Kritisk | High og Kritisk (standard) |
+| Mellem og højere | Kritisk, High og Medium |
+| Lav og højere | Alle prioriteter undtagen Til orientering |
+| Alle sager | Alle prioriteter |
+
+Der sendes ingen WhatsApp-beskeder for sikkerhedssager. En push-notifikation åbner OneUptime-appen, og dens link åbner sagen i browseren.
+
+### Slå op i Slack- og Microsoft Teams-kanaler
+
+For at slå op i en kanal tilføjer du en regel under **Produkter → Security Events → Arbejdsområde → Slack** (eller **Microsoft Teams**). Er ingen af dem forbundet, er sektionens eneste punkt **Forbind Slack eller Teams**. En regel angiver de kanaler, den slår op i (og i Microsoft Teams chattene), og, hvis du vil, de sager, den gælder for:
+
+| Betingelse | Matcher på |
+| --- | --- |
+| Prioritet for sikkerhedssag | Kritisk, High, Medium, Low eller Til orientering |
+| Titel på sikkerhedssag, Beskrivelse af sikkerhedssag | Tekst, som sagens titel eller beskrivelse indeholder, starter med eller slutter med |
+| Status for sikkerhedssag | Ny, Undersøger, Contained eller Lukket |
+| Kilde til sikkerhedssag | Detection Rule, Threat Intel, Connected Product eller Manual |
+| Etiketter på sikkerhedssag | Sagens etiketter |
+
+De tre notifikationer slås hver op i kanalerne for hver regel, sagen matcher i det øjeblik. En regel, hvor **Prioritet for sikkerhedssag** indeholder en af **Kritisk** og **High**, slår sager med High og Kritisk op, når de åbnes, og en sag med Medium, når den stiger til High. En sikkerhedssag får aldrig sin egen kanal.
 
 ## Playbooks
 
@@ -230,6 +276,10 @@ Over dem viser et bånd, hvordan sikkerhed er sat op: dens kilder, detektioner, 
 
 :::details En regel matcher, men ingen sag åbnes
 Tjek **Open a Case on Match** i regelens trin **Ved match**. En detektion om en entitet, der allerede har en åben sag, føjes til den sag i stedet for at åbne en ny: kig efter den under **Detections** på den åbne sag.
+:::
+
+:::details Ingen fik besked om en sag
+Se sagens **Tidslinje**, som viser, hvem der fik en notifikation. En notifikation om **Ny sikkerhedssag** går til de personer, hvis valgte prioritet sagen når, så en sag med Medium giver ikke besked til nogen, der har beholdt standarden, **Høj og Kritisk**. Tjek, at de personer, der burde få besked, kan se sikkerhedssager (en Security-rolle, Project Owner eller Project Admin), og at notifikationen er slået til for dem under **Brugerindstillinger → Notifikationsindstillinger → Sikkerhed**.
 :::
 
 :::details En playbook kørte ikke
