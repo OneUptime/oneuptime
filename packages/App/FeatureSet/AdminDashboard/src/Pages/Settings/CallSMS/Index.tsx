@@ -128,7 +128,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             collapsibleSection: advancedSection,
             description:
               "Numbers to send SMS from if yours can only make calls. Each SMS uses the one in the recipient's country, or the first.",
-            // A list, as the error under the field gives it: no one country's.
+            // The list the error under the field gives: no one country's.
             placeholder: PHONE_NUMBER_LIST_EXAMPLE,
             customValidation: (
               values: FormValues<GlobalConfig>,

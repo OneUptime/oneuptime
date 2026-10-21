@@ -460,7 +460,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             required: false,
             collapsibleSection: moreNumbersSection,
             description: TwilioConfigNumbersCopy.smsPhoneNumbersDescription,
-            // A list, as the error under the field shows it: no one country's.
+            // The list the error under the field gives: no one country's.
             placeholder: PHONE_NUMBER_LIST_EXAMPLE,
             customValidation: (
               values: FormValues<ProjectCallSMSConfig>,
