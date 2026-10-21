@@ -227,6 +227,8 @@ describe("the air-gapped page", () => {
     expect(main).not.toBeNull();
     expect(textOf(main)).not.toContain("undefined");
     expect(textOf(main)).not.toContain("[object Object]");
+    // Text is drawn as written: a Markdown code span would show its backticks.
+    expect(textOf(main)).not.toContain("`");
   });
 
   test("writes the head from its SEO entry", () => {

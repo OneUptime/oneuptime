@@ -487,6 +487,20 @@ describe("SelfHosted content model", () => {
     expect(updateCheck.description).not.toContain("oneuptime.com");
   });
 
+  test("every air-gap step is written as plain text, as the page draws it", () => {
+    /*
+     * self-hosted.ejs prints each description as text, so a Markdown code
+     * span would show its backticks; the setting under each step is the
+     * page's code.
+     */
+    for (const step of AirGapSteps) {
+      expect([step.title, step.description.includes("`")]).toEqual([
+        step.title,
+        false,
+      ]);
+    }
+  });
+
   test("the DNS air-gap step names the chart-wide list the air-gapped values empty", () => {
     const dns: AirGapStep = AirGapSteps.find((step: AirGapStep) => {
       return step.title === "Keep DNS internal";

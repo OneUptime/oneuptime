@@ -482,7 +482,7 @@ export const AirGapSteps: Array<AirGapStep> = [
   {
     title: "Upgrade from an artifact bundle",
     description:
-      "Upgrades are `helm upgrade` against a chart and image set you have already mirrored. No connectivity to us is required to apply one.",
+      "Each upgrade is a helm upgrade against the chart and images you have already mirrored. Applying one needs no connection to us.",
     setting: "helm upgrade",
   },
 ];
