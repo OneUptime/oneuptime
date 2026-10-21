@@ -1283,7 +1283,9 @@ describe("GitHub App", () => {
       `The same page holds the ${bold("GitHub Trigger Label")}, under ${bold("More settings")}, if you want a label other than \`oneuptime\`.`,
     );
 
-    expect(copy).toContain('DEFAULT_GITHUB_TRIGGER_LABEL: string = "oneuptime";');
+    expect(copy).toContain(
+      'DEFAULT_GITHUB_TRIGGER_LABEL: string = "oneuptime";',
+    );
     expect(settings).toContain("placeholder: DEFAULT_GITHUB_TRIGGER_LABEL,");
     expect(page).toContain(
       "the repository's trigger label, `oneuptime` unless you changed it",
