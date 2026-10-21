@@ -22,6 +22,7 @@ flowchart TB
 - En kanal som är påslagen skickar till varje verifierad metod du har på den i det här projektet, inte bara till en.
 - En kanal som är påslagen utan någon verifierad metod bakom sig skickar ingenting. **Your setup checklist** säger det under **Staying informed**.
 - En uppdatering går till sakens ägare: personerna som är angivna som ägare, och medlemmarna i dess ägarteam. Har en sak inga ägare går den i stället till projektets ägare. En händelse om att ha lagts till som ägare går bara till personen som lades till.
+- Säkerhetsärenden har inga ägare. Ett nytt ärende går till alla som kan se projektets ärenden, från den prioritet som var och en av dem väljer, och ett tilldelat ärende till dem som det är tilldelat. Se [Säkerhetsärenden](/docs/telemetry/security-cases#aviseringar).
 - Varje e-postmeddelande till ägare slutar med en länk, "Manage notification preferences", tillbaka till den här sidan.
 
 ## Ändra en inställning
@@ -29,7 +30,7 @@ flowchart TB
 :::steps
 ### Öppna dina inställningar
 
-Gå till **Användarinställningar → Aviseringsinställningar**. Flikarna är **Incidenter**, **Varningar**, **Övervakning**, **Statussidor**, **Schemalagt underhåll** och **Jour**.
+Gå till **Användarinställningar → Aviseringsinställningar**. Flikarna är **Incidenter**, **Varningar**, **Övervakning**, **Statussidor**, **Schemalagt underhåll**, **Jour** och **Säkerhet**.
 
 ### Hitta händelsen
 
@@ -52,6 +53,7 @@ När du går med i ett projekt är de här händelserna påslagna, via e-post. A
 | **Statussidor** | Inga | **Statussida skapad**, **Statussidemeddelande publicerat**, **Tillagd som ägare av statussida** |
 | **Schemalagt underhåll** | **Maintenance reminder** | **Underhållshändelse skapad**, **Underhållstillstånd ändrat**, **Underhållsanteckning publicerad**, **Tillagd som ägare av underhåll** |
 | **Jour** | **Du går på jour**, **Du är näst på tur i jouren**, **Du går av jour**, **Tillagd i jourpolicy**, **Borttagen från jourpolicy**, **Missat samtal**, och även via push: **Innan mitt jourpass börjar**, **Mitt kommande jourpass tilldelas någon annan** | Inga |
+| **Säkerhet** | Även via push: **Nytt säkerhetsärende** (ärenden med High och Critical), **Säkerhetsärende tilldelat mig**, **Playbook-steg väntar på mitt godkännande** | Inga |
 
 > [!IMPORTANT]
 > **Övervakningsstatus ändrad** börjar avstängd. För att få veta när en övervakning du äger går ned eller kommer tillbaka slår du på den på fliken **Övervakning**.
@@ -64,6 +66,16 @@ Fliken **Jour** handlar om dig, inte om det du äger:
 - **Tillagd i jourpolicy** och **Borttagen från jourpolicy** berättar när en jourpolicy börjar eller slutar nämna dig.
 - **Innan mitt jourpass börjar** skickar påminnelser vid de tider du väljer under **Användarinställningar → Kalender → Kalenderflöde**, och **Mitt kommande jourpass tilldelas någon annan** berättar när någon annan täcker ett jourpass som du har påmints om. Se [Kalenderflöden](/docs/on-call/calendar-feeds#påminnelser-och-meddelanden-om-ny-tilldelning).
 - **Missat samtal**, på kortet **Inkommande samtalspolicyer**, berättar för ägarna av en policy för inkommande samtal att någon som ringde inte nådde någon. Se [Policy för inkommande samtal](/docs/on-call/incoming-call-policy#missade-samtal).
+
+## Säkerhetsärenden
+
+Fliken **Säkerhet** handlar om de säkerhetsärenden du kan se:
+
+- **Nytt säkerhetsärende** har en prioritet under sitt namn: den lägsta prioritet ett ärende ska ha för att du ska aviseras. Den är **Hög och Kritisk** om du inte väljer **Endast Kritisk**, **Medel och högre**, **Låg och högre** eller **Alla ärenden**.
+- **Säkerhetsärende tilldelat mig** följer ärendena som tilldelas dig och de team du tillhör.
+- **Playbook-steg väntar på mitt godkännande** ber dig godkänna eller avvisa ett playbook-steg i ett ärende där du får godkänna steg.
+
+Se [Säkerhetsärenden](/docs/telemetry/security-cases#aviseringar).
 
 ## Färre e-postmeddelanden
 

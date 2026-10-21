@@ -24,7 +24,9 @@ import {
 import { CONTAINMENT_ENTITY_LIMIT } from "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookContainment";
 import Permission from "Common/Types/Permission";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
-import { securityCasePriorityFromSeverity } from "Common/Types/SecurityCase/SecurityCasePriority";
+import SecurityCasePriority, {
+  securityCasePriorityFromSeverity,
+} from "Common/Types/SecurityCase/SecurityCasePriority";
 import { SECURITY_CASE_STATUSES } from "Common/Types/SecurityCase/SecurityCaseStatus";
 import {
   SECURITY_CASE_VERDICTS,
@@ -44,6 +46,14 @@ import {
 import { matchesProtectedEntityPattern } from "Common/Types/SecurityPlaybook/SecurityProtectedEntity";
 import { SECURITY_PLAYBOOK_TRIGGERS } from "Common/Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { SECURITY_CASE_TEMPLATE_PLACEHOLDERS } from "Common/Utils/SecurityCase/SecurityCaseMarkdown";
+import { SECURITY_CASE_NOTIFICATION_EVENT_TYPES } from "Common/Server/Services/UserNotificationSettingService";
+import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
+import {
+  DEFAULT_SECURITY_CASE_NOTIFICATION_PRIORITY,
+  SECURITY_CASE_NOTIFICATION_PRIORITY_CHOICES,
+} from "Common/Types/SecurityCase/SecurityCaseNotificationPriority";
+import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
+import { NotificationRuleConditionUtil } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -542,6 +552,105 @@ describe("Security Cases and Playbooks docs", () => {
       "The cases opened each day for 30 days, by priority, and the detections raised each day for 14 days, by source.",
     );
     expect(boldSpans(overview)).toContain("Mean Time to Acknowledge");
+  });
+
+  it("names the three notifications as Notification Settings lists them, on by email and push", () => {
+    const settingsPage: string = source(
+      `${DASHBOARD}/Pages/UserSettings/NotificationSettings.tsx`,
+    );
+    const settingService: string = source(
+      "Common/Server/Services/UserNotificationSettingService.ts",
+    );
+    const notificationRows: Array<Array<string>> = rowsOf("Notifications");
+
+    expect(column(notificationRows, 0)).toEqual([
+      "New security case",
+      "Security case assigned to me",
+      "Playbook step waiting for my approval",
+    ]);
+
+    for (const label of column(notificationRows, 0)) {
+      expect(settingsPage).toContain(`label: "${label}",`);
+    }
+
+    // Each is added for every member with email and push on.
+    for (const eventType of SECURITY_CASE_NOTIFICATION_EVENT_TYPES) {
+      const member: string = Object.entries(NotificationSettingEventType).find(
+        ([, value]: [string, string]): boolean => {
+          return value === eventType;
+        },
+      )![0];
+
+      expect(settingService).toContain(
+        `NotificationSettingEventType.${member},\n      { alertByPush: true },`,
+      );
+    }
+
+    expect(column(notificationRows, 2)).toEqual([
+      "Email and push, for High and Critical cases",
+      "Email and push",
+      "Email and push",
+    ]);
+    expect(DEFAULT_SECURITY_CASE_NOTIFICATION_PRIORITY).toBe(
+      SecurityCasePriority.High,
+    );
+  });
+
+  it("lists the priority choices as the setting offers them, the default marked", () => {
+    const choiceRows: Array<Array<string>> = rowsOf("Choose what you are told");
+
+    expect(column(choiceRows, 0)).toEqual(
+      SECURITY_CASE_NOTIFICATION_PRIORITY_CHOICES.map(
+        (choice: { label: string }): string => {
+          return choice.label;
+        },
+      ),
+    );
+    expect(
+      choiceRows.find((row: Array<string>): boolean => {
+        return row[0] === "High and Critical";
+      })![1],
+    ).toContain("(the default)");
+
+    // The setting's own picker offers the same choices, in the same order.
+    const settingsPage: string = source(
+      `${DASHBOARD}/Pages/UserSettings/NotificationSettings.tsx`,
+    );
+    let from: number = settingsPage.indexOf(
+      "SECURITY_CASE_PRIORITY_CHOICE_LABELS",
+    );
+    for (const choice of SECURITY_CASE_NOTIFICATION_PRIORITY_CHOICES) {
+      const at: number = settingsPage.indexOf(
+        `translationKey("${choice.label}")`,
+        from,
+      );
+      expect({ choice: choice.label, offered: at >= 0 }).toEqual({
+        choice: choice.label,
+        offered: true,
+      });
+      from = at;
+    }
+  });
+
+  it("lists the Slack and Microsoft Teams conditions a Security Case rule offers", () => {
+    const conditionRows: Array<Array<string>> = rowsOf(
+      "Post to Slack and Microsoft Teams channels",
+    );
+    const offered: Array<string> =
+      NotificationRuleConditionUtil.getCheckOnByEventType(
+        NotificationRuleEventType.SecurityCase,
+      );
+
+    expect(
+      column(conditionRows, 0)
+        .flatMap((cell: string): Array<string> => {
+          return cell.split(", ");
+        })
+        .sort(),
+    ).toEqual([...offered].sort());
+    expect(page).toContain(
+      "**Products → Security Events → Workspace → Slack** (or **Microsoft Teams**)",
+    );
   });
 
   it("names the API's routes as the models serve them", () => {

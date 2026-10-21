@@ -179,7 +179,7 @@ O cartão **Seus logs**, no topo de **Connections**, transforma em uma origem os
 | AWS Security Hub | Findings, como Detection e Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Eventos de login, MFA, contas e políticas | [Okta System Log](/docs/integrations/okta) |
 
-- Os alertas do próprio produto no nível de **Open Cases From** ou acima (**High and above**, a menos que você escolha outro nível, ou **Nunca**) abrem [casos](/docs/telemetry/security-cases), agrupados pelo usuário, host ou endereço de que tratam.
+- Os alertas do próprio produto no nível de **Open Cases From** ou acima (**Alta e acima**, a menos que você escolha outro nível, ou **Nunca**) abrem [casos](/docs/telemetry/security-cases), agrupados pelo usuário, host ou endereço de que tratam.
 - Uma conexão lê os registros pelo momento em que o produto os criou, não pelo momento da atividade que descrevem. Uma regra de SIEM que roda de hora em hora cria detecções muito depois dos eventos correspondentes, e mesmo assim elas são importadas.
 - A primeira consulta olha 24 horas para trás, então uma conexão nova mostra registros recentes na hora.
 - **Testar conexão**, na linha da conexão, verifica o acesso ao produto e se os workers do próprio OneUptime estão rodando, sem importar nada. **Run now** consulta na hora.

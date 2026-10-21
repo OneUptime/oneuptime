@@ -789,3 +789,95 @@ describe("the Destination step, as a reader meets it", () => {
     ]);
   });
 });
+
+/*
+ * A security case gets no channel of its own (SecurityCaseNotificationRule):
+ * its Destination half asks only where the rule posts - even for a rule
+ * saved through the API that holds a channel's switches, which the server
+ * never acts on for a case.
+ */
+describe("a security case rule's Destination half", () => {
+  const SAVED_SECURITY_CASE_RULE: IncidentNotificationRule = {
+    ...SAVED_RULE,
+    filters: [],
+    shouldCreateNewChannel: true,
+    shouldInviteOwnersToNewChannel: true,
+    archiveChannelAutomatically: true,
+    shouldPostToExistingChannel: true,
+    existingChannelNames: "#security",
+  } as IncidentNotificationRule;
+
+  test("Slack: existing channels only, and no channel of its own", async () => {
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      eventType: NotificationRuleEventType.SecurityCase,
+      value: SAVED_SECURITY_CASE_RULE,
+    });
+
+    expect(
+      await screen.findByRole("switch", { name: /^Post to existing channels/ }),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(screen.getAllByRole("switch")).toHaveLength(1);
+    expect(
+      screen.queryByRole("switch", { name: /^Create a channel for each/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Who joins the channel" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+    expect(
+      screen.queryByRole("button", { name: "More fields" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("channel-name-prefix")).not.toBeInTheDocument();
+    expect(summary()).toEqual(["Posts updates in #security."]);
+  });
+
+  test("Microsoft Teams: existing channels and chats, nothing else", async () => {
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      eventType: NotificationRuleEventType.SecurityCase,
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      microsoftTeamsChats: [LEADS_CHAT],
+      value: {
+        ...SAVED_SECURITY_CASE_RULE,
+        existingTeam: OPS_TEAM.id,
+        existingChannelNames: "Security",
+        shouldPostToExistingChat: true,
+        existingChatIds: [LEADS_CHAT.id],
+      } as IncidentNotificationRule,
+    });
+
+    await screen.findByRole("switch", { name: /^Post to existing channels/ });
+
+    // Existing channels, and chats: the two switches there are.
+    expect(screen.getAllByRole("switch")).toHaveLength(2);
+    expect(
+      screen.getByRole("switch", { name: /^Post to chats/ }),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(
+      screen.queryByRole("switch", { name: /^Create a channel for each/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("who-joins-teams-note"),
+    ).not.toBeInTheDocument();
+    expect(summary()).toEqual([
+      "Posts updates in Security.",
+      "Posts updates in the chat On-call leads.",
+    ]);
+  });
+
+  test("posting nowhere, it says what there is to pick, without a channel of its own", async () => {
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      eventType: NotificationRuleEventType.SecurityCase,
+      value: {
+        ...SAVED_SECURITY_CASE_RULE,
+        shouldPostToExistingChannel: false,
+      } as IncidentNotificationRule,
+    });
+
+    expect(
+      await screen.findByTestId("notification-rule-summary"),
+    ).toHaveTextContent("Name the channels this rule posts in.");
+  });
+});

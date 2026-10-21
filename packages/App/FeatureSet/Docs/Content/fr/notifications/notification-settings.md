@@ -22,6 +22,7 @@ flowchart TB
 - Un canal activé envoie à chaque méthode vérifiée que vous avez dessus dans ce projet, pas à une seule.
 - Un canal activé sans méthode vérifiée derrière lui n'envoie rien. **Your setup checklist** le signale sous **Staying informed**.
 - Une nouvelle va aux propriétaires de l'élément : les personnes nommées comme propriétaires, et les membres de ses équipes propriétaires. Quand un élément n'a pas de propriétaire, elle va plutôt aux propriétaires du projet. Un événement indiquant que vous avez été ajouté comme propriétaire ne va qu'à la personne ajoutée.
+- Les dossiers de sécurité n'ont pas de propriétaire. Un nouveau dossier va à toutes les personnes qui peuvent voir les dossiers du projet, à partir de la priorité que chacune choisit, et un dossier attribué aux personnes à qui il est attribué. Voir [Dossiers de sécurité](/docs/telemetry/security-cases#notifications).
 - Chaque e-mail aux propriétaires se termine par un lien "Manage notification preferences" qui ramène à cette page.
 
 ## Changer un paramètre
@@ -29,7 +30,7 @@ flowchart TB
 :::steps
 ### Ouvrir vos paramètres
 
-Allez dans **Paramètres utilisateur → Paramètres de notification**. Les onglets sont **Incidents**, **Alertes**, **Surveillance**, **Pages de statut**, **Maintenance planifiée** et **Astreinte**.
+Allez dans **Paramètres utilisateur → Paramètres de notification**. Les onglets sont **Incidents**, **Alertes**, **Surveillance**, **Pages de statut**, **Maintenance planifiée**, **Astreinte** et **Sécurité**.
 
 ### Trouver l'événement
 
@@ -52,6 +53,7 @@ Quand vous rejoignez un projet, ces événements sont activés, par e-mail. Tout
 | **Pages de statut** | Aucun | **Page de statut créée**, **Annonce de page de statut publiée**, **Ajouté comme propriétaire de la page de statut** |
 | **Maintenance planifiée** | **Rappel de maintenance** | **Événement de maintenance créé**, **État de la maintenance modifié**, **Note de maintenance publiée**, **Ajouté comme propriétaire de la maintenance** |
 | **Astreinte** | **Vous prenez l'astreinte**, **Vous êtes le prochain d'astreinte**, **Vous quittez l'astreinte**, **Ajouté à la politique d'astreinte**, **Retiré de la politique d'astreinte**, **Appel manqué**, et aussi par push : **Avant le début de ma permanence d'astreinte**, **Ma prochaine permanence d'astreinte est réattribuée** | Aucun |
+| **Sécurité** | Aussi par push : **Nouveau dossier de sécurité** (dossiers de priorité Élevé et Critique), **Dossier de sécurité qui m'est attribué**, **Étape de playbook en attente de mon approbation** | Aucun |
 
 > [!IMPORTANT]
 > **Statut du moniteur modifié** démarre désactivé. Pour savoir quand un moniteur dont vous êtes propriétaire tombe ou revient, activez-le dans l'onglet **Surveillance**.
@@ -64,6 +66,16 @@ L'onglet **Astreinte** parle de vous, pas des éléments dont vous êtes propri�
 - **Ajouté à la politique d'astreinte** et **Retiré de la politique d'astreinte** vous disent quand une politique d'astreinte commence ou cesse de vous nommer.
 - **Avant le début de ma permanence d'astreinte** envoie des rappels aux moments que vous choisissez dans **Paramètres utilisateur → Calendrier → Flux de calendrier**, et **Ma prochaine permanence d'astreinte est réattribuée** vous dit quand quelqu'un d'autre couvre une permanence dont vous aviez reçu un rappel. Voir [Flux de calendrier](/docs/on-call/calendar-feeds#rappels-et-avis-de-réaffectation).
 - **Appel manqué**, dans la carte **Politiques d'appels entrants**, dit aux propriétaires d'une politique d'appels entrants qu'un appelant n'a joint personne. Voir [Politique d'appels entrants](/docs/on-call/incoming-call-policy#appels-manqués).
+
+## Dossiers de sécurité
+
+L'onglet **Sécurité** parle des dossiers de sécurité que vous pouvez voir :
+
+- **Nouveau dossier de sécurité** a une priorité sous son nom : la priorité minimale des dossiers qui vous sont notifiés. Elle vaut **Élevé et Critique**, sauf si vous choisissez **Critique uniquement**, **Moyen et au-dessus**, **Faible et au-dessus** ou **Tous les dossiers**.
+- **Dossier de sécurité qui m'est attribué** suit les dossiers qui vous sont attribués, à vous ou aux équipes dont vous faites partie.
+- **Étape de playbook en attente de mon approbation** vous demande d'approuver ou de rejeter une étape de playbook sur un dossier où vous pouvez donner votre approbation.
+
+Voir [Dossiers de sécurité](/docs/telemetry/security-cases#notifications).
 
 ## Moins d'e-mails
 
