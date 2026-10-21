@@ -21,8 +21,16 @@ const beforeRef = process.env.EMAIL_PREVIEW_BASE || "origin/master";
 const home = "https://oneuptime.example.com";
 const project = `${home}/dashboard/harbor`;
 const status = "https://status.harbor.example.com";
-const logo =
-  "https://res.cloudinary.com/deityhub/image/upload/v1637736803/1png.png";
+// OneUptime's logo as MailService.render hands it to every email it heads:
+// the image itself, sent inside the email (Common/Server/Utils/Mail/EmailLogo.ts).
+const emailLogo = `data:image/png;base64,${fs
+  .readFileSync(
+    path.join(root, "packages/Common/Server/Static/Brand/oneuptime-email-logo.png"),
+  )
+  .toString("base64")}`;
+// A status page's uploaded logo: an image of its own, so no preview loads
+// anything from outside this machine.
+const logo = emailLogo;
 const read = (version, file) =>
   version === "after"
     ? fs.readFileSync(path.join(templates, file), "utf8")
@@ -160,6 +168,7 @@ const reportRows = [
 const common = {
   homeURL: home,
   year: "2026",
+  oneUptimeLogoUrl: emailLogo,
   logoUrl: "",
   statusPageName: "Harbor Status",
   statusPageUrl: status,
@@ -417,6 +426,20 @@ function createRenderer(version) {
   engine.registerHelper("ifNotCond", function (a, b, options) {
     return a !== b ? options.fn(this) : options.inverse(this);
   });
+  // The product's name, as FeatureSet/Notification/Utils/Handlebars.ts
+  // registers it (and Fixtures/EmailBrandHelpers.ts copies it): the
+  // installation's (brandProductName on the email's root), else OneUptime.
+  const brandNameOf = (options) => {
+    const root = options && options.data && options.data.root;
+    const name = root && root.brandProductName;
+    return typeof name === "string" && name.trim().length > 0
+      ? name
+      : "OneUptime";
+  };
+  engine.registerHelper("brandName", (options) => brandNameOf(options));
+  engine.registerHelper("brandNameHtml", (options) =>
+    engine.escapeExpression(brandNameOf(options)),
+  );
   // A detail card's dividers sit between its rows, never after the last:
   // a plain-JS copy of FeatureSet/Notification/Utils/EmailDetailCard.ts.
   const cardKey = "oneuptimeEmailDetailCard";

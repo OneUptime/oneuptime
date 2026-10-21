@@ -77,6 +77,8 @@ L'applicazione si collega all'esterno solo per ciò che attivi. Ciascuna di ques
 
 Le connessioni nell'altra direzione – SendGrid che consegna le email in arrivo, Slack e Microsoft Teams che richiamano – richiedono che l'ingress sia raggiungibile da internet. Quali indirizzi privati possano raggiungere l'applicazione e le sonde lo decidi tu: vedi [Accesso alla rete privata](/docs/self-hosted/private-network-access).
 
+Il logo di OneUptime viaggia dentro ogni email che OneUptime invia, quindi si vede anche su una rete senza accesso a internet, e aprire un'email non chiede nulla a nessun altro host. Le immagini che carichi tu, come il tuo logo o quello di una pagina di stato, vengono mostrate dal tuo URL di OneUptime, che chi legge quelle email deve poter raggiungere.
+
 ## Passaggi successivi
 
 :::cards
