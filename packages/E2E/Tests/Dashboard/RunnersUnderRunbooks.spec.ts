@@ -118,10 +118,9 @@ test.describe("Runners live under Runbooks", () => {
       await expect(breadcrumb).toContainText("Runners");
       await expect(breadcrumb).not.toContainText("Settings");
       /*
-       * The menu section is a heading called Runners too: this is the card
-       * of the project's own Runners. On a server that runs a global Runner
-       * - every Docker Compose install does - the global ones have a card of
-       * their own above it, and this one is Custom Runners.
+       * The card of the project's own Runners. On a server that runs a
+       * global Runner - every Docker Compose install does - the global ones
+       * have a card of their own above it, and this one is Custom Runners.
        */
       await expect(
         page
