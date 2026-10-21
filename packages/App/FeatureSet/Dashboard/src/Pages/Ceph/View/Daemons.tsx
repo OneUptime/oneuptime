@@ -13,6 +13,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderControls";
 import Table from "Common/UI/Components/Table/Table";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Column from "Common/UI/Components/Table/Types/Column";
@@ -270,11 +271,15 @@ const CephClusterDaemons: FunctionComponent<
     ];
   }, []);
 
+  /*
+   * Refresh lives in the ⋯ at the end of the card's header, where every
+   * table keeps it (getTableHeaderButtons), not as a loose icon beside
+   * the title.
+   */
   const cardButtons: Array<CardButtonSchema> = [
     {
       title: "",
       buttonStyle: ButtonStyleType.ICON,
-      className: "py-0 pr-0 pl-1 mt-1",
       onClick: () => {
         fetchData().catch(() => {});
       },
@@ -294,7 +299,7 @@ const CephClusterDaemons: FunctionComponent<
     <Card
       title="Daemons"
       description="Monitor, manager, metadata-server, and RADOS-gateway daemons in this cluster with quorum and reporting status."
-      buttons={cardButtons}
+      headerLayout="toolbar" buttons={getTableHeaderButtons(cardButtons)}
     >
       <Table<CephDaemonRow>
         id="ceph-daemons-table"

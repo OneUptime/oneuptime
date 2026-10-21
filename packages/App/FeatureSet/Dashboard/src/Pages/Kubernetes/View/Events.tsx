@@ -25,6 +25,7 @@ import { JSONObject } from "Common/Types/JSON";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { getKvValue, getKvStringValue } from "../Utils/KubernetesObjectParser";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderControls";
 import Table from "Common/UI/Components/Table/Table";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Column from "Common/UI/Components/Table/Types/Column";
@@ -449,11 +450,15 @@ const KubernetesClusterEvents: FunctionComponent<
 
   const hasActiveFilters: boolean = Object.keys(filterData).length > 0;
 
+  /*
+   * Refresh and Filter live in the ⋯ at the end of the card's header,
+   * where every table keeps them (getTableHeaderButtons), not as loose
+   * icons beside the title.
+   */
   const cardButtons: Array<CardButtonSchema> = [
     {
       title: "",
       buttonStyle: ButtonStyleType.ICON,
-      className: "py-0 pr-0 pl-1 mt-1",
       onClick: () => {
         fetchData().catch(() => {});
       },
@@ -462,7 +467,6 @@ const KubernetesClusterEvents: FunctionComponent<
     {
       title: "",
       buttonStyle: ButtonStyleType.ICON,
-      className: "py-0 pr-0 pl-1 mt-1",
       onClick: () => {
         setShowFilterModal(true);
       },
@@ -474,7 +478,7 @@ const KubernetesClusterEvents: FunctionComponent<
     <Card
       title="Kubernetes Events"
       description="Events from the last 24 hours in this cluster."
-      buttons={cardButtons}
+      headerLayout="toolbar" buttons={getTableHeaderButtons(cardButtons)}
     >
       <Table<KubernetesEventRow>
         id="kubernetes-events-table"

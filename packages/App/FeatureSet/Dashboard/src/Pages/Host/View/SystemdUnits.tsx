@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Host from "Common/Models/DatabaseModels/Host";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderControls";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -440,11 +441,15 @@ const HostSystemdUnits: FunctionComponent<
     },
   ];
 
+  /*
+   * Refresh lives in the ⋯ at the end of the card's header, where every
+   * table keeps it (getTableHeaderButtons), not as a loose icon beside
+   * the title.
+   */
   const cardButtons: Array<CardButtonSchema> = [
     {
       title: "",
       buttonStyle: ButtonStyleType.ICON,
-      className: "py-0 pr-0 pl-1 mt-1",
       onClick: () => {
         fetchData().catch(() => {});
       },
@@ -596,7 +601,7 @@ const HostSystemdUnits: FunctionComponent<
       : undefined;
 
   return (
-    <Card title="Systemd Units" description={description} buttons={cardButtons}>
+    <Card title="Systemd Units" description={description} headerLayout="toolbar" buttons={getTableHeaderButtons(cardButtons)}>
       <div>
         {(rows.length > 0 || hasActiveFilters) && filterBar}
         <Table<SystemdUnitRow>

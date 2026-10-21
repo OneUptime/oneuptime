@@ -4,6 +4,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import EmbeddedMetricCard from "../../../Components/Metrics/EmbeddedMetricCard";
 import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderControls";
 import Table from "Common/UI/Components/Table/Table";
 import Column from "Common/UI/Components/Table/Types/Column";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -414,10 +415,14 @@ const KubernetesClusterCosts: FunctionComponent<
     ];
   }, [workloadSpend]);
 
+  /*
+   * Refresh lives in the ⋯ at the end of the card's header, where every
+   * table keeps it (getTableHeaderButtons), not as a loose icon beside
+   * the title.
+   */
   const refreshButton: CardButtonSchema = {
     title: "",
     buttonStyle: ButtonStyleType.ICON,
-    className: "py-0 pr-0 pl-1 mt-1",
     onClick: reload,
     icon: IconProp.Refresh,
   };
@@ -512,7 +517,7 @@ const KubernetesClusterCosts: FunctionComponent<
       <Card
         title="Spend by Namespace"
         description="Whole-window cost per namespace with cpu / memory / storage split and request-vs-usage efficiency."
-        buttons={[refreshButton]}
+        headerLayout="toolbar" buttons={getTableHeaderButtons([refreshButton])}
       >
         <Table<NamespaceCostRow>
           id="kubernetes-namespace-costs-table"
@@ -549,7 +554,7 @@ const KubernetesClusterCosts: FunctionComponent<
       <Card
         title="Spend by Workload"
         description="Whole-window cost per workload (controller), highest spend first. Idle capacity is excluded."
-        buttons={[refreshButton]}
+        headerLayout="toolbar" buttons={getTableHeaderButtons([refreshButton])}
       >
         <Table<WorkloadCostRow>
           id="kubernetes-workload-costs-table"

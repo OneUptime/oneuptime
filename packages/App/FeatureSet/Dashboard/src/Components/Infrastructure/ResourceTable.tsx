@@ -5,6 +5,7 @@ import React, {
   useState,
 } from "react";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderControls";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -595,12 +596,16 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
 
   const hasActiveFilters: boolean = Object.keys(filterData).length > 0;
 
+  /*
+   * Refresh and Filter live in the ⋯ at the end of the card's header,
+   * where every table keeps them (getTableHeaderButtons), not as loose
+   * icons beside the title.
+   */
   const cardButtons: Array<CardButtonSchema> = [];
 
   if (props.onRefreshClick) {
     cardButtons.push({
       ...getRefreshButton(),
-      className: "py-0 pr-0 pl-0 mt-1",
       onClick: props.onRefreshClick,
     });
   }
@@ -608,7 +613,6 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
   cardButtons.push({
     title: "",
     buttonStyle: ButtonStyleType.ICON,
-    className: "py-0 pr-0 pl-1 mt-1",
     onClick: () => {
       setShowFilterModal(true);
     },
@@ -619,7 +623,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
     <Card
       title={props.title}
       description={props.description}
-      buttons={cardButtons}
+      headerLayout="toolbar" buttons={getTableHeaderButtons(cardButtons)}
     >
       <Table<InfrastructureResource>
         id={`${props.tableIdPrefix || "infrastructure"}-${props.title.toLowerCase().replace(/\s+/g, "-")}-table`}

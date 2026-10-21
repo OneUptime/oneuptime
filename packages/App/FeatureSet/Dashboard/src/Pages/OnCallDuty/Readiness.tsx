@@ -39,6 +39,7 @@ import { JSONObject } from "Common/Types/JSON";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { BulkActionOnClickProps } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderControls";
 import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -1372,6 +1373,11 @@ const OnCallReadinessPage: FunctionComponent<
     ],
   };
 
+  /*
+   * Refresh and Filter live in the ⋯ at the end of the card's header,
+   * where every table keeps them (getTableHeaderButtons), not as loose
+   * icons beside the title.
+   */
   const refreshButton: CardButtonSchema = getRefreshButton();
   refreshButton.title = "Refresh";
   refreshButton.onClick = () => {
@@ -1387,19 +1393,14 @@ const OnCallReadinessPage: FunctionComponent<
   };
 
   /*
-   * The funnel. Table renders the filter MODAL and the chip banner but no button
+   * Filter. Table renders the filter MODAL and the chip banner but no button
    * to open either with (FilterViewer draws nothing at all until a filter is
    * applied), so every page that offers filtering puts the trigger in its own
-   * card header - which is also why it is the same funnel in the same corner
-   * everywhere in the product.
-   *
-   * `title` on an ICON button is not drawn; it becomes the accessible name. An
-   * icon with no name is a control a screen reader announces as "button".
+   * card header - in the ⋯, as Filter, which is where every table keeps it.
    */
   const filterButton: CardButtonSchema = {
     title: "Filter",
     buttonStyle: ButtonStyleType.ICON,
-    className: "py-0 pr-0 pl-1 mt-1",
     icon: IconProp.Filter,
     onClick: () => {
       setIsFilterModalVisible(true);
@@ -1853,7 +1854,7 @@ const OnCallReadinessPage: FunctionComponent<
       <Card
         title="On-call readiness"
         description="Every responder any on-call policy in this project can reach - directly, through a team, a schedule or an override - and whether a page would actually arrive."
-        buttons={[refreshButton, filterButton]}
+        headerLayout="toolbar" buttons={getTableHeaderButtons([refreshButton, filterButton])}
       >
         <div>
           {/*
