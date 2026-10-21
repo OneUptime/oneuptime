@@ -22,6 +22,10 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useClipboardCopy, {
+  ClipboardCopy,
+  ClipboardCopyStatus,
+} from "Common/UI/Utils/UseClipboardCopy";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -237,7 +241,14 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
     isSending: conversation.isSending,
   });
 
-  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  /*
+   * An answer's Copy says "Copied" once the answer is on the clipboard and
+   * "Copy failed" when the browser refused - on a page served over plain
+   * http it used to do nothing at all (issue #5132).
+   */
+  const answerClipboard: ClipboardCopy = useClipboardCopy({
+    copiedForMs: 1500,
+  });
 
   /*
    * The subject whose whole thread the reader asked to see. Keyed by the
@@ -290,21 +301,11 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
   const copyAnswer: (message: ThreadMessage) => void = (
     message: ThreadMessage,
   ): void => {
-    if (!message.content || typeof navigator === "undefined") {
+    if (!message.content) {
       return;
     }
 
-    navigator.clipboard
-      ?.writeText(message.content)
-      .then(() => {
-        setCopiedMessageId(message.id);
-        setTimeout(() => {
-          setCopiedMessageId(null);
-        }, 1500);
-      })
-      .catch(() => {
-        // Clipboard unavailable — nothing to do.
-      });
+    void answerClipboard.copy(message.content, message.id);
   };
 
   const applySuggestion: (suggestion: SuggestedPrompt) => void = (
@@ -611,19 +612,36 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
               onClick={() => {
                 copyAnswer(message);
               }}
-              className="-ml-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              data-testid="investigation-conversation-copy-answer"
+              data-copy-state={answerClipboard.statusOf(message.id)}
+              className={`-ml-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                answerClipboard.statusOf(message.id) ===
+                ClipboardCopyStatus.Failed
+                  ? "text-red-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
             >
               <Icon
                 icon={
-                  copiedMessageId === message.id
+                  answerClipboard.statusOf(message.id) ===
+                  ClipboardCopyStatus.Copied
                     ? IconProp.Check
-                    : IconProp.Copy
+                    : answerClipboard.statusOf(message.id) ===
+                        ClipboardCopyStatus.Failed
+                      ? IconProp.Alert
+                      : IconProp.Copy
                 }
                 className="h-3.5 w-3.5"
               />
-              {copiedMessageId === message.id
-                ? translator.translateText("Copied")
-                : translator.translateText("Copy")}
+              <span aria-live="polite">
+                {answerClipboard.statusOf(message.id) ===
+                ClipboardCopyStatus.Copied
+                  ? translator.translateText("Copied")
+                  : answerClipboard.statusOf(message.id) ===
+                      ClipboardCopyStatus.Failed
+                    ? translator.translateText("Copy failed")
+                    : translator.translateText("Copy")}
+              </span>
             </button>
           </div>
         ) : (

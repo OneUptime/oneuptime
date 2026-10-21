@@ -265,14 +265,14 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
     setCopyError("");
     setHasCopiedCodes(false);
     try {
-      if (!navigator.clipboard?.writeText) {
-        throw new Error("Clipboard unavailable");
-      }
       /*
        * copyToClipboard reports a refused write as `false` rather than
        * rejecting, so the result has to be checked: acknowledging codes that
        * never reached the clipboard would hide the download fallback from
-       * exactly the user who needs it.
+       * exactly the user who needs it. A page served over plain http has no
+       * navigator.clipboard, and the helper copies through the browser's
+       * older copy command there - this used to give up on such a page
+       * before trying it (issue #5132).
        */
       if (!(await Clipboard.copyToClipboard(generatedCodes.join("\n")))) {
         throw new Error("Clipboard write refused");

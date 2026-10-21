@@ -42,6 +42,9 @@ import {
   Translator,
   translationKey,
 } from "../../Utils/TranslateTemplate";
+import useClipboardCopy, {
+  ClipboardCopy,
+} from "../../Utils/UseClipboardCopy";
 import useTranslator from "../../Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -341,6 +344,10 @@ const STATUS_TONE_CLASS: Record<StatusTone, string> = {
 const TOOLBAR_BUTTON_CLASS: string =
   "inline-flex shrink-0 items-center gap-1 rounded px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-40";
 
+// Copy, while it says the browser refused the copy.
+const TOOLBAR_FAILED_BUTTON_CLASS: string =
+  "inline-flex shrink-0 items-center gap-1 rounded px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-40";
+
 /**
  * A code editor for form fields: a native textarea over a highlighted copy
  * of its text, with line numbers, auto-indentation, bracket pairing, a
@@ -388,10 +395,15 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
   const tabMovesFocusRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
-  const [copied, setCopied] = useState<boolean>(false);
-  const copyResetTimer: React.MutableRefObject<ReturnType<
-    typeof setTimeout
-  > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /*
+   * Copy says "Copied" only once the document is on the clipboard, and
+   * "Copy failed" when the browser refused it (Clipboard.ts tries the async
+   * clipboard, then the older copy command a plain-http page still has). It
+   * used to say "Copied" over a refused write (issue #5132).
+   */
+  const clipboard: ClipboardCopy = useClipboardCopy();
+  const copied: boolean = clipboard.isCopied;
+  const copyFailed: boolean = clipboard.isFailed;
 
   const textareaRef: React.MutableRefObject<HTMLTextAreaElement | null> =
     useRef<HTMLTextAreaElement | null>(null);
@@ -441,14 +453,6 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
       clearTimeout(timer);
     };
   }, [text, language.validator]);
-
-  useEffect(() => {
-    return () => {
-      if (copyResetTimer.current) {
-        clearTimeout(copyResetTimer.current);
-      }
-    };
-  }, []);
 
   const indentUnit: IndentUnit = useMemo(() => {
     return detectIndentUnit(text, FALLBACK_INDENT, language.allowTabs);
@@ -712,42 +716,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
   type HandleCopyFunction = () => void;
 
   const handleCopy: HandleCopyFunction = (): void => {
-    const textarea: HTMLTextAreaElement | null = textareaRef.current;
-    const content: string = textarea?.value ?? text;
-    const clipboard: Clipboard | undefined =
-      typeof navigator !== "undefined" ? navigator.clipboard : undefined;
-
-    if (clipboard && typeof clipboard.writeText === "function") {
-      void Promise.resolve(clipboard.writeText(content)).catch(() => {
-        /* A denied clipboard permission is not worth an error state. */
-      });
-    } else if (textarea && typeof document.execCommand === "function") {
-      // No async clipboard outside a secure context (plain-HTTP installs).
-      const { selectionStart, selectionEnd } = textarea;
-
-      textarea.focus();
-      textarea.select();
-
-      try {
-        document.execCommand("copy");
-      } catch {
-        /* Nothing more to try. */
-      }
-
-      textarea.setSelectionRange(selectionStart, selectionEnd);
-    } else {
-      return;
-    }
-
-    setCopied(true);
-
-    if (copyResetTimer.current) {
-      clearTimeout(copyResetTimer.current);
-    }
-
-    copyResetTimer.current = setTimeout(() => {
-      setCopied(false);
-    }, 2000);
+    void clipboard.copy(textareaRef.current?.value ?? text);
   };
 
   type HandleKeyDownFunction = (
@@ -1128,6 +1097,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
           <button
             type="button"
             data-testid="code-editor-copy-button"
+            data-copy-state={clipboard.status}
             aria-label={translator.translateTemplate(
               copied
                 ? "{{language}} copied to clipboard"
@@ -1135,14 +1105,26 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
               { language: translatableTerm(language.label) },
             )}
             disabled={isEmpty}
-            className={TOOLBAR_BUTTON_CLASS}
+            className={
+              copyFailed ? TOOLBAR_FAILED_BUTTON_CLASS : TOOLBAR_BUTTON_CLASS
+            }
             onClick={handleCopy}
           >
             <Icon
-              icon={copied ? IconProp.Check : IconProp.Copy}
+              icon={
+                copied
+                  ? IconProp.Check
+                  : copyFailed
+                    ? IconProp.Alert
+                    : IconProp.Copy
+              }
               className="h-3.5 w-3.5"
             />
-            {translator.translateText(copied ? "Copied" : "Copy")}
+            {copied
+              ? translator.translateText("Copied")
+              : copyFailed
+                ? translator.translateText("Copy failed")
+                : translator.translateText("Copy")}
           </button>
         </div>
       </div>
@@ -1366,7 +1348,9 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
           ? translator.translateTemplate("{{language}} copied to clipboard", {
               language: translatableTerm(language.label),
             })
-          : ""}
+          : copyFailed
+            ? translator.translateText("Copy failed")
+            : ""}
       </span>
     </div>
   );

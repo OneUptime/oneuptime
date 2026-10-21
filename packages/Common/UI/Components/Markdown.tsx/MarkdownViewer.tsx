@@ -7,7 +7,6 @@ import React, {
   useEffect,
   useMemo,
   useRef,
-  useState,
 } from "react";
 // https://github.com/remarkjs/react-markdown
 import ReactMarkdown, { Components } from "react-markdown";
@@ -103,6 +102,10 @@ import {
   translateText,
   Translator,
 } from "../../Utils/TranslateTemplate";
+import Clipboard from "../../Utils/Clipboard";
+import useClipboardCopy, {
+  ClipboardCopy,
+} from "../../Utils/UseClipboardCopy";
 import useTranslator from "../../Utils/UseTranslator";
 import {
   InlineReferenceTransformOptions,
@@ -416,21 +419,39 @@ const CodeBlock: FunctionComponent<{
   rest: any;
 }): ReactElement => {
   const translator: Translator = useTranslator();
-  const [copied, setCopied] = useState<boolean>(false);
+
+  /*
+   * "Copied!" only once the code is on the clipboard. On a page served over
+   * plain http - a status page or a form on a self-hosted install - the
+   * browser has no clipboard API and the click used to throw (issue #5132);
+   * the copy goes through the browser's older command there, and when that
+   * is refused too the button says "Copy failed" and the code is selected,
+   * to copy by hand.
+   */
+  const clipboard: ClipboardCopy = useClipboardCopy();
+  const copied: boolean = clipboard.isCopied;
+  const failed: boolean = clipboard.isFailed;
+  const copyToClipboard: (text: string) => Promise<boolean> = clipboard.copy;
+  const blockRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
 
   const handleCopy: () => void = useCallback((): void => {
-    navigator.clipboard
-      .writeText(content)
-      .then((): void => {
-        setCopied(true);
-        setTimeout((): void => {
-          setCopied(false);
-        }, 2000);
-      })
-      .catch((): void => {
-        // Fallback: do nothing
-      });
-  }, [content]);
+    void copyToClipboard(content).then((hasCopied: boolean): void => {
+      if (!hasCopied) {
+        Clipboard.selectForManualCopy(
+          blockRef.current?.querySelector<HTMLElement>("pre") || null,
+        );
+      }
+    });
+  }, [content, copyToClipboard]);
+
+  let copyText: string = translator.translateText("Copy") || "Copy";
+
+  if (copied) {
+    copyText = translator.translateText("Copied!") || "Copied!";
+  } else if (failed) {
+    copyText = translator.translateText("Copy failed") || "Copy failed";
+  }
 
   const displayLang: string =
     langDisplayNames[language] ||
@@ -452,6 +473,7 @@ const CodeBlock: FunctionComponent<{
    */
   return (
     <div
+      ref={blockRef}
       className="relative rounded-lg mt-3 mb-3 overflow-hidden border border-gray-200 shadow-sm"
       data-markdown-code-block="true"
       data-language={language}
@@ -469,12 +491,30 @@ const CodeBlock: FunctionComponent<{
           className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium transition-all duration-150 border-none cursor-pointer ${
             copied
               ? "text-green-400"
-              : "text-gray-400 hover:text-gray-200 hover:bg-white/10"
+              : failed
+                ? "text-red-300 hover:bg-white/10"
+                : "text-gray-400 hover:text-gray-200 hover:bg-white/10"
           }`}
           aria-label={translator.translateText("Copy code")}
+          data-copy-state={clipboard.status}
           type="button"
         >
-          {copied ? (
+          {failed ? (
+            <svg
+              aria-hidden="true"
+              className="w-3.5 h-3.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 10.5v3.75m-9.303 3.376C1.83 19.126 2.914 21 4.645 21h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 4.88c-.866-1.501-3.032-1.501-3.898 0L2.697 17.626zM12 17.25h.007v.008H12v-.008z"
+              />
+            </svg>
+          ) : copied ? (
             <svg
               className="w-3.5 h-3.5"
               fill="none"
@@ -500,7 +540,7 @@ const CodeBlock: FunctionComponent<{
               <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
             </svg>
           )}
-          {translator.translateText(copied ? "Copied!" : "Copy")}
+          <span aria-live="polite">{copyText}</span>
         </button>
       </div>
       {/*

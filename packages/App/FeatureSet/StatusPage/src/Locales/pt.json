@@ -147,6 +147,7 @@
       "copyHint": "Cole-o em qualquer aplicação de calendário que consiga subscrever um calendário por URL.",
       "copy": "Copiar link",
       "copied": "Copiado!",
+      "copyFailed": "O seu navegador não deixou esta página copiar o link. Está selecionado acima, para que o possa copiar.",
       "done": "Concluído",
       "refreshNote": "As aplicações de calendário procuram alterações segundo o seu próprio horário, por isso uma atualização pode demorar algumas horas a aparecer."
     }

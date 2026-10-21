@@ -1,13 +1,11 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import Clipboard from "Common/UI/Utils/Clipboard";
+import useClipboardCopy, {
+  ClipboardCopy,
+} from "Common/UI/Utils/UseClipboardCopy";
+import React, { FunctionComponent, ReactElement, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 /*
@@ -25,6 +23,13 @@ import { useTranslation } from "react-i18next";
  * calendar links read; the addresses are built by the page from its own
  * address (MaintenanceCalendarLinks), never typed. Every word is the page's
  * own translation (scheduledEvents.calendar.*).
+ *
+ * Copy link says "Copied!" only once the link is on the clipboard (issue
+ * #5132). A status page served over plain http - a self-hosted install
+ * reached by a LAN hostname - has no navigator.clipboard at all; the copy
+ * then goes through the browser's older copy command (Clipboard.ts). When
+ * the browser refuses that too, the dialog says so, and the link is left
+ * selected in its field, to copy with the keyboard or the browser's menu.
  */
 export enum MaintenanceCalendarModalMode {
   Subscribe = "subscribe",
@@ -48,24 +53,18 @@ export interface ComponentProps {
 export const CALENDAR_OPTION_CLASS_NAME: string =
   "group flex min-w-0 items-center gap-3 rounded-lg border border-gray-200 bg-white px-3.5 py-3 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
-const COPIED_FOR_MILLISECONDS: number = 2000;
-
 const MaintenanceCalendarModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { t } = useTranslation();
-  const [isCopied, setIsCopied] = useState<boolean>(false);
-  const copiedTimer: React.MutableRefObject<ReturnType<
-    typeof setTimeout
-  > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (copiedTimer.current) {
-        clearTimeout(copiedTimer.current);
-      }
-    };
-  }, []);
+  /*
+   * "Copied!" for a moment; a failure stays until the next try, since it
+   * tells the reader what to do.
+   */
+  const clipboard: ClipboardCopy = useClipboardCopy({ failedForMs: null });
+  const linkFieldRef: React.RefObject<HTMLInputElement> =
+    useRef<HTMLInputElement>(null);
 
   const isSubscribe: boolean =
     props.mode === MaintenanceCalendarModalMode.Subscribe;
@@ -75,19 +74,10 @@ const MaintenanceCalendarModal: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    try {
-      await navigator.clipboard?.writeText(props.copyUrl);
-      setIsCopied(true);
+    const hasCopied: boolean = await clipboard.copy(props.copyUrl);
 
-      if (copiedTimer.current) {
-        clearTimeout(copiedTimer.current);
-      }
-
-      copiedTimer.current = setTimeout(() => {
-        setIsCopied(false);
-      }, COPIED_FOR_MILLISECONDS);
-    } catch {
-      // No clipboard (an insecure page): the address is in the field to select.
+    if (!hasCopied) {
+      Clipboard.selectForManualCopy(linkFieldRef.current);
     }
   };
 
@@ -195,6 +185,7 @@ const MaintenanceCalendarModal: FunctionComponent<ComponentProps> = (
             </p>
             <div className="mt-3 flex min-w-0 rounded-md shadow-sm">
               <input
+                ref={linkFieldRef}
                 type="text"
                 readOnly={true}
                 value={props.copyUrl}
@@ -214,15 +205,37 @@ const MaintenanceCalendarModal: FunctionComponent<ComponentProps> = (
                 }}
               >
                 <Icon
-                  icon={isCopied ? IconProp.Check : IconProp.Copy}
-                  className={`h-4 w-4 ${isCopied ? "text-green-600" : "text-gray-400"}`}
+                  icon={clipboard.isCopied ? IconProp.Check : IconProp.Copy}
+                  className={`h-4 w-4 ${clipboard.isCopied ? "text-green-600" : "text-gray-400"}`}
                 />
                 <span aria-live="polite">
-                  {isCopied
+                  {clipboard.isCopied
                     ? t("scheduledEvents.calendar.copied")
                     : t("scheduledEvents.calendar.copy")}
                 </span>
               </button>
+            </div>
+            {/*
+             * In the page from the start, so a screen reader hears the
+             * failure when it is written into it.
+             */}
+            <div role="status" data-testid="maintenance-calendar-copy-status">
+              {clipboard.isFailed ? (
+                <p
+                  className="mt-2 flex items-start gap-1.5 text-xs leading-5 text-amber-700"
+                  data-testid="maintenance-calendar-copy-failed"
+                >
+                  <Icon
+                    icon={IconProp.Alert}
+                    className="mt-0.5 h-3.5 w-3.5 flex-none"
+                  />
+                  <span className="min-w-0 text-pretty">
+                    {t("scheduledEvents.calendar.copyFailed")}
+                  </span>
+                </p>
+              ) : (
+                <></>
+              )}
             </div>
           </section>
         ) : (

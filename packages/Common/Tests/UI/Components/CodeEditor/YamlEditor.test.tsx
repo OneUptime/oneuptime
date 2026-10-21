@@ -465,7 +465,7 @@ describe("YamlEditor — the parse is debounced", () => {
     expect(statusText()).toBe("Config is not valid YAML.");
   });
 
-  test("the copy confirmation goes back to Copy on its own", () => {
+  test("the copy confirmation goes back to Copy on its own", async () => {
     Object.defineProperty(navigator, "clipboard", {
       value: {
         writeText: (): Promise<void> => {
@@ -477,7 +477,9 @@ describe("YamlEditor — the parse is debounced", () => {
 
     render(<YamlEditor value="a: 1" />);
 
-    fireEvent.click(screen.getByTestId("code-editor-copy-button"));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("code-editor-copy-button"));
+    });
     expect(screen.getByTestId("code-editor-copy-button")).toHaveTextContent(
       "Copied",
     );
@@ -528,14 +530,16 @@ describe("YamlEditor — copying the document", () => {
     expect(writeText).toHaveBeenCalledWith("new: 2");
   });
 
-  test("the confirmation is announced, and the button's name tracks it", () => {
+  test("the confirmation is announced, and the button's name tracks it", async () => {
     render(<YamlEditor value="a: 1" />);
 
     const button: HTMLElement = screen.getByTestId("code-editor-copy-button");
 
     expect(button).toHaveAttribute("aria-label", "Copy YAML to clipboard");
 
-    fireEvent.click(button);
+    await act(async () => {
+      fireEvent.click(button);
+    });
 
     expect(button).toHaveAttribute("aria-label", "YAML copied to clipboard");
     expect(

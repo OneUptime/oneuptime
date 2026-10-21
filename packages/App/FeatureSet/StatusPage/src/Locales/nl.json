@@ -147,6 +147,7 @@
       "copyHint": "Plak hem in een agenda-app die zich via een URL op een agenda kan abonneren.",
       "copy": "Link kopiëren",
       "copied": "Gekopieerd!",
+      "copyFailed": "Je browser liet deze pagina de link niet kopiëren. Hij is hierboven geselecteerd, zodat je hem zelf kunt kopiëren.",
       "done": "Klaar",
       "refreshNote": "Agenda-apps controleren op hun eigen moment op wijzigingen, dus het kan een paar uur duren voordat een update verschijnt."
     }

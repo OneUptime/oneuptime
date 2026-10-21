@@ -3,7 +3,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useMemo,
-  useState,
+  useRef,
 } from "react";
 /*
  * Trimmed highlight.js instance — lib/core plus only the languages CodeBlock
@@ -13,7 +13,11 @@ import React, {
 import hljs, { resolveRegisteredLanguage } from "./LanguageRegistry";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
+import Clipboard from "../../Utils/Clipboard";
 import { Translator } from "../../Utils/TranslateTemplate";
+import useClipboardCopy, {
+  ClipboardCopy,
+} from "../../Utils/UseClipboardCopy";
 import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
@@ -49,23 +53,42 @@ export const CODE_BLOCK_WRAP_CLASS_NAME: string =
   "whitespace-pre-wrap break-words";
 export const CODE_BLOCK_COPY_BUTTON_GUTTER_CLASS_NAME: string = "!pr-14";
 
+/*
+ * The copy button says "Copied!" only once the code is on the clipboard. It
+ * used to say so whatever happened, and on a page served over plain http -
+ * where the browser has no clipboard API - the click threw instead (issue
+ * #5132). When the browser refuses, it says "Copy failed" and selects the
+ * code, to copy by hand.
+ */
 const CodeBlock: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const [copied, setCopied] = useState<boolean>(false);
+  const clipboard: ClipboardCopy = useClipboardCopy();
+  const copied: boolean = clipboard.isCopied;
+  const failed: boolean = clipboard.isFailed;
+  const codeRef: React.RefObject<HTMLElement> = useRef<HTMLElement>(null);
 
-  const handleCopy: () => void = (): void => {
-    if (typeof props.code === "string") {
-      navigator.clipboard.writeText(props.code).catch(() => {
-        /* ignore clipboard errors */
-      });
-      setCopied(true);
-      setTimeout(() => {
-        setCopied(false);
-      }, 2000);
+  const handleCopy: () => Promise<void> = async (): Promise<void> => {
+    if (typeof props.code !== "string") {
+      return;
+    }
+
+    const hasCopied: boolean = await clipboard.copy(props.code);
+
+    if (!hasCopied) {
+      Clipboard.selectForManualCopy(codeRef.current);
     }
   };
+
+  let copyTitle: string =
+    translator.translateText("Copy to clipboard") || "Copy to clipboard";
+
+  if (copied) {
+    copyTitle = translator.translateText("Copied!") || "Copied!";
+  } else if (failed) {
+    copyTitle = translator.translateText("Copy failed") || "Copy failed";
+  }
 
   const maxHeight: string = props.maxHeight || "500px";
   const showCopyButton: boolean = props.showCopyButton !== false;
@@ -113,21 +136,35 @@ const CodeBlock: FunctionComponent<ComponentProps> = (
     <div className="relative group">
       {showCopyButton && typeof props.code === "string" && (
         <button
-          onClick={handleCopy}
-          className="absolute top-2 right-2 p-2 rounded-md bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white transition-all opacity-70 hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-100 z-10"
-          title={translator.translateText(
-            copied ? "Copied!" : "Copy to clipboard",
-          )}
-          aria-label={translator.translateText(
-            copied ? "Copied" : "Copy to clipboard",
-          )}
+          onClick={() => {
+            void handleCopy();
+          }}
+          className={`absolute top-2 right-2 p-2 rounded-md bg-gray-700 hover:bg-gray-600 transition-all hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-100 z-10 ${
+            failed
+              ? "text-red-300 hover:text-red-200 opacity-100"
+              : "text-gray-300 hover:text-white opacity-70"
+          }`}
+          title={copyTitle}
+          aria-label={copyTitle}
+          data-testid="code-block-copy-button"
+          data-copy-state={clipboard.status}
           type="button"
         >
           <Icon
-            icon={copied ? IconProp.Check : IconProp.Copy}
+            icon={
+              copied ? IconProp.Check : failed ? IconProp.Alert : IconProp.Copy
+            }
             className="h-4 w-4"
           />
         </button>
+      )}
+      {showCopyButton && typeof props.code === "string" ? (
+        // What the copy did, said to a screen reader.
+        <span className="sr-only" role="status">
+          {copied || failed ? copyTitle : ""}
+        </span>
+      ) : (
+        <></>
       )}
       <div
         className="overflow-auto rounded-lg border border-gray-700"
@@ -136,11 +173,14 @@ const CodeBlock: FunctionComponent<ComponentProps> = (
         <pre>
           {highlightedHtml !== null ? (
             <code
+              ref={codeRef}
               className={codeClassName}
               dangerouslySetInnerHTML={{ __html: highlightedHtml }}
             />
           ) : (
-            <code className={codeClassName}>{props.code}</code>
+            <code ref={codeRef} className={codeClassName}>
+              {props.code}
+            </code>
           )}
         </pre>
       </div>
