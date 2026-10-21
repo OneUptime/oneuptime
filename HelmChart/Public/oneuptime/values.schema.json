@@ -4434,6 +4434,51 @@
             },
             "additionalProperties": false
         },
+        "cloudConnect": {
+            "type": "object",
+            "description": "Cloud > Connect: the AWS identity that signs in to the read-only IAM roles customers create. Unset, AWS accounts connect with an access key.",
+            "properties": {
+                "aws": {
+                    "type": "object",
+                    "properties": {
+                        "accessKeyId": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "secretAccessKey": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "existingSecret": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                },
+                                "accessKeyIdKey": {
+                                    "type": "string"
+                                },
+                                "secretAccessKeyKey": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "name",
+                                "accessKeyIdKey",
+                                "secretAccessKeyKey"
+                            ],
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
         "gitHubApp": {
             "type": "object",
             "properties": {

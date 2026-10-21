@@ -15,6 +15,19 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
     {
       title: "Cloud",
       items: [
+        /*
+         * The way in: AWS, Azure and Google Cloud accounts connected in a
+         * few clicks, read on a schedule with read-only access.
+         */
+        {
+          link: {
+            title: "Connect",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_CONNECT] as Route,
+            ),
+          },
+          icon: IconProp.Link,
+        },
         {
           link: {
             title: "All Environments",

@@ -2,6 +2,9 @@
 
 **Cloud Resources**에는 AWS, Azure, Google Cloud 계정의 IaaS와 PaaS 리소스가 나열됩니다. 가상 머신, 디스크, 로드 밸런서, 버킷, 관리형 데이터베이스, 캐시, 큐, API 게이트웨이 등입니다. 각 리소스에는 전용 페이지가 있어 유형, 리전, 계정, 공급자가 붙인 고유 ID, 공급자가 게시하는 모든 메트릭이 표시되며, OneUptime의 다른 리소스처럼 소유자와 레이블을 붙일 수 있습니다. 리소스는 **클라우드 → 모든 리소스**에 있습니다.
 
+> [!TIP]
+> 컬렉터를 실행하고 싶지 않다면 **클라우드 → 연결**에서 [클라우드 계정을 연결](/docs/telemetry/cloud-accounts)하세요. OneUptime이 이 메트릭을 직접 읽습니다.
+
 :::cards
 - [Azure 연결하기](#azure-연결하기): 구독의 모든 리소스를 Azure Monitor에서 읽습니다.
 - [AWS 연결하기](#aws-연결하기): CloudWatch를 폴링하거나, Amazon Data Firehose로 스트리밍합니다.

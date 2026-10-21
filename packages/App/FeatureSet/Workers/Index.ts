@@ -335,6 +335,7 @@ import "./Jobs/IoT/CleanupStaleResources";
 
 // Cloud environment disconnection sweeper + instance inventory cleanup.
 import "./Jobs/Cloud/CleanupStaleResources";
+import "./Jobs/Cloud/ReadCloudConnections";
 
 // Serverless function disconnection sweeper + instance inventory cleanup.
 import "./Jobs/Serverless/CleanupStaleResources";
