@@ -13954,7 +13954,7 @@
   "On most routers and L3 switches this is two steps: enable flow accounting on the interfaces you care about, then add a flow export destination pointing at the probe. Records are matched to this device by the exporter IP address, which must equal this device's hostname/IP as registered here.": "On most routers and L3 switches this is two steps: enable flow accounting on the interfaces you care about, then add a flow export destination pointing at the probe. Records are matched to this device by the exporter IP address, which must equal this device's hostname/IP as registered here.",
   "On most routers and switches this is two steps: add a remote syslog server pointing at the probe, then add the probe as an SNMP trap receiver. Messages are matched to this device by the sender IP address, which must equal this device's hostname/IP as registered here.": "On most routers and switches this is two steps: add a remote syslog server pointing at the probe, then add the probe as an SNMP trap receiver. Messages are matched to this device by the sender IP address, which must equal this device's hostname/IP as registered here.",
   "On page exit the browser's keepalive quota could not carry every queued chunk. The detail says how many were sent and how many were dropped; that session has a gap at the end.": "On page exit the browser's keepalive quota could not carry every queued chunk. The detail says how many were sent and how many were dropped; that session has a gap at the end.",
-  "On the host": "On the host",
+  "On the host": "호스트에서",
   "On the page that is not recording, run this in the browser console, then paste the result below.": "On the page that is not recording, run this in the browser console, then paste the result below.",
   "On, budget exhausted this month": "On, budget exhausted this month",
   "On, but uploads are being refused": "On, but uploads are being refused",
@@ -32267,7 +32267,6 @@
   "Every saved version of a Collector Config, so each host can say which version it runs.": "컬렉터 구성의 저장된 각 버전으로, 각 호스트가 실행 중인 버전을 알릴 수 있습니다.",
   "Failed Collector Config Hash": "실패한 컬렉터 구성 해시",
   "Host metrics only: what every system can collect.": "호스트 메트릭만: 모든 시스템이 수집할 수 있는 항목입니다.",
-  "Host metrics, the journal and nginx logs": "호스트 메트릭, 저널, nginx 로그",
   "Hosts being monitored in this project. Add one with a single command on the host.": "이 프로젝트에서 모니터링하는 호스트입니다. 호스트에서 명령 하나로 추가하세요.",
   "Hosts documentation": "호스트 문서",
   "Hosts on any system": "모든 시스템의 호스트",
@@ -32374,5 +32373,6 @@
   "{{host}} is connected. Its metrics and logs arrive within a minute.": "{{host}}이(가) 연결되었습니다. 메트릭과 로그는 1분 안에 도착합니다.",
   "Why this config": "이 구성인 이유",
   "Send with the otlp_http exporter to {{url}}/otlp, with the header x-oneuptime-token: {{key}}. Each host fills in its own address and key.": "otlp_http 익스포터로 {{url}}/otlp에 x-oneuptime-token: {{key}} 헤더와 함께 보내세요. 각 호스트가 자체 주소와 키를 채웁니다.",
-  "The collector runs the config OneUptime sent it.": "컬렉터가 OneUptime이 보낸 구성을 실행하고 있습니다."
+  "The collector runs the config OneUptime sent it.": "컬렉터가 OneUptime이 보낸 구성을 실행하고 있습니다.",
+  "Host collector key": "호스트 컬렉터 키"
 }

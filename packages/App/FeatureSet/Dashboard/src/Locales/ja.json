@@ -32267,7 +32267,6 @@
   "Every saved version of a Collector Config, so each host can say which version it runs.": "コレクター設定の保存済みの各バージョン。各ホストが実行中のバージョンを示せます。",
   "Failed Collector Config Hash": "失敗したコレクター設定のハッシュ",
   "Host metrics only: what every system can collect.": "ホストのメトリクスのみ: どのシステムでも収集できる内容です。",
-  "Host metrics, the journal and nginx logs": "ホストのメトリクス、ジャーナル、nginx のログ",
   "Hosts being monitored in this project. Add one with a single command on the host.": "このプロジェクトで監視しているホスト。ホスト上で 1 つのコマンドを実行して追加します。",
   "Hosts documentation": "ホストのドキュメント",
   "Hosts on any system": "任意のシステムのホスト",
@@ -32374,5 +32373,6 @@
   "{{host}} is connected. Its metrics and logs arrive within a minute.": "{{host}} が接続されました。メトリクスとログは 1 分以内に届きます。",
   "Why this config": "この設定の理由",
   "Send with the otlp_http exporter to {{url}}/otlp, with the header x-oneuptime-token: {{key}}. Each host fills in its own address and key.": "otlp_http エクスポーターで {{url}}/otlp に、ヘッダー x-oneuptime-token: {{key}} を付けて送信します。各ホストが自分のアドレスとキーを入れます。",
-  "The collector runs the config OneUptime sent it.": "コレクターは OneUptime が送った設定を実行しています。"
+  "The collector runs the config OneUptime sent it.": "コレクターは OneUptime が送った設定を実行しています。",
+  "Host collector key": "ホストコレクターキー"
 }

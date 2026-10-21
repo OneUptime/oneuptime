@@ -273,7 +273,8 @@ export function getReferencedEnvironmentVariable(
 
 class ConfigChecker {
   public problems: Array<HostCollectorConfigProblem> = [];
-  private seen: Set<object> = new Set<object>();
+  // Maps and lists already walked, to refuse one reached again (an alias).
+  private seen: Set<unknown> = new Set<unknown>();
   private nodeCount: number = 0;
   private hasStoppedWalking: boolean = false;
 
@@ -292,6 +293,8 @@ class ConfigChecker {
     visit: (node: WalkedNode) => void,
     key: string | null = null,
     section: string | null = null,
+    component: string | null = null,
+    parentKey: string | null = null,
   ): void {
     if (this.hasStoppedWalking) {
       return;
@@ -310,7 +313,7 @@ class ConfigChecker {
       return;
     }
 
-    visit({ value, path, key, depth, section });
+    visit({ value, path, key, depth, section, component, parentKey });
 
     if (typeof value !== "object" || value === null) {
       return;
@@ -327,7 +330,16 @@ class ConfigChecker {
 
     if (Array.isArray(value)) {
       value.forEach((item: ConfigValue, index: number): void => {
-        this.walk(item, `${path}[${index}]`, depth + 1, visit, null, section);
+        this.walk(
+          item,
+          `${path}[${index}]`,
+          depth + 1,
+          visit,
+          null,
+          section,
+          component,
+          key,
+        );
       });
       return;
     }
@@ -340,6 +352,8 @@ class ConfigChecker {
         visit,
         childKey,
         depth === 0 ? childKey : section,
+        depth === 1 ? childKey : component,
+        key,
       );
     }
   }
@@ -348,7 +362,9 @@ class ConfigChecker {
 /*
  * One node of the config as the walk meets it. depth is 1 for a section
  * (receivers), 2 for a component (filelog/app) and 3 and more for its
- * settings; section is the top-level section it is in.
+ * settings; section is the top-level section it is in, component the
+ * component (or pipeline) under it, and parentKey the key of the map or list
+ * that holds it.
  */
 interface WalkedNode {
   value: ConfigValue;
@@ -356,6 +372,8 @@ interface WalkedNode {
   key: string | null;
   depth: number;
   section: string | null;
+  component: string | null;
+  parentKey: string | null;
 }
 
 // A component's own settings: three levels down in a component section.
@@ -504,7 +522,12 @@ export default class HostCollectorConfigPolicy {
   ): void {
     checker.walk(document, "", 0, (node: WalkedNode): void => {
       if (node.key !== null) {
-        HostCollectorConfigPolicy.checkText(node.key, node.path, checker, true);
+        HostCollectorConfigPolicy.checkText({
+          text: node.key,
+          node: node,
+          checker: checker,
+          isKey: true,
+        });
 
         if (isComponentSetting(node) && isForbiddenFileSetting(node.key)) {
           checker.add(
@@ -515,22 +538,24 @@ export default class HostCollectorConfigPolicy {
       }
 
       if (typeof node.value === "string") {
-        HostCollectorConfigPolicy.checkText(
-          node.value,
-          node.path,
-          checker,
-          false,
-        );
+        HostCollectorConfigPolicy.checkText({
+          text: node.value,
+          node: node,
+          checker: checker,
+          isKey: false,
+        });
       }
     });
   }
 
-  private static checkText(
-    text: string,
-    path: string,
-    checker: ConfigChecker,
-    isKey: boolean,
-  ): void {
+  private static checkText(data: {
+    text: string;
+    node: WalkedNode;
+    checker: ConfigChecker;
+    isKey: boolean;
+  }): void {
+    const { text, node, checker, isKey } = data;
+
     if (text.indexOf("$") === -1) {
       return;
     }
@@ -540,7 +565,7 @@ export default class HostCollectorConfigPolicy {
 
       if (name === null) {
         checker.add(
-          path,
+          node.path,
           "The only ${...} a config OneUptime sends may use is ${env:NAME}. Files, addresses and secret stores are read on every host and are not allowed.",
         );
         continue;
@@ -550,34 +575,32 @@ export default class HostCollectorConfigPolicy {
         name === HOST_COLLECTOR_INGESTION_KEY_ENV &&
         (isKey ||
           text !== HOST_COLLECTOR_INGESTION_KEY_REFERENCE ||
-          !HostCollectorConfigPolicy.isTokenHeaderPath(path))
+          !HostCollectorConfigPolicy.isTokenHeader(node))
       ) {
         checker.add(
-          path,
+          node.path,
           `\${env:${HOST_COLLECTOR_INGESTION_KEY_ENV}} may only be the ${TOKEN_HEADER} header of an exporter.`,
         );
       }
     }
   }
 
-  // exporters.<otlphttp id>.headers.x-oneuptime-token
-  private static isTokenHeaderPath(path: string): boolean {
-    const exportersPrefix: string = "exporters.";
-    const suffix: string = `.headers.${TOKEN_HEADER}`;
-
-    if (!path.startsWith(exportersPrefix) || !path.endsWith(suffix)) {
-      return false;
-    }
-
-    const id: string = path.substring(
-      exportersPrefix.length,
-      path.length - suffix.length,
-    );
-
+  /*
+   * exporters.<otlphttp id>.headers.x-oneuptime-token, and nothing that
+   * only reads like it: the header itself, four levels down in an otlphttp
+   * exporter's headers map, so a key that holds dots
+   * ("a.headers.x-oneuptime-token") is not taken for it.
+   */
+  private static isTokenHeader(node: WalkedNode): boolean {
     return (
+      node.depth === 4 &&
+      node.section === HostCollectorComponentKind.Exporter &&
+      node.parentKey === "headers" &&
+      node.key === TOKEN_HEADER &&
+      node.component !== null &&
       getAllowedComponentType(
         HostCollectorComponentKind.Exporter,
-        getComponentTypeFromId(id),
+        getComponentTypeFromId(node.component),
       ) === "otlp_http"
     );
   }

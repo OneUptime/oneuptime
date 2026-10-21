@@ -59,7 +59,10 @@ enum TelemetryIngestSurface {
    * (POST /opamp/v1): it reports the collector's state and receives the
    * config the host runs. Server keys only - a page never manages a
    * collector - and a key pinned to one service is refused there: a host's
-   * collector sends the host's telemetry, not one service's.
+   * collector sends the host's telemetry, not one service's. Not an
+   * identity registration surface (below): one key serves a whole fleet,
+   * each host polling every 30 seconds, which that surfaces' default
+   * requests-per-minute ceiling would refuse.
    */
   HostCollectorManagement = "host-collector-management",
 }

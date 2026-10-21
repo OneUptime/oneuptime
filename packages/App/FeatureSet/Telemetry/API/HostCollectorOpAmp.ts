@@ -11,7 +11,6 @@ import Express, {
 import HostCollectorAgent, {
   HostCollectorMessageResult,
 } from "Common/Server/Utils/HostCollector/HostCollectorAgent";
-import { HOST_COLLECTOR_OPAMP_PATH } from "Common/Types/HostCollector/HostCollector";
 import logger from "Common/Server/Utils/Logger";
 
 /*
@@ -46,8 +45,12 @@ function sendText(res: ExpressResponse, status: number, message: string): void {
   res.status(status).json({ message });
 }
 
+/*
+ * HOST_COLLECTOR_OPAMP_PATH, written out: TelemetryIngestSurfaceWiring reads
+ * each ingest route's path beside the surface it names.
+ */
 router.post(
-  HOST_COLLECTOR_OPAMP_PATH,
+  "/opamp/v1",
   TelemetryIngest.forSurface(TelemetryIngestSurface.HostCollectorManagement),
   async (
     req: ExpressRequest,

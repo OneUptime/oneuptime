@@ -782,10 +782,10 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
   /*
    * Create forms of a resource matched by an identifier: the identifier
    * open, and the display name (which follows it), the description and the
-   * labels folded (DiscoveredResourceCreateFormsGuard).
+   * labels folded (DiscoveredResourceCreateFormsGuard). Hosts have none: a
+   * host is added by the Add Host command, labels and all.
    */
   ...[
-    ["Host/Hosts.tsx", "ModelTable: Hosts", "hostIdentifier"],
     ["Docker/Hosts.tsx", "ModelTable: Docker Hosts", "hostIdentifier"],
     ["Podman/Hosts.tsx", "ModelTable: Podman Hosts", "hostIdentifier"],
     [

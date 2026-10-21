@@ -189,18 +189,7 @@ const CollectorConfigView: FunctionComponent<
         }}
         isEditable={true}
         editModalTitle="Edit Collector Config"
-        formFields={[
-          ...getHostCollectorConfigFormFields(),
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Host metrics, the journal and nginx logs",
-          },
-        ]}
+        formFields={getHostCollectorConfigFormFields()}
         onSaveSuccess={onSaved}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
@@ -260,14 +249,6 @@ const CollectorConfigView: FunctionComponent<
               getElement: (item: HostCollectorConfig): ReactElement => {
                 return <LabelsElement labels={item.labels || []} />;
               },
-            },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              fieldType: FieldType.LongText,
-              placeholder: "No description.",
             },
           ],
         }}

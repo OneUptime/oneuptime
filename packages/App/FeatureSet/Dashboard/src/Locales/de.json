@@ -32267,7 +32267,6 @@
   "Every saved version of a Collector Config, so each host can say which version it runs.": "Jede gespeicherte Version einer Collector-Konfiguration, damit jeder Host sagen kann, welche Version er ausführt.",
   "Failed Collector Config Hash": "Hash der fehlgeschlagenen Collector-Konfiguration",
   "Host metrics only: what every system can collect.": "Nur Host-Metriken: was jedes System erfassen kann.",
-  "Host metrics, the journal and nginx logs": "Host-Metriken, das Journal und nginx-Logs",
   "Hosts being monitored in this project. Add one with a single command on the host.": "Hosts, die in diesem Projekt überwacht werden. Fügen Sie einen mit einem einzigen Befehl auf dem Host hinzu.",
   "Hosts documentation": "Dokumentation zu Hosts",
   "Hosts on any system": "Hosts auf jedem System",
@@ -32374,5 +32373,6 @@
   "{{host}} is connected. Its metrics and logs arrive within a minute.": "{{host}} ist verbunden. Seine Metriken und Logs treffen innerhalb einer Minute ein.",
   "Why this config": "Warum diese Konfiguration",
   "Send with the otlp_http exporter to {{url}}/otlp, with the header x-oneuptime-token: {{key}}. Each host fills in its own address and key.": "Senden Sie mit dem Exporter otlp_http an {{url}}/otlp, mit dem Header x-oneuptime-token: {{key}}. Jeder Host setzt seine eigene Adresse und seinen eigenen Schlüssel ein.",
-  "The collector runs the config OneUptime sent it.": "Der Collector führt die Konfiguration aus, die OneUptime ihm gesendet hat."
+  "The collector runs the config OneUptime sent it.": "Der Collector führt die Konfiguration aus, die OneUptime ihm gesendet hat.",
+  "Host collector key": "Schlüssel für den Host-Collector"
 }

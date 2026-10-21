@@ -210,8 +210,8 @@ export function getAllowedComponentNames(
 
 /*
  * Settings of an allowed component that would let a config run a program or
- * reach outside what the component is for, refused wherever they appear in
- * that component's settings.
+ * reach outside what the component is for, refused among that component's
+ * own settings.
  */
 export const FORBIDDEN_COMPONENT_SETTINGS: Record<
   string,

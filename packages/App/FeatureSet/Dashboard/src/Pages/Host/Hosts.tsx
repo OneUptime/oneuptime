@@ -328,10 +328,6 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         onFetchSuccess={(data: Array<Host>) => {
           onResourcesFetched(data);
         }}
-        onCreateSuccess={(item: Host): Promise<Host> => {
-          firstRecordWatch.onRecordCreated();
-          return Promise.resolve(item);
-        }}
         isDeleteable={true}
         deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}

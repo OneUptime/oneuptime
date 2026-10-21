@@ -47,16 +47,16 @@ const LAST_SEEN_CACHE_NAMESPACE: string = "host-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
 
 const LABELS_APPLIED_CACHE_NAMESPACE: string = "host-labels-applied";
+const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 
 // The columns that decide the config a managed host runs (HostCollectorAgent).
-const HOST_COLLECTOR_STATE_COLUMNS: ReadonlyArray<string> = [
+export const HOST_COLLECTOR_STATE_COLUMNS: ReadonlyArray<string> = [
   "labels",
   "collectorConfigId",
   "isCollectorConfigPinned",
   "collectorFailedConfigHash",
   "osType",
 ];
-const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 
 /*
  * A host is matched to its telemetry by host.name, and named after it unless
@@ -841,6 +841,14 @@ export class Service extends ProjectReferencesService<Model> {
       onDelete,
       deletedItemIds,
     });
+
+    /*
+     * A managed host's collector that still runs asks for its config again:
+     * its next poll finds the host gone, and files it anew.
+     */
+    for (const hostId of deletedItemIds) {
+      await HostCollectorAgentCache.dropState(hostId.toString());
+    }
 
     return onDelete;
   }

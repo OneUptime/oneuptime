@@ -79,11 +79,11 @@ function Get-TrimmedUrl([string]$Value) {
 }
 
 function Test-UrlValue([string]$Value) {
-    return $Value -match '^https?://[A-Za-z0-9._:/@%+=~-]+$'
+    return $Value -cmatch '^https?://[A-Za-z0-9._:/@%+=~-]+\z'
 }
 
 function Test-KeyValue([string]$Value) {
-    return $Value -match '^[A-Za-z0-9._-]+$'
+    return $Value -cmatch '^[A-Za-z0-9._-]+\z'
 }
 
 # key=value (or key:value): a key of letters, digits and _ - . ; a value that
@@ -98,10 +98,10 @@ function ConvertFrom-LabelText([string]$Text) {
     }
     $labelKey = $Text.Substring(0, $separator).Trim()
     $labelValue = $Text.Substring($separator + 1).Trim()
-    if ($labelKey -notmatch '^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$') {
+    if ($labelKey -cnotmatch '^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}\z') {
         return $null
     }
-    if ($labelValue -notmatch '^[A-Za-z0-9][A-Za-z0-9_.:/@ -]{0,127}$') {
+    if ($labelValue -cnotmatch '^[A-Za-z0-9][A-Za-z0-9_.:/@ -]{0,127}\z') {
         return $null
     }
     return @{ Key = $labelKey; Value = $labelValue }
@@ -114,14 +114,17 @@ function Stop-CollectorService {
     }
 }
 
-if (-not (Test-Administrator)) {
-    Stop-WithError "Run this from an elevated PowerShell (Run as administrator)."
+function Assert-Administrator {
+    if (-not (Test-Administrator)) {
+        Stop-WithError "Run this from an elevated PowerShell (Run as administrator)."
+    }
 }
 
 # Windows PowerShell 5.1 on Windows Server 2016 does not use TLS 1.2 by itself.
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
 if ($Uninstall) {
+    Assert-Administrator
     Write-Host "Removing the OneUptime collector from this host..."
     Stop-CollectorService
     if ($null -ne (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue)) {
@@ -141,7 +144,7 @@ if (-not $Key) { Stop-WithError "-Key is required: a telemetry ingestion key of 
 if (-not (Test-UrlValue $Url)) { Stop-WithError "-Url must be an http:// or https:// address, such as https://oneuptime.com." }
 if (-not (Test-KeyValue $Key)) { Stop-WithError "-Key does not look like an ingestion key. Copy it again from OneUptime." }
 if (-not (Test-UrlValue $DownloadUrl)) { Stop-WithError "-DownloadUrl must be an http:// or https:// address." }
-if ($Version -notmatch '^[0-9]+(\.[0-9]+)*$') { Stop-WithError "-Version must be a release number, such as 0.161.0." }
+if ($Version -cnotmatch '^[0-9]+(\.[0-9]+)*\z') { Stop-WithError "-Version must be a release number, such as 0.161.0." }
 $Proxy = Get-TrimmedUrl $Proxy
 if ($Proxy -and -not (Test-UrlValue $Proxy)) { Stop-WithError "-Proxy must be an http:// or https:// address, such as http://proxy:3128." }
 
@@ -162,7 +165,7 @@ foreach ($text in $EnvVar) {
     }
     $envName = $text.Substring(0, $separator)
     $envValue = $text.Substring($separator + 1)
-    if ($envName -notmatch '^[A-Za-z_][A-Za-z0-9_]*$') {
+    if ($envName -cnotmatch '^[A-Za-z_][A-Za-z0-9_]*\z') {
         Stop-WithError "-EnvVar $envName must be a name of letters, digits and _."
     }
     if ($envName -eq "ONEUPTIME_URL" -or $envName -eq "ONEUPTIME_INGESTION_KEY") {
@@ -173,6 +176,9 @@ foreach ($text in $EnvVar) {
     }
     $envLines += "    ${envName}: $(ConvertTo-YamlString $envValue)`n"
 }
+
+# Everything given is checked: only now does anything need an administrator.
+Assert-Administrator
 
 # The supervisor is released for amd64; Windows on Arm runs it as x64.
 $Arch = "amd64"
@@ -345,14 +351,16 @@ while ((Get-Date) -lt $deadline) {
         Write-Host "OneUptime refused the key (HTTP $refusal)."
         if ($refusal -eq "401") {
             Write-Host "The key is wrong, has expired or was deleted. Copy it again from OneUptime, or"
-            Write-Host "create one under Project Settings > Telemetry Ingestion Keys, and run this again."
+            Write-Host "create one under Project Settings > Telemetry & APM > Ingestion Keys, and run this again."
         }
         else {
             Write-Host "The key is disabled, is a browser key, or is pinned to one service. Use an enabled"
-            Write-Host "server ingestion key from Project Settings > Telemetry Ingestion Keys, and run this again."
+            Write-Host "server ingestion key from Project Settings > Telemetry & APM > Ingestion Keys, and run this again."
         }
         Write-Host "The collector stays installed and asks again every 30 seconds."
-        exit 1
+        # A throw, not exit: the command runs in the reader's own PowerShell,
+        # which exit would close before they read this.
+        Stop-WithError "OneUptime refused the key (HTTP $refusal)."
     }
     if (Test-Path (Join-Path $StateDir "last_recv_remote_config.dat")) {
         Write-Host ""

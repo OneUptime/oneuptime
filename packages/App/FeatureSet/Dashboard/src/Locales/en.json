@@ -32267,7 +32267,6 @@
   "Every saved version of a Collector Config, so each host can say which version it runs.": "Every saved version of a Collector Config, so each host can say which version it runs.",
   "Failed Collector Config Hash": "Failed Collector Config Hash",
   "Host metrics only: what every system can collect.": "Host metrics only: what every system can collect.",
-  "Host metrics, the journal and nginx logs": "Host metrics, the journal and nginx logs",
   "Hosts being monitored in this project. Add one with a single command on the host.": "Hosts being monitored in this project. Add one with a single command on the host.",
   "Hosts documentation": "Hosts documentation",
   "Hosts on any system": "Hosts on any system",
@@ -32374,5 +32373,6 @@
   "{{host}} is connected. Its metrics and logs arrive within a minute.": "{{host}} is connected. Its metrics and logs arrive within a minute.",
   "Why this config": "Why this config",
   "Send with the otlp_http exporter to {{url}}/otlp, with the header x-oneuptime-token: {{key}}. Each host fills in its own address and key.": "Send with the otlp_http exporter to {{url}}/otlp, with the header x-oneuptime-token: {{key}}. Each host fills in its own address and key.",
-  "The collector runs the config OneUptime sent it.": "The collector runs the config OneUptime sent it."
+  "The collector runs the config OneUptime sent it.": "The collector runs the config OneUptime sent it.",
+  "Host collector key": "Host collector key"
 }

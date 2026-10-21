@@ -62,6 +62,21 @@ export default class HostCollectorAgentCache {
     }
   }
 
+  // Forget which host an instance belongs to: the host is gone.
+  public static async dropHostIdForInstance(data: {
+    projectId: string;
+    instanceUid: string;
+  }): Promise<void> {
+    try {
+      await GlobalCache.deleteKey(
+        INSTANCE_NAMESPACE,
+        getInstanceKey(data.projectId, data.instanceUid),
+      );
+    } catch (err) {
+      logger.debug(err);
+    }
+  }
+
   public static async getState(hostId: string): Promise<JSONObject | null> {
     try {
       return await GlobalCache.getJSONObject(STATE_NAMESPACE, hostId);

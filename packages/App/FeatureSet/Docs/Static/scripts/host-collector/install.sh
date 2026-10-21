@@ -151,11 +151,13 @@ trim_url() {
     printf '%s' "$url"
 }
 
-# The whole script runs from main, called on its last line: piped into sh,
-# nothing runs until all of it has arrived, so a download that breaks off
-# halfway installs nothing.
-main() {
-    # The HTTP status OneUptime refused the supervisor's key with, if it did,
+require_root() {
+    if [ "$(id -u)" != "0" ]; then
+        fail "Run this as root: pipe it into 'sudo sh -s -- ...'."
+    fi
+}
+
+# The HTTP status OneUptime refused the supervisor's key with, if it did,
 # read from this run's logs; empty while it has not.
 refused_status() {
     if [ "$OS" = "linux" ]; then
@@ -180,7 +182,11 @@ refused_status() {
     return 0
 }
 
-# --- Arguments --------------------------------------------------------------
+# The whole script runs from main, called on its last line: piped into sh,
+# nothing runs until all of it has arrived, so a download that breaks off
+# halfway installs nothing.
+main() {
+    # --- Arguments ----------------------------------------------------------
 
     while [ "$#" -gt 0 ]; do
         case "$1" in
@@ -275,10 +281,6 @@ refused_status() {
     fi
     CONFIG_FILE="${CONFIG_DIR}/supervisor.yaml"
 
-    if [ "$(id -u)" != "0" ]; then
-        fail "Run this as root: pipe it into 'sudo sh -s -- ...'."
-    fi
-
     # --- Uninstall --------------------------------------------------------------
 
     stop_service() {
@@ -293,6 +295,7 @@ refused_status() {
     }
 
     if [ "$UNINSTALL" = "true" ]; then
+        require_root
         say "Removing the OneUptime collector from this host..."
         stop_service
         if [ "$OS" = "linux" ]; then
@@ -372,6 +375,9 @@ refused_status() {
         ENV_LINES="${ENV_LINES}    ${env_name}: $(yaml_quote "$env_value")${NL}"
     done
     IFS="$OLD_IFS"
+
+    # Everything given is checked: only now does anything need root.
+    require_root
 
     case "$(uname -m)" in
         x86_64 | amd64) ARCH="amd64" ;;
@@ -636,10 +642,10 @@ EOF
             say "OneUptime refused the key (HTTP $refusal)."
             if [ "$refusal" = "401" ]; then
                 say "The key is wrong, has expired or was deleted. Copy it again from OneUptime, or"
-                say "create one under Project Settings > Telemetry Ingestion Keys, and run this again."
+                say "create one under Project Settings > Telemetry & APM > Ingestion Keys, and run this again."
             else
                 say "The key is disabled, is a browser key, or is pinned to one service. Use an enabled"
-                say "server ingestion key from Project Settings > Telemetry Ingestion Keys, and run this again."
+                say "server ingestion key from Project Settings > Telemetry & APM > Ingestion Keys, and run this again."
             fi
             say "The collector stays installed and asks again every 30 seconds."
             exit 1

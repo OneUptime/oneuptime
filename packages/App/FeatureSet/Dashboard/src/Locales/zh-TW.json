@@ -13954,7 +13954,7 @@
   "On most routers and L3 switches this is two steps: enable flow accounting on the interfaces you care about, then add a flow export destination pointing at the probe. Records are matched to this device by the exporter IP address, which must equal this device's hostname/IP as registered here.": "On most routers and L3 switches this is two steps: enable flow accounting on the interfaces you care about, then add a flow export destination pointing at the probe. Records are matched to this device by the exporter IP address, which must equal this device's hostname/IP as registered here.",
   "On most routers and switches this is two steps: add a remote syslog server pointing at the probe, then add the probe as an SNMP trap receiver. Messages are matched to this device by the sender IP address, which must equal this device's hostname/IP as registered here.": "On most routers and switches this is two steps: add a remote syslog server pointing at the probe, then add the probe as an SNMP trap receiver. Messages are matched to this device by the sender IP address, which must equal this device's hostname/IP as registered here.",
   "On page exit the browser's keepalive quota could not carry every queued chunk. The detail says how many were sent and how many were dropped; that session has a gap at the end.": "On page exit the browser's keepalive quota could not carry every queued chunk. The detail says how many were sent and how many were dropped; that session has a gap at the end.",
-  "On the host": "On the host",
+  "On the host": "在主機上",
   "On the page that is not recording, run this in the browser console, then paste the result below.": "On the page that is not recording, run this in the browser console, then paste the result below.",
   "On, budget exhausted this month": "On, budget exhausted this month",
   "On, but uploads are being refused": "On, but uploads are being refused",
@@ -32267,7 +32267,6 @@
   "Every saved version of a Collector Config, so each host can say which version it runs.": "收集器設定的每個已儲存版本，讓每台主機都能說明它執行的是哪個版本。",
   "Failed Collector Config Hash": "失敗的收集器設定雜湊",
   "Host metrics only: what every system can collect.": "僅主機指標：任何系統都能收集的內容。",
-  "Host metrics, the journal and nginx logs": "主機指標、journal 與 nginx 記錄",
   "Hosts being monitored in this project. Add one with a single command on the host.": "此專案中監控的主機。在主機上執行一個命令即可新增。",
   "Hosts documentation": "主機文件",
   "Hosts on any system": "任何系統的主機",
@@ -32374,5 +32373,6 @@
   "{{host}} is connected. Its metrics and logs arrive within a minute.": "{{host}} 已連線。它的指標與記錄會在一分鐘內送達。",
   "Why this config": "為何是此設定",
   "Send with the otlp_http exporter to {{url}}/otlp, with the header x-oneuptime-token: {{key}}. Each host fills in its own address and key.": "使用 otlp_http 匯出工具傳送到 {{url}}/otlp，並帶上標頭 x-oneuptime-token: {{key}}。每台主機會填入自己的位址與金鑰。",
-  "The collector runs the config OneUptime sent it.": "收集器正在執行 OneUptime 傳送給它的設定。"
+  "The collector runs the config OneUptime sent it.": "收集器正在執行 OneUptime 傳送給它的設定。",
+  "Host collector key": "主機收集器金鑰"
 }

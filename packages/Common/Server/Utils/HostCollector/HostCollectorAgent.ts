@@ -180,10 +180,11 @@ export default class HostCollectorAgent {
       });
     }
 
-    const hostId: string | null = await HostCollectorAgent.findHostId({
+    let hostId: string | null = await HostCollectorAgent.findHostId({
       projectId: data.projectId,
       instanceUid: instanceUid,
       description: description,
+      bypassMemo: false,
     });
 
     if (!hostId) {
@@ -191,12 +192,37 @@ export default class HostCollectorAgent {
       return getReportFullStateResponse(instanceUidBytes);
     }
 
-    const snapshot: HostCollectorSnapshot | null =
+    let snapshot: HostCollectorSnapshot | null =
       await HostCollectorAgent.getSnapshot(hostId);
 
-    if (!snapshot) {
-      // The host is gone (deleted since). Ask again, to file it anew.
+    if (!snapshot && description?.hostName) {
+      /*
+       * The host was deleted since its id was remembered (host names are
+       * remembered for a minute in each process): look it up again, which
+       * files it anew.
+       */
       await HostCollectorAgentCache.dropState(hostId);
+      hostId = await HostCollectorAgent.findHostId({
+        projectId: data.projectId,
+        instanceUid: instanceUid,
+        description: description,
+        bypassMemo: true,
+      });
+      snapshot = hostId ? await HostCollectorAgent.getSnapshot(hostId) : null;
+    }
+
+    if (!hostId || !snapshot) {
+      /*
+       * The host is gone (deleted since). Forget where this instance was,
+       * and ask for everything, to file it anew.
+       */
+      if (hostId) {
+        await HostCollectorAgentCache.dropState(hostId);
+      }
+      await HostCollectorAgentCache.dropHostIdForInstance({
+        projectId: data.projectId.toString(),
+        instanceUid: instanceUid,
+      });
       return getReportFullStateResponse(instanceUidBytes);
     }
 
@@ -259,7 +285,10 @@ export default class HostCollectorAgent {
       changes["isCollectorConfigPinned"] = false;
     }
 
-    if (!snapshot.isConfigPinned && snapshot.configId !== choice.configId) {
+    const isConfigChanged: boolean =
+      !snapshot.isConfigPinned && snapshot.configId !== choice.configId;
+
+    if (isConfigChanged) {
       snapshot.configId = choice.configId;
       changes["collectorConfigId"] = choice.configId
         ? new ObjectID(choice.configId)
@@ -273,8 +302,10 @@ export default class HostCollectorAgent {
     });
 
     await HostCollectorAgent.recordStateChanges({
+      projectId: data.projectId,
       snapshot: snapshot,
       next: exchange.state,
+      isConfigChanged: isConfigChanged,
       changes: changes,
     });
 
@@ -332,6 +363,8 @@ export default class HostCollectorAgent {
     projectId: ObjectID;
     instanceUid: string;
     description: HostCollectorAgentDescription | null;
+    // Look the host up even when its name is remembered.
+    bypassMemo: boolean;
   }): Promise<string | null> {
     const projectIdText: string = data.projectId.toString();
 
@@ -340,6 +373,7 @@ export default class HostCollectorAgent {
         projectId: data.projectId,
         hostIdentifier: canonicalizeEntityValue(data.description.hostName),
         isRegisteredByCollectorManagement: true,
+        bypassMemo: data.bypassMemo,
       });
 
       const hostId: string | undefined = host._id?.toString();
@@ -548,26 +582,40 @@ export default class HostCollectorAgent {
 
   /*
    * The columns this exchange changes, and the version the host now runs
-   * when the config it reports changed.
+   * when the config it reports, or the config it should run, changed.
    */
   private static async recordStateChanges(data: {
+    projectId: ObjectID;
     snapshot: HostCollectorSnapshot;
     next: HostCollectorAgentState;
+    isConfigChanged: boolean;
     changes: JSONObject;
   }): Promise<void> {
     const previous: HostCollectorAgentState = data.snapshot.state;
     const next: HostCollectorAgentState = data.next;
     const changes: JSONObject = data.changes;
+    const isHashChanged: boolean = previous.configHash !== next.configHash;
 
-    if (previous.configHash !== next.configHash) {
+    if (isHashChanged) {
       changes["collectorConfigHash"] = next.configHash;
-      const versionId: string | null = next.configHash
-        ? await HostCollectorAgent.findVersionId(next.configHash)
-        : null;
-      data.snapshot.versionId = versionId;
-      changes["collectorConfigVersionId"] = versionId
-        ? new ObjectID(versionId)
-        : null;
+    }
+
+    if (isHashChanged || data.isConfigChanged) {
+      const versionId: string | null =
+        next.configHash && data.snapshot.configId
+          ? await HostCollectorAgent.findVersionId({
+              projectId: data.projectId,
+              configId: data.snapshot.configId,
+              configHash: next.configHash,
+            })
+          : null;
+
+      if (versionId !== data.snapshot.versionId) {
+        data.snapshot.versionId = versionId;
+        changes["collectorConfigVersionId"] = versionId
+          ? new ObjectID(versionId)
+          : null;
+      }
     }
 
     if (previous.configStatus !== next.configStatus) {
@@ -591,17 +639,26 @@ export default class HostCollectorAgent {
     }
   }
 
-  // The newest version of any config with this hash, or null (a default).
-  private static async findVersionId(
-    configHash: string,
-  ): Promise<string | null> {
+  /*
+   * The newest version with this hash of the config the host should run, in
+   * the host's own project: null while the host still runs another config
+   * (or a default, which has no versions). Two projects, or two configs, can
+   * hold the same YAML; a host only ever shows a version of its own config.
+   */
+  private static async findVersionId(data: {
+    projectId: ObjectID;
+    configId: string;
+    configHash: string;
+  }): Promise<string | null> {
     const version: HostCollectorConfigVersion | null =
       await HostCollectorConfigVersionService.findOneBy({
         query: {
-          configHash: configHash,
+          projectId: data.projectId,
+          hostCollectorConfigId: new ObjectID(data.configId),
+          configHash: data.configHash,
         },
         select: { _id: true },
-        sort: { createdAt: SortOrder.Descending },
+        sort: { versionNumber: SortOrder.Descending },
         props: { isRoot: true },
       });
 

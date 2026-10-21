@@ -27,7 +27,7 @@ const HostDocumentationCard: FunctionComponent<ComponentProps> = (
       description={props.description}
       icon={IconProp.Server}
       isBare={props.isBare}
-      newKeyName={translationKey("Hosts key")}
+      newKeyName={translationKey("Host collector key")}
       optionsLabel="How do you want to install the collector?"
       options={HOST_INSTALL_METHODS}
       getContent={(context: SetupGuideRenderContext): SetupGuideContent => {

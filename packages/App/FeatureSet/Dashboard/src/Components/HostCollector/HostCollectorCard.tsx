@@ -20,6 +20,8 @@ import PermissionGate, {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import AppLink from "../AppLink/AppLink";
+import AgentVersion from "../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../Components/AgentVersion/AgentKind";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import HostCollectorStatePill from "./HostCollectorStatePill";
@@ -232,9 +234,29 @@ const HostCollectorCard: FunctionComponent<ComponentProps> = (
     {
       key: "agentVersion",
       title: "Collector release",
-      fieldType: FieldType.Text,
+      fieldType: FieldType.Element,
       showIf: (item: Host): boolean => {
         return Boolean(item.agentVersion);
+      },
+      getElement: (item: Host): ReactElement => {
+        /*
+         * A sign beside a release older than the one this OneUptime pins
+         * opens how to upgrade it: the Add Host command, run again.
+         */
+        return (
+          <AgentVersion
+            kind={AgentKind.HostCollector}
+            version={item.agentVersion}
+            setupGuideRoute={RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HOST_VIEW_DOCUMENTATION] as Route,
+              { modelId: host._id?.toString() },
+            )}
+            upgradeGuideContext={{
+              hostOsType: item.osType,
+              isHostCollectorManaged: true,
+            }}
+          />
+        );
       },
     },
   ];
@@ -282,7 +304,6 @@ const HostCollectorCard: FunctionComponent<ComponentProps> = (
             id="host-collector-details"
             item={host}
             showDetailsInNumberOfColumns={2}
-            showRecordLine={false}
             fields={fields}
           />
         </div>

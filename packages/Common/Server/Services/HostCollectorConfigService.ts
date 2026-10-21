@@ -2,7 +2,7 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import HostCollectorConfigVersionService from "./HostCollectorConfigVersionService";
 import Model from "../../Models/DatabaseModels/HostCollectorConfig";
 import HostCollectorConfigVersion from "../../Models/DatabaseModels/HostCollectorConfigVersion";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -22,7 +22,6 @@ import HostCollectorConfigPolicy, {
 import { getHostCollectorConfigHash } from "../Utils/HostCollector/HostCollectorConfigHash";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import HostCollectorProjectConfigsMemo from "../Utils/HostCollector/HostCollectorProjectConfigsMemo";
-import { OnDelete } from "../Types/Database/Hooks";
 import DeleteBy from "../Types/Database/DeleteBy";
 import logger from "../Utils/Logger";
 
@@ -98,8 +97,9 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    const onCreate: OnCreate<Model> = await super.onBeforeCreate(createBy);
-    const data: Model = onCreate.createBy.data;
+    await super.onBeforeCreate(createBy);
+
+    const data: Model = createBy.data;
 
     Service.checkOsType(data.osType);
 
@@ -117,7 +117,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     Service.checkConfigYaml(data.configYaml);
 
-    return onCreate;
+    return { createBy: createBy, carryForward: null };
   }
 
   @CaptureSpan()
@@ -160,8 +160,9 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
-    const onUpdate: OnUpdate<Model> = await super.onBeforeUpdate(updateBy);
-    const data: ConfigWrite = onUpdate.updateBy.data as unknown as ConfigWrite;
+    await super.onBeforeUpdate(updateBy);
+
+    const data: ConfigWrite = updateBy.data as unknown as ConfigWrite;
 
     Service.checkOsType(data.osType);
 
@@ -182,7 +183,7 @@ export class Service extends ProjectReferencesService<Model> {
       Service.checkConfigYaml(data.configYaml);
     }
 
-    return onUpdate;
+    return { updateBy: updateBy, carryForward: null };
   }
 
   /*

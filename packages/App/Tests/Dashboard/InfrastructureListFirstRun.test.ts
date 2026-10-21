@@ -170,12 +170,23 @@ describe("the first-run rules", () => {
   });
 });
 
+/*
+ * A list whose rows also arrive another way reads them again then too: the
+ * Hosts list, when the Add Host dialog sees a host connect.
+ */
+const REFRESH_TOGGLES: Record<string, string> = {
+  "Pages/Host/Hosts.tsx":
+    "refreshToggle={`${firstRecordWatch.refreshToken}-${connectedCount}`}",
+};
+
 describe.each(LIST_PAGES)("%s", (page: string) => {
   const source: string = code(page);
 
   test("counts and watches through the shared hook, with no count or poll of its own", () => {
     expect(source).toContain("useFirstRecordWatch<");
-    expect(source).toContain("refreshToggle={firstRecordWatch.refreshToken}");
+    expect(source).toContain(
+      REFRESH_TOGGLES[page] || "refreshToggle={firstRecordWatch.refreshToken}",
+    );
     expect(source).not.toContain("ModelAPI.count(");
     expect(source).not.toContain("setInterval(");
     expect(source).not.toMatch(/useState<number \| null>\(null\)/);
@@ -218,7 +229,7 @@ describe("the list descriptions that named attributes say what a reader sees", (
     const source: string = code("Pages/Host/Hosts.tsx");
 
     expect(source).toContain(
-      '"Hosts being monitored in this project. A host shows up here once its OpenTelemetry Collector sends data."',
+      '"Hosts being monitored in this project. Add one with a single command on the host."',
     );
     expect(source).not.toContain("host.name plus a host signal");
   });
