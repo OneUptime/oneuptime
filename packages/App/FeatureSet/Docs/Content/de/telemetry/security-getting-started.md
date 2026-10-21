@@ -45,7 +45,7 @@ flowchart LR
 | --- | --- | --- |
 | **Quellen** | **Verbindungen** | Ihre Logs, die Sicherheitsprodukte, die OneUptime abfragt, und alles, was Sie senden |
 | **Erkennungen** | **Erkennungen** | Sigma-Regeln und Threat-Intelligence-Feeds, die in jedem Ereignis nach Bedrohungen suchen |
-| **Security Cases** | **Security Cases** | Was gefunden wurde, gruppiert nach dem Benutzer, dem Host oder der Adresse, um die es geht |
+| **Sicherheitsfälle** | **Sicherheitsfälle** | Was gefunden wurde, gruppiert nach dem Benutzer, dem Host oder der Adresse, um die es geht |
 | **Playbooks** | **Playbooks** | Schritte, die auf neuen Fällen laufen: anreichern, benachrichtigen, einen Vorfall eröffnen oder eindämmen |
 
 Der Streifen oben auf **Übersicht** zeigt jeden Teil mit seinen Zahlen: die Quellen und ihre Ereignisse der letzten 24 Stunden, die eingeschalteten Regeln, die offenen Fälle und die Playbooks, die reagieren.
@@ -75,7 +75,7 @@ Ihre Rolle darf keine Erkennungsregeln, Playbooks oder die Log-Quelle hinzufüge
 :::
 
 :::details Der Testangriff hat keinen Fall eröffnet
-Meist ist der Fall schon offen, bevor die Schaltfläche antwortet; holt die Regel noch auf, sagt sie das, und der Fall öffnet sich innerhalb einer Minute. Sehen Sie noch einmal unter **Security Cases** nach, und prüfen Sie unter **Erkennungen**, ob die Brute-Force-Regel eingeschaltet ist.
+Meist ist der Fall schon offen, bevor die Schaltfläche antwortet; holt die Regel noch auf, sagt sie das, und der Fall öffnet sich innerhalb einer Minute. Sehen Sie noch einmal unter **Sicherheitsfälle** nach, und prüfen Sie unter **Erkennungen**, ob die Brute-Force-Regel eingeschaltet ist.
 :::
 
 :::details Aus meinen Logs kommt kein Sicherheitsereignis
