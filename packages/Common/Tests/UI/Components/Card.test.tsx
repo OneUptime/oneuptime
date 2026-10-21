@@ -352,7 +352,7 @@ describe("Card header layout", () => {
 
   describe("stacked", () => {
     const GOLDEN_WITH_ACTIONS: string =
-      '<div data-testid="card" class="mb-5 extra"><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div data-testid="card-header" data-header-layout="stacked"><div data-testid="card-header-title-row" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:items-start"><div data-testid="card-header-title-block" class="min-w-0 md:grow md:basis-1/2"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">Title</h2></div><div data-testid="card-header-actions" class="ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-3 gap-y-2"><div class="flex items-center"><span>right</span></div><div class="flex items-center [&amp;>button]:ml-0 [&amp;>button]:md:ml-0 [&amp;>*>button]:ml-0 [&amp;>*>button]:md:ml-0"><a href="/docs">Docs</a></div></div></div><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed">Desc</p></div><div class="mt-0"><div>body</div></div></div></div></div>';
+      '<div data-testid="card" class="mb-5 extra"><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div data-testid="card-header" data-header-layout="stacked"><div data-testid="card-header-title-row" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:items-end"><div data-testid="card-header-title-block" class="min-w-0 md:grow md:basis-1/2"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">Title</h2></div><div data-testid="card-header-actions" class="ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-3 gap-y-2 md:self-start md:-mb-[7px]"><div class="flex items-center"><span>right</span></div><div class="flex items-center [&amp;>button]:ml-0 [&amp;>button]:md:ml-0 [&amp;>*>button]:ml-0 [&amp;>*>button]:md:ml-0"><a href="/docs">Docs</a></div></div></div><p data-testid="card-description" class="mt-[9px] text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed">Desc</p></div><div class="mt-0"><div>body</div></div></div></div></div>';
 
     test("renders this exact markup", () => {
       expect(
@@ -407,16 +407,56 @@ describe("Card header layout", () => {
       },
     );
 
-    test("centred on each other on a phone; from md up their tops are level, as in the default header", () => {
+    test("centred on each other on a phone; from md up the title sits at the line's foot and the actions at its top, hanging past it over the description", () => {
       render(<Card {...baseProps} headerLayout="stacked" />);
 
       expect(
         resolveFlex(classOf(titleRow()), PHONE_WIDTH_IN_PX, "align-items"),
       ).toBe("center");
+      expect(
+        resolveFlex(classOf(actions()), PHONE_WIDTH_IN_PX, "align-self"),
+      ).toBe("auto");
+      expect(
+        resolveSpacing(classOf(actions()), PHONE_WIDTH_IN_PX, "margin").bottom,
+      ).toBe(0);
+
+      /*
+       * The line ends at the title's foot, so the description follows the
+       * title, not the 38px controls (CardTitleDescriptionGap.test.tsx lays
+       * it out).
+       */
+      for (const width of DESKTOP_WIDTHS) {
+        expect(resolveFlex(classOf(titleRow()), width, "align-items")).toBe(
+          "flex-end",
+        );
+        expect(resolveFlex(classOf(actions()), width, "align-self")).toBe(
+          "flex-start",
+        );
+        expect(resolveSpacing(classOf(actions()), width, "margin").bottom).toBe(
+          -7,
+        );
+      }
+    });
+
+    test("with nothing under it, the line keeps the controls' height and centres the title on them from md up", () => {
+      render(
+        <Card
+          title="Details"
+          headerLayout="stacked"
+          buttons={buttons}
+          rightElement={<span>right element</span>}
+        />,
+      );
 
       for (const width of DESKTOP_WIDTHS) {
         expect(resolveFlex(classOf(titleRow()), width, "align-items")).toBe(
+          "center",
+        );
+        expect(resolveFlex(classOf(actions()), width, "align-self")).toBe(
           "flex-start",
+        );
+        expect(resolveSpacing(classOf(actions()), width, "margin").bottom).toBe(
+          0,
         );
       }
     });
