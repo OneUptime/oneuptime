@@ -87,13 +87,14 @@ The suite (`ModelTables.spec.ts`) measures in Chromium what jsdom cannot:
 title ("There's a lot of gap between the title of the card and the
 description of the card"): 9px under the title beside the controls (it was
 20px, a button row down), 6px where there are none, clear of the controls'
-foot, the title centred on them, the controls at the card's padding; the
-controls under the title when they do not fit beside it, the description 2px
-under them; a list that drops its description for its empty state keeping its
-title and controls where they were; the search opened without moving
-anything; a phone's header; and the dark theme - on the Runbooks, Incidents
-and Teams lists and every shape of the gallery, at 1440, 1280, 1024, 768 and
-390px.
+foot, the controls centred on the title, every title at the card's padding
+(so cards side by side line up); the controls under the title when they do
+not fit beside it, the description staying 6px under the title and the
+controls following it - also as the window is resized across that width; a
+list that drops its description for its empty state keeping its title and
+controls where they were; the search opened without moving anything; a
+phone's header; and the dark theme - on the Runbooks, Incidents and Teams
+lists and every shape of the gallery, at 1440, 1280, 1024, 768 and 390px.
 
 `Fixture/Fixture.js` records every list read on
 `window.__fixture.listRequests`, every write on `window.__fixture.updates`,

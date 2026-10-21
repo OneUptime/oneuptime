@@ -3,12 +3,12 @@ import Card, {
   CARD_DESCRIPTION_CLASS_NAME,
   CARD_DESCRIPTION_CLEARANCE_IN_PX,
   CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME,
+  CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES,
   CARD_HEADER_ACTIONS_CLASS_NAME,
-  CARD_HEADER_ACTIONS_OVERHANG_CLASS_NAME,
   CARD_HEADER_CONTROL_HEIGHT_IN_PX,
   CARD_HEADER_CONTROL_OVERHANG_IN_PX,
   CARD_HEADER_LAYOUTS,
-  CARD_HEADER_STACKED_ACTIONS_CLASS_NAME,
+  CARD_HEADER_TITLE_BLOCK_OVER_NOTHING_CLASS_NAME,
   CARD_HEADER_TITLE_LINE_CLASS_NAMES,
   CARD_HEADER_TITLE_ROW_CLASS_NAME,
   CARD_SECTION_TITLE_CLASS_NAME,
@@ -52,7 +52,9 @@ import {
  * page - the description follows the line the title shares with the
  * actions. That line was as tall as the controls on it (38px from md up),
  * the title at its top, so the description came 20px under the title where
- * a card with no controls puts it 6px under.
+ * a card with no controls puts it 6px under. Now the actions are centred on
+ * the title's line and reach past it, the title stays at the card's padding
+ * (where every card's title is), and the description follows the title.
  *
  * jsdom draws nothing, so these tests read the classes Card draws with and
  * lay the header out the way a browser's flexbox does: each flex line as
@@ -118,9 +120,10 @@ interface Shape {
 interface HeaderClasses {
   // The element that lays the title out beside the actions.
   row: string;
+  titleBlock: string;
   /*
-   * The stacked/toolbar description follows the row; the default one is in
-   * the title's block.
+   * The stacked/toolbar description follows the row - unless the actions
+   * went under the title; the default one is in the title's block.
    */
   descriptionInTitleBlock: boolean;
   actions: string | null;
@@ -195,6 +198,7 @@ function classesOf(shape: Shape): HeaderClasses {
   const titleBlock: HTMLElement = screen.getByTestId("card-header-title-block");
   const classes: HeaderClasses = {
     row: classOf(titleBlock.parentElement),
+    titleBlock: classOf(titleBlock),
     descriptionInTitleBlock: Boolean(
       description && titleBlock.contains(description),
     ),
@@ -298,6 +302,11 @@ function layOut(
     : "auto";
   const actionPlacement: string =
     actionAlignment === "auto" ? rowAlignment : actionAlignment;
+  const titleMargins: { top: number; bottom: number } = resolveSpacing(
+    classes.titleBlock,
+    width,
+    "margin",
+  );
 
   if (classes.descriptionInTitleBlock) {
     // The description is in the title's block.
@@ -313,7 +322,11 @@ function layOut(
        */
       const secondLine: number =
         actionHeight + actionMargins.top + actionMargins.bottom;
-      const secondLineTop: number = block + rowGapInPx(classes.row);
+      const secondLineTop: number =
+        block +
+        titleMargins.top +
+        titleMargins.bottom +
+        rowGapInPx(classes.row);
       const actionsTop: number =
         secondLineTop +
         placeAcross(
@@ -325,12 +338,12 @@ function layOut(
         );
 
       return {
-        titleTop: 0,
-        titleBottom: titleHeight,
+        titleTop: titleMargins.top,
+        titleBottom: titleMargins.top + titleHeight,
         actionsTop: actionsTop,
         actionsBottom: actionsTop + actionHeight,
         descriptionTop: descriptionShown
-          ? titleHeight + descriptionMargin
+          ? titleMargins.top + titleHeight + descriptionMargin
           : null,
         headerBottom: secondLineTop + secondLine,
       };
@@ -364,18 +377,25 @@ function layOut(
     };
   }
 
+  const titleBox: number = titleHeight + titleMargins.top + titleMargins.bottom;
   let rowBottom: number;
   let titleTop: number;
   let actionsTop: number | null = null;
 
   if (hasActions && shape.actions === "controls-under") {
     // The title alone on the first line, the actions on the next.
-    const firstLine: number = titleHeight;
+    const firstLine: number = titleBox;
     const secondLine: number =
       actionHeight + actionMargins.top + actionMargins.bottom;
     const secondLineTop: number = firstLine + rowGapInPx(classes.row);
 
-    titleTop = placeAcross(rowAlignment, firstLine, titleHeight, 0, 0);
+    titleTop = placeAcross(
+      rowAlignment,
+      firstLine,
+      titleHeight,
+      titleMargins.top,
+      titleMargins.bottom,
+    );
     actionsTop =
       secondLineTop +
       placeAcross(
@@ -388,11 +408,17 @@ function layOut(
     rowBottom = secondLineTop + secondLine;
   } else {
     const line: number = Math.max(
-      titleHeight,
+      titleBox,
       hasActions ? actionHeight + actionMargins.top + actionMargins.bottom : 0,
     );
 
-    titleTop = placeAcross(rowAlignment, line, titleHeight, 0, 0);
+    titleTop = placeAcross(
+      rowAlignment,
+      line,
+      titleHeight,
+      titleMargins.top,
+      titleMargins.bottom,
+    );
     actionsTop = hasActions
       ? placeAcross(
           actionPlacement,
@@ -450,6 +476,7 @@ describe("the model reproduces the gap the maintainer saw", () => {
    */
   const OLD_CLASSES: HeaderClasses = {
     row: "flex flex-wrap items-center gap-x-4 gap-y-2 md:items-start",
+    titleBlock: "min-w-0 md:grow md:basis-48",
     descriptionInTitleBlock: false,
     actions:
       "ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-3 gap-y-2",
@@ -474,7 +501,7 @@ describe("the model reproduces the gap the maintainer saw", () => {
     expect(old.descriptionTop! - old.titleBottom).toBe(20);
   });
 
-  test("the new header puts it 9px under, as Chromium measures it (title 128-152, controls 121-159, description at 161)", () => {
+  test("the new header puts it 9px under, as Chromium measures it (title 121-145, controls 114-152, description at 154)", () => {
     const shape: Shape = {
       layout: "toolbar",
       titleLines: 1,
@@ -487,9 +514,10 @@ describe("the model reproduces the gap the maintainer saw", () => {
       LAPTOP_WIDTH_IN_PX,
     );
 
-    expect(laidOut.actionsTop).toBe(0);
-    expect(laidOut.titleTop).toBe(7);
-    expect(laidOut.descriptionTop).toBe(40);
+    // The title where it was, the controls centred on it, 7px higher.
+    expect(laidOut.titleTop).toBe(0);
+    expect(laidOut.actionsTop).toBe(-7);
+    expect(laidOut.descriptionTop).toBe(33);
     expect(laidOut.descriptionTop! - laidOut.titleBottom).toBe(9);
   });
 });
@@ -553,30 +581,51 @@ describe("the numbers the header is built on", () => {
     expect(CARD_SECTION_TITLE_CLASS_NAME.split(" ")).toContain("leading-6");
   });
 
-  test("the controls reach 7px past the title's line on each side, and the overhang class says so - from md up only", () => {
+  test("the controls reach 7px past the title's line on each side, and the classes say so - from md up only", () => {
     expect(CARD_HEADER_CONTROL_OVERHANG_IN_PX).toBe(
       (CARD_HEADER_CONTROL_HEIGHT_IN_PX - CARD_TITLE_LINE_HEIGHT_IN_PX) / 2,
     );
     expect(CARD_HEADER_CONTROL_OVERHANG_IN_PX).toBe(7);
 
     for (const width of DESKTOP_WIDTHS) {
+      // Over a description: above and below the title's line.
       expect(
         resolveSpacing(
-          CARD_HEADER_ACTIONS_OVERHANG_CLASS_NAME,
+          CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES.overDescription,
           width,
           "margin",
         ),
-      ).toEqual({ top: 0, right: 0, bottom: -7, left: 0 });
+      ).toEqual({ top: -7, right: 0, bottom: -7, left: 0 });
+      // Over nothing: above it only, the title's block taking 7px under it.
+      expect(
+        resolveSpacing(
+          CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES.overNothing,
+          width,
+          "margin",
+        ),
+      ).toEqual({ top: -7, right: 0, bottom: 0, left: 0 });
+      expect(
+        resolveSpacing(
+          CARD_HEADER_TITLE_BLOCK_OVER_NOTHING_CLASS_NAME,
+          width,
+          "margin",
+        ),
+      ).toEqual({ top: 0, right: 0, bottom: 7, left: 0 });
     }
 
     for (const width of PHONE_WIDTHS) {
-      expect(
-        resolveSpacing(
-          CARD_HEADER_ACTIONS_OVERHANG_CLASS_NAME,
-          width,
-          "margin",
-        ),
-      ).toEqual({ top: 0, right: 0, bottom: 0, left: 0 });
+      for (const className of [
+        CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES.overDescription,
+        CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES.overNothing,
+        CARD_HEADER_TITLE_BLOCK_OVER_NOTHING_CLASS_NAME,
+      ]) {
+        expect(resolveSpacing(className, width, "margin")).toEqual({
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
+        });
+      }
     }
   });
 
@@ -627,18 +676,16 @@ describe("the numbers the header is built on", () => {
     }
   });
 
-  test("the first line's alignments: the title at the line's foot over a description, centred on the controls without one, at the top alone or over actions that went under it - each from md up; centred on a phone", () => {
+  test("the first line's alignments: the actions centred on the title beside it, the top of the line alone or over actions that went under it - each from md up; centred on a phone", () => {
     expect(CARD_HEADER_TITLE_LINE_CLASS_NAMES).toEqual({
-      overDescription: "md:items-end",
-      alone: "md:items-center",
-      titleOnly: "md:items-start",
+      besideActions: "md:items-center",
+      alone: "md:items-start",
       overActions: "md:items-start",
     });
 
     const expected: Record<string, string> = {
-      overDescription: "flex-end",
-      alone: "center",
-      titleOnly: "flex-start",
+      besideActions: "center",
+      alone: "flex-start",
       overActions: "flex-start",
     };
 
@@ -660,32 +707,12 @@ describe("the numbers the header is built on", () => {
         ]);
       }
     }
-
-    // The actions keep to the top of the line from md up.
-    for (const width of DESKTOP_WIDTHS) {
-      expect(
-        resolveFlex(
-          CARD_HEADER_STACKED_ACTIONS_CLASS_NAME,
-          width,
-          "align-self",
-        ),
-      ).toBe("flex-start");
-    }
-    for (const width of PHONE_WIDTHS) {
-      expect(
-        resolveFlex(
-          CARD_HEADER_STACKED_ACTIONS_CLASS_NAME,
-          width,
-          "align-self",
-        ),
-      ).toBe("auto");
-    }
   });
 });
 
 describe("which classes each header draws with", () => {
   test.each(STACKED_LAYOUTS)(
-    "%s: controls over a description hang past the title's line; the line ends at the title's foot",
+    "%s: controls over a description are centred on the title's line and reach past it on both sides",
     (layout: CardHeaderLayout) => {
       const classes: HeaderClasses = classesOf({
         layout,
@@ -695,14 +722,16 @@ describe("which classes each header draws with", () => {
       });
 
       expect(classes.row).toBe(
-        `${CARD_HEADER_TITLE_ROW_CLASS_NAME} ${CARD_HEADER_TITLE_LINE_CLASS_NAMES.overDescription}`,
+        `${CARD_HEADER_TITLE_ROW_CLASS_NAME} ${CARD_HEADER_TITLE_LINE_CLASS_NAMES.besideActions}`,
       );
       expect(classes.actions!.split(" ")).toEqual(
         expect.arrayContaining([
           ...CARD_HEADER_ACTIONS_CLASS_NAME.split(" "),
-          CARD_HEADER_STACKED_ACTIONS_CLASS_NAME,
-          CARD_HEADER_ACTIONS_OVERHANG_CLASS_NAME,
+          CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES.overDescription,
         ]),
+      );
+      expect(classes.titleBlock.split(" ")).not.toContain(
+        CARD_HEADER_TITLE_BLOCK_OVER_NOTHING_CLASS_NAME,
       );
       expect(classes.description).toBe(
         CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME,
@@ -711,7 +740,7 @@ describe("which classes each header draws with", () => {
   );
 
   test.each(STACKED_LAYOUTS)(
-    "%s: with nothing under the line, the controls keep its whole height and the title is centred on them",
+    "%s: with nothing under the line, the controls reach above it only and the title's block takes the same room under it",
     (layout: CardHeaderLayout) => {
       const classes: HeaderClasses = classesOf({
         layout,
@@ -721,13 +750,16 @@ describe("which classes each header draws with", () => {
       });
 
       expect(classes.row).toBe(
-        `${CARD_HEADER_TITLE_ROW_CLASS_NAME} ${CARD_HEADER_TITLE_LINE_CLASS_NAMES.alone}`,
+        `${CARD_HEADER_TITLE_ROW_CLASS_NAME} ${CARD_HEADER_TITLE_LINE_CLASS_NAMES.besideActions}`,
       );
       expect(classes.actions!.split(" ")).toContain(
-        CARD_HEADER_STACKED_ACTIONS_CLASS_NAME,
+        CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES.overNothing,
       );
       expect(classes.actions!.split(" ")).not.toContain(
-        CARD_HEADER_ACTIONS_OVERHANG_CLASS_NAME,
+        CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES.overDescription,
+      );
+      expect(classes.titleBlock.split(" ")).toContain(
+        CARD_HEADER_TITLE_BLOCK_OVER_NOTHING_CLASS_NAME,
       );
       expect(classes.description).toBeNull();
     },
@@ -746,6 +778,7 @@ describe("which classes each header draws with", () => {
       expect(classes.row).toBe(
         "flex flex-wrap items-center gap-x-4 gap-y-2 md:items-start",
       );
+      expect(classes.titleBlock).toBe("w-full min-w-0");
       expect(classes.actions).toBeNull();
       expect(classes.description).toBe(CARD_DESCRIPTION_CLASS_NAME);
     },
@@ -786,7 +819,7 @@ describe("which classes each header draws with", () => {
       "section",
     );
     expect(classOf(screen.getByTestId("card-header-title-row"))).toBe(
-      `${CARD_HEADER_TITLE_ROW_CLASS_NAME} ${CARD_HEADER_TITLE_LINE_CLASS_NAMES.overDescription}`,
+      `${CARD_HEADER_TITLE_ROW_CLASS_NAME} ${CARD_HEADER_TITLE_LINE_CLASS_NAMES.besideActions}`,
     );
     expect(classOf(screen.getByTestId("card-description"))).toBe(
       CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME,
@@ -803,8 +836,8 @@ describe("which classes each header draws with", () => {
       />,
     );
 
-    expect(classOf(screen.getByTestId("card-header-title-row"))).toContain(
-      CARD_HEADER_TITLE_LINE_CLASS_NAMES.overDescription,
+    expect(classOf(screen.getByTestId("card-header-actions"))).toContain(
+      CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES.overDescription,
     );
     cleanup();
 
@@ -818,11 +851,33 @@ describe("which classes each header draws with", () => {
     );
 
     expect(screen.queryByTestId("card-description")).toBeNull();
-    expect(classOf(screen.getByTestId("card-header-title-row"))).toContain(
-      CARD_HEADER_TITLE_LINE_CLASS_NAMES.alone,
+    expect(classOf(screen.getByTestId("card-header-actions"))).toContain(
+      CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES.overNothing,
     );
-    expect(classOf(screen.getByTestId("card-header-actions"))).not.toContain(
-      CARD_HEADER_ACTIONS_OVERHANG_CLASS_NAME,
+    expect(
+      classOf(screen.getByTestId("card-header-title-block")).split(" "),
+    ).toContain(CARD_HEADER_TITLE_BLOCK_OVER_NOTHING_CLASS_NAME);
+  });
+
+  test("actions with no title to sit beside hang past nothing, and the description follows them 6px down", () => {
+    render(
+      <Card
+        description="Reusable response procedures."
+        headerLayout="stacked"
+        buttons={[EDIT]}
+      />,
+    );
+
+    const actions: string = classOf(screen.getByTestId("card-header-actions"));
+
+    expect(actions).not.toContain(
+      CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES.overDescription,
+    );
+    expect(actions).not.toContain(
+      CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES.overNothing,
+    );
+    expect(classOf(screen.getByTestId("card-description"))).toBe(
+      CARD_DESCRIPTION_CLASS_NAME,
     );
   });
 });
@@ -834,7 +889,7 @@ describe.each(STACKED_LAYOUTS)(
       "with a %s description",
       (description: DescriptionShape) => {
         test.each(DESKTOP_WIDTHS)(
-          "at %ipx the description sits 9px under the title beside 38px controls - not a button row down - and 2px clear of their foot",
+          "at %ipx the description sits 9px under the title beside 38px controls - not a button row down - and 2px clear of their foot; the title stays at the card's padding",
           (width: number) => {
             const shape: Shape = {
               layout,
@@ -850,13 +905,14 @@ describe.each(STACKED_LAYOUTS)(
 
             expect(laidOut.descriptionTop! - laidOut.titleBottom).toBe(9);
             expect(laidOut.descriptionTop! - laidOut.actionsBottom!).toBe(2);
-            // The title is centred on the controls...
+            // The controls are centred on the title...
             expect(
               centreOf(laidOut.titleTop, laidOut.titleBottom) -
                 centreOf(laidOut.actionsTop!, laidOut.actionsBottom!),
             ).toBe(0);
-            // ...which keep to the top of the header, never into the card's padding.
-            expect(laidOut.actionsTop).toBe(0);
+            // ...which stays where every card's title is, the controls reaching 7px above it.
+            expect(laidOut.titleTop).toBe(0);
+            expect(laidOut.actionsTop).toBe(-7);
             // And whatever comes next starts under all of it.
             expect(laidOut.headerBottom).toBeGreaterThan(
               laidOut.actionsBottom!,
@@ -865,7 +921,7 @@ describe.each(STACKED_LAYOUTS)(
         );
 
         test.each(DESKTOP_WIDTHS)(
-          "at %ipx with a status pill beside the title, the pill sits level with it and the description 9px under it",
+          "at %ipx a status pill beside the title is centred on it, and the description 9px under the title",
           (width: number) => {
             const shape: Shape = {
               layout,
@@ -880,7 +936,10 @@ describe.each(STACKED_LAYOUTS)(
             );
 
             expect(laidOut.titleTop).toBe(0);
-            expect(laidOut.actionsTop).toBe(0);
+            expect(
+              centreOf(laidOut.titleTop, laidOut.titleBottom) -
+                centreOf(laidOut.actionsTop!, laidOut.actionsBottom!),
+            ).toBe(0);
             expect(laidOut.descriptionTop! - laidOut.titleBottom).toBe(9);
             expect(laidOut.descriptionTop!).toBeGreaterThan(
               laidOut.actionsBottom!,
@@ -889,7 +948,7 @@ describe.each(STACKED_LAYOUTS)(
         );
 
         test.each(DESKTOP_WIDTHS)(
-          "at %ipx a title that breaks over two lines keeps its first line level with the controls' top, and the description 9px under its last",
+          "at %ipx a title that breaks over two lines has the controls centred on both, and the description 9px under its last",
           (width: number) => {
             const shape: Shape = {
               layout,
@@ -904,9 +963,13 @@ describe.each(STACKED_LAYOUTS)(
             );
 
             expect(laidOut.titleTop).toBe(0);
-            expect(laidOut.actionsTop).toBe(0);
+            expect(laidOut.actionsTop).toBe(5);
+            expect(
+              centreOf(laidOut.titleTop, laidOut.titleBottom) -
+                centreOf(laidOut.actionsTop!, laidOut.actionsBottom!),
+            ).toBe(0);
             expect(laidOut.descriptionTop! - laidOut.titleBottom).toBe(9);
-            expect(laidOut.descriptionTop! - laidOut.actionsBottom!).toBe(19);
+            expect(laidOut.descriptionTop! - laidOut.actionsBottom!).toBe(14);
           },
         );
 
@@ -963,7 +1026,7 @@ describe.each(STACKED_LAYOUTS)(
     );
 
     test.each(DESKTOP_WIDTHS)(
-      "at %ipx with no description the title is centred on the controls, and the card's body starts under them",
+      "at %ipx with no description the controls are centred on the title, which stays at the card's padding, and the card's body starts under them",
       (width: number) => {
         const shape: Shape = {
           layout,
@@ -974,9 +1037,48 @@ describe.each(STACKED_LAYOUTS)(
         const laidOut: LaidOutHeader = layOut(shape, classesOf(shape), width);
 
         expect(laidOut.descriptionTop).toBeNull();
-        expect(laidOut.actionsTop).toBe(0);
-        expect(laidOut.titleTop).toBe(7);
+        expect(laidOut.titleTop).toBe(0);
+        expect(laidOut.actionsTop).toBe(-7);
         expect(laidOut.headerBottom).toBe(laidOut.actionsBottom);
+      },
+    );
+
+    test.each(DESKTOP_WIDTHS)(
+      "at %ipx with no description, controls that do not fit beside the title go under it, 8px down, and the body under them",
+      (width: number) => {
+        const shape: Shape = {
+          layout,
+          titleLines: 1,
+          actions: "controls-under",
+          description: "none",
+        };
+        const laidOut: LaidOutHeader = layOut(shape, classesOf(shape), width);
+
+        expect(laidOut.titleTop).toBe(0);
+        expect(laidOut.actionsTop! - laidOut.titleBottom).toBe(8);
+        expect(laidOut.headerBottom).toBe(laidOut.actionsBottom);
+      },
+    );
+
+    test.each(DESKTOP_WIDTHS)(
+      "at %ipx a status pill with no description is centred on the title, and the body starts under the line",
+      (width: number) => {
+        const shape: Shape = {
+          layout,
+          titleLines: 1,
+          actions: "pill",
+          description: "none",
+        };
+        const laidOut: LaidOutHeader = layOut(shape, classesOf(shape), width);
+
+        expect(laidOut.titleTop).toBe(0);
+        expect(
+          centreOf(laidOut.titleTop, laidOut.titleBottom) -
+            centreOf(laidOut.actionsTop!, laidOut.actionsBottom!),
+        ).toBe(0);
+        expect(laidOut.headerBottom).toBeGreaterThanOrEqual(
+          laidOut.actionsBottom!,
+        );
       },
     );
 
@@ -1028,9 +1130,18 @@ describe.each(STACKED_LAYOUTS)(
           const laidOut: LaidOutHeader = layOut(shape, classes, width);
 
           expect(laidOut.descriptionTop).toBeNull();
-          expect(resolveSpacing(classes.actions, width, "margin").bottom).toBe(
-            0,
+          const actionMargins: { top: number; bottom: number } = resolveSpacing(
+            classes.actions,
+            width,
+            "margin",
           );
+          expect([actionMargins.top, actionMargins.bottom]).toEqual([0, 0]);
+          expect(resolveSpacing(classes.titleBlock, width, "margin")).toEqual({
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+          });
           expect(
             centreOf(laidOut.titleTop, laidOut.titleBottom) -
               centreOf(laidOut.actionsTop!, laidOut.actionsBottom!),
@@ -1116,9 +1227,49 @@ describe("every layout, at every width", () => {
                 label,
                 actions === "controls-under"
                   ? laidOut.descriptionTop + descriptionHeight(shape) <=
-                      laidOut.actionsTop!
+                    laidOut.actionsTop!
                   : laidOut.descriptionTop >= laidOut.actionsBottom,
               ]).toEqual([label, true]);
+            }
+          }
+        }
+      }
+    },
+  );
+
+  test.each(WIDTHS_IN_PX)(
+    "at %ipx every card's title is at the top of its header - with or without controls, a description or a second line - so the titles of cards side by side line up",
+    (width: number) => {
+      for (const layout of CARD_HEADER_LAYOUTS) {
+        for (const actions of [
+          "controls",
+          "pill",
+          "none",
+        ] as Array<ActionsShape>) {
+          for (const description of [
+            "one-line",
+            "none",
+          ] as Array<DescriptionShape>) {
+            for (const titleLines of [1, 2] as Array<1 | 2>) {
+              const shape: Shape = {
+                layout,
+                titleLines,
+                actions,
+                description,
+              };
+              const laidOut: LaidOutHeader = layOut(
+                shape,
+                classesOf(shape),
+                width,
+              );
+
+              // A phone centres a short title on taller controls, as it did.
+              if (width < MD_IN_PX && actions === "controls") {
+                continue;
+              }
+
+              const label: string = `${layout}, ${actions}, ${description}, ${titleLines} title line(s)`;
+              expect([label, laidOut.titleTop]).toEqual([label, 0]);
             }
           }
         }
@@ -1145,12 +1296,12 @@ describe("every layout, at every width", () => {
 
 describe("the body after a header with no description", () => {
   /*
-   * With nothing under the first line, the line keeps the controls' whole
-   * height (no overhang), so the body's own 16px margin is measured from
-   * the controls' foot, as it was.
+   * With nothing under the first line, the controls' foot stays in the line
+   * (they reach above it only), so the body's own 16px margin is measured
+   * from the controls' foot, as it was.
    */
   test.each([...CARD_HEADER_LAYOUTS])(
-    "%s: the body keeps its 16px under the line, which is as tall as the controls",
+    "%s: the body keeps its 16px under the line, which ends at the controls' foot",
     (layout: CardHeaderLayout) => {
       const card: ReactElement = (
         <Card

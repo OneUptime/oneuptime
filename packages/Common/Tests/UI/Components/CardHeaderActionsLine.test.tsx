@@ -2,8 +2,8 @@ import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import Card, {
   CARD_DESCRIPTION_CLASS_NAME,
   CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME,
-  CARD_HEADER_ACTIONS_OVERHANG_CLASS_NAME,
-  CARD_HEADER_STACKED_ACTIONS_CLASS_NAME,
+  CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES,
+  CARD_HEADER_TITLE_BLOCK_OVER_NOTHING_CLASS_NAME,
   CARD_HEADER_TITLE_LINE_CLASS_NAMES,
   CARD_HEADER_TITLE_ROW_CLASS_NAME,
   CardButtonSchema,
@@ -102,13 +102,15 @@ function expectDescriptionInTitleBlock(): void {
   );
   // ...6px under it, as in a card with no actions.
   expect(classOf(description())).toBe(CARD_DESCRIPTION_CLASS_NAME);
-  // The actions follow the block, and hang over nothing.
+  // The actions follow the block, and reach past nothing.
   expect(titleBlock().nextElementSibling).toBe(actions());
-  expect(classOf(actions()).split(" ")).toContain(
-    CARD_HEADER_STACKED_ACTIONS_CLASS_NAME,
-  );
-  expect(classOf(actions()).split(" ")).not.toContain(
-    CARD_HEADER_ACTIONS_OVERHANG_CLASS_NAME,
+  for (const className of Object.values(
+    CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES,
+  )) {
+    expect(classOf(actions()).split(" ")).not.toContain(className);
+  }
+  expect(classOf(titleBlock()).split(" ")).not.toContain(
+    CARD_HEADER_TITLE_BLOCK_OVER_NOTHING_CLASS_NAME,
   );
   expect(classOf(titleRow())).toBe(
     `${CARD_HEADER_TITLE_ROW_CLASS_NAME} ${CARD_HEADER_TITLE_LINE_CLASS_NAMES.overActions}`,
@@ -121,18 +123,15 @@ function expectDescriptionUnderLine(): void {
   // After the line the title shares with the actions, across the card...
   expect(description().parentElement).toBe(screen.getByTestId("card-header"));
   expect(titleRow().nextElementSibling).toBe(description());
-  // ...9px under the title, clear of the controls that hang past its line.
+  // ...9px under the title, clear of the controls centred on its line.
   expect(classOf(description())).toBe(
     CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME,
   );
-  expect(classOf(actions()).split(" ")).toEqual(
-    expect.arrayContaining([
-      CARD_HEADER_STACKED_ACTIONS_CLASS_NAME,
-      CARD_HEADER_ACTIONS_OVERHANG_CLASS_NAME,
-    ]),
+  expect(classOf(actions()).split(" ")).toContain(
+    CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES.overDescription,
   );
   expect(classOf(titleRow())).toBe(
-    `${CARD_HEADER_TITLE_ROW_CLASS_NAME} ${CARD_HEADER_TITLE_LINE_CLASS_NAMES.overDescription}`,
+    `${CARD_HEADER_TITLE_ROW_CLASS_NAME} ${CARD_HEADER_TITLE_LINE_CLASS_NAMES.besideActions}`,
   );
   expect(titleBlock()).not.toContainElement(description());
 }
@@ -163,9 +162,10 @@ describe("cardHeaderActionsAreUnderTitle reads the drawn header", () => {
     block: { top: number; height: number },
     controls: { top: number; height: number },
   ): { titleBlock: Element; actions: Element } {
-    const at: (
-      span: { top: number; height: number },
-    ) => () => DOMRect = (span: { top: number; height: number }) => {
+    const at: (span: {
+      top: number;
+      height: number;
+    }) => () => DOMRect = (span: { top: number; height: number }) => {
       return (): DOMRect => {
         return {
           x: 0,
@@ -195,37 +195,37 @@ describe("cardHeaderActionsAreUnderTitle reads the drawn header", () => {
     return { titleBlock: blockElement, actions: actionsElement };
   }
 
-  test("38px controls beside a one-line title, which is centred on them: beside", () => {
-    const parts: { titleBlock: Element; actions: Element } = partsAt(
-      { top: 7, height: 24 },
-      { top: 0, height: 38 },
-    );
-
-    expect(cardHeaderActionsAreUnderTitle(parts.titleBlock, parts.actions)).toBe(
-      false,
-    );
-  });
-
-  test("Edit beside a title over two lines, their tops level: beside", () => {
-    const parts: { titleBlock: Element; actions: Element } = partsAt(
-      { top: 0, height: 48 },
-      { top: 0, height: 38 },
-    );
-
-    expect(cardHeaderActionsAreUnderTitle(parts.titleBlock, parts.actions)).toBe(
-      false,
-    );
-  });
-
-  test("a status pill level with the title: beside", () => {
+  test("38px controls centred on a one-line title, reaching 7px above it: beside", () => {
     const parts: { titleBlock: Element; actions: Element } = partsAt(
       { top: 0, height: 24 },
-      { top: 0, height: 22 },
+      { top: -7, height: 38 },
     );
 
-    expect(cardHeaderActionsAreUnderTitle(parts.titleBlock, parts.actions)).toBe(
-      false,
+    expect(
+      cardHeaderActionsAreUnderTitle(parts.titleBlock, parts.actions),
+    ).toBe(false);
+  });
+
+  test("Edit centred on a title over two lines: beside", () => {
+    const parts: { titleBlock: Element; actions: Element } = partsAt(
+      { top: 0, height: 48 },
+      { top: 5, height: 38 },
     );
+
+    expect(
+      cardHeaderActionsAreUnderTitle(parts.titleBlock, parts.actions),
+    ).toBe(false);
+  });
+
+  test("a status pill centred on the title: beside", () => {
+    const parts: { titleBlock: Element; actions: Element } = partsAt(
+      { top: 0, height: 24 },
+      { top: 1, height: 22 },
+    );
+
+    expect(
+      cardHeaderActionsAreUnderTitle(parts.titleBlock, parts.actions),
+    ).toBe(false);
   });
 
   test("controls on the next line, 8px under the title's block: under", () => {
@@ -234,9 +234,9 @@ describe("cardHeaderActionsAreUnderTitle reads the drawn header", () => {
       { top: 32, height: 38 },
     );
 
-    expect(cardHeaderActionsAreUnderTitle(parts.titleBlock, parts.actions)).toBe(
-      true,
-    );
+    expect(
+      cardHeaderActionsAreUnderTitle(parts.titleBlock, parts.actions),
+    ).toBe(true);
   });
 
   test("under a block that holds the description too (a wrapped header read again): still under", () => {
@@ -245,20 +245,20 @@ describe("cardHeaderActionsAreUnderTitle reads the drawn header", () => {
       { top: 60.75, height: 38 },
     );
 
-    expect(cardHeaderActionsAreUnderTitle(parts.titleBlock, parts.actions)).toBe(
-      true,
-    );
+    expect(
+      cardHeaderActionsAreUnderTitle(parts.titleBlock, parts.actions),
+    ).toBe(true);
   });
 
-  test("a sub-pixel short of the block's foot (a zoomed page): under", () => {
+  test("before the description moves, still reaching 7px up from the next line - 1px under the title: under", () => {
     const parts: { titleBlock: Element; actions: Element } = partsAt(
-      { top: 0, height: 24.4 },
-      { top: 23.6, height: 38 },
+      { top: 0, height: 24 },
+      { top: 25, height: 38 },
     );
 
-    expect(cardHeaderActionsAreUnderTitle(parts.titleBlock, parts.actions)).toBe(
-      true,
-    );
+    expect(
+      cardHeaderActionsAreUnderTitle(parts.titleBlock, parts.actions),
+    ).toBe(true);
   });
 
   test("a header that is not drawn (hidden, or no layout) cannot say", () => {
@@ -379,10 +379,10 @@ describe.each(STACKED_LAYOUTS)(
       expect(screen.queryByTestId("card-description")).toBeNull();
       expect(resizes.observed()).toHaveLength(0);
       expect(classOf(titleRow())).toBe(
-        `${CARD_HEADER_TITLE_ROW_CLASS_NAME} ${CARD_HEADER_TITLE_LINE_CLASS_NAMES.alone}`,
+        `${CARD_HEADER_TITLE_ROW_CLASS_NAME} ${CARD_HEADER_TITLE_LINE_CLASS_NAMES.besideActions}`,
       );
-      expect(classOf(actions()).split(" ")).not.toContain(
-        CARD_HEADER_ACTIONS_OVERHANG_CLASS_NAME,
+      expect(classOf(actions()).split(" ")).toContain(
+        CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES.overNothing,
       );
 
       rerender(<Card {...propsFor(layout)} />);
@@ -414,7 +414,7 @@ describe("only a header with something to move reads where its actions went", ()
     | "title block"
     // After the first line, 6px under a title with nothing beside it.
     | "after a title alone"
-    // After the first line, clear of the actions on it (no title there).
+    // After the first line, 6px under actions with no title beside them.
     | "after the actions"
     | "none";
 
@@ -469,11 +469,7 @@ describe("only a header with something to move reads where its actions went", ()
 
       expect(found!.parentElement).toBe(screen.getByTestId("card-header"));
       expect(found!.previousElementSibling).toBe(titleRow());
-      expect(classOf(found)).toBe(
-        place === "after the actions"
-          ? CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME
-          : CARD_DESCRIPTION_CLASS_NAME,
-      );
+      expect(classOf(found)).toBe(CARD_DESCRIPTION_CLASS_NAME);
     },
   );
 

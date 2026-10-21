@@ -1985,9 +1985,9 @@ test.describe("the header's search, opened on a wide screen", () => {
 
     /*
      * Squeezed to no width, "Create Monitor" broke over two lines and the
-     * opened search dropped 10px below the title. The title is centred on
-     * the header's controls (CardHeaders.spec.ts), so it is on the opened
-     * search too.
+     * opened search dropped 10px below the title. The header's controls
+     * are centred on the title (CardHeaders.spec.ts), so the opened search
+     * is too.
      */
     expect(
       Math.abs(search.y + search.height / 2 - (title.y + title.height / 2)),

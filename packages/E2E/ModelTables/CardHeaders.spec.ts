@@ -18,8 +18,10 @@ import path from "path";
  * the description follows that line. The line was as tall as the controls
  * (38px from md up), the title at its top, and the description came 20px
  * under the title - where a card with no controls puts it 6px under. Now
- * the title is centred on the controls, the line ends at its foot, and the
- * description follows the title by 9px, 2px clear of the controls' foot.
+ * the controls are centred on the title's line and reach 7px past it on
+ * both sides, the title stays at the card's padding - where every card's
+ * title is, so cards side by side line up - and the description follows
+ * the title by 9px, 2px clear of the controls' foot.
  * Where the controls do not fit beside the title (the Runbooks list beside
  * its side menu below about 1100px, two buttons in a one-third column) they
  * go to a line of their own, and the description followed them - 48px under
@@ -276,7 +278,7 @@ function expectControlsUnderDescription(
   ).toBeGreaterThan(boxes.header.width - 2);
 }
 
-// Each control's middle is the title's: the title is centred on the controls.
+// Each control's middle is the title's: the controls are centred on the title.
 function expectTitleCentredOnControls(label: string, boxes: HeaderBoxes): void {
   expect(boxes.controls.length, `${label}: controls`).toBeGreaterThan(0);
 
@@ -288,17 +290,20 @@ function expectTitleCentredOnControls(label: string, boxes: HeaderBoxes): void {
   }
 }
 
-// The controls stand where they stood: at the card's padding, under its top.
-function expectControlsAtThePadding(label: string, boxes: HeaderBoxes): void {
+/*
+ * The title stands where every card's title stands, at the card's padding,
+ * whatever its header holds - so the titles of cards side by side line up.
+ */
+function expectTitleAtThePadding(label: string, boxes: HeaderBoxes): void {
   expect(
-    Math.abs(boxes.actions!.y - boxes.frame.y - HEADER_INSET),
-    `${label}: the controls at the card's padding`,
+    Math.abs(boxes.title.y - boxes.frame.y - HEADER_INSET),
+    `${label}: the title at the card's padding`,
   ).toBeLessThanOrEqual(TOLERANCE);
 }
 
 test.describe("the Runbooks list of the maintainer's screenshot", () => {
   for (const theme of ["light", "dark"] as Array<"light" | "dark">) {
-    test(`at 1280px (${theme}) its description sits 9px under "Runbooks", not a button row down, and the title is centred on the search, Create Runbook and the ⋯`, async ({
+    test(`at 1280px (${theme}) its description sits 9px under "Runbooks", not a button row down, and the search, Create Runbook and the ⋯ are centred on it`, async ({
       page,
     }: {
       page: Page;
@@ -338,7 +343,11 @@ test.describe("the Runbooks list of the maintainer's screenshot", () => {
       expect(onTitleLine(boxes)).toBe(true);
 
       expectDescriptionUnderTitle("Runbooks", boxes);
-      expectControlsAtThePadding("Runbooks", boxes);
+      expectTitleAtThePadding("Runbooks", boxes);
+      // The 38px controls reach 7px above the title's line, and 7px below it.
+      expect(
+        Math.abs(boxes.title.y - boxes.actions!.y - 7),
+      ).toBeLessThanOrEqual(TOLERANCE);
 
       // The description on one line, and the filter chips under it.
       expect(boxes.description!.height).toBeLessThan(24);
@@ -572,7 +581,7 @@ test.describe("other lists draw the same header", () => {
       expect(onTitleLine(boxes)).toBe(true);
       expectDescriptionUnderTitle(title, boxes);
       expectTitleCentredOnControls(title, boxes);
-      expectControlsAtThePadding(title, boxes);
+      expectTitleAtThePadding(title, boxes);
       await expectNoSidewaysScroll(page);
     });
   }
@@ -586,16 +595,14 @@ interface ShapeRule {
   name: string;
   // The description's distance under the title (null: none, or not under it).
   gap: number | null;
-  // Controls 38px tall, beside the title: the title centred on them.
-  centredOnControls: boolean;
-  // The controls' top is the title's (a pill, the default header).
-  topLevelWithTitle: boolean;
   /*
-   * A title that breaks over two lines where its column is narrow: its first
-   * line level with the controls' top. Where it fits on one line (the
-   * column is wider), it is centred on them as any title is.
+   * Actions beside the title, centred on it: 38px controls, a status pill,
+   * and a title that breaks over two lines where its column is narrow
+   * (the controls centred on both lines).
    */
-  breaksWhereNarrow?: boolean | undefined;
+  centredOnControls: boolean;
+  // The controls' top is the title's (the default header).
+  topLevelWithTitle: boolean;
 }
 
 const SHAPES: Array<ShapeRule> = [
@@ -626,8 +633,8 @@ const SHAPES: Array<ShapeRule> = [
   {
     name: "toolbar-pill",
     gap: 9,
-    centredOnControls: false,
-    topLevelWithTitle: true,
+    centredOnControls: true,
+    topLevelWithTitle: false,
   },
   {
     name: "default-edit",
@@ -656,15 +663,14 @@ const SHAPES: Array<ShapeRule> = [
   {
     name: "stacked-long-title",
     gap: 9,
-    centredOnControls: false,
+    centredOnControls: true,
     topLevelWithTitle: false,
-    breaksWhereNarrow: true,
   },
   {
     name: "stacked-pill",
     gap: 9,
-    centredOnControls: false,
-    topLevelWithTitle: true,
+    centredOnControls: true,
+    topLevelWithTitle: false,
   },
   {
     name: "stacked-no-description",
@@ -763,9 +769,11 @@ test.describe("every header shape", () => {
           expect(boxes.description, `${label}: no description`).toBeNull();
         }
 
+        // Every title at the card's padding, whatever the header holds.
+        expectTitleAtThePadding(label, boxes);
+
         if (shape.centredOnControls) {
           expectTitleCentredOnControls(label, boxes);
-          expectControlsAtThePadding(label, boxes);
         }
 
         if (shape.topLevelWithTitle) {
@@ -773,18 +781,6 @@ test.describe("every header shape", () => {
             Math.abs(boxes.actions!.y - boxes.title.y),
             `${label}: the actions' top level with the title's`,
           ).toBeLessThanOrEqual(TOLERANCE);
-        }
-
-        if (shape.breaksWhereNarrow) {
-          if (boxes.title.height > 30) {
-            expect(
-              Math.abs(boxes.actions!.y - boxes.title.y),
-              `${label}: the title's first line level with the controls' top`,
-            ).toBeLessThanOrEqual(TOLERANCE);
-          } else {
-            expectTitleCentredOnControls(label, boxes);
-          }
-          expectControlsAtThePadding(label, boxes);
         }
       }
 
@@ -817,7 +813,7 @@ test.describe("every header shape", () => {
     );
   });
 
-  test("at 1280px a title over two lines beside Edit keeps its first line level with Edit's top", async ({
+  test("at 1280px a title over two lines beside Edit stays at the card's padding, Edit centred on both lines", async ({
     page,
   }: {
     page: Page;
@@ -830,9 +826,35 @@ test.describe("every header shape", () => {
 
     expect(Math.round(boxes.title.height)).toBe(48);
     expect(onTitleLine(boxes)).toBe(true);
-    expect(Math.abs(boxes.actions!.y - boxes.title.y)).toBeLessThanOrEqual(
+    expectTitleAtThePadding("Scheduled Maintenance Details", boxes);
+    expectTitleCentredOnControls("Scheduled Maintenance Details", boxes);
+  });
+
+  test("at 1280px the titles of cards side by side line up, whatever their headers hold: Edit beside one, centred on the title, at the top of the other", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, GALLERY, 1280);
+
+    const main: HeaderBoxes = await headerBoxesOf(
+      page.getByTestId("shape-default-edit").getByTestId("card"),
+    );
+    const side: HeaderBoxes = await headerBoxesOf(
+      page.getByTestId("shape-stacked-edit").getByTestId("card"),
+    );
+
+    // The two cards start the grid's row together...
+    expect(Math.abs(main.frame.y - side.frame.y)).toBeLessThanOrEqual(
       TOLERANCE,
     );
+    // ...and so do their titles.
+    expect(Math.abs(main.title.y - side.title.y)).toBeLessThanOrEqual(
+      TOLERANCE,
+    );
+    expect(
+      Math.abs(main.description!.y - main.title.y - 30),
+    ).toBeLessThanOrEqual(TOLERANCE);
   });
 
   test("on a phone no description is shown, the title and the controls share a line centred on each other or the controls go under it, and the body starts under them", async ({

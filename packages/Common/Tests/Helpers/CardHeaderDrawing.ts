@@ -5,8 +5,8 @@
  * cardHeaderActionsAreUnderTitle). These helpers draw the two boxes it
  * reads, the title's block and the actions, as Chromium does at md and up:
  *
- *   - "beside": the actions on the title's line, the title centred on them
- *     (block 7-31px, actions 0-38px: CardHeaders.spec.ts measures the same);
+ *   - "beside": the actions on the title's line, centred on the title
+ *     (block 0-24px, actions -7-31px: CardHeaders.spec.ts measures the same);
  *   - "under": the title's block alone on the first line, the actions 8px
  *     under it (block 0-24px, actions 32-70px);
  *   - "undrawn": jsdom's own 0 x 0 boxes - a hidden card, or no layout.
@@ -28,8 +28,8 @@ const SPANS: Record<
   { titleBlock: Span; actions: Span }
 > = {
   beside: {
-    titleBlock: { top: 7, height: 24 },
-    actions: { top: 0, height: 38 },
+    titleBlock: { top: 0, height: 24 },
+    actions: { top: -7, height: 38 },
   },
   under: {
     titleBlock: { top: 0, height: 24 },
@@ -175,9 +175,7 @@ export function installFakeResizeObservers(): FakeResizeObservers {
       if (original) {
         Object.defineProperty(window, "ResizeObserver", original);
       } else {
-        delete (window as unknown as Record<string, unknown>)[
-          "ResizeObserver"
-        ];
+        delete (window as unknown as Record<string, unknown>)["ResizeObserver"];
       }
     },
   };
