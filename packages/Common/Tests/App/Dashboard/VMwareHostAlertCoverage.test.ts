@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import RecommendationDismissal from "../../../Models/DatabaseModels/RecommendationDismissal";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
@@ -233,7 +240,9 @@ describe("which are on for this vCenter", () => {
 
     const cpu: RecommendationViewModel = viewModels.find(
       (viewModel: RecommendationViewModel): boolean => {
-        return viewModel.recommendation.templateId === "vmware-host-cpu-saturation";
+        return (
+          viewModel.recommendation.templateId === "vmware-host-cpu-saturation"
+        );
       },
     )!;
     expect(cpu.status).toBe(RecommendationStatus.Created);

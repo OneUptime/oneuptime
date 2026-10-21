@@ -69,7 +69,9 @@ import {
 const NOW: Date = new Date("2026-10-21T12:00:00.000Z");
 const MINUTE: number = 60 * 1000;
 
-function row(fields: Partial<Record<keyof VMwareResourceModel, unknown>>): VMwareResourceModel {
+function row(
+  fields: Partial<Record<keyof VMwareResourceModel, unknown>>,
+): VMwareResourceModel {
   const model: VMwareResourceModel = new VMwareResourceModel();
   Object.assign(model, fields);
   return model;
@@ -117,9 +119,9 @@ function values(points: Array<TimeValuePoint>): Array<number> {
 
 describe("which host the page is about", () => {
   test("an inventory id names the datacenter and the host", () => {
-    expect(parseVMwareHostExternalId("host/dc-east/esx01.acme.example")).toEqual(
-      { datacenterName: "dc-east", hostName: "esx01.acme.example" },
-    );
+    expect(
+      parseVMwareHostExternalId("host/dc-east/esx01.acme.example"),
+    ).toEqual({ datacenterName: "dc-east", hostName: "esx01.acme.example" });
   });
 
   test("a datacenter name holding a slash stays whole; the host is after the last one", () => {
@@ -273,10 +275,13 @@ describe("whether vCenter still reports the host", () => {
   });
 
   test("every state has its words and its tone", () => {
-    expect(getVMwareHostReportStateLook(VMwareHostReportState.Reporting)).toEqual({
+    expect(
+      getVMwareHostReportStateLook(VMwareHostReportState.Reporting),
+    ).toEqual({
       label: "Reporting",
       tone: "positive",
-      description: "vCenter reported this host's metrics in the last 15 minutes.",
+      description:
+        "vCenter reported this host's metrics in the last 15 minutes.",
     });
     expect(
       getVMwareHostReportStateLook(VMwareHostReportState.NotReporting).tone,
@@ -592,20 +597,26 @@ describe("reading the answers", () => {
     expect(
       readVMwareMetricSamples(
         result([
-          bucket(minutesAgo(2), 12.5, { object: " vmnic0 ", direction: "received" }),
+          bucket(minutesAgo(2), 12.5, {
+            object: " vmnic0 ",
+            direction: "received",
+          }),
           bucket(minutesAgo(1), 3),
         ]),
       ),
-    ).toEqual([
-      sample(2, "vmnic0", "received", 12.5),
-      sample(1, "", "", 3),
-    ]);
+    ).toEqual([sample(2, "vmnic0", "received", 12.5), sample(1, "", "", 3)]);
   });
 
   test("a bucket timed on `time`, as a string or a number, is read the same", () => {
     const points: Array<AggregatedModel> = [
-      { time: minutesAgo(3).toISOString(), value: 1 } as unknown as AggregatedModel,
-      { timestamp: minutesAgo(2).getTime(), value: 2 } as unknown as AggregatedModel,
+      {
+        time: minutesAgo(3).toISOString(),
+        value: 1,
+      } as unknown as AggregatedModel,
+      {
+        timestamp: minutesAgo(2).getTime(),
+        value: 2,
+      } as unknown as AggregatedModel,
     ];
     expect(
       readVMwareMetricSamples(result(points)).map(
@@ -644,7 +655,7 @@ describe("reading the answers", () => {
     expect(readVMwareMetricSamples({ data: [] })).toEqual([]);
   });
 
-  test("the whole host is the instance \"\" (and the simulator's \"*\")", () => {
+  test('the whole host is the instance "" (and the simulator\'s "*")', () => {
     expect(isVMwareHostTotalObject("")).toBe(true);
     expect(isVMwareHostTotalObject("  ")).toBe(true);
     expect(isVMwareHostTotalObject("*")).toBe(true);
@@ -698,7 +709,11 @@ describe("a host-wide line", () => {
 
   test("points come out oldest first, whatever order they came in", () => {
     const line: Array<TimeValuePoint> = getVMwareHostSeries({
-      samples: [sample(1, "", "", 3), sample(3, "", "", 1), sample(2, "", "", 2)],
+      samples: [
+        sample(1, "", "", 3),
+        sample(3, "", "", 1),
+        sample(2, "", "", 2),
+      ],
     });
     expect(values(line)).toEqual([1, 2, 3]);
   });
@@ -808,8 +823,8 @@ describe("network adapters", () => {
 
 describe("storage devices", () => {
   test("one row per device, each direction averaged on its own", () => {
-    const devices: Array<VMwareStorageDeviceRow> = summarizeVMwareStorageDevices(
-      {
+    const devices: Array<VMwareStorageDeviceRow> =
+      summarizeVMwareStorageDevices({
         throughput: [
           sample(2, "naa.1", "read", 10),
           sample(1, "naa.1", "read", 20),
@@ -822,8 +837,7 @@ describe("storage devices", () => {
           sample(1, "naa.1", "write", 60),
           sample(1, "t10.NVMe", "read", 0.4),
         ],
-      },
-    );
+      });
     expect(devices).toEqual([
       {
         name: "naa.1",
@@ -992,10 +1006,7 @@ describe("whether an incident or alert is about this host", () => {
       ),
     ).toBe(false);
     expect(
-      seriesLabelsNameVMwareHost(
-        { "resource.vcenter.host.name": 42 },
-        "42",
-      ),
+      seriesLabelsNameVMwareHost({ "resource.vcenter.host.name": 42 }, "42"),
     ).toBe(false);
     expect(seriesLabelsNameVMwareHost(null, "esx01")).toBe(false);
     expect(seriesLabelsNameVMwareHost(undefined, "esx01")).toBe(false);

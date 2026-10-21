@@ -90,7 +90,15 @@ jest.mock(
           return Promise.resolve(
             noUnresolvedStates
               ? []
-              : [{ id: { toString: () => UNRESOLVED_INCIDENT_STATE_ID } }],
+              : [
+                  {
+                    id: {
+                      toString: () => {
+                        return UNRESOLVED_INCIDENT_STATE_ID;
+                      },
+                    },
+                  },
+                ],
           );
         },
       },
@@ -106,7 +114,15 @@ jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/AlertState", () => {
         return Promise.resolve(
           noUnresolvedStates
             ? []
-            : [{ id: { toString: () => UNRESOLVED_ALERT_STATE_ID } }],
+            : [
+                {
+                  id: {
+                    toString: () => {
+                      return UNRESOLVED_ALERT_STATE_ID;
+                    },
+                  },
+                },
+              ],
         );
       },
     },
@@ -325,8 +341,9 @@ describe("one open record, as the card shows it", () => {
       )?.number,
     ).toBe("INC-12");
     expect(
-      toVMwareHostOpenAlert(alert(3, 1, HOST, { alertNumberWithPrefix: "ALT-3" }))
-        ?.number,
+      toVMwareHostOpenAlert(
+        alert(3, 1, HOST, { alertNumberWithPrefix: "ALT-3" }),
+      )?.number,
     ).toBe("ALT-3");
   });
 
