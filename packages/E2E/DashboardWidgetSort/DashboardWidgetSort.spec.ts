@@ -609,6 +609,159 @@ test.describe("a list on the dashboard inside OneUptime", () => {
   });
 });
 
+/*
+ * A sortable header takes no more room than the plain one it replaced: its
+ * words wrap as before, and its arrow and hint hang in the cell's padding.
+ * So a table that fitted its widget still fits it (#5122's UI review), and
+ * the security events list keeps one line per event.
+ */
+test.describe("the headers take no more room than plain ones", () => {
+  interface TableBox {
+    boxWidth: number;
+    scrollWidth: number;
+    rowHeights: Array<number>;
+  }
+
+  // The table's scroll box, and the height of each of its rows.
+  const measure: (table: Locator) => Promise<TableBox> = async (
+    table: Locator,
+  ): Promise<TableBox> => {
+    return table.evaluate((element: Element): TableBox => {
+      const box: HTMLElement = element.parentElement as HTMLElement;
+
+      return {
+        boxWidth: box.clientWidth,
+        scrollWidth: box.scrollWidth,
+        rowHeights: Array.from(element.querySelectorAll("tbody tr")).map(
+          (row: Element): number => {
+            return row.getBoundingClientRect().height;
+          },
+        ),
+      };
+    });
+  };
+
+  // A header's words: the one element in it a screen reader reads.
+  const wordsOf: (button: Locator) => Locator = (button: Locator): Locator => {
+    return button.locator("span:not([aria-hidden])");
+  };
+
+  const openNarrow: (page: Page) => Promise<void> = async (
+    page: Page,
+  ): Promise<void> => {
+    await page.goto(`${APP_PATH}?board=narrow`);
+    await expect(tableWith(page, "col:requests")).toBeVisible({
+      timeout: 60000,
+    });
+    await expect(
+      tableWith(page, "col:requests").locator("tbody tr").first(),
+    ).toBeVisible();
+  };
+
+  test("a long header wraps rather than widening a narrow table", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    atDesktopOnly();
+    await openNarrow(page);
+
+    const table: Locator = tableWith(page, "col:requests");
+
+    // "Requests per minute" takes two lines in a 4-unit widget...
+    const words: Locator = wordsOf(header(table, "col:requests"));
+    await expect(words).toHaveText("Requests per minute");
+    expect((await words.boundingBox())!.height).toBeGreaterThanOrEqual(28);
+
+    // ...so the table fits its widget, as it did before headers sorted.
+    const box: TableBox = await measure(table);
+    expect(box.scrollWidth).toBeLessThanOrEqual(box.boxWidth + 1);
+
+    await shoot(page, testInfo, "narrow-metric-table", table);
+  });
+
+  test("a column aligned right hangs its arrow before its words, inside its own cell", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    atDesktopOnly();
+    await openNarrow(page);
+
+    const table: Locator = tableWith(page, "col:requests");
+    const button: Locator = header(table, "col:requests");
+
+    // Its hint, under the pointer, and then its arrow: before the words.
+    await button.hover();
+
+    const hint: Locator = button.locator("svg");
+    await expect(hint).toHaveCSS("opacity", "1");
+
+    await press(button);
+    await expect(button.locator("xpath=..")).toHaveAttribute(
+      "aria-sort",
+      "descending",
+    );
+
+    // The arrow as drawn: its strokes, not the icon's empty margin.
+    const arrow: Locator = button
+      .getByTestId("dashboard-widget-sort-arrow")
+      .locator("path")
+      .first();
+    const arrowBox: { x: number; width: number } = (await arrow.boundingBox())!;
+    const wordsBox: { x: number } = (await wordsOf(button).boundingBox())!;
+    const cellBox: { x: number; width: number } = (await button
+      .locator("xpath=..")
+      .boundingBox())!;
+
+    // Before the words, and inside the cell (to within half a stroke).
+    expect(arrowBox.x + arrowBox.width).toBeLessThanOrEqual(wordsBox.x);
+    expect(arrowBox.x).toBeGreaterThanOrEqual(cellBox.x - 0.5);
+
+    // The last column's arrow never draws past the table's edge.
+    const box: TableBox = await measure(table);
+    expect(box.scrollWidth).toBeLessThanOrEqual(box.boxWidth + 1);
+  });
+
+  test("the security events list draws one line per event, at its narrowest too", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    atDesktopOnly();
+    await openNarrow(page);
+
+    const tables: Locator = page.locator("table").filter({
+      has: page.getByTestId("dashboard-widget-sort-severity"),
+    });
+    await expect(tables).toHaveCount(2);
+
+    const boxes: Array<TableBox> = [];
+
+    for (const index of [0, 1]) {
+      await expect(tables.nth(index).locator("tbody tr")).toHaveCount(4);
+      boxes.push(await measure(tables.nth(index)));
+    }
+
+    // One line of the list's text and its padding: never two.
+    for (const box of boxes) {
+      for (const height of box.rowHeights) {
+        expect(height).toBeLessThan(36);
+      }
+    }
+
+    // At its default width, the list fits its widget.
+    const widest: TableBox = boxes.reduce(
+      (wider: TableBox, box: TableBox): TableBox => {
+        return box.boxWidth > wider.boxWidth ? box : wider;
+      },
+    );
+    expect(widest.scrollWidth).toBeLessThanOrEqual(widest.boxWidth + 1);
+
+    await shoot(page, testInfo, "security-events-one-line", undefined);
+  });
+});
+
 test.describe("the order everyone sees", () => {
   test("the Sort setting saves the widget's own order, which Save Changes keeps", async ({
     page,
@@ -631,11 +784,11 @@ test.describe("the order everyone sees", () => {
     const setting: Locator = modal.getByTestId("dashboard-widget-sort-setting");
 
     await expect(setting).toBeVisible();
-    await expect(setting).toContainText("Default (Name, A to Z)");
+    await expect(setting).toContainText("Default (Name: A to Z)");
 
     await setting.getByRole("combobox").click();
-    await page.getByRole("option", { name: "Status, Worst first" }).click();
-    await expect(setting).toContainText("Status, Worst first");
+    await page.getByRole("option", { name: "Status: Worst first" }).click();
+    await expect(setting).toContainText("Status: Worst first");
 
     // The live preview draws the new order at once.
     await expectRows(
@@ -702,11 +855,11 @@ test.describe("the order everyone sees", () => {
     });
     const setting: Locator = modal.getByTestId("dashboard-widget-sort-setting");
 
-    await expect(setting).toContainText("Default (Namespace, A to Z)");
+    await expect(setting).toContainText("Default (Namespace: A to Z)");
 
     await preview.getByTestId("dashboard-widget-sort-phase").click();
 
-    await expect(setting).toContainText("Phase, Worst first");
+    await expect(setting).toContainText("Phase: Worst first");
     await expectRows(preview, PODS_WORST_FIRST);
 
     // The preview is the widget as everyone will see it: no viewer pick.

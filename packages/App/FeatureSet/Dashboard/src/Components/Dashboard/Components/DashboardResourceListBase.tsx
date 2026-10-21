@@ -19,12 +19,21 @@ export interface ResourceListColumn {
   widthPct: string;
   alignRight?: boolean;
   /*
+   * As wide as its widest cell, on one line - a time, a severity - with
+   * the other columns sharing the rest; widthPct then sizes only its
+   * loading placeholder. Its cells keep to one line as well.
+   */
+  fitContent?: boolean | undefined;
+  /*
    * The column's key in the widget kind's sort registry
    * (Common/Utils/Dashboard/DashboardWidgetSorts), when its header sorts
    * the list.
    */
   sortKey?: string | undefined;
 }
+
+// A width a column with fitContent is given: the least, so it fits its cells.
+const FIT_CONTENT_WIDTH: string = "1%";
 
 /*
  * What a list's sortable headers draw and do: the columns it can sort by,
@@ -174,7 +183,8 @@ const DashboardResourceListBase: FunctionComponent<
                       key={i}
                       label={c.label}
                       alignRight={c.alignRight}
-                      widthPct={c.widthPct}
+                      widthPct={c.fitContent ? FIT_CONTENT_WIDTH : c.widthPct}
+                      className={c.fitContent ? "whitespace-nowrap" : undefined}
                       sortColumn={
                         props.sort && c.sortKey
                           ? findDashboardWidgetSortColumn(

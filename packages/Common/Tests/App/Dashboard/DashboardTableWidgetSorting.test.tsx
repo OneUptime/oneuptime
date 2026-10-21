@@ -160,6 +160,9 @@ const COMPONENT_ID: ObjectID = new ObjectID(
 );
 const PICK_KEY: string = `oneuptime-dashboard-widget-sort-${COMPONENT_ID.toString()}:${DASHBOARD_ID}`;
 
+// A security event's time ends in its time of day, seconds and all.
+const TIME_OF_DAY_WITH_SECONDS: RegExp = /\d{1,2}:\d{2}:\d{2}/;
+
 const DASHBOARD_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.CUSTOM,
   startAndEndDate: new InBetween<Date>(
@@ -339,6 +342,58 @@ describe("a metric table grouped by an attribute", () => {
 
     // Sorting needs no new read: the table holds every row.
     expect(fetchResultsMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("its headers hang the arrow beside their words, before them in a column aligned right", async () => {
+    render(
+      <DashboardTableComponentElement
+        {...baseProps()}
+        component={tableComponent()}
+      />,
+    );
+    await screen.findByText("checkout");
+
+    // The words keep their own element, free to wrap as a plain header's do.
+    expect(sortButton("attr:0").firstElementChild).toHaveTextContent("Service");
+    expect(sortButton("attr:0").firstElementChild).not.toHaveClass("truncate");
+
+    /*
+     * The arrow and the hint hang from a point of no width in the line:
+     * after the last word, or before the first in a metric's column, which
+     * is aligned right - so they never draw past the table's edge.
+     */
+    const serviceAnchor: Element | null = sortButton("attr:0").lastElementChild;
+    const errorsAnchor: Element | null =
+      sortButton("col:errors").firstElementChild;
+
+    for (const anchor of [serviceAnchor, errorsAnchor]) {
+      expect(anchor).toHaveAttribute("aria-hidden", "true");
+      expect(anchor).toHaveClass("inline-block", "w-0");
+    }
+
+    expect(sortButton("col:errors")).toHaveClass("text-right");
+    expect(sortButton("col:errors").lastElementChild).toHaveTextContent(
+      "Errors",
+    );
+
+    // Neither is read out - aria-sort says the order.
+    expect(screen.getByRole("button", { name: "Service" })).toBe(
+      sortButton("attr:0"),
+    );
+    expect(screen.getByRole("button", { name: "Errors" })).toBe(
+      sortButton("col:errors"),
+    );
+
+    expect(serviceAnchor?.querySelector("svg")).toHaveClass("left-0.5");
+    expect(errorsAnchor?.querySelector("svg")).toHaveClass(
+      "right-0.5",
+      "opacity-0",
+    );
+
+    fireEvent.click(sortButton("col:errors"));
+    expect(
+      sortButton("col:errors").firstElementChild?.querySelector("svg"),
+    ).toHaveClass("right-0.5", "text-indigo-500");
   });
 
   test("sorts before it trims, so Max Rows shows the top rows of the whole window", async () => {
@@ -905,6 +960,75 @@ describe("a security events list", () => {
         time: SortOrder.Descending,
       });
     });
+  });
+
+  test("draws one line per event: the time and the severity as wide as their cells", async () => {
+    render(
+      <DashboardSecurityEventsListComponentElement
+        {...baseProps()}
+        component={securityComponent()}
+      />,
+    );
+    await screen.findByText("Failed login for root");
+
+    // A time and a severity: the least width, so their cells decide it.
+    for (const columnKey of ["time", "severity"]) {
+      expect(headerCell(columnKey)).toHaveStyle({ width: "1%" });
+      expect(headerCell(columnKey)).toHaveClass("whitespace-nowrap");
+    }
+
+    // The class, the message and the host share the rest.
+    expect(headerCell("class")).toHaveStyle({ width: "18%" });
+    expect(headerCell("host")).toHaveStyle({ width: "14%" });
+    expect(screen.getByRole("columnheader", { name: "Message" })).toHaveStyle({
+      width: "34%",
+    });
+
+    const cells: Array<HTMLElement> = Array.from(
+      document.querySelectorAll("tbody tr td"),
+    ) as Array<HTMLElement>;
+
+    // The date and the time of day stay on one line, as one text.
+    expect(cells[0]).toHaveClass("whitespace-nowrap");
+    expect(cells[0]!.querySelectorAll("span")).toHaveLength(0);
+    expect(cells[0]!.textContent).toMatch(TIME_OF_DAY_WITH_SECONDS);
+    expect(cells[1]).toHaveClass("whitespace-nowrap");
+
+    // The rest are cut short with an ellipsis, whole on hover.
+    expect(cells[2]).toHaveClass("max-w-0", "truncate");
+    expect(cells[2]).toHaveAttribute("title", "Authentication");
+    expect(cells[3]).toHaveClass("max-w-0", "truncate");
+    expect(cells[3]).toHaveAttribute("title", "Failed login for root");
+    expect(cells[4]).toHaveClass("max-w-0", "truncate");
+    expect(cells[4]).toHaveAttribute("title", "bastion-1");
+  });
+
+  test("an event without a class, a message or a host says so with a dash", async () => {
+    analyticsGetListMock.mockResolvedValue({
+      data: [
+        {
+          time: "2026-10-19T10:30:00.000Z",
+          severityName: "Low",
+        },
+      ],
+      count: 1,
+    });
+
+    render(
+      <DashboardSecurityEventsListComponentElement
+        {...baseProps()}
+        component={securityComponent()}
+      />,
+    );
+    await screen.findByText("Low");
+
+    const cells: Array<string> = Array.from(
+      document.querySelectorAll("tbody tr td"),
+    ).map((cell: Element): string => {
+      return (cell.textContent || "").trim();
+    });
+
+    expect(cells.slice(2)).toEqual(["—", "—", "—"]);
   });
 
   test("Host sorts A to Z first", async () => {

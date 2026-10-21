@@ -140,6 +140,65 @@ export const buildConfig = (options) => {
   };
 };
 
+/*
+ * A second dashboard (?board=narrow) for the headers' room: a metric table
+ * at its narrowest, whose long headers must wrap rather than widen it, and
+ * the security events list at its narrowest and at its default width, one
+ * line per event at both.
+ */
+export const NARROW_WIDGETS = {
+  metrics: "c0000000-0000-4000-8000-0000000000f1",
+  security: "c0000000-0000-4000-8000-0000000000f2",
+  narrowSecurity: "c0000000-0000-4000-8000-0000000000f3",
+};
+
+export const buildNarrowConfig = () => {
+  return {
+    _type: "DashboardViewConfig",
+    components: [
+      place(DashboardTableComponentUtil.getDefaultComponent(), {
+        id: NARROW_WIDGETS.metrics,
+        top: 0,
+        left: 0,
+        width: 4,
+        height: 4,
+        arguments: {
+          tableTitle: "Requests per minute",
+          columns: [
+            {
+              id: "requests",
+              variable: "a",
+              header: "Requests per minute",
+              kind: "Metric",
+              metricName: "http.server.request.count",
+              aggregation: "Sum",
+            },
+          ],
+          groupByAttributes: [{ key: "service.name", header: "Service name" }],
+          maxRows: 25,
+        },
+      }),
+      place(DashboardSecurityEventsListComponentUtil.getDefaultComponent(), {
+        id: NARROW_WIDGETS.narrowSecurity,
+        top: 0,
+        left: 4,
+        width: 6,
+        height: 4,
+        arguments: { title: "Security events at their narrowest", limit: 10 },
+      }),
+      place(DashboardSecurityEventsListComponentUtil.getDefaultComponent(), {
+        id: NARROW_WIDGETS.security,
+        top: 4,
+        left: 0,
+        width: 8,
+        height: 5,
+        arguments: { title: "Security events", limit: 10 },
+      }),
+    ],
+    heightInDashboardUnits: 9,
+  };
+};
+
 // ---- the rows -------------------------------------------------------------
 
 const MINUTE = 60 * 1000;

@@ -74,10 +74,10 @@ function readCode(relative: string): string {
 
 /*
  * A list widget's column: `{ label: "Pod", widthPct: "40%", sortKey: "name" }`,
- * with alignRight before sortKey where a column has both.
+ * with alignRight, then fitContent, before sortKey where a column has them.
  */
 const COLUMN_ENTRY: RegExp =
-  /\{ label: "([^"]+)", widthPct: "[^"]+"(?:, alignRight: true)?(?:, sortKey: "([^"]+)")?,? \}/g;
+  /\{ label: "([^"]+)", widthPct: "[^"]+"(?:, alignRight: true)?(?:, fitContent: true)?(?:, sortKey: "([^"]+)")?,? \}/g;
 
 // A trace table's metric header: `{ key: "count", label: "Requests" }`.
 const METRIC_HEADER_ENTRY: RegExp = /\{ key: "([^"]+)", label: "([^"]+)" \}/g;
@@ -395,6 +395,111 @@ describe("the header in the dark theme", () => {
     // Theme.css has no dark rule for these; a header must not use them.
     expect(header).not.toContain("focus-visible:bg-gray-50");
     expect(header).not.toContain("hover:bg-gray-50");
+  });
+
+  test("the Sort setting's tip is drawn in a grey the dark theme repaints", () => {
+    const editor: string = readCode(
+      "App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/WidgetSortEditor.tsx",
+    );
+
+    // Readable on white (gray-400 is not), and repainted in the dark theme.
+    expect(editor).toContain('<p className="mt-2 text-xs text-gray-500">');
+    expect(editor).not.toContain("text-gray-400");
+    expect(theme).toContain("html.dark :is(.text-gray-500, .text-slate-500)");
+  });
+});
+
+/*
+ * A sortable header must not make a widget's table wider than its plain
+ * header did (#5122's UI review): a narrow widget's columns are as wide as
+ * their words, and a table that fitted its widget still fits it. The real
+ * layout is measured in a browser (E2E DashboardWidgetSort: "the headers
+ * take no more room than plain ones"); these are the rules that keep it.
+ */
+describe("the header's layout", () => {
+  const header: string = readCode(
+    `${WIDGETS_DIR}/DashboardSortableColumnHeader.tsx`,
+  );
+
+  test("its words wrap where a plain header's do, never cut to one line", () => {
+    expect(header).toContain("<span>{label}</span>");
+    expect(header).not.toContain("truncate");
+    expect(header).not.toContain("whitespace-nowrap");
+  });
+
+  test("the arrow and the hint hang from a point of no width in the line, hidden from screen readers", () => {
+    expect(header).toContain(
+      '<span aria-hidden="true" className="relative inline-block h-3 w-0 align-middle" >',
+    );
+    // Each is drawn whole inside the cell's 12px padding: 2px off, 12px wide.
+    expect(header).toContain("absolute -top-px h-3 w-3");
+    expect(header).toContain('props.alignRight ? "right-0.5" : "left-0.5"');
+    // No arrow takes room beside the words.
+    expect(header).not.toContain("ml-1");
+    expect(header).not.toContain("flex-none");
+  });
+
+  test("a column aligned right puts them before its first word, so no table draws past its edge", () => {
+    const before: number = header.indexOf(
+      "{props.alignRight ? indicator : <></>}",
+    );
+    const words: number = header.indexOf("<span>{label}</span>");
+    const after: number = header.indexOf(
+      "{props.alignRight ? <></> : indicator}",
+    );
+
+    expect(before).toBeGreaterThan(0);
+    expect(words).toBeGreaterThan(before);
+    expect(after).toBeGreaterThan(words);
+    expect(header).toContain('props.alignRight ? "text-right" : "text-left"');
+    expect(header).not.toContain("justify-end");
+  });
+
+  test("the button clips what hangs past the cell", () => {
+    expect(header).toContain("group/sort block w-full overflow-hidden");
+  });
+
+  test("a list's column as wide as its cells is drawn on one line, its width the least", () => {
+    const base: string = readCode(
+      `${WIDGETS_DIR}/DashboardResourceListBase.tsx`,
+    );
+
+    expect(base).toContain('const FIT_CONTENT_WIDTH: string = "1%";');
+    expect(base).toContain(
+      "widthPct={c.fitContent ? FIT_CONTENT_WIDTH : c.widthPct}",
+    );
+    expect(base).toContain(
+      'className={c.fitContent ? "whitespace-nowrap" : undefined}',
+    );
+  });
+});
+
+describe("the security events table", () => {
+  const code: string = readCode(
+    `${WIDGETS_DIR}/DashboardSecurityEventsListComponent.tsx`,
+  );
+
+  test("draws one line per event: the time and the severity as wide as they need", () => {
+    expect(code).toContain(
+      '{ label: "Time", widthPct: "22%", fitContent: true, sortKey: "time" }',
+    );
+    expect(code).toContain(
+      '{ label: "Severity", widthPct: "12%", fitContent: true, sortKey: "severity", }',
+    );
+    expect(code).toContain(
+      'className="whitespace-nowrap px-3 py-1.5 text-xs text-gray-500 tabular-nums"',
+    );
+    expect(code).toContain(
+      '<td className="whitespace-nowrap px-3 py-1.5" title={severity}>',
+    );
+  });
+
+  test("cuts the class, the message and the host short, whole on hover", () => {
+    for (const value of ["className", "message", "host"]) {
+      expect(code).toContain(`title={${value}} > {${value} || "—"}`);
+    }
+
+    expect(code.split("max-w-0 truncate px-3 py-1.5").length - 1).toBe(3);
   });
 });
 

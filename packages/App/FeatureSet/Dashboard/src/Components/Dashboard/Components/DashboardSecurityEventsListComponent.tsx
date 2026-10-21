@@ -46,38 +46,24 @@ export interface ComponentProps extends DashboardBaseComponentProps {
  * The events in the dashboard's time range, newest first unless a viewer
  * clicks a column (issue #5082): Severity sorts the most severe first, by
  * the OCSF severity id. The message is free text, so it does not sort.
+ *
+ * One line per event, as the list always had: the time and the severity
+ * are as wide as they need, and the class, the message and the host share
+ * the rest - the message the most - each cut short with an ellipsis and
+ * whole on hover.
  */
 const COLUMNS: Array<ResourceListColumn> = [
-  /*
-   * Wide enough for a date, a time and its seconds on one line from the
-   * widget's default width; at its narrowest the time goes under the date,
-   * so every column still fits.
-   */
-  { label: "Time", widthPct: "28%", sortKey: "time" },
-  { label: "Severity", widthPct: "13%", sortKey: "severity" },
-  { label: "Class", widthPct: "15%", sortKey: "class" },
-  { label: "Message", widthPct: "30%" },
+  { label: "Time", widthPct: "22%", fitContent: true, sortKey: "time" },
+  {
+    label: "Severity",
+    widthPct: "12%",
+    fitContent: true,
+    sortKey: "severity",
+  },
+  { label: "Class", widthPct: "18%", sortKey: "class" },
+  { label: "Message", widthPct: "34%" },
   { label: "Host", widthPct: "14%", sortKey: "host" },
 ];
-
-/*
- * An event's date and its time of day, each kept whole: at the widget's
- * narrowest the time goes under the date, never a word at a time.
- */
-function renderTimeLabel(label: string): ReactElement {
-  const space: number = label.lastIndexOf(" ");
-
-  if (space <= 0) {
-    return <span className="whitespace-nowrap">{label}</span>;
-  }
-
-  return (
-    <>
-      <span className="whitespace-nowrap">{label.slice(0, space)}</span>{" "}
-      <span className="whitespace-nowrap">{label.slice(space + 1)}</span>
-    </>
-  );
-}
 
 const DashboardSecurityEventsListComponentElement: FunctionComponent<
   ComponentProps
@@ -221,19 +207,19 @@ const DashboardSecurityEventsListComponentElement: FunctionComponent<
           className="hover:bg-gray-50/50 transition-colors duration-100"
         >
           <td
-            className="px-3 py-1.5 text-xs text-gray-500 tabular-nums"
+            className="whitespace-nowrap px-3 py-1.5 text-xs text-gray-500 tabular-nums"
             title={time?.title}
           >
-            {time ? renderTimeLabel(time.label) : "-"}
+            {time ? time.label : "—"}
           </td>
-          <td className="px-3 py-1.5" title={severity}>
+          <td className="whitespace-nowrap px-3 py-1.5" title={severity}>
             <span className="inline-flex items-center gap-1">
               <span
                 className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
                 style={{ backgroundColor: severityColor }}
               />
               <span
-                className="truncate text-xs font-medium"
+                className="text-xs font-medium"
                 style={{ fontSize: "10px", color: severityColor }}
               >
                 {severity}
@@ -244,19 +230,19 @@ const DashboardSecurityEventsListComponentElement: FunctionComponent<
             className="max-w-0 truncate px-3 py-1.5 text-xs text-gray-500"
             title={className}
           >
-            {className || "-"}
+            {className || "—"}
           </td>
           <td
             className="max-w-0 truncate px-3 py-1.5 text-xs text-gray-600"
             title={message}
           >
-            {message || "-"}
+            {message || "—"}
           </td>
           <td
             className="max-w-0 truncate px-3 py-1.5 text-xs text-gray-400"
             title={host}
           >
-            {host}
+            {host || "—"}
           </td>
         </tr>
       );

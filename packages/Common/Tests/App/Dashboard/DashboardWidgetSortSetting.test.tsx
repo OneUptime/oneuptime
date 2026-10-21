@@ -261,13 +261,13 @@ describe("the Sort setting's choices", () => {
         translator: ENGLISH,
       }),
     ).toEqual([
-      { value: WIDGET_SORT_DEFAULT_VALUE, label: "Default (Name, A to Z)" },
+      { value: WIDGET_SORT_DEFAULT_VALUE, label: "Default (Name: A to Z)" },
       // Name, A to Z is the default: offered once.
-      { value: "name:desc", label: "Name, Z to A" },
-      { value: "status:desc", label: "Status, Worst first" },
-      { value: "status:asc", label: "Status, Best first" },
-      { value: "type:asc", label: "Type, A to Z" },
-      { value: "type:desc", label: "Type, Z to A" },
+      { value: "name:desc", label: "Name: Z to A" },
+      { value: "status:desc", label: "Status: Worst first" },
+      { value: "status:asc", label: "Status: Best first" },
+      { value: "type:asc", label: "Type: A to Z" },
+      { value: "type:desc", label: "Type: Z to A" },
     ]);
   });
 
@@ -285,15 +285,15 @@ describe("the Sort setting's choices", () => {
 
     expect(options[0]).toEqual({
       value: WIDGET_SORT_DEFAULT_VALUE,
-      label: "Default (Declared, Newest first)",
+      label: "Default (Declared: Newest first)",
     });
     expect(options).toContainEqual({
       value: "severity:desc",
-      label: "Severity, Worst first",
+      label: "Severity: Worst first",
     });
     expect(options).toContainEqual({
       value: "declared:asc",
-      label: "Declared, Oldest first",
+      label: "Declared: Oldest first",
     });
     expect(
       options.some((option: { value: string }): boolean => {
@@ -384,8 +384,8 @@ describe("the Sort setting's choices", () => {
       }),
     ).toEqual([
       { value: WIDGET_SORT_DEFAULT_VALUE, label: "The query's order" },
-      { value: "errors:desc", label: "Errors, Highest first" },
-      { value: "errors:asc", label: "Errors, Lowest first" },
+      { value: "errors:desc", label: "Errors: Highest first" },
+      { value: "errors:asc", label: "Errors: Lowest first" },
     ]);
   });
 
@@ -442,7 +442,7 @@ describe("the Sort setting's choices", () => {
       })[0],
     ).toEqual({
       value: WIDGET_SORT_DEFAULT_VALUE,
-      label: "Default (Requests, Highest first)",
+      label: "Default (Requests: Highest first)",
     });
   });
 
@@ -505,17 +505,17 @@ describe("the Sort setting in a list widget's settings", () => {
       ),
     ).toBeInTheDocument();
     expect(
-      within(setting).getByText("Default (Name, A to Z)"),
+      within(setting).getByText("Default (Name: A to Z)"),
     ).toBeInTheDocument();
     expect(sortCombobox()).toHaveAccessibleName("Sort");
 
     expect(openSortChoices()).toEqual([
-      "Default (Name, A to Z)",
-      "Name, Z to A",
-      "Status, Worst first",
-      "Status, Best first",
-      "Type, A to Z",
-      "Type, Z to A",
+      "Default (Name: A to Z)",
+      "Name: Z to A",
+      "Status: Worst first",
+      "Status: Best first",
+      "Type: A to Z",
+      "Type: Z to A",
     ]);
   });
 
@@ -531,7 +531,7 @@ describe("the Sort setting in a list widget's settings", () => {
     );
     await screen.findByTestId(DASHBOARD_WIDGET_SORT_SETTING_TEST_ID);
 
-    pickSortChoice("Status, Worst first");
+    pickSortChoice("Status: Worst first");
 
     expect(lastSaved(onFormChange)).toMatchObject({
       title: "Monitors",
@@ -555,10 +555,10 @@ describe("the Sort setting in a list widget's settings", () => {
       DASHBOARD_WIDGET_SORT_SETTING_TEST_ID,
     );
     expect(
-      within(setting).getByText("Status, Worst first"),
+      within(setting).getByText("Status: Worst first"),
     ).toBeInTheDocument();
 
-    pickSortChoice("Default (Name, A to Z)");
+    pickSortChoice("Default (Name: A to Z)");
 
     const saved: JSONObject = lastSaved(onFormChange);
     expect(saved).not.toHaveProperty("sort");
@@ -611,8 +611,8 @@ describe("the Sort setting in a list widget's settings", () => {
 
     expect(openSortChoices()).toEqual([
       "The query's order",
-      "service_name, A to Z",
-      "service_name, Z to A",
+      "service_name: A to Z",
+      "service_name: Z to A",
     ]);
   });
 });
@@ -709,7 +709,7 @@ describe("a click on a column header in the settings preview", () => {
     );
     await waitFor(() => {
       expect(
-        within(setting).getByText("Status, Worst first"),
+        within(setting).getByText("Status: Worst first"),
       ).toBeInTheDocument();
     });
     await waitFor(() => {
@@ -765,7 +765,7 @@ describe("a click on a column header in the settings preview", () => {
       expect(
         within(
           within(modal).getByTestId(DASHBOARD_WIDGET_SORT_SETTING_TEST_ID),
-        ).getByText("Default (Name, A to Z)"),
+        ).getByText("Default (Name: A to Z)"),
       ).toBeInTheDocument();
     });
   });

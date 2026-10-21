@@ -13,6 +13,8 @@
  *
  *   - lang=de       the Dashboard's German words
  *   - theme=dark    (read by server.js) the dark theme
+ *   - board=narrow  the second dashboard: a narrow metric table and the
+ *                   security events list (Boards.js buildNarrowConfig)
  *
  * Everything the page asks for is recorded on window.__dashboardWidgetSortFixture:
  * every list read with its sort, phase and limit (lists), every trace table
@@ -56,6 +58,7 @@ import {
   PROJECT_ID,
   REQUESTS_BY_SERVICE,
   buildConfig,
+  buildNarrowConfig,
   describePhase,
   incidents,
   monitors,
@@ -70,6 +73,9 @@ const SERVER_KEY = "dashboard-widget-sort-fixture-server";
 
 const params = new URLSearchParams(window.location.search);
 const language = params.get("lang") === "de" ? "de" : "en";
+// ?board=narrow: the second dashboard (Boards.js buildNarrowConfig).
+const isNarrowBoard = params.get("board") === "narrow";
+const BOARD_KEY = isNarrowBoard ? `${SERVER_KEY}-narrow` : SERVER_KEY;
 
 // The fixture's clock: rows are minutes and hours before it.
 const NOW = Date.now();
@@ -92,7 +98,7 @@ function unexpected(call) {
 
 function storedConfig() {
   try {
-    const stored = window.sessionStorage.getItem(SERVER_KEY);
+    const stored = window.sessionStorage.getItem(BOARD_KEY);
 
     if (stored) {
       return JSON.parse(stored);
@@ -101,11 +107,11 @@ function storedConfig() {
     // Nothing kept: the dashboard as created.
   }
 
-  return buildConfig();
+  return isNarrowBoard ? buildNarrowConfig() : buildConfig();
 }
 
 function storeConfig(config) {
-  window.sessionStorage.setItem(SERVER_KEY, JSON.stringify(config));
+  window.sessionStorage.setItem(BOARD_KEY, JSON.stringify(config));
 }
 
 function idOf(value) {

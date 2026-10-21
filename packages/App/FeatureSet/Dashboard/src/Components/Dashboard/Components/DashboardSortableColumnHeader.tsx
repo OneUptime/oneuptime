@@ -29,6 +29,14 @@ import {
  * A column it cannot sort by - one the server cannot order the whole list
  * by - is plain text, so a header never offers a sort that would only
  * shuffle the rows already shown.
+ *
+ * A sortable header is laid out as a plain one: its words wrap where they
+ * did, and neither the arrow nor the hint takes room of its own. Both sit
+ * in the cell's padding - after the words, or before them in a column
+ * aligned right, so a table's last column never draws past its edge - and
+ * the button clips them to the cell. So a narrow widget's columns are as
+ * wide as they were before any header sorted, and the words never move
+ * when the rows are sorted by them.
  */
 
 export interface ComponentProps {
@@ -41,7 +49,10 @@ export interface ComponentProps {
   onSortClick?: ((columnKey: string) => void) | undefined;
   alignRight?: boolean | undefined;
   widthPct?: string | undefined;
-  // The cell's padding: list widgets and tables use slightly different ones.
+  /*
+   * The cell's padding: list widgets and tables use slightly different
+   * ones, each 12px across, which the arrow and the hint hang in.
+   */
   paddingClassName?: string | undefined;
   /*
    * Header words a user wrote (a metric table's column header, a Data
@@ -102,6 +113,44 @@ const DashboardSortableColumnHeader: FunctionComponent<ComponentProps> = (
 
   const onSortClick: (columnKey: string) => void = props.onSortClick;
 
+  /*
+   * Where the arrow or the hint hangs: in the 12px of padding past the
+   * words' end, its drawing whole inside it, level with the capitals.
+   */
+  const indicatorClassName: string = `absolute -top-px h-3 w-3 ${
+    props.alignRight ? "right-0.5" : "left-0.5"
+  }`;
+
+  /*
+   * A point of no width beside the words, which the arrow (or, on any
+   * other sortable column, the hint) hangs from: after the last word, or
+   * before the first in a column aligned right. It sits in the line, so a
+   * header that wraps keeps it next to its words.
+   */
+  const indicator: ReactElement = (
+    <span
+      aria-hidden="true"
+      className="relative inline-block h-3 w-0 align-middle"
+    >
+      {isSorted ? (
+        <Icon
+          icon={
+            direction === DashboardWidgetSortDirection.Ascending
+              ? IconProp.ArrowUp
+              : IconProp.ArrowDown
+          }
+          className={`${indicatorClassName} text-indigo-500`}
+          data-testid={DASHBOARD_WIDGET_SORT_ARROW_TEST_ID}
+        />
+      ) : (
+        <Icon
+          icon={IconProp.ArrowUpDown}
+          className={`${indicatorClassName} text-gray-400 opacity-0 transition-opacity duration-150 group-hover/sort:opacity-100 group-focus-visible/sort:opacity-100`}
+        />
+      )}
+    </span>
+  );
+
   return (
     <th
       scope="col"
@@ -135,36 +184,16 @@ const DashboardSortableColumnHeader: FunctionComponent<ComponentProps> = (
           event.stopPropagation();
           onSortClick(column.key);
         }}
-        className={`group/sort flex w-full min-w-0 items-center ${padding} ${
-          props.alignRight ? "justify-end text-right" : "text-left"
+        className={`group/sort block w-full overflow-hidden ${padding} ${
+          props.alignRight ? "text-right" : "text-left"
         } cursor-pointer select-none font-medium uppercase tracking-wider transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
           isSorted ? "text-gray-700" : "text-gray-400 hover:text-gray-700"
         }`}
       >
-        <span className="truncate">{label}</span>
-        {isSorted ? (
-          <Icon
-            icon={
-              direction === DashboardWidgetSortDirection.Ascending
-                ? IconProp.ArrowUp
-                : IconProp.ArrowDown
-            }
-            className="ml-1 h-3 w-3 flex-none text-indigo-500"
-            data-testid={DASHBOARD_WIDGET_SORT_ARROW_TEST_ID}
-          />
-        ) : (
-          /*
-           * The hint takes no room of its own: it sits in the cell's
-           * padding, so a narrow widget's columns are as wide as their
-           * words, as before any header sorted.
-           */
-          <span className="relative h-3 w-0 flex-none">
-            <Icon
-              icon={IconProp.ArrowUpDown}
-              className="absolute left-1 top-0 h-3 w-3 text-gray-400 opacity-0 transition-opacity duration-150 group-hover/sort:opacity-100 group-focus-visible/sort:opacity-100"
-            />
-          </span>
-        )}
+        {props.alignRight ? indicator : <></>}
+        {/* The words wrap between them, as a plain header's do. */}
+        <span>{label}</span>
+        {props.alignRight ? <></> : indicator}
       </button>
     </th>
   );

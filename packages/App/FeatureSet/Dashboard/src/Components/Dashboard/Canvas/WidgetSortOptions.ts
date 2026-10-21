@@ -23,9 +23,9 @@ import {
 
 /*
  * The choices of a widget's Sort setting (issue #5082): the widget's own
- * order first - "Default (Name, A to Z)", or the query's order for a Data
+ * order first - "Default (Name: A to Z)", or the query's order for a Data
  * Source table - then each sortable column both ways, its first way first
- * ("Status, Worst first", "Status, Best first"). The choice that would only
+ * ("Status: Worst first", "Status: Best first"). The choice that would only
  * repeat the default is left out, so no two choices mean the same order.
  *
  * Values are what the widget's arguments hold: "" for the default, else

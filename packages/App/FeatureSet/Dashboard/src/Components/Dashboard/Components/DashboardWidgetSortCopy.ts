@@ -89,6 +89,7 @@ export const DashboardWidgetSortCopy: {
     "You can also click a column header in the preview.",
   ),
   defaultChoice: translationKey("Default ({{order}})"),
-  columnChoice: translationKey("{{column}}, {{direction}}"),
+  // "Status: Worst first", as a shop lists "Price: Low to High".
+  columnChoice: translationKey("{{column}}: {{direction}}"),
   queryOrderChoice: translationKey("The query's order"),
 };
