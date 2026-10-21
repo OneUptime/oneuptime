@@ -18,31 +18,33 @@ import NetworkDeviceMonitorTemplateUtil from "./NetworkDeviceMonitorTemplateUtil
  * A MONITOR FOR ONE NETWORK DEVICE, FROM A TEMPLATE (OneUptime issue #5145).
  *
  * A discovery import gives every device it brings in one monitor from a
- * template the person picks. Two kinds of template can do that, because
- * two kinds of monitor can check a device:
+ * template the person picks. Two kinds of template can do that, because two
+ * kinds of monitor can check a device:
  *
  *   - A Network Device template: its monitor reads the device's own polls -
  *     the ping and SNMP walk the device's probe already does - and its steps
  *     name the device (NetworkDeviceMonitorTemplateUtil binds them).
- *   - A Ping, IP or Port template: its monitor checks the device's ADDRESS
- *     itself, from a probe, on the template's own schedule. The template's
- *     steps name some address it was designed against; every step of the
- *     device's monitor checks the device's address instead, and keeps the
- *     rest of the step as the template has it - the port a Port template
- *     knocks on, timeouts, retries and every criterion.
+ *   - A Ping, IP, Port or NTP template: its monitor checks the device's
+ *     ADDRESS itself, from a probe, on the template's own schedule. The
+ *     template's steps name some address it was designed against; every
+ *     step of the device's monitor checks the device's address instead, and
+ *     keeps the rest of the step as the template has it - the port a Port or
+ *     NTP template asks on, timeouts, retries and every criterion.
  *
  * Until #5145 the import offered Network Device templates only, so a
  * customer's own Ping template never showed. Templates of any other type
  * stay out: a Website, API or SSL Certificate template checks a URL, a DNS
- * template a name, a telemetry template a query - none of them has an
- * address to point at the device.
+ * or Domain template a name, a database template a connection with its own
+ * credentials, a telemetry template a query - none of them has an address
+ * the device's can stand in for.
  *
  * Both kinds of monitor carry the same provenance: the template they were
  * made from and the device they were made for (autoProvisionedNetworkDeviceId).
- * That is what finds a device's monitor again instead of making a second
- * one (Monitor's unique (device, template) index), what deletes it with its
- * device, and what tells a template sync that an address monitor's address
- * is the device's, not the template's (keepTargetAddress).
+ * That is what finds a device's monitor again instead of making a second one
+ * (Monitor's unique (device, template) index), what deletes it with its
+ * device, what lists it on the device's own page, and what tells a template
+ * sync that an address monitor's address is the device's, not the
+ * template's (keepTargetAddress).
  *
  * Pure: no database and no permission work, like the Network Device util.
  * The caller persists what it builds through MonitorService and chooses the
@@ -54,10 +56,11 @@ export const DEVICE_ADDRESS_MONITOR_TYPES: ReadonlyArray<MonitorType> = [
   MonitorType.Ping,
   MonitorType.IP,
   MonitorType.Port,
+  MonitorType.NTP,
 ];
 
 /*
- * Every kind of template a device can be given a monitor from: one that
+ * Every kind of template a device can be given a monitor from: the one that
  * reads the device's polls, then the ones that check its address. The order
  * is the order the import lists them in.
  */
@@ -83,11 +86,11 @@ export function isDeviceMonitorTemplateType(
 }
 
 /*
- * The refusal for a template no device's monitor can be made from, said
- * the same way wherever a template is picked for devices.
+ * The refusal for a template no device's monitor can be made from, said the
+ * same way wherever a template is picked for devices.
  */
 export const DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL: string =
-  "Pick a Network Device, Ping, IP or Port monitor template: a monitor made from any other kind cannot check a device.";
+  "Pick a Network Device, Ping, IP, Port or NTP monitor template: a monitor made from any other kind cannot check a device.";
 
 type MonitorDestination = URL | IP | Hostname;
 
@@ -99,7 +102,7 @@ export interface BuildDeviceMonitorData {
 export default class DeviceMonitorTemplateUtil {
   /*
    * What a monitor of this type checks for a device at this address: an IP
-   * address, or a host name for a Ping or Port monitor. An IP monitor
+   * address, or a host name for a Ping, Port or NTP monitor. An IP monitor
    * checks an IP address only, so a device whose address is a name cannot
    * have one - said in a sentence that names the address and what would
    * work, since it is read in the import's list of failures.
@@ -110,15 +113,15 @@ export default class DeviceMonitorTemplateUtil {
   }): IP | Hostname {
     const address: string = (data.address || "").trim();
 
-    if (!address) {
-      throw new BadDataException(
-        "This device has no address, so a monitor cannot check it.",
-      );
-    }
-
     if (!isDeviceAddressMonitorType(data.monitorType)) {
       throw new BadDataException(
         `A ${data.monitorType} monitor does not check an address.`,
+      );
+    }
+
+    if (!address) {
+      throw new BadDataException(
+        "This device has no address, so a monitor cannot check it.",
       );
     }
 
@@ -145,31 +148,7 @@ export default class DeviceMonitorTemplateUtil {
       monitorType: data.monitorType,
     });
 
-    return this.withDestination(data.monitorSteps, (): MonitorDestination => {
-      return this.copyDestination(destination);
-    });
-  }
-
-  /*
-   * The address an address monitor checks: its first step's destination,
-   * as written (an IP, or a host name without a port). Null when no step
-   * has one.
-   */
-  public static readTargetAddress(
-    monitorSteps: MonitorSteps | JSONObject | null | undefined,
-  ): string | null {
-    const destination: MonitorDestination | null =
-      this.readTargetDestination(monitorSteps);
-
-    if (!destination) {
-      return null;
-    }
-
-    if (destination instanceof Hostname) {
-      return destination.hostname || null;
-    }
-
-    return destination.toString() || null;
+    return this.withDestination(data.monitorSteps, destination);
   }
 
   /*
@@ -193,12 +172,7 @@ export default class DeviceMonitorTemplateUtil {
       );
     }
 
-    return this.withDestination(
-      data.templateMonitorSteps,
-      (): MonitorDestination => {
-        return this.copyDestination(destination);
-      },
-    );
+    return this.withDestination(data.templateMonitorSteps, destination);
   }
 
   /*
@@ -223,7 +197,7 @@ export default class DeviceMonitorTemplateUtil {
 
     if (!isDeviceAddressMonitorType(data.monitorType)) {
       throw new BadDataException(
-        "Only Network Device, Ping, IP and Port monitors can carry auto-provisioning provenance.",
+        "Only Network Device, Ping, IP, Port and NTP monitors can carry auto-provisioning provenance.",
       );
     }
 
@@ -232,11 +206,11 @@ export default class DeviceMonitorTemplateUtil {
     if (
       steps.length === 0 ||
       steps.some((step: MonitorStep): boolean => {
-        return !step.data?.monitorDestination;
+        return !step.data?.monitorDestination?.toString().trim();
       })
     ) {
       throw new BadDataException(
-        "A Ping, IP or Port monitor made for a network device must check the device's address in every step.",
+        "A Ping, IP, Port or NTP monitor made for a network device must check the device's address in every step.",
       );
     }
   }
@@ -245,8 +219,8 @@ export default class DeviceMonitorTemplateUtil {
    * The one monitor a device gets from a template, of either kind - built,
    * not persisted. A Network Device template is the Network Device util's
    * to build; an address template is built here, the same way: named after
-   * the device, the template's interval, probe agreement, labels and custom
-   * fields, linked to the template and the device.
+   * the device, the template's description, interval, probe agreement,
+   * labels and custom fields, linked to the template and the device.
    */
   public static buildMonitor(data: BuildDeviceMonitorData): Monitor {
     const template: MonitorTemplate = data.template;
@@ -337,8 +311,9 @@ export default class DeviceMonitorTemplateUtil {
   }
 
   /*
-   * The ports a Port template's steps knock on, in step order and each
-   * once: what the import says each device's monitor checks.
+   * The ports a Port or NTP template's steps ask on, in step order and each
+   * once: what the import says each device's monitor checks. An NTP step
+   * that names no port asks on 123, and is left out here.
    */
   public static readPorts(
     monitorSteps: MonitorSteps | JSONObject | null | undefined,
@@ -377,6 +352,7 @@ export default class DeviceMonitorTemplateUtil {
     }
   }
 
+  // The first destination any step names, as the monitor checks it.
   private static readTargetDestination(
     monitorSteps: MonitorSteps | JSONObject | null | undefined,
   ): MonitorDestination | null {
@@ -394,22 +370,22 @@ export default class DeviceMonitorTemplateUtil {
 
   private static withDestination(
     monitorSteps: MonitorSteps | undefined,
-    destinationFor: () => MonitorDestination,
+    destination: MonitorDestination,
   ): MonitorSteps {
-    if (this.readSteps(monitorSteps).length === 0) {
+    if (!monitorSteps || this.readSteps(monitorSteps).length === 0) {
       throw new BadDataException("Monitor template monitor steps are required.");
     }
 
-    const cloned: MonitorSteps = MonitorSteps.clone(monitorSteps!);
+    const cloned: MonitorSteps = MonitorSteps.clone(monitorSteps);
 
     for (const step of cloned.data!.monitorStepsInstanceArray) {
-      step.setMonitorDestination(destinationFor());
+      // A copy each, so no two steps (or monitors) share one object.
+      step.setMonitorDestination(this.copyDestination(destination));
     }
 
     return cloned;
   }
 
-  // A copy, so no two steps (or monitors) share one destination object.
   private static copyDestination(
     destination: MonitorDestination,
   ): MonitorDestination {

@@ -80,8 +80,9 @@ import WorkspaceActionAuthorization from "../Workspace/WorkspaceActionAuthorizat
  *            refused is refused here, at once and in one sentence - no
  *            right to create devices or monitors, a scan the person cannot
  *            read, a template no device's monitor can be made from (any but
- *            a Network Device, Ping, IP or Port one), a plan with no room
- *            for another monitor - and the import is recorded and queued.
+ *            a Network Device, Ping, IP, Port or NTP one), a plan with no
+ *            room for another monitor - and the import is recorded and
+ *            queued.
  *   (worker) creates each host's device, then its monitor, acting as the
  *            person, and writes what happened to every host as it goes, so
  *            the dialog shows progress anyone can trust, and a person who
@@ -250,7 +251,8 @@ export const DEVICE_NOT_REACHED_FAILED: string =
 /*
  * What the import reads of a device it created or found: its name and
  * address for its monitor, how its health is established, and the probe
- * that polls it - the probe a Ping, IP or Port monitor made for it runs on.
+ * that polls it - the probe a Ping, IP, Port or NTP monitor made for it
+ * runs on.
  */
 const IMPORTED_DEVICE_SELECT: {
   _id: true;
@@ -1238,8 +1240,9 @@ export default class DiscoveryImportRunner {
 
     /*
      * A Network Device template's monitor reads each device's polls; a
-     * Ping, IP or Port template's checks each device's address (#5145).
-     * No other kind of template has anything of a device's to check.
+     * Ping, IP, Port or NTP template's checks each device's address
+     * (#5145). No other kind of template has anything of a device's to
+     * check.
      */
     if (!isDeviceMonitorTemplateType(template.monitorType)) {
       throw new BadDataException(DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL);
@@ -1473,7 +1476,7 @@ export default class DiscoveryImportRunner {
 
     if (!template || !isDeviceMonitorTemplateType(template.monitorType)) {
       throw new BadDataException(
-        "The monitor template this import uses was deleted, or is no longer a Network Device, Ping, IP or Port template. Start the import again with another template.",
+        "The monitor template this import uses was deleted, or is no longer a Network Device, Ping, IP, Port or NTP template. Start the import again with another template.",
       );
     }
 
@@ -1794,7 +1797,12 @@ export default class DiscoveryImportRunner {
       const created: Monitor = await MonitorService.create({
         data: monitor,
         ...(isDeviceAddressMonitorType(template.monitorType)
-          ? { miscDataProps: this.getAddressMonitorProbes(state, device) }
+          ? {
+              miscDataProps: this.getAddressMonitorProbes({
+                device: device,
+                scan: state.scan,
+              }),
+            }
           : {}),
         props: {
           isRoot: true,
@@ -1825,19 +1833,19 @@ export default class DiscoveryImportRunner {
   }
 
   /*
-   * The probe a Ping, IP or Port monitor made for a device runs on: the one
+   * The probe a Ping, IP, Port or NTP monitor made for a device runs on: the one
    * that polls the device, else the scan's - each reached the address. The
    * project's default probes would be global ones, which cannot reach a
    * device on a private network, so they are what a device with neither
    * gets, and only then (the monitor create attaches them when no probe is
    * named, MonitorService.addProbesToMonitor).
    */
-  public static getAddressMonitorProbes(
-    state: Pick<ImportRunState, "scan">,
-    device: NetworkDevice,
-  ): JSONObject {
+  public static getAddressMonitorProbes(data: {
+    device: NetworkDevice;
+    scan: NetworkDeviceDiscoveryScan;
+  }): JSONObject {
     const probeId: string =
-      device.probeId?.toString() || state.scan.probeId?.toString() || "";
+      data.device.probeId?.toString() || data.scan.probeId?.toString() || "";
 
     return probeId ? { probes: [probeId] } : {};
   }

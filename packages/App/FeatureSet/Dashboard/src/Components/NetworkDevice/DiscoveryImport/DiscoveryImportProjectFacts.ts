@@ -44,8 +44,8 @@ import {
 /*
  * What the import's monitoring step needs to know about the project, read
  * when the reader reaches that step: the monitor templates they can pick -
- * Network Device ones, and since issue #5145 Ping, IP and Port ones - with
- * what each raises, the names of the severities and statuses those
+ * Network Device ones, and since issue #5145 Ping, IP, Port and NTP ones -
+ * with what each raises, the names of the severities and statuses those
  * templates name, the alert policies that already cover devices, how much
  * room the plan has for monitors, and what the reader may do. Every read can
  * fail on its own - a reader who may not list templates still imports
@@ -109,21 +109,25 @@ function toNamedColorMap<
  * one: who can, and where.
  */
 export const NO_DEVICE_MONITOR_TEMPLATE_REASON: string = translationKey(
-  "This project has no Network Device, Ping, IP or Port monitor template, and you may not create one. Ask a project owner or admin to create the recommended one under Network > Settings > Alert Policies.",
+  "This project has no Network Device, Ping, IP, Port or NTP monitor template, and you may not create one. Ask a project owner or admin to create the recommended one under Network > Settings > Alert Policies, or another under Monitors > Settings > Templates.",
 );
 
 function settledValue<T>(result: PromiseSettledResult<T>): T | null {
   return result.status === "fulfilled" ? result.value : null;
 }
 
-// A template choice as the step offers it, from a project template.
+/*
+ * A template choice as the step offers it, from a project template. A
+ * template with no name (the API allows one) is named by the step, in the
+ * reader's language: the name here is only ever what someone typed.
+ */
 export function toTemplateChoice(
   template: MonitorTemplate,
 ): DiscoveryImportTemplateChoice {
   const monitorType: MonitorType = template.monitorType!;
   const choice: DiscoveryImportTemplateChoice = {
     id: template.id!.toString(),
-    name: template.templateName || `Unnamed ${monitorType} template`,
+    name: template.templateName?.trim() || "",
     monitorType: monitorType,
     summary: summarizeMonitorTemplateAlerts(template.monitorSteps, {
       monitorType: monitorType,
@@ -149,8 +153,8 @@ export function toTemplateChoice(
  * is offered as the template Import creates - when the reader may create
  * templates and the project has the statuses and severities it is built
  * with. Then the project's other Network Device templates, which read each
- * device's polls, then its Ping, IP and Port templates, which check each
- * device's address (#5145) - each in the order they were read, by name.
+ * device's polls, then its Ping, IP, Port and NTP templates, which check
+ * each device's address (#5145) - each in the order they were read, by name.
  * A template of any other kind is not offered: nothing of a device's is for
  * it to check (DEVICE_MONITOR_TEMPLATE_TYPES).
  */

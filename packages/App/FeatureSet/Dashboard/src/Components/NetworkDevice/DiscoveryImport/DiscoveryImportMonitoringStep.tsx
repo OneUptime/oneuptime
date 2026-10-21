@@ -50,6 +50,13 @@ import {
   DiscoveryImportProjectFacts,
   NamedColor,
 } from "./DiscoveryImportProjectFacts";
+import {
+  ADDRESS_TEMPLATES_GROUP_TITLE,
+  LISTED_TEMPLATE_KINDS_RULE,
+  MANAGE_TEMPLATES_LINK_TITLE,
+  POLL_TEMPLATES_GROUP_TITLE,
+  UNNAMED_TEMPLATE_NAME,
+} from "./DiscoveryImportTemplateCopy";
 
 /*
  * THE IMPORT'S SECOND STEP: HOW THE DEVICES ARE MONITORED (OneUptime issues
@@ -64,12 +71,13 @@ import {
  *     monitor per device from a template - the recommended alert pack, or
  *     any of the project's templates a device's monitor can be made from: a
  *     Network Device one, whose monitor reads each device's polls, or a
- *     Ping, IP or Port one, whose monitor checks each device's address from
- *     the scan's probe (#5145: a customer's own Ping template never showed).
- *     The picked one is previewed check by check: what it watches, whether
- *     it opens an incident or an alert and at what severity, and, for a
- *     Network Device template, which checks need an SNMP walk a device that
- *     only answers ping does not get.
+ *     Ping, IP, Port or NTP one, whose monitor checks each device's address
+ *     from the scan's probe (#5145: a customer's own Ping template never
+ *     showed). One line under the list says which kinds are listed, beside
+ *     a link to the templates. The picked one is previewed check by check:
+ *     what each device gets, when it is checked, what each check raises and
+ *     at what severity, and, for a Network Device template, which checks
+ *     need an SNMP walk a device that only answers ping does not get.
  *
  * The account on the right ("What this import does") is worked out from the
  * same choices the import is sent with (getDiscoveryImportOutcome), so it can
@@ -115,27 +123,36 @@ function probeValue(probeName: string | undefined): TemplateValue {
   );
 }
 
+// A template's name as the step draws it: as someone typed it.
+export function getTemplateChoiceName(
+  translator: Translator,
+  choice: DiscoveryImportTemplateChoice,
+): string {
+  return (
+    choice.name || (translator.translateText(UNNAMED_TEMPLATE_NAME) as string)
+  );
+}
+
 /*
- * What a Ping, IP or Port template's monitor does, in the words its option
- * in the list carries under its name.
+ * What a Ping, IP, Port or NTP template's monitor does, in the words its
+ * option in the list carries under its name.
  */
 export function describeAddressTemplate(
   translator: Translator,
   choice: DiscoveryImportTemplateChoice,
 ): string {
   if (choice.monitorType === MonitorType.IP) {
-    return translator.translateText(
-      "Pings each device's IP address",
-    ) as string;
+    return translator.translateText("Pings each device's IP address") as string;
   }
 
   if (choice.monitorType === MonitorType.Port) {
     const ports: Array<number> = choice.ports || [];
 
     if (ports.length === 1) {
-      return translator.translateTemplate("Checks port {{port}} on each device", {
-        port: String(ports[0]),
-      });
+      return translator.translateTemplate(
+        "Checks port {{port}} on each device",
+        { port: String(ports[0]) },
+      );
     }
 
     if (ports.length > 1) {
@@ -148,13 +165,17 @@ export function describeAddressTemplate(
     return translator.translateText("Checks a port on each device") as string;
   }
 
+  if (choice.monitorType === MonitorType.NTP) {
+    return translator.translateText("Asks each device for the time") as string;
+  }
+
   return translator.translateText("Pings each device") as string;
 }
 
 /*
  * The first line of the picked template's preview: what each device gets.
  */
-function getTemplateLead(
+export function getTemplateLead(
   translator: Translator,
   choice: DiscoveryImportTemplateChoice,
   probeName: string | undefined,
@@ -194,6 +215,13 @@ function getTemplateLead(
 
     return translator.translateTemplate(
       "Each device gets a Port monitor that checks its own address from {{probe}}.",
+      { probe: probe },
+    );
+  }
+
+  if (choice.monitorType === MonitorType.NTP) {
+    return translator.translateTemplate(
+      "Each device gets an NTP monitor that asks its own address for the time from {{probe}}.",
       { probe: probe },
     );
   }
@@ -420,7 +448,10 @@ const TemplatePreview: FunctionComponent<{
         {translator.translateText("What each monitor checks")}
       </p>
       {enabledChecks.length === 0 ? (
-        <p className="py-3 text-sm text-gray-500">
+        <p
+          className="py-3 text-sm text-gray-500"
+          data-testid="discovery-import-template-no-checks"
+        >
           {translator.translateText(
             "This template has no checks turned on, so its monitors raise nothing.",
           )}
@@ -558,7 +589,7 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
       : facts.templates.length === 0
         ? facts.templatesUnavailableReason ||
           (translator.translateText(
-            "This project has no Network Device, Ping, IP or Port monitor template to monitor the devices with.",
+            "This project has no Network Device, Ping, IP, Port or NTP monitor template to monitor the devices with.",
           ) as string)
         : undefined;
 
@@ -584,10 +615,10 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
       value: getTemplateChoiceValue(choice),
       label: choice.isCreatedOnImport
         ? translator.translateTemplate("{{name}} - created when you import", {
-            name: choice.name,
+            name: getTemplateChoiceName(translator, choice),
           })
-        : choice.name,
-      // A name someone gave a template is drawn as written.
+        : getTemplateChoiceName(translator, choice),
+      // Drawn as named: a template called "Labels" is not translated.
       isUserContent: true,
       ...(checksDeviceAddress(choice)
         ? { description: describeAddressTemplate(translator, choice) }
@@ -620,13 +651,13 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
       ? [
           {
             label: translator.translateText(
-              "Network Device templates",
+              POLL_TEMPLATES_GROUP_TITLE,
             ) as string,
             options: pollTemplateOptions,
           },
           {
             label: translator.translateText(
-              "Ping, IP and Port templates",
+              ADDRESS_TEMPLATES_GROUP_TITLE,
             ) as string,
             options: addressTemplateOptions,
           },
@@ -652,16 +683,19 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
           hideOptionalLabel={true}
           description={
             <span data-testid="discovery-import-template-rule">
-              {translator.translateText(
-                "Network Device, Ping, IP and Port templates are listed: other kinds cannot check a device.",
-              )}{" "}
+              {translator.translateText(LISTED_TEMPLATE_KINDS_RULE)}{" "}
+              {/*
+               * In a new tab, so the choices made here stay: a template
+               * added there is in this list on coming back (the dialog
+               * reads the templates again when its window is focused).
+               */}
               <Link
                 to={templatesRoute}
                 openInNewTab={true}
                 className="inline-flex items-center gap-0.5 font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
                 dataTestId="discovery-import-manage-templates"
               >
-                {translator.translateText("Manage templates")}
+                {translator.translateText(MANAGE_TEMPLATES_LINK_TITLE)}
                 <Icon
                   icon={IconProp.ExternalLink}
                   className="h-3 w-3 flex-shrink-0"
@@ -844,7 +878,7 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
                       title: "A monitor for each device",
                       /*
                        * A plan counts monitors only where there is a plan:
-                       * a self-hosted install has none to count against.
+                       * a self-hosted install (issue #5145's) has none.
                        */
                       description: BILLING_ENABLED
                         ? "Each device gets a monitor from the template you pick. Each monitor counts towards your plan."
@@ -941,7 +975,7 @@ export const OutcomeSummary: FunctionComponent<{
    * the summary does not suggest picking a template.
    */
   canPickMonitors?: boolean | undefined;
-  // The scan's probe, which a Ping, IP or Port template's monitors run from.
+  // The scan's probe, which a Ping, IP, Port or NTP template's monitors run from.
   probeName?: string | undefined;
 }> = (props: {
   outcome: DiscoveryImportOutcome;
@@ -1028,7 +1062,7 @@ export const OutcomeSummary: FunctionComponent<{
         outcome.monitorCount,
         {
           count: translator.formatNumber(outcome.monitorCount),
-          template: outcome.template.name,
+          template: getTemplateChoiceName(translator, outcome.template),
           raises: raises,
         },
       ),
@@ -1038,8 +1072,8 @@ export const OutcomeSummary: FunctionComponent<{
     });
 
     /*
-     * A Ping, IP or Port template's monitors check each device's address
-     * themselves: from the scan's probe, the one that reached them.
+     * A Ping, IP, Port or NTP template's monitors check each device's
+     * address themselves: from the scan's probe, the one that reached them.
      */
     if (checksDeviceAddress(outcome.template)) {
       lines.push({

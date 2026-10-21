@@ -428,12 +428,24 @@ ModelAPI.getList = async ({ modelType, query, requestOptions }) => {
     return { data: roles, count: roles.length, skip: 0, limit: 10 };
   }
   if (modelType === MonitorTemplate) {
-    return {
-      data: window.__discoveryFixture.templates,
-      count: window.__discoveryFixture.templates.length,
-      skip: 0,
-      limit: 10,
-    };
+    /*
+     * As the server answers: the kinds the query asks for (an Includes of
+     * monitor types, or one type), by name.
+     */
+    const kinds = query?.monitorType;
+    const wanted = Array.isArray(kinds?.values)
+      ? kinds.values.map(String)
+      : kinds
+        ? [String(kinds)]
+        : null;
+    const data = window.__discoveryFixture.templates
+      .filter((item) => !wanted || wanted.includes(String(item.monitorType)))
+      .sort((a, b) =>
+        String(a.templateName || "").localeCompare(
+          String(b.templateName || ""),
+        ),
+      );
+    return { data, count: data.length, skip: 0, limit: 10 };
   }
   if (modelType === MonitorStatus) {
     return { data: buildMonitorStatuses(), count: 2, skip: 0, limit: 10 };

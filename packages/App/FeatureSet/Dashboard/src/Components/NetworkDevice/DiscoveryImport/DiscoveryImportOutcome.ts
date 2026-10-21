@@ -27,12 +27,14 @@ import { isPingOnlyDiscoveredHost } from "Common/Utils/NetworkDiscovery/Discover
 
 /*
  * A monitor template the reader can pick, as the step knows it: a Network
- * Device template, whose monitor reads each device's polls, or a Ping, IP or
- * Port template, whose monitor checks each device's address (issue #5145).
+ * Device template, whose monitor reads each device's polls, or a Ping, IP,
+ * Port or NTP template, whose monitor checks each device's address (issue
+ * #5145).
  */
 export interface DiscoveryImportTemplateChoice {
   // Empty for the recommended template the import would create.
   id: string;
+  // As someone named it; empty for a template with no name.
   name: string;
   monitorType: MonitorType;
   summary: MonitorTemplateAlertSummary;
@@ -49,7 +51,7 @@ export interface DiscoveryImportTemplateChoice {
 
 /*
  * Whether the template's monitors check each device's address (Ping, IP,
- * Port) rather than read its polls (Network Device).
+ * Port, NTP) rather than read its polls (Network Device).
  */
 export function checksDeviceAddress(
   choice: DiscoveryImportTemplateChoice | null | undefined,
@@ -106,7 +108,7 @@ export interface DiscoveryImportOutcome {
   /*
    * Ping-only devices whose monitor can raise nothing: every check of the
    * template that opens an incident or an alert reads an SNMP walk, and
-   * these devices are only pinged. Never any for a Ping, IP or Port
+   * these devices are only pinged. Never any for a Ping, IP, Port or NTP
    * template: its monitors check the address themselves.
    */
   pingOnlyHostsWithoutAlerts: number;

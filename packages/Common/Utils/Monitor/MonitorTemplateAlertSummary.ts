@@ -11,7 +11,7 @@ import ObjectID from "../../Types/ObjectID";
 
 /*
  * WHAT A MONITOR TEMPLATE FOR DEVICES RAISES, IN PLAIN TERMS: a Network
- * Device template, or a Ping, IP or Port one (issue #5145).
+ * Device template, or a Ping, IP, Port or NTP one (issue #5145).
  *
  * Picking a template for five hundred imported devices is picking what
  * pages people, five hundred times over, so the Review dialog shows what the
@@ -150,7 +150,7 @@ export function isCriterionEvaluatedOnPingOnlyDevices(data: {
  * The kind of monitor a template makes, as far as a device that answers
  * ping only is concerned. Left out, it is a Network Device template's: its
  * checks read the device's polls, and the walk-only ones never fire on a
- * device that is not walked. A Ping, IP or Port template's monitor checks
+ * device that is not walked. A Ping, IP, Port or NTP template's monitor checks
  * the device's address itself (issue #5145), so every check it has can
  * fire on any device it can reach.
  */

@@ -91,7 +91,7 @@ export function isDiscoveryImportActive(
  *    incident or an alert. From a Network Device template, the same kind of
  *    monitor an alert policy or an auto import rule makes: evaluated every
  *    time the device's poll results arrive, for a device that only answers
- *    ping as much as for one walked over SNMP. From a Ping, IP or Port
+ *    ping as much as for one walked over SNMP. From a Ping, IP, Port or NTP
  *    template (issue #5145), a monitor that checks the device's address on
  *    the template's own schedule, from the probe that polls the device
  *    (DeviceMonitorTemplateUtil).
@@ -147,7 +147,7 @@ export interface DiscoveryImportSettings {
   applyVendorTemplates: boolean;
   alerting: DiscoveryImportAlerting;
   /*
-   * The monitor template - a Network Device, Ping, IP or Port one - when
+   * The monitor template - a Network Device, Ping, IP, Port or NTP one - when
    * alerting is MonitorTemplate.
    */
   monitorTemplateId?: string | undefined;

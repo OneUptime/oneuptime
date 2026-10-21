@@ -439,11 +439,12 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Whether any monitor linked to this Ping, IP or Port template was made
-   * for a network device by a discovery import (issue #5145): those check
-   * their device's address, so a criteria sync must write them one at a
-   * time to keep it. Always false for every other kind of template, which
-   * no device's monitor is made from this way.
+   * Whether any monitor linked to this Ping, IP, Port or NTP template was
+   * made for a network device by a discovery import (issue #5145): those
+   * check their device's address, so a criteria sync must write them one at
+   * a time to keep it. Always false for every other kind of template, which
+   * no device's monitor is made from this way - and for a Network Device
+   * template, whose sync is row by row already.
    */
   @CaptureSpan()
   public async hasMonitorsMadeForDevices(template: Model): Promise<boolean> {
@@ -591,10 +592,10 @@ export class Service extends ProjectReferencesService<Model> {
       monitor.autoProvisionedNetworkDeviceId
     ) {
       /*
-       * A Ping, IP or Port monitor a discovery import made for a device
-       * checks that device's address, not the template's (issue #5145):
-       * the sync brings the template's criteria and settings, and the
-       * monitor keeps checking its own address.
+       * A Ping, IP, Port or NTP monitor a discovery import made for a
+       * device checks that device's address, not the template's (issue
+       * #5145): the sync brings the template's criteria and settings, and
+       * the monitor keeps checking its own address.
        */
       monitorSteps = DeviceMonitorTemplateUtil.keepTargetAddress({
         templateMonitorSteps: monitorSteps,
@@ -692,8 +693,8 @@ export class Service extends ProjectReferencesService<Model> {
      * those rows individually and rebind cloned template steps to each
      * monitor's current (or provenance-backed) device instead. Field exclusions
      * also require one merge per monitor so each keeps its own protected values.
-     * So do the Ping, IP and Port monitors a discovery import made for
-     * devices: each keeps checking its own device's address (#5145). A
+     * So do the Ping, IP, Port and NTP monitors a discovery import made
+     * for devices: each keeps checking its own device's address (#5145). A
      * template with none of those keeps the bulk path.
      */
     const mergeMonitorSteps: boolean =

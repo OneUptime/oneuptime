@@ -883,8 +883,9 @@ export class Service extends ProjectReferencesService<Model> {
 
           /*
            * A Network Device monitor made for a device keeps naming it. A
-           * Ping, IP or Port one made for a device checks an address its
-           * steps hold, which its own form already refuses to leave empty.
+           * Ping, IP, Port or NTP one made for a device checks an address
+           * its steps hold, which its own validation already refuses to
+           * leave empty (MonitorStep: "Monitor Destination is required").
            */
           if (
             monitor.autoProvisionedNetworkDeviceId &&
@@ -1962,8 +1963,9 @@ export class Service extends ProjectReferencesService<Model> {
 
       /*
        * A Network Device monitor whose steps name the device, or - since a
-       * discovery import may give each device a monitor from a Ping, IP or
-       * Port template (issue #5145) - one that checks the device's address.
+       * discovery import may give each device a monitor from a Ping, IP,
+       * Port or NTP template (issue #5145) - one that checks the device's
+       * address.
        */
       DeviceMonitorTemplateUtil.assertProvenanceFits({
         monitorType: createBy.data.monitorType,
