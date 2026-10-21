@@ -152,7 +152,7 @@ För att ändra en grupp använder du **Edit Group** i panelens rubrik, eller **
 
 | Var | Åtgärder |
 | ----- | ------- |
-| Navigatorns radmeny | **Edit group**, **Move up**, **Move down**, **Visa ID**, **Delete group** |
+| Navigatorns radmeny | **Edit group**, **Flytta upp**, **Flytta ned**, **Visa ID**, **Delete group** |
 | Panelens meny **More actions** | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Uppdatera**, **Delete this group** |
 
 En grupp som sparats utan namn visas som **Untitled group**, ett gott tecken på att du tänkte skriva något.
@@ -195,7 +195,7 @@ Ordningen bestämmer du själv, inte alfabetet:
 | Vad | Så ändrar du ordningen |
 | ---- | ----------------- |
 | Resurser i en grupp | Dra en rad. Panelen säger det: **Drag a row to change the order visitors see**. |
-| Grupper i förhållande till varandra | **Move up** / **Move down** i navigatorns radmeny, eller **Move group up** / **Move group down** i **More actions**. |
+| Grupper i förhållande till varandra | **Flytta upp** / **Flytta ned** i navigatorns radmeny, eller **Move group up** / **Move group down** i **More actions**. |
 | Resurser utan grupp | De står i **Top of page** och visas alltid ovanför alla grupper, så lägg det som alla kontrollerar först där. |
 
 **Två fall där dragning är avstängd.** En sökning i rutan **Search in {group}...** stänger av omordning (panelen säger `N of M shown · drag to reorder is off while filtering`), så rensa sökningen först. Och rutnätsgrupper ordnas aldrig om genom att dra, eftersom en monitors plats kommer från dess rad och kolumn.

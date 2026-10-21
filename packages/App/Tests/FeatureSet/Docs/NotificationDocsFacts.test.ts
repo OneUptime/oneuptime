@@ -78,6 +78,7 @@ import UserSMS from "Common/Models/DatabaseModels/UserSMS";
 import UserTelegram from "Common/Models/DatabaseModels/UserTelegram";
 import UserWebhook from "Common/Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "Common/Models/DatabaseModels/UserWhatsApp";
+import { ON_CALL_PAGE_SMS_ACTION } from "Common/Utils/Sms/OnCallPageSms";
 import { describe, expect, it } from "@jest/globals";
 import crypto from "crypto";
 import fs from "fs";
@@ -1676,8 +1677,10 @@ describe("personal on-call rules", () => {
     expect(ruleService).toContain(
       "introMessage: `To acknowledge this alert, press 1. ${getOnCallPageCallPassOnPrompt()}`,",
     );
+    // A text's one link acknowledges the page (Utils/Sms/OnCallPageSms).
+    expect(ON_CALL_PAGE_SMS_ACTION).toBe("Ack or pass it on:");
     expect(ruleService).toContain(
-      "To acknowledge this alert, or pass it on if you can't take it, please click on the following link",
+      "link: await this.buildOnCallAcknowledgeShortUrl(",
     );
     expect(ruleService).toContain(">Tap to acknowledge</a>");
     expect(ruleService).toContain("[Acknowledge](${data.ackUrl.toString()})");
@@ -1756,7 +1759,27 @@ describe("personal on-call rules", () => {
       });
     }
 
-    expect(rules).toContain("OneUptime has no quiet hours");
+    expect(rules).toContain("Your own rules have no quiet hours");
+  });
+
+  /*
+   * What waits for working hours is an alert's or incident's on-call rule
+   * (OnCallRuleWhenToPage), not a person's: the page points there, by the
+   * answer the rule's form gives, and the rule models carry the setting.
+   */
+  it("points at the on-call rule that pages only during working hours, for everyone", () => {
+    expect(rules).toContain(
+      "To make a low-severity page wait for working hours for everyone, set the on-call rule that pages it to **Only during working hours**: see [On-call rules](/docs/alerts/settings#on-call-rules).",
+    );
+    // The answer the rule's form gives, as the page bolds it.
+    expect(readDashboardSource("Utils/Form/EventRuleForm.ts")).toContain(
+      '"Only during working hours"',
+    );
+    expect(
+      readCommonSource(
+        "Models/DatabaseModels/DatabaseBaseModel/OnCallRuleBaseModel.ts",
+      ),
+    ).toContain("public whenToPage?");
   });
 
   it("names the rules' own kinds as Common names them", () => {

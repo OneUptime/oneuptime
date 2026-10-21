@@ -37,6 +37,7 @@ import {
   readMinutes,
   readStopState,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/EventRuleForm";
+import { OnCallRuleRecord } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallRule/WorkingHoursText";
 import {
   FILLED_IN_RULE_NAME_KEY,
   RULE_NAME_MAX_LENGTH,
@@ -100,12 +101,12 @@ describe("every rule starts with what it matches", () => {
   );
 
   test.each([
-    ["an on-call", getOnCallRuleActionFields<Values>()],
+    ["an on-call", getOnCallRuleActionFields<Values>(OnCallRuleRecord.Alert)],
     ["a privacy", getPrivacyRuleActionFields<Values>("incident")],
     ["a reminder", getReminderRuleActionFields<Values>("incident")],
     ["a runbook", getRunbookRuleActionFields<Values>()],
   ] as Array<[string, Array<Field<Values>>]>)(
-    "%s rule asks nothing on its Match step, and its name and description last",
+    "%s rule asks nothing on its Match step, and its name and description after what it does",
     (_kind: string, fields: Array<Field<Values>>) => {
       const stepIds: Set<string | undefined> = new Set(
         fields.map((field: Field<Values>): string | undefined => {
@@ -121,7 +122,13 @@ describe("every rule starts with what it matches", () => {
         return Object.keys(field.field || {})[0] || "";
       });
 
-      expect(keys.slice(-3)).toEqual(["name", "isEnabled", "description"]);
+      const nameAt: number = keys.indexOf("name");
+
+      expect(keys.slice(nameAt, nameAt + 3)).toEqual([
+        "name",
+        "isEnabled",
+        "description",
+      ]);
 
       const enabled: Field<Values> = fields[keys.indexOf("isEnabled")]!;
       // A rule starts on: Enabled is on the Edit form only.
@@ -131,6 +138,11 @@ describe("every rule starts with what it matches", () => {
       // Folded under More fields.
       expect(description.collapsibleSection).toBeDefined();
       expect(description.required).toBe(false);
+
+      // Whatever follows the description is folded with it: one More fields.
+      for (const field of fields.slice(nameAt + 3)) {
+        expect(field.collapsibleSection).toBe(description.collapsibleSection);
+      }
 
       const name: Field<Values> = fields[keys.indexOf("name")]!;
       expect(name.required).toBe(true);
@@ -166,7 +178,9 @@ describe("an on-call rule's name", () => {
   });
 
   test("the policies picker is required and names the rule as it changes", () => {
-    const policies: Field<Values> = getOnCallRuleActionFields<Values>()[0]!;
+    const policies: Field<Values> = getOnCallRuleActionFields<Values>(
+      OnCallRuleRecord.Alert,
+    )[0]!;
 
     expect(Object.keys(policies.field || {})).toEqual(["onCallDutyPolicies"]);
     expect(policies.required).toBe(true);
@@ -175,7 +189,9 @@ describe("an on-call rule's name", () => {
   });
 
   test("the policies picker says what it is for in one sentence", () => {
-    const policies: Field<Values> = getOnCallRuleActionFields<Values>()[0]!;
+    const policies: Field<Values> = getOnCallRuleActionFields<Values>(
+      OnCallRuleRecord.Alert,
+    )[0]!;
 
     expect(policies.description).toBe(ON_CALL_RULE_POLICIES_DESCRIPTION);
     expect(ON_CALL_RULE_POLICIES_DESCRIPTION).toBe(

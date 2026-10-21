@@ -40,6 +40,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { OnCallRulePagingHold } from "../../../Server/Utils/OnCall/OnCallRulePagingHold";
 
 /*
  * The on-call rule engines merge the policies of every matching rule into
@@ -67,7 +68,8 @@ interface EngineCase {
   recordService: { getRepository: unknown };
   // Stubs the feed and returns the spy, to read what the feed item says.
   stubFeed: () => ReturnType<typeof jest.spyOn>;
-  apply: (record: BaseModel) => Promise<void>;
+  // The holds of the policies it added that wait to page (OnCallRulePagingHold).
+  apply: (record: BaseModel) => Promise<Map<string, OnCallRulePagingHold>>;
 }
 
 function policy(id: string): OnCallDutyPolicy {
@@ -99,7 +101,7 @@ const ENGINES: Array<EngineCase> = [
         .spyOn(IncidentFeedService, "createIncidentFeedItem")
         .mockResolvedValue(undefined as never);
     },
-    apply: (record: BaseModel): Promise<void> => {
+    apply: (record: BaseModel): Promise<Map<string, OnCallRulePagingHold>> => {
       return IncidentOnCallRuleEngineService.applyRulesToIncident(
         record as Incident,
       );
@@ -120,7 +122,7 @@ const ENGINES: Array<EngineCase> = [
         .spyOn(AlertFeedService, "createAlertFeedItem")
         .mockResolvedValue(undefined as never);
     },
-    apply: (record: BaseModel): Promise<void> => {
+    apply: (record: BaseModel): Promise<Map<string, OnCallRulePagingHold>> => {
       return AlertOnCallRuleEngineService.applyRulesToAlert(record as Alert);
     },
   },
@@ -139,7 +141,7 @@ const ENGINES: Array<EngineCase> = [
         .spyOn(IncidentEpisodeFeedService, "createIncidentEpisodeFeedItem")
         .mockResolvedValue(undefined as never);
     },
-    apply: (record: BaseModel): Promise<void> => {
+    apply: (record: BaseModel): Promise<Map<string, OnCallRulePagingHold>> => {
       return IncidentEpisodeOnCallRuleEngineService.applyRulesToEpisode(
         record as IncidentEpisode,
       );
@@ -160,7 +162,7 @@ const ENGINES: Array<EngineCase> = [
         .spyOn(AlertEpisodeFeedService, "createAlertEpisodeFeedItem")
         .mockResolvedValue(undefined as never);
     },
-    apply: (record: BaseModel): Promise<void> => {
+    apply: (record: BaseModel): Promise<Map<string, OnCallRulePagingHold>> => {
       return AlertEpisodeOnCallRuleEngineService.applyRulesToEpisode(
         record as AlertEpisode,
       );
@@ -320,7 +322,8 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
 
     const record: BaseModel = engine.newRecord();
 
-    await expect(engine.apply(record)).resolves.toBeUndefined();
+    // Nothing merged, so nothing is held either.
+    await expect(engine.apply(record)).resolves.toEqual(new Map());
 
     expect(policyIdsOf(record)).toEqual([]);
   });

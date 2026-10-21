@@ -118,6 +118,26 @@ Jede Nachricht ist eine, die ihr Anbieter annimmt, damit eine Alarmierung immer 
 
 Eine längere Nachricht, mit einem langen Titel oder einer langen Beschreibung, die eine Vorlage eingefügt hat, wird gekürzt und endet mit einem Hinweis, dass der vollständige Text in OneUptime steht: „… (truncated — see OneUptime for the full text)“. Der Wortlaut einer WhatsApp-Nachricht ist eine feste Vorlage, daher werden dort stattdessen die längsten Werte gekürzt, jeder mit „…“ am Ende. Die Links in einer Nachricht werden nie gekürzt.
 
+### Was die SMS einer Alarmierung sagt
+
+Eine SMS wird in Teilen zu 160 Zeichen gesendet und abgerechnet. Eine Alarmierung per SMS ist so geschrieben, dass sie wo immer möglich in einen Teil passt, und sagt nur, was Sie auf einem gesperrten Telefon brauchen: wer sie sendet, was passiert ist und den einen Link, um die Alarmierung zu bestätigen oder weiterzugeben. Auf einem Telefon sieht sie so aus:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+```
+
+Sie nennt den Schweregrad und was passiert ist (ein Vorfall, eine Warnung oder eine Episode davon), die Nummer, das Projekt und den Titel, in dieser Reihenfolge. Passt nicht alles in einen Teil:
+
+1. Zuerst wird das Projekt weggelassen.
+2. Dann wird der Titel gekürzt und endet mit `...`.
+
+Schweregrad, Nummer und Link werden nie gekürzt. Ein Titel behält mindestens 20 Zeichen: Passt selbst das nicht, etwa bei einer sehr langen Adresse oder einem sehr langen Produktnamen, belegt die SMS einen zweiten Teil und sagt alles.
+
+Ein einziges Zeichen außerhalb des einfachen SMS-Alphabets lässt die ganze SMS in Teilen zu 70 Zeichen hinausgehen. Deshalb werden typografische Anführungszeichen und Gedankenstriche als `"`, `'` und `-` geschrieben, `…` als `...`, und Buchstaben wie `ç` und `ł` verlieren ihre Akzente; Emojis werden weggelassen. Ein Titel in einer anderen Schrift, etwa Japanisch oder Russisch, wird so gesendet, wie er geschrieben ist, und belegt zwei Teile oder mehr.
+
+Die anderen SMS, die OneUptime Ihnen sendet, etwa zu einer Änderung an einem Vorfall, der Ihnen gehört, oder zum Beginn Ihrer Bereitschaftsschicht, beginnen ebenfalls mit `OneUptime:` und enden mit `Turn off in User Settings > Notification Settings.`, einem Satz, der weggelassen wird, wenn die SMS erst dadurch in einen Teil passt.
+
 ### Wenn eine Alarmierung nicht gesendet wird
 
 Eine nicht gesendete Alarmierung sagt unter **Bereitschaftsprotokolle** in den Benutzereinstellungen der Person, warum: Ihre Zeile zeigt **Fehler**, und ihre Statusmeldung nennt den Grund. Sie bleibt nicht mehr bei **Wird gesendet** stehen. Die Meldung sagt eines davon:

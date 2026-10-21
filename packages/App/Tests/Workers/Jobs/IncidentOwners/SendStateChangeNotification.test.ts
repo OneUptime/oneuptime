@@ -662,7 +662,7 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
         "[Acknowledged Incident INC-7] - Database is down",
       );
       expect(call.smsMessage.message).toBe(
-        "This is a message from OneUptime. Incident INC-7 (Database is down) - state changed from Identified to Acknowledged. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.",
+        "OneUptime: Incident INC-7 (Database is down) - state changed from Identified to Acknowledged. Turn off in User Settings > Notification Settings.",
       );
       expect(call.callRequestMessage.data[0]!.sayMessage).toBe(
         "This is a message from OneUptime. Incident INC-7 (Database is down) state changed from Identified to Acknowledged. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.",

@@ -20,6 +20,21 @@ Buyers read the guide at
 in every docs language): installing, billing, licensing, upgrading, settings
 and troubleshooting. Change it with the product: every listing links to it.
 
+Where buyers find each listing, as its marketplace links it:
+
+| Marketplace  | Listing                                                                                                         | Seen public |
+| ------------ | --------------------------------------------------------------------------------------------------------------- | ----------- |
+| AWS          | Not public yet: product `prod-5ijwaqpun3coo` is Limited (the seller account and its allowlist only)             |             |
+| Microsoft    | `https://marketplace.microsoft.com/en-us/product/oneupitme.oneuptime-enterprise` (offer `oneuptime-enterprise`) | 2026-10-21  |
+| Google Cloud | Not public yet                                                                                                  |             |
+
+The website names the public ones (the Resellers page's "Buy through your
+cloud marketplace" section, and a line under the self-hosted page's
+Enterprise Edition call to action) from
+[packages/Home/Utils/CloudMarketplaces.ts](../../../../Home/Utils/CloudMarketplaces.ts),
+and says "Coming soon" for the others. When a listing goes public, put its
+address in that file as well as here, exactly as the marketplace links it.
+
 Written on **17 October 2026**, together with the billing code and the
 packaging, before any self-hosted listing existed. Nothing in this guide had
 been submitted to any marketplace yet. When you do something below, add it to
@@ -1079,6 +1094,7 @@ rejection, go-live and price change.
 | 2026-10-19 | AWS         | Product prod-5ijwaqpun3coo and offer offer-nazez256wqin4 released to Limited                        | Maintainer |
 | 2026-10-19 | Microsoft   | The registry's purge keeps each repository's newest release, and any from the last 7 days           | Agent      |
 | 2026-10-19 | AWS         | AWS refused 14.0.72: MISSING_VALUES_IMAGE_REFERENCE; the chart takes registry, repository and tag   | Agent      |
+| 2026-10-21 | Microsoft   | Offer `oneuptime-enterprise` seen live (publisher `oneupitme`); the website links it                | Agent      |
 
 ## Notes for agents driving the browser
 

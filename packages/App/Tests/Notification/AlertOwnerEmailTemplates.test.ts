@@ -2,6 +2,7 @@ import Handlebars, { TemplateDelegate } from "handlebars";
 import fs from "fs";
 import Path from "path";
 import { beforeAll, describe, expect, test } from "@jest/globals";
+import EmailLogo from "Common/Server/Utils/Mail/EmailLogo";
 
 /*
  * "=3D" is quoted-printable for "=". Built with the RegExp constructor rather
@@ -678,6 +679,9 @@ describe("AlertOwnerStateChanged.hbs", () => {
  * image rather than a dead link. (Populating homeURL for every email was
  * tried and reverted — it pulled the whole DatabaseConfig graph onto the
  * send path and tripled MailServiceTemplateCache's runtime.)
+ *
+ * Rendered with OneUptime's logo as MailService.render hands it to every
+ * email (oneUptimeLogoUrl, Common/Server/Utils/Mail/EmailLogo.ts).
  */
 describe("Logo.hbs", () => {
   function renderPartial(name: string, vars: Record<string, unknown>): string {
@@ -685,7 +689,7 @@ describe("Logo.hbs", () => {
       fs.readFileSync(Path.resolve(TEMPLATES_DIR, "Partials", name), {
         encoding: "utf8",
       }),
-    )(vars);
+    )({ oneUptimeLogoUrl: EmailLogo.getDataUrl(), ...vars });
   }
 
   test("with no homeURL it renders the image and NO anchor", () => {
@@ -704,6 +708,17 @@ describe("Logo.hbs", () => {
 
     expect(html).toContain('href="https://oneuptime.test/"');
     expect(html).toContain("</a>");
+  });
+
+  test("without the logo (its file could not be read) the name stands alone: no image, no dead anchor", () => {
+    const html: string = renderPartial("Logo.hbs", {
+      oneUptimeLogoUrl: undefined,
+      homeURL: "https://oneuptime.test/",
+    });
+
+    expect(html).not.toContain("<img");
+    expect(html).not.toContain("<a");
+    expect(html).toContain(">OneUptime</td>");
   });
 
   // Source ratchet: the unquoted form must not come back.

@@ -22,7 +22,7 @@ flowchart TB
     ack -->|"No"| level
 ```
 
-1. Un nuovo incidente, avviso o episodio esegue subito le sue policy di reperibilità: quelle scelte su di esso e quelle che aggiungono le sue regole di reperibilità. Ogni policy viene eseguita per conto suo.
+1. Un nuovo incidente, avviso o episodio esegue subito le sue policy di reperibilità: quelle scelte su di esso e quelle che aggiungono le sue regole di reperibilità. Ogni policy viene eseguita per conto suo. Una regola di reperibilità impostata su **Solo durante l'orario di lavoro** fa attendere le policy che aggiunge finché quell'orario non inizia.
 2. La prima regola di escalation di una policy avvisa subito: chi è reperibile in questo momento nelle sue pianificazioni, ogni membro dei suoi team e le persone che nomina.
 3. Se una di loro è assente, una sostituzione utente invia il suo avviso alla persona che la sostituisce, oppure la salta.
 4. Ogni persona viene raggiunta tramite le sue regole di reperibilità personali: quale metodo viene provato e dopo quanto tempo. Un avviso senza regola la raggiunge comunque sui metodi che ha verificato.
@@ -97,7 +97,7 @@ Quando siete reperibili per una policy, la campanella in alto a destra lo indica
 ## Risoluzione dei problemi
 
 :::details Nessuno è stato avvisato per un nuovo incidente
-Aprite la pagina **Esecuzioni di reperibilità** dell'incidente. Se è vuota, l'incidente non aveva nessuna policy di reperibilità: non ne è stata scelta nessuna e nessuna regola di reperibilità corrispondeva. Un'esecuzione con **Execution Completed - No One Notified** ha percorso ogni regola di escalation senza trovare nessuno: di solito una pianificazione in cui nessuno è reperibile. Vedi [Registri di esecuzione](/docs/on-call/policies#registri-di-esecuzione).
+Aprite la pagina **Esecuzioni di reperibilità** dell'incidente. Se è vuota, l'incidente non aveva nessuna policy di reperibilità: non ne è stata scelta nessuna e nessuna regola di reperibilità corrispondeva. Un'esecuzione con **Execution Completed - No One Notified** ha percorso ogni regola di escalation senza trovare nessuno: di solito una pianificazione in cui nessuno è reperibile. Vedi [Registri di esecuzione](/docs/on-call/policies#registri-di-esecuzione). Un'esecuzione **In attesa** attende l'orario di lavoro, per una regola di reperibilità impostata su **Solo durante l'orario di lavoro**, e non chiama nessuno finché non inizia.
 :::
 
 :::details Qualcuno è stato avvisato sul canale sbagliato, o per niente

@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "../../Utils/Sms/NotificationSms";
 import ProjectReferencesService from "./ProjectReferencesService";
 import OnCallDutyPolicyScheduleLayerService from "./OnCallDutyPolicyScheduleLayerService";
 import OnCallDutyPolicyScheduleLayerUserService from "./OnCallDutyPolicyScheduleLayerUserService";
@@ -917,7 +918,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
           };
 
           const sms: SMSMessage = {
-            message: `This is a message from OneUptime. You are no longer on-call for ${onCallPolicy.name!} because your on-call roster on schedule ${onCallSchedule.name} just ended. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+            message: buildNotificationSms(
+              `You are no longer on-call for ${onCallPolicy.name!} because your on-call roster on schedule ${onCallSchedule.name} just ended.`,
+            ),
           };
 
           const callMessage: CallRequestMessage = {
@@ -1069,7 +1072,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
           };
 
           const sms: SMSMessage = {
-            message: `This is a message from OneUptime. You are now on-call for ${onCallPolicy.name!} because you are now on the roster for schedule ${onCallSchedule.name}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+            message: buildNotificationSms(
+              `You are now on-call for ${onCallPolicy.name!} because you are now on the roster for schedule ${onCallSchedule.name}.`,
+            ),
           };
 
           const callMessage: CallRequestMessage = {
@@ -1303,7 +1308,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
           };
 
           const sms: SMSMessage = {
-            message: `This is a message from OneUptime. You are next on-call for ${onCallPolicy.name!} because your on-call roster on schedule ${onCallSchedule.name} will start when the next handoff happens. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+            message: buildNotificationSms(
+              `You are next on-call for ${onCallPolicy.name!} because your on-call roster on schedule ${onCallSchedule.name} will start when the next handoff happens.`,
+            ),
           };
 
           const callMessage: CallRequestMessage = {

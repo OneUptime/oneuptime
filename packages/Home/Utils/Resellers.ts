@@ -2,6 +2,12 @@ import {
   ResellerInquiryFormContent,
   getResellerInquiryFormContent,
 } from "./ResellerInquiry";
+import {
+  CloudMarketplaceEntries,
+  CloudMarketplaceEntry,
+  CloudMarketplacesContent,
+  getCloudMarketplacesContent,
+} from "./CloudMarketplaces";
 
 /*
  * THE RESELLERS PAGE (/resellers), AS DATA.
@@ -10,7 +16,9 @@ import {
  * the form other companies use to ask to become one (ResellerInquiry.ts
  * receives it). Adding a reseller is one entry in Resellers below: the page,
  * its markdown variant (/resellers.md) and Tests/Resellers.test.ts all read
- * this list.
+ * this list. After the resellers, the page shows the cloud marketplaces
+ * OneUptime is sold on (CloudMarketplaces.ts): not resellers, but the other
+ * way to buy OneUptime through an account a buyer already has.
  *
  * An entry says only what can be checked: the company's name, where it is,
  * its own website, and one line on what it does in the words of that
@@ -96,6 +104,8 @@ export interface ResellersPageContent {
   regions: Array<ResellerRegionGroup>;
   resellerCount: number;
   form: ResellerInquiryFormContent;
+  // The section after the resellers: OneUptime on the cloud marketplaces.
+  cloudMarketplaces: CloudMarketplacesContent;
 }
 
 const LEADING_WWW: string = "www.";
@@ -184,10 +194,12 @@ export const getResellerRegionGroups: (
 export const getResellersPageContent: (options?: {
   resellers?: ReadonlyArray<Reseller> | undefined;
   inquiryInbox?: string | undefined;
+  cloudMarketplaces?: ReadonlyArray<CloudMarketplaceEntry> | undefined;
 }) => ResellersPageContent = (
   options: {
     resellers?: ReadonlyArray<Reseller> | undefined;
     inquiryInbox?: string | undefined;
+    cloudMarketplaces?: ReadonlyArray<CloudMarketplaceEntry> | undefined;
   } = {},
 ): ResellersPageContent => {
   const resellers: ReadonlyArray<Reseller> = options.resellers || Resellers;
@@ -196,5 +208,8 @@ export const getResellersPageContent: (options?: {
     regions: getResellerRegionGroups(resellers),
     resellerCount: resellers.length,
     form: getResellerInquiryFormContent(options.inquiryInbox),
+    cloudMarketplaces: getCloudMarketplacesContent(
+      options.cloudMarketplaces || CloudMarketplaceEntries,
+    ),
   };
 };

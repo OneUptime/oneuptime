@@ -34,6 +34,7 @@ import {
   getSlaRuleFormSteps,
   getSlaRuleName,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/EventRuleForm";
+import { OnCallRuleRecord } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallRule/WorkingHoursText";
 import {
   MAINTENANCE_REMINDER_NEVER_REMINDS_NOTE,
   MAINTENANCE_REMINDER_NEVER_REMINDS_TEXT,
@@ -260,7 +261,9 @@ function ruleFormWords(): Array<string> {
       },
     ),
     ...fieldTitlesAndDescriptions(
-      getOnCallRuleActionFields<Record<string, unknown>>(),
+      getOnCallRuleActionFields<Record<string, unknown>>(
+        OnCallRuleRecord.Alert,
+      ),
     ),
     ...fieldTitlesAndDescriptions(
       getReminderRuleActionFields<Record<string, unknown>>("incident"),

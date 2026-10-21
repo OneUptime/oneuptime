@@ -1168,7 +1168,7 @@ describePostgres("IncidentAlert against a migrated Postgres", () => {
       own(
         jest
           .spyOn(IncidentOnCallRuleEngineService, "applyRulesToIncident")
-          .mockResolvedValue(undefined),
+          .mockResolvedValue(new Map()),
       );
       own(
         jest
