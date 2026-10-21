@@ -75,7 +75,7 @@ flowchart TB
 | फ़ील्ड | टैब | यह क्या करता है |
 | --- | --- | --- |
 | **vCenter** | सभी | ज़रूरी। हर क्वेरी को `resource.vmware.vcenter.name` तक सीमित करता है। |
-| **Datacenter** | Custom Metric, उन्नत | वैकल्पिक। एक डेटासेंटर: `resource.vcenter.datacenter.name`। हर सीरीज़ में यह होता है। |
+| **डेटा सेंटर** | Custom Metric, उन्नत | वैकल्पिक। एक डेटासेंटर: `resource.vcenter.datacenter.name`। हर सीरीज़ में यह होता है। |
 | **क्लस्टर** | Custom Metric, उन्नत | वैकल्पिक। एक क्लस्टर: `resource.vcenter.cluster.name`। क्लस्टर की अपनी सीरीज़ से और उसमें मौजूद होस्ट, VM और रिसोर्स पूल की सीरीज़ से मेल खाता है; स्टैंडअलोन ESXi होस्ट में यह नहीं होता। |
 | **ESXi Host** | Custom Metric, उन्नत | वैकल्पिक। एक ESXi होस्ट: `resource.vcenter.host.name`। होस्ट की अपनी सीरीज़ **और** उस पर चलने वाले हर VM की सीरीज़ से मेल खाता है, क्योंकि VM में उसके होस्ट का नाम होता है। |
 | **Virtual Machine** | Custom Metric, उन्नत | वैकल्पिक। एक VM: `resource.vcenter.vm.name`। VM के नाम अनोखे होना ज़रूरी नहीं: जब दो VM का नाम एक हो, तो एक होस्ट या क्लस्टर जोड़ें। |
@@ -127,11 +127,11 @@ OneUptime आम VMware समस्याओं के लिए 23 टेम�
 | Datastore Capacity Warning | Datastore | Warning | `vcenter.datastore.disk.utilization`, `resource.vcenter.datastore.name` के अनुसार Avg | 80% से ऊपर: एक शुरुआती चेतावनी, क्योंकि थिन डिस्क और स्नैपशॉट बाकी जगह जल्दी भर देते हैं | 72% या नीचे |
 | Datastore Capacity Critical | Datastore | गंभीर | `vcenter.datastore.disk.utilization`, डेटास्टोर के अनुसार Avg | 90% से ऊपर: भरा हुआ डेटास्टोर उस पर डिस्क वाले हर VM को रोक देता है | 81% या नीचे |
 | Cluster Host Not Effective | क्लस्टर | गंभीर | `vcenter.cluster.host.count` को `effective = false` पर फ़िल्टर, `resource.vcenter.cluster.name` के अनुसार Max | 0 से ऊपर: कोई होस्ट मेंटेनेंस मोड में है, डिस्कनेक्ट है या जवाब नहीं दे रहा, इसलिए क्लस्टर उस क्षमता से कम पर चलता है जिसके लिए उसे बनाया गया था | 0 पर |
-| Datacenter Hosts Unhealthy | Datacenter | गंभीर | `vcenter.datacenter.host.count` को `status = red` पर फ़िल्टर, `resource.vcenter.datacenter.name` के अनुसार Max | 0 से ऊपर: किसी होस्ट पर गंभीर अलार्म है, जैसे हार्डवेयर सेंसर, खोया हुआ स्टोरेज पाथ या HA एजेंट त्रुटि | 0 पर |
-| Datacenter Hosts Degraded | Datacenter | Warning | `vcenter.datacenter.host.count` को `status = yellow` पर फ़िल्टर, डेटासेंटर के अनुसार Max | 0 से ऊपर: किसी होस्ट पर चेतावनी अलार्म है | 0 पर |
-| Datacenter Hosts Powered Off | Datacenter | Warning | `vcenter.datacenter.host.count` को `power_state = off` पर फ़िल्टर, डेटासेंटर के अनुसार Max | 0 से ऊपर: कोई होस्ट बंद है - वह क्रैश हुआ, उसकी बिजली गई, या DPM ने उसे स्टैंडबाय पर रखा | 0 पर |
-| Datacenter VMs Unhealthy | Datacenter | Warning | `vcenter.datacenter.vm.count` को `status = red` पर फ़िल्टर, डेटासेंटर के अनुसार Max | 0 से ऊपर: किसी VM पर गंभीर अलार्म है, जैसे विफल HA रीस्टार्ट, खोया हुआ डेटास्टोर या खोई हुई Tools हार्टबीट | 0 पर |
-| Datacenter Clusters Unhealthy | Datacenter | गंभीर | `vcenter.datacenter.cluster.count` को `status = red` पर फ़िल्टर, डेटासेंटर के अनुसार Max | 0 से ऊपर: किसी क्लस्टर पर गंभीर अलार्म है, जैसे बहुत कम HA फ़ेलओवर संसाधन, विफल HA चुनाव या गंभीर vSAN हेल्थ चेक | 0 पर |
+| Datacenter Hosts Unhealthy | डेटा सेंटर | गंभीर | `vcenter.datacenter.host.count` को `status = red` पर फ़िल्टर, `resource.vcenter.datacenter.name` के अनुसार Max | 0 से ऊपर: किसी होस्ट पर गंभीर अलार्म है, जैसे हार्डवेयर सेंसर, खोया हुआ स्टोरेज पाथ या HA एजेंट त्रुटि | 0 पर |
+| Datacenter Hosts Degraded | डेटा सेंटर | Warning | `vcenter.datacenter.host.count` को `status = yellow` पर फ़िल्टर, डेटासेंटर के अनुसार Max | 0 से ऊपर: किसी होस्ट पर चेतावनी अलार्म है | 0 पर |
+| Datacenter Hosts Powered Off | डेटा सेंटर | Warning | `vcenter.datacenter.host.count` को `power_state = off` पर फ़िल्टर, डेटासेंटर के अनुसार Max | 0 से ऊपर: कोई होस्ट बंद है - वह क्रैश हुआ, उसकी बिजली गई, या DPM ने उसे स्टैंडबाय पर रखा | 0 पर |
+| Datacenter VMs Unhealthy | डेटा सेंटर | Warning | `vcenter.datacenter.vm.count` को `status = red` पर फ़िल्टर, डेटासेंटर के अनुसार Max | 0 से ऊपर: किसी VM पर गंभीर अलार्म है, जैसे विफल HA रीस्टार्ट, खोया हुआ डेटास्टोर या खोई हुई Tools हार्टबीट | 0 पर |
+| Datacenter Clusters Unhealthy | डेटा सेंटर | गंभीर | `vcenter.datacenter.cluster.count` को `status = red` पर फ़िल्टर, डेटासेंटर के अनुसार Max | 0 से ऊपर: किसी क्लस्टर पर गंभीर अलार्म है, जैसे बहुत कम HA फ़ेलओवर संसाधन, विफल HA चुनाव या गंभीर vSAN हेल्थ चेक | 0 पर |
 | vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, क्लस्टर के अनुसार Avg | 20 000 µs (20 ms) से ऊपर: vSAN डेटास्टोर पर हर VM के लिए स्टोरेज धीमा हो जाता है। बिना vSAN वाले क्लस्टर पर चुप रहता है | 18 000 µs या नीचे |
 | vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, क्लस्टर के अनुसार Max | 0 से ऊपर: कोई डिस्क ग्रुप साथ नहीं दे पाता, और vSAN अपने क्लाइंट का I/O धीमा कर देता है | 0 पर |
 | Resource Pool Memory Swapped | क्लस्टर | Warning | `vcenter.resource_pool.memory.swapped`, `resource.vcenter.resource_pool.inventory_path` के अनुसार Max | 0 से ऊपर: पूल के VM होस्ट स्वैप से मेमोरी लेते हैं, आमतौर पर इसलिए कि पूल की मेमोरी सीमा या शेयर बहुत कम हैं | 0 पर |
@@ -260,7 +260,7 @@ OneUptime आम VMware समस्याओं के लिए 23 टेम�
 | `vcenter.vm.vsan.throughput` | `By/s` | VM का vSAN थ्रूपुट, `direction` के अनुसार |
 
 > [!NOTE]
-> VM की पावर स्थिति कोई मेट्रिक नहीं है। रिसीवर `vcenter.vm.cpu.*` केवल चालू VM के लिए भेजता है, इसलिए OneUptime **Powered on** और **Powered off** में फ़र्क इस बात से करता है कि CPU डेटा उसी संग्रह में आया या नहीं जिसमें VM का मेमोरी और डिस्क डेटा आया; vCenter का **Virtual Machines** पेज परिणाम दिखाता है। बंद होस्ट पर या कितने VM चल रहे हैं इस पर अलर्ट करने के लिए, `power_state` एट्रिब्यूट का उपयोग करें, जो इन पर होता है: `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` या `vcenter.cluster.vm.count`।
+> VM की पावर स्थिति कोई मेट्रिक नहीं है। रिसीवर `vcenter.vm.cpu.*` केवल चालू VM के लिए भेजता है, इसलिए OneUptime **Powered on** और **Powered off** में फ़र्क इस बात से करता है कि CPU डेटा उसी संग्रह में आया या नहीं जिसमें VM का मेमोरी और डिस्क डेटा आया; vCenter का **वर्चुअल मशीनें** पेज परिणाम दिखाता है। बंद होस्ट पर या कितने VM चल रहे हैं इस पर अलर्ट करने के लिए, `power_state` एट्रिब्यूट का उपयोग करें, जो इन पर होता है: `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` या `vcenter.cluster.vm.count`।
 
 ## निगरानी मानदंड
 

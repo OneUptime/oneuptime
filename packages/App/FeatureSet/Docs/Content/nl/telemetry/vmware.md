@@ -240,6 +240,17 @@ De pagina **Overzicht** beantwoordt eerst de vraag "is dit vCenter gezond": de e
 
 ![De pagina Hosts met elke ESXi-host en zijn cluster, datacenter en CPU- en geheugenbenutting](/docs/static/images/VMwareHosts.png)
 
+Selecteer een host om zijn pagina te openen. Die beantwoordt wat de pagina van een host buiten VMware beantwoordt, met wat vCenter over een hypervisor weet:
+
+- **Overzicht**: CPU, geheugen, de latentie van de traagste schijf en de netwerkdoorvoer over het tijdsbereik dat u kiest, als tegels en grafieken (sleep over een grafiek om in te zoomen); de open incidenten en waarschuwingen van de host; zijn drukste virtuele machines, met de machines die op een fysieke CPU wachten gemarkeerd; zijn fysieke netwerkadapters en opslagapparaten, met pakketfouten en trage schijven gemarkeerd; welke hostwaarschuwingen aan staan; en de details van de host.
+- **Virtuele machines**: de VM's en sjablonen op de host, met hun status, resourcepool, CPU ready, CPU en geheugen.
+- **Metrieken**: de CPU-, geheugen-, netwerk- en schijfreeksen van de host als grafieken, per netwerkadapter en opslagapparaat, elk te openen in de metriekenverkenner.
+- **Logboeken**: de eigen syslog van de host, zodra hij die verstuurt (zie [ESXi-syslog versturen](#optioneel-esxi-syslog-versturen)). Tot dan geeft het tabblad de opdrachten die deze host, of zijn hele cluster, naar de agent laten wijzen. Een vCenter dat een sonde verzamelt, heeft geen syslog, omdat een sonde die niet ontvangt.
+
+Als vCenter een host niet meer meldt, zegt de pagina dat boven zijn tabbladen, met wanneer vCenter hem voor het laatst meldde. Na 15 minuten zonder melding verlaat de host de inventaris: zijn pagina zegt dat dan, en toont nog steeds zijn eerdere metrieken.
+
+De vijf hostwaarschuwingen (CPU- en geheugenverzadiging, hoge schijflatentie, netwerkpakketfouten en verworpen pakketten) bewaken elk alle hosts van de vCenter en gaan af voor elke host die de drempel overschrijdt. De kaart **Hostwaarschuwingen** op de pagina van een host toont welke aan staan, en de knop ervan opent de **Recommendations** van de vCenter met de ontbrekende al geselecteerd: maak ze daar één keer aan, voor alle hosts.
+
 ### Virtuele machines
 
 ![De pagina Virtuele machines met elke VM en haar host, aan/uit-status, cluster, resourcepool, CPU-ready, CPU en geheugen](/docs/static/images/VMwareVirtualMachines.png)

@@ -55,6 +55,21 @@ const RESOURCE_POOLS: string = readDashboard(
 const UTILS: string = readDashboard(
   "Pages/VMware/Utils/VMwareResourceUtils.ts",
 );
+// An ESXi host's page: its data module and the parts that draw its numbers.
+const HOST_DATA: string = readDashboard("Pages/VMware/Utils/VMwareHostData.ts");
+const HOST_OVERVIEW: string = readDashboard(
+  "Components/VMware/Host/VMwareHostOverviewTab.tsx",
+);
+const HOST_BUSIEST: string = readDashboard(
+  "Components/VMware/Host/VMwareHostBusiestVirtualMachines.tsx",
+);
+const HOST_DEVICES: string = readDashboard(
+  "Components/VMware/Host/VMwareHostDeviceTables.tsx",
+);
+const ALERT_TEMPLATES: string = fs.readFileSync(
+  path.join(COMMON_ROOT, "Types", "Monitor", "VMwareAlertTemplates.ts"),
+  "utf8",
+);
 const INVENTORY_SERVICE: string = fs.readFileSync(
   path.join(COMMON_ROOT, "Server", "Services", "VMwareResourceService.ts"),
   "utf8",
@@ -119,8 +134,21 @@ const TITLES: Record<VMwareMetric, string> = {
   topDatastoresByUtilization: "Datastore Utilization",
   topVmsByCpuReady: "VM CPU Ready",
   hostCpu: "CPU",
-  hostCpuCapacity: "CPU Capacity",
-  hostMemory: "Memory (Used / Capacity)",
+  hostCpuCapacity: "CPU capacity",
+  hostMemory: "Memory",
+  hostPageDiskLatency: "Disk latency",
+  hostPageNetwork: "Network",
+  hostPageCpuChart: "CPU",
+  hostPageMemoryChart: "Memory",
+  hostPageDiskLatencyChart: "Disk latency",
+  hostPageNetworkChart: "Network",
+  hostPageBusiestVirtualMachines: "Busiest virtual machines",
+  hostPageAdapterThroughput: "Received",
+  hostPageAdapterPackets: "Packets",
+  hostPageAdapterErrors: "Errors",
+  hostPageAdapterDrops: "Drops",
+  hostPageDeviceThroughput: "Read",
+  hostPageDeviceLatency: "Read latency",
   vmPowerState: "Power State",
   vmCpu: "CPU",
   vmCpuReady: "CPU Ready",
@@ -448,11 +476,14 @@ describe("VMware metric descriptions: the time window each number covers", () =>
 });
 
 describe("VMware metric descriptions: stale data", () => {
-  const staleMs: number = numericConstant(UTILS, "METRIC_STALE_MS");
+  const staleMs: number = numericConstant(HOST_DATA, "VMWARE_METRIC_STALE_MS");
   const staleMinutes: number = staleMs / 60000;
 
-  test("the inventory cut-off is still 15 minutes", () => {
+  test("the inventory cut-off is still 15 minutes, for the lists and the host page alike", () => {
     expect(staleMinutes).toBe(15);
+    expect(UTILS).toContain(
+      "export const METRIC_STALE_MS: number = VMWARE_METRIC_STALE_MS;",
+    );
   });
 
   test("the tables gate CPU and memory - and only those - on fresh metrics", () => {
@@ -490,7 +521,6 @@ describe("VMware metric descriptions: stale data", () => {
     "datastoreListUsedCapacity",
     "resourcePoolListCpu",
     "topDatastoresByUtilization",
-    "hostCpu",
   ] as Array<VMwareMetric>)(
     "%s shows the last value however old, and says so",
     (key: VMwareMetric) => {
@@ -608,6 +638,153 @@ describe("VMware metric descriptions: thresholds match the code", () => {
     expect(DATASTORE_DETAIL).toContain('"Full now"');
     expect(D.datastoreGrowthForecast).toContain("Full now");
     expect(D.datastoreGrowthForecast).toContain("straight-line");
+  });
+});
+
+describe("VMware metric descriptions: an ESXi host's page", () => {
+  const tileWindowMinutes: number = numericConstant(
+    HOST_DATA,
+    "VMWARE_HOST_TILE_WINDOW_MINUTES",
+  );
+  const latencyWarn: number = numericConstant(
+    HOST_DATA,
+    "VMWARE_DISK_LATENCY_WARN_MS",
+  );
+  const latencyDanger: number = numericConstant(
+    HOST_DATA,
+    "VMWARE_DISK_LATENCY_DANGER_MS",
+  );
+  const staleMinutes: number =
+    numericConstant(HOST_DATA, "VMWARE_METRIC_STALE_MS") / 60000;
+
+  test("the host's tiles read the newest 5 minutes of the range", () => {
+    expect(tileWindowMinutes).toBe(5);
+    expect(HOST_OVERVIEW).toContain("-VMWARE_HOST_TILE_WINDOW_MINUTES,");
+
+    for (const stat of [
+      "cpuPercent: meanOfRecentWindow(",
+      "memoryPercent: meanOfRecentWindow(",
+      "highestDiskLatencyMs: maxOfRecentWindow(",
+      "networkReceivedBytesPerSecond: meanOfRecentWindow(",
+      "networkSentBytesPerSecond: meanOfRecentWindow(",
+    ]) {
+      expect({ stat, found: HOST_DATA.includes(stat) }).toEqual({
+        stat,
+        found: true,
+      });
+    }
+  });
+
+  test.each([
+    "hostCpu",
+    "hostMemory",
+    "hostPageNetwork",
+    "hostPageDiskLatency",
+  ] as Array<VMwareMetric>)(
+    "%s names its window and the whole-range fallback the code takes",
+    (key: VMwareMetric) => {
+      // No bucket starting in the window: every bucket of the range counts.
+      expect(squash(HOST_DATA)).toContain(
+        "if (recent.length === 0) { recent = points; }",
+      );
+      expect(D[key]).toContain(
+        `last ${tileWindowMinutes} minutes of the selected range`,
+      );
+      expect(D[key]).toContain(
+        "(often the whole range on ranges over 12 hours or without recent data)",
+      );
+    },
+  );
+
+  test.each([
+    "hostPageCpuChart",
+    "hostPageMemoryChart",
+    "hostPageDiskLatencyChart",
+    "hostPageNetworkChart",
+  ] as Array<VMwareMetric>)(
+    "%s covers the whole selected range, not the tile window",
+    (key: VMwareMetric) => {
+      expect(D[key]).toContain("each interval of the selected range");
+      expect(D[key]).not.toContain("minutes");
+    },
+  );
+
+  test("the disk latency tile, chart and table turn amber and red where their texts say", () => {
+    expect([latencyWarn, latencyDanger]).toEqual([20, 50]);
+    expect(D.hostPageDiskLatency).toContain(`Amber from ${latencyWarn} ms`);
+    expect(D.hostPageDiskLatency).toContain(`full at ${latencyDanger} ms`);
+    expect(D.hostPageDeviceLatency).toContain(
+      `Amber from ${latencyWarn} ms, red from ${latencyDanger} ms`,
+    );
+    expect(HOST_DEVICES).toContain(
+      "if (value === null || value < VMWARE_DISK_LATENCY_WARN_MS) {",
+    );
+    expect(HOST_DEVICES).toContain(
+      "const isDanger: boolean = value >= VMWARE_DISK_LATENCY_DANGER_MS;",
+    );
+    // The gauge fills toward the danger level.
+    expect(HOST_DATA).toContain(
+      "(latencyMs / VMWARE_DISK_LATENCY_DANGER_MS) * 100",
+    );
+  });
+
+  test("the disk latency tile names the alert that fires where its bar fills", () => {
+    const template: string = ALERT_TEMPLATES.slice(
+      ALERT_TEMPLATES.indexOf('id: "vmware-host-disk-latency-high",'),
+      ALERT_TEMPLATES.indexOf('id: "vmware-host-network-packet-errors",'),
+    );
+
+    expect(template).toContain('name: "Host Disk Latency High",');
+    expect(template).toContain(`fireValue: ${latencyDanger},`);
+    expect(D.hostPageDiskLatency).toContain("Host Disk Latency High alert");
+  });
+
+  test("the busiest VMs are the inventory's fresh readings, CPU Ready marked at the overview's levels", () => {
+    const warn: number = numericConstant(
+      HOST_BUSIEST,
+      "VM_CPU_READY_WARN_PERCENT",
+    );
+    const danger: number = numericConstant(
+      HOST_BUSIEST,
+      "VM_CPU_READY_DANGER_PERCENT",
+    );
+
+    expect([warn, danger]).toEqual([
+      5,
+      numericConstant(OVERVIEW, "VM_CPU_READY_WARN_PERCENT"),
+    ]);
+    expect(D.hostPageBusiestVirtualMachines).toContain(
+      `amber from ${warn}%, red from ${danger}%`,
+    );
+    expect(D.hostPageBusiestVirtualMachines).toContain("physical CPU");
+    expect(D.hostPageBusiestVirtualMachines).toContain(
+      `last ${staleMinutes} minutes`,
+    );
+    expect(D.hostPageBusiestVirtualMachines).toContain(
+      "latest inventory rather than the selected range",
+    );
+  });
+
+  test.each([
+    "hostPageAdapterThroughput",
+    "hostPageAdapterPackets",
+    "hostPageAdapterErrors",
+    "hostPageAdapterDrops",
+    "hostPageDeviceThroughput",
+    "hostPageDeviceLatency",
+  ] as Array<VMwareMetric>)(
+    "%s is an average over the whole selected range, as the tables read it",
+    (key: VMwareMetric) => {
+      expect(HOST_DATA).toContain("function averagePerDevice(");
+      expect(D[key]).toMatch(
+        /averaged over the selected range|on average over the selected range/,
+      );
+    },
+  );
+
+  test("a trouble rate is marked from the first error, as the errors text says", () => {
+    expect(HOST_DEVICES).toContain("if (value === null || value <= 0) {");
+    expect(D.hostPageAdapterErrors).toContain("Anything above zero");
   });
 });
 
@@ -730,7 +907,6 @@ describe("VMware metric descriptions: what each number is made of", () => {
   );
 
   test.each([
-    "hostCpu",
     "hostCpuCapacity",
     "hostListCpuCapacity",
     "vmCpu",

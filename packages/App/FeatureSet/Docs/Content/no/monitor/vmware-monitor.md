@@ -75,7 +75,7 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | Felt | Fane | Hva det gjør |
 | --- | --- | --- |
 | **vCenter** | Alle | Påkrevd. Begrenser hver spørring til `resource.vmware.vcenter.name`. |
-| **Datacenter** | Custom Metric, Avansert | Valgfritt. Ett datasenter: `resource.vcenter.datacenter.name`. Hver serie bærer det. |
+| **Datasenter** | Custom Metric, Avansert | Valgfritt. Ett datasenter: `resource.vcenter.datacenter.name`. Hver serie bærer det. |
 | **Klynge** | Custom Metric, Avansert | Valgfritt. Én klynge: `resource.vcenter.cluster.name`. Samsvarer med klyngens egne serier og seriene til vertene, VM-ene og ressurspoolene i den; en frittstående ESXi-vert har ingen. |
 | **ESXi Host** | Custom Metric, Avansert | Valgfritt. Én ESXi-vert: `resource.vcenter.host.name`. Samsvarer med vertens egne serier **og** seriene til hver VM den kjører, fordi en VM bærer navnet til verten sin. |
 | **Virtual Machine** | Custom Metric, Avansert | Valgfritt. Én VM: `resource.vcenter.vm.name`. VM-navn trenger ikke være unike: legg til en vert eller en klynge når to VM-er deler et navn. |
@@ -127,11 +127,11 @@ Malene leser de siste 5 minuttene, med mindre tabellen sier noe annet. Et kriter
 | Datastore Capacity Warning | Datastore | Warning | `vcenter.datastore.disk.utilization`, Avg per `resource.vcenter.datastore.name` | Over 80 %: et tidlig varsel, siden thin-disker og snapshots raskt bruker resten | Ved 72 % eller mindre |
 | Datastore Capacity Critical | Datastore | Kritisk | `vcenter.datastore.disk.utilization`, Avg per datastore | Over 90 %: en full datastore setter hver VM med en disk på den på pause | Ved 81 % eller mindre |
 | Cluster Host Not Effective | Klynge | Kritisk | `vcenter.cluster.host.count` filtrert til `effective = false`, Max per `resource.vcenter.cluster.name` | Over 0: en vert er i vedlikeholdsmodus, frakoblet eller svarer ikke, så klyngen kjører med mindre kapasitet enn den er dimensjonert for | Ved 0 |
-| Datacenter Hosts Unhealthy | Datacenter | Kritisk | `vcenter.datacenter.host.count` filtrert til `status = red`, Max per `resource.vcenter.datacenter.name` | Over 0: en vert har en kritisk alarm, som en maskinvaresensor, en tapt lagringssti eller en feil i HA-agenten | Ved 0 |
-| Datacenter Hosts Degraded | Datacenter | Warning | `vcenter.datacenter.host.count` filtrert til `status = yellow`, Max per datasenter | Over 0: en vert har en advarselsalarm | Ved 0 |
-| Datacenter Hosts Powered Off | Datacenter | Warning | `vcenter.datacenter.host.count` filtrert til `power_state = off`, Max per datasenter | Over 0: en vert er slått av - den krasjet, mistet strømmen eller ble satt i standby av DPM | Ved 0 |
-| Datacenter VMs Unhealthy | Datacenter | Warning | `vcenter.datacenter.vm.count` filtrert til `status = red`, Max per datasenter | Over 0: en VM har en kritisk alarm, som en mislykket HA-omstart, en tapt datastore eller et tapt Tools-heartbeat | Ved 0 |
-| Datacenter Clusters Unhealthy | Datacenter | Kritisk | `vcenter.datacenter.cluster.count` filtrert til `status = red`, Max per datasenter | Over 0: en klynge har en kritisk alarm, som for få HA-failoverressurser, et mislykket HA-valg eller en kritisk vSAN-helsesjekk | Ved 0 |
+| Datacenter Hosts Unhealthy | Datasenter | Kritisk | `vcenter.datacenter.host.count` filtrert til `status = red`, Max per `resource.vcenter.datacenter.name` | Over 0: en vert har en kritisk alarm, som en maskinvaresensor, en tapt lagringssti eller en feil i HA-agenten | Ved 0 |
+| Datacenter Hosts Degraded | Datasenter | Warning | `vcenter.datacenter.host.count` filtrert til `status = yellow`, Max per datasenter | Over 0: en vert har en advarselsalarm | Ved 0 |
+| Datacenter Hosts Powered Off | Datasenter | Warning | `vcenter.datacenter.host.count` filtrert til `power_state = off`, Max per datasenter | Over 0: en vert er slått av - den krasjet, mistet strømmen eller ble satt i standby av DPM | Ved 0 |
+| Datacenter VMs Unhealthy | Datasenter | Warning | `vcenter.datacenter.vm.count` filtrert til `status = red`, Max per datasenter | Over 0: en VM har en kritisk alarm, som en mislykket HA-omstart, en tapt datastore eller et tapt Tools-heartbeat | Ved 0 |
+| Datacenter Clusters Unhealthy | Datasenter | Kritisk | `vcenter.datacenter.cluster.count` filtrert til `status = red`, Max per datasenter | Over 0: en klynge har en kritisk alarm, som for få HA-failoverressurser, et mislykket HA-valg eller en kritisk vSAN-helsesjekk | Ved 0 |
 | vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, Avg per klynge | Over 20 000 µs (20 ms): lagringen blir tregere for hver VM på vSAN-datastoren. Stille på klynger uten vSAN | Ved 18 000 µs eller mindre |
 | vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, Max per klynge | Over 0: en diskgruppe klarer ikke å holde tritt, og vSAN bremser I/O-en til klientene sine | Ved 0 |
 | Resource Pool Memory Swapped | Klynge | Warning | `vcenter.resource_pool.memory.swapped`, Max per `resource.vcenter.resource_pool.inventory_path` | Over 0: poolens VM-er tar minne fra vertens swap, som regel fordi poolens minnegrense eller -andeler er for lave | Ved 0 |
@@ -260,7 +260,7 @@ Sendes bare for klynger med vSAN, vertene i dem og VM-ene på en vSAN-datastore.
 | `vcenter.vm.vsan.throughput`        | `By/s`            | VM-ens vSAN-gjennomstrømning, etter `direction`                                                                                                 |
 
 > [!NOTE]
-> En VMs strømtilstand er ikke en metrikk. Receiveren sender bare `vcenter.vm.cpu.*` for påslåtte VM-er, så OneUptime skiller **Powered on** fra **Powered off** ut fra om CPU-data kom i samme innsamling som VM-ens minne- og diskdata; vCenterets side **Virtual Machines** viser resultatet. For å varsle om avslåtte verter eller om hvor mange VM-er som kjører, bruker du attributtet `power_state` på `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` eller `vcenter.cluster.vm.count`.
+> En VMs strømtilstand er ikke en metrikk. Receiveren sender bare `vcenter.vm.cpu.*` for påslåtte VM-er, så OneUptime skiller **Powered on** fra **Powered off** ut fra om CPU-data kom i samme innsamling som VM-ens minne- og diskdata; vCenterets side **Virtuelle maskiner** viser resultatet. For å varsle om avslåtte verter eller om hvor mange VM-er som kjører, bruker du attributtet `power_state` på `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` eller `vcenter.cluster.vm.count`.
 
 ## Overvåkingskriterier
 

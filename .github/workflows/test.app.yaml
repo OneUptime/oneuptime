@@ -357,10 +357,15 @@ jobs:
           # with its bundle locally: Add Host's one command and the host
           # connecting, Collector Configs and their versions, a host's
           # Collector page, at a laptop's and a phone's width, dark and
-          # German, Chromium only) the same day. Security Operations, Code and
-          # Public Addresses (about 10 minutes together, all Chromium) moved
-          # here from group 5 the same day too, when it ran past the job's 30
-          # minutes: about 19 minutes for the seven.
+          # German, Chromium only) the same day. VMware Host Page (about 1.5
+          # minutes with its bundle locally: an ESXi host's page inside its
+          # vCenter - its Overview, tabs and states, and the Recommendations
+          # it hands off to - at a laptop's, a tablet's and a phone's width,
+          # in dark mode and German, Chromium only) joined them the same day
+          # too. Security Operations, Code and Public Addresses (about 10
+          # minutes together, all Chromium) moved here from group 5 the same
+          # day, when it ran past the job's 30 minutes: about 20.5 minutes for
+          # the eight.
           - group: 8
             browsers: chromium
             suites: >-
@@ -368,6 +373,7 @@ jobs:
               test-dashboard-widget-sort-ui
               test-cloud-connect-ui
               test-host-collectors-ui
+              test-vmware-host-page-ui
               test-security-operations-ui
               test-code-ui
               test-public-addresses-ui
@@ -553,4 +559,6 @@ jobs:
             output/playwright/cloud-connect-ui/test-results
             output/playwright/host-collectors-ui/*.png
             output/playwright/host-collectors-ui/test-results
+            output/playwright/vmware-host-page-ui/*.png
+            output/playwright/vmware-host-page-ui/test-results
           retention-days: 7

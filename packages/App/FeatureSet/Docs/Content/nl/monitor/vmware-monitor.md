@@ -260,7 +260,7 @@ Alleen verstuurd voor clusters met vSAN, de hosts erin, en de VM's op een vSAN-d
 | `vcenter.vm.vsan.throughput`        | `By/s`            | vSAN-doorvoer van de VM, per `direction`                                                                                                        |
 
 > [!NOTE]
-> De aan/uit-toestand van een VM is geen metriek. De receiver stuurt `vcenter.vm.cpu.*` alleen voor ingeschakelde VM's, dus OneUptime onderscheidt **Powered on** van **Powered off** aan de hand van of er CPU-gegevens binnenkwamen in dezelfde verzameling als de geheugen- en schijfgegevens van de VM; de pagina **Virtual Machines** van het vCenter toont het resultaat. Om te waarschuwen op uitgeschakelde hosts of op hoeveel VM's draaien, gebruik je het attribuut `power_state` van `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` of `vcenter.cluster.vm.count`.
+> De aan/uit-toestand van een VM is geen metriek. De receiver stuurt `vcenter.vm.cpu.*` alleen voor ingeschakelde VM's, dus OneUptime onderscheidt **Powered on** van **Powered off** aan de hand van of er CPU-gegevens binnenkwamen in dezelfde verzameling als de geheugen- en schijfgegevens van de VM; de pagina **Virtuele machines** van het vCenter toont het resultaat. Om te waarschuwen op uitgeschakelde hosts of op hoeveel VM's draaien, gebruik je het attribuut `power_state` van `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` of `vcenter.cluster.vm.count`.
 
 ## Monitoringcriteria
 
