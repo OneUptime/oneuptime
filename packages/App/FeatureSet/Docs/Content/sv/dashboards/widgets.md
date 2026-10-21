@@ -6,6 +6,7 @@ En widget är en ruta på en instrumentpanel. Den här sidan går igenom varje w
 - [Vilken widget ska jag använda?](#vilken-widget-ska-jag-använda): Välj utifrån frågan som rutan besvarar.
 - [Diagram och tal](#diagram-och-tal): Diagram, Värde, Mätare och Tabell, från en mätvärdesfråga.
 - [Loggar, spår och säkerhet](#loggar-spår-och-säkerhet): Volymdiagram, liveflöden och listor.
+- [Sortera listor och tabeller](#sortera-listor-och-tabeller): Sortera efter en kolumn, och välj ordningen alla ser.
 - [När en widget inte kan visas](#när-en-widget-inte-kan-visas): Vad en trasig widget visar, och hur du rättar den.
 :::
 
@@ -198,6 +199,33 @@ En plats visas bara om den har koordinater. Lägg till latitud och longitud på 
 ## Externa datakällor
 
 Gruppen Externa datakällor ritar ett **Diagram**, ett **Värde**, en **Mätare** eller en **Tabell** från ett system som OneUptime inte äger: Prometheus, PostgreSQL, MySQL, SQL Server, ClickHouse, Loki, Elasticsearch eller valfritt REST-API. Du ansluter systemet en gång och skriver sedan varje widgets fråga i systemets eget språk. [Externa datakällor](/docs/dashboards/data-sources) visar hur.
+
+## Sortera listor och tabeller
+
+Klicka på rubriken för en kolumn för att sortera en lista eller en tabell efter den: ett första klick sorterar så som tabellen nedan säger, nästa klick åt andra hållet, och klicket därefter återställer widgetens egen ordning. På kolumnen som widgeten redan är sorterad efter vänder ett klick på ordningen. En pil markerar kolumnen som raderna är sorterade efter.
+
+| Kolumn | Första klicket | Nästa klick |
+| --- | --- | --- |
+| En status, ett tillstånd eller en allvarlighetsgrad | Sämsta först | Bästa först |
+| En tid | Nyaste först | Äldsta först |
+| Ett tal | Högsta först | Lägsta först |
+| Text | A till Ö | Ö till A |
+
+Sämst följer projektets egen ordning: en monitorstatus efter dess prioritet, allvarlighetsgrad och tillstånd för en incident eller en avisering efter den ordning du har dem i, och en resurs som är nere, inte redo eller avstängd före en frisk. En pods fas sorteras Failed, sedan Unknown, sedan Pending, sedan Running och Succeeded. En SLO:s SLI och felbudget, och en Proxmox-gästs VMID, sorteras med de lägsta först.
+
+Hela listan sorteras, inte bara raderna på skärmen: en lista som visar 25 rader, sorterad med de sämsta först, visar de 25 sämsta av alla. Rader som är lika behåller widgetens egen ordning. En kolumn som en lista inte kan sorteras efter i sin helhet, som meddelandet i en säkerhetshändelse, sorterar inte.
+
+### Din egen sortering
+
+Din sortering är bara din: din webbläsare kommer ihåg den för den widgeten på den instrumentpanelen, så att en omladdning eller en omstart av en väggskärm behåller den, och ingen annan ser den. Klicket som återställer widgetens egen ordning glömmer din sortering, och widgeten följer sedan sin egen ordning, även när en redaktör ändrar den senare.
+
+### Ordningen alla ser
+
+För att välja den ordning en widget öppnas i för alla redigerar du den och väljer ordningen under **Sortera**, eller klickar på en kolumnrubrik i dess **Live Preview**, och klickar sedan på **Spara ändringar**. Du ser den nya ordningen direkt; en tittare som har sorterat widgeten på sitt eget sätt behåller sin sortering.
+
+Instrumentpanelsmallarna öppnar sina listor över värdar, noder, poddar, Swarm-tjänster och nätverksenheter med de sämsta först.
+
+Via API:et och Terraform är ordningen widgetens `arguments.sort`: en kolumn och en riktning, till exempel `status:desc`. En listwidget avvisar en kolumn den inte har, och felet räknar upp de sorteringar den har.
 
 ## På en offentlig instrumentpanel
 

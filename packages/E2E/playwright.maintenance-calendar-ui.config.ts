@@ -8,7 +8,9 @@ import path from "path";
  * from an in-page store.
  *
  *   MaintenanceCalendar.spec.ts  the Dashboard's Scheduled Maintenance >
- *                                Events: List | Calendar, the month and week
+ *                                Calendar: the calendar's own page in the
+ *                                side menu, the external calendars drawn on
+ *                                it and Calendar Settings, the month and week
  *                                grids, Schedule maintenance on a day, and
  *                                the Subscribe to calendar dialog;
  *   StatusPageCalendar.spec.ts   a status page's Scheduled Events: Subscribe

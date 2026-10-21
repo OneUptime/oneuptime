@@ -6,6 +6,7 @@ import {
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import DashboardKubernetesResourceListBase from "./DashboardKubernetesResourceListBase";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import IconProp from "Common/Types/Icon/IconProp";
 import KubernetesResource from "Common/Models/DatabaseModels/KubernetesResource";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -33,9 +34,9 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "CronJob", widthPct: "40%" },
-  { label: "Namespace", widthPct: "25%" },
-  { label: "Cluster", widthPct: "35%" },
+  { label: "CronJob", widthPct: "40%", sortKey: "name" },
+  { label: "Namespace", widthPct: "25%", sortKey: "namespace" },
+  { label: "Cluster", widthPct: "35%", sortKey: "cluster" },
 ];
 
 function renderRow(r: KubernetesResource): ReactElement {
@@ -100,6 +101,8 @@ const DashboardKubernetesCronJobListComponentElement: FunctionComponent<
   return (
     <DashboardKubernetesResourceListBase
       componentId={props.componentId}
+      componentType={DashboardComponentType.KubernetesCronJobList}
+      widgetProps={props}
       title={args.title}
       pluralLabel="cronjobs"
       emptyMessage="No cron jobs found"

@@ -142,7 +142,7 @@ Runbooks:    [DB primary failover]
 En monitor öppnar incidenten `INC-4821 · db-primary connection timeout`. Regeln matchar och en körning startar:
 
 - Steg 1 (JavaScript) körs på den Runner du valde för det. Returvärdet, till exempel `{ lagMs: 412 }`, registreras. Ett steg som inte väljer någon Runner körs på en global Runner.
-- Steg 2 (Manual) pausar körningen, som visar **Väntar på dig**. Den jourhavande kontrollerar instrumentpanelen och klickar på **Mark complete**.
+- Steg 2 (Manual) pausar körningen, som visar **Väntar på dig**. Den jourhavande kontrollerar instrumentpanelen och klickar på **Markera som klar**.
 - Steg 3 (HTTP request) körs och svaret på `POST` registreras.
 - Steg 4 (Manual) pausar körningen igen tills någon slutför det.
 - Steg 5 (HTTP request) körs och körningen är **Slutförd**.
@@ -158,7 +158,7 @@ Körningen stannar kvar på incidentens sida **Runbooks**. När du skriver postm
 - **Tömning av cache**: en HTTP-begäran och sedan ett Manual-steg "bekräfta att cachens träffgrad återhämtar sig".
 - **Incident som påverkar kunder**: Manual "publicera en uppdatering på statussidan", en HTTP-begäran för att meddela supportteamet, JavaScript för att hämta listan över berörda konton.
 - **Förkontroll före schemalagt underhåll**: ta en ögonblicksbild av mätvärden, bekräfta ändringsfönstret med intressenterna (Manual), slå på underhållsläge i lastbalanseraren (HTTP request).
-- **Diagnostisera och åtgärda sedan**: ett Bash-steg samlar in diagnostik, ett AI-steg med **Kräv godkännande** läser den och rekommenderar en åtgärd, och ett kubectl-steg startar om arbetsbelastningen först när en person har godkänt.
+- **Diagnostisera och åtgärda sedan**: ett Bash-steg samlar in diagnostik, ett AI-steg läser den och rekommenderar en åtgärd, och ett kubectl-steg med **Kräv godkännande** startar om arbetsbelastningen först när en person har godkänt det.
 - **Hygien som alltid körs**: en regel utan villkor som registrerar systemets tillstånd vid varje incident för postmortem.
 
 ## Så passar runbooks in i resten av OneUptime

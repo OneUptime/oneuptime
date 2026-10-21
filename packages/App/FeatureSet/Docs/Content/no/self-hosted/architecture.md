@@ -64,7 +64,13 @@ Alle rollene til appen er det samme imaget: Docker Compose kjører dem i én `ap
 
 ## Tilkoblinger ut av nettverket ditt
 
-Appen kobler seg bare utover for det du slår på. Hver av disse er valgfri, og hver har en side som oppgir de nøyaktige adressene som må tillates:
+Tre tilkoblinger opprettes med mindre du endrer en innstilling:
+
+- Én gang om dagen spør appen GitHubs API (`api.github.com`) om det har kommet en nyere utgivelse. Du slår det av med `updateCheck.disabled: true` i Helm-chartet, eller med `DISABLE_UPDATE_CHECK=true` i `config.env` på Docker Compose.
+- Registrerer noen seg med «Varsle meg om sikkerhetsoppdateringer og nye utgivelser» avkrysset, slik den er fra starten, sendes personens navn og e-post, et eventuelt firma og telefonnummer, og installasjonens adresse og versjon til `oneuptime.com`. Fjern avkryssingen på et nettverk uten internettilgang.
+- På Kubernetes faller prober tilbake på de offentlige resolverne `8.8.8.8` og `1.1.1.1` etter klyngens egen DNS. Sett `dnsConfig.nameservers` til `[]` for å holde alle oppslag på din egen DNS.
+
+Alt annet kobler seg bare utover når du slår det på, og hver har en side som oppgir de nøyaktige adressene som må tillates:
 
 | Utgående tilkobling | Brukes til | Les mer |
 | --- | --- | --- |
@@ -76,6 +82,8 @@ Appen kobler seg bare utover for det du slår på. Hver av disse er valgfri, og 
 | `oneuptime.com` | Aktivere en Enterprise-lisens på nett | [Enterprise Edition](/docs/self-hosted/enterprise) |
 
 Tilkoblinger den andre veien – SendGrid som leverer innkommende e-post, og Slack og Microsoft Teams som ringer tilbake – krever at ingress kan nås fra internett. Hvilke private adresser appen og probene kan nå, bestemmer du: se [Tilgang til privat nettverk](/docs/self-hosted/private-network-access).
+
+OneUptimes logo ligger inne i hver e-post som OneUptime sender, så den vises selv på et nettverk uten internettilgang, og når en e-post åpnes, blir ingen annen vert spurt om noe. Bilder du laster opp selv, som din egen logo eller logoen til en statusside, vises fra OneUptime-URL-en din, som de som leser disse e-postene, må kunne nå.
 
 ## Neste steg
 

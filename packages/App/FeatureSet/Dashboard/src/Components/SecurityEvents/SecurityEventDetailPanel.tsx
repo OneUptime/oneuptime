@@ -47,7 +47,7 @@ export interface ComponentProps {
    */
   onFilterBy?: ((facetKey: string, value: string) => void) | undefined;
   /*
-   * Pivot to the Correlate tab on an observable. Defaults to a deep link,
+   * Pivot to the Correlate page on an observable. Defaults to a deep link,
    * which is what the events list wants; a host that already shows a
    * correlation graph passes its own so the pivot happens in place.
    */

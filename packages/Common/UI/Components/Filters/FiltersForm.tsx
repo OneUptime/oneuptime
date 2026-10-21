@@ -16,6 +16,26 @@ import FilterData from "./Types/FilterData";
 import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement } from "react";
 
+/*
+ * A row of a table's Filter dialog: the label in a 140px column, the
+ * control, and its clear x. On a phone the label goes over the control
+ * instead: beside it, the 140px column left the control and its hint a
+ * third of the dialog, and a hint ran past the dialog's edge.
+ */
+export const FILTER_ROW_CLASS_NAME: string =
+  "grid grid-cols-[140px_1fr_auto] gap-3 max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:gap-y-1.5";
+
+// The label's cell: its own line on a phone.
+export const FILTER_LABEL_CELL_CLASS_NAME: string =
+  "flex min-w-0 items-center max-sm:col-span-2";
+
+/*
+ * The label, whole: a long one runs onto a second line rather than ending
+ * in "..." where the column does.
+ */
+export const FILTER_LABEL_CLASS_NAME: string =
+  "min-w-0 break-words text-sm font-medium leading-5 text-gray-700";
+
 export interface ComponentProps<T extends GenericObject> {
   filters: Array<Filter<T>>;
   id: string;
@@ -121,17 +141,17 @@ const ShownFiltersForm: FiltersFormFunction = <T extends GenericObject>(
           return (
             <div
               key={i}
-              className={`grid grid-cols-[140px_1fr_auto] gap-3 ${
+              className={`${FILTER_ROW_CLASS_NAME} ${
                 isMultiRowFilter ? "items-start" : "items-center"
               }`}
             >
               {/* Label column */}
               <div
-                className={`flex items-center min-w-0 ${
-                  isMultiRowFilter ? "pt-7" : ""
+                className={`${FILTER_LABEL_CELL_CLASS_NAME} ${
+                  isMultiRowFilter ? "pt-7 max-sm:pt-0" : ""
                 }`}
               >
-                <label className="text-sm font-medium text-gray-700 truncate">
+                <label className={FILTER_LABEL_CLASS_NAME}>
                   {tx(filter.title)}
                 </label>
               </div>

@@ -12,6 +12,10 @@ import {
   isLegacyKubernetesStepConfig,
   isLegacySSHStepConfig,
 } from "../../../../Types/Runbook/RunbookStep";
+import {
+  moveApprovalsBeforeTheirSteps,
+  stepRequiresApprovalBeforeRunning,
+} from "../../../../Types/Runbook/RunbookStepApproval";
 import RunbookService from "../../../Services/RunbookService";
 import RunbookExecutionService from "../../../Services/RunbookExecutionService";
 import logger from "../../Logger";
@@ -125,15 +129,14 @@ function describeStepInstructions(step: RunbookStep): string {
   }
 }
 
-// Steps in execution order, tolerating malformed entries in the JSON column.
+/*
+ * Steps in execution order, tolerating malformed entries in the JSON column,
+ * read the way a run takes them: an approval a client still writes after a
+ * step (requireApproval) is the approval before the next step, or a Manual
+ * step at the end after the last one (RunbookStepApproval).
+ */
 function parseSteps(steps: JSONArray | undefined): Array<RunbookStep> {
-  const rawSteps: Array<RunbookStep> =
-    (steps as unknown as Array<RunbookStep>) || [];
-
-  return rawSteps
-    .filter((step: RunbookStep) => {
-      return Boolean(step) && typeof step === "object";
-    })
+  return moveApprovalsBeforeTheirSteps(steps)
     .slice()
     .sort((a: RunbookStep, b: RunbookStep) => {
       return (Number(a.order) || 0) - (Number(b.order) || 0);
@@ -143,7 +146,7 @@ function parseSteps(steps: JSONArray | undefined): Array<RunbookStep> {
 export const QueryRunbooksTool: ObservabilityTool = {
   name: "query_runbooks",
   description:
-    "Query runbooks (predefined response/remediation procedures) in this project. Without arguments it lists runbooks with their id, name, description, step count and whether they are enabled. Pass runbookId to read one runbook's full ordered steps — each step's title, type and the exact instructions/script/command it runs — plus its recent executions (status, when, who triggered it). Use this to answer 'what does the runbook say to do?' and to find the runbookId to pass to run_runbook.",
+    "Query runbooks (predefined response/remediation procedures) in this project. Without arguments it lists runbooks with their id, name, description, step count and whether they are enabled. Pass runbookId to read one runbook's full ordered steps — each step's title, type, the exact instructions/script/command it runs, and whether the run stops for someone to approve it before it runs (requireApprovalBeforeRunning) — plus its recent executions (status, when, who triggered it). Use this to answer 'what does the runbook say to do?' and to find the runbookId to pass to run_runbook.",
   inputSchema: {
     type: "object",
     properties: {
@@ -275,7 +278,12 @@ export const QueryRunbooksTool: ObservabilityTool = {
             type: step.type,
             description: step.description,
             instructions: describeStepInstructions(step),
-            requireApproval: step.requireApproval === true ? true : undefined,
+            // The run stops before this step until someone approves it.
+            requireApprovalBeforeRunning: stepRequiresApprovalBeforeRunning(
+              step,
+            )
+              ? true
+              : undefined,
             continueOnFailure:
               step.continueOnFailure === true ? true : undefined,
           };

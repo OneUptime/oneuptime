@@ -138,7 +138,7 @@ Jede Minute werden die aktiven Indikatoren jedes aktivierten Feeds mit den Ereig
 - Die erste Prüfung deckt die letzten 15 Minuten ab. Nach einem Ausfall holt die nächste Prüfung höchstens die letzten 24 Stunden nach.
 - Jedes Fenster wird einmal geprüft. Intel, die ankommt, nachdem ihr Fenster geprüft wurde, gilt nur für spätere Ereignisse.
 - Ein Ereignis, das spät ankommt, mit einer Zeit vor der vorigen Prüfung, wird beim Eintreffen noch markiert, aber nicht abgeglichen.
-- Jede Prüfung gleicht höchstens 100 Indikatorwerte pro Feed ab: die in den meisten Ereignissen gesehenen.
+- Jede Prüfung erfasst jeden passenden Indikatorwert als Detection Finding, bis zu 10.000 pro Feed. Warnungen, Vorfälle und Fälle öffnen sich für die 100 Werte, die in den meisten Ereignissen gesehen wurden; die übrigen teilen sich einen Fall zum Feed, und **Letzter Treffer-Fehler** des Feeds nennt, wie viele passten.
 
 ### Was ein Treffer bewirkt
 

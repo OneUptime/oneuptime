@@ -19,6 +19,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import Phone from "../../Types/Phone";
+import { PHONE_NUMBER_LIST_EXAMPLE } from "../../Types/CallAndSMS/TwilioPhoneNumbers";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @TableBillingAccessControl({
@@ -594,9 +595,14 @@ export default class ProjectCallSMSConfig extends BaseModel {
   @TableColumn({
     type: TableColumnType.LongText,
     title: "Twilio SMS Phone Numbers",
+    /*
+     * As GlobalConfig's says it: no country named, and the example list the
+     * forms and the error that refuses a list show - no one country's
+     * numbers.
+     */
     description:
-      "Comma-separated numbers to send SMS from, for phone numbers that can only make calls: in Singapore, for example, national numbers are voice-only and SMS need a mobile number. Once set, every SMS goes out from the one in the recipient's country, or else the first. Leave it empty to send SMS from the same numbers as calls.",
-    example: "+6581234567",
+      "Comma-separated numbers to send SMS from, for phone numbers that can only make calls. Once set, every SMS goes out from the one in the recipient's country, or else the first. Leave it empty to send SMS from the same numbers as calls.",
+    example: PHONE_NUMBER_LIST_EXAMPLE,
   })
   @Column({
     type: ColumnType.LongText,

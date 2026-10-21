@@ -20,9 +20,11 @@ import * as React from "react";
 import SecurityLogsSourceCard, {
   SECURITY_LOGS_SOURCE_CARD_ID,
   readFoundByFormat,
+  readScanProgress,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityLogsSourceCard";
 import SecurityLogSource from "../../../Models/DatabaseModels/SecurityLogSource";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
+import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import { SECURITY_LOG_FORMATS } from "../../../Types/SecurityEvent/SecurityLogFormat";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -213,6 +215,74 @@ describe("Your logs", () => {
     ).not.toHaveTextContent("Found in the last check");
   });
 
+  test("a check that stopped part way through a busy stretch says the next goes on from there", async () => {
+    stored = [
+      source({
+        lastScannedAt: new Date(NOW.getTime() - 60_000),
+        lastScanResult: {
+          logsRead: 50000,
+          eventsFound: 0,
+          byFormat: {},
+          partialWindowStart: "2026-10-19T11:40:00.000Z",
+          partialWindowProcessed: 50000,
+        },
+      }),
+    ];
+    await renderCard();
+
+    expect(screen.getByTestId("security-logs-source-status")).toHaveTextContent(
+      "Catching up on a busy stretch of logs: the next check goes on where this one stopped.",
+    );
+    expect(screen.queryByTestId("security-logs-source-skipped")).toBeNull();
+  });
+
+  test("a check that fell more than a day behind names the logs it skipped", async () => {
+    const from: string = "2026-10-17T06:00:00.000Z";
+    const to: string = "2026-10-18T12:00:00.000Z";
+    stored = [
+      source({
+        lastScannedAt: new Date(NOW.getTime() - 60_000),
+        lastScanResult: {
+          logsRead: 10,
+          eventsFound: 0,
+          byFormat: {},
+          skippedBacklog: true,
+          skippedFrom: from,
+          skippedTo: to,
+        },
+      }),
+    ];
+    await renderCard();
+
+    expect(
+      screen.getByTestId("security-logs-source-skipped"),
+    ).toHaveTextContent(
+      `The checks fell more than a day behind and skipped the logs that arrived between ${OneUptimeDate.getDateAsLocalFormattedString(
+        new Date(from),
+      )} and ${OneUptimeDate.getDateAsLocalFormattedString(new Date(to))}.`,
+    );
+    // It caught up to the present: nothing left part way.
+    expect(
+      screen.getByTestId("security-logs-source-status"),
+    ).not.toHaveTextContent("Catching up");
+  });
+
+  test("a project that turned it off is not told about logs skipped while it was on", async () => {
+    stored = [
+      source({
+        isEnabled: false,
+        lastScanResult: {
+          skippedBacklog: true,
+          skippedFrom: "2026-10-17T06:00:00.000Z",
+          skippedTo: "2026-10-18T12:00:00.000Z",
+        },
+      }),
+    ];
+    await renderCard();
+
+    expect(screen.queryByTestId("security-logs-source-skipped")).toBeNull();
+  });
+
   test("a check that failed says so, with the reason", async () => {
     stored = [source({ lastError: "ClickHouse did not answer in time." })];
     await renderCard();
@@ -263,5 +333,48 @@ describe("readFoundByFormat", () => {
     ).toEqual({ "ssh-sign-in": 2 });
     expect(readFoundByFormat(undefined)).toEqual({});
     expect(readFoundByFormat({ byFormat: [1, 2] })).toEqual({});
+  });
+});
+
+describe("readScanProgress", () => {
+  test("a check that stopped part way through a window is catching up", () => {
+    expect(
+      readScanProgress({ partialWindowStart: "2026-10-19T11:40:00.000Z" }),
+    ).toEqual({ isCatchingUp: true, skipped: null });
+    expect(readScanProgress({ partialWindowStart: "" })).toEqual({
+      isCatchingUp: false,
+      skipped: null,
+    });
+    expect(readScanProgress(undefined)).toEqual({
+      isCatchingUp: false,
+      skipped: null,
+    });
+  });
+
+  test("only a skip with both ends readable is told", () => {
+    expect(
+      readScanProgress({
+        skippedBacklog: true,
+        skippedFrom: "2026-10-17T06:00:00.000Z",
+        skippedTo: "2026-10-18T12:00:00.000Z",
+      }).skipped,
+    ).toEqual({
+      from: new Date("2026-10-17T06:00:00.000Z"),
+      to: new Date("2026-10-18T12:00:00.000Z"),
+    });
+    expect(
+      readScanProgress({
+        skippedBacklog: true,
+        skippedFrom: "yesterday",
+        skippedTo: "2026-10-18T12:00:00.000Z",
+      }).skipped,
+    ).toBeNull();
+    expect(
+      readScanProgress({
+        skippedBacklog: false,
+        skippedFrom: "2026-10-17T06:00:00.000Z",
+        skippedTo: "2026-10-18T12:00:00.000Z",
+      }).skipped,
+    ).toBeNull();
   });
 });

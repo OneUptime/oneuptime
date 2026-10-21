@@ -1,10 +1,18 @@
 import { DocsHeading, readPage, scanMarkdown } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
 import { SECURITY_CASE_QUEUE_VIEWS } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
+import { SECURITY_PLAYBOOK_RUN_VIEWS } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunViews";
+import { UNDO_BUTTON_TITLES } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunStepRows";
+import {
+  SECURITY_EVENTS_MENU,
+  SecurityEventsMenuItem,
+  SecurityEventsMenuSection,
+} from "../../../FeatureSet/Dashboard/src/Utils/SecurityEventsNavigation";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
+import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
 import {
   SECURITY_OVERVIEW_CASE_WINDOW_IN_DAYS,
   SECURITY_OVERVIEW_DETECTION_WINDOW_IN_DAYS,
@@ -26,9 +34,14 @@ import {
   SECURITY_PLAYBOOK_ACTIONS,
   SecurityPlaybookActionCategory,
   SecurityPlaybookActionDefinition,
+  getSecurityPlaybookUndoAction,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookAction";
 import SecurityPlaybookRunStatus from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
-import { SECURITY_PLAYBOOK_MAX_STEPS } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
+import {
+  SECURITY_PLAYBOOK_MAX_STEPS,
+  TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS,
+} from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
+import { matchesProtectedEntityPattern } from "Common/Types/SecurityPlaybook/SecurityProtectedEntity";
 import { SECURITY_PLAYBOOK_TRIGGERS } from "Common/Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { SECURITY_CASE_TEMPLATE_PLACEHOLDERS } from "Common/Utils/SecurityCase/SecurityCaseMarkdown";
 import { describe, expect, it } from "@jest/globals";
@@ -122,17 +135,44 @@ function codeSpans(text: string): Array<string> {
 describe("Security Cases and Playbooks docs", () => {
   const page: string = englishPage();
 
-  it("opens the queue where the menu puts it, with the views the queue offers", () => {
+  it("opens the queue where the menu puts it, with the queue's other pages beside it", () => {
     expect(page).toContain(
-      "Open **Products → Security Events → Security Cases**. The queue opens on the open cases; **Assigned to Me**, **Unassigned**, **Closed** and **All** are the other views.",
+      "Open **Products → Security Events → Security Cases → Open Cases** for the queue. **Assigned to Me**, **Unassigned**, **Closed Cases** and **All Cases** are pages of their own beside it, each listing the cases its name says.",
     );
     expect(
       SECURITY_CASE_QUEUE_VIEWS.map((view: { title: string }): string => {
         return view.title;
       }),
-    ).toEqual(["Open Cases", "Assigned to Me", "Unassigned", "Closed", "All"]);
+    ).toEqual([
+      "Open Cases",
+      "Assigned to Me",
+      "Unassigned",
+      "Closed Cases",
+      "All Cases",
+    ]);
     expect(source(`${DASHBOARD}/Utils/SecurityEventsNavigation.ts`)).toContain(
       'title: "Security Cases",',
+    );
+    expect(page).not.toContain("are the other views");
+  });
+
+  it("names the runs held for a decision as the page that lists them, and every run", () => {
+    expect(
+      SECURITY_PLAYBOOK_RUN_VIEWS.map((view: { title: string }): string => {
+        return view.title;
+      }),
+    ).toEqual(["Waiting for Approval", "Playbook Runs"]);
+    expect(page).toContain(
+      "**Waiting for Approval**, under **Playbooks** in the menu, lists the runs held for a decision and counts them; **Playbook Runs** lists every run.",
+    );
+    expect(page).toContain(
+      "under **Products → Security Events → Playbooks → Playbook Runs**, step by step:",
+    );
+  });
+
+  it("says each of the overview's counts opens the page that lists them", () => {
+    expect(section(page, "The overview")).toContain(
+      "- The open cases assigned to you, the open cases nobody has picked up, and the playbook steps waiting for approval, each opening the page that lists them.",
     );
   });
 
@@ -348,7 +388,7 @@ describe("Security Cases and Playbooks docs", () => {
       }),
     ).toBe(true);
     expect(page).toContain(
-      "It is on by default for the four Contain steps, which act outside OneUptime.",
+      "The four steps that cut someone off always do, unless a Security Admin turns it off.",
     );
   });
 
@@ -366,7 +406,94 @@ describe("Security Cases and Playbooks docs", () => {
       [...containTitles].sort(),
     );
     expect(page).toContain(
-      `A Contain step acts on at most ${CONTAINMENT_ENTITY_LIMIT} of the case's users or hosts.`,
+      `A step acts on at most ${CONTAINMENT_ENTITY_LIMIT} users or hosts.`,
+    );
+  });
+
+  it("says a Contain step acts only on what the case is about: grouped on, or known to threat intel", () => {
+    const containment: string = flat(section(page, "Containment"));
+
+    expect(containment).toContain(
+      "A Contain step acts only on the users or hosts the case is about, never on every one it names:",
+    );
+    expect(containment).toContain(
+      "- The value a detection of the case is grouped on,",
+    );
+    expect(containment).toContain(
+      "- A user or host of the case that your threat intelligence knows as an indicator.",
+    );
+    expect(containment).toContain(
+      "says on the run what it did with each one: done, already done, not found, refused, or protected.",
+    );
+  });
+
+  it("names the protected entities page where the menu puts it, and matches values as the page says", () => {
+    const playbooks: SecurityEventsMenuSection | undefined =
+      SECURITY_EVENTS_MENU.find((menu: SecurityEventsMenuSection): boolean => {
+        return menu.title === "Playbooks";
+      });
+
+    expect(
+      playbooks?.items.map((item: SecurityEventsMenuItem): string => {
+        return item.title;
+      }),
+    ).toContain("Protected Entities");
+    expect(page).toContain(
+      "**Protected Entities**, under **Playbooks** in the menu, lists the users and hosts no playbook contains",
+    );
+    expect(page).toContain(
+      "A value matches whatever its case, and `*` stands for any run of characters: `svc-*` protects every service account.",
+    );
+    expect(matchesProtectedEntityPattern("svc-*", "SVC-Backup")).toBe(true);
+    expect(page).toContain("Security Admins keep the list.");
+    expect(new SecurityProtectedEntity().getCreatePermissions()).toContain(
+      Permission.SecurityAdmin,
+    );
+    expect(new SecurityProtectedEntity().getCreatePermissions()).not.toContain(
+      Permission.SecurityMember,
+    );
+  });
+
+  it("says who may turn approval off, what the approver picks, and that whoever started a run cannot approve it", () => {
+    const approval: string = flat(section(page, "Approval"));
+    const runCard: string = flat(
+      source(
+        `${DASHBOARD}/Components/SecurityPlaybook/SecurityPlaybookRunCard.tsx`,
+      ),
+    );
+
+    expect([...TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS]).toContain(
+      Permission.SecurityAdmin,
+    );
+    expect([...TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS]).not.toContain(
+      Permission.SecurityMember,
+    );
+    expect(approval).toContain(
+      "Only a Security Admin can turn **Needs Approval** off for one, and OneUptime records who did.",
+    );
+    expect(approval).toContain(
+      "under **Act On**, every one ticked: untick any it should leave alone.",
+    );
+    expect(runCard).toContain('title: "Act On",');
+    expect(approval).toContain(
+      "Whoever started a run cannot approve its steps: someone else does, though they can still reject it.",
+    );
+  });
+
+  it("names the undo buttons as the run draws them, one for each step that can be undone", () => {
+    const undoable: Array<string> = SECURITY_PLAYBOOK_ACTIONS.filter(
+      (action: SecurityPlaybookActionDefinition): boolean => {
+        return Boolean(getSecurityPlaybookUndoAction(action.type));
+      },
+    ).map((action: SecurityPlaybookActionDefinition): string => {
+      return UNDO_BUTTON_TITLES[
+        getSecurityPlaybookUndoAction(action.type)!.type
+      ]!;
+    });
+
+    expect(undoable).toEqual(["Unsuspend", "Lift Containment", "Release"]);
+    expect(flat(section(page, "Undo"))).toContain(
+      "a contained user or host also has a button of its own on its step: **Unsuspend**, **Lift Containment** or **Release**.",
     );
   });
 
@@ -423,6 +550,7 @@ describe("Security Cases and Playbooks docs", () => {
       [new SecurityCaseNote(), "/security-case-note"],
       [new SecurityPlaybook(), "/security-playbook"],
       [new SecurityPlaybookRun(), "/security-playbook-run"],
+      [new SecurityProtectedEntity(), "/security-protected-entity"],
     ] as Array<[SecurityCase, string]>) {
       expect(model.getCrudApiPath()?.toString()).toBe(route);
       expect(codeSpans(section(page, "Automate"))).toContain(route);

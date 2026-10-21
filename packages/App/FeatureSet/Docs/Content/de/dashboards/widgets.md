@@ -6,6 +6,7 @@ Ein Widget ist eine Kachel auf einem Dashboard. Diese Seite führt jedes Widget 
 - [Welches Widget soll ich nehmen?](#welches-widget-soll-ich-nehmen): Nach der Frage wählen, die die Kachel beantwortet.
 - [Diagramme und Zahlen](#diagramme-und-zahlen): Diagramm, Wert, Messwert und Tabelle aus einer Metrikabfrage.
 - [Logs, Traces und Sicherheit](#logs-traces-und-sicherheit): Volumendiagramme, Live-Streams und Listen.
+- [Listen und Tabellen sortieren](#listen-und-tabellen-sortieren): Nach einer Spalte sortieren und die Reihenfolge festlegen, die alle sehen.
 - [Wenn ein Widget nicht angezeigt werden kann](#wenn-ein-widget-nicht-angezeigt-werden-kann): Was ein defektes Widget zeigt und wie Sie es beheben.
 :::
 
@@ -198,6 +199,33 @@ Ein Standort erscheint nur, wenn er Koordinaten hat. Fügen Sie Breiten- und Lä
 ## Externe Datenquellen
 
 Die Gruppe External Data Sources zeichnet ein **Diagramm**, einen **Wert**, einen **Messwert** oder eine **Tabelle** aus einem System, das nicht OneUptime gehört: Prometheus, PostgreSQL, MySQL, SQL Server, ClickHouse, Loki, Elasticsearch oder eine beliebige REST-API. Sie verbinden das System einmal und schreiben dann die Abfrage jedes Widgets in der eigenen Sprache dieses Systems. [Externe Datenquellen](/docs/dashboards/data-sources) zeigt, wie.
+
+## Listen und Tabellen sortieren
+
+Klicken Sie auf den Kopf einer Spalte, um eine Liste oder Tabelle danach zu sortieren: Ein erster Klick sortiert so, wie es die Tabelle unten angibt, der nächste Klick andersherum, und der Klick danach stellt die eigene Reihenfolge des Widgets wieder her. Bei der Spalte, nach der das Widget schon sortiert ist, kehrt ein Klick die Reihenfolge um. Ein Pfeil markiert die Spalte, nach der die Zeilen sortiert sind.
+
+| Spalte | Erster Klick | Nächster Klick |
+| --- | --- | --- |
+| Ein Status, ein Zustand oder ein Schweregrad | Schlechteste zuerst | Beste zuerst |
+| Eine Zeit | Neueste zuerst | Älteste zuerst |
+| Eine Zahl | Höchste zuerst | Niedrigste zuerst |
+| Text | A bis Z | Z bis A |
+
+Was am schlechtesten ist, folgt der eigenen Reihenfolge Ihres Projekts: ein Monitorstatus nach seiner Priorität, Schweregrad und Zustand eines Vorfalls oder einer Warnung nach der Reihenfolge, in der Sie sie führen, und eine Ressource, die ausgefallen, nicht bereit oder ausgeschaltet ist, vor einer gesunden. Die Phase eines Pods sortiert Failed, dann Unknown, dann Pending, dann Running und Succeeded. SLI und Fehlerbudget eines SLO sowie die VMID eines Proxmox-Gasts sortieren die niedrigsten zuerst.
+
+Sortiert wird die ganze Liste, nicht nur die Zeilen auf dem Bildschirm: Eine Liste, die 25 Zeilen zeigt, zeigt mit den schlechtesten zuerst die 25 schlechtesten von allen. Gleichrangige Zeilen behalten die eigene Reihenfolge des Widgets. Eine Spalte, nach der sich eine Liste nicht als Ganzes sortieren lässt, etwa die Nachricht eines Sicherheitsereignisses, sortiert nicht.
+
+### Ihre eigene Sortierung
+
+Ihre Sortierung gehört Ihnen allein: Ihr Browser merkt sie sich für dieses Widget auf diesem Dashboard, sodass ein Neuladen oder der Neustart eines Wandbildschirms sie behält, und niemand sonst sieht sie. Der Klick, der die eigene Reihenfolge des Widgets wiederherstellt, vergisst Ihre Sortierung, und das Widget folgt danach seiner eigenen Reihenfolge, auch wenn ein Bearbeiter sie später ändert.
+
+### Die Reihenfolge, die alle sehen
+
+Um festzulegen, in welcher Reihenfolge sich ein Widget für alle öffnet, bearbeiten Sie es und wählen die Reihenfolge unter **Sortieren**, oder Sie klicken in seiner **Live-Vorschau** auf einen Spaltenkopf; klicken Sie danach auf **Änderungen speichern**. Sie sehen die neue Reihenfolge sofort; wer das Widget selbst sortiert hat, behält seine Sortierung.
+
+Die Dashboard-Vorlagen öffnen ihre Listen von Hosts, Knoten, Pods, Swarm-Diensten und Netzwerkgeräten mit den schlechtesten zuerst.
+
+Über die API und Terraform ist die Reihenfolge das `arguments.sort` des Widgets: eine Spalte und eine Richtung, etwa `status:desc`. Ein Listen-Widget lehnt eine Spalte ab, die es nicht hat, und die Fehlermeldung nennt die Sortierungen, die es hat.
 
 ## Auf einem öffentlichen Dashboard
 

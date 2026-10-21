@@ -11,6 +11,11 @@
  * customer cannot switch on from values.yaml or a signed order form.
  */
 
+import {
+  CloudMarketplacesContent,
+  getCloudMarketplacesContent,
+} from "./CloudMarketplaces";
+
 export type DeploymentModelKey =
   | "kubernetes"
   | "docker-compose"
@@ -134,7 +139,7 @@ export const DeploymentModels: Array<DeploymentModel> = [
     bestFor:
       "Production self-hosting, regulated environments, and anything that needs horizontal scale or high availability.",
     infrastructure: "Your cluster, your cloud or data centre",
-    upgrades: "You run `helm upgrade` on your own schedule",
+    upgrades: "You run helm upgrade on your own schedule",
     highlights: [
       "One chart deploys the whole platform — ingress, API, workers, probes, and databases",
       "Bundled PostgreSQL (CloudNativePG) and ClickHouse (Altinity) operators for replicated databases",
@@ -453,31 +458,31 @@ export const AirGapSteps: Array<AirGapStep> = [
   {
     title: "Turn off the update check",
     description:
-      "The platform's outbound version check is a single switch. Disabled, a Community Edition install makes no calls to oneuptime.com. An Enterprise Edition install also checks its license online unless it is activated with an offline license token.",
+      "Once a day the install asks GitHub's API for the latest release. One switch turns that off, and with no route out it fails quietly anyway. A Community Edition install then makes no outbound call on its own; an Enterprise Edition install also checks its license online unless it is activated with an offline license token.",
     setting: "updateCheck.disabled",
   },
   {
     title: "Keep DNS internal",
     description:
-      "Probes ship with public fallback nameservers for external monitoring. On an air-gapped cluster, drop them so resolution stays inside your network.",
-    setting: "probes.<key>.dnsConfig",
+      "Probes ship with public fallback nameservers for external monitoring. On an air-gapped cluster, set the list to [] so resolution stays inside your network.",
+    setting: "dnsConfig.nameservers",
   },
   {
     title: "Bring your own notification transports",
     description:
-      "Point notifications at your internal SMTP relay and SMS gateway instead of any hosted transport.",
-    setting: "smtp / notifications",
+      "Send email through your internal SMTP relay. SMS, calls and push need their providers, so page people by email, webhook or a chat server on your network instead.",
+    setting: "Settings > Notifications > Emails",
   },
   {
     title: "Run AI locally, or not at all",
     description:
-      "AI features can call an in-cluster vLLM deployment or a local Ollama endpoint, so no prompt leaves your network. They can also be left off entirely.",
-    setting: "vllm.enabled",
+      "AI features can use a model on your own network, Ollama or any OpenAI-compatible server such as vLLM, so no prompt leaves it. They can also be left off entirely.",
+    setting: "GLOBAL_LLM_PROVIDER_TYPE",
   },
   {
     title: "Upgrade from an artifact bundle",
     description:
-      "Upgrades are `helm upgrade` against a chart and image set you have already mirrored. No connectivity to us is required to apply one.",
+      "Each upgrade is a helm upgrade against the chart and images you have already mirrored. Applying one needs no connection to us.",
     setting: "helm upgrade",
   },
 ];
@@ -491,7 +496,7 @@ export const AirGapSteps: Array<AirGapStep> = [
  * OpenID Connect single sign-on are part of the Community Edition.
  */
 export const EnterpriseEditionFeatures: Array<string> = [
-  "Selected with `image.type: enterprise-edition` in the Helm chart, or `APP_TAG=enterprise-release` with Docker Compose",
+  "Selected with image.type: enterprise-edition in the Helm chart, or APP_TAG=enterprise-release with Docker Compose",
   "SCIM provisioning and deprovisioning for projects and status pages",
   "Audit logs and team compliance settings",
   "Instance health dashboards, PostgreSQL and Valkey health alerts, and a query console for administrators",
@@ -513,7 +518,7 @@ export const UpgradeResponsibilities: Array<ResponsibilityRow> = [
     oneuptime:
       "We ship releases frequently — often several times a day — and publish release notes and upgrade notes for each.",
     customer:
-      "You choose when to apply them. We recommend at least monthly, and pinning a specific tag rather than tracking `release`.",
+      "You choose when to apply them. We recommend at least monthly, and pinning a version tag rather than following the moving release tag.",
   },
   {
     area: "Breaking changes",
@@ -539,7 +544,7 @@ export const UpgradeResponsibilities: Array<ResponsibilityRow> = [
   {
     area: "Rollback",
     oneuptime:
-      "Chart releases are versioned and every image tag stays available, so `helm rollback` works.",
+      "Chart releases are versioned and every image tag stays available, so helm rollback works.",
     customer:
       "Keep the previous values.yaml and a restorable database backup — a schema migration is not always reversible by rollback alone.",
   },
@@ -638,7 +643,7 @@ export const SelfHostedFaqs: Array<SelfHostedFaq> = [
   {
     question: "Does a self-hosted install phone home?",
     answer:
-      "The Community Edition makes one outbound call on its own: a version check, and it is a single switch to disable. With it off and images mirrored into your registry, a Community Edition install runs with no connectivity to us at all. An Enterprise Edition install activated with a license key also checks its license with oneuptime.com once a day, sending seat counts, hashed user emails, and master-admin contact emails — never monitoring data.",
+      "The Community Edition makes one outbound call on its own: a daily version check against GitHub's API, which a single switch disables. A second is up to whoever signs up: with “Notify me about security patches and new releases” ticked, the install sends their name and email to oneuptime.com, so untick it on an air-gapped network. With both off and images mirrored into your registry, a Community Edition install runs with no connectivity to us at all. An Enterprise Edition install activated with a license key also checks its license with oneuptime.com once a day, sending seat counts, hashed user emails, and master-admin contact emails — never monitoring data. Activated with an offline license token, it never calls us.",
   },
   {
     question: "Who is responsible for uptime when we self-host?",
@@ -673,6 +678,12 @@ export interface SelfHostedContent {
   supportBoundaries: Array<SupportTierRow>;
   faqs: Array<SelfHostedFaq>;
   helmDocs: HelmDocLinks;
+  /*
+   * Where the Enterprise Edition can be bought by the hour, its marketplace
+   * subscription its license: the line under the Enterprise Edition section's
+   * call to action names the public listings (Utils/CloudMarketplaces.ts).
+   */
+  cloudMarketplaces: CloudMarketplacesContent;
 }
 
 export function getSelfHostedContent(): SelfHostedContent {
@@ -691,6 +702,7 @@ export function getSelfHostedContent(): SelfHostedContent {
     supportBoundaries: SupportBoundaries,
     faqs: SelfHostedFaqs,
     helmDocs: HelmDocs,
+    cloudMarketplaces: getCloudMarketplacesContent(),
   };
 }
 

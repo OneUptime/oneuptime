@@ -1,4 +1,14 @@
 enum OnCallDutyPolicyStatus {
+  /*
+   * Held until a moment of its own - by an on-call rule that pages only
+   * during working hours - and paging nobody until then
+   * (OnCallDutyPolicyRunWait). The worker starts it at its first escalation
+   * rule once its pagingStartsAt comes, or ends it there if its record was
+   * handled or its policy archived in the meantime. Not Scheduled: a run
+   * that is still Scheduled after five minutes is stuck and timed out
+   * (TimeoutStuckExecutions), and a waiting run may wait for days.
+   */
+  Waiting = "Waiting",
   Scheduled = "Scheduled",
   Started = "Started",
   Executing = "Executing",

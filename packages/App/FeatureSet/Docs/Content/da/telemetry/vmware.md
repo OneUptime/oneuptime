@@ -311,7 +311,7 @@ Installationen uden Docker er allerede en systemd-tjeneste med sin egen enhed.
 
 ## Opgradering af agenten
 
-Agenten rapporterer den collector-version, dens filer fastlåser, som sin **Agentversion**. Når den er ældre end den version, denne OneUptime-udgivelse fastlåser, vises et advarselstegn ved siden af den, på vCenters side **Oversigt** og i listen **Alle vCenter**. Vælg det for at se disse kommandoer. En agent, der blev installeret, før dens filer rapporterede en version, viser ingen, før den er opgraderet på denne måde.
+Agenten rapporterer den collector-version, dens filer fastlåser, som sin **Agentversion**. Når den er ældre end den version, denne OneUptime-udgivelse fastlåser, vises et advarselstegn ved siden af den på vCenters side **Oversigt**. Vælg det for at se disse kommandoer. En agent, der blev installeret, før dens filer rapporterede en version, viser ingen, før den er opgraderet på denne måde.
 
 Collectoren er fastlåst i `docker-compose.yml` (eller, uden Docker, af den udgivelse, du hentede), og dens konfiguration er en fil ved siden af, så et pull alene flytter ikke agenten frem:
 

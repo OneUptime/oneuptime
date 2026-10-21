@@ -152,7 +152,7 @@ Om een groep te wijzigen, gebruikt u **Edit Group** in de kop van het deelvenste
 
 | Waar | Acties |
 | ----- | ------- |
-| Het rijmenu van de navigator | **Edit group**, **Move up**, **Move down**, **ID weergeven**, **Delete group** |
+| Het rijmenu van de navigator | **Edit group**, **Omhoog**, **Omlaag**, **ID weergeven**, **Delete group** |
 | Het menu **More actions** van het deelvenster | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Vernieuwen**, **Delete this group** |
 
 Een groep die zonder naam is opgeslagen, verschijnt als **Untitled group**, een goed teken dat u iets wilde typen.
@@ -195,7 +195,7 @@ De volgorde bepaalt u zelf, niet het alfabet:
 | Wat | Hoe u het herschikt |
 | ---- | ----------------- |
 | Resources binnen een groep | Sleep een rij. Het deelvenster zegt het: **Drag a row to change the order visitors see**. |
-| Groepen ten opzichte van elkaar | **Move up** / **Move down** in het rijmenu van de navigator, of **Move group up** / **Move group down** in **More actions**. |
+| Groepen ten opzichte van elkaar | **Omhoog** / **Omlaag** in het rijmenu van de navigator, of **Move group up** / **Move group down** in **More actions**. |
 | Resources zonder groep | Die staan in **Top of page** en verschijnen altijd boven elke groep, dus zet daar wat iedereen als eerste controleert. |
 
 **Twee gevallen waarin slepen uit staat.** Zoeken met het vak **Search in {group}...** zet herschikken uit (het deelvenster zegt `N of M shown · drag to reorder is off while filtering`), dus maak eerst de zoekopdracht leeg. En rastergroepen worden nooit door slepen herschikt, omdat de plaats van een monitor uit zijn rij en kolom volgt.

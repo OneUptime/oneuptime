@@ -68,11 +68,15 @@ import VMwareResource from "./VMwareResource";
 import Host from "./Host";
 import HostOwnerTeam from "./HostOwnerTeam";
 import HostOwnerUser from "./HostOwnerUser";
+// The config OneUptime sends to the hosts it manages, and its versions
+import HostCollectorConfig from "./HostCollectorConfig";
+import HostCollectorConfigVersion from "./HostCollectorConfigVersion";
 import ServerlessFunction from "./ServerlessFunction";
 import ServerlessFunctionOwnerTeam from "./ServerlessFunctionOwnerTeam";
 import ServerlessFunctionOwnerUser from "./ServerlessFunctionOwnerUser";
 import ServerlessFunctionLabelRule from "./ServerlessFunctionLabelRule";
 import ServerlessFunctionOwnerRule from "./ServerlessFunctionOwnerRule";
+import CloudConnection from "./CloudConnection";
 import CloudResource from "./CloudResource";
 import CloudResourceOwnerTeam from "./CloudResourceOwnerTeam";
 import CloudResourceOwnerUser from "./CloudResourceOwnerUser";
@@ -161,6 +165,7 @@ import SecurityCaseNote from "./SecurityCaseNote";
 import SecurityDetection from "./SecurityDetection";
 import SecurityPlaybook from "./SecurityPlaybook";
 import SecurityPlaybookRun from "./SecurityPlaybookRun";
+import SecurityProtectedEntity from "./SecurityProtectedEntity";
 import SecurityEventDestination from "./SecurityEventDestination";
 import SecurityLogSource from "./SecurityLogSource";
 import LogScrubRule from "./LogScrubRule";
@@ -217,6 +222,9 @@ import OnCallDutyPolicyScheduleCalendarFeed from "./OnCallDutyPolicyScheduleCale
 import ProjectOnCallCalendarFeed from "./ProjectOnCallCalendarFeed";
 // The team's calendar link for scheduled maintenance
 import ScheduledMaintenanceCalendarFeed from "./ScheduledMaintenanceCalendarFeed";
+// Calendars from outside the project, drawn on the maintenance calendar
+import ScheduledMaintenanceExternalCalendar from "./ScheduledMaintenanceExternalCalendar";
+import ScheduledMaintenanceExternalCalendarEvent from "./ScheduledMaintenanceExternalCalendarEvent";
 import UserOnCallShiftReminder from "./UserOnCallShiftReminder";
 import UserOnCallShiftReminderLog from "./UserOnCallShiftReminderLog";
 
@@ -585,6 +593,7 @@ const AllModelTypes: Array<{
   SecurityDetection,
   SecurityPlaybook,
   SecurityPlaybookRun,
+  SecurityProtectedEntity,
   SecurityEventDestination,
   SecurityLogSource,
   LogScrubRule,
@@ -893,6 +902,8 @@ const AllModelTypes: Array<{
   OnCallDutyPolicyScheduleCalendarFeed,
   ProjectOnCallCalendarFeed,
   ScheduledMaintenanceCalendarFeed,
+  ScheduledMaintenanceExternalCalendar,
+  ScheduledMaintenanceExternalCalendarEvent,
   UserOnCallCalendarFeed,
   UserOnCallShiftReminder,
   UserOnCallShiftReminderLog,
@@ -1066,11 +1077,14 @@ const AllModelTypes: Array<{
   Host,
   HostOwnerTeam,
   HostOwnerUser,
+  HostCollectorConfig,
+  HostCollectorConfigVersion,
   ServerlessFunction,
   ServerlessFunctionOwnerTeam,
   ServerlessFunctionOwnerUser,
   ServerlessFunctionLabelRule,
   ServerlessFunctionOwnerRule,
+  CloudConnection,
   CloudResource,
   CloudResourceOwnerTeam,
   CloudResourceOwnerUser,

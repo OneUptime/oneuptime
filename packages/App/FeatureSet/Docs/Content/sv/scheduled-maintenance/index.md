@@ -55,15 +55,16 @@ Meddelanden beskrivs på [Prenumeranter och meddelanden](/docs/status-pages/subs
 | Avsnitt       | Vad du gör där                                                                                                             |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Översikt**  | **Alla händelser** och **Pågående händelser**, vars märke räknar de händelser som pågår just nu.                            |
+| **Kalender** | **Underhållskalender**: varje händelse på en månad, en vecka eller en dag, bredvid de kalendrar utanför projektet som du lägger till. |
 | **Arbetsyta** | **Slack** och **Microsoft Teams**, beroende på vad projektet har anslutit, eller **Anslut Slack eller Teams** när det inte har något av dem. |
 | **Regler**    | **Ägarregler**, **Runbook-regler**, **Etikettregler**, **Reminder Rules**.                                                  |
-| **Inställningar** | **Händelsestatus**, **Händelsemallar**, **Anteckningsmallar**, **Anpassade fält**, **Mätningar**, **Numrering**.      |
+| **Inställningar** | **Händelsestatus**, **Händelsemallar**, **Anteckningsmallar**, **Anpassade fält**, **Mätningar**, **Kalenderinställningar**, **Numrering**.      |
 
-**Översikt** är öppen; **Arbetsyta**, **Regler**, **Inställningar** och **Utvecklare** börjar hopfällda, och ett avsnitt öppnas av sig självt när du är på en av dess sidor. **Utvecklare** rymmer **Terraform**, **API** och **AI-assistenter**, för att styra underhåll från kod. Allt om underhåll finns här, inte i **Projektinställningar**.
+**Översikt** och **Kalender** är öppna; **Arbetsyta**, **Regler**, **Inställningar** och **Utvecklare** börjar hopfällda, och ett avsnitt öppnas av sig självt när du är på en av dess sidor. **Utvecklare** rymmer **Terraform**, **API** och **AI-assistenter**, för att styra underhåll från kod. Allt om underhåll finns här, inte i **Projektinställningar**.
 
 Listan visar **Nummer för schemalagt underhåll**, **Titel**, **Nuvarande tillstånd**, **Berörda resurser**, **Visas på statussida**, **Börjar den**, **Varaktighet**, **Slutar den**, **Etiketter** och **Ägare**. Markera händelser för att hantera flera samtidigt: **Ändra tillstånd**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner** eller **Ta bort**.
 
-**Lista** och **Kalender**, längst till höger i listans filterfält, visar samma händelser som en tabell eller på en månad, en vecka eller en dag. Se [Underhållskalender](/docs/scheduled-maintenance/calendar).
+**Underhållskalender** i avsnittet **Kalender** visar samma händelser på en månad, en vecka eller en dag och kan visa kalendrar utanför projektet bredvid. Se [Underhållskalender](/docs/scheduled-maintenance/calendar).
 
 ## Vad en händelse påverkar
 

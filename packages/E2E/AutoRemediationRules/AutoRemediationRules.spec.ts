@@ -190,14 +190,41 @@ const idsOf: (value: unknown) => Array<string> = (
     .sort();
 };
 
+/*
+ * The dialog a button opens. A click that lands while the card draws its
+ * rules again - their rows arriving after the card shows, on a busy runner -
+ * opens nothing, so the button is pressed again until the dialog opens; never
+ * once a dialog is open (a late one would get a second press).
+ */
+const openDialogWith: (
+  page: Page,
+  button: Locator,
+) => Promise<Locator> = async (
+  page: Page,
+  button: Locator,
+): Promise<Locator> => {
+  const dialog: Locator = page.getByRole("dialog");
+
+  await expect(async () => {
+    if (!(await dialog.isVisible())) {
+      await button.click({ timeout: 5000 });
+    }
+
+    await expect(dialog).toBeVisible({ timeout: 3000 });
+  }).toPass({ timeout: 30000 });
+
+  return dialog;
+};
+
 // The create dialog, walked to its Fix step: a name, then all incidents.
 const openFixStep: (page: Page, card: Locator) => Promise<Locator> = async (
   page: Page,
   card: Locator,
 ): Promise<Locator> => {
-  await card.getByRole("button", { name: CREATE }).first().click();
-  const dialog: Locator = page.getByRole("dialog");
-  await expect(dialog).toBeVisible();
+  const dialog: Locator = await openDialogWith(
+    page,
+    card.getByRole("button", { name: CREATE }).first(),
+  );
 
   await dialog.getByRole("textbox", { name: /^Name/ }).fill("Fix checkout");
   await dialog.getByRole("button", { name: "Next", exact: true }).click();
@@ -337,13 +364,13 @@ const editRule: (
   card: Locator,
   name: string,
 ): Promise<Locator> => {
-  await card
-    .locator("tbody tr")
-    .filter({ hasText: name })
-    .getByRole("button", { name: "Edit", exact: true })
-    .click();
-  const dialog: Locator = page.getByRole("dialog");
-  await expect(dialog).toBeVisible();
+  const dialog: Locator = await openDialogWith(
+    page,
+    card
+      .locator("tbody tr")
+      .filter({ hasText: name })
+      .getByRole("button", { name: "Edit", exact: true }),
+  );
   // An edit dialog opens any step from its list.
   await dialog.getByText("Fix", { exact: true }).click();
   // Every rule's Fix step ends with More fields (an older one may ask nothing).
@@ -742,12 +769,12 @@ test.describe("MCP servers", () => {
       });
     await expect(investigationCard).toBeVisible();
 
-    await investigationCard
-      .getByRole("button", { name: "Create Investigation Rule" })
-      .first()
-      .click();
-    const dialog: Locator = page.getByRole("dialog");
-    await expect(dialog).toBeVisible();
+    const dialog: Locator = await openDialogWith(
+      page,
+      investigationCard
+        .getByRole("button", { name: "Create Investigation Rule" })
+        .first(),
+    );
 
     // Match first (all incidents), then what the rule does.
     await dialog.getByRole("button", { name: "Next", exact: true }).click();
@@ -1157,12 +1184,10 @@ test.describe("people and screens", () => {
       GERMAN["Auto Remediation Rule"]!,
     );
     expect(createInGerman).toBe("Regel für automatische Behebung erstellen");
-    await card
-      .getByRole("button", { name: createInGerman, exact: true })
-      .first()
-      .click();
-    const dialog: Locator = page.getByRole("dialog");
-    await expect(dialog).toBeVisible();
+    const dialog: Locator = await openDialogWith(
+      page,
+      card.getByRole("button", { name: createInGerman, exact: true }).first(),
+    );
 
     await dialog.getByRole("textbox").first().fill("Checkout reparieren");
     await dialog.getByRole("button", { name: GERMAN["Next"]! }).click();

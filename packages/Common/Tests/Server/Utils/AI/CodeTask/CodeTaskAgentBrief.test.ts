@@ -358,6 +358,74 @@ describe("what the turn is asked, and the conversation before it", () => {
   });
 });
 
+/*
+ * The branch a task starts from: the one the person picked in Code's request
+ * box, kept on its first turn, for every turn after it too - handed over as
+ * the branch to clone (repository.mainBranchName, which Runners older than
+ * the pick read) and as the picked branch, which a Runner that cannot check
+ * it out stops on rather than work somewhere else.
+ */
+describe("the branch the task starts from", () => {
+  function pick(branch: string): void {
+    turns[0]!.taskContext = {
+      request: {
+        ...turns[0]!.taskContext!.request!,
+        baseBranch: branch,
+      },
+    };
+  }
+
+  test("the branch picked, on the task's first turn: cloned and named", async () => {
+    pick("release/2026-10");
+    pullRequests = [];
+
+    const details: CodeTaskAgentDetails = await brief(0);
+
+    expect(details.baseBranch).toBe("release/2026-10");
+    expect(details.repository.mainBranchName).toBe("release/2026-10");
+    expect(details.workingBranch).toBeNull();
+  });
+
+  test("a reply - whose own request names no branch - still works from the branch the task started from", async () => {
+    pick("release/2026-10");
+    // Its pull request was merged: the next change starts a new branch from the picked one.
+    pullRequests = [pullRequest(TASK_ID, PullRequestState.Merged)];
+
+    const details: CodeTaskAgentDetails = await brief(1);
+
+    expect(turns[1]!.taskContext?.request).not.toHaveProperty("baseBranch");
+    expect(details.baseBranch).toBe("release/2026-10");
+    expect(details.repository.mainBranchName).toBe("release/2026-10");
+  });
+
+  test("none picked: the repository's main branch, and no picked branch to insist on", async () => {
+    const details: CodeTaskAgentDetails = await brief(0);
+
+    expect(details.baseBranch).toBeNull();
+    expect(details.repository.mainBranchName).toBe("main");
+  });
+
+  test("a picked branch git would not take is never handed to a Runner", async () => {
+    pick("a..b --upload-pack=evil");
+
+    const details: CodeTaskAgentDetails = await brief(0);
+
+    expect(details.baseBranch).toBeNull();
+    expect(details.repository.mainBranchName).toBe("main");
+  });
+
+  test("the task is read with what was asked and what AI answered, as every turn is", async () => {
+    await brief(1);
+
+    const read: { select?: Record<string, unknown> } = (
+      CodeTaskThread.findTask as unknown as jest.Mock
+    ).mock.calls[0]![0] as never;
+    expect(read.select).toEqual(
+      expect.objectContaining({ taskContext: true, taskOutcome: true }),
+    );
+  });
+});
+
 describe("CodeTaskAgentBrief.capConversation", () => {
   function said(text: string): CodeTaskAgentTurn {
     return { role: "person", text };

@@ -64,7 +64,13 @@ flowchart TB
 
 ## 從你的網路向外的連線
 
-應用程式只會為你開啟的功能向外連線。下面每一項都是選用的，並且都有一個頁面列出需要放行的確切位址：
+除非你變更設定，否則會建立以下三個連線：
+
+- 應用程式每天一次向 GitHub 的 API（`api.github.com`）詢問是否有更新的版本。要關閉它，請在 Helm Chart 中設定 `updateCheck.disabled: true`，或在 Docker Compose 的 `config.env` 中設定 `DISABLE_UPDATE_CHECK=true`。
+- 勾選「通知我有關安全修補程式與新版本」註冊時（此選項預設已勾選），會把此人的姓名與電子郵件、其填寫的公司與電話號碼，以及你的安裝位址與版本傳送到 `oneuptime.com`。在無法存取網際網路的網路中，請取消勾選。
+- 在 Kubernetes 上，探針在你叢集本身的 DNS 之後會改用公用解析器 `8.8.8.8` 與 `1.1.1.1`。將 `dnsConfig.nameservers` 設為 `[]`，即可讓所有查詢都留在你自己的 DNS 上。
+
+其他一切只有在你開啟時才會向外連線，並且每一項都有一個頁面列出需要放行的確切位址：
 
 | 對外連線 | 用途 | 了解更多 |
 | --- | --- | --- |
@@ -76,6 +82,8 @@ flowchart TB
 | `oneuptime.com` | 線上啟用 Enterprise 授權 | [企業版](/docs/self-hosted/enterprise) |
 
 反方向的連線——SendGrid 投遞傳入郵件、Slack 與 Microsoft Teams 回呼——需要 ingress 能從網際網路連到。應用程式和探針可以連到哪些私有位址由你決定：請參閱[私有網路存取](/docs/self-hosted/private-network-access)。
+
+OneUptime 的標誌就在它寄出的每封郵件之中，因此即使在無法連上網際網路的網路中也能顯示，開啟郵件時也不會向其他任何主機請求內容。你自己上傳的圖片，例如你自己的標誌或狀態頁的標誌，會從你的 OneUptime URL 顯示，因此閱讀這些郵件的人需要能夠連到它。
 
 ## 後續步驟
 

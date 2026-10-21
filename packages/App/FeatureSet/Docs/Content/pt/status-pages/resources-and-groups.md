@@ -152,7 +152,7 @@ Para alterar um grupo, use **Edit Group** no cabeçalho do painel, ou **Edit gro
 
 | Onde | Ações |
 | ----- | ------- |
-| O menu da linha do navegador | **Edit group**, **Move up**, **Move down**, **Mostrar ID**, **Delete group** |
+| O menu da linha do navegador | **Edit group**, **Mover para cima**, **Mover para baixo**, **Mostrar ID**, **Delete group** |
 | O menu **More actions** do painel | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Atualizar**, **Delete this group** |
 
 Um grupo salvo sem nome aparece como **Untitled group**, um bom sinal de que você queria digitar alguma coisa.
@@ -195,7 +195,7 @@ A ordem é você quem define, não o alfabeto:
 | O quê | Como reordenar |
 | ---- | ----------------- |
 | Recursos dentro de um grupo | Arraste uma linha. O painel avisa: **Drag a row to change the order visitors see**. |
-| Grupos entre si | **Move up** / **Move down** no menu da linha do navegador, ou **Move group up** / **Move group down** em **More actions**. |
+| Grupos entre si | **Mover para cima** / **Mover para baixo** no menu da linha do navegador, ou **Move group up** / **Move group down** em **More actions**. |
 | Recursos sem grupo | Ficam em **Top of page** e sempre aparecem acima de todos os grupos, então coloque ali a coisa que todo mundo verifica primeiro. |
 
 **Dois casos em que arrastar fica desativado.** Pesquisar na caixa **Search in {group}...** desativa a reordenação (o painel diz `N of M shown · drag to reorder is off while filtering`), então limpe a pesquisa primeiro. E os grupos em grade nunca se reordenam arrastando, porque o lugar de um monitor vem da sua linha e da sua coluna.

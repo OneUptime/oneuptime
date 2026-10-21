@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 31872,
-    "untranslated": 9601
+    "keys": 32062,
+    "untranslated": 9592
   },
   "sameAsEnglish": [
     " incidents",
@@ -226,6 +226,7 @@
     "Injections",
     "Instance",
     "Instances",
+    "Instructions",
     "Interaction to Next Paint",
     "Interface",
     "Interface {{index}}",
@@ -357,6 +358,8 @@
     "Variable",
     "Variables",
     "Version",
+    "Version {{number}}",
+    "Versions",
     "Vertical Pod Autoscalers",
     "Volume",
     "Volumes",

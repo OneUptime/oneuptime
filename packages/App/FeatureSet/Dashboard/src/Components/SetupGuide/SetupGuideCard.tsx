@@ -1,6 +1,7 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useEffect,
   useState,
 } from "react";
@@ -10,7 +11,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Protocol from "Common/Types/API/Protocol";
 import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
-import useTranslateValue from "Common/UI/Utils/Translation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import IngestionKeySelector from "../Telemetry/IngestionKeySelector";
 import {
   SETUP_GUIDE_API_KEY_PLACEHOLDER,
@@ -70,6 +72,11 @@ export interface ComponentProps {
   options?: ReadonlyArray<SetupGuideOption> | undefined;
   optionsLayout?: SetupGuideOptionLayout | undefined;
   /*
+   * A line under the options for a case none of them covers, drawn as
+   * given (AddHostGuide: a Kubernetes cluster's nodes, and where to go).
+   */
+  optionsNote?: ReactNode | undefined;
+  /*
    * The option to open on. A value the guide does not offer falls back to
    * the first option; a later valid value (a parent that learns the
    * resource's platform after mount) moves the picker to it.
@@ -96,13 +103,40 @@ export interface ComponentProps {
   keyStepDescription?: string | undefined;
 
   getContent: (context: SetupGuideRenderContext) => SetupGuideContent;
+
+  /*
+   * A live step after the guide's own: what the reader waits for once the
+   * commands have run (AddHostGuide: the host connecting). Drawn like every
+   * step; its content is a component, not markdown.
+   */
+  lastStep?: SetupGuideStepView | undefined;
+
+  /*
+   * Only the guide, without its card and header: for a dialog whose own
+   * title and description already say what the guide is for (Add Host).
+   */
+  isBare?: boolean | undefined;
 }
 
-const DEFAULT_KEY_STEP_DESCRIPTION: string =
-  "The agent sends data to your project with this key. Pick an existing key or create a new one — the commands below update to use it.";
+/*
+ * The first step of every guide, in the reader's language. The docs'
+ * Ingestion Keys page names it (TelemetryAdminDocsFacts reads it here).
+ */
+export const SETUP_GUIDE_KEY_STEP_TITLE: string = translationKey(
+  "Choose an ingestion key",
+);
 
-const summarizeTopics: (topics: Array<{ title: string }>) => string = (
+const DEFAULT_KEY_STEP_DESCRIPTION: string = translationKey(
+  "The agent sends data to your project with this key. Pick an existing key or create a new one — the commands below update to use it.",
+);
+
+// The first topics' titles, already in the reader's language, and how many more.
+const summarizeTopics: (
   topics: Array<{ title: string }>,
+  translator: Translator,
+) => string = (
+  topics: Array<{ title: string }>,
+  translator: Translator,
 ): string => {
   const titles: Array<string> = topics.map((topic: { title: string }) => {
     return topic.title;
@@ -110,14 +144,24 @@ const summarizeTopics: (topics: Array<{ title: string }>) => string = (
   const shown: Array<string> = titles.slice(0, 3);
   const remaining: number = titles.length - shown.length;
   return remaining > 0
-    ? `${shown.join(" · ")} · ${remaining} more`
+    ? `${shown.join(" · ")} · ${translator.translateTemplate("{{count}} more", {
+        count: translator.formatNumber(remaining),
+      })}`
     : shown.join(" · ");
 };
 
 const SetupGuideCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
+  /*
+   * Everything a guide says is English, as written in its data; what the
+   * card draws is looked up in the reader's language. Commands and the
+   * markdown of steps and topics stay as written.
+   */
+  const translate: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
   const options: ReadonlyArray<SetupGuideOption> = props.options || [];
 
   const [pickedOption, setPickedOption] = useState<string | undefined>(
@@ -188,32 +232,42 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
     props.getKeyTypeFilter?.(option) || TelemetryIngestionKeyType.Server;
 
   const keyStep: SetupGuideKeyStep = content.keyStep || {};
+  const wrapLongLines: boolean = Boolean(content.wrapLongLines);
 
   const steps: Array<SetupGuideStepView> = [
     {
-      title: "Choose an ingestion key",
-      description:
+      title: translate(SETUP_GUIDE_KEY_STEP_TITLE),
+      description: translate(
         keyStep.description ||
-        props.keyStepDescription ||
-        DEFAULT_KEY_STEP_DESCRIPTION,
+          props.keyStepDescription ||
+          DEFAULT_KEY_STEP_DESCRIPTION,
+      ),
       content: (
         <IngestionKeySelector
-          endpointLabel={keyStep.endpointLabel || "OneUptime URL"}
+          endpointLabel={
+            keyStep.endpointLabel || translationKey("OneUptime URL")
+          }
           endpointValue={keyStep.endpointValue || oneuptimeUrl}
           endpointHint={keyStep.endpointHint}
           keyTypeFilter={keyTypeFilter}
           newKeyName={props.newKeyName}
           onSelectedKeyChange={setSelectedKey}
+          hideValues={keyStep.hideValues}
         />
       ),
     },
     ...content.steps.map((step: SetupGuideStep): SetupGuideStepView => {
       return {
-        title: step.title,
-        description: step.description,
+        title: translate(step.title),
+        description: step.description ? translate(step.description) : undefined,
         content: (
           <div className="space-y-3">
-            {step.markdown && <SetupGuideMarkdown text={step.markdown} />}
+            {step.markdown && (
+              <SetupGuideMarkdown
+                text={step.markdown}
+                wrapLongLines={wrapLongLines}
+              />
+            )}
             {step.variants && step.variants.length > 0 && (
               <SetupGuideStepVariants
                 selectedLabels={pickedVariants}
@@ -223,26 +277,42 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
                     variant: SetupGuideStepVariant,
                   ): SetupGuideStepVariantView => {
                     return {
-                      label: variant.label,
-                      content: <SetupGuideMarkdown text={variant.markdown} />,
+                      label: translate(variant.label),
+                      content: (
+                        <SetupGuideMarkdown
+                          text={variant.markdown}
+                          wrapLongLines={wrapLongLines}
+                        />
+                      ),
                     };
                   },
                 )}
               />
             )}
+            {step.note && (
+              <div data-testid="setup-guide-step-note">
+                <SetupGuideMarkdown text={translate(step.note)} />
+              </div>
+            )}
           </div>
         ),
       };
     }),
+    ...(props.lastStep ? [props.lastStep] : []),
   ];
 
   const toTopicView: (topic: SetupGuideTopic) => SetupGuideTopicView = (
     topic: SetupGuideTopic,
   ): SetupGuideTopicView => {
     return {
-      title: topic.title,
-      summary: topic.summary,
-      content: <SetupGuideMarkdown text={topic.markdown} />,
+      title: translate(topic.title),
+      summary: topic.summary ? translate(topic.summary) : undefined,
+      content: (
+        <SetupGuideMarkdown
+          text={topic.markdown}
+          wrapLongLines={wrapLongLines}
+        />
+      ),
     };
   };
 
@@ -254,6 +324,111 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
   ).map(toTopicView);
   const links: Array<SetupGuideLink> = content.links || [];
   const prerequisites: Array<string> = content.prerequisites || [];
+
+  // The picker's choices as the reader reads them; their keys stay.
+  const shownOptions: Array<SetupGuideOption> = options.map(
+    (item: SetupGuideOption): SetupGuideOption => {
+      return {
+        ...item,
+        label: translate(item.label),
+        description: item.description ? translate(item.description) : undefined,
+        badge: item.badge ? translate(item.badge) : undefined,
+        group: item.group ? translate(item.group) : undefined,
+      };
+    },
+  );
+
+  const body: ReactElement = (
+    <>
+      {options.length > 1 && (
+        <SetupGuideOptionPicker
+          label={translate(props.optionsLabel || "Choose an option")}
+          options={shownOptions}
+          selectedKey={option}
+          onSelect={onSelectOption}
+          layout={props.optionsLayout}
+          note={props.optionsNote}
+        />
+      )}
+
+      {content.intro && (
+        <div className="mb-6">
+          <SetupGuideMarkdown text={content.intro} />
+        </div>
+      )}
+
+      {prerequisites.length > 0 && (
+        <div
+          className="mb-6 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+          data-testid="setup-guide-prerequisites"
+        >
+          <div className="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-gray-500">
+            <Icon icon={IconProp.ClipboardDocumentCheck} className="h-4 w-4" />
+            {translator.translateText("Before you start")}
+          </div>
+          <SetupGuideMarkdown
+            text={prerequisites
+              .map((line: string): string => {
+                return `- ${line}`;
+              })
+              .join("\n")}
+          />
+        </div>
+      )}
+
+      <SetupGuideSteps steps={steps} />
+
+      {(advanced.length > 0 || troubleshooting.length > 0) && (
+        <div className="mt-8 space-y-3">
+          <SetupGuideTopics
+            title={translator.translateText("Advanced") || "Advanced"}
+            description={summarizeTopics(advanced, translator)}
+            icon={IconProp.AdjustmentHorizontal}
+            topics={advanced}
+            testId="setup-guide-advanced"
+          />
+          <SetupGuideTopics
+            title={
+              translator.translateText("Troubleshooting") || "Troubleshooting"
+            }
+            description={summarizeTopics(troubleshooting, translator)}
+            icon={IconProp.Lifebuoy}
+            topics={troubleshooting}
+            testId="setup-guide-troubleshooting"
+          />
+        </div>
+      )}
+
+      {links.length > 0 && (
+        <div
+          className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500"
+          data-testid="setup-guide-links"
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <Icon icon={IconProp.BookOpen} className="h-4 w-4" />
+            {translator.translateText("Learn more:")}
+          </span>
+          {links.map((link: SetupGuideLink) => {
+            return (
+              <a
+                key={link.url}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
+              >
+                {translate(link.title)}
+              </a>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+
+  if (props.isBare) {
+    return <div data-testid="setup-guide">{body}</div>;
+  }
 
   return (
     <div className="mb-5" data-testid="setup-guide">
@@ -268,100 +443,16 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
             </div>
             <div className="min-w-0 flex-1">
               <h2 className="text-lg font-semibold text-gray-900">
-                {translateString(props.title)}
+                {translate(props.title)}
               </h2>
               <p className="mt-0.5 text-sm leading-relaxed text-gray-500">
-                {translateString(props.description)}
+                {translate(props.description)}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="px-4 py-6 sm:px-6">
-          {options.length > 1 && (
-            <SetupGuideOptionPicker
-              label={props.optionsLabel || "Choose an option"}
-              options={options}
-              selectedKey={option}
-              onSelect={onSelectOption}
-              layout={props.optionsLayout}
-            />
-          )}
-
-          {content.intro && (
-            <div className="mb-6">
-              <SetupGuideMarkdown text={content.intro} />
-            </div>
-          )}
-
-          {prerequisites.length > 0 && (
-            <div
-              className="mb-6 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
-              data-testid="setup-guide-prerequisites"
-            >
-              <div className="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-gray-500">
-                <Icon
-                  icon={IconProp.ClipboardDocumentCheck}
-                  className="h-4 w-4"
-                />
-                Before you start
-              </div>
-              <SetupGuideMarkdown
-                text={prerequisites
-                  .map((line: string): string => {
-                    return `- ${line}`;
-                  })
-                  .join("\n")}
-              />
-            </div>
-          )}
-
-          <SetupGuideSteps steps={steps} />
-
-          {(advanced.length > 0 || troubleshooting.length > 0) && (
-            <div className="mt-8 space-y-3">
-              <SetupGuideTopics
-                title="Advanced"
-                description={summarizeTopics(advanced)}
-                icon={IconProp.AdjustmentHorizontal}
-                topics={advanced}
-                testId="setup-guide-advanced"
-              />
-              <SetupGuideTopics
-                title="Troubleshooting"
-                description={summarizeTopics(troubleshooting)}
-                icon={IconProp.Lifebuoy}
-                topics={troubleshooting}
-                testId="setup-guide-troubleshooting"
-              />
-            </div>
-          )}
-
-          {links.length > 0 && (
-            <div
-              className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500"
-              data-testid="setup-guide-links"
-            >
-              <span className="inline-flex items-center gap-1.5">
-                <Icon icon={IconProp.BookOpen} className="h-4 w-4" />
-                Learn more:
-              </span>
-              {links.map((link: SetupGuideLink) => {
-                return (
-                  <a
-                    key={link.url}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
-                  >
-                    {link.title}
-                  </a>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <div className="px-4 py-6 sm:px-6">{body}</div>
       </div>
     </div>
   );

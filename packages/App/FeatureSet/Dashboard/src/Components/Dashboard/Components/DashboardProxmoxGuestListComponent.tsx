@@ -10,7 +10,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import ProxmoxResource from "Common/Models/DatabaseModels/ProxmoxResource";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -32,12 +32,12 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Guest", widthPct: "26%" },
-  { label: "VMID", widthPct: "10%" },
-  { label: "Type", widthPct: "10%" },
-  { label: "Status", widthPct: "17%" },
-  { label: "Node", widthPct: "17%" },
-  { label: "Cluster", widthPct: "20%" },
+  { label: "Guest", widthPct: "26%", sortKey: "name" },
+  { label: "VMID", widthPct: "10%", sortKey: "vmid" },
+  { label: "Type", widthPct: "10%", sortKey: "type" },
+  { label: "Status", widthPct: "17%", sortKey: "status" },
+  { label: "Node", widthPct: "17%", sortKey: "node" },
+  { label: "Cluster", widthPct: "20%", sortKey: "cluster" },
 ];
 
 /*
@@ -275,7 +275,8 @@ const DashboardProxmoxGuestListComponentElement: FunctionComponent<
       maxRows={args.maxRows || 25}
       query={query}
       select={BASE_SELECT}
-      sort={{ name: SortOrder.Ascending }}
+      componentType={DashboardComponentType.ProxmoxGuestList}
+      widgetProps={props}
       refreshTick={props.refreshTick}
       variables={props.variables}
       attributeToColumn={undefined}

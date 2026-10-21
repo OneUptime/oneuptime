@@ -956,12 +956,26 @@ describe("useResourceOwners exposes the chips a tile moves", () => {
   /*
    * The bar's own "Clear all" is the same function the total tile reaches
    * through applyFacetTileSelection, so the two cannot drift into clearing
-   * different things.
+   * different things. The bar is the shared FacetFilterBar (the Session
+   * Replay list draws its chips in it too): the hook hands it the function
+   * while a chip holds a value, and the bar's button calls what it is
+   * handed.
    */
   test("the bar's Clear all button calls that same function", () => {
     expect(HOOK).toContain(
+      squash("onClearAll={hasActiveFilters ? clearAllFacets : undefined}"),
+    );
+
+    const bar: string = readSource(
+      DASHBOARD_SRC,
+      "Components",
+      "ResourceOwners",
+      "FacetFilterBar.tsx",
+    );
+
+    expect(bar).toContain(
       squash(
-        '{hasActiveFilters && ( <button type="button" onClick={clearAllFacets}',
+        '{props.onClearAll && ( <button type="button" onClick={props.onClearAll}',
       ),
     );
   });

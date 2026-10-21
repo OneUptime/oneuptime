@@ -45,7 +45,7 @@ flowchart LR
 | --- | --- | --- |
 | **Fonti** | **Connections** | I tuoi log, i prodotti di sicurezza che OneUptime interroga e tutto ciò che invii |
 | **Detections** | **Detections** | Regole Sigma e feed di threat intelligence che cercano minacce in ogni evento |
-| **Security Cases** | **Security Cases** | Ciò che è stato trovato, raggruppato per l'utente, l'host o l'indirizzo a cui si riferisce |
+| **Casi di sicurezza** | **Casi di sicurezza** | Ciò che è stato trovato, raggruppato per l'utente, l'host o l'indirizzo a cui si riferisce |
 | **Playbooks** | **Playbooks** | Passaggi che vengono eseguiti sui nuovi casi: arricchirli, avvisare, aprire un incidente o contenere |
 
 La striscia in cima a **Panoramica** mostra ogni parte con i suoi numeri: le origini e i loro eventi delle ultime 24 ore, le regole attive, i casi aperti e i playbook che rispondono.
@@ -75,7 +75,7 @@ Il tuo ruolo non può aggiungere regole di rilevamento, playbook o l'origine dei
 :::
 
 :::details L'attacco di prova non ha aperto alcun caso
-Di solito il caso si apre prima che il pulsante risponda; quando la regola è ancora in ritardo, lo dice e il caso si apre entro un minuto. Controlla di nuovo **Security Cases** e verifica in **Detections** che la regola di forza bruta sia attiva.
+Di solito il caso si apre prima che il pulsante risponda; quando la regola è ancora in ritardo, lo dice e il caso si apre entro un minuto. Controlla di nuovo **Casi di sicurezza** e verifica in **Detections** che la regola di forza bruta sia attiva.
 :::
 
 :::details Dai miei log non arriva alcun evento di sicurezza

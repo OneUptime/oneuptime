@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 /*
  * A choice of view a reader makes once and finds again: which of a page's
- * views it opens on (List | Calendar on the scheduled maintenance events),
+ * views it opens on (Timeline | Table on the status timelines),
  * remembered in their browser - a page opened later opens on it too - and
  * the same in every copy of the switch on the page at once.
  *
@@ -11,8 +11,8 @@ import { useCallback, useEffect, useState } from "react";
  * rest of the session. A stored value that is not one of the views - written
  * by an older version, or by hand - reads as the default.
  *
- * The status timelines' Timeline | Table switch remembers its choice the same
- * way (StatusTimeline/StatusTimelineView).
+ * The status timelines' Timeline | Table switch remembers its choice this way
+ * (StatusTimeline/StatusTimelineView).
  */
 export interface RememberedViewOptions<T extends string> {
   storageKey: string;

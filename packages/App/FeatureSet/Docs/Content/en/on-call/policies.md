@@ -34,7 +34,7 @@ A policy pages nobody until something runs it. Every incident, alert and episode
 | By hand | **Execute On-Call Policy**, in the **Actions** menu of a feed, or on a Slack or Microsoft Teams message | [The incident feed](/docs/incidents/notes-owners-and-feed#the-incident-feed) |
 | Chat and workflows | `/oneuptime page` in Slack or Microsoft Teams, and a workflow's **Page an On-Call Policy** step | [Paging](/docs/workflows/components#paging) |
 
-A policy that several rules add runs once. A severity never runs a policy on its own: an on-call rule that matches the severity does. An incident or alert created already acknowledged or resolved runs none of its policies.
+A policy that several rules add runs once. A severity never runs a policy on its own: an on-call rule that matches the severity does. An incident or alert created already acknowledged or resolved runs none of its policies. An on-call rule set to **Only during working hours** makes the policies it adds wait until those hours begin.
 
 ## A policy's pages
 
@@ -84,6 +84,7 @@ flowchart TB
 
 | Status | What it means |
 | --- | --- |
+| **Waiting** | An on-call rule set to **Only during working hours** makes the run wait until those hours begin: it says when paging starts, and pages nobody until then. It ends without paging if the incident or alert is acknowledged or resolved first. It starts paging at once if the incident or alert changes and now matches an on-call rule that pages right away. |
 | **Scheduled**, **Started** | The run is being set up. One still here after 5 minutes is stopped as **Error**. |
 | **Executing** | The run is paging. OneUptime moves it on every minute. |
 | **Execution Completed** | Someone acknowledged, the incident or alert was resolved, every rule and repeat was used, or the policy was archived. |

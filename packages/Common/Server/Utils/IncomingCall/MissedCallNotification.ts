@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "../../../Utils/Sms/NotificationSms";
 import { CallRequestMessage } from "../../../Types/Call/CallRequest";
 import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
@@ -282,7 +283,7 @@ export default class MissedCallNotification {
     };
 
     const smsMessage: SMSMessage = {
-      message: `This is a message from OneUptime. Missed call: ${summary} To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+      message: buildNotificationSms(`Missed call: ${summary}`),
     };
 
     const callRequestMessage: CallRequestMessage = {

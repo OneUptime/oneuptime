@@ -50,6 +50,17 @@ interface ResourceInventoryPageCase {
    * has no create button, and nothing hides its guide but discovery.
    */
   readonly isCreateable?: boolean | undefined;
+  /*
+   * The table's refreshToggle when rows also arrive another way: the Hosts
+   * list reads its rows again when the Add Host dialog sees a host connect.
+   */
+  readonly refreshToggle?: string | undefined;
+  /*
+   * Not created by a form, but added from a button of the card header (Add
+   * Host) that the empty table would repeat: while the list waits for its
+   * first record, the guide under it is the way in, so it does not.
+   */
+  readonly isAddedFromHeader?: boolean | undefined;
 }
 
 const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
@@ -134,6 +145,11 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     watchesForFirstRecord: true,
     documentationCard: "StorageArrayDocumentationCard",
   },
+  /*
+   * A host is added by one command on it, not by a form: the first run is
+   * the Add Host guide, and a host typed in by hand would only wait for
+   * telemetry nothing sends.
+   */
   {
     label: "hosts",
     relativePath: "Host/Hosts.tsx",
@@ -141,7 +157,11 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     countState: "firstRecordWatch.count",
     countSetter: "firstRecordWatch.onRecordCreated",
     watchesForFirstRecord: true,
-    documentationCard: "HostDocumentationCard",
+    documentationCard: "AddHostGuide",
+    isCreateable: false,
+    isAddedFromHeader: true,
+    refreshToggle:
+      "refreshToggle={`${firstRecordWatch.refreshToken}-${connectedCount}`}",
   },
   {
     label: "IoT fleets",
@@ -255,7 +275,8 @@ describe("empty resource inventory page catalog", () => {
 
         return (
           source.includes("<ModelTable<") &&
-          source.match(/<[A-Za-z]+DocumentationCard\b/) !== null
+          source.match(/<(?:[A-Za-z]+DocumentationCard|AddHostGuide)\b/) !==
+            null
         );
       })
       .map(toPosixRelativePath)
@@ -378,7 +399,10 @@ describe.each(RESOURCE_INVENTORY_PAGES)(
       const table: string = source.slice(tableStart, tableEnd);
 
       expect(code).toContain(`useFirstRecordWatch<${resourceCase.modelType}>(`);
-      expect(table).toContain("refreshToggle={firstRecordWatch.refreshToken}");
+      expect(table).toContain(
+        resourceCase.refreshToggle ||
+          "refreshToggle={firstRecordWatch.refreshToken}",
+      );
       expect(code).toContain("if (firstRecordWatch.isLoading) {");
       expect(code).toContain("if (firstRecordWatch.error) {");
 
@@ -396,7 +420,10 @@ describe.each(RESOURCE_INVENTORY_PAGES)(
       const tableEnd: number = source.indexOf("/>", tableStart);
       const table: string = source.slice(tableStart, tableEnd);
 
-      if (resourceCase.isCreateable === false) {
+      if (
+        resourceCase.isCreateable === false &&
+        !resourceCase.isAddedFromHeader
+      ) {
         // No create button anywhere, so nothing for the empty state to hide.
         expect(table).not.toContain("getFirstRunEmptyState(");
       } else {

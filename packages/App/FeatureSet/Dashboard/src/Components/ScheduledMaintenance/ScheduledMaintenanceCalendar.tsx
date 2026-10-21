@@ -8,7 +8,23 @@ import {
   toCalendarEvents,
   toInstantRange,
 } from "./MaintenanceCalendarView";
+import {
+  MAINTENANCE_CALENDAR_OVERLAY_LIMIT,
+  MaintenanceCalendarOverlayEvent,
+  OverlayCalendar,
+  getOverlayRangeQuery,
+  getShownCalendarIds,
+  isOverlayEvent,
+  readHiddenCalendarIds,
+  toOverlayCalendars,
+  toOverlayEvents,
+  toggleHiddenCalendar,
+  writeHiddenCalendarIds,
+} from "./MaintenanceCalendarOverlays";
+import ExternalCalendarToggles from "./ExternalCalendarToggles";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceExternalCalendar from "Common/Models/DatabaseModels/ScheduledMaintenanceExternalCalendar";
+import ScheduledMaintenanceExternalCalendarEvent from "Common/Models/DatabaseModels/ScheduledMaintenanceExternalCalendarEvent";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import Route from "Common/Types/API/Route";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -37,6 +53,8 @@ import {
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -51,8 +69,8 @@ import React, {
 import { Link } from "react-router-dom";
 
 /*
- * Scheduled Maintenance > Events as a calendar: the Calendar half of the
- * card's List | Calendar switch.
+ * Scheduled Maintenance > Calendar > Maintenance Calendar: the events as a
+ * calendar, a page of its own (Pages/ScheduledMaintenanceEvents/Calendar).
  *
  * What a reader sees, and why:
  *
@@ -75,6 +93,14 @@ import { Link } from "react-router-dom";
  * shows whenever it changes. A request that comes back after a newer one was
  * sent is dropped, so a quick click through the months never leaves an
  * earlier month's events on screen.
+ *
+ * Beside them, the events of the calendars from outside the project
+ * (issue #5084, Calendar Settings): public holidays, a change freeze,
+ * another project's maintenance - striped blocks in each calendar's colour
+ * with nothing to open (MaintenanceCalendarOverlays), and a toggle each
+ * under the grid that shows or hides them for this reader. They are read
+ * for the same range, on their own: a calendar that fails to load never
+ * keeps the project's own events off the page.
  */
 export interface ComponentProps {
   // The page's query: its project, and whatever the filter chips add.
@@ -84,13 +110,15 @@ export interface ComponentProps {
   title: string;
   description: string;
   buttons: Array<CardButtonSchema | ReactElement>;
-  // The filter chips - and List | Calendar at their end - as above the list.
+  // The filter chips, as above the list.
   topContent?: ReactElement | undefined;
   // Whether the reader may create events: the + on each day to come.
   canCreate: boolean;
   getEventRoute: (maintenanceId: string) => Route;
   getCreateRoute: (startsAt: Date) => Route;
   onSubscribe: () => void;
+  // Calendar Settings, linked beside the external calendars' toggles.
+  externalCalendarSettingsRoute?: Route | undefined;
   // Injected by tests; the page passes nothing and gets the reader's.
   timezone?: string | undefined;
   now?: Date | undefined;
@@ -126,6 +154,34 @@ const ScheduledMaintenanceCalendar: FunctionComponent<ComponentProps> = (
 
   // The newest request; an answer to any other is dropped.
   const requestNumber: React.MutableRefObject<number> = useRef<number>(0);
+
+  /*
+   * The calendars from outside the project, for whoever may read them; the
+   * ones this reader hid, as their browser remembers them for the project.
+   */
+  const projectId: string = ProjectUtil.getCurrentProjectId()?.toString() || "";
+
+  const mayReadExternalCalendars: boolean = useMemo(() => {
+    return PermissionGate.check(
+      new ScheduledMaintenanceExternalCalendar(),
+      ModelAction.Read,
+    ).isAllowed;
+  }, []);
+
+  const [externalCalendars, setExternalCalendars] = useState<
+    Array<OverlayCalendar>
+  >([]);
+  const [hiddenCalendarIds, setHiddenCalendarIds] = useState<Array<string>>(
+    () => {
+      return readHiddenCalendarIds(projectId);
+    },
+  );
+  const [overlayRows, setOverlayRows] = useState<
+    Array<ScheduledMaintenanceExternalCalendarEvent>
+  >([]);
+  const [isOverlayLoading, setIsOverlayLoading] = useState<boolean>(false);
+  const overlayRequestNumber: React.MutableRefObject<number> =
+    useRef<number>(0);
 
   /*
    * The query changes identity on every render of the page around it; its
@@ -187,6 +243,121 @@ const ScheduledMaintenanceCalendar: FunctionComponent<ComponentProps> = (
       });
   }, [rangeKey, queryKey, timezone, reloadCount]);
 
+  // The enabled external calendars, once: they change on another page.
+  useEffect(() => {
+    if (!mayReadExternalCalendars) {
+      return;
+    }
+
+    let isCurrent: boolean = true;
+
+    ModelAPI.getList<ScheduledMaintenanceExternalCalendar>({
+      modelType: ScheduledMaintenanceExternalCalendar,
+      query: {
+        isEnabled: true,
+      },
+      select: {
+        _id: true,
+        name: true,
+        color: true,
+        lastReadError: true,
+      },
+      sort: {
+        name: SortOrder.Ascending,
+      },
+      limit: 100,
+      skip: 0,
+    })
+      .then((result: ListResult<ScheduledMaintenanceExternalCalendar>) => {
+        if (isCurrent) {
+          setExternalCalendars(toOverlayCalendars(result.data));
+        }
+      })
+      .catch(() => {
+        // The project's own events still show; the toggles do not.
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [mayReadExternalCalendars]);
+
+  const shownCalendarIds: Array<string> = useMemo(() => {
+    return getShownCalendarIds(externalCalendars, hiddenCalendarIds);
+  }, [externalCalendars, hiddenCalendarIds]);
+
+  const shownCalendarsKey: string = shownCalendarIds.join(",");
+
+  // The shown calendars' events for the range, the newest request's alone.
+  useEffect(() => {
+    overlayRequestNumber.current += 1;
+    const thisRequest: number = overlayRequestNumber.current;
+
+    if (shownCalendarIds.length === 0) {
+      setOverlayRows([]);
+      setIsOverlayLoading(false);
+      return;
+    }
+
+    setIsOverlayLoading(true);
+
+    ModelAPI.getList<ScheduledMaintenanceExternalCalendarEvent>({
+      modelType: ScheduledMaintenanceExternalCalendarEvent,
+      query: getOverlayRangeQuery({
+        calendarIds: shownCalendarIds,
+        instants: toInstantRange({ range: range, timezone: timezone }),
+      }),
+      select: {
+        _id: true,
+        scheduledMaintenanceExternalCalendarId: true,
+        title: true,
+        startsAt: true,
+        endsAt: true,
+        isAllDay: true,
+      },
+      sort: {
+        startsAt: SortOrder.Ascending,
+      },
+      limit: MAINTENANCE_CALENDAR_OVERLAY_LIMIT,
+      skip: 0,
+    })
+      .then((result: ListResult<ScheduledMaintenanceExternalCalendarEvent>) => {
+        if (thisRequest !== overlayRequestNumber.current) {
+          return;
+        }
+
+        setOverlayRows(result.data);
+        setIsOverlayLoading(false);
+      })
+      .catch(() => {
+        if (thisRequest !== overlayRequestNumber.current) {
+          return;
+        }
+
+        // The project's own events are what the page is for: they stay.
+        setOverlayRows([]);
+        setIsOverlayLoading(false);
+      });
+  }, [rangeKey, shownCalendarsKey, timezone]);
+
+  const onToggleExternalCalendar: (
+    calendarId: string,
+    isShown: boolean,
+  ) => void = useCallback(
+    (calendarId: string, isShown: boolean): void => {
+      setHiddenCalendarIds((current: Array<string>): Array<string> => {
+        const next: Array<string> = toggleHiddenCalendar(
+          current,
+          calendarId,
+          isShown,
+        );
+        writeHiddenCalendarIds(projectId, next);
+        return next;
+      });
+    },
+    [projectId],
+  );
+
   const describeWindow: (startsAt: Date, endsAt: Date) => string = useCallback(
     (startsAt: Date, endsAt: Date): string => {
       return translator.translateTemplate("{{start}} to {{end}}", {
@@ -206,11 +377,66 @@ const ScheduledMaintenanceCalendar: FunctionComponent<ComponentProps> = (
     });
   }, [events, timezone, describeWindow]);
 
+  const overlayEvents: Array<MaintenanceCalendarOverlayEvent> = useMemo(() => {
+    return toOverlayEvents({
+      events: overlayRows,
+      calendars: externalCalendars,
+      timezone: timezone,
+      describeWindow: describeWindow,
+      describeDays: (firstDay: Date, lastDay: Date): string => {
+        // A date as it is on the grid, never moved into a time zone.
+        const asDate: (day: Date) => string = (day: Date): string => {
+          return OneUptimeDate.getDateAsFormattedStringInTimezone({
+            date: new Date(
+              Date.UTC(day.getFullYear(), day.getMonth(), day.getDate()),
+            ),
+            timezone: "UTC",
+            onlyShowDate: true,
+          });
+        };
+
+        if (firstDay.getTime() === lastDay.getTime()) {
+          return translator.translateTemplate("{{date}}, all day", {
+            date: asDate(firstDay),
+          });
+        }
+
+        return translator.translateTemplate("{{start}} to {{end}}, all day", {
+          start: asDate(firstDay),
+          end: asDate(lastDay),
+        });
+      },
+      untitled: translator.translateText("Busy") || "Busy",
+    });
+  }, [overlayRows, externalCalendars, timezone, describeWindow, translator]);
+
+  // The project's own events first, then the other calendars'.
+  const gridEvents: Array<CalendarEvent> = useMemo(() => {
+    return [...calendarEvents, ...overlayEvents];
+  }, [calendarEvents, overlayEvents]);
+
   const getEventRoute: (maintenanceId: string) => Route = props.getEventRoute;
 
   const renderEventContent: (event: CalendarEvent) => ReactElement =
     useCallback(
       (event: CalendarEvent): ReactElement => {
+        /*
+         * An event from another calendar: its title, and its calendar's
+         * name for a screen reader. Nothing to open.
+         */
+        if (isOverlayEvent(event)) {
+          return (
+            <span
+              className="oneuptime-calendar-event-overlay block truncate"
+              data-testid="scheduled-maintenance-calendar-overlay-event"
+              data-calendar-id={event.externalCalendarId}
+            >
+              {event.title}
+              <span className="sr-only">{` (${event.calendarName})`}</span>
+            </span>
+          );
+        }
+
         const maintenanceEvent: MaintenanceCalendarEvent =
           event as MaintenanceCalendarEvent;
 
@@ -243,6 +469,11 @@ const ScheduledMaintenanceCalendar: FunctionComponent<ComponentProps> = (
 
   const onEventClick: (event: CalendarEvent) => void = useCallback(
     (event: CalendarEvent): void => {
+      // An event from another calendar has no page here.
+      if (isOverlayEvent(event)) {
+        return;
+      }
+
       Navigation.navigate(
         getEventRoute((event as MaintenanceCalendarEvent).maintenanceId),
       );
@@ -344,11 +575,19 @@ const ScheduledMaintenanceCalendar: FunctionComponent<ComponentProps> = (
     </ul>
   );
 
+  /*
+   * The header as All Events draws it (ModelTable's toolbar header): the
+   * title and the buttons on one line, the description under both across
+   * the card. Beside "Create Scheduled Maintenance Event" the default header
+   * squeezed the title into a column a word wide at tablet widths, and broke
+   * the description over two lines on a laptop.
+   */
   return (
     <Card
       title={props.title}
       description={props.description}
       buttons={props.buttons}
+      headerLayout="toolbar"
     >
       <div data-testid={SCHEDULED_MAINTENANCE_CALENDAR_ID}>
         {props.topContent || <></>}
@@ -375,10 +614,10 @@ const ScheduledMaintenanceCalendar: FunctionComponent<ComponentProps> = (
         <div aria-busy={isLoading} data-loading={isLoading ? "true" : "false"}>
           <Calendar
             id={`${SCHEDULED_MAINTENANCE_CALENDAR_ID}-grid`}
-            events={calendarEvents}
+            events={gridEvents}
             eventAppearance={CalendarEventAppearance.Soft}
             toolbarStatus={
-              isLoading ? (
+              isLoading || isOverlayLoading ? (
                 /*
                  * Beside the period's name, where the reader who just moved
                  * to it looks; the grid stays as it was until the period's
@@ -439,6 +678,19 @@ const ScheduledMaintenanceCalendar: FunctionComponent<ComponentProps> = (
           />
         </div>
 
+        {externalCalendars.length > 0 ? (
+          <div className="mt-3 border-t border-gray-100 pt-3">
+            <ExternalCalendarToggles
+              calendars={externalCalendars}
+              hiddenIds={hiddenCalendarIds}
+              onToggle={onToggleExternalCalendar}
+              settingsRoute={props.externalCalendarSettingsRoute}
+            />
+          </div>
+        ) : (
+          <></>
+        )}
+
         {isTruncated ? (
           <p
             className="mt-2 text-xs text-gray-500"
@@ -447,6 +699,21 @@ const ScheduledMaintenanceCalendar: FunctionComponent<ComponentProps> = (
             {translator.translateTemplate(
               "Showing the first {{count}} events in this period. Narrow it with the filters, or look at a week.",
               { count: MAINTENANCE_CALENDAR_VIEW_LIMIT },
+            )}
+          </p>
+        ) : (
+          <></>
+        )}
+
+        {!isOverlayLoading &&
+        overlayRows.length >= MAINTENANCE_CALENDAR_OVERLAY_LIMIT ? (
+          <p
+            className="mt-2 text-xs text-gray-500"
+            data-testid="scheduled-maintenance-calendar-overlay-truncated"
+          >
+            {translator.translateTemplate(
+              "Showing the first {{count}} events of the external calendars in this period. Hide some of them, or look at a week.",
+              { count: MAINTENANCE_CALENDAR_OVERLAY_LIMIT },
             )}
           </p>
         ) : (

@@ -10,6 +10,8 @@ import PyroscopeAPI from "./API/Pyroscope";
 import SourceMapIngestAPI from "./API/SourceMapIngest";
 import SessionReplayIngestAPI from "./API/SessionReplayIngest";
 import TelemetryWriterAPI from "./API/TelemetryWriter";
+// OpAMP: the hosts OneUptime installs and configures (HostCollectorAgent)
+import HostCollectorOpAmpAPI from "./API/HostCollectorOpAmp";
 // ProbeIngest routes
 import ProbeIngestRegisterAPI from "./API/ProbeIngest/Register";
 import ProbeIngestMonitorAPI from "./API/ProbeIngest/Monitor";
@@ -86,6 +88,12 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(TELEMETRY_PREFIXES, ChangeEventsIngestAPI);
       app.use(TELEMETRY_PREFIXES, PyroscopeAPI);
       app.use(TELEMETRY_PREFIXES, SourceMapIngestAPI);
+      /*
+       * The supervisor on every host OneUptime manages polls here for the
+       * config the host runs: /opamp/v1, and /telemetry/opamp/v1 behind an
+       * ingress that routes only /telemetry to the App.
+       */
+      app.use(TELEMETRY_PREFIXES, HostCollectorOpAmpAPI);
       /*
        * Session replay ingest. Mounted on both prefixes like the rest, which
        * is why StartServer's body-parser bypass predicates must match with

@@ -285,7 +285,7 @@ const STEPS = noSteps
           agentId: RUNNER_IDS[0],
         },
         continueOnFailure: false,
-        requireApproval: false,
+        requireApprovalBeforeRunning: false,
       },
       {
         id: "70000000-0000-4000-8000-000000000a02",
@@ -299,7 +299,8 @@ const STEPS = noSteps
           agentId: RUNNER_IDS[0],
         },
         continueOnFailure: false,
-        requireApproval: true,
+        // The run stops before restarting checkout until someone approves it.
+        requireApprovalBeforeRunning: true,
       },
       ...(withLegacy
         ? [

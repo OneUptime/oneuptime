@@ -33,12 +33,14 @@ Stubbed:
   way they do on a real install (`https://oneuptime.acme-commerce.example/docs/integrations/<slug>`).
   Nothing is ever fetched from it: the spec answers the one docs page a clicked link names
   with a stub and aborts everything else.
-- The side menu's counts beside Cases and Playbook Runs (`ModelAPI.count` of the open cases
-  and of the runs waiting for approval) answer 0.
-- The menu's other pages (Overview, Cases, Correlate, Entities, Detection Rules, Rule
-  Library, ATT&CK Coverage, Threat Intel, Playbooks, Playbook Runs, Setup Guide) render a small
-  stub page with `data-testid="stub-page"` and `data-page="<PageMap key>"`, so a test can tell
-  where a link went.
+- The side menu's counts beside Open Cases, Assigned to Me and Waiting for Approval
+  (`ModelAPI.count` of the open cases, the signed-in user's open cases and the runs waiting
+  for approval) answer 0.
+- The menu's other pages (Overview; Open Cases, Assigned to Me, Unassigned, Closed Cases, All
+  Cases; Correlate, Entities; Detection Rules, Rule Library, ATT&CK Coverage, Threat Intel;
+  Playbooks, Waiting for Approval, Playbook Runs; Setup Guide) render a small stub page with
+  `data-testid="stub-page"` and `data-page="<PageMap key>"`, so a test can tell where a link
+  went.
 
 The clock is pinned: the spec fixes the browser clock to `2026-09-22T12:00:00Z`.
 

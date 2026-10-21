@@ -64,7 +64,13 @@ Tutti i ruoli dell'applicazione sono la stessa immagine: Docker Compose li esegu
 
 ## Connessioni in uscita dalla tua rete
 
-L'applicazione si collega all'esterno solo per ciò che attivi. Ciascuna di queste connessioni è facoltativa, e ognuna ha una pagina che indica gli indirizzi esatti da consentire:
+Si stabiliscono tre connessioni, a meno che tu non cambi un'impostazione:
+
+- Una volta al giorno, l'applicazione chiede all'API di GitHub (`api.github.com`) se è uscita una versione più recente. Per disattivarlo, imposta `updateCheck.disabled: true` nel chart Helm, oppure `DISABLE_UPDATE_CHECK=true` in `config.env` con Docker Compose.
+- Registrarsi con «Avvisami delle patch di sicurezza e delle nuove versioni» selezionato, come lo è all'inizio, invia a `oneuptime.com` il nome e l'email della persona, l'azienda e il numero di telefono indicati, e l'indirizzo e la versione della tua installazione. Deselezionalo su una rete senza accesso a internet.
+- Su Kubernetes, le sonde ricorrono ai resolver pubblici `8.8.8.8` e `1.1.1.1` dopo il DNS del tuo cluster. Imposta `dnsConfig.nameservers` su `[]` per tenere ogni risoluzione sul tuo DNS.
+
+Tutto il resto si collega all'esterno solo quando lo attivi, e ognuno ha una pagina che indica gli indirizzi esatti da consentire:
 
 | Connessione in uscita | Usata per | Dove approfondire |
 | --- | --- | --- |
@@ -76,6 +82,8 @@ L'applicazione si collega all'esterno solo per ciò che attivi. Ciascuna di ques
 | `oneuptime.com` | Attivare online una licenza Enterprise | [Edizione Enterprise](/docs/self-hosted/enterprise) |
 
 Le connessioni nell'altra direzione – SendGrid che consegna le email in arrivo, Slack e Microsoft Teams che richiamano – richiedono che l'ingress sia raggiungibile da internet. Quali indirizzi privati possano raggiungere l'applicazione e le sonde lo decidi tu: vedi [Accesso alla rete privata](/docs/self-hosted/private-network-access).
+
+Il logo di OneUptime viaggia dentro ogni email che OneUptime invia, quindi si vede anche su una rete senza accesso a internet, e aprire un'email non chiede nulla a nessun altro host. Le immagini che carichi tu, come il tuo logo o quello di una pagina di stato, vengono mostrate dal tuo URL di OneUptime, che chi legge quelle email deve poter raggiungere.
 
 ## Passaggi successivi
 

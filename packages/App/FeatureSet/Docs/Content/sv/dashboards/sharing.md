@@ -47,6 +47,7 @@ En offentlig instrumentpanel:
 
 - Öppnas alltid för läsning. Besökare kan inte redigera den och ser aldrig dess redigeringskontroller.
 - Innehåller variablerna som du har lagt till. Besökare väljer i samma väljare som ditt team använder, och kan ändra tidsintervallet, zooma, slå på automatisk uppdatering och gå till helskärm. Den öppnas med instrumentpanelens standardtidsintervall och standard för automatisk uppdatering, och varje besökares webbläsare kommer ihåg besökarens egna val.
+- Låter besökare [sortera dess listor och tabeller](/docs/dashboards/widgets#sortera-listor-och-tabeller) genom att klicka på en kolumnrubrik, så som ditt team gör. Varje besökares webbläsare kommer ihåg deras egen sortering, och OneUptime sorterar själv hela listan, alltid bara efter en av widgetens egna kolumner.
 - Använder varumärket som du anger på instrumentpanelens sida **Varumärke**: sidtitel, beskrivning, logotyp, tema, favicon.
 - Låter varje besökare växla mellan den ljusa och den mörka instrumentpanelen med en sol- eller månknapp i dess verktygsfält; [Tema](#tema) förklarar hur.
 

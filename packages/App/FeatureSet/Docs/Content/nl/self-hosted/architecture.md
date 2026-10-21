@@ -64,7 +64,13 @@ Alle rollen van de app zijn hetzelfde image: Docker Compose draait ze in één `
 
 ## Verbindingen uit uw netwerk
 
-De app maakt alleen verbinding naar buiten voor wat u inschakelt. Elk van deze verbindingen is optioneel, en voor elk is er een pagina die de exacte adressen noemt die u moet toestaan:
+Drie verbindingen worden gemaakt, tenzij u een instelling wijzigt:
+
+- Eén keer per dag vraagt de app aan de API van GitHub (`api.github.com`) of er een nieuwere versie is. Zet dit uit met `updateCheck.disabled: true` in de Helm-chart, of met `DISABLE_UPDATE_CHECK=true` in `config.env` bij Docker Compose.
+- Bij een aanmelding met „Stel mij op de hoogte van beveiligingspatches en nieuwe versies” aangevinkt, zoals het in het begin staat, gaan de naam en het e-mailadres van die persoon, een opgegeven bedrijf en telefoonnummer, en het adres en de versie van uw installatie naar `oneuptime.com`. Vink het uit op een netwerk zonder internettoegang.
+- Op Kubernetes vallen probes na de eigen DNS van uw cluster terug op de openbare resolvers `8.8.8.8` en `1.1.1.1`. Zet `dnsConfig.nameservers` op `[]` om elke lookup op uw eigen DNS te houden.
+
+Al het andere maakt alleen verbinding naar buiten als u het inschakelt, en voor elk is er een pagina die de exacte adressen noemt die u moet toestaan:
 
 | Uitgaande verbinding | Gebruikt voor | Meer lezen |
 | --- | --- | --- |
@@ -76,6 +82,8 @@ De app maakt alleen verbinding naar buiten voor wat u inschakelt. Elk van deze v
 | `oneuptime.com` | Een Enterprise-licentie online activeren | [Enterprise Edition](/docs/self-hosted/enterprise) |
 
 Verbindingen in de andere richting – SendGrid dat inkomende e-mail aflevert, Slack en Microsoft Teams die terugbellen – vereisen dat de ingress vanaf internet bereikbaar is. Welke privéadressen de app en de probes mogen bereiken, bepaalt u zelf: zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access).
+
+Het logo van OneUptime zit in elke e-mail die OneUptime verstuurt, dus het verschijnt ook op een netwerk zonder internettoegang, en bij het openen van een e-mail wordt geen andere host om iets gevraagd. Afbeeldingen die u zelf uploadt, zoals uw eigen logo of dat van een statuspagina, worden getoond vanaf uw OneUptime-URL, die de lezers van die e-mails moeten kunnen bereiken.
 
 ## Volgende stappen
 

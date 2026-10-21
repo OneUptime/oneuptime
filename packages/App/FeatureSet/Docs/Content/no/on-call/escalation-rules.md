@@ -118,6 +118,26 @@ Hver melding er en som leverandøren tar imot, så et varsel går alltid ut. Så
 
 En lengre melding, med en lang tittel eller en lang beskrivelse som en mal har satt inn, kortes ned og slutter med en merknad om at hele teksten står i OneUptime: "… (truncated — see OneUptime for the full text)". Ordlyden i en WhatsApp-melding er en fast mal, så der kortes de lengste verdiene ned i stedet, hver med "…" til slutt. Lenkene i en melding kortes aldri ned.
 
+### Hva SMS-en for en varsling sier
+
+En SMS sendes, og faktureres, i deler på 160 tegn. En varsling på SMS skrives slik at den får plass i én del der det går an, og sier bare det du trenger på en låst telefon: hvem som sender den, hva som har skjedd, og den ene lenken for å bekrefte varslingen eller sende den videre. På en telefon ser den slik ut:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+```
+
+Den oppgir alvorlighetsgraden og hva som har skjedd (en hendelse, et varsel eller en episode av en av dem), nummeret, prosjektet og tittelen, i den rekkefølgen. Når ikke alt får plass i én del:
+
+1. Først utelates prosjektet.
+2. Deretter kortes tittelen ned, og den slutter med `...`.
+
+Alvorlighetsgraden, nummeret og lenken kortes aldri ned. En tittel beholder minst 20 tegn: får ikke engang det plass, for eksempel med en svært lang adresse eller et svært langt produktnavn, tar SMS-en en del til og sier alt.
+
+Ett tegn utenfor det enkle SMS-alfabetet gjør at hele meldingen går ut i deler på 70 tegn. Derfor skrives typografiske anførselstegn og tankestreker som `"`, `'` og `-`, `…` som `...`, og bokstaver som `ç` og `ł` mister aksentene sine; emojier utelates. En tittel i en annen skrift, som japansk eller russisk, sendes slik den er skrevet, og tar to deler eller flere.
+
+De andre SMS-ene OneUptime sender deg, for eksempel om en endring i en hendelse du eier eller starten på vakten din, begynner også med `OneUptime:` og slutter med `Turn off in User Settings > Notification Settings.`, en setning som utelates når det er det som får SMS-en til å passe i én del.
+
 ### Når et varsel ikke sendes
 
 Et varsel som ikke sendes, sier hvorfor i personens **Vaktlogger** (Brukerinnstillinger): raden viser **Feil**, og statusmeldingen gir årsaken. Det blir ikke lenger stående på **Sender**. Meldingen sier ett av dette:
@@ -208,7 +228,7 @@ Hver gang en varsling sendes videre, blir det registrert. Kjøringens **Tidslinj
 Kortet til hver regel har **Edit rule**, og en **⋯**-meny med de andre handlingene:
 
 - **Edit rule** åpner den samme dialogen på én side, fylt ut med regelen slik den er: mottakerne, ventetiden, og navnet og beskrivelsen under **Flere felt**. Legg til eller fjern mottakere, og klikk på **Lagre endringer**. Tømmer du navnet, får regelen navnet til nivået sitt igjen.
-- **Move up** og **Move down** i **⋯**-menyen til en regel endrer nivået. En regel som har navn etter nivået sitt, beholder et navn som passer til plassen: når **Level 3** flyttes opp forbi **Level 2**, bytter de to navn. Et navn du har valgt selv, for eksempel **Ledere**, forblir det samme uansett hvor regelen flyttes.
+- **Flytt opp** og **Flytt ned** i **⋯**-menyen til en regel endrer nivået. En regel som har navn etter nivået sitt, beholder et navn som passer til plassen: når **Level 3** flyttes opp forbi **Level 2**, bytter de to navn. Et navn du har valgt selv, for eksempel **Ledere**, forblir det samme uansett hvor regelen flyttes.
 - **Delete rule** spør først og sier hvem nivået varsler. Sletter du et nivå, flyttes nivåene under det opp, og regler som har navn etter nivået sitt, får nye navn som passer.
 
 ## Opprett regler med API-et eller Terraform

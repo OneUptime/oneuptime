@@ -157,7 +157,7 @@ Check, in order:
 - The rule is **Enabled**.
 - Each runbook has **Run this runbook** on, on its **Settings** page, and has at least one saved step.
 - The incident or alert was not created already resolved.
-- The runbook's execution is not simply waiting: open it from the event's **Runbooks** page. A Manual step or an approval shows **Waiting for you**.
+- The runbook's execution is not simply waiting: open it from the event's **Runbooks** page. A Manual step shows **Waiting for you**, and a step that needs approval **Waiting for approval**.
 :::
 
 :::details A rule never matches

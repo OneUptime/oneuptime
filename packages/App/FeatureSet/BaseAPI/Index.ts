@@ -587,6 +587,7 @@ import DetectionRuleService, {
 } from "Common/Server/Services/DetectionRuleService";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
 import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityConnectionAPI";
+import CloudConnectionAPI from "Common/Server/API/CloudConnectionAPI";
 import ExternalMcpServerAPI from "Common/Server/API/ExternalMcpServerAPI";
 import SecurityEventDestinationAPI from "Common/Server/API/SecurityEventDestinationAPI";
 import SecurityLogSourceService, {
@@ -612,6 +613,9 @@ import SecurityDetectionService, {
 import SecurityPlaybookService, {
   Service as SecurityPlaybookServiceType,
 } from "Common/Server/Services/SecurityPlaybookService";
+import SecurityProtectedEntityService, {
+  Service as SecurityProtectedEntityServiceType,
+} from "Common/Server/Services/SecurityProtectedEntityService";
 import LogScrubRuleService, {
   Service as LogScrubRuleServiceType,
 } from "Common/Server/Services/LogScrubRuleService";
@@ -867,6 +871,12 @@ import HostOwnerTeamService, {
 import HostOwnerUserService, {
   Service as HostOwnerUserServiceType,
 } from "Common/Server/Services/HostOwnerUserService";
+import HostCollectorConfigService, {
+  Service as HostCollectorConfigServiceType,
+} from "Common/Server/Services/HostCollectorConfigService";
+import HostCollectorConfigVersionService, {
+  Service as HostCollectorConfigVersionServiceType,
+} from "Common/Server/Services/HostCollectorConfigVersionService";
 import LabelService, {
   Service as LabelServiceType,
 } from "Common/Server/Services/LabelService";
@@ -1006,6 +1016,9 @@ import ProjectOnCallCalendarFeedService, {
 import ScheduledMaintenanceCalendarFeedService, {
   Service as ScheduledMaintenanceCalendarFeedServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceCalendarFeedService";
+import ScheduledMaintenanceExternalCalendarEventService, {
+  Service as ScheduledMaintenanceExternalCalendarEventServiceType,
+} from "Common/Server/Services/ScheduledMaintenanceExternalCalendarEventService";
 import UserOnCallShiftReminderService, {
   Service as UserOnCallShiftReminderServiceType,
 } from "Common/Server/Services/UserOnCallShiftReminderService";
@@ -1467,6 +1480,8 @@ import MessageQueueOwnerRule from "Common/Models/DatabaseModels/MessageQueueOwne
 import Host from "Common/Models/DatabaseModels/Host";
 import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
 import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
+import HostCollectorConfig from "Common/Models/DatabaseModels/HostCollectorConfig";
+import HostCollectorConfigVersion from "Common/Models/DatabaseModels/HostCollectorConfigVersion";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
 import TeamCustomField from "Common/Models/DatabaseModels/TeamCustomField";
@@ -1503,6 +1518,7 @@ import McpOAuthGrant from "Common/Models/DatabaseModels/McpOAuthGrant";
 import OnCallDutyPolicyScheduleCalendarFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
 import ProjectOnCallCalendarFeed from "Common/Models/DatabaseModels/ProjectOnCallCalendarFeed";
 import ScheduledMaintenanceCalendarFeed from "Common/Models/DatabaseModels/ScheduledMaintenanceCalendarFeed";
+import ScheduledMaintenanceExternalCalendarEvent from "Common/Models/DatabaseModels/ScheduledMaintenanceExternalCalendarEvent";
 import UserOnCallShiftReminder from "Common/Models/DatabaseModels/UserOnCallShiftReminder";
 import UserOnCallShiftReminderLog from "Common/Models/DatabaseModels/UserOnCallShiftReminderLog";
 import UserNotificationEmailRollupItem from "Common/Models/DatabaseModels/UserNotificationEmailRollupItem";
@@ -1614,6 +1630,7 @@ import SecurityCaseFeed from "Common/Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
+import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule";
 import MetricRecordingRule from "Common/Models/DatabaseModels/MetricRecordingRule";
@@ -1726,6 +1743,7 @@ import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
 import ScheduledMaintenanceCalendarAPI from "Common/Server/API/ScheduledMaintenanceCalendarAPI";
+import ScheduledMaintenanceExternalCalendarAPI from "Common/Server/API/ScheduledMaintenanceExternalCalendarAPI";
 import OnCallScheduleTimelineAPI from "Common/Server/API/OnCallScheduleTimelineAPI";
 import WorkspaceChannelLinkAPI from "Common/Server/API/WorkspaceChannelLinkAPI";
 import WorkspaceChannelMembersAPI from "Common/Server/API/WorkspaceChannelMembersAPI";
@@ -3290,6 +3308,12 @@ const BaseAPIFeatureSet: FeatureSet = {
       new LlmObservabilityConnectionAPI().getRouter(),
     );
 
+    // Cloud connections: AWS, Azure and Google Cloud accounts read on a schedule.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CloudConnectionAPI().getRouter(),
+    );
+
     // External MCP servers OneUptime AI may use, and their connection test.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -3975,6 +3999,14 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new SecurityPlaybookRunAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityProtectedEntity, SecurityProtectedEntityServiceType>(
+        SecurityProtectedEntity,
+        SecurityProtectedEntityService,
+      ).getRouter(),
     );
 
     app.use(
@@ -5076,6 +5108,31 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    /*
+     * Collector Configs (Hosts > Collector Configs): the config OneUptime
+     * sends to the hosts it manages, checked on every save, and the versions
+     * every save makes - written only by the config's service, so their
+     * router only reads.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<HostCollectorConfig, HostCollectorConfigServiceType>(
+        HostCollectorConfig,
+        HostCollectorConfigService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        HostCollectorConfigVersion,
+        HostCollectorConfigVersionServiceType
+      >(
+        HostCollectorConfigVersion,
+        HostCollectorConfigVersionService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<EmailVerificationToken, EmailVerificationTokenServiceType>(
@@ -5420,6 +5477,30 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         ScheduledMaintenanceCalendarFeed,
         ScheduledMaintenanceCalendarFeedService,
+      ).getRouter(),
+    );
+
+    /*
+     * Calendars from outside the project, drawn on the maintenance
+     * calendar (Calendar Settings): their CRUD routes and Read now
+     * (/scheduled-maintenance-external-calendar/:id/read-now). Their link is
+     * write-only (read [] on the column). Their events are written by the
+     * Workers alone - every write list is empty - and this router serves the
+     * calendar page's reads of them.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new ScheduledMaintenanceExternalCalendarAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ScheduledMaintenanceExternalCalendarEvent,
+        ScheduledMaintenanceExternalCalendarEventServiceType
+      >(
+        ScheduledMaintenanceExternalCalendarEvent,
+        ScheduledMaintenanceExternalCalendarEventService,
       ).getRouter(),
     );
 

@@ -49,6 +49,10 @@ Any text a notification carries can be that long: a response body or a log a des
 
 `HugeTextInLongRunningProcess.test.ts` (packages/Common/Tests/Server/Types) runs every converter - email, plain text, Slack, Teams, the Dashboard viewer, feed text - on sixteen megabytes under `node --no-regexp-optimization`, and on 64 KB of every shape that was slow, each held to a time budget; a new converter of notification text belongs there too.
 
+### Emails load nothing from outside the installation
+
+An email is read wherever its reader is - on a network without the internet, behind a mail gateway that flags remote images - and every image it fetches tells whoever serves it who opened the email, and when (issue #5124: every email's header loaded its logo from res.cloudinary.com). So an email's own markup loads nothing it does not carry: an image is either inside the email - OneUptime's logo (`oneUptimeLogoUrl`, `packages/Common/Server/Utils/Mail/EmailLogo.ts`) and screenshots go out as inline attachments the HTML points at by Content-ID (`EmailInlineImages.ts`) - or an address the installation builds on its own host and hands the template (a logo its operator uploaded). Never a CDN, a web font, a tracking pixel or any other address a template or the code that writes email markup spells out; the only host a template names is `oneuptime.com`, in the footer's link of an installation that is not renamed. `OfflineAssetHygiene.test.ts` (packages/Common/Tests/Server/Utils) reads every email template, in any format, and every string of the code that writes email markup; `EmailsLoadNothingFromOutside.test.ts` (packages/App/Tests/Notification) renders and sends every template on every transport.
+
 ### After you make a change.
 
 Do not lint the entire project. Only lint the files you have modified by passing their paths explicitly to `npx eslint --fix` from the root. Do not run `npm run lint`, `npm run fix-lint`, or `npm run fix`, as these commands lint the entire project.

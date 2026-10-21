@@ -138,7 +138,7 @@ Ogni minuto, gli indicatori attivi di ogni feed abilitato vengono confrontati co
 - Il primo controllo copre gli ultimi 15 minuti. Dopo un'interruzione, il controllo successivo recupera al massimo le ultime 24 ore.
 - Ogni finestra viene controllata una volta. La threat intelligence che arriva dopo il controllo della sua finestra vale solo per gli eventi successivi.
 - Un evento che arriva in ritardo, con un orario precedente al controllo precedente, viene comunque marcato all'arrivo, ma non confrontato.
-- Ogni controllo confronta al massimo 100 valori di indicatore per feed: quelli visti nel maggior numero di eventi.
+- Ogni controllo registra ogni valore di indicatore corrispondente come Detection Finding, fino a 10.000 per feed. Avvisi, incidenti e casi si aprono per i 100 valori visti nel maggior numero di eventi; gli altri condividono un caso sul feed, e il **Last Match Error** del feed dice quanti hanno corrisposto.
 
 ### Cosa fa una corrispondenza
 

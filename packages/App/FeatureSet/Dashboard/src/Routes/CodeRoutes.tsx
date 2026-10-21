@@ -13,6 +13,7 @@ import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPag
 
 // Pages
 import CodePage from "../Pages/Code/Code";
+import CodeRepositoriesPage from "../Pages/Code/Repositories";
 import CodeRepositoryTasks from "../Pages/Code/Repository/Tasks";
 import CodeRepositorySettings from "../Pages/Code/Repository/Settings";
 import CodeRepositoryDelete from "../Pages/Code/Repository/Delete";
@@ -20,10 +21,11 @@ import CodeTaskConversation from "../Pages/Code/Task/Conversation";
 import CodeTaskLog from "../Pages/Code/Task/Log";
 
 /*
- * Code, under /code: the repositories (the mount itself) with their
- * Developer pages, a repository's pages (repositories/:id - its tasks and
- * request box, its settings, removing it), and a task's (tasks/:id - its
- * conversation and its log).
+ * Code, under /code: the request box and every task (the mount itself) and
+ * the connected repositories (repositories), with their Developer pages; a
+ * repository's pages (repositories/:id - its request box and tasks, its
+ * settings, removing it); and a task's (tasks/:id - its conversation and
+ * its log).
  */
 const CodeRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -35,6 +37,16 @@ const CodeRoutes: FunctionComponent<ComponentProps> = (
           index
           element={
             <CodePage {...props} pageRoute={RouteMap[PageMap.CODE] as Route} />
+          }
+        />
+
+        <PageRoute
+          path={CodeRoutePath[PageMap.CODE_REPOSITORIES] || ""}
+          element={
+            <CodeRepositoriesPage
+              {...props}
+              pageRoute={RouteMap[PageMap.CODE_REPOSITORIES] as Route}
+            />
           }
         />
 

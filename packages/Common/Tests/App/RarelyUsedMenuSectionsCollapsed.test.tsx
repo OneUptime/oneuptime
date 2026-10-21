@@ -212,6 +212,12 @@ const EVERYDAY_SECTION_TITLES: ReadonlyArray<string> = [
   "Scheduled Events",
   "Schedules",
   /*
+   * Scheduled maintenance's Maintenance Calendar, a page of its own under a
+   * section of its own, where maintenance is planned: the maintainer asked
+   * for it there, and it is opened as often as the list.
+   */
+  "Calendar",
+  /*
    * "Topology" left this list when the Network menu folded its Topology
    * section (the deeper wiring views and the hand-drawn links): Network's
    * everyday pages are Overview, Devices, Sites, Map and Discovery.
@@ -245,6 +251,15 @@ const EVERYDAY_SECTION_TITLES: ReadonlyArray<string> = [
   "Datastores",
   // Where an exception is dug into (an exception's own page).
   "Investigate",
+  /*
+   * Security Events: the case queue's pages (Open Cases, Assigned to Me,
+   * Unassigned...), the events and how they connect, and the playbooks
+   * with the runs held for an approval - whose count must stay in sight.
+   * Its Detections and Connections, set up once, fold.
+   */
+  "Security Cases",
+  "Events",
+  "Playbooks",
 ];
 
 /*

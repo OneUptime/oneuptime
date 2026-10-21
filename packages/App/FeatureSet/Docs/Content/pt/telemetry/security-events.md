@@ -25,12 +25,16 @@ flowchart TB
     monitors --> act
 ```
 
-Abra **Produtos → Security Events**, em **Observabilidade**. O menu dele:
+Abra **Produtos → Security Events**, em **Observabilidade**. O menu dele tem uma seção para cada parte da segurança, e uma página própria para cada coisa nela:
 
-| Página | Entrada do menu | Para que serve |
+| Página | Seção | Para que serve |
 | --- | --- | --- |
 | **Visão geral** | Visão geral | Como a segurança está configurada, o que precisa de alguém agora e com que rapidez os casos são tratados |
-| **Security Cases** | Security Cases | A fila do que foi detectado, agrupado pelo assunto de cada caso |
+| **Casos abertos** | Casos de segurança | A fila: todo caso ainda não fechado, agrupado pelo assunto de cada um |
+| **Atribuídos a mim** | Casos de segurança | Os casos abertos atribuídos a você |
+| **Não atribuído** | Casos de segurança | Os casos abertos que ninguém assumiu |
+| **Casos fechados** | Casos de segurança | Os casos fechados com um veredicto, os mais recentes primeiro |
+| **Todos os casos** | Casos de segurança | Todo caso, aberto ou fechado |
 | **Eventos** | Eventos | Pesquisar e filtrar todos os eventos, e abrir um para ver todos os campos dele |
 | **Entidades** | Eventos | Os usuários, hosts e endereços que os seus achados mais citam |
 | **Correlacionar** | Eventos | Um grafo dos eventos que compartilham um host, um usuário ou um endereço IP |
@@ -39,11 +43,13 @@ Abra **Produtos → Security Events**, em **Observabilidade**. O menu dele:
 | **Threat Intel** | Detections | Feeds STIX/TAXII de indicadores maliciosos conhecidos |
 | **ATT&CK Coverage** | Detections | As técnicas MITRE ATT&CK que as suas regras cobrem |
 | **Playbooks** | Playbooks | Etapas que rodam nos casos, sozinhas ou manualmente |
-| **Playbook Runs** | Playbooks | O que cada playbook fez, e as etapas aguardando aprovação |
+| **Aguardando aprovação** | Playbooks | As etapas de playbook aguardando alguém aprovar ou rejeitar |
+| **Execuções de playbooks** | Playbooks | O que cada playbook fez, etapa por etapa |
+| **Protected Entities** | Playbooks | Os usuários e hosts aos quais nenhum playbook aplica contenção |
 | **Connections** | Connections | Seus logs, os produtos de segurança que o OneUptime consulta e os SIEMs para os quais ele envia |
 | **Guia de configuração** | Connections | Trechos para enviar eventos, preenchidos com a sua chave de ingestão |
 
-As páginas de uma entrada do menu abrem como abas no topo da página. Novo na segurança? [Primeiros passos com a segurança](/docs/telemetry/security-getting-started) a configura em dois cliques.
+**Detections** e **Connections**, configuradas uma vez, ficam recolhidas até você abri-las. Novo na segurança? [Primeiros passos com a segurança](/docs/telemetry/security-getting-started) a configura em dois cliques.
 
 ## Antes de começar
 
@@ -152,7 +158,7 @@ Para enviar logs de segurança que você já coleta, como os do auditd, do syslo
     Retry_Limit      5
 ```
 
-A aba **Guia de configuração** tem esses trechos com o seu próprio host e a sua chave já preenchidos.
+A página **Guia de configuração**, em **Connections**, tem esses trechos com o seu próprio host e a sua chave já preenchidos.
 
 ### Encontrar eventos de segurança nos seus logs
 
@@ -238,7 +244,7 @@ flowchart TB
 ### Crie uma regra
 
 :::steps
-1. Abra **Produtos → Security Events → Detections** e clique em **Criar: Detection Rule**.
+1. Abra **Produtos → Security Events → Detections → Detection Rules** e clique em **Criar: Detection Rule**.
 2. Em **Sigma Rule**, cole o YAML da regra em **Sigma Rule (YAML)**. Ele é analisado ao salvar, então um erro aparece no formulário.
 3. O **Nome** é preenchido com o `title` da regra: escreva por cima para chamá-la de outro jeito. Uma regra nova roda; **Habilitado** fica no formulário de edição dela.
 4. Em **Ao corresponder**, deixe **Open a Case on Match** ativado para agrupar as correspondências dela em casos, pelo valor pelo qual a regra agrupa.
@@ -302,7 +308,7 @@ O OneUptime verifica a cada minuto quais regras habilitadas já passaram do inte
 - As janelas vêm uma depois da outra, não deslizam. Com um intervalo de 10 minutos, falhas às 09:58 e às 10:01 podem cair em execuções diferentes e são contadas separadamente, então deixe folga ao escolher um limite.
 - Depois de uma lacuna, como uma queda do worker ou uma regra reativada, a próxima execução cobre a lacuna inteira, até as últimas 24 horas.
 - Um evento que chega com mais de dois minutos de atraso, depois que uma execução já cobriu o seu horário, é salvo e pode ser pesquisado, mas essa regra nunca o lê.
-- No máximo 100 grupos disparam por execução: os de contagens mais altas.
+- Cada grupo que atinge o limite vira um Detection Finding, até 10.000 por execução. Alertas, incidentes e casos abrem para os 100 com as contagens mais altas; o restante compartilha um caso sobre a regra, e o **Último erro** da regra diz quantos grupos corresponderam.
 
 ### Gravidade
 

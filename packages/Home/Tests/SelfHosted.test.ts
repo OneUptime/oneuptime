@@ -27,6 +27,7 @@ import {
   getSelfHostedContent,
 } from "../Utils/SelfHosted";
 import PageSEOConfig, { PageSEOData } from "../Utils/PageSEO";
+import { getCloudMarketplacesContent } from "../Utils/CloudMarketplaces";
 import { RetiredClaim, RetiredEditionClaims } from "../Utils/Claims";
 
 /*
@@ -476,6 +477,107 @@ describe("SelfHosted content model", () => {
     expect(updateCheck!.description).toContain("offline license token");
   });
 
+  test("the update-check air-gap step says where the check goes: GitHub's API, not oneuptime.com", () => {
+    const updateCheck: AirGapStep = AirGapSteps.find((step: AirGapStep) => {
+      return step.setting === "updateCheck.disabled";
+    })!;
+
+    expect(updateCheck.description).toContain("GitHub's API");
+    expect(updateCheck.description).toContain("fails quietly");
+    expect(updateCheck.description).not.toContain("oneuptime.com");
+  });
+
+  test("every string of the page's content is plain text, as the page draws it", () => {
+    /*
+     * self-hosted.ejs prints each string as text, so a Markdown code span
+     * would show its backticks (the air-gap upgrade step, the Kubernetes
+     * upgrades line, two upgrade responsibilities and the Enterprise
+     * Edition's first line did). The page's code is its setting chips.
+     */
+    const withBackticks: Array<string> = [];
+    let read: number = 0;
+    const walk: (value: unknown, at: string) => void = (
+      value: unknown,
+      at: string,
+    ): void => {
+      if (typeof value === "string") {
+        read++;
+        if (value.includes("`")) {
+          withBackticks.push(`${at}: ${value}`);
+        }
+      } else if (Array.isArray(value)) {
+        value.forEach((item: unknown, index: number) => {
+          walk(item, `${at}[${index}]`);
+        });
+      } else if (value && typeof value === "object") {
+        for (const [key, item] of Object.entries(value)) {
+          walk(item, `${at}.${key}`);
+        }
+      }
+    };
+
+    walk(getSelfHostedContent(), "selfHosted");
+
+    expect(read).toBeGreaterThan(200);
+    expect(withBackticks).toEqual([]);
+  });
+
+  test("the DNS air-gap step names the chart-wide list the air-gapped values empty", () => {
+    const dns: AirGapStep = AirGapSteps.find((step: AirGapStep) => {
+      return step.title === "Keep DNS internal";
+    })!;
+
+    /*
+     * Every probe takes the chart-wide dnsConfig unless it sets its own, and
+     * the air-gapped page's values (rendered by the chart's air-gapped suite)
+     * empty exactly this list. A probe's own dnsConfig: {} would not do it:
+     * an empty map falls back to the chart-wide one, public nameservers and all.
+     */
+    expect(dns.setting).toBe("dnsConfig.nameservers");
+    expect(dns.description).toContain("set the list to []");
+    expect(dns.setting).not.toContain("probes.<key>");
+  });
+
+  test("the notifications air-gap step names no SMS gateway OneUptime cannot use", () => {
+    const notifications: AirGapStep = AirGapSteps.find((step: AirGapStep) => {
+      return step.title === "Bring your own notification transports";
+    })!;
+
+    // SMS and calls go through Twilio alone (Common/Types/Call/CallProviderType).
+    expect(notifications.description).not.toContain("SMS gateway");
+    expect(notifications.description).toContain("SMTP relay");
+    expect(notifications.description).toContain(
+      "SMS, calls and push need their providers",
+    );
+    // The installation's mail server is set in the Admin Dashboard.
+    expect(notifications.setting).toBe("Settings > Notifications > Emails");
+  });
+
+  test("the AI air-gap step points at a model on the customer's network", () => {
+    const ai: AirGapStep = AirGapSteps.find((step: AirGapStep) => {
+      return step.title === "Run AI locally, or not at all";
+    })!;
+
+    expect(ai.description).toContain("Ollama");
+    expect(ai.description).toContain("OpenAI-compatible server");
+    expect(ai.setting).toBe("GLOBAL_LLM_PROVIDER_TYPE");
+  });
+
+  test("the phone-home answer names the release emails a sign-up asks for, and offline licensing", () => {
+    const answer: string = SelfHostedFaqs.find((faq: SelfHostedFaq) => {
+      return faq.question === "Does a self-hosted install phone home?";
+    })!.answer;
+
+    expect(answer).toContain("GitHub's API");
+    expect(answer).toContain(
+      "“Notify me about security patches and new releases” ticked",
+    );
+    expect(answer).toContain("untick it on an air-gapped network");
+    expect(answer).toContain(
+      "Activated with an offline license token, it never calls us.",
+    );
+  });
+
   test("shared responsibility ships single sign-on in both editions, and SCIM and audit logs in the Enterprise Edition", () => {
     const accessControl: ResponsibilityRow | undefined =
       SharedResponsibilities.find((row: ResponsibilityRow) => {
@@ -571,6 +673,8 @@ describe("SelfHosted content model", () => {
     expect(content.supportBoundaries).toBe(SupportBoundaries);
     expect(content.faqs).toBe(SelfHostedFaqs);
     expect(content.helmDocs).toBe(HelmDocs);
+    // The line under the Enterprise Edition's call to action names these.
+    expect(content.cloudMarketplaces).toEqual(getCloudMarketplacesContent());
   });
 });
 

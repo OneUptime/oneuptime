@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import DashboardPodmanVolumeListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardPodmanVolumeListComponent";
@@ -17,7 +18,13 @@ import DashboardResourceList from "../Utils/DashboardResourceList";
 import PodmanResource from "Common/Models/DatabaseModels/PodmanResource";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import Select from "Common/Types/BaseDatabase/Select";
+import Sort from "Common/Types/BaseDatabase/Sort";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
+import { JSONObject } from "Common/Types/JSON";
+import useDashboardListWidgetSort, {
+  DashboardListWidgetSort,
+} from "../Utils/UseDashboardListWidgetSort";
 import Query from "Common/Types/BaseDatabase/Query";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -28,9 +35,9 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Volume", widthPct: "45%" },
-  { label: "Driver / Scope", widthPct: "25%" },
-  { label: "Host", widthPct: "30%" },
+  { label: "Volume", widthPct: "45%", sortKey: "name" },
+  { label: "Driver / Scope", widthPct: "25%", sortKey: "driver" },
+  { label: "Host", widthPct: "30%", sortKey: "host" },
 ];
 
 const DashboardPodmanVolumeListComponentElement: FunctionComponent<
@@ -39,6 +46,10 @@ const DashboardPodmanVolumeListComponentElement: FunctionComponent<
   const [volumes, setVolumes] = useState<Array<PodmanResource>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const widgetSort: DashboardListWidgetSort = useDashboardListWidgetSort(
+    props,
+    DashboardComponentType.PodmanVolumeList,
+  );
 
   const args: DashboardPodmanVolumeListComponent["arguments"] =
     props.component.arguments;
@@ -49,7 +60,15 @@ const DashboardPodmanVolumeListComponentElement: FunctionComponent<
 
   const podmanHostIdsKey: string = (podmanHostIds || []).join(",");
 
+  /*
+   * Only the newest read may draw: a viewer clicking through a column's
+   * sorts starts a read per click, and an older, slower one must not
+   * replace the order they ended on.
+   */
+  const readSequenceRef: React.MutableRefObject<number> = useRef<number>(0);
+
   const fetchVolumes: () => Promise<void> = useCallback(async () => {
+    const readSequence: number = ++readSequenceRef.current;
     setIsLoading(true);
 
     const projectId: ReturnType<typeof ProjectUtil.getCurrentProjectId> =
@@ -80,12 +99,13 @@ const DashboardPodmanVolumeListComponentElement: FunctionComponent<
             {
               componentId: props.componentId,
               variables: props.variables,
+              viewerSort: widgetSort.viewerPick,
             },
           ),
           query: query,
           limit: maxRows,
           skip: 0,
-          select: {
+          select: widgetSort.withSortSelect({
             _id: true,
             name: true,
             state: true,
@@ -93,20 +113,33 @@ const DashboardPodmanVolumeListComponentElement: FunctionComponent<
             podmanHost: {
               name: true,
             },
-          },
-          sort: {
-            name: SortOrder.Ascending,
-          },
+          } as JSONObject) as Select<PodmanResource>,
+          // The viewer's pick, else the widget's own sort, else by name.
+          sort: widgetSort.modelSort as Sort<PodmanResource>,
         });
+
+      if (readSequence !== readSequenceRef.current) {
+        return;
+      }
 
       setVolumes(listResult.data);
       setError(null);
     } catch (err: unknown) {
+      if (readSequence !== readSequenceRef.current) {
+        return;
+      }
+
       setError(API.getFriendlyErrorMessage(err as Error));
     }
 
     setIsLoading(false);
-  }, [maxRows, podmanHostIdsKey, props.componentId, props.variables]);
+  }, [
+    maxRows,
+    podmanHostIdsKey,
+    props.componentId,
+    props.variables,
+    widgetSort.sortKey,
+  ]);
 
   useEffect(() => {
     fetchVolumes();
@@ -169,6 +202,7 @@ const DashboardPodmanVolumeListComponentElement: FunctionComponent<
       emptyIcon={IconProp.Database}
       viewMode={viewMode}
       honeycombTiles={honeycombTiles}
+      sort={widgetSort.listSort}
     >
       {rows}
     </DashboardResourceListBase>

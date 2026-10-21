@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import DashboardIncidentListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardIncidentListComponent";
@@ -17,7 +18,10 @@ import DashboardResourceList from "../Utils/DashboardResourceList";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import Select from "Common/Types/BaseDatabase/Select";
+import Sort from "Common/Types/BaseDatabase/Sort";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
+import { JSONObject } from "Common/Types/JSON";
 import {
   DashboardDateTime,
   getDashboardDateTime,
@@ -41,17 +45,20 @@ import Color from "Common/Types/Color";
 import { getSeverityPillProps } from "../Utils/SeverityPillStyle";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useDashboardListWidgetSort, {
+  DashboardListWidgetSort,
+} from "../Utils/UseDashboardListWidgetSort";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardIncidentListComponent;
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Title", widthPct: "40%" },
-  { label: "State", widthPct: "17%" },
-  { label: "Severity", widthPct: "15%" },
+  { label: "Title", widthPct: "40%", sortKey: "title" },
+  { label: "State", widthPct: "17%", sortKey: "state" },
+  { label: "Severity", widthPct: "15%", sortKey: "severity" },
   // Wider than the other columns because it carries a date *and* a time.
-  { label: "Declared", widthPct: "28%" },
+  { label: "Declared", widthPct: "28%", sortKey: "declared" },
 ];
 
 const DashboardIncidentListComponentElement: FunctionComponent<
@@ -61,6 +68,10 @@ const DashboardIncidentListComponentElement: FunctionComponent<
   const [incidents, setIncidents] = useState<Array<Incident>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const widgetSort: DashboardListWidgetSort = useDashboardListWidgetSort(
+    props,
+    DashboardComponentType.IncidentList,
+  );
 
   const maxRows: number = props.component.arguments.maxRows || 25;
   const viewMode: ResourceListViewMode =
@@ -80,7 +91,15 @@ const DashboardIncidentListComponentElement: FunctionComponent<
   const monitorIdsKey: string = (monitorIds || []).join(",");
   const labelIdsKey: string = (labelIds || []).join(",");
 
+  /*
+   * Only the newest read may draw: a viewer clicking through a column's
+   * sorts starts a read per click, and an older, slower one must not
+   * replace the order they ended on.
+   */
+  const readSequenceRef: React.MutableRefObject<number> = useRef<number>(0);
+
   const fetchIncidents: () => Promise<void> = useCallback(async () => {
+    const readSequence: number = ++readSequenceRef.current;
     setIsLoading(true);
 
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -176,11 +195,12 @@ const DashboardIncidentListComponentElement: FunctionComponent<
           requestOptions: DashboardResourceList.getRequestOptions("incident", {
             componentId: props.componentId,
             variables: props.variables,
+            viewerSort: widgetSort.viewerPick,
           }),
           query: query,
           limit: maxRows,
           skip: 0,
-          select: {
+          select: widgetSort.withSortSelect({
             _id: true,
             title: true,
             createdAt: true,
@@ -192,16 +212,23 @@ const DashboardIncidentListComponentElement: FunctionComponent<
               name: true,
               color: true,
             },
-          },
-          sort: {
-            createdAt: SortOrder.Descending,
-          },
+          } as JSONObject) as Select<Incident>,
+          // The viewer's pick, else the widget's own sort, else newest first.
+          sort: widgetSort.modelSort as Sort<Incident>,
         },
       );
+
+      if (readSequence !== readSequenceRef.current) {
+        return;
+      }
 
       setIncidents(listResult.data);
       setError(null);
     } catch (err: unknown) {
+      if (readSequence !== readSequenceRef.current) {
+        return;
+      }
+
       setError(API.getFriendlyErrorMessage(err as Error));
     }
 
@@ -215,6 +242,7 @@ const DashboardIncidentListComponentElement: FunctionComponent<
     labelIdsKey,
     props.componentId,
     props.variables,
+    widgetSort.sortKey,
   ]);
 
   useEffect(() => {
@@ -349,6 +377,7 @@ const DashboardIncidentListComponentElement: FunctionComponent<
       emptyIcon={IconProp.Alert}
       viewMode={viewMode}
       honeycombTiles={honeycombTiles}
+      sort={widgetSort.listSort}
     >
       {rows}
     </DashboardResourceListBase>

@@ -1,8 +1,10 @@
 /*
  * What a person may do to one step of a runbook execution, and when.
  *
- * An execution stops for a person in two places: on a Manual step, and after
- * a step marked requireApproval has run. Both park the step as
+ * An execution stops for a person on a Manual step, and before a step that
+ * asks for approval before it runs (requireApprovalBeforeRunning) - and, in
+ * a run started before approvals moved, after a step whose copy still says
+ * requireApproval (RunbookStepApproval). Each parks the step as
  * WaitingForUser and the execution as WaitingForManualStep, and when the run
  * is resumed the execution loop walks straight past every step already
  * Completed or Skipped. So marking a step Completed or Skipped before the run
@@ -11,12 +13,16 @@
  * on at all.
  *
  * The rules:
- *  - Complete: only the step the execution is paused on.
- *  - Skip: the step the execution is paused on, or — while it is paused — a
- *    later plain automated step (neither Manual nor requireApproval), so a
+ *  - Complete: only the step the execution is paused on. On a Manual step it
+ *    ticks the step off; on a step waiting for approval before it runs it
+ *    approves it, and the step runs when the run goes on; on a step of an
+ *    older run that ran and waits for approval it lets the run go on.
+ *  - Skip: the step the execution is paused on (a step waiting for approval
+ *    before it runs then never runs), or - while it is paused - a later plain
+ *    automated step (neither Manual nor one that asks for approval), so a
  *    responder can drop a step they already know is not needed before the run
  *    gets to it. A Manual or approval step is never skipped ahead of time: its
- *    whole purpose is to stop the run.
+ *    whole purpose is to stop the run where a person decides.
  *  - Nothing while the execution is Scheduled or Running. The Worker driving
  *    the run holds the step list in memory and writes all of it back at every
  *    step boundary, so a change made underneath it would be overwritten, and
@@ -30,6 +36,12 @@ import RunbookExecutionStatus from "./RunbookExecutionStatus";
 import { RunbookStepExecutionState } from "./RunbookStepExecution";
 import RunbookStepExecutionStatus from "./RunbookStepExecutionStatus";
 import RunbookStepType from "./RunbookStepType";
+import {
+  RunbookStepWait,
+  getRunbookStepWait,
+  hasApprovalAfterStep,
+  stepRequiresApprovalBeforeRunning,
+} from "./RunbookStepApproval";
 
 export enum RunbookStepAction {
   Complete = "Complete",
@@ -164,7 +176,14 @@ export function decideRunbookStepAction(data: {
       );
     }
 
-    if (target.step.requireApproval) {
+    if (stepRequiresApprovalBeforeRunning(target.step)) {
+      return refuse(
+        `${title} needs approval before it runs, so it can only be approved or skipped once the execution reaches it.${waitingOn}`,
+      );
+    }
+
+    // A step of a run started before approvals moved: it stops after it runs.
+    if (hasApprovalAfterStep(target.step)) {
       return refuse(
         `${title} requires approval, so it can only be approved or skipped once it has run and the execution is waiting on it.${waitingOn}`,
       );
@@ -190,4 +209,54 @@ export function decideRunbookStepAction(data: {
 
 function refuse(reason: string): RunbookStepActionDecision {
   return { allowed: false, reason };
+}
+
+/*
+ * What an action decideRunbookStepAction allowed writes on the step, as the
+ * step routes save it:
+ *
+ *   - approving a step that waits for approval before it runs: the step has
+ *     not run, so it goes back to Pending, approved (approvedAt, and who),
+ *     and the resumed run runs it - it is not marked done here;
+ *   - any other Complete: the step is Completed - a Manual step ticked off,
+ *     or a step of an older run that ran and waited for approval;
+ *   - Skip: the step is Skipped, and never runs.
+ *
+ * `notes` is what the person wrote with it, kept on the step either way.
+ */
+export function applyRunbookStepAction(data: {
+  stepExecution: RunbookStepExecutionState;
+  action: RunbookStepAction;
+  at: Date;
+  userId?: string | undefined;
+  notes?: string | undefined;
+}): void {
+  const stepExecution: RunbookStepExecutionState = data.stepExecution;
+  const at: string = data.at.toISOString();
+
+  if (
+    data.action === RunbookStepAction.Complete &&
+    getRunbookStepWait(stepExecution) === RunbookStepWait.ApprovalToRun
+  ) {
+    stepExecution.status = RunbookStepExecutionStatus.Pending;
+    stepExecution.approvedAt = at;
+
+    if (data.userId) {
+      stepExecution.approvedByUserId = data.userId;
+    }
+  } else {
+    stepExecution.status =
+      data.action === RunbookStepAction.Complete
+        ? RunbookStepExecutionStatus.Completed
+        : RunbookStepExecutionStatus.Skipped;
+    stepExecution.completedAt = at;
+
+    if (data.userId) {
+      stepExecution.completedByUserId = data.userId;
+    }
+  }
+
+  if (data.notes) {
+    stepExecution.notes = data.notes;
+  }
 }

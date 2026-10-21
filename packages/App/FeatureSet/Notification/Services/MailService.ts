@@ -883,9 +883,10 @@ export default class MailService {
    * envelope is not changed.
    *
    * The one step send() takes after this: an inline image (a screenshot in
-   * a description) stays a data: URL here, which a browser shows, and is
-   * sent as an attachment the HTML points at by Content-ID, which every
-   * mail client shows (see EmailInlineImages).
+   * a description, and OneUptime's logo in the header) stays a data: URL
+   * here, which a browser shows, and is sent as an attachment the HTML
+   * points at by Content-ID, which every mail client shows (see
+   * EmailInlineImages and EmailLogo).
    */
   public static async render(mail: EmailEnvelope): Promise<RenderedEmail> {
     // The defaults every email gets.
@@ -1256,11 +1257,13 @@ export default class MailService {
       const rendered: RenderedEmail = await this.render(mail);
 
       /*
-       * Inline images (a screenshot in a description) go out as attachments
-       * the HTML points at by Content-ID; an email with none is sent exactly
-       * as rendered. The whole of it is held to what every mail server
-       * takes (EmailSize): images that do not fit are left out, each with a
-       * note, and HTML too big on its own is cut, with a note.
+       * Inline images (a screenshot in a description, OneUptime's logo in
+       * the header) go out as attachments the HTML points at by Content-ID,
+       * on every transport below; an email with none is sent exactly as
+       * rendered. The whole of it is held to what every mail server takes
+       * (EmailSize): screenshots that do not fit are left out, each with a
+       * note, and HTML too big on its own is cut, with a note. The logo is
+       * never left out.
        */
       const attached: EmailWithinLimit = EmailSize.attachWithinLimit(
         rendered.body,

@@ -157,7 +157,7 @@ Prüfen Sie der Reihe nach:
 - Die Regel ist **Aktiviert**.
 - Jedes Runbook hat **Dieses Runbook ausführen** eingeschaltet, auf seiner Seite **Einstellungen**, und mindestens einen gespeicherten Schritt.
 - Der Vorfall oder die Warnung wurde nicht bereits gelöst erstellt.
-- Die Ausführung des Runbooks wartet nicht einfach: Öffnen Sie sie von der Seite **Runbooks** des Ereignisses aus. Ein Manual-Schritt oder eine Freigabe zeigt **Wartet auf Sie**.
+- Die Ausführung des Runbooks wartet nicht einfach: Öffnen Sie sie von der Seite **Runbooks** des Ereignisses aus. Ein Manual-Schritt zeigt **Wartet auf Sie**, ein Schritt, der eine Freigabe braucht, **Wartet auf Genehmigung**.
 :::
 
 :::details Eine Regel passt nie

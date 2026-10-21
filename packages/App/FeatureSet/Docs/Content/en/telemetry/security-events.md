@@ -25,12 +25,16 @@ flowchart TB
     monitors --> act
 ```
 
-Open **Products → Security Events**, under **Observability**. Its menu:
+Open **Products → Security Events**, under **Observability**. Its menu has a section for each part of Security, and a page of its own for each thing in it:
 
-| Page | Menu entry | What it is for |
+| Page | Section | What it is for |
 | --- | --- | --- |
 | **Overview** | Overview | How Security is set up, what needs someone now, and how fast cases are handled |
-| **Security Cases** | Security Cases | The queue of what was detected, grouped by what it is about |
+| **Open Cases** | Security Cases | The queue: every case not closed yet, grouped by what it is about |
+| **Assigned to Me** | Security Cases | The open cases assigned to you |
+| **Unassigned** | Security Cases | The open cases nobody has picked up |
+| **Closed Cases** | Security Cases | The cases closed with a verdict, the latest first |
+| **All Cases** | Security Cases | Every case, open or closed |
 | **Events** | Events | Search and filter every event, and open one to see all its fields |
 | **Entities** | Events | The users, hosts and addresses your findings name most |
 | **Correlate** | Events | A graph of the events that share a host, a user or an IP address |
@@ -39,11 +43,13 @@ Open **Products → Security Events**, under **Observability**. Its menu:
 | **Threat Intel** | Detections | STIX/TAXII feeds of known-bad indicators |
 | **ATT&CK Coverage** | Detections | The MITRE ATT&CK techniques your rules cover |
 | **Playbooks** | Playbooks | Steps that run on cases, by themselves or by hand |
-| **Playbook Runs** | Playbooks | What each playbook did, and the steps waiting for approval |
+| **Waiting for Approval** | Playbooks | The playbook steps waiting for someone to approve or reject them |
+| **Playbook Runs** | Playbooks | What each playbook did, step by step |
+| **Protected Entities** | Playbooks | The users and hosts no playbook contains |
 | **Connections** | Connections | Your logs, the security products OneUptime polls, and the SIEMs it sends to |
 | **Setup Guide** | Connections | Snippets to send events, filled in with your ingestion key |
 
-The pages behind one menu entry open as tabs across the top of the page. New to Security? [Get Started with Security](/docs/telemetry/security-getting-started) sets it up in two clicks.
+**Detections** and **Connections**, set up once, stay folded until you open them. New to Security? [Get Started with Security](/docs/telemetry/security-getting-started) sets it up in two clicks.
 
 ## Before you begin
 
@@ -152,7 +158,7 @@ To send security logs you already collect, such as auditd, syslog or Falco, add 
     Retry_Limit      5
 ```
 
-The **Setup Guide** tab has these snippets with your own host and key filled in.
+The **Setup Guide** page, under **Connections**, has these snippets with your own host and key filled in.
 
 ### Find security events in your logs
 
@@ -238,7 +244,7 @@ flowchart TB
 ### Create a rule
 
 :::steps
-1. Open **Products → Security Events → Detections** and click **Create Detection Rule**.
+1. Open **Products → Security Events → Detections → Detection Rules** and click **Create Detection Rule**.
 2. In **Sigma Rule**, paste the rule's YAML into **Sigma Rule (YAML)**. It is parsed when you save, so a mistake shows in the form.
 3. The **Name** fills in from the rule's `title`: type over it to call the rule something else. A new rule runs; **Enabled** is on its edit form.
 4. In **On Match**, keep **Open a Case on Match** on to group its matches into cases, by the value the rule groups by.
@@ -302,7 +308,7 @@ OneUptime checks every minute for enabled rules whose interval has passed since 
 - Windows are back to back, not rolling. With a 10-minute interval, failures at 09:58 and 10:01 can land in different runs and are counted apart, so leave headroom when you choose a threshold.
 - After a gap, such as a worker outage or a rule turned back on, the next run covers the whole gap, up to the last 24 hours.
 - An event that arrives more than two minutes late, once a run has covered its time, is stored and searchable, but that rule never reads it.
-- At most 100 groups fire per run: the ones with the highest counts.
+- Every group that reaches the threshold becomes a Detection Finding, up to 10,000 a run. Alerts, incidents and cases open for the 100 with the highest counts; the rest share one case about the rule, and the rule's **Last Error** says how many groups matched.
 
 ### Severity
 

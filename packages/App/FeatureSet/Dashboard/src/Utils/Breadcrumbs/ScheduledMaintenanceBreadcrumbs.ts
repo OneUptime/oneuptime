@@ -19,6 +19,11 @@ export function getScheduleMaintenanceBreadcrumbs(
         "Ongoing Scheduled Maintenance",
       ],
     ),
+    // The page by the name its side menu entry and its card give it.
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR,
+      ["Project", "Scheduled Maintenance Events", "Maintenance Calendar"],
+    ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK,
       ["Project", "Scheduled Maintenance Events", "Slack Workspace Connection"],
@@ -193,6 +198,10 @@ export function getScheduleMaintenanceBreadcrumbs(
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MEASUREMENTS,
       ["Project", "Scheduled Maintenance", "Settings", "Measurements"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR,
+      ["Project", "Scheduled Maintenance", "Settings", "Calendar Settings"],
     ),
 
     /*

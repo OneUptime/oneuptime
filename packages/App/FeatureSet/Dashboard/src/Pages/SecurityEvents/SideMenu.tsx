@@ -1,9 +1,8 @@
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageMap from "../../Utils/PageMap";
 import {
   SECURITY_EVENTS_MENU,
   SecurityEventsMenuItem,
-  getSecurityEventsMenuItemPages,
+  SecurityEventsMenuSection,
 } from "../../Utils/SecurityEventsNavigation";
 import {
   SecurityEventsBadgeCount,
@@ -12,60 +11,51 @@ import {
 import Route from "Common/Types/API/Route";
 import SideMenu, {
   SideMenuItemProps,
+  SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
-import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 
-function routeOf(page: PageMap): Route {
-  return RouteUtil.populateRouteParams(RouteMap[page] as Route);
-}
-
 /*
- * The page of an entry's group the person is on, so the entry stays lit
- * on its tabs too (Rule Library under Detections, Playbook Runs under
- * Playbooks).
- */
-function getActiveRoute(item: SecurityEventsMenuItem): Route | undefined {
-  const activePage: PageMap | undefined = getSecurityEventsMenuItemPages(
-    item,
-  ).find((page: PageMap): boolean => {
-    return Navigation.isOnThisPage(routeOf(page));
-  });
-
-  return activePage ? routeOf(activePage) : undefined;
-}
-
-/*
- * The live counts beside an entry (the open cases, the playbook runs
- * waiting for an approval) come from SecurityEventsBadgeCount, which the
- * page tabs read too.
+ * The Security Events side menu: its sections and their pages, as
+ * SecurityEventsNavigation.ts lists them. Every page is an entry of its
+ * own, lit on its page. The counts beside Open Cases, Assigned to Me and
+ * Waiting for Approval come from SecurityEventsBadgeCount, each counting
+ * what its page lists.
  */
 const SecurityEventsSideMenu: FunctionComponent = (): ReactElement => {
-  const items: Array<SideMenuItemProps> = SECURITY_EVENTS_MENU.map(
-    (item: SecurityEventsMenuItem): SideMenuItemProps => {
-      const count: SecurityEventsBadgeCount | undefined =
-        getSecurityEventsBadgeCount(item.badge);
-      const activeRoute: Route | undefined = getActiveRoute(item);
-
+  const sections: Array<SideMenuSectionProps> = SECURITY_EVENTS_MENU.map(
+    (section: SecurityEventsMenuSection): SideMenuSectionProps => {
       return {
-        link: {
-          title: item.title,
-          to: routeOf(item.page),
-        },
-        icon: item.icon,
-        ...(activeRoute ? { activeRoute } : {}),
-        ...(count
-          ? {
-              modelType: count.modelType,
-              countQuery: count.countQuery,
-              badgeType: count.badgeType,
-            }
-          : {}),
+        title: section.title,
+        ...(section.startsCollapsed ? { defaultCollapsed: true } : {}),
+        items: section.items.map(
+          (item: SecurityEventsMenuItem): SideMenuItemProps => {
+            const count: SecurityEventsBadgeCount | undefined =
+              getSecurityEventsBadgeCount(item.badge);
+
+            return {
+              link: {
+                title: item.title,
+                to: RouteUtil.populateRouteParams(RouteMap[item.page] as Route),
+              },
+              icon: item.icon,
+              ...(count
+                ? {
+                    modelType: count.modelType,
+                    countQuery: count.countQuery,
+                    ...(count.badgeType !== undefined
+                      ? { badgeType: count.badgeType }
+                      : {}),
+                  }
+                : {}),
+            };
+          },
+        ),
       };
     },
   );
 
-  return <SideMenu items={items} />;
+  return <SideMenu sections={sections} />;
 };
 
 export default SecurityEventsSideMenu;

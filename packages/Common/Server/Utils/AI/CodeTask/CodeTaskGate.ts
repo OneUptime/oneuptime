@@ -244,6 +244,50 @@ export default class CodeTaskGate {
   }
 
   /*
+   * The GitHub App installation AI reaches the repository through, when it
+   * can (isRepositoryReachable): the installation bound to the project,
+   * which must be the one the repository was imported through. Null
+   * otherwise. Read as root, and only used on the server: the installation
+   * id is not every reader's to see.
+   */
+  @CaptureSpan()
+  public static async getReachableInstallationId(data: {
+    projectId: ObjectID;
+    repositoryId: ObjectID;
+  }): Promise<string | null> {
+    const boundInstallationId: string | null =
+      await GitHubInstallationBinding.getBoundInstallationId(data.projectId);
+
+    if (!boundInstallationId) {
+      return null;
+    }
+
+    const repository: CodeRepository | null =
+      await CodeRepositoryService.findOneBy({
+        query: {
+          _id: data.repositoryId.toString(),
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          repositoryHostedAt: true,
+          gitHubAppInstallationId: true,
+        },
+        props: { isRoot: true },
+      });
+
+    if (
+      !repository ||
+      repository.repositoryHostedAt !== CodeRepositoryType.GitHub ||
+      repository.gitHubAppInstallationId !== boundInstallationId
+    ) {
+      return null;
+    }
+
+    return boundInstallationId;
+  }
+
+  /*
    * Which of the repositories AI can work in, in two reads: the rows, and
    * the installation bound to the project. Read as root - the installation
    * id is not every reader's to see, and only the answer goes back.

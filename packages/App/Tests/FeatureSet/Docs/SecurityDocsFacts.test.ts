@@ -27,11 +27,11 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Utils/SecurityEventsMonitorPrefill";
 import {
   SECURITY_EVENTS_MENU,
-  SECURITY_EVENTS_TAB_GROUPS,
   SecurityEventsMenuItem,
-  SecurityEventsTab,
-  SecurityEventsTabGroup,
+  SecurityEventsMenuSection,
+  getSecurityEventsMenuSectionFor,
 } from "../../../FeatureSet/Dashboard/src/Utils/SecurityEventsNavigation";
+import PageMap from "../../../FeatureSet/Dashboard/src/Utils/PageMap";
 import {
   SECURITY_EVENTS,
   THREAT_INTELLIGENCE,
@@ -82,6 +82,7 @@ import {
   DETECTION_MATCH_COUNT_ATTRIBUTE,
   DETECTION_MATCH_COUNT_THRESHOLD_MAX,
   DETECTION_MATCH_COUNT_THRESHOLD_MIN,
+  DETECTION_MAX_FINDINGS_PER_EVALUATION,
   DETECTION_MAX_GROUPS_PER_EVALUATION,
   DETECTION_MAX_LOOKBACK_IN_MINUTES,
   DETECTION_RULE_ID_ATTRIBUTE,
@@ -120,6 +121,7 @@ import {
   THREAT_INTEL_DEFAULT_VALID_DAYS,
   THREAT_INTEL_FIRST_MATCH_WINDOW_IN_MINUTES,
   THREAT_INTEL_MATCH_MAX_LOOKBACK_IN_MINUTES,
+  THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION,
   THREAT_INTEL_MAX_INDICATORS_PER_EVALUATION,
   THREAT_INTEL_MINIMUM_CONFIDENCE_MAX,
   THREAT_INTEL_MINIMUM_CONFIDENCE_MIN,
@@ -471,35 +473,25 @@ describe("the Security Events page", () => {
       "category: observabilityCategory",
     );
     expect(page).toContain(
-      "Open **Products → Security Events**, under **Observability**. Its menu:",
+      "Open **Products → Security Events**, under **Observability**. Its menu has a section for each part of Security, and a page of its own for each thing in it:",
     );
   });
 
-  it("names every page, and the menu entry it sits under, in the order the product draws them", () => {
-    /*
-     * Each menu entry, then the pages behind it as the tabs list them: a
-     * page of its own (Overview, Security Cases) is the entry's own title.
-     */
+  it("names every page, and the menu section it sits in, in the order the product draws them", () => {
+    // Every page of every section, as the side menu lists them: no tabs.
     const expected: Array<[string, string]> = SECURITY_EVENTS_MENU.flatMap(
-      (item: SecurityEventsMenuItem): Array<[string, string]> => {
-        const group: SecurityEventsTabGroup | undefined =
-          SECURITY_EVENTS_TAB_GROUPS.find(
-            (candidate: SecurityEventsTabGroup): boolean => {
-              return candidate.menuPage === item.page;
-            },
-          );
-
-        return group
-          ? group.tabs.map((tab: SecurityEventsTab): [string, string] => {
-              return [`**${tab.title}**`, item.title];
-            })
-          : [[`**${item.title}**`, item.title]];
+      (section: SecurityEventsMenuSection): Array<[string, string]> => {
+        return section.items.map(
+          (item: SecurityEventsMenuItem): [string, string] => {
+            return [`**${item.title}**`, section.title];
+          },
+        );
       },
     );
 
     expect(
-      SECURITY_EVENTS_MENU.map((item: SecurityEventsMenuItem): string => {
-        return item.title;
+      SECURITY_EVENTS_MENU.map((section: SecurityEventsMenuSection): string => {
+        return section.title;
       }),
     ).toEqual([
       "Overview",
@@ -516,8 +508,21 @@ describe("the Security Events page", () => {
         },
       ),
     ).toEqual(expected);
+    expect(page).not.toContain("as tabs across the top of the page");
+  });
+
+  it("names the sections that start folded, as the menu folds them", () => {
+    expect(
+      SECURITY_EVENTS_MENU.filter(
+        (section: SecurityEventsMenuSection): boolean => {
+          return Boolean(section.startsCollapsed);
+        },
+      ).map((section: SecurityEventsMenuSection): string => {
+        return section.title;
+      }),
+    ).toEqual(["Detections", "Connections"]);
     expect(page).toContain(
-      "The pages behind one menu entry open as tabs across the top of the page.",
+      "**Detections** and **Connections**, set up once, stay folded until you open them.",
     );
   });
 
@@ -1232,20 +1237,17 @@ describe("the Security Events page", () => {
     expect(steps[5]).toContain(
       "**Write Detection Finding on Match** (on) and how matches are counted",
     );
-    // Detections opens on Detection Rules, its first tab.
+    // Detection Rules is a page of the Detections section, its first.
     expect(
-      SECURITY_EVENTS_TAB_GROUPS.find(
-        (group: SecurityEventsTabGroup): boolean => {
-          return group.tabs[0]?.title === "Detection Rules";
-        },
-      )?.menuPage,
-    ).toBe(
-      SECURITY_EVENTS_MENU.find((item: SecurityEventsMenuItem): boolean => {
-        return item.title === "Detections";
-      })?.page,
-    );
+      getSecurityEventsMenuSectionFor(PageMap.SECURITY_EVENTS_DETECTION_RULES)
+        ?.title,
+    ).toBe("Detections");
+    expect(
+      getSecurityEventsMenuSectionFor(PageMap.SECURITY_EVENTS_DETECTION_RULES)
+        ?.items[0]?.title,
+    ).toBe("Detection Rules");
     expect(page).toContain(
-      "Open **Products → Security Events → Detections** and click **Create Detection Rule**.",
+      "Open **Products → Security Events → Detections → Detection Rules** and click **Create Detection Rule**.",
     );
   });
 
@@ -1529,18 +1531,26 @@ describe("the Security Events page", () => {
     );
   });
 
-  it("runs the rules every minute over back-to-back windows, at most 24 hours back, firing at most the 100 highest groups", () => {
+  it("runs the rules every minute over back-to-back windows, at most 24 hours back, recording every group and opening cases for the 100 highest", () => {
     const job: string = source("detectionJob");
     const evaluator: string = flat(source("detectionEvaluator"));
     const service: string = flat(source("securityEventService"));
 
     expect(job).toContain("schedule: EVERY_MINUTE,");
-    expect(job).toContain("DetectionRuleEvaluator.evaluateAllDueRules()");
+    expect(job).toContain(
+      "DetectionRuleEvaluator.enqueueProjectsWithDueRules()",
+    );
+    expect(job).toContain(
+      "DetectionRuleEvaluator.evaluateDueRulesForProject(projectId, lease)",
+    );
     expect(evaluator).toContain(
       "let startTime: Date = rule.lastEvaluatedAt ? rule.lastEvaluatedAt : OneUptimeDate.addRemoveMinutes(endTime, -intervalInMinutes); if (OneUptimeDate.isBefore(startTime, earliestAllowed)) { startTime = earliestAllowed; }",
     );
     expect(evaluator).toContain(
-      "maxGroups: DETECTION_MAX_GROUPS_PER_EVALUATION,",
+      "maxGroups: DETECTION_MAX_FINDINGS_PER_EVALUATION + 1,",
+    );
+    expect(evaluator).toContain(
+      "openLimit: DETECTION_MAX_GROUPS_PER_EVALUATION, recordLimit: DETECTION_MAX_FINDINGS_PER_EVALUATION,",
     );
     expect(service).toContain(
       "AND time >= ${{ type: TableColumnType.DateTime64, value: data.startTime, }} AND time < ${{ type: TableColumnType.DateTime64, value: data.endTime, }}",
@@ -1550,6 +1560,7 @@ describe("the Security Events page", () => {
     );
     expect(DETECTION_MAX_LOOKBACK_IN_MINUTES).toBe(24 * 60);
     expect(DETECTION_MAX_GROUPS_PER_EVALUATION).toBe(100);
+    expect(DETECTION_MAX_FINDINGS_PER_EVALUATION).toBe(10000);
     expect(page).toContain(
       "OneUptime checks every minute for enabled rules whose interval has passed since their last run.",
     );
@@ -1566,7 +1577,7 @@ describe("the Security Events page", () => {
       "the next run covers the whole gap, up to the last 24 hours.",
     );
     expect(page).toContain(
-      "- At most 100 groups fire per run: the ones with the highest counts.",
+      "- Every group that reaches the threshold becomes a Detection Finding, up to 10,000 a run. Alerts, incidents and cases open for the 100 with the highest counts; the rest share one case about the rule, and the rule's **Last Error** says how many groups matched.",
     );
   });
 
@@ -1748,10 +1759,14 @@ describe("the Security Events page", () => {
     );
   });
 
-  it("names the Setup Guide tab, where the snippets carry the reader's own key", () => {
+  it("names the Setup Guide page, where the snippets carry the reader's own key", () => {
     expect(source("setupGuide")).toContain("/security-events/v1/ingest");
+    expect(
+      getSecurityEventsMenuSectionFor(PageMap.SECURITY_EVENTS_DOCUMENTATION)
+        ?.title,
+    ).toBe("Connections");
     expect(page).toContain(
-      "The **Setup Guide** tab has these snippets with your own host and key filled in.",
+      "The **Setup Guide** page, under **Connections**, has these snippets with your own host and key filled in.",
     );
   });
 });
@@ -1795,19 +1810,10 @@ describe("the Threat Intelligence page", () => {
   }
 
   it("opens the feeds from Products → Security Events → Detections → Threat Intel", () => {
-    const detections: SecurityEventsTabGroup | undefined =
-      SECURITY_EVENTS_TAB_GROUPS.find(
-        (group: SecurityEventsTabGroup): boolean => {
-          return group.tabs.some((tab: SecurityEventsTab): boolean => {
-            return tab.title === "Threat Intel";
-          });
-        },
-      );
-
+    // Threat Intel is a page of the Detections section.
     expect(
-      SECURITY_EVENTS_MENU.find((item: SecurityEventsMenuItem): boolean => {
-        return item.page === detections?.menuPage;
-      })?.title,
+      getSecurityEventsMenuSectionFor(PageMap.SECURITY_EVENTS_THREAT_INTEL)
+        ?.title,
     ).toBe("Detections");
     expect(page).toContain(
       "Open **Products → Security Events → Detections → Threat Intel**.",
@@ -2162,7 +2168,7 @@ describe("the Threat Intelligence page", () => {
     expect(statement.query).toContain(">=");
   });
 
-  it("matches every minute: 15 minutes first, at most 24 hours back, at most the 100 values seen in the most events", () => {
+  it("matches every minute: 15 minutes first, at most 24 hours back, recording every value and opening cases for the 100 seen in the most events", () => {
     const matcher: string = flat(source("matcher"));
     const indicators: string = flat(source("indicatorService"));
 
@@ -2171,6 +2177,13 @@ describe("the Threat Intelligence page", () => {
     expect(THREAT_INTEL_FIRST_MATCH_WINDOW_IN_MINUTES).toBe(15);
     expect(THREAT_INTEL_MATCH_MAX_LOOKBACK_IN_MINUTES).toBe(24 * 60);
     expect(THREAT_INTEL_MAX_INDICATORS_PER_EVALUATION).toBe(100);
+    expect(THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION).toBe(10000);
+    expect(matcher).toContain(
+      "maxGroups: THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION + 1,",
+    );
+    expect(matcher).toContain(
+      "openLimit: MAX_GROUPS_PER_EVALUATION, recordLimit: THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION,",
+    );
     expect(matcher).toContain(
       "let startTime: Date = feed.lastEvaluatedAt ? feed.lastEvaluatedAt : OneUptimeDate.addRemoveMinutes( endTime, -THREAT_INTEL_FIRST_MATCH_WINDOW_IN_MINUTES, ); if (OneUptimeDate.isBefore(startTime, earliestAllowed)) { startTime = earliestAllowed; }",
     );
@@ -2184,7 +2197,7 @@ describe("the Threat Intelligence page", () => {
       "- The first check covers the last 15 minutes. After an outage, the next check catches up on at most the last 24 hours.",
     );
     expect(page).toContain(
-      "- Each check matches at most 100 indicator values per feed: the ones seen in the most events.",
+      "- Each check records every matched indicator value as a finding, up to 10,000 per feed. Alerts, incidents and cases open for the 100 values seen in the most events; the rest share one case about the feed, and the feed's **Last Match Error** says how many matched.",
     );
     expect(page).toContain(
       "Matching compares an indicator's value with an event's observables, not with every field",

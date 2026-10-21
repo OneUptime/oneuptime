@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 31872,
-    "untranslated": 16629
+    "keys": 32062,
+    "untranslated": 16617
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -10,6 +10,7 @@
     "Budget",
     "Client",
     "Cloud",
+    "Collector",
     "Embedding",
     "Failover",
     "Gateway",
@@ -27,6 +28,7 @@
     "Pull request #{{number}}",
     "Record",
     "Report",
+    "Repository",
     "Runbook: {{name}}",
     "Runner",
     "Runtime",
@@ -44,6 +46,7 @@
     "tag",
     "{{count}} B",
     "{{count}} KB",
-    "{{count}} MB"
+    "{{count}} MB",
+    "{{count}} repository"
   ]
 }

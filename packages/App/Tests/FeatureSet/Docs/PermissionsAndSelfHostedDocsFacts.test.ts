@@ -128,6 +128,17 @@ const SOURCES: Record<string, string> = {
   mobileSettingsScreen: `${MOBILE_APP}/src/screens/SettingsScreen.tsx`,
   mobileAlarmSounds: `${MOBILE_APP}/src/notifications/criticalAlertSounds.ts`,
   mobileAlarmSoundScreen: `${MOBILE_APP}/src/screens/settings/CriticalAlertSoundScreen.tsx`,
+  emailLogoPartial:
+    "packages/App/FeatureSet/Notification/Templates/Partials/Logo.hbs",
+  emailLogo: `${COMMON_SERVER}/Utils/Mail/EmailLogo.ts`,
+  emailBranding: "packages/App/FeatureSet/Notification/Utils/EmailBranding.ts",
+  statusPageEmailLogo: `${COMMON_SERVER}/Utils/StatusPage/StatusPageEmailLogo.ts`,
+  composeBase: "docker-compose.base.yml",
+  updateCheckJob:
+    "packages/App/FeatureSet/Workers/Jobs/InstanceUpdate/CheckForNewVersion.ts",
+  signUpApi: "packages/App/FeatureSet/Identity/API/Authentication.ts",
+  registerPage: "packages/App/FeatureSet/Accounts/src/Pages/Register.tsx",
+  accountsLocale: "packages/App/FeatureSet/Accounts/src/Locales/en.json",
 };
 
 /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
@@ -2200,6 +2211,185 @@ describe("Architecture, against the compose file and the chart", () => {
     expect(valkey?.[3]).toContain("pending push receipts");
     expect(readSource("receiptQueue")).toContain(
       'import Redis, { ClientType } from "./Redis";',
+    );
+  });
+
+  /*
+   * What reaches out of an install unless a setting stops it: the update
+   * check, the release emails a sign-up asks for, and the probes' fallback
+   * resolvers. The website's air-gapped page (/enterprise/air-gapped) says the
+   * same three and links here; each is held to the code that makes it.
+   */
+  it("names the three connections made unless a setting stops them, as the code makes them", () => {
+    const section: string = textBetween(
+      page,
+      "## Connections out of your network",
+      "| Outbound connection |",
+    );
+    const items: Array<string> = section
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.startsWith("- ");
+      });
+
+    expect(section).toContain(
+      "Three connections are made unless you change a setting:",
+    );
+    expect(items).toHaveLength(3);
+    expect(section).toContain(
+      "Everything else reaches out only when you turn it on",
+    );
+
+    // 1. The update check: GitHub's API, once a day, until a setting stops it.
+    const releaseCheckDefault: string = textBetween(
+      textBetween(
+        readSource("environmentConfig"),
+        'process.env["LATEST_RELEASE_CHECK_URL"] ||',
+        ")",
+      ),
+      '"',
+      '"',
+    );
+
+    expect(new URL(releaseCheckDefault).host).toBe("api.github.com");
+    expect(readSource("updateCheckJob")).toContain(
+      "schedule: IsDevelopment ? EVERY_THREE_HOURS : EVERY_DAY,",
+    );
+    expect(readSource("updateCheckJob")).toContain("if (DisableUpdateCheck) {");
+    expect(readSource("environmentConfig")).toContain(
+      'process.env["DISABLE_UPDATE_CHECK"] === "true"',
+    );
+    expect(items[0]).toContain(
+      "Once a day, the app asks GitHub's API (`api.github.com`) whether a newer release is out.",
+    );
+
+    // The chart value and the Docker Compose variable the item names.
+    expect(chartValue("updateCheck.disabled")).toBe(false);
+    expect(readSource("chartHelpers")).toContain(
+      "- name: DISABLE_UPDATE_CHECK\n  value: {{ default false $.Values.updateCheck.disabled | squote }}",
+    );
+    expect(configExampleValue("DISABLE_UPDATE_CHECK")).toBe("false");
+    expect(readSource("composeBase")).toContain(
+      "DISABLE_UPDATE_CHECK: ${DISABLE_UPDATE_CHECK:-false}",
+    );
+    expect(items[0]).toContain(
+      "set `updateCheck.disabled: true` in the Helm chart, or `DISABLE_UPDATE_CHECK=true` in `config.env` on Docker Compose.",
+    );
+
+    /*
+     * 2. The release emails: a self-hosted install's sign-up form shows the
+     * box ticked, and with it ticked the server sends these to oneuptime.com.
+     */
+    const label: string = JSON.parse(readSource("accountsLocale")).register
+      .notifySelfHosted;
+    const register: string = readSource("registerPage");
+
+    expect(
+      textBetween(
+        register,
+        "if (!IsBillingEnabled) {",
+        'overrideFieldKey: "notifySelfHosted"',
+      ),
+    ).toContain("notifySelfHosted: true");
+    expect(
+      textBetween(
+        register,
+        'overrideFieldKey: "notifySelfHosted"',
+        'dataTestId: "notifySelfHosted"',
+      ),
+    ).toContain("defaultValue: true");
+    expect(items[1]).toContain(`“${label}” ticked, as it is at first`);
+
+    const call: string = textBetween(
+      readSource("signUpApi"),
+      'if (!IsBillingEnabled && miscDataProps["notifySelfHosted"] === true) {',
+      "});",
+    );
+
+    expect(new URL(`https://${textBetween(call, '"https://', '"')}`).host).toBe(
+      "oneuptime.com",
+    );
+
+    for (const field of [
+      "email:",
+      "name:",
+      "companyName:",
+      "companyPhoneNumber:",
+      "oneuptimeVersion: AppVersion",
+      "instanceUrl: instanceUrl",
+    ]) {
+      expect({ field, sent: call.includes(field) }).toEqual({
+        field,
+        sent: true,
+      });
+    }
+
+    expect(items[1]).toContain(
+      "sends the person's name and email, any company and phone number they gave, and your install's address and version to `oneuptime.com`.",
+    );
+
+    /*
+     * 3. The probes' fallback resolvers: the chart-wide dnsConfig every probe
+     * takes unless it sets its own, after the cluster's DNS (dnsPolicy stays
+     * ClusterFirst, the Kubernetes default, when the chart sets none).
+     */
+    expect(chartValue("dnsConfig.nameservers")).toEqual(["8.8.8.8", "1.1.1.1"]);
+    expect(chartValue("dnsPolicy")).toBeNull();
+    expect(readSource("chartProbe")).toContain(
+      "{{- else if $.Values.dnsConfig }}",
+    );
+    expect(items[2]).toContain(
+      "probes fall back to the public resolvers `8.8.8.8` and `1.1.1.1` after your cluster's own DNS.",
+    );
+    expect(items[2]).toContain("Set `dnsConfig.nameservers` to `[]`");
+  });
+
+  /*
+   * Issue #5124: every email's header loaded OneUptime's logo from
+   * res.cloudinary.com. The page says what an email loads when opened; the
+   * product is held to it here, and in OfflineAssetHygiene and
+   * EmailsLoadNothingFromOutside.
+   */
+  it("says OneUptime's logo travels inside every email, as the email's header carries it", () => {
+    expect(page).toContain(
+      "OneUptime's logo travels inside every email it sends, so it shows even on a network without internet access, and opening an email asks no other host for it.",
+    );
+
+    // The header writes the logo the email carries: an image, not an address.
+    expect(readSource("emailLogoPartial")).toContain(
+      'src="{{{@root.oneUptimeLogoUrl}}}"',
+    );
+    expect(readSource("emailBranding")).toContain(
+      'variables["oneUptimeLogoUrl"] = oneUptimeLogoUrl;',
+    );
+    expect(readSource("emailLogo")).toContain('"oneuptime-email-logo.png"');
+    expect(
+      fs.existsSync(
+        path.join(
+          REPO_DIR,
+          COMMON_SERVER,
+          "Static",
+          "Brand",
+          "oneuptime-email-logo.png",
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it("says a logo you upload is shown from your OneUptime URL, as the emails build it", () => {
+    expect(page).toContain(
+      "Images you upload yourself, such as your own logo or a status page's, are shown from your OneUptime URL, which the people who read those emails need to be able to reach.",
+    );
+
+    // The installation's own logo, on HOST; a status page's, on the host given.
+    expect(readSource("emailBranding")).toContain(
+      "const logoUrl: string | null = toAbsoluteUrl(branding.logoUrl);",
+    );
+    expect(readSource("emailBranding")).toContain(
+      "new URL(HttpProtocol, Host.trim())",
+    );
+    expect(readSource("statusPageEmailLogo")).toContain(
+      "return new URL(data.httpProtocol, data.host)",
     );
   });
 });

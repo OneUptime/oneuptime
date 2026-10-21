@@ -6,6 +6,7 @@ import {
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import DashboardKubernetesResourceListBase from "./DashboardKubernetesResourceListBase";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import IconProp from "Common/Types/Icon/IconProp";
 import KubernetesResource from "Common/Models/DatabaseModels/KubernetesResource";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -31,10 +32,10 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Node", widthPct: "40%" },
-  { label: "Status", widthPct: "20%" },
+  { label: "Node", widthPct: "40%", sortKey: "name" },
+  { label: "Status", widthPct: "20%", sortKey: "status" },
   { label: "Pressure", widthPct: "20%" },
-  { label: "Cluster", widthPct: "20%" },
+  { label: "Cluster", widthPct: "20%", sortKey: "cluster" },
 ];
 
 function renderNodeRow(r: KubernetesResource): ReactElement {
@@ -178,6 +179,8 @@ const DashboardKubernetesNodeListComponentElement: FunctionComponent<
   return (
     <DashboardKubernetesResourceListBase
       componentId={props.componentId}
+      componentType={DashboardComponentType.KubernetesNodeList}
+      widgetProps={props}
       title={args.title}
       pluralLabel="nodes"
       emptyMessage="No nodes found"

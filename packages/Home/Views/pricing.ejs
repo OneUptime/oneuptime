@@ -606,6 +606,21 @@
           </div>
         </div>
 
+        <%#
+          OneUptime Cloud on the cloud marketplaces, for buyers who pay through
+          their cloud provider: only the listings that are public
+          (Utils/CloudMarketplaces.ts), and no line while there is none.
+        -%>
+        <% if (typeof cloudMarketplaces !== 'undefined' && cloudMarketplaces.publicListings.cloud.length > 0) { -%>
+        <div class="mx-auto mt-10 max-w-5xl" data-testid="pricing-cloud-marketplaces">
+          <p class="text-balance text-center text-sm leading-6 text-gray-600">
+            Prefer to pay on your cloud bill? Buy <span class="whitespace-nowrap">OneUptime Cloud</span> on
+            <% cloudMarketplaces.publicListings.cloud.forEach(function (link) { %><%= link.separator %><a href="<%= link.url %>" target="_blank" rel="noopener noreferrer" data-ou-cta="<%= cloudMarketplaces.ctaName %>" class="whitespace-nowrap font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600"><%= link.name %><span class="sr-only"> (opens in a new tab)</span></a><% }); %>, at the same prices.
+            <a href="<%= cloudMarketplaces.sectionPath %>" class="whitespace-nowrap font-medium text-gray-900 hover:text-gray-600">See every marketplace <span aria-hidden="true">&rarr;</span></a>
+          </p>
+        </div>
+        <% } -%>
+
         <!-- Pay As You Go Section -->
         <div class="mx-auto mt-16 max-w-2xl rounded-lg ring-1 ring-gray-200 sm:mt-20 lg:mx-0 lg:max-w-none">
           <div class="p-6 sm:p-8">
@@ -938,7 +953,7 @@
                   </div>
                   <div class="ml-3">
                     <h3 class="text-sm font-semibold text-gray-900">Bring Your Own LLM Provider</h3>
-                    <p class="mt-1 text-sm text-gray-600">Connect your own LLM provider (OpenAI, Anthropic, or others) and pay nothing to OneUptime for AI features. You only pay your provider directly at their rates.</p>
+                    <p class="mt-1 text-sm text-gray-600">On the Growth plan and above, connect your own LLM provider (OpenAI, Anthropic, or others) and OneUptime charges nothing for the tokens it uses. You only pay your provider directly at their rates.</p>
                   </div>
                 </div>
               </div>

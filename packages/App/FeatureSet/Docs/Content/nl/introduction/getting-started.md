@@ -60,7 +60,7 @@ De documentatie is net als de zijbalk ingedeeld in negen secties. Kies het deel 
 
 :::cards
 - [Telemetrie](/docs/telemetry/open-telemetry): Logs, metrics en traces versturen met OpenTelemetry, en erin zoeken.
-- [Infrastructuuragents](/docs/telemetry/kubernetes-agent): De agents voor Kubernetes, hosts, Docker, Proxmox, VMware en meer installeren.
+- [Infrastructuuragents](/docs/telemetry/hosts): Een host toevoegen met één opdracht, en de agents voor Kubernetes, Docker, Proxmox, VMware en meer installeren.
 - [Cloud](/docs/telemetry/cloud-environments): ECS, Cloud Run, Azure Container Apps en andere beheerde platforms observeren.
 - [AI-observability](/docs/telemetry/ai-llm-observability): De gesprekken van uw AI volgen, en horen wanneer die slecht antwoordt.
 - [Beveiliging](/docs/telemetry/security-events): Beveiligingsgebeurtenissen en dreigingsinformatie verzamelen.

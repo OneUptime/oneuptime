@@ -77,11 +77,13 @@ export const ServiceRoutePath: Dictionary<string> = {
 };
 
 /*
- * Code, under /code: the repositories are the mount itself, a repository's
- * pages hang off repositories/:id, and a task's off tasks/:id - tasks are
- * addressed on their own, so a task with no repository still has a page.
+ * Code, under /code: the request box and every task are the mount itself,
+ * the connected repositories are repositories, a repository's pages hang
+ * off repositories/:id, and a task's off tasks/:id - tasks are addressed on
+ * their own, so a task with no repository still has a page.
  */
 export const CodeRoutePath: Dictionary<string> = {
+  [PageMap.CODE_REPOSITORIES]: `repositories`,
   [PageMap.CODE_REPOSITORY_VIEW]: `repositories/${RouteParams.ModelID}`,
   [PageMap.CODE_REPOSITORY_VIEW_DELETE]: `repositories/${RouteParams.ModelID}/delete`,
   [PageMap.CODE_REPOSITORY_VIEW_SETTINGS]: `repositories/${RouteParams.ModelID}/settings`,
@@ -516,6 +518,8 @@ export const HostRoutePath: Dictionary<string> = {
   [PageMap.HOST_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.HOST_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.HOST_ARCHIVED]: `archived`,
+  [PageMap.HOST_COLLECTOR_CONFIGS]: `collector-configs`,
+  [PageMap.HOST_COLLECTOR_CONFIG_VIEW]: `collector-configs/${RouteParams.ModelID}`,
 };
 
 export const ServerlessRoutePath: Dictionary<string> = {
@@ -551,6 +555,7 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.CLOUD_ARCHIVED]: `archived`,
   [PageMap.CLOUD_MONITORED_RESOURCES]: `resources`,
+  [PageMap.CLOUD_CONNECT]: `connect`,
 };
 
 export const DatabaseRoutePath: Dictionary<string> = {
@@ -756,11 +761,26 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   [PageMap.SECURITY_EVENTS_ENTITIES]: "entities",
   [PageMap.SECURITY_EVENTS_RULE_LIBRARY]: "rule-library",
   [PageMap.SECURITY_EVENTS_ATTACK_COVERAGE]: "attack-coverage",
+  /*
+   * The case queue's pages. The open cases keep the queue's old address, so
+   * a link to it lands where it always did; the others sit beside a case's
+   * own page (cases/:id), which react-router ranks below these words.
+   */
   [PageMap.SECURITY_CASES]: "cases",
+  [PageMap.SECURITY_CASES_ASSIGNED_TO_ME]: "cases/assigned-to-me",
+  [PageMap.SECURITY_CASES_UNASSIGNED]: "cases/unassigned",
+  [PageMap.SECURITY_CASES_CLOSED]: "cases/closed",
+  [PageMap.SECURITY_CASES_ALL]: "cases/all",
   [PageMap.SECURITY_CASE_VIEW]: `cases/${RouteParams.ModelID}`,
   [PageMap.SECURITY_PLAYBOOKS]: "playbooks",
   [PageMap.SECURITY_PLAYBOOK_VIEW]: `playbooks/${RouteParams.ModelID}`,
-  [PageMap.SECURITY_PLAYBOOK_RUNS]: "playbook-runs",
+  /*
+   * The runs waiting for an approval keep the runs page's old address (it
+   * opened on them); every run is one level down, as every case is.
+   */
+  [PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL]: "playbook-runs",
+  [PageMap.SECURITY_PLAYBOOK_RUNS]: "playbook-runs/all",
+  [PageMap.SECURITY_PROTECTED_ENTITIES]: "protected-entities",
 };
 
 // Metrics product routes
@@ -1094,6 +1114,7 @@ export const AlertsRoutePath: Dictionary<string> = {
 
 export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
   [PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS]: "ongoing",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR]: "calendar",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK]:
     "workspace-connection-slack",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
@@ -1126,6 +1147,7 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
     "settings/measurements",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING]:
     "settings/numbering",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR]: "settings/calendar",
 
   [PageMap.SCHEDULED_MAINTENANCE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
@@ -2417,6 +2439,14 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+      ScheduledMaintenanceEventsRoutePath[
+        PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR
+      ]
+    }`,
+  ),
+
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK]: new Route(
     `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
       ScheduledMaintenanceEventsRoutePath[
@@ -2667,6 +2697,14 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+      ScheduledMaintenanceEventsRoutePath[
+        PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR
+      ]
+    }`,
+  ),
+
   [PageMap.SERVICE_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/*`,
   ),
@@ -2803,6 +2841,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CODE_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/code/*`),
 
   [PageMap.CODE]: new Route(`/dashboard/${RouteParams.ProjectID}/code`),
+
+  [PageMap.CODE_REPOSITORIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/code/${
+      CodeRoutePath[PageMap.CODE_REPOSITORIES]
+    }`,
+  ),
 
   [PageMap.CODE_REPOSITORY_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/code/${
@@ -5223,6 +5267,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.HOST_COLLECTOR_CONFIGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_COLLECTOR_CONFIGS]
+    }`,
+  ),
+
+  [PageMap.HOST_COLLECTOR_CONFIG_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_COLLECTOR_CONFIG_VIEW]
+    }`,
+  ),
+
   // Serverless Functions
   [PageMap.SERVERLESS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/serverless/*`,
@@ -5321,6 +5377,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_MONITORED_RESOURCES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_MONITORED_RESOURCES]
+    }`,
+  ),
+
+  [PageMap.CLOUD_CONNECT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_CONNECT]
     }`,
   ),
 
@@ -6633,6 +6695,30 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SECURITY_CASES_ASSIGNED_TO_ME]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASES_ASSIGNED_TO_ME]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASES_UNASSIGNED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASES_UNASSIGNED]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASES_CLOSED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASES_CLOSED]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASES_ALL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASES_ALL]
+    }`,
+  ),
+
   [PageMap.SECURITY_CASE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW]
@@ -6651,9 +6737,23 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[
+        PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL
+      ]
+    }`,
+  ),
+
   [PageMap.SECURITY_PLAYBOOK_RUNS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_PLAYBOOK_RUNS]
+    }`,
+  ),
+
+  [PageMap.SECURITY_PROTECTED_ENTITIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_PROTECTED_ENTITIES]
     }`,
   ),
 

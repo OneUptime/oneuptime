@@ -102,10 +102,10 @@ export const MOVED_EPISODE_DOCS_PATH: string = "episodes/documentation";
 export const MOVED_INCOMING_CALL_POLICY_DOCS_PATH: string = `incoming-call-policies/${RouteParams.ModelID}/docs`;
 
 /*
- * Tasks became Code: the repositories first, each repository's tasks inside
- * it, and a task's page its conversation (…/code). The two old products'
- * addresses forward there. Relative to the project's dashboard
- * (…/dashboard/:projectId/).
+ * Tasks became Code: the request box and every task first, the connected
+ * repositories beside them, and a task's page its conversation (…/code).
+ * The two old products' addresses forward there. Relative to the project's
+ * dashboard (…/dashboard/:projectId/).
  */
 export const MOVED_CODE_ROOT_PATHS: { tasks: string; repositories: string } = {
   tasks: "ai/agents",
@@ -132,7 +132,7 @@ export const MOVED_TASK_PATHS: {
 /*
  * The old Code Repositories pages, relative to …/code-repository/: a
  * repository's Overview, Settings and Delete pages, keeping its id. The
- * list forwards to Code.
+ * list forwards to Code's Repositories.
  */
 export const MOVED_REPOSITORY_PATHS: {
   view: string;

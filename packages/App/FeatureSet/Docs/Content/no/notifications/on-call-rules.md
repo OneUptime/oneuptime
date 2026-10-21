@@ -51,7 +51,7 @@ Det er en trygg start, og som regel for mye. Kutt det ned til det hver alvorligh
 | Alvorlig | Push med en gang, en SMS etter 10 minutter |
 | Mindre eller lav | En e-post med en gang |
 
-OneUptime har ingen stilletimer: hold lave alvorlighetsgrader på e-post, eller på en push-regel satt til **Normal**, så de aldri vekker deg.
+Dine egne regler har ingen stilletimer: hold lave alvorlighetsgrader på e-post, eller på en push-regel satt til **Normal**, så de aldri vekker deg. For å la tilkallingen for en lav alvorlighetsgrad vente på arbeidstiden for alle, setter du vaktregelen som tilkaller, til **Bare i arbeidstiden**: se [Vaktregler](/docs/alerts/settings#vaktregler).
 
 ## Legg til en regel
 

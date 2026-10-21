@@ -33,7 +33,7 @@ stateDiagram-v2
     Cancelled --> [*]
 ```
 
-Een nieuwe uitvoering staat op **Gepland** tot een Worker haar oppakt en als **Actief** markeert. Ze pauzeert als **Wacht op u** bij een Manual-stap, of na een stap die goedkeuring nodig heeft, en gaat terug in de wachtrij zodra iemand handelt. Een uitvoering die op een persoon wacht, verloopt nooit. Ze eindigt als **Voltooid**, **Mislukt** of **Geannuleerd**.
+Een nieuwe uitvoering staat op **Gepland** tot een Worker haar oppakt en als **Actief** markeert. Ze pauzeert als **Wacht op u** bij een Manual-stap, of vóór een stap die goedkeuring nodig heeft, en gaat terug in de wachtrij zodra iemand handelt. Een uitvoering die op een persoon wacht, verloopt nooit. Ze eindigt als **Voltooid**, **Mislukt** of **Geannuleerd**.
 
 ## Een uitvoering starten
 
@@ -64,18 +64,19 @@ Een uitvoering starten vereist Project Owner, Project Admin, Project Member, Run
 
 Open een uitvoering om de checklist te zien. Bovenaan de pagina staan de **Status** van de uitvoering, de **Progress** (voltooide stappen van het totaal), **Gestart** (wanneer ze begon) en **Geactiveerd door** (wat haar startte). Elke stap toont:
 
-- **Statuslabel** — In behandeling, Actief, Wacht op u, Klaar, Overgeslagen, Mislukt of Geannuleerd.
+- **Statuslabel** — In behandeling, Actief, Wacht op u, Wacht op goedkeuring, Klaar, Overgeslagen, Mislukt of Geannuleerd.
 - **Titel en beschrijving** — bij de start van de uitvoering uit het runbook gekopieerd.
 - **Output** (inklapbaar) — stdout, returnwaarden, HTTP-antwoorden of het antwoord van de AI.
 - **Foutmelding** als de stap mislukte.
-- Op de stap waarop de uitvoering wacht: **Mark complete** (een Manual-stap) of **Approve & continue** (een stap met **Goedkeuring vereisen**), en **Overslaan**.
+- Op de stap waarop de uitvoering wacht: **Markeer als voltooid** (een Manual-stap) of **Goedkeuren en uitvoeren** (een stap met **Goedkeuring vereisen**, die nog niet gelopen heeft), en **Overslaan**.
+- **Goedgekeurd door** op een stap die op goedkeuring heeft gewacht, zodra hij gelopen heeft.
 - Terwijl de uitvoering pauzeert, **Overslaan** op latere geautomatiseerde stappen die geen goedkeuring vereisen.
 
 Zolang de uitvoering bezig is, ververst de pagina zichzelf elke 30 seconden. Klik op **Vernieuwen** om de nieuwste stand meteen te zien.
 
 ## Stappen voltooien, goedkeuren en overslaan
 
-Alleen de stap waarop de uitvoering wacht, kan als voltooid worden gemarkeerd, worden goedgekeurd of worden overgeslagen om de uitvoering te laten doorgaan. Een Manual-stap of een stap met **Goedkeuring vereisen** kan niet worden afgevinkt of overgeslagen voordat de uitvoering hem bereikt: zijn taak is de uitvoering te stoppen, dus hij neemt pas een beslissing aan wanneer de uitvoering er is (bij een goedkeuring: zodra de stap gelopen heeft en u de uitvoer ziet).
+Alleen de stap waarop de uitvoering wacht, kan als voltooid worden gemarkeerd, worden goedgekeurd of worden overgeslagen om de uitvoering te laten doorgaan. Een Manual-stap of een stap met **Goedkeuring vereisen** kan niet worden afgevinkt of overgeslagen voordat de uitvoering hem bereikt: zijn taak is de uitvoering te stoppen, dus hij neemt pas een beslissing aan wanneer de uitvoering er is. Een stap met **Goedkeuring vereisen** wacht voordat hij loopt, dus lees eerst wat de stappen ervoor hebben gevonden: **Goedkeuren en uitvoeren** voert hem uit, **Overslaan** houdt hem tegen, en hoe dan ook gaat de uitvoering verder. Een uitvoering die begon voordat goedkeuringen naar de stap verhuisden die ze bewaken, wacht in plaats daarvan na zo'n stap, zodra die gelopen heeft: **Goedkeuren en doorgaan** laat die uitvoering verdergaan.
 
 Terwijl de uitvoering pauzeert, kunt u ook een latere geautomatiseerde stap overslaan die geen goedkeuring vereist, zodat die niet loopt wanneer de uitvoering verdergaat. De uitvoering blijft gepauzeerd op de stap die op u wacht. Overslaan kan niet terwijl er stappen lopen: wacht tot de uitvoering pauzeert, of annuleer haar. Elke stap legt vast wie hem voltooide of oversloeg.
 
@@ -95,7 +96,7 @@ Het klassieke verloop:
 | # | Stap | Wat er gebeurt |
 | --- | --- | --- |
 | 1 | Bash: systeemtoestand vastleggen | Loopt op zijn Runner zodra de uitvoering start. |
-| 2 | Manual: "Informeer klanten via de banner op de statuspagina." | De uitvoering pauzeert tot iemand op **Mark complete** klikt. |
+| 2 | Manual: "Informeer klanten via de banner op de statuspagina." | De uitvoering pauzeert tot iemand op **Markeer als voltooid** klikt. |
 | 3 | HTTP request: de DBA oproepen via PagerDuty | Loopt op de Worker. |
 | 4 | Manual: "Bevestig dat de secundaire database nu primair is." | De uitvoering pauzeert opnieuw. |
 | 5 | HTTP request: het sein veilig naar een Slack-webhook posten | Loopt, en de uitvoering staat op **Voltooid**. |
@@ -145,7 +146,7 @@ De melding luidt "No runbook agent picked up this step before the wait window ex
 :::
 
 :::details De uitvoering wacht al uren
-Een uitvoering die op een persoon wacht, verloopt nooit. Open haar en handel op de stap met **Wacht op u**, of klik op **Uitvoering annuleren**.
+Een uitvoering die op een persoon wacht, verloopt nooit. Open haar en handel op de stap met **Wacht op u** of **Wacht op goedkeuring**, of klik op **Uitvoering annuleren**.
 :::
 
 :::details Een stap meldt dat hij mogelijk deels is uitgevoerd

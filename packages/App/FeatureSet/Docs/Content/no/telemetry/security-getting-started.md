@@ -45,7 +45,7 @@ flowchart LR
 | --- | --- | --- |
 | **Kilder** | **Connections** | Loggene dine, sikkerhetsproduktene OneUptime henter fra, og alt du sender |
 | **Detections** | **Detections** | Sigma-regler og feeder med trusseletterretning som ser etter trusler i hver hendelse |
-| **Security Cases** | **Security Cases** | Det som ble funnet, gruppert etter brukeren, verten eller adressen det gjelder |
+| **Sikkerhetssaker** | **Sikkerhetssaker** | Det som ble funnet, gruppert etter brukeren, verten eller adressen det gjelder |
 | **Playbooks** | **Playbooks** | Trinn som kjører på nye saker: beriker dem, varsler, åpner en hendelse eller demmer inn |
 
 Stripen øverst på **Oversikt** viser hver del med tallene sine: kildene og hendelsene deres de siste 24 timene, reglene som er slått på, de åpne sakene og playbookene som svarer.
@@ -75,7 +75,7 @@ Rollen din kan ikke legge til deteksjonsregler, playbooks eller loggkilden. Spø
 :::
 
 :::details Testangrepet åpnet ingen sak
-Saken åpnes som regel før knappen svarer; når regelen fortsatt henger etter, sier den fra, og saken åpnes innen et minutt. Se under **Security Cases** igjen, og sjekk under **Detections** at brute force-regelen er slått på.
+Saken åpnes som regel før knappen svarer; når regelen fortsatt henger etter, sier den fra, og saken åpnes innen et minutt. Se under **Sikkerhetssaker** igjen, og sjekk under **Detections** at brute force-regelen er slått på.
 :::
 
 :::details Det kommer ingen sikkerhetshendelse fra loggene mine

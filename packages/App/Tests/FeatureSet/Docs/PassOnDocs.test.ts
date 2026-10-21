@@ -17,6 +17,7 @@ import {
 import UserNotificationExecutionStatus from "Common/Types/UserNotification/UserNotificationExecutionStatus";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import { ON_CALL_PAGE_SMS_ACTION } from "Common/Utils/Sms/OnCallPageSms";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -203,8 +204,11 @@ describe("the Escalation Rules page, on passing a page on", () => {
       "Common/Server/Views/AcknowledgeUserOnCallNotification.ejs",
     );
 
+    // A text's one link, after "Ack or pass it on:", is the acknowledge page's.
+    expect(ON_CALL_PAGE_SMS_ACTION).toBe("Ack or pass it on:");
+    expect(ruleService).toContain("message: this.buildOnCallPageSmsText({");
     expect(ruleService).toContain(
-      "To acknowledge this incident, or pass it on if you can't take it, please click on the following link",
+      "link: await this.buildOnCallAcknowledgeShortUrl(",
     );
     // WhatsApp's wording is a fixed template: its one link is the acknowledge page's.
     expect(ruleService).toContain(

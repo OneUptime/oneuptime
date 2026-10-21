@@ -34,6 +34,9 @@ export enum SecurityPlaybookActionType {
   EndOktaSessions = "End Okta Sessions",
   ContainCrowdStrikeHost = "Contain CrowdStrike Host",
   IsolateDefenderDevice = "Isolate Defender Device",
+  UnsuspendOktaUser = "Unsuspend Okta User",
+  LiftCrowdStrikeContainment = "Lift CrowdStrike Containment",
+  ReleaseDefenderDevice = "Release Defender Device",
 
   // Automate
   SendWebhook = "Send Webhook",
@@ -68,15 +71,20 @@ export interface SecurityPlaybookActionDefinition {
   category: SecurityPlaybookActionCategory;
   icon: IconProp;
   /*
-   * Changes something outside OneUptime that a person would want to see
-   * first: suspending an account, cutting a host off the network. The step
-   * editor turns on "Needs approval" for these by default.
+   * Cuts somebody or something off: suspending an account, cutting a host
+   * off the network. A step of one of these waits for a person's approval,
+   * unless a Security Admin turned that off (doesStepNeedApproval).
    */
   isDisruptive: boolean;
   // The connected product it acts through, for the actions that act on one.
   connectionProvider?: SecurityEventConnectorProvider | undefined;
-  // The case entities it acts on, for the actions that act on entities.
+  /*
+   * The kind of entity it acts on, for the actions that act on the case's
+   * users or hosts: only the ones the case is about (SecurityPlaybookTargets).
+   */
   entityType?: SecurityEntityType | undefined;
+  // For an action that undoes a containment action: the action it undoes.
+  undoes?: SecurityPlaybookActionType | undefined;
 }
 
 export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefinition> =
@@ -191,7 +199,7 @@ export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefi
       type: SecurityPlaybookActionType.SuspendOktaUser,
       title: "Suspend the user in Okta",
       description:
-        "Suspend each user of the case in Okta, which signs them out and blocks sign-in until they are unsuspended.",
+        "Suspend in Okta the user the case is about: the one its detections are grouped on, or one threat intel knows. Signs them out and blocks sign-in until they are unsuspended.",
       category: SecurityPlaybookActionCategory.Contain,
       icon: IconProp.Lock,
       isDisruptive: true,
@@ -202,7 +210,7 @@ export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefi
       type: SecurityPlaybookActionType.EndOktaSessions,
       title: "End the user's Okta sessions",
       description:
-        "Sign each user of the case out of Okta everywhere and revoke their tokens, without suspending the account.",
+        "Sign the user the case is about out of Okta everywhere and revoke their tokens, without suspending the account.",
       category: SecurityPlaybookActionCategory.Contain,
       icon: IconProp.Logout,
       isDisruptive: true,
@@ -213,7 +221,7 @@ export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefi
       type: SecurityPlaybookActionType.ContainCrowdStrikeHost,
       title: "Contain the host in CrowdStrike",
       description:
-        "Network-contain each host of the case with CrowdStrike Falcon: it can reach only the Falcon cloud until containment is lifted.",
+        "Network-contain the host the case is about with CrowdStrike Falcon: it can reach only the Falcon cloud until containment is lifted.",
       category: SecurityPlaybookActionCategory.Contain,
       icon: IconProp.ShieldCheck,
       isDisruptive: true,
@@ -224,12 +232,48 @@ export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefi
       type: SecurityPlaybookActionType.IsolateDefenderDevice,
       title: "Isolate the device in Microsoft Defender",
       description:
-        "Isolate each host of the case with Microsoft Defender for Endpoint, cutting it off the network except for Defender itself.",
+        "Isolate the host the case is about with Microsoft Defender for Endpoint, cutting it off the network except for Defender itself.",
       category: SecurityPlaybookActionCategory.Contain,
       icon: IconProp.ShieldCheck,
       isDisruptive: true,
       connectionProvider: SecurityEventConnectorProvider.MicrosoftDefenderXdr,
       entityType: SecurityEntityType.Host,
+    },
+    {
+      type: SecurityPlaybookActionType.UnsuspendOktaUser,
+      title: "Unsuspend the user in Okta",
+      description:
+        "Unsuspend in Okta the user the case is about, so they can sign in again: the undo of Suspend the user in Okta.",
+      category: SecurityPlaybookActionCategory.Contain,
+      icon: IconProp.LockOpen,
+      isDisruptive: false,
+      connectionProvider: SecurityEventConnectorProvider.OktaSystemLog,
+      entityType: SecurityEntityType.User,
+      undoes: SecurityPlaybookActionType.SuspendOktaUser,
+    },
+    {
+      type: SecurityPlaybookActionType.LiftCrowdStrikeContainment,
+      title: "Lift containment in CrowdStrike",
+      description:
+        "Lift CrowdStrike Falcon's network containment from the host the case is about, so it reaches the network again.",
+      category: SecurityPlaybookActionCategory.Contain,
+      icon: IconProp.LockOpen,
+      isDisruptive: false,
+      connectionProvider: SecurityEventConnectorProvider.CrowdStrikeFalcon,
+      entityType: SecurityEntityType.Host,
+      undoes: SecurityPlaybookActionType.ContainCrowdStrikeHost,
+    },
+    {
+      type: SecurityPlaybookActionType.ReleaseDefenderDevice,
+      title: "Release the device in Microsoft Defender",
+      description:
+        "Release the host the case is about from isolation in Microsoft Defender for Endpoint, so it reaches the network again.",
+      category: SecurityPlaybookActionCategory.Contain,
+      icon: IconProp.LockOpen,
+      isDisruptive: false,
+      connectionProvider: SecurityEventConnectorProvider.MicrosoftDefenderXdr,
+      entityType: SecurityEntityType.Host,
+      undoes: SecurityPlaybookActionType.IsolateDefenderDevice,
     },
     {
       type: SecurityPlaybookActionType.SendWebhook,
@@ -257,6 +301,31 @@ export function getSecurityPlaybookAction(
   return SECURITY_PLAYBOOK_ACTIONS.find(
     (action: SecurityPlaybookActionDefinition): boolean => {
       return action.type === type;
+    },
+  );
+}
+
+// Whether a step of this action acts on the case's users or hosts through a connected product.
+export function actsOnSecurityEntities(
+  definition: SecurityPlaybookActionDefinition | undefined,
+): boolean {
+  return Boolean(definition?.connectionProvider && definition.entityType);
+}
+
+/*
+ * The action that undoes a containment action - Unsuspend for Suspend - or
+ * undefined for one nothing undoes (a session that was ended stays ended).
+ */
+export function getSecurityPlaybookUndoAction(
+  type: SecurityPlaybookActionType | string | undefined | null,
+): SecurityPlaybookActionDefinition | undefined {
+  if (!type) {
+    return undefined;
+  }
+
+  return SECURITY_PLAYBOOK_ACTIONS.find(
+    (action: SecurityPlaybookActionDefinition): boolean => {
+      return action.undoes === type;
     },
   );
 }

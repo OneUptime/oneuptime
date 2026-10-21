@@ -2,6 +2,9 @@
 
 Kör OpenTelemetry Collector på en Linux-, macOS- eller Windows-maskin för att skicka dess mätvärden, processer, loggar och tjänstetillstånd till OneUptime. Maskinen visas under **Produkter → Infrastruktur → Värdar** med egna sidor, utan någon OneUptime-agent att installera: collectorn är uppströmsutgåvan `otelcol-contrib`. [Värdmonitorer](/docs/monitor/host-monitor) larmar på det den skickar.
 
+> [!TIP]
+> Låt OneUptime installera och konfigurera insamlaren åt dig: [Värdar](/docs/telemetry/hosts) lägger till en dator med ett enda kommando och håller dess konfiguration uppdaterad. Den här sidan handlar om att köra insamlaren med en `config.yaml` som du själv underhåller på datorn.
+
 :::cards
 - [Installera collectorn](#installera-collectorn): Tre steg på Linux, macOS eller Windows.
 - [Välj vad som ska samlas in](#välj-vad-som-ska-samlas-in): Mätvärden, filloggar, journalen, händelseloggar och tjänstetillstånd.

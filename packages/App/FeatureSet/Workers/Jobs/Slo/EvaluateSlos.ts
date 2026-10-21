@@ -55,6 +55,7 @@ import OnCallDutyPolicyService from "Common/Server/Services/OnCallDutyPolicyServ
 import DatabaseService from "Common/Server/Services/DatabaseService";
 import ProjectScopedReferenceValidator from "Common/Server/Utils/Database/ProjectScopedReferenceValidator";
 import AlertOwnerTeamService from "Common/Server/Services/AlertOwnerTeamService";
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import AlertOwnerUserService from "Common/Server/Services/AlertOwnerUserService";
 import IncidentOwnerTeamService from "Common/Server/Services/IncidentOwnerTeamService";
 import IncidentOwnerUserService from "Common/Server/Services/IncidentOwnerUserService";
@@ -3329,8 +3330,10 @@ async function sendStatusChangeNotification(data: {
         isSubjectLiteral: true,
       };
 
+      const news: string = `SLO ${newStatus}: "${sloName}" in ${projectName}. Error budget remaining: ${errorBudgetRemainingPercentage}% (${errorBudgetRemainingMinutes} minutes). View: ${sloViewLink}`;
+
       const sms: SMSMessage = {
-        message: `SLO ${newStatus}: "${sloName}" in ${projectName}. Error budget remaining: ${errorBudgetRemainingPercentage}% (${errorBudgetRemainingMinutes} minutes). View: ${sloViewLink}`,
+        message: buildNotificationSms(news),
       };
 
       const callMessage: CallRequestMessage = {
@@ -3356,8 +3359,9 @@ async function sendStatusChangeNotification(data: {
           requireInteraction: false,
         });
 
+      // WhatsApp says the news alone, as it did before the SMS gained its words.
       const whatsAppMessage: WhatsAppMessagePayload = {
-        body: sms.message,
+        body: news,
       };
 
       /*

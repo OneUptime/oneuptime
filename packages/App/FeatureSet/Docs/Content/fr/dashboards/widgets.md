@@ -6,6 +6,7 @@ Un widget est une tuile d'un tableau de bord. Cette page liste chaque widget du 
 - [Quel widget choisir ?](#quel-widget-choisir): Choisir selon la question à laquelle la tuile répond.
 - [Graphiques et nombres](#graphiques-et-nombres): Graphique, Valeur, Jauge et Tableau, à partir d'une requête de métriques.
 - [Journaux, traces et sécurité](#journaux-traces-et-sécurité): Graphiques de volume, flux en direct et listes.
+- [Trier les listes et les tableaux](#trier-les-listes-et-les-tableaux): Trier selon une colonne, et fixer l'ordre que tout le monde voit.
 - [Quand un widget ne peut pas être affiché](#quand-un-widget-ne-peut-pas-être-affiché): Ce qu'affiche un widget défaillant, et comment le réparer.
 :::
 
@@ -198,6 +199,33 @@ Un site n'apparaît que s'il a des coordonnées. Ajoutez une latitude et une lon
 ## Sources de données externes
 
 Le groupe External Data Sources dessine un **Graphique**, une **Valeur**, une **Jauge** ou un **Tableau** à partir d'un système qui n'appartient pas à OneUptime : Prometheus, PostgreSQL, MySQL, SQL Server, ClickHouse, Loki, Elasticsearch ou n'importe quelle API REST. Vous connectez le système une fois, puis vous écrivez la requête de chaque widget dans le langage de ce système. [Sources de données externes](/docs/dashboards/data-sources) explique comment.
+
+## Trier les listes et les tableaux
+
+Cliquez sur l'en-tête d'une colonne pour trier une liste ou un tableau selon elle : un premier clic trie comme l'indique le tableau ci-dessous, le clic suivant dans l'autre sens, et celui d'après remet le widget dans son propre ordre. Sur la colonne selon laquelle le widget est déjà trié, un clic inverse l'ordre. Une flèche marque la colonne selon laquelle les lignes sont triées.
+
+| Colonne | Premier clic | Clic suivant |
+| --- | --- | --- |
+| Un statut, un état ou une gravité | Pires d'abord | Meilleurs d'abord |
+| Une heure | Plus récents d'abord | Plus anciens d'abord |
+| Un nombre | Plus élevés d'abord | Plus bas d'abord |
+| Texte | De A à Z | De Z à A |
+
+Le pire suit l'ordre propre à votre projet : un statut de moniteur selon sa priorité, la gravité et l'état d'un incident ou d'une alerte selon l'ordre dans lequel vous les rangez, et une ressource arrêtée, pas prête ou éteinte avant une ressource saine. La phase d'un pod trie Failed, puis Unknown, puis Pending, puis Running et Succeeded. Le SLI et le budget d'erreur d'un SLO, ainsi que le VMID d'un invité Proxmox, trient les plus bas d'abord.
+
+Toute la liste est triée, pas seulement les lignes à l'écran : une liste qui affiche 25 lignes, triée avec les pires d'abord, affiche les 25 pires de toutes. Les lignes à égalité gardent l'ordre propre du widget. Une colonne selon laquelle une liste ne peut pas être triée en entier, comme le message d'un événement de sécurité, ne se trie pas.
+
+### Votre propre tri
+
+Votre tri n'appartient qu'à vous : votre navigateur s'en souvient pour ce widget sur ce tableau de bord, si bien qu'un rechargement ou le redémarrage d'un écran mural le conserve, et personne d'autre ne le voit. Le clic qui remet le widget dans son propre ordre oublie votre tri, et le widget suit ensuite son propre ordre, même quand un éditeur le change plus tard.
+
+### L'ordre que tout le monde voit
+
+Pour fixer l'ordre dans lequel un widget s'ouvre pour tout le monde, modifiez-le et choisissez l'ordre sous **Trier**, ou cliquez sur un en-tête de colonne dans son **Aperçu en direct**, puis cliquez sur **Enregistrer les modifications**. Vous voyez le nouvel ordre tout de suite ; un lecteur qui a trié le widget à sa façon garde son tri.
+
+Les modèles de tableau de bord ouvrent leurs listes d'hôtes, de nœuds, de pods, de services Swarm et d'équipements réseau avec les pires d'abord.
+
+Par l'API et Terraform, l'ordre est le `arguments.sort` du widget : une colonne et un sens, par exemple `status:desc`. Un widget de liste refuse une colonne qu'il n'a pas, et l'erreur énumère les tris qu'il propose.
 
 ## Sur un tableau de bord public
 

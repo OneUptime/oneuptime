@@ -11,9 +11,10 @@ import { addDeveloperSideMenuSection } from "../DeveloperDocs/DeveloperDocsMenuS
 import { DeveloperDocsScope } from "../DeveloperDocs/DeveloperDocsPages";
 
 /*
- * Code's side menu on its first page: the repositories (Code is
- * repositories first - each repository's page holds its tasks), and the
- * Developer pages for code repositories (Terraform, API, AI Assistants).
+ * Code's side menu: Tasks - where AI is asked, in any repository, and every
+ * task is listed - then the connected repositories, then the Developer
+ * pages for code repositories (Terraform, API, AI Assistants). A
+ * repository's own pages have a menu of their own.
  */
 const CodeSideMenu: FunctionComponent = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
@@ -22,8 +23,17 @@ const CodeSideMenu: FunctionComponent = (): ReactElement => {
       items: [
         {
           link: {
-            title: "Repositories",
+            title: "Tasks",
             to: RouteUtil.populateRouteParams(RouteMap[PageMap.CODE] as Route),
+          },
+          icon: IconProp.Sparkles,
+        },
+        {
+          link: {
+            title: "Repositories",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CODE_REPOSITORIES] as Route,
+            ),
           },
           icon: IconProp.Code,
         },

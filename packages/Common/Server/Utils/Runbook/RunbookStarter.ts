@@ -9,6 +9,7 @@ import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import RunbookExecutionStatus from "../../../Types/Runbook/RunbookExecutionStatus";
 import { RunbookStep } from "../../../Types/Runbook/RunbookStep";
+import { moveApprovalsBeforeTheirSteps } from "../../../Types/Runbook/RunbookStepApproval";
 import { RunbookStepExecutionState } from "../../../Types/Runbook/RunbookStepExecution";
 import RunbookStepExecutionStatus from "../../../Types/Runbook/RunbookStepExecutionStatus";
 import RunbookTriggerType, {
@@ -124,18 +125,24 @@ export class RunbookStarterClass {
     return this.enqueue !== null;
   }
 
-  // The runbook's steps, in order, each waiting to run.
+  /*
+   * The runbook's steps, in order, each waiting to run - with every approval
+   * before the step it holds back: an approval a client still writes after
+   * a step (requireApproval) is read as one before the next step, or as a
+   * Manual step at the end after the last one (RunbookStepApproval). So no
+   * run started now carries the old flag; only runs started before
+   * approvals moved do, and the execution loop still stops after such a
+   * step for them.
+   */
   public static getStepExecutions(
     steps: unknown,
   ): Array<RunbookStepExecutionState> {
-    const list: Array<RunbookStep> = Array.isArray(steps)
-      ? (steps as Array<RunbookStep>)
-      : [];
+    const list: Array<RunbookStep> = moveApprovalsBeforeTheirSteps(steps);
 
     return list
       .slice()
       .sort((a: RunbookStep, b: RunbookStep) => {
-        return a.order - b.order;
+        return (Number(a.order) || 0) - (Number(b.order) || 0);
       })
       .map((step: RunbookStep): RunbookStepExecutionState => {
         return {

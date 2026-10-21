@@ -64,7 +64,13 @@ flowchart TB
 
 ## 从你的网络向外的连接
 
-应用只会为你开启的功能向外连接。下面每一项都是可选的，并且都有一个页面列出需要放行的确切地址：
+除非你更改设置，否则会建立以下三个连接：
+
+- 应用每天一次向 GitHub 的 API（`api.github.com`）询问是否有更新的版本。要关闭它，请在 Helm Chart 中设置 `updateCheck.disabled: true`，或在 Docker Compose 的 `config.env` 中设置 `DISABLE_UPDATE_CHECK=true`。
+- 勾选“通知我有关安全补丁和新版本”注册时（该选项默认已勾选），会把此人的姓名和邮箱、其填写的公司和电话号码，以及你的安装地址和版本发送到 `oneuptime.com`。在无法访问互联网的网络中，请取消勾选。
+- 在 Kubernetes 上，探针在你集群自身的 DNS 之后会回退到公共解析器 `8.8.8.8` 和 `1.1.1.1`。将 `dnsConfig.nameservers` 设为 `[]`，即可让所有查询都留在你自己的 DNS 上。
+
+其他一切只有在你开启时才会向外连接，并且每一项都有一个页面列出需要放行的确切地址：
 
 | 出站连接 | 用途 | 了解更多 |
 | --- | --- | --- |
@@ -76,6 +82,8 @@ flowchart TB
 | `oneuptime.com` | 在线激活 Enterprise 许可证 | [企业版](/docs/self-hosted/enterprise) |
 
 反方向的连接——SendGrid 投递入站邮件、Slack 和 Microsoft Teams 回调——需要 ingress 能从互联网访问。应用和探针可以访问哪些私有地址由你决定：请参阅[私有网络访问](/docs/self-hosted/private-network-access)。
+
+OneUptime 的徽标就在它发送的每封邮件之中，因此即使在无法访问互联网的网络中也能显示，打开邮件时也不会向其他任何主机请求内容。你自己上传的图片，例如你自己的徽标或状态页的徽标，会从你的 OneUptime URL 显示，因此阅读这些邮件的人需要能够访问它。
 
 ## 后续步骤
 

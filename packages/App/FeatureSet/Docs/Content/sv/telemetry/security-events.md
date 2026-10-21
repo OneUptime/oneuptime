@@ -25,12 +25,16 @@ flowchart TB
     monitors --> act
 ```
 
-Öppna **Produkter → Security Events**, under **Observerbarhet**. Dess meny:
+Öppna **Produkter → Security Events**, under **Observerbarhet**. Dess meny har ett avsnitt för varje del av säkerheten, och en egen sida för varje sak i den:
 
-| Sida | Menypost | Vad den används till |
+| Sida | Avsnitt | Vad den används till |
 | --- | --- | --- |
 | **Översikt** | Översikt | Hur säkerhet är uppsatt, vad som behöver någon nu och hur snabbt ärenden hanteras |
-| **Security Cases** | Security Cases | Kön med det som har upptäckts, grupperat efter vad det handlar om |
+| **Öppna ärenden** | Säkerhetsärenden | Kön: varje ärende som inte är stängt än, grupperat efter vad det handlar om |
+| **Tilldelade mig** | Säkerhetsärenden | De öppna ärenden som är tilldelade dig |
+| **Ej tilldelad** | Säkerhetsärenden | De öppna ärenden som ingen har tagit sig an |
+| **Stängda ärenden** | Säkerhetsärenden | Ärendena som stängts med ett utfall, de senaste först |
+| **Alla ärenden** | Säkerhetsärenden | Varje ärende, öppet eller stängt |
 | **Händelser** | Händelser | Sök och filtrera alla händelser, och öppna en för att se alla dess fält |
 | **Entiteter** | Händelser | Användarna, värdarna och adresserna som dina fynd nämner oftast |
 | **Korrelera** | Händelser | En graf över händelserna som delar en värd, en användare eller en IP-adress |
@@ -39,11 +43,13 @@ flowchart TB
 | **Threat Intel** | Detections | STIX/TAXII-flöden med kända skadliga indikatorer |
 | **ATT&CK Coverage** | Detections | MITRE ATT&CK-teknikerna som dina regler täcker |
 | **Playbooks** | Playbooks | Steg som körs på ärenden, av sig själva eller manuellt |
-| **Playbook Runs** | Playbooks | Vad varje playbook gjorde, och stegen som väntar på godkännande |
+| **Väntar på godkännande** | Playbooks | Playbook-stegen som väntar på att någon godkänner eller avvisar dem |
+| **Playbook-körningar** | Playbooks | Vad varje playbook gjorde, steg för steg |
+| **Protected Entities** | Playbooks | De användare och värdar som ingen playbook begränsar |
 | **Connections** | Connections | Dina loggar, säkerhetsprodukterna som OneUptime hämtar från och de SIEM som det skickar till |
 | **Installationsguide** | Connections | Kodsnuttar för att skicka händelser, ifyllda med din ingestion-nyckel |
 
-Sidorna bakom en menypost öppnas som flikar högst upp på sidan. Ny inom säkerhet? [Kom igång med säkerhet](/docs/telemetry/security-getting-started) sätter upp det med två klick.
+**Detections** och **Connections**, som sätts upp en gång, förblir hopfällda tills du öppnar dem. Ny inom säkerhet? [Kom igång med säkerhet](/docs/telemetry/security-getting-started) sätter upp det med två klick.
 
 ## Innan du börjar
 
@@ -152,7 +158,7 @@ För att skicka säkerhetsloggar som du redan samlar in, till exempel auditd, sy
     Retry_Limit      5
 ```
 
-Fliken **Installationsguide** har de här kodsnuttarna med din egen värd och nyckel ifyllda.
+Sidan **Installationsguide**, under **Connections**, har de här kodsnuttarna med din egen värd och nyckel ifyllda.
 
 ### Hitta säkerhetshändelser i dina loggar
 
@@ -238,7 +244,7 @@ flowchart TB
 ### Skapa en regel
 
 :::steps
-1. Öppna **Produkter → Security Events → Detections** och klicka på **Skapa Detection Rule**.
+1. Öppna **Produkter → Security Events → Detections → Detection Rules** och klicka på **Skapa Detection Rule**.
 2. Klistra in regelns YAML i **Sigma Rule (YAML)** under **Sigma Rule**. Den tolkas när du sparar, så ett fel visas i formuläret.
 3. **Namn** fylls i från regelns `title`: skriv över det för att kalla regeln något annat. En ny regel körs; **Aktiverad** finns i dess redigeringsformulär.
 4. Låt **Open a Case on Match** vara påslaget under **Vid träff** för att samla regelns träffar i ärenden, efter värdet som regeln grupperar efter.
@@ -302,7 +308,7 @@ OneUptime kontrollerar varje minut om det finns aktiverade regler vars intervall
 - Fönstren ligger efter varandra och glider inte. Med ett intervall på 10 minuter kan misslyckanden kl. 09:58 och 10:01 hamna i olika körningar och räknas var för sig, så lämna marginal när du väljer en tröskel.
 - Efter ett uppehåll, till exempel ett worker-avbrott eller en regel som slagits på igen, täcker nästa körning hela uppehållet, upp till de senaste 24 timmarna.
 - En händelse som kommer mer än två minuter för sent, efter att en körning redan har täckt dess tid, lagras och är sökbar, men den regeln läser den aldrig.
-- Högst 100 grupper löser ut per körning: de med högst räkning.
+- Varje grupp som når tröskeln blir ett Detection Finding, upp till 10 000 per körning. Larm, incidenter och ärenden öppnas för de 100 med högst räkning; resten delar ett ärende om regeln, och regelns **Senaste fel** säger hur många grupper som träffade.
 
 ### Allvarlighetsgrad
 

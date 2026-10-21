@@ -49,18 +49,21 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * A message is its author's mark, a line saying who and when, and what was
- * said - the AI investigation card's layout, so a conversation with AI
- * reads the same across OneUptime. From sm up the mark stands beside both;
- * on a phone the text takes the full width under it.
+ * AI's side of a turn - and what OneUptime started a task from - is its
+ * mark, a line saying who and how it stands, and what it did under it, at
+ * the conversation's full width: the AI investigation card's layout, so a
+ * conversation with AI reads the same across OneUptime. From sm up the mark
+ * stands beside both; on a phone the text takes the full width under it.
+ * A person's request is their message on the right, as a chat draws what
+ * was sent.
  */
 const MESSAGE_CLASS_NAME: string =
-  "grid grid-cols-[2rem_minmax(0,1fr)] gap-x-3";
+  "grid grid-cols-[1.75rem_minmax(0,1fr)] gap-x-3";
 const MESSAGE_MARK_CLASS_NAME: string = "self-start sm:row-span-2";
 const MESSAGE_BYLINE_CLASS_NAME: string =
-  "flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 self-center";
+  "flex min-h-[1.75rem] min-w-0 flex-wrap items-center gap-x-2 gap-y-1 self-center";
 const MESSAGE_BODY_CLASS_NAME: string =
-  "col-span-2 mt-1.5 min-w-0 sm:col-span-1 sm:col-start-2 sm:mt-0";
+  "col-span-2 mt-1.5 min-w-0 sm:col-span-1 sm:col-start-2 sm:mt-0.5";
 
 // How long a queued turn waits before the page says what to check.
 export const SLOW_QUEUE_IN_MINUTES: number = 5;
@@ -190,7 +193,12 @@ export const getContextItemRoute: (
 
 export const ContextChips: FunctionComponent<{
   items: Array<CodeTaskContextItemJSON>;
-}> = (props: { items: Array<CodeTaskContextItemJSON> }): ReactElement => {
+  // Under a person's message, on the right: the chips line up at its end.
+  isAlignedEnd?: boolean | undefined;
+}> = (props: {
+  items: Array<CodeTaskContextItemJSON>;
+  isAlignedEnd?: boolean | undefined;
+}): ReactElement => {
   const translator: Translator = useTranslator();
 
   if (props.items.length === 0) {
@@ -201,7 +209,9 @@ export const ContextChips: FunctionComponent<{
     <ul
       data-testid="code-turn-context"
       aria-label={translator.translateText("Context")}
-      className="mt-2 flex flex-wrap gap-1.5"
+      className={`mt-2 flex flex-wrap gap-1.5 ${
+        props.isAlignedEnd ? "max-w-[88%] justify-end sm:max-w-[80%]" : ""
+      }`}
     >
       {props.items.map((item: CodeTaskContextItemJSON, index: number) => {
         const route: Route | URL | null = getContextItemRoute(item);
@@ -225,7 +235,7 @@ export const ContextChips: FunctionComponent<{
                   })
                 : item.label;
         const chip: ReactElement = (
-          <span className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700">
+          <span className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700">
             <Icon
               icon={CODE_TASK_CONTEXT_KINDS[item.type]?.icon || IconProp.Circle}
               className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
@@ -266,6 +276,7 @@ export const ContextChips: FunctionComponent<{
   );
 };
 
+// A person's initials, small, beside their name over what they asked.
 const PersonMark: FunctionComponent<{ name: string; seed: string }> = (props: {
   name: string;
   seed: string;
@@ -274,7 +285,7 @@ const PersonMark: FunctionComponent<{ name: string; seed: string }> = (props: {
     <div
       aria-hidden="true"
       title={props.name}
-      className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold ring-2 ring-white ${getAvatarTone(
+      className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${getAvatarTone(
         props.seed,
       )}`}
     >
@@ -287,9 +298,9 @@ const AIMark: FunctionComponent = (): ReactElement => {
   return (
     <div
       aria-hidden="true"
-      className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-indigo-600 text-white"
+      className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-indigo-600 text-white"
     >
-      <Icon icon={IconProp.Sparkles} className="h-4 w-4" />
+      <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5" />
     </div>
   );
 };
@@ -298,9 +309,9 @@ const OneUptimeMark: FunctionComponent = (): ReactElement => {
   return (
     <div
       aria-hidden="true"
-      className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-900 text-white"
+      className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gray-900 text-white"
     >
-      <Icon icon={IconProp.Bolt} className="h-4 w-4" />
+      <Icon icon={IconProp.Bolt} className="h-3.5 w-3.5" />
     </div>
   );
 };
@@ -449,28 +460,29 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
   const renderAsk: () => ReactElement = (): ReactElement => {
     if (turn.request) {
       return (
-        <li data-testid="code-turn-request" className={MESSAGE_CLASS_NAME}>
-          <div className={MESSAGE_MARK_CLASS_NAME}>
+        <li data-testid="code-turn-request" className="flex flex-col items-end">
+          <div className="flex max-w-full items-center gap-2">
             <PersonMark
               name={personName}
               seed={turn.requestedBy?.id || personName}
             />
-          </div>
-          <div className={MESSAGE_BYLINE_CLASS_NAME}>
-            <span className="text-sm font-semibold text-gray-900">
+            <span className="truncate text-xs font-medium text-gray-700">
               {personName}
             </span>
             <CodeTimeAgo
               date={turn.createdAt}
-              className={BYLINE_FACT_CLASS_NAME}
+              className={`${BYLINE_FACT_CLASS_NAME} whitespace-nowrap`}
             />
           </div>
-          <div className={MESSAGE_BODY_CLASS_NAME}>
-            <p className="mt-0.5 whitespace-pre-wrap break-words text-sm leading-6 text-gray-900">
+          <div
+            data-testid="code-turn-request-message"
+            className="mt-1.5 max-w-[88%] rounded-2xl rounded-tr-md bg-white px-4 py-2.5 shadow-sm ring-1 ring-inset ring-gray-200 sm:max-w-[80%]"
+          >
+            <p className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-900">
               {turn.request.message}
             </p>
-            <ContextChips items={turn.request.context} />
           </div>
+          <ContextChips items={turn.request.context} isAlignedEnd={true} />
         </li>
       );
     }
@@ -566,7 +578,12 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
           <span className="text-sm font-semibold text-gray-900">
             OneUptime AI
           </span>
-          <CodeTaskStateBadge state={turn.state} isQueued={isQueued} />
+          {/* Done is what a turn usually ends as: its reply says so. */}
+          {turn.state === CodeTaskState.Done ? (
+            <></>
+          ) : (
+            <CodeTaskStateBadge state={turn.state} isQueued={isQueued} />
+          )}
           <TurnDuration turn={turn} />
           {props.logRoute && !isQueued ? (
             <Link

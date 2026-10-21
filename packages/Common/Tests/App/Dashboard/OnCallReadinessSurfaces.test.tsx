@@ -767,11 +767,12 @@ const runBulkAction: RunBulkActionFunction = (title: string): void => {
   fireEvent.click(screen.getByRole("menuitem", { name: title }));
 };
 
-/** The filter modal, opened from the funnel button in the card header. */
+/** The filter modal, opened from Filter in the card header's ⋯. */
 type OpenFilterModalFunction = () => void;
 
 const openFilterModal: OpenFilterModalFunction = (): void => {
-  fireEvent.click(screen.getByRole("button", { name: "Filter" }));
+  fireEvent.click(screen.getByRole("button", { name: "More options" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Filter" }));
 };
 
 /*
@@ -2948,8 +2949,8 @@ describe("On-call readiness page", () => {
   });
 
   /*
-   * The filter modal - the same one every other table in the product opens from
-   * the same funnel in the same corner.
+   * The filter modal - the same one every other table in the product opens
+   * from Filter in its header's ⋯.
    */
   describe("the filter modal", () => {
     /*
@@ -3018,7 +3019,7 @@ describe("On-call readiness page", () => {
       fireEvent.click(screen.getByRole("button", { name: "Apply Filters" }));
     };
 
-    test("the funnel opens it", async () => {
+    test("Filter in the header's ⋯ opens it", async () => {
       respondWith(summaryJson(ALL_THREE_USERS));
 
       await renderProjectPage();

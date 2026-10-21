@@ -1,4 +1,6 @@
-import TwilioPhoneNumbers from "../../../Types/CallAndSMS/TwilioPhoneNumbers";
+import TwilioPhoneNumbers, {
+  PHONE_NUMBER_LIST_EXAMPLE,
+} from "../../../Types/CallAndSMS/TwilioPhoneNumbers";
 import {
   PHONE_NUMBER_LIST_ERROR,
   getPhoneNumberListError,
@@ -51,8 +53,20 @@ describe("getPhoneNumberListError", () => {
 
   test("names the first entry that is not a phone number, in English before any language is set up", () => {
     expect(getPhoneNumberListError("+447700900123, +65 8123 4567, x")).toBe(
-      '"+65 8123 4567" is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.',
+      '"+65 8123 4567" is not a phone number. Write each number with its country code and separate them with commas, like +14155550123, +447700900123.',
     );
+  });
+
+  test("gives the server's example list, no one country's numbers", () => {
+    const error: string | null = getPhoneNumberListError("+447700900123, x");
+
+    expect(error).toBe(TwilioPhoneNumbers.getListEntryError("x"));
+    expect(error).toContain(`like ${PHONE_NUMBER_LIST_EXAMPLE}.`);
+    // The example once was a Singapore mobile number.
+    expect(error).not.toContain("+65");
+    // The key leaves the numbers to the example, so no locale repeats them.
+    expect(PHONE_NUMBER_LIST_ERROR).toContain("{{example}}");
+    expect(PHONE_NUMBER_LIST_ERROR).not.toContain("+");
   });
 
   test("refuses exactly the lists the server refuses", () => {
@@ -106,8 +120,9 @@ describe("getPhoneNumberListError", () => {
       });
       expect(translated).not.toBe(PHONE_NUMBER_LIST_ERROR);
       expect(translated).toContain("{{entry}}");
-      // The example list is the one to copy, in every language.
-      expect(translated).toContain("+6581234567");
+      // The example list is the server's, filled in, in every language.
+      expect(translated).toContain("{{example}}");
+      expect(translated).not.toContain("+65");
     }
   });
 
@@ -123,7 +138,7 @@ describe("getPhoneNumberListError", () => {
     });
 
     expect(getPhoneNumberListError("+447700900123, Büro")).toBe(
-      '"Büro" ist keine Telefonnummer. Geben Sie jede Nummer mit Landesvorwahl ein und trennen Sie die Nummern durch Kommas, etwa +6581234567, +447700900123.',
+      '"Büro" ist keine Telefonnummer. Geben Sie jede Nummer mit Landesvorwahl ein und trennen Sie die Nummern durch Kommas, etwa +14155550123, +447700900123.',
     );
   });
 });

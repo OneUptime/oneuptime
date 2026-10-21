@@ -32,6 +32,10 @@ import {
  * and those a project's custom email template writes. Raw HTML in Markdown
  * is escaped by the renderer, and a value placed into a template is escaped
  * unless it is HTML this code made.
+ *
+ * The email's own image - OneUptime's logo in its header (EmailLogo) - goes
+ * out the same way, through attachImage: under a name of its own, outside
+ * the limits above, and never replaced by a note.
  */
 
 // Decoded bytes, across every image in one email.
@@ -57,6 +61,13 @@ export interface EmailHtmlWithInlineImages {
 export interface EmailInlineImageLimits {
   maxTotalBytes?: number | undefined;
   maxCount?: number | undefined;
+}
+
+// One image of the email's own, and the name its attachment goes by.
+export interface EmailOwnImage {
+  // An inline raster image's data: URL (parseInlineImageDataUri).
+  dataUri: string;
+  fileName: string;
 }
 
 /*
@@ -230,5 +241,67 @@ export default class EmailInlineImages {
     );
 
     return { html: attachedHtml, inlineImages: inlineImages };
+  }
+
+  /**
+   * `html` with every <img> whose src is exactly `image.dataUri` pointing
+   * at one attachment, named `image.fileName`, by Content-ID. For an image
+   * of the email's own - OneUptime's logo in its header (EmailLogo) - rather
+   * than one a text placed: it is held to no limit and never left out, so
+   * the caller counts its bytes (EmailSize.attachWithinLimit). HTML with no
+   * such image, or an image that is not an inline raster image, comes back
+   * exactly as it was, with no attachment.
+   */
+  public static attachImage(
+    html: string,
+    image: EmailOwnImage,
+  ): EmailHtmlWithInlineImages {
+    const parsed: InlineImageDataUri | null = parseInlineImageDataUri(
+      image.dataUri,
+    );
+
+    if (!html || !parsed || html.indexOf(image.dataUri) === -1) {
+      return { html: html, inlineImages: [] };
+    }
+
+    const contentId: string = `${randomUUID()}@oneuptime`;
+    let imagesPointed: number = 0;
+
+    const attachedHtml: string = html.replace(
+      IMAGE_TAG_PATTERN,
+      (tag: string): string => {
+        const source: TagAttribute | null = findAttribute(tag, "src");
+
+        if (!source || source.value !== image.dataUri) {
+          return tag;
+        }
+
+        imagesPointed++;
+
+        return (
+          tag.slice(0, source.valueStart) +
+          `cid:${contentId}` +
+          tag.slice(source.valueEnd)
+        );
+      },
+    );
+
+    // The data: URL was there, but not as an image's src.
+    if (imagesPointed === 0) {
+      return { html: html, inlineImages: [] };
+    }
+
+    return {
+      html: attachedHtml,
+      inlineImages: [
+        {
+          contentId: contentId,
+          fileName: image.fileName,
+          mimeType: parsed.mimeType,
+          base64: parsed.base64,
+          byteLength: parsed.byteLength,
+        },
+      ],
+    };
   }
 }

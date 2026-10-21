@@ -627,6 +627,8 @@ Il modulo di creazione ha due passaggi:
 2. **Policy di reperibilità** — le policy che questa regola attiva, e il **Nome** della regola, compilato a partire da esse («Chiama Platform on-call») finché non ne digitate uno vostro; la sua **Descrizione** attende sotto **Altri campi**. La regola parte abilitata; il suo modulo di modifica aggiunge l'interruttore **Abilitato**, e l'elenco mostra un'etichetta verde **Abilitato** o rossa **Disabilitato** per regola.
 :::
 
+Una regola chiama appena un incidente corrisponde. Perché attenda invece l'orario di lavoro, rispondete **Solo durante l'orario di lavoro** a **Quando deve chiamare questa regola?** sotto **Altri campi**. L'**Orario di lavoro** parte dal lunedì al venerdì, dalle 09:00 alle 17:00, nel vostro fuso orario: scegliete altri giorni, un'altra **Ora di inizio** o **Ora di fine**, o un altro **Fuso orario**, e una frase sotto la scelta dice cosa succederà. Nell'elenco, la regola mostra il suo orario sotto il nome. Un incidente che corrisponde fuori da quell'orario riceve un'esecuzione che attende, come **In attesa**, e non chiama nessuno; quando inizia l'orario, la policy chiama con la sua prima regola di escalation ed esegue l'escalation come sempre. Se l'incidente viene riconosciuto o risolto prima, nessuno viene chiamato. Se l'incidente cambia mentre attende e ora corrisponde a una regola che chiama subito, per esempio perché ne è stata alzata la gravità, l'esecuzione inizia a chiamare in quel momento, e il feed dell'incidente dice perché.
+
 ### Come si risolve la corrispondenza
 
 Le regole che la pagina stessa porta con sé vanno interiorizzate:
@@ -635,7 +637,7 @@ Le regole che la pagina stessa porta con sé vanno interiorizzate:
 - Un criterio di elenco — **Monitor**, **Incidente Gravità**, **Etichette dell'incidente**, **Etichette del monitor** — usa **Ha uno qualsiasi di**, **Ha tutti i** o **Non ha nessuno di** i valori che scegliete.
 - Un criterio di testo — il titolo e la descrizione dell'incidente, i nomi e le descrizioni dei suoi monitor — usa **Contiene**, **Non contiene**, **Uguale a**, **Diverso da**, **Inizia con** o **Termina con**, senza distinzione tra maiuscole e minuscole, oppure **Corrisponde al pattern** / **Non corrisponde al pattern** per un'espressione regolare senza distinzione tra maiuscole e minuscole o un carattere jolly `*`. Una nuova condizione di testo parte su **Contiene**.
 - **Scattano tutte le regole corrispondenti.** Non c'è priorità né cortocircuito.
-- L'insieme delle policy effettivamente eseguite è l'unione delle policy di ogni regola corrispondente più qualsiasi policy collegata all'incidente a mano o da un modello, deduplicata così ogni policy viene eseguita al massimo una volta.
+- L'insieme delle policy effettivamente eseguite è l'unione delle policy di ogni regola corrispondente più qualsiasi policy collegata all'incidente a mano o da un modello, deduplicata così ogni policy viene eseguita al massimo una volta. Quando due regole corrispondenti attivano la stessa policy, questa chiama appena una delle due lo consente: subito vince sull'orario di lavoro.
 
 > [!NOTE]
 > La gravità è un criterio di corrispondenza qui e da nessun'altra parte. Una gravità dell'incidente non ha alcun campo di reperibilità — scegliere «Critical Incident» non avvisa, da solo, nessuno. Se volete che la gravità guidi gli avvisi, scrivete una regola di reperibilità che corrisponda su di essa.

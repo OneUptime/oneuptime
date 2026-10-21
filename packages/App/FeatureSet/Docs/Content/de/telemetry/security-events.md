@@ -25,12 +25,16 @@ flowchart TB
     monitors --> act
 ```
 
-Öffnen Sie **Produkte → Sicherheitsereignisse**, unter **Observability**. Sein Menü:
+Öffnen Sie **Produkte → Sicherheitsereignisse**, unter **Observability**. Sein Menü hat einen Abschnitt für jeden Teil der Sicherheit und für jede Sache darin eine eigene Seite:
 
-| Seite | Menüeintrag | Wofür sie da ist |
+| Seite | Abschnitt | Wofür sie da ist |
 | --- | --- | --- |
 | **Übersicht** | Übersicht | Wie Sicherheit eingerichtet ist, was gerade Aufmerksamkeit braucht, und wie schnell Fälle bearbeitet werden |
-| **Security Cases** | Security Cases | Die Warteschlange mit allem Erkannten, gruppiert nach dem, worum es jeweils geht |
+| **Offene Fälle** | Sicherheitsfälle | Die Warteschlange: jeder noch nicht geschlossene Fall, gruppiert nach dem, worum es jeweils geht |
+| **Mir zugewiesen** | Sicherheitsfälle | Die offenen Fälle, die Ihnen zugewiesen sind |
+| **Nicht zugewiesen** | Sicherheitsfälle | Die offenen Fälle, die noch niemand übernommen hat |
+| **Geschlossene Fälle** | Sicherheitsfälle | Die mit einem Urteil geschlossenen Fälle, die neuesten zuerst |
+| **Alle Fälle** | Sicherheitsfälle | Jeder Fall, offen oder geschlossen |
 | **Ereignisse** | Ereignisse | Jedes Ereignis suchen und filtern, und eines öffnen, um alle seine Felder zu sehen |
 | **Entitäten** | Ereignisse | Die Benutzer, Hosts und Adressen, die Ihre Befunde am häufigsten nennen |
 | **Korrelieren** | Ereignisse | Ein Graph der Ereignisse, die einen Host, einen Benutzer oder eine IP-Adresse teilen |
@@ -39,11 +43,13 @@ flowchart TB
 | **Threat Intel** | Erkennungen | STIX/TAXII-Feeds bekannter bösartiger Indikatoren |
 | **ATT&CK Coverage** | Erkennungen | Die Techniken von MITRE ATT&CK, die Ihre Regeln abdecken |
 | **Playbooks** | Playbooks | Schritte, die auf Fällen laufen, von selbst oder per Hand |
-| **Playbook Runs** | Playbooks | Was jedes Playbook getan hat, und die Schritte, die auf Genehmigung warten |
+| **Wartet auf Genehmigung** | Playbooks | Die Playbook-Schritte, die darauf warten, dass jemand sie genehmigt oder ablehnt |
+| **Playbook-Ausführungen** | Playbooks | Was jedes Playbook getan hat, Schritt für Schritt |
+| **Protected Entities** | Playbooks | Die Benutzer und Hosts, die kein Playbook eindämmt |
 | **Verbindungen** | Verbindungen | Ihre Logs, die Sicherheitsprodukte, die OneUptime abfragt, und die SIEMs, an die es sendet |
 | **Einrichtungsanleitung** | Verbindungen | Snippets zum Senden von Ereignissen, mit Ihrem Ingestion-Schlüssel ausgefüllt |
 
-Die Seiten hinter einem Menüeintrag öffnen sich als Tabs oben auf der Seite. Neu bei Sicherheit? [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started) richtet sie mit zwei Klicks ein.
+**Erkennungen** und **Verbindungen**, die man einmal einrichtet, bleiben eingeklappt, bis Sie sie öffnen. Neu bei Sicherheit? [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started) richtet sie mit zwei Klicks ein.
 
 ## Bevor Sie beginnen
 
@@ -152,7 +158,7 @@ Um Sicherheitslogs zu senden, die Sie schon sammeln, etwa von auditd, syslog ode
     Retry_Limit      5
 ```
 
-Der Tab **Einrichtungsanleitung** hat diese Snippets mit Ihrem eigenen Host und Schlüssel ausgefüllt.
+Die Seite **Einrichtungsanleitung**, unter **Verbindungen**, hat diese Snippets mit Ihrem eigenen Host und Schlüssel ausgefüllt.
 
 ### Sicherheitsereignisse in Ihren Logs finden
 
@@ -238,7 +244,7 @@ flowchart TB
 ### Eine Regel erstellen
 
 :::steps
-1. Öffnen Sie **Produkte → Sicherheitsereignisse → Erkennungen** und klicken Sie auf **Erkennungsregel erstellen**.
+1. Öffnen Sie **Produkte → Sicherheitsereignisse → Erkennungen → Erkennungsregeln** und klicken Sie auf **Erkennungsregel erstellen**.
 2. Fügen Sie unter **Sigma-Regel** das YAML der Regel in **Sigma-Regel (YAML)** ein. Es wird beim Speichern geparst, sodass ein Fehler im Formular erscheint.
 3. Der **Name** füllt sich aus dem `title` der Regel: Überschreiben Sie ihn, um die Regel anders zu nennen. Eine neue Regel läuft; **Aktiviert** steht in ihrem Bearbeitungsformular.
 4. Lassen Sie unter **Bei Treffer** die Option **Open a Case on Match** eingeschaltet, um die Treffer der Regel nach dem Wert, nach dem sie gruppiert, zu Fällen zusammenzufassen.
@@ -302,7 +308,7 @@ OneUptime prüft jede Minute, welche aktivierten Regeln ihr Intervall seit ihrem
 - Die Fenster liegen lückenlos hintereinander, sie gleiten nicht. Bei einem Intervall von 10 Minuten können Fehlschläge um 09:58 und 10:01 in verschiedene Läufe fallen und werden getrennt gezählt, also lassen Sie bei der Wahl eines Schwellenwerts Spielraum.
 - Nach einer Lücke, etwa einem Worker-Ausfall oder einer wieder eingeschalteten Regel, deckt der nächste Lauf die ganze Lücke ab, bis zu den letzten 24 Stunden.
 - Ein Ereignis, das mehr als zwei Minuten zu spät ankommt, nachdem ein Lauf seine Zeit schon abgedeckt hat, wird gespeichert und ist durchsuchbar, aber diese Regel liest es nie.
-- Pro Lauf lösen höchstens 100 Gruppen aus: die mit den höchsten Zählungen.
+- Jede Gruppe, die den Schwellenwert erreicht, wird zu einem Detection Finding, bis zu 10.000 pro Lauf. Warnungen, Vorfälle und Fälle öffnen sich für die 100 mit den höchsten Zählungen; die übrigen teilen sich einen Fall zur Regel, und **Letzter Fehler** der Regel nennt, wie viele Gruppen passten.
 
 ### Schweregrad
 

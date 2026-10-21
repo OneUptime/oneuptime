@@ -38,6 +38,7 @@ import {
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import AppLink from "../../../Components/AppLink/AppLink";
 
 /*
  * The Overview of a Cloud Resource discovered from cloud monitoring: what
@@ -90,6 +91,10 @@ const CloudMonitoredResourceOverview: FunctionComponent<
           otelCollectorStatus: true,
           lastSeenAt: true,
           createdAt: true,
+          cloudConnectionId: true,
+          cloudConnection: {
+            name: true,
+          },
           labels: {
             name: true,
             color: true,
@@ -192,6 +197,26 @@ const CloudMonitoredResourceOverview: FunctionComponent<
     {
       label: "Discovered From",
       value: MONITORING_SOURCE_BY_PROVIDER[provider],
+    },
+    /*
+     * The cloud connection that reads it (Cloud > Connect), when one does:
+     * where to look when it stops reporting.
+     */
+    {
+      label: "Cloud Connection",
+      value: r.cloudConnectionId ? r.cloudConnection?.name || "" : undefined,
+      element: r.cloudConnectionId ? (
+        <AppLink
+          to={RouteUtil.populateRouteParams(
+            RouteMap[PageMap.CLOUD_CONNECT] as Route,
+          )}
+          className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+        >
+          <span>
+            {r.cloudConnection?.name || translator.translateText("Connect")}
+          </span>
+        </AppLink>
+      ) : undefined,
     },
   ];
 

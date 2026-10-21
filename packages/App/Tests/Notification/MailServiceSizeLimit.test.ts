@@ -23,6 +23,7 @@ import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import Port from "Common/Types/Port";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import { EmailInlineImage } from "Common/Server/Utils/Mail/EmailInlineImages";
+import EmailLogo from "Common/Server/Utils/Mail/EmailLogo";
 import {
   MAX_EMAIL_BYTES,
   MAX_EMAIL_FIELD_HTML_BYTES,
@@ -314,15 +315,21 @@ describe("an email is never bigger than a mail server takes", () => {
     expect(payload.html).toContain("</html>");
   });
 
-  test("a description that fits is sent exactly as rendered", async () => {
+  test("a description that fits is sent exactly as rendered, but for the logo moved into its attachment", async () => {
     const mail: EmailMessage = await acknowledgeIncidentEmail(
       "The API is **down**.\n\n| Host | State |\n| --- | --- |\n| web-01 | down |",
     );
     const rendered: RenderedEmail = await MailService.render({ ...mail });
 
     const payload: CapturedSmtpMail = await deliverOverSmtp(mail);
+    const logoDataUrl: string = EmailLogo.getDataUrl() as string;
 
-    expect(payload.html).toBe(rendered.body);
+    expect(payload.attachments).toHaveLength(1);
+    expect(payload.html).toBe(
+      rendered.body
+        .split(logoDataUrl)
+        .join(`cid:${String(payload.attachments![0]!["cid"])}`),
+    );
     expect(payload.html).not.toContain("see OneUptime for the full text");
   });
 
@@ -354,7 +361,14 @@ describe("an email is never bigger than a mail server takes", () => {
     const payload: CapturedSmtpMail = await deliverOverSmtp(mail);
 
     expect(emailSize(payload)).toBeLessThanOrEqual(MAX_EMAIL_BYTES);
-    expect(payload.attachments).toHaveLength(1);
+    // OneUptime's logo, which is never left out, and the screenshot that fit.
+    expect(
+      (payload.attachments || []).map(
+        (attachment: Record<string, unknown>): unknown => {
+          return attachment["filename"];
+        },
+      ),
+    ).toEqual(["oneuptime-logo.png", "image-1.png"]);
     expect(payload.html).toContain(
       "[Run 2: image too large to include in this email]",
     );

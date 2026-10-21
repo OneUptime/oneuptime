@@ -1,4 +1,66 @@
 import DataSourceQueryConfig from "Common/Types/DataSource/DataSourceQueryConfig";
+import { DashboardWidgetSortDirection } from "Common/Types/Dashboard/DashboardWidgetSort";
+import { JSONValue } from "Common/Types/JSON";
+
+export type DataSourceTableRow = { [key: string]: JSONValue };
+
+/*
+ * A Data Source table's rows sorted by one of its columns (issue #5082), as
+ * a header click or the widget's own sort asks: numbers by value, anything
+ * else as text - in the reader's language, with numbers inside text read as
+ * numbers ("node2" before "node10"). Rows with no value in the column stay
+ * at the bottom both ways, and equal rows keep the query's order. A new
+ * list; the rows handed in are not reordered.
+ */
+export function sortDataSourceTableRows(
+  rows: Array<DataSourceTableRow>,
+  columnKey: string | null | undefined,
+  direction: DashboardWidgetSortDirection,
+): Array<DataSourceTableRow> {
+  if (!columnKey) {
+    return rows;
+  }
+
+  const sign: number =
+    direction === DashboardWidgetSortDirection.Descending ? -1 : 1;
+
+  return rows
+    .map((row: DataSourceTableRow, index: number) => {
+      return { row, index };
+    })
+    .sort(
+      (
+        a: { row: DataSourceTableRow; index: number },
+        b: { row: DataSourceTableRow; index: number },
+      ): number => {
+        const aValue: JSONValue = a.row[columnKey] ?? null;
+        const bValue: JSONValue = b.row[columnKey] ?? null;
+        const aMissing: boolean = aValue === null || aValue === "";
+        const bMissing: boolean = bValue === null || bValue === "";
+
+        if (aMissing || bMissing) {
+          if (aMissing && bMissing) {
+            return a.index - b.index;
+          }
+
+          return aMissing ? 1 : -1;
+        }
+
+        const compared: number =
+          typeof aValue === "number" && typeof bValue === "number"
+            ? aValue - bValue
+            : String(aValue).localeCompare(String(bValue), undefined, {
+                numeric: true,
+                sensitivity: "base",
+              });
+
+        return compared !== 0 ? compared * sign : a.index - b.index;
+      },
+    )
+    .map((entry: { row: DataSourceTableRow; index: number }) => {
+      return entry.row;
+    });
+}
 
 /*
  * Shared "has the user actually finished configuring this?" test for the

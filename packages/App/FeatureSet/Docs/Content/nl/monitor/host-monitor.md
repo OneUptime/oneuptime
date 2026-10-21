@@ -44,7 +44,7 @@ Gebruik de Host-monitor als de host al OpenTelemetry-gegevens stuurt, of als u l
 
 ## Voordat u begint
 
-- **Draai een OpenTelemetry Collector op de host** met de receiver `hostmetrics`. [OpenTelemetry-collector op de host](/docs/telemetry/host-otel-collector) behandelt Linux, macOS en Windows, en **Producten → Infrastructuur → Hosts → Documentatie** geeft een kant-en-klare configuratie.
+- **Draai een OpenTelemetry Collector op de host** met de receiver `hostmetrics`. Het snelst gaat het met [Hosts](/docs/telemetry/hosts): één opdracht installeert de collector, en OneUptime configureert hem. [OpenTelemetry-collector op de host](/docs/telemetry/host-otel-collector) behandelt Linux, macOS en Windows, en **Producten → Infrastructuur → Hosts → Documentatie** geeft een kant-en-klare configuratie.
 - **Zet de gebruiksmetrieken aan.** `system.cpu.utilization`, `system.memory.utilization` en `system.filesystem.utilization` zijn optioneel in de receiver, en de sjablonen voor CPU, geheugen en bestandssysteem hebben ze nodig. De configuratie uit het dashboard zet ze aan.
 - **Controleer of de host is geregistreerd.** Hij verschijnt onder **Producten → Infrastructuur → Hosts → Alle hosts**, genoemd naar zijn `host.name`, zodra zijn eerste gegevens binnenkomen.
 

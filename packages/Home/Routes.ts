@@ -41,6 +41,7 @@ import {
   generateProductsJson,
   generateCompareIndexJson,
   generateResellersMarkdown,
+  generateAirGappedMarkdown,
   RecentBlogPostLink,
 } from "./Utils/AIDiscovery";
 import { generateNostrWellKnown } from "./Utils/Nostr";
@@ -50,10 +51,12 @@ import {
 } from "./Utils/MicrosoftIdentityAssociation";
 import BlogPostUtil, { BlogPostHeader } from "./Utils/BlogPost";
 import { getSelfHostedContent } from "./Utils/SelfHosted";
+import { getAirGappedContent } from "./Utils/AirGapped";
 import { getDatabasesPageContent } from "./Utils/Databases";
 import { getQueuesPageContent } from "./Utils/Queues";
 import { getCliPageContent } from "./Utils/CliPage";
 import { getResellersPageContent } from "./Utils/Resellers";
+import { getCloudMarketplacesContent } from "./Utils/CloudMarketplaces";
 import {
   ResellerInquiryHandlerOptions,
   createDefaultResellerInquiryOptions,
@@ -438,6 +441,8 @@ const HomeFeatureSet: FeatureSet = {
             inquiryInbox: resellerInquiry.inbox.toString(),
           }),
         );
+      } else if (pagePath === "/enterprise/air-gapped") {
+        markdown = generateAirGappedMarkdown(homeUrl, getAirGappedContent());
       } else if (pagePath.startsWith("/compare/")) {
         markdown = generateCompareMarkdown(
           pagePath.replace("/compare/", ""),
@@ -580,6 +585,8 @@ const HomeFeatureSet: FeatureSet = {
         pricing,
         enableGoogleTagManager: GoogleTagManagerEnabled,
         seo,
+        // The line under the plans naming OneUptime Cloud's marketplace listings.
+        cloudMarketplaces: getCloudMarketplacesContent(),
       });
     });
 
@@ -1231,6 +1238,35 @@ const HomeFeatureSet: FeatureSet = {
 
     app.get("/on-premise", (req: ExpressRequest, res: ExpressResponse) => {
       redirectPreservingQuery(req, res, "/enterprise/self-hosted", 301);
+    });
+
+    /*
+     * Air-gapped installs: running OneUptime on a network with no route to
+     * the internet (Utils/AirGapped.ts holds every fact the page states).
+     * The short addresses are what buyers type, kept alive the way the
+     * self-hosted ones are.
+     */
+    app.get(
+      "/enterprise/air-gapped",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/enterprise/air-gapped",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/air-gapped`, {
+          enableGoogleTagManager: GoogleTagManagerEnabled,
+          seo,
+          airGapped: getAirGappedContent(),
+        });
+      },
+    );
+
+    app.get("/air-gapped", (req: ExpressRequest, res: ExpressResponse) => {
+      redirectPreservingQuery(req, res, "/enterprise/air-gapped", 301);
+    });
+
+    app.get("/airgapped", (req: ExpressRequest, res: ExpressResponse) => {
+      redirectPreservingQuery(req, res, "/enterprise/air-gapped", 301);
     });
 
     // Solutions pages

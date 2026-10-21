@@ -2,6 +2,9 @@
 
 **Cloud Resources** 列出了你的 AWS、Azure 和 Google Cloud 账户中的 IaaS 和 PaaS 资源：虚拟机、磁盘、负载均衡器、存储桶、托管数据库、缓存、队列、API 网关等等。每个资源都有自己的页面，显示它的类型、区域和账户、提供商为它分配的 ID、提供商发布的关于它的每个指标，并且可以像 OneUptime 中的其他资源一样设置所有者和标签。你可以在 **云 → 所有资源** 下找到它们。
 
+> [!TIP]
+> 不想运行采集器？在 **云 → 连接** 中[连接云账户](/docs/telemetry/cloud-accounts)，OneUptime 会自行读取这些指标。
+
 :::cards
 - [连接 Azure](#连接-azure): 从 Azure Monitor 读取订阅中的每个资源。
 - [连接 AWS](#连接-aws): 轮询 CloudWatch，或通过 Amazon Data Firehose 流式传输。

@@ -20,7 +20,7 @@
 | **标签规则**       | 为匹配的事件添加标签。                                              |
 | **Reminder Rules** | 按固定间隔提醒所有者，直到事件完成。                                |
 
-**设置** 分组包含 **事件状态** （在 [维护状态](/docs/scheduled-maintenance/states) 中介绍）、 **事件模板** （在 [模板与周期性事件](/docs/scheduled-maintenance/templates) 中介绍），以及下文介绍的 **备注模板** 、 **自定义字段** 、 **测量** 和 **编号规则** 。
+**设置** 分组包含 **事件状态** （在 [维护状态](/docs/scheduled-maintenance/states) 中介绍）、 **事件模板** （在 [模板与周期性事件](/docs/scheduled-maintenance/templates) 中介绍），以及 **备注模板** 、 **自定义字段** 、 **测量** 、 **日历设置** 和 **编号规则** 。 **日历设置** 在 [维护日历](/docs/scheduled-maintenance/calendar#外部日历) 中介绍，其余在下文介绍。
 
 **工作区** 分组包含把事件发布到频道的 Slack 和 Microsoft Teams 规则。请参阅 [Slack](/docs/workspace-connections/slack#通知规则) 和 [Microsoft Teams](/docs/workspace-connections/microsoft-teams#通知规则)。
 

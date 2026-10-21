@@ -352,6 +352,122 @@ describe("query_runbooks — SSH and kubectl steps", () => {
   });
 });
 
+/*
+ * Where the run stops for someone to approve: OneUptime AI reads it on the
+ * step it holds back (requireApprovalBeforeRunning), the way the run takes
+ * it - a runbook a client still saves with the old "approval after this
+ * step" reads as an approval before the next step, or a Manual step at the
+ * end after the last one.
+ */
+describe("query_runbooks — approvals", () => {
+  // The serialized line of the step titled `title`.
+  function lineOf(result: ToolExecutionResult, title: string): string {
+    const line: string | undefined = result.dataForLlm
+      .split("\n")
+      .find((candidate: string) => {
+        return candidate.includes(`title=${title}`);
+      });
+
+    expect({ title, found: Boolean(line) }).toEqual({ title, found: true });
+
+    return line!;
+  }
+
+  test("a step that asks for approval before it runs says so; the others do not", async () => {
+    jest.spyOn(RunbookService, "findOneById").mockResolvedValue(
+      buildRunbook({
+        steps: [
+          {
+            id: "step-1",
+            order: 1,
+            type: "Bash",
+            title: "Capture state",
+            config: { script: "uptime", agentId: "agent-1" },
+            requireApprovalBeforeRunning: false,
+          },
+          {
+            id: "step-2",
+            order: 2,
+            type: "Kubernetes",
+            title: "Restart checkout",
+            config: {
+              script: "kubectl rollout restart deployment/checkout",
+              agentId: "agent-1",
+            },
+            requireApprovalBeforeRunning: true,
+          },
+        ] as JSONArray,
+      }) as never,
+    );
+    jest
+      .spyOn(RunbookExecutionService, "findBy")
+      .mockResolvedValue([] as never);
+
+    const result: ToolExecutionResult = await QueryRunbooksTool.execute(
+      { runbookId: RUNBOOK_ID.toString() },
+      ctx,
+    );
+
+    expect(lineOf(result, "Restart checkout")).toContain(
+      "requireApprovalBeforeRunning=true",
+    );
+    expect(lineOf(result, "Capture state")).not.toContain(
+      "requireApprovalBeforeRunning",
+    );
+    // The old name is never what the model reads.
+    expect(result.dataForLlm).not.toContain("requireApproval=");
+  });
+
+  test("a runbook still saved the old way reads as it runs: the approval on the next step, and one after the last step as a Manual step at the end", async () => {
+    jest.spyOn(RunbookService, "findOneById").mockResolvedValue(
+      buildRunbook({
+        steps: [
+          {
+            id: "step-1",
+            order: 1,
+            type: "AI",
+            title: "Analyze diagnostics",
+            config: { prompt: "Is it safe to fail over?" },
+            requireApproval: true,
+          },
+          {
+            id: "step-2",
+            order: 2,
+            type: "HttpRequest",
+            title: "Fail over",
+            config: { method: "POST", url: "https://failover.example.com" },
+            requireApproval: true,
+          },
+        ] as JSONArray,
+      }) as never,
+    );
+    jest
+      .spyOn(RunbookExecutionService, "findBy")
+      .mockResolvedValue([] as never);
+
+    const result: ToolExecutionResult = await QueryRunbooksTool.execute(
+      { runbookId: RUNBOOK_ID.toString() },
+      ctx,
+    );
+
+    expect(lineOf(result, "Analyze diagnostics")).not.toContain(
+      "requireApprovalBeforeRunning",
+    );
+    expect(lineOf(result, "Fail over")).toContain(
+      "requireApprovalBeforeRunning=true",
+    );
+    expect(lineOf(result, "Approve the result")).toContain("type=Manual");
+    expect(lineOf(result, "Approve the result")).toContain("stepNumber=3");
+    expect(result.citationLabel).toBe('Runbook "Database failover" (3 steps)');
+  });
+
+  test("the tool tells the model it reads where the run stops for approval", () => {
+    expect(QueryRunbooksTool.description).toContain(
+      "whether the run stops for someone to approve it before it runs (requireApprovalBeforeRunning)",
+    );
+  });
+});
+
 describe("query_runbooks — list mode", () => {
   test("lists runbooks with step count and enabled flag", async () => {
     const findBySpy: jest.SpyInstance = jest

@@ -1,6 +1,6 @@
 # Código
 
-Código é onde você pede à OneUptime AI que trabalhe nos seus repositórios, como pediria a um agente de programação: corrigir um bug, escrever testes, explicar o código, fazer uma alteração. Ele abre nos seus repositórios conectados; a página de um repositório tem as tarefas dele e a caixa onde você pede; a página de uma tarefa é uma conversa em que você pode responder. O OneUptime também inicia tarefas por conta própria, a partir de exceções, traces e investigações. Um [Runner](/docs/runbooks/agents) clona o repositório, escreve a alteração em um novo branch, compila e testa a alteração e abre um pull request. Uma pessoa revisa e faz o merge de cada um: o Runner pode enviar branches e abrir pull requests, nada além disso.
+Código é onde você pede à OneUptime AI que trabalhe nos seus repositórios, como pediria a um agente de programação: corrigir um bug, escrever testes, explicar o código, fazer uma alteração. Ele abre na caixa onde você pede, com o repositório e o branch escolhidos nela e todas as tarefas abaixo; a página de uma tarefa é uma conversa em que você pode responder. O OneUptime também inicia tarefas por conta própria, a partir de exceções, traces e investigações. Um [Runner](/docs/runbooks/agents) clona o repositório, escreve a alteração em um novo branch, compila e testa a alteração e abre um pull request. Uma pessoa revisa e faz o merge de cada um: o Runner pode enviar branches e abrir pull requests, nada além disso.
 
 :::cards
 - [Pedir à IA em um repositório](#pedir-à-ia-em-um-repositório): Um pedido com as suas próprias palavras, com o contexto de que ele precisa.
@@ -18,13 +18,17 @@ Código é onde você pede à OneUptime AI que trabalhe nos seus repositórios, 
 ## Pedir à IA em um repositório
 
 :::steps
-### Abra um repositório
+### Abra o Código
 
-Abra **Produtos → Código**. Ali estão os repositórios do projeto, cada um com as tarefas em que a IA está trabalhando, as que aguardam você e os pull requests abertos dele. Se ainda não houver nenhum, ele oferece **Conectar o GitHub** (veja [Antes de começar](#antes-de-começar)).
+Abra **Produtos → Código**. Ele abre em **O que a IA deve fazer?**: a caixa onde você pede, com todas as tarefas abaixo, as mais recentes primeiro. Se ainda não houver nenhum repositório, ele oferece **Conectar o GitHub** no lugar (veja [Antes de começar](#antes-de-começar)). **Repositórios**, no menu lateral, lista os repositórios conectados, e a página de cada repositório tem a mesma caixa para aquele repositório.
+
+### Escolha o repositório e o branch
+
+A caixa começa no repositório que você escolheu por último. Escolha outro na linha de baixo dela e, ao lado, o branch de onde a tarefa parte: o branch principal do repositório, marcado como **Padrão**, até você escolher outro. A IA cria o branch dela a partir do que você escolher e abre o pull request dela para ele.
 
 ### Diga o que você quer
 
-Na página do repositório, escreva a alteração, o bug ou a pergunta com as suas próprias palavras. Um repositório que ainda não tem tarefas sugere algumas em **Experimente pedir**.
+Escreva a alteração, o bug ou a pergunta com as suas próprias palavras. Enquanto nada tiver sido pedido, o Código sugere algumas em **Experimente pedir**.
 
 ### Adicione contexto
 
@@ -51,7 +55,7 @@ Um pedido leva no máximo 10 itens de contexto. Tokens, chaves, senhas e endere�
 
 ## A conversa de uma tarefa
 
-A página de uma tarefa é uma conversa: o que foi pedido e o contexto adicionado, depois a vez da IA – os passos que ela dá à medida que os dá (os arquivos que leu e editou, o que procurou, os comandos que executou), a resposta dela, os arquivos que alterou com o diff deles, e o pull request. O topo da página diz como a tarefa está:
+A página de uma tarefa é uma conversa: o que foi pedido e o contexto adicionado, depois a vez da IA – os passos que ela dá à medida que os dá (os arquivos que leu e editou, o que procurou, os comandos que executou), a resposta dela, os arquivos que alterou com o diff deles, e o pull request. O topo da página diz onde a tarefa trabalha (o repositório dela e o branch de onde partiu), quantas linhas ela alterou, com um botão para o pull request dela, e como a tarefa está:
 
 | Estado | O que significa |
 | --- | --- |
@@ -62,7 +66,7 @@ A página de uma tarefa é uma conversa: o que foi pedido e o contexto adicionad
 | **Falhou** | A vez não pôde terminar, e diz por quê. **Tentar novamente** pede o mesmo outra vez. |
 | **Parado** | Alguém a interrompeu. **Tentar novamente** pede o mesmo outra vez. |
 
-Para continuar, escreva na caixa embaixo: responda à IA, adicione contexto ou peça alterações. Cada resposta é a próxima vez da mesma tarefa: ela trabalha no mesmo branch e envia para o mesmo pull request enquanto ele estiver aberto. Uma tarefa faz uma vez de cada vez, então a caixa espera enquanto a IA trabalha. O **Registro** de cada vez é o registro literal do que ela fez.
+Para continuar, escreva na caixa embaixo, que fica à vista enquanto a conversa rola: responda à IA, adicione contexto ou peça alterações. Cada resposta é a próxima vez da mesma tarefa: ela trabalha no mesmo branch e envia para o mesmo pull request enquanto ele estiver aberto. Uma tarefa faz uma vez de cada vez, então a caixa espera enquanto a IA trabalha. O **Registro** de cada vez é o registro literal do que ela fez.
 
 Quem pode ler um repositório lê as tarefas dele. Pedir à IA, responder e parar uma tarefa exigem permissão para editar o repositório, assim como ver o diff de uma alteração: os demais veem quais arquivos mudaram. As tarefas que o OneUptime inicia por conta própria (abaixo) também ficam no repositório delas, como conversas em que você pode responder.
 
@@ -80,10 +84,10 @@ flowchart TB
     P --> H["Uma pessoa o revisa<br/>e faz o merge"]
 ```
 
-1. Você clica em **Iniciar tarefa** em um repositório, ou em **Corrigir com IA** em uma exceção não resolvida, ou outro botão ou gatilho inicia uma tarefa (veja [Onde as tarefas de correção começam](#onde-as-tarefas-de-correção-começam)).
+1. Você clica em **Iniciar tarefa** no Código, ou em **Corrigir com IA** em uma exceção não resolvida, ou outro botão ou gatilho inicia uma tarefa (veja [Onde as tarefas de correção começam](#onde-as-tarefas-de-correção-começam)).
 2. A tarefa entra na fila do repositório dela, e o Runner que o repositório escolhe a assume: um dos seus Runners, ou um Runner global quando ele não escolhe nenhum (veja [Escolha o Runner do repositório](#escolha-o-runner-do-repositório)).
 3. O Runner busca o contexto da tarefa. Para um pedido, são as palavras dele, o contexto adicionado e a conversa até ali; para uma exceção, o tipo, a mensagem e o stack trace dela.
-4. Ele clona o repositório em um espaço de trabalho próprio e cria um branch. Uma correção de uma exceção se chama `oneuptime-fix-exception-` seguido dos primeiros caracteres do id da execução. Uma resposta trabalha, em vez disso, no branch do pull request aberto da tarefa.
+4. Ele clona o repositório em um espaço de trabalho próprio e cria um branch. Uma correção de uma exceção se chama `oneuptime-fix-exception-` seguido dos primeiros caracteres do id da execução. Um pedido parte do branch escolhido quando foi feito, e o pull request dele abre para esse branch. Uma resposta trabalha, em vez disso, no branch do pull request aberto da tarefa.
 5. Um agente de código, movido pelo provedor de LLM do seu projeto, lê o código e escreve a alteração. O servidor do OneUptime faz as chamadas ao LLM, então o Runner nunca tem a chave de API do seu provedor, e cada chamada é medida e listada nos logs de IA. Uma correção de uma exceção, de um trace lento ou de um incidente também lê dados de produção enquanto trabalha: as exceções, os traces, os logs e as métricas dos serviços do repositório (veja [Telemetria de produção em uma correção](#telemetria-de-produção-em-uma-correção)).
 6. Se o repositório tiver comandos de verificação, um Runner próprio compila e testa a alteração antes de fazer qualquer commit, e devolve uma falha ao agente de código para ser corrigida (veja [Verificação antes do pull request](#verificação-antes-do-pull-request)).
 7. O Runner faz o commit, envia o branch, abre o pull request (para um pedido, só quando alterou código) e apaga o espaço de trabalho.
@@ -177,7 +181,7 @@ Até um deploy entregá-la, a correção mostra **Mesclado, aguardando um deploy
 
 ## Antes de começar
 
-Uma tarefa precisa de três coisas. A página de um repositório em Código e a página **AI Assistance** da exceção verificam as três antes de oferecer o início, e dizem o que falta.
+Uma tarefa precisa de três coisas. A caixa de pedidos do Código e a página **AI Assistance** da exceção verificam as três antes de oferecer o início, e dizem o que falta.
 
 | O quê | OneUptime Cloud | Auto-hospedado |
 | --- | --- | --- |
@@ -263,7 +267,7 @@ Todo o resto é igual ao botão:
 ## Quando uma correção falha
 
 :::details A execução falha
-A correção não pôde ser aplicada, o repositório não pôde ser acessado ou a chamada ao LLM falhou. A conversa da tarefa, e a página de onde ela foi iniciada, mostram o motivo e oferecem tentar de novo. O **Registro** da vez tem o log completo da execução.
+A correção não pôde ser aplicada, o repositório ou o branch de onde um pedido partiu não pôde ser acessado, ou a chamada ao LLM falhou. A conversa da tarefa, e a página de onde ela foi iniciada, mostram o motivo e oferecem tentar de novo. O **Registro** da vez tem o log completo da execução.
 :::
 
 :::details O Runner para no meio de uma execução

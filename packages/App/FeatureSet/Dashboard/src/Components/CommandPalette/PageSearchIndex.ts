@@ -1203,6 +1203,22 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
         ],
       },
+      {
+        title: "Calendar",
+        pages: [
+          {
+            page: PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR,
+            title: "Maintenance Calendar",
+            icon: IconProp.Calendar,
+            keywords: [
+              "calendar view",
+              "maintenance schedule",
+              "subscribe to calendar",
+              "ical feed",
+            ],
+          },
+        ],
+      },
       workspaceSection({
         slack: PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK,
         microsoftTeams:
@@ -1253,6 +1269,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MEASUREMENTS,
             title: "Measurements",
             icon: IconProp.Clock,
+          },
+          {
+            page: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR,
+            title: "Calendar Settings",
+            icon: IconProp.Calendar,
+            keywords: [
+              "external calendars",
+              "add external calendar",
+              "ics feed",
+              "public holidays",
+              "change freeze",
+            ],
           },
           {
             page: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING,
@@ -1586,8 +1614,9 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
     icon: IconProp.ShieldExclamation,
     iconColor: "rose",
     /*
-     * The sections are the menu's entries (SecurityEventsNavigation.ts), with
-     * the pages behind each one's tabs.
+     * The menu's sections and their pages, as SecurityEventsNavigation.ts
+     * lists them: each page of the case queue and of the runs a page of its
+     * own.
      */
     sections: [
       {
@@ -1613,14 +1642,40 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         pages: [
           {
             page: PageMap.SECURITY_CASES,
-            title: "Security Cases",
+            title: "Open Cases",
             icon: IconProp.ShieldExclamation,
             keywords: [
+              "security cases",
+              "case queue",
               "security incidents",
               "triage",
               "investigations",
               "alerts queue",
             ],
+          },
+          {
+            page: PageMap.SECURITY_CASES_ASSIGNED_TO_ME,
+            title: "Assigned to Me",
+            icon: IconProp.User,
+            keywords: ["my cases", "my security cases", "mine"],
+          },
+          {
+            page: PageMap.SECURITY_CASES_UNASSIGNED,
+            title: "Unassigned",
+            icon: IconProp.Inbox,
+            keywords: ["unassigned cases", "nobody assigned", "pick up"],
+          },
+          {
+            page: PageMap.SECURITY_CASES_CLOSED,
+            title: "Closed Cases",
+            icon: IconProp.CheckCircle,
+            keywords: ["verdicts", "false positives", "resolved cases"],
+          },
+          {
+            page: PageMap.SECURITY_CASES_ALL,
+            title: "All Cases",
+            icon: IconProp.RectangleStack,
+            keywords: ["every case", "case history"],
           },
         ],
       },
@@ -1642,7 +1697,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           {
             page: PageMap.SECURITY_EVENTS_CORRELATE,
             title: "Correlate",
-            icon: IconProp.Graph,
+            icon: IconProp.Share,
           },
         ],
       },
@@ -1689,10 +1744,27 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["soar", "automated response", "response automation"],
           },
           {
+            page: PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL,
+            title: "Waiting for Approval",
+            icon: IconProp.PauseCircle,
+            keywords: ["approvals", "pending approvals", "approve a step"],
+          },
+          {
             page: PageMap.SECURITY_PLAYBOOK_RUNS,
             title: "Playbook Runs",
             icon: IconProp.Play,
-            keywords: ["approvals", "pending approvals"],
+            keywords: ["run history", "soar runs"],
+          },
+          {
+            page: PageMap.SECURITY_PROTECTED_ENTITIES,
+            title: "Protected Entities",
+            icon: IconProp.Lock,
+            keywords: [
+              "protected users",
+              "protected hosts",
+              "containment exclusions",
+              "break-glass accounts",
+            ],
           },
         ],
       },
@@ -1753,6 +1825,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         pages: [
           {
             page: PageMap.CODE,
+            title: "Tasks",
+            icon: IconProp.Sparkles,
+            keywords: [
+              "ask ai",
+              "what should ai do",
+              "code tasks",
+              "ai agent tasks",
+              "pull requests",
+              "fixes",
+            ],
+          },
+          {
+            page: PageMap.CODE_REPOSITORIES,
             title: "Repositories",
             icon: IconProp.Code,
             keywords: [
@@ -1760,11 +1845,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "repository",
               "connect repository",
               "github",
-              "tasks",
-              "ai agent tasks",
-              "ask ai",
-              "pull requests",
-              "fixes",
             ],
           },
         ],
@@ -1943,6 +2023,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         title: "Hosts",
         pages: [
           allListPage(PageMap.HOSTS, "All Hosts"),
+          {
+            page: PageMap.HOST_COLLECTOR_CONFIGS,
+            title: "Collector Configs",
+            icon: IconProp.Code,
+            keywords: [
+              "config.yaml",
+              "opentelemetry collector config",
+              "fleet config",
+              "opamp",
+            ],
+          },
           documentation(PageMap.HOST_DOCUMENTATION),
         ],
       },
@@ -2071,6 +2162,21 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       {
         title: "Cloud",
         pages: [
+          {
+            page: PageMap.CLOUD_CONNECT,
+            title: "Connect",
+            icon: IconProp.Link,
+            keywords: [
+              "connect aws",
+              "connect azure",
+              "connect google cloud",
+              "gcp",
+              "cloud account",
+              "cloudwatch",
+              "azure monitor",
+              "cloud monitoring",
+            ],
+          },
           allListPage(PageMap.CLOUD_RESOURCES, "All Environments"),
           {
             ...allListPage(PageMap.CLOUD_MONITORED_RESOURCES, "All Resources"),

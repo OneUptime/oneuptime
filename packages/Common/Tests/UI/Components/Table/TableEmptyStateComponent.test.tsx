@@ -165,6 +165,22 @@ describe("the description", () => {
 
     expect(screen.queryByTestId(`${ROOT}-description`)).toBeNull();
   });
+
+  test("breaks into lines of about the same length, never a word alone under the rest", () => {
+    render(
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        title="No playbook has run yet"
+        description="A playbook runs when a case opens or grows, or when someone runs it on a case."
+      />,
+    );
+
+    // Centred under the title, so balanced rather than "case." on a line of its own.
+    expect(screen.getByTestId(`${ROOT}-description`)).toHaveClass(
+      "text-balance",
+      "max-w-lg",
+    );
+  });
 });
 
 describe("the illustration", () => {

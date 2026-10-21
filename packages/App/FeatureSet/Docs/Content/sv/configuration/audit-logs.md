@@ -91,6 +91,7 @@ Monitorer, incidenter, varningar, statussidor, SLO:er och många andra resurser 
 | API-nycklar | `API Key` |
 | MCP-klienter som personer ansluter | `MCP Client Authorization` |
 | Inventarieobjekt | `Inventory Item` |
+| Insamlarkonfigurationer | `Collector Config` |
 | vCenter-servrar | `vCenter` |
 | Paketinspelningar och nedladdningarna av dem | `Packet Capture` |
 | Säkerhetsärenden och playbooks | `Security Case`, `Security Playbook` |

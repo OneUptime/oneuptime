@@ -34,7 +34,7 @@ Een beleid roept niemand op tot iets het uitvoert. Elk incident, elke waarschuwi
 | Met de hand | **Bereikbaarheidsdienstbeleid uitvoeren**, in het menu **Acties** van een feed, of bij een bericht in Slack of Microsoft Teams | [De incidentfeed](/docs/incidents/notes-owners-and-feed#de-incidentfeed) |
 | Chat en workflows | `/oneuptime page` in Slack of Microsoft Teams, en de stap **Page an On-Call Policy** van een workflow | [Paging](/docs/workflows/components#paging) |
 
-Een beleid dat meerdere regels toevoegen, loopt één keer. Een ernst voert nooit zelf een beleid uit: dat doet een bereikbaarheidsregel die bij die ernst past. Een incident of waarschuwing die al bevestigd of opgelost wordt aangemaakt, voert geen enkel beleid uit.
+Een beleid dat meerdere regels toevoegen, loopt één keer. Een ernst voert nooit zelf een beleid uit: dat doet een bereikbaarheidsregel die bij die ernst past. Een incident of waarschuwing die al bevestigd of opgelost wordt aangemaakt, voert geen enkel beleid uit. Een bereikbaarheidsregel op **Alleen tijdens werktijden** laat het beleid dat ze toevoegt wachten tot die tijden beginnen.
 
 ## De pagina's van een beleid
 
@@ -84,6 +84,7 @@ flowchart TB
 
 | Status | Wat die betekent |
 | --- | --- |
+| **Wachten** | Een bereikbaarheidsregel op **Alleen tijdens werktijden** laat de uitvoering wachten tot die tijden beginnen: ze zegt wanneer het oproepen begint, en roept tot dan niemand op. Ze eindigt zonder oproep als het incident of de waarschuwing eerst wordt bevestigd of opgelost. Ze begint meteen met oproepen als het incident of de waarschuwing verandert en nu op een bereikbaarheidsregel past die direct oproept. |
 | **Gepland**, **Gestart** | De uitvoering wordt voorbereid. Een die er na 5 minuten nog staat, wordt gestopt als **Fout**. |
 | **Executing** | De uitvoering roept op. OneUptime brengt haar elke minuut een stap verder. |
 | **Execution Completed** | Iemand heeft bevestigd, het incident of de waarschuwing is opgelost, elke regel en herhaling is gebruikt, of het beleid is gearchiveerd. |

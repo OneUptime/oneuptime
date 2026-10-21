@@ -26,7 +26,7 @@ flowchart TB
     work --> close["Fermé avec un verdict"]
 ```
 
-Ouvrez **Produits → Événements de sécurité → Security Cases**. La file d'attente s'ouvre sur les dossiers ouverts ; **Assigned to Me**, **Unassigned**, **Fermé** et **Tous** sont les autres vues.
+Ouvrez **Produits → Événements de sécurité → Dossiers de sécurité → Dossiers ouverts** pour la file d'attente. **Attribués à moi**, **Non attribué**, **Dossiers fermés** et **Tous les dossiers** sont des pages à part à côté, chacune listant les dossiers que son nom indique.
 
 ## Avant de commencer
 
@@ -47,7 +47,7 @@ Chacune de ces actions peut aussi être accordée isolément, de la création d'
 | Règles de détection | Une règle correspond | **Open a Case on Match**, à l'étape **En cas de correspondance** de la règle |
 | Renseignement sur les menaces | Un événement nomme un indicateur connu | **Open a Case on Match**, à l'étape **En cas de correspondance** du flux |
 | Produits connectés | Une alerte propre au produit est importée à un niveau égal ou supérieur au seuil de la connexion | **Open Cases From** réglé sur **Jamais**, à l'étape **Polling** de la connexion |
-| Personnes | Quelqu'un en ouvre un depuis **Security Cases**, ou avec **Open Case** dans le panneau d'un événement | Impossible |
+| Personnes | Quelqu'un en ouvre un depuis **Dossiers de sécurité**, ou avec **Open Case** dans le panneau d'un événement | Impossible |
 
 Chaque source est activée par défaut. Une connexion ouvre des dossiers pour **High and above**, sauf si vous choisissez un autre niveau ; les alertes de niveau inférieur sont tout de même importées comme événements.
 
@@ -86,7 +86,7 @@ La page du dossier réunit tout ce qu'il faut pour le traiter :
 - **Détections** : ce qui s'est déclenché pour ouvrir le dossier ou s'y ajouter, combien de fois, et le dernier événement correspondant.
 - **Entités** : les utilisateurs, hôtes et adresses sur lesquels porte le dossier, avec leur activité dans l'ensemble de vos événements de sécurité des 7 derniers jours. Chacun s'ouvre dans **Corréler**.
 - **MITRE ATT&CK** : les tactiques et techniques auxquelles se rattachent ses détections, chacune liée à sa page sur attack.mitre.org.
-- **Playbook Runs** : ce que chaque playbook a fait sur le dossier, étape par étape, et les étapes en attente d'approbation.
+- **Exécutions de playbooks** : ce que chaque playbook a fait sur le dossier, étape par étape, et les étapes en attente d'approbation.
 - **Notes** et **Chronologie** : ce que l'équipe a écrit, et tout ce qui s'est passé, avec son auteur.
 
 Pour traiter plusieurs dossiers à la fois, sélectionnez-les dans la file d'attente et utilisez **Assign to Me**, **Change Status** ou **Change Priority**.
@@ -144,16 +144,19 @@ Un playbook désactivé ne s'exécute ni de lui-même ni à la main.
 | Notification | Post to Microsoft Teams | Publie un résumé du dossier dans un canal Microsoft Teams |
 | Escalade | Page on-call | Exécute une politique d'astreinte |
 | Escalade | Déclarer un incident | Ouvre un incident OneUptime lié au dossier |
-| Confinement | Suspend the user in Okta | Suspend dans Okta chaque utilisateur du dossier |
-| Confinement | End the user's Okta sessions | Déconnecte d'Okta chaque utilisateur du dossier et révoque ses jetons |
-| Confinement | Contain the host in CrowdStrike | Applique le confinement réseau à chaque hôte du dossier avec CrowdStrike Falcon |
-| Confinement | Isolate the device in Microsoft Defender | Isole chaque hôte du dossier avec Microsoft Defender for Endpoint |
+| Confinement | Suspend the user in Okta | Suspend dans Okta l'utilisateur sur lequel porte le dossier |
+| Confinement | End the user's Okta sessions | Déconnecte d'Okta l'utilisateur sur lequel porte le dossier et révoque ses jetons |
+| Confinement | Contain the host in CrowdStrike | Applique le confinement réseau à l'hôte sur lequel porte le dossier avec CrowdStrike Falcon |
+| Confinement | Isolate the device in Microsoft Defender | Isole l'hôte sur lequel porte le dossier avec Microsoft Defender for Endpoint |
+| Confinement | Unsuspend the user in Okta | Lève dans Okta la suspension de l'utilisateur sur lequel porte le dossier |
+| Confinement | Lift containment in CrowdStrike | Lève le confinement réseau appliqué par CrowdStrike Falcon à l'hôte sur lequel porte le dossier |
+| Confinement | Release the device in Microsoft Defender | Libère de l'isolement dans Microsoft Defender for Endpoint l'hôte sur lequel porte le dossier |
 | Automatisation | Send a webhook | Envoie le dossier en JSON à une URL |
 | Automatisation | Run a workflow | Lance un flux de travail OneUptime avec le dossier en entrée |
 
 Un playbook compte au plus 25 étapes. Elles s'exécutent dans l'ordre, chacune une fois la précédente terminée. Chaque étape peut aussi :
 
-- **Needs Approval** : arrêter l'exécution avant l'étape jusqu'à ce que quelqu'un l'approuve sur le dossier. Ce réglage est activé par défaut pour les quatre étapes de confinement, qui agissent en dehors de OneUptime.
+- **Needs Approval** : arrêter l'exécution avant l'étape jusqu'à ce que quelqu'un l'approuve sur le dossier. Les quatre étapes qui coupent l'accès à quelqu'un s'arrêtent toujours ainsi, sauf si un Security Admin désactive ce réglage.
 - **Only If Threat Intel Matched** : sauter l'étape, sauf si une étape **Check entities against threat intel** antérieure de la même exécution a trouvé un indicateur connu.
 - **Carry On If It Fails** : exécuter l'étape suivante même si celle-ci échoue. Sans ce réglage, une étape en échec arrête l'exécution.
 
@@ -163,11 +166,28 @@ Les étapes de confinement agissent via une [connexion d'événements de sécuri
 
 | Étape | Connexion | Ce qu'il faut |
 | --- | --- | --- |
-| Suspend the user in Okta, End the user's Okta sessions | Okta System Log | Un jeton d'API autorisé à gérer les utilisateurs |
-| Contain the host in CrowdStrike | CrowdStrike Falcon | Un client API avec le scope Hosts en écriture |
-| Isolate the device in Microsoft Defender | Microsoft Defender XDR | Une application avec l'autorisation Machine.Isolate |
+| Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Un jeton d'API autorisé à gérer les utilisateurs |
+| Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | Un client API avec le scope Hosts en écriture |
+| Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | Une application avec l'autorisation Machine.Isolate |
 
-Une étape de confinement agit sur au plus 10 des utilisateurs ou hôtes du dossier. Elle retrouve chacun dans le produit par son nom, et indique sur le dossier ce qu'elle a fait de chacun : confiné, déjà confiné, introuvable ou refusé.
+Une étape de confinement n'agit que sur les utilisateurs ou hôtes sur lesquels porte le dossier, jamais sur tous ceux que le dossier nomme :
+
+- La valeur selon laquelle une détection du dossier est regroupée, comme le compte selon lequel regroupe une règle de voyage impossible, ou l'hôte que nomme l'alerte d'un produit connecté.
+- Un utilisateur ou un hôte du dossier que votre renseignement sur les menaces connaît comme indicateur.
+
+Un dossier regroupé selon une adresse, comme une attaque par force brute contre votre VPN, ne porte sur aucun des deux : ses étapes de confinement sont sautées, et le compte qu'elle visait et la passerelle qu'elle a atteinte ne sont pas touchés. Une étape agit sur au plus 10 utilisateurs ou hôtes. Elle retrouve chacun dans le produit par son nom, et indique sur l'exécution ce qu'elle a fait de chacun : fait, déjà fait, introuvable, refusé ou protégé.
+
+#### Entités protégées
+
+**Protected Entities**, sous **Playbooks** dans le menu, liste les utilisateurs et les hôtes qu'aucun playbook ne confine, comme les comptes d'accès d'urgence, les contrôleurs de domaine et les passerelles VPN. Une valeur correspond quelle que soit sa casse, et `*` remplace n'importe quelle suite de caractères : `svc-*` protège tous les comptes de service. Une étape signale un utilisateur ou un hôte protégé comme protégé et n'y touche pas. Ce sont les Security Admins qui gèrent la liste.
+
+#### Approbation
+
+Les quatre étapes qui coupent l'accès à quelqu'un attendent une approbation. Seul un Security Admin peut désactiver **Needs Approval** pour l'une d'elles, et OneUptime enregistre qui l'a fait. L'approbation liste sous **Act On** les utilisateurs ou hôtes sur lesquels l'étape agirait, tous cochés : décochez ceux qu'elle doit épargner. Ceux qui sont protégés ne sont pas proposés. La personne qui a lancé une exécution ne peut pas en approuver les étapes : quelqu'un d'autre le fait, mais elle peut toujours les rejeter.
+
+#### Annulation
+
+Les étapes d'annulation agissent sur les utilisateurs ou hôtes sur lesquels porte le dossier, comme les étapes qu'elles annulent. Une fois l'exécution arrêtée, un utilisateur ou un hôte confiné a aussi son propre bouton sur son étape : **Unsuspend**, **Lift Containment** ou **Libérer**. La fin d'une session Okta ne peut pas être annulée. Chaque annulation est conservée dans la chronologie du dossier et dans le journal d'audit du projet.
 
 ### Messages
 
@@ -188,7 +208,7 @@ Un e-mail ou une publication sans message propre envoie un résumé du dossier.
 
 ### Exécutions et approbations
 
-Chaque exécution est listée, étape par étape, sur son dossier et sous **Produits → Événements de sécurité → Playbooks → Playbook Runs** :
+Chaque exécution est listée, étape par étape, sur son dossier et sous **Produits → Événements de sécurité → Playbooks → Exécutions de playbooks** :
 
 | Statut de l'exécution | Signification |
 | --- | --- |
@@ -199,7 +219,7 @@ Chaque exécution est listée, étape par étape, sur son dossier et sous **Prod
 | Échec | Une étape a échoué et l'exécution s'est arrêtée |
 | Annulé | Quelqu'un l'a annulée, ou a rejeté une étape |
 
-Une étape en attente d'approbation affiche **Approve** et **Reject** sur l'exécution, avec un commentaire facultatif. Approuver poursuit l'exécution à partir de cette étape ; rejeter y met fin. La décision, son auteur et son commentaire sont conservés sur l'étape et dans la chronologie du dossier. **Playbook Runs** s'ouvre sur les exécutions en attente d'approbation, et l'entrée de menu **Playbooks** indique leur nombre.
+Une étape en attente d'approbation affiche **Approve** et **Reject** sur l'exécution, avec un commentaire facultatif. Approuver poursuit l'exécution à partir de cette étape ; rejeter y met fin. La décision, son auteur et son commentaire sont conservés sur l'étape, dans la chronologie du dossier et dans le journal d'audit du projet. **En attente d'approbation**, sous **Playbooks** dans le menu, liste les exécutions qui attendent une décision et les compte ; **Exécutions de playbooks** liste toutes les exécutions.
 
 Une exécution dont le worker ne donne plus signe de vie, après un redémarrage par exemple, est reprise : une exécution en file d'attente est remise en file au bout de 2 minutes, et une exécution restée muette pendant 30 minutes passe en échec.
 
@@ -207,7 +227,7 @@ Une exécution dont le worker ne donne plus signe de vie, après un redémarrage
 
 Le produit s'ouvre sur **Produits → Événements de sécurité → Vue d'ensemble** :
 
-- Les dossiers ouverts qui vous sont assignés, les dossiers ouverts que personne n'a encore pris en charge, et les étapes de playbook en attente d'approbation.
+- Les dossiers ouverts qui vous sont assignés, les dossiers ouverts que personne n'a encore pris en charge, et les étapes de playbook en attente d'approbation, chacun ouvrant la page qui les liste.
 - **Temps moyen de prise en charge**, **Temps moyen de confinement** et **Temps moyen de clôture**, sur les dossiers ouverts au cours des 30 derniers jours : de l'ouverture d'un dossier à sa prise en charge (assignation à une personne, ou sortie du statut Nouveau), à son passage à Confiné, et à sa fermeture. Un dossier encore en attente n'est pas compté dans une moyenne.
 - Les dossiers ouverts chaque jour sur 30 jours, par priorité, et les détections levées chaque jour sur 14 jours, par source.
 - Les dossiers ouverts par priorité et par statut, les verdicts des 30 derniers jours, les tactiques ATT&CK à l'origine des dossiers, les détections qui se sont le plus déclenchées, et les entités nommées par le plus de constats.
@@ -223,7 +243,7 @@ Au-dessus, un bandeau montre comment la sécurité est mise en place : ses sourc
 ## Automatiser
 
 - **Flux de travail** : un dossier ou une note peut lancer un flux de travail quand il est créé, mis à jour ou supprimé. Une étape **Run a workflow** lance un flux de travail dont le déclencheur est un webhook.
-- **API** : les dossiers, les notes, les détections, les playbooks et les exécutions ont la même API REST que le reste de OneUptime, sous `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook` et `/security-playbook-run`. Voir [Référence de l'API](/docs/api-reference/api-reference).
+- **API** : les dossiers, les notes, les détections, les playbooks, les exécutions et les entités protégées ont la même API REST que le reste de OneUptime, sous `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` et `/security-protected-entity`. Voir [Référence de l'API](/docs/api-reference/api-reference).
 - Agents IA : le serveur MCP dispose d'outils pour les dossiers, les notes, les détections et les playbooks. Voir [Serveur MCP](/docs/ai/mcp-server).
 
 ## Dépannage
@@ -238,6 +258,10 @@ Vérifiez qu'il est activé, que son réglage **Déclencheur** convient (avec Do
 
 :::details Une étape de confinement a échoué
 Ouvrez l'exécution sur le dossier : l'étape indique, pour chaque utilisateur ou hôte, si le produit l'a refusé, ne l'a pas trouvé ou n'a pas pu être joint. Vérifiez que l'identifiant de la connexion a le droit d'effectuer la modification, et utilisez **Tester la connexion** dans sa ligne.
+:::
+
+:::details Une étape de confinement a été sautée
+Le dossier ne porte sur aucun utilisateur ni aucun hôte, seulement sur une adresse par exemple, ou chaque utilisateur ou hôte sur lequel il porte est protégé. Ouvrez l'exécution sur le dossier : l'étape indique la raison.
 :::
 
 ## Étapes suivantes

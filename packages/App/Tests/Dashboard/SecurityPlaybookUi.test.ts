@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import {
@@ -20,6 +20,20 @@ import {
   SecurityPlaybookStep,
   parseSecurityPlaybookSteps,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
+import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
+import {
+  SecurityPlaybookStepResult,
+  SecurityPlaybookTarget,
+  SecurityPlaybookTargetReason,
+  SecurityPlaybookTargetState,
+} from "Common/Types/SecurityPlaybook/SecurityPlaybookStepResult";
+import {
+  RunStepRow,
+  UNDO_BUTTON_TITLES,
+  didStartRun,
+  getApprovalTargets,
+  getRunStepRows,
+} from "../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunStepRows";
 import {
   Translator,
   createTranslator,
@@ -46,6 +60,7 @@ import {
   getConnectionFieldKey,
   getNewStepFormValues,
   getStepConfigKeys,
+  isApprovalSwitchOffered,
   moveStep,
   readFormId,
   readFormIdList,
@@ -111,6 +126,13 @@ const FILLED: Record<SecurityPlaybookActionType, JSONObject> = {
   [SecurityPlaybookActionType.IsolateDefenderDevice]: {
     defenderConnectionId: ID_C,
     isolationType: "Selective",
+  },
+  [SecurityPlaybookActionType.UnsuspendOktaUser]: { oktaConnectionId: ID_A },
+  [SecurityPlaybookActionType.LiftCrowdStrikeContainment]: {
+    crowdStrikeConnectionId: ID_B,
+  },
+  [SecurityPlaybookActionType.ReleaseDefenderDevice]: {
+    defenderConnectionId: ID_C,
   },
   [SecurityPlaybookActionType.SendWebhook]: {
     url: "https://example.com/hooks/security",
@@ -271,6 +293,151 @@ describe("the step dialog's values", () => {
     expect(ids(moveStep(steps, 0, -1))).toEqual(["a", "b", "c"]);
     expect(ids(moveStep(steps, 2, 1))).toEqual(["a", "b", "c"]);
     expect(ids(steps)).toEqual(["a", "b", "c"]);
+  });
+});
+
+describe("approval and undo in the editor and on a run", () => {
+  test("offers the Needs Approval switch on a containment step only to whoever may turn it off", () => {
+    for (const action of [
+      SecurityPlaybookActionType.SuspendOktaUser,
+      SecurityPlaybookActionType.EndOktaSessions,
+      SecurityPlaybookActionType.ContainCrowdStrikeHost,
+      SecurityPlaybookActionType.IsolateDefenderDevice,
+    ]) {
+      expect([action, isApprovalSwitchOffered(action, false)]).toEqual([
+        action,
+        false,
+      ]);
+      expect(isApprovalSwitchOffered(action, true)).toBe(true);
+    }
+
+    // Any other step, an undo included, is anyone's to switch.
+    for (const action of [
+      SecurityPlaybookActionType.AddCaseNote,
+      SecurityPlaybookActionType.UnsuspendOktaUser,
+      SecurityPlaybookActionType.ReleaseDefenderDevice,
+    ]) {
+      expect(isApprovalSwitchOffered(action, false)).toBe(true);
+    }
+  });
+
+  test("gives each undo action the picker of its own product's connections", () => {
+    expect(
+      getConnectionFieldKey(SecurityPlaybookActionType.UnsuspendOktaUser),
+    ).toBe("oktaConnectionId");
+    expect(
+      getConnectionFieldKey(
+        SecurityPlaybookActionType.LiftCrowdStrikeContainment,
+      ),
+    ).toBe("crowdStrikeConnectionId");
+    expect(
+      getConnectionFieldKey(SecurityPlaybookActionType.ReleaseDefenderDevice),
+    ).toBe("defenderConnectionId");
+    expect(
+      getNewStepFormValues(SecurityPlaybookActionType.UnsuspendOktaUser)[
+        "requiresApproval"
+      ],
+    ).toBe(false);
+  });
+
+  test("shows a containment step saved with approval off, and stamped by nobody, as needing approval", () => {
+    const rows: Array<RunStepRow> = getRunStepRows({
+      steps: [
+        {
+          id: "s1",
+          action: SecurityPlaybookActionType.SuspendOktaUser,
+          config: { connectionId: ID_A },
+          requiresApproval: false,
+        },
+        {
+          id: "s2",
+          action: SecurityPlaybookActionType.SuspendOktaUser,
+          config: { connectionId: ID_A },
+          requiresApproval: false,
+          approvalTurnedOff: { at: "2026-10-20T10:00:00.000Z" },
+        },
+      ] as unknown as JSONArray,
+      stepResults: [],
+    });
+
+    expect(
+      rows.map((row: RunStepRow): boolean => {
+        return row.requiresApproval;
+      }),
+    ).toEqual([true, false]);
+    expect(rows[1]!.stepId).toBe("s2");
+  });
+
+  test("asks the approver about the waiting step's targets, and shows the protected ones apart", () => {
+    const target: (
+      value: string,
+      state: SecurityPlaybookTargetState,
+    ) => SecurityPlaybookTarget = (
+      value: string,
+      state: SecurityPlaybookTargetState,
+    ): SecurityPlaybookTarget => {
+      return {
+        type: SecurityEntityType.Host,
+        value,
+        reason: SecurityPlaybookTargetReason.GroupedOn,
+        state,
+      };
+    };
+    const results: Array<SecurityPlaybookStepResult> = [
+      {
+        stepId: "s1",
+        action: SecurityPlaybookActionType.ContainCrowdStrikeHost,
+        status: "Waiting for Approval" as never,
+        targets: [
+          target("web-01", SecurityPlaybookTargetState.Proposed),
+          target("vpn-gw-01", SecurityPlaybookTargetState.Protected),
+        ],
+      },
+    ];
+
+    const { proposed, protectedTargets } = getApprovalTargets({
+      steps: [
+        {
+          id: "s1",
+          action: SecurityPlaybookActionType.ContainCrowdStrikeHost,
+          config: { connectionId: ID_B },
+        },
+      ] as unknown as JSONArray,
+      stepResults: results as unknown as JSONArray,
+      currentStepIndex: 0,
+    });
+
+    expect(
+      proposed.map((item: SecurityPlaybookTarget): string => {
+        return item.value;
+      }),
+    ).toEqual(["web-01"]);
+    expect(
+      protectedTargets.map((item: SecurityPlaybookTarget): string => {
+        return item.value;
+      }),
+    ).toEqual(["vpn-gw-01"]);
+  });
+
+  test("knows the person who started a run, who cannot approve it", () => {
+    const starter: ObjectID = new ObjectID(ID_A);
+
+    expect(didStartRun(starter, new ObjectID(ID_A))).toBe(true);
+    expect(didStartRun(starter, new ObjectID(ID_B))).toBe(false);
+    // A run a detection started has no starter: anyone who may approves it.
+    expect(didStartRun(undefined, new ObjectID(ID_A))).toBe(false);
+  });
+
+  test("names each undo button after what it does", () => {
+    expect(
+      [
+        SecurityPlaybookActionType.UnsuspendOktaUser,
+        SecurityPlaybookActionType.LiftCrowdStrikeContainment,
+        SecurityPlaybookActionType.ReleaseDefenderDevice,
+      ].map((action: SecurityPlaybookActionType): string | undefined => {
+        return UNDO_BUTTON_TITLES[action];
+      }),
+    ).toEqual(["Unsuspend", "Lift Containment", "Release"]);
   });
 });
 

@@ -24,6 +24,13 @@ export enum QueueName {
    * receiver being briefly unreachable.
    */
   MarketingEvent = "MarketingEvent",
+  /*
+   * AI investigations, remediation plans and executions, and insight triage
+   * (AIInvestigationQueue): each job names a Queued AIRun for a worker-role
+   * server to claim and run. The run row is the durable record, so a job
+   * lost here is sent again by the queue's poller.
+   */
+  AIInvestigation = "AIInvestigation",
 }
 
 export type QueueJob = Job;
@@ -455,9 +462,23 @@ export default class Queue {
        * duplicate job ids. Safe (and two Redis calls cheaper per
        * enqueue) when the caller's job ids are globally unique, e.g.
        * the telemetry enqueue path which suffixes ids with a unix-nano
-       * timestamp.
+       * timestamp. Also what a caller wants when adding an id that is
+       * still stored should do nothing: BullMQ then keeps the job it has
+       * (AIInvestigationQueue sends a queued run again this way).
        */
       skipExistenceCheck?: boolean | undefined;
+      /**
+       * BullMQ priority: 0 (the default) is the highest, and a worker
+       * takes no job with a higher number while one with a lower number
+       * is waiting.
+       */
+      priority?: number | undefined;
+      /**
+       * Remove the job as soon as it completes or fails, instead of
+       * keeping it in the queue's recent history. An add with its id is
+       * then a new job again the moment it is done.
+       */
+      removeWhenDone?: boolean | undefined;
       /**
        * Coalesce same-key jobs so they are never processed in parallel.
        * When set, BullMQ keeps at most one active + one waiting job per
@@ -494,6 +515,15 @@ export default class Queue {
         type: "exponential",
         delay: options?.backoffDelayInMs ?? 5000,
       };
+    }
+
+    if (options?.priority && options.priority > 0) {
+      optionsObject.priority = options.priority;
+    }
+
+    if (options?.removeWhenDone) {
+      optionsObject.removeOnComplete = true;
+      optionsObject.removeOnFail = true;
     }
 
     if (options?.deduplication?.id) {
@@ -657,6 +687,24 @@ export default class Queue {
   }
 
   /*
+   * How many jobs wait with a priority. BullMQ keeps them in a set of their
+   * own, which getWaitingCount() does not count, but they are waiting work
+   * all the same. Only the AIInvestigation queue adds such jobs (its
+   * background runs), so this is 0 for every other queue - and guarded like
+   * the scheduler count, so a client without it reads 0 instead of taking
+   * the whole scaling metric offline.
+   */
+  private static async getPrioritizedJobCount(
+    queue: BullQueue,
+  ): Promise<number> {
+    if (typeof queue.getPrioritizedCount !== "function") {
+      return 0;
+    }
+
+    return (await queue.getPrioritizedCount()) || 0;
+  }
+
+  /*
    * Backlog = jobs still waiting for a worker, for autoscaling signals.
    *
    * ACTIVE jobs are deliberately excluded: they are already being served, so
@@ -714,17 +762,24 @@ export default class Queue {
     queueName: QueueName,
   ): Promise<number> {
     const queue: BullQueue = this.getQueue(queueName);
-    const [waitingCount, delayedCount, schedulerCount]: [
+    const [waitingCount, prioritizedCount, delayedCount, schedulerCount]: [
+      number,
       number,
       number,
       number,
     ] = await Promise.all([
       queue.getWaitingCount(),
+      // Jobs waiting with a priority are backlog too (getPrioritizedJobCount).
+      this.getPrioritizedJobCount(queue),
       queue.getDelayedCount(),
       this.getJobSchedulerCount(queue),
     ]);
 
-    return waitingCount + Math.max(0, delayedCount - schedulerCount);
+    return (
+      waitingCount +
+      prioritizedCount +
+      Math.max(0, delayedCount - schedulerCount)
+    );
   }
 
   @CaptureSpan()
@@ -737,7 +792,10 @@ export default class Queue {
     total: number;
   }> {
     const queue: BullQueue = this.getQueue(queueName);
-    const waitingCount: number = await queue.getWaitingCount();
+    // Jobs waiting with a priority are waiting too (getPrioritizedJobCount).
+    const waitingCount: number =
+      (await queue.getWaitingCount()) +
+      (await this.getPrioritizedJobCount(queue));
     const activeCount: number = await queue.getActiveCount();
     const completedCount: number = await queue.getCompletedCount();
     const failedCount: number = await queue.getFailedCount();

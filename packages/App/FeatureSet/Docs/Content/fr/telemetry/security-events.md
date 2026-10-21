@@ -25,12 +25,16 @@ flowchart TB
     monitors --> act
 ```
 
-Ouvrez **Produits → Événements de sécurité**, sous **Observabilité**. Son menu :
+Ouvrez **Produits → Événements de sécurité**, sous **Observabilité**. Son menu a une section pour chaque partie de la sécurité, et une page à part pour chaque chose qu'elle contient :
 
-| Page | Entrée du menu | À quoi elle sert |
+| Page | Section | À quoi elle sert |
 | --- | --- | --- |
 | **Vue d'ensemble** | Vue d'ensemble | La mise en place de la sécurité, ce qui attend quelqu'un maintenant, et la vitesse de traitement des dossiers |
-| **Security Cases** | Security Cases | La file d'attente des détections, regroupées selon ce qu'elles concernent |
+| **Dossiers ouverts** | Dossiers de sécurité | La file d'attente : chaque dossier pas encore fermé, regroupé selon ce qu'il concerne |
+| **Attribués à moi** | Dossiers de sécurité | Les dossiers ouverts qui vous sont attribués |
+| **Non attribué** | Dossiers de sécurité | Les dossiers ouverts que personne n'a pris en charge |
+| **Dossiers fermés** | Dossiers de sécurité | Les dossiers fermés avec un verdict, les plus récents en premier |
+| **Tous les dossiers** | Dossiers de sécurité | Chaque dossier, ouvert ou fermé |
 | **Événements** | Événements | Rechercher et filtrer tous les événements, et en ouvrir un pour voir tous ses champs |
 | **Entités** | Événements | Les utilisateurs, hôtes et adresses que vos constats nomment le plus |
 | **Corréler** | Événements | Un graphe des événements qui partagent un hôte, un utilisateur ou une adresse IP |
@@ -39,11 +43,13 @@ Ouvrez **Produits → Événements de sécurité**, sous **Observabilité**. Son
 | **Threat Intel** | Détections | Des flux STIX/TAXII d'indicateurs malveillants connus |
 | **ATT&CK Coverage** | Détections | Les techniques MITRE ATT&CK que couvrent vos règles |
 | **Playbooks** | Playbooks | Des étapes qui s'exécutent sur les dossiers, d'elles-mêmes ou à la main |
-| **Playbook Runs** | Playbooks | Ce que chaque playbook a fait, et les étapes en attente d'approbation |
+| **En attente d'approbation** | Playbooks | Les étapes de playbook qui attendent que quelqu'un les approuve ou les rejette |
+| **Exécutions de playbooks** | Playbooks | Ce que chaque playbook a fait, étape par étape |
+| **Protected Entities** | Playbooks | Les utilisateurs et les hôtes qu'aucun playbook ne confine |
 | **Connexions** | Connexions | Vos journaux, les produits de sécurité qu'interroge OneUptime et les SIEM auxquels il envoie |
 | **Guide de configuration** | Connexions | Des extraits pour envoyer des événements, remplis avec votre clé d'ingestion |
 
-Les pages derrière une entrée du menu s'ouvrent sous forme d'onglets en haut de la page. Nouveau dans la sécurité ? [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started) la met en place en deux clics.
+**Détections** et **Connexions**, qu'on configure une fois, restent repliées jusqu'à ce que vous les ouvriez. Nouveau dans la sécurité ? [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started) la met en place en deux clics.
 
 ## Avant de commencer
 
@@ -152,7 +158,7 @@ Pour envoyer des journaux de sécurité que vous collectez déjà, par exemple c
     Retry_Limit      5
 ```
 
-L'onglet **Guide de configuration** contient ces extraits avec votre propre hôte et votre clé déjà remplis.
+La page **Guide de configuration**, sous **Connexions**, contient ces extraits avec votre propre hôte et votre clé déjà remplis.
 
 ### Trouver des événements de sécurité dans vos journaux
 
@@ -238,7 +244,7 @@ flowchart TB
 ### Créer une règle
 
 :::steps
-1. Ouvrez **Produits → Événements de sécurité → Détections** et cliquez sur **Créer : Règle de détection**.
+1. Ouvrez **Produits → Événements de sécurité → Détections → Règles de détection** et cliquez sur **Créer : Règle de détection**.
 2. Dans **Sigma Rule**, collez le YAML de la règle dans **Sigma Rule (YAML)**. Il est analysé à l'enregistrement, donc une erreur s'affiche dans le formulaire.
 3. Le **Nom** se remplit avec le `title` de la règle : remplacez-le pour l'appeler autrement. Une nouvelle règle s'exécute ; **Activé** se trouve dans son formulaire de modification.
 4. Dans **En cas de correspondance**, laissez **Open a Case on Match** activé pour regrouper ses correspondances en dossiers, selon la valeur par laquelle la règle regroupe.
@@ -302,7 +308,7 @@ OneUptime vérifie chaque minute quelles règles activées ont dépassé leur in
 - Les fenêtres se suivent bout à bout, elles ne glissent pas. Avec un intervalle de 10 minutes, des échecs à 09:58 et à 10:01 peuvent tomber dans des exécutions différentes et sont comptés séparément, donc gardez une marge en choisissant un seuil.
 - Après une interruption, comme une panne du worker ou une règle réactivée, l'exécution suivante couvre toute l'interruption, jusqu'aux 24 dernières heures.
 - Un événement qui arrive avec plus de deux minutes de retard, une fois qu'une exécution a couvert son heure, est stocké et consultable, mais cette règle ne le lit jamais.
-- Au plus 100 groupes se déclenchent par exécution : ceux aux comptages les plus élevés.
+- Chaque groupe qui atteint le seuil devient un Detection Finding, jusqu'à 10 000 par exécution. Des alertes, des incidents et des dossiers s'ouvrent pour les 100 aux comptages les plus élevés ; les autres partagent un dossier sur la règle, et la **Dernière erreur** de la règle indique combien de groupes ont correspondu.
 
 ### Gravité
 

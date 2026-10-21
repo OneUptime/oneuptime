@@ -47,6 +47,7 @@ Un tableau de bord public :
 
 - S'ouvre toujours en lecture. Les visiteurs ne peuvent pas le modifier et ne voient jamais ses contrôles de modification.
 - Inclut les variables que vous avez ajoutées. Les visiteurs choisissent dans les mêmes sélecteurs que votre équipe, et peuvent changer la plage temporelle, zoomer, activer l'actualisation automatique et passer en plein écran. Il s'ouvre sur la période et l'actualisation automatique par défaut du tableau de bord, et le navigateur de chaque visiteur se souvient de ses propres choix.
+- Permet aux visiteurs de [trier ses listes et ses tableaux](/docs/dashboards/widgets#trier-les-listes-et-les-tableaux) en cliquant sur un en-tête de colonne, comme le fait votre équipe. Le navigateur de chaque visiteur se souvient de son propre tri, et OneUptime trie lui-même toute la liste, toujours selon l'une des colonnes du widget.
 - Utilise l'image de marque définie sur la page **Image de marque** du tableau de bord : titre de page, description, logo, thème, favicon.
 - Permet à chaque visiteur de passer du tableau de bord clair au sombre, et inversement, avec un bouton soleil ou lune dans sa barre d'outils ; [Thème](#thème) explique comment.
 
