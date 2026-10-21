@@ -63,7 +63,8 @@ const BUILD_IMAGES: string = "Scripts/GHA/build_docker_images.sh";
 
 // A quoted https:// address in source, and the suites the helm-test job runs.
 const QUOTED_HTTPS_ADDRESS: RegExp = /"(https:\/\/[^"\s]+)"/g;
-const ALL_SUITES_LINE: RegExp = /^ALL_SUITES=\(([^)]*)\)$/m;
+// One line's list: [^)\n] keeps every attempt on its own line, so linear.
+const ALL_SUITES_LINE: RegExp = /^ALL_SUITES=\(([^)\n]*)\)$/m;
 
 const fileCache: Map<string, string> = new Map<string, string>();
 

@@ -53,9 +53,6 @@ const routesSource: string = fs.readFileSync(
   "utf8",
 );
 
-const MARKDOWN_HEADING: RegExp = /^#{1,6}\s+(.+?)\s*#*\s*$/;
-const CODE_FENCE: RegExp = /^\s*(```|~~~)/;
-
 type SEOForTemplate = PageSEOData & { fullCanonicalUrl: string };
 
 function seoFor(pagePath: string): SEOForTemplate {
@@ -124,23 +121,55 @@ function hasGetRoute(routePath: string): boolean {
   return false;
 }
 
+/*
+ * A markdown heading's text ("## Webhooks" -> "Webhooks"), or null for a
+ * line that is no heading. Read with string steps rather than a pattern, so
+ * it stays linear in the line's length.
+ */
+function headingText(line: string): string | null {
+  let level: number = 0;
+
+  while (level < line.length && line[level] === "#") {
+    level++;
+  }
+
+  if (
+    level === 0 ||
+    level > 6 ||
+    (line[level] !== " " && line[level] !== "\t")
+  ) {
+    return null;
+  }
+
+  let text: string = line.slice(level).trim();
+
+  // A closing run of #s is not part of the heading.
+  while (text.endsWith("#")) {
+    text = text.slice(0, -1);
+  }
+
+  text = text.trim();
+
+  return text === "" ? null : text;
+}
+
 // The anchors a docs page answers to: its headings, slugged as the docs do.
 function docsAnchors(markdownFile: string): Set<string> {
   const anchors: Set<string> = new Set<string>();
   let inFence: boolean = false;
 
   for (const line of fs.readFileSync(markdownFile, "utf8").split("\n")) {
-    if (CODE_FENCE.test(line)) {
+    const trimmed: string = line.trimStart();
+
+    if (trimmed.startsWith("```") || trimmed.startsWith("~~~")) {
       inFence = !inFence;
       continue;
     }
 
-    const heading: RegExpMatchArray | null = inFence
-      ? null
-      : line.match(MARKDOWN_HEADING);
+    const heading: string | null = inFence ? null : headingText(line);
 
     if (heading) {
-      anchors.add(slugifyMarkdownHeading(heading[1]!));
+      anchors.add(slugifyMarkdownHeading(heading));
     }
   }
 
@@ -868,6 +897,26 @@ describe("the anchors the page links into the docs", () => {
         null,
       ]);
     }
+  });
+
+  test("the heading reader takes what the docs write, and nothing else", () => {
+    expect(headingText("## Webhooks")).toBe("Webhooks");
+    expect(headingText("### Offline activation (air-gapped installs) ##")).toBe(
+      "Offline activation (air-gapped installs)",
+    );
+    expect(headingText("#\tTabbed")).toBe("Tabbed");
+    expect(headingText("#NoSpace")).toBeNull();
+    expect(headingText("####### Seven")).toBeNull();
+    expect(headingText("## ")).toBeNull();
+    expect(headingText("Not a heading")).toBeNull();
+  });
+
+  test("the heading reader stays linear on a very long line", () => {
+    const started: number = Date.now();
+
+    headingText(`# ${"\t".repeat(200000)}x${"#".repeat(200000)}`);
+
+    expect(Date.now() - started).toBeLessThan(2000);
   });
 
   test("the helper finds a missing page and a missing heading", () => {

@@ -41,7 +41,11 @@ const sitemapSource: string = fs.readFileSync(
 );
 
 // Every markdown link's target, and every second-level heading.
-const MARKDOWN_LINK_TARGET: RegExp = /\]\(([^)\s]+)\)/g;
+/*
+ * The target excludes "(" and "]" as well as ")": an attempt never runs past
+ * the next "](", so the scan stays linear in the markdown's length.
+ */
+const MARKDOWN_LINK_TARGET: RegExp = /\]\(([^()\]\s]+)\)/g;
 const SECOND_LEVEL_HEADING: RegExp = /^## (.+)$/gm;
 
 /*
