@@ -39,7 +39,12 @@ import {
   GLOBAL_RUNNER_CHOICE_DESCRIPTION,
   GLOBAL_RUNNER_CHOICE_LABEL,
   GLOBAL_RUNNER_NOT_CONNECTED_TEXT,
+  GLOBAL_RUNNER_STEP_TYPE_UNAVAILABLE_TEXT,
+  GLOBAL_RUNNER_TURNED_OFF_UNAVAILABLE_TEXT,
+  PICKED_GLOBAL_RUNNER_NEEDS_OWN_TEXT,
+  STEP_NO_GLOBAL_RUNNER_HELPER_TEXT,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel";
+import { GLOBAL_RUNNER_CHOICE_ID } from "../../../Types/Runner/RunnerChoice";
 import Project from "../../../Models/DatabaseModels/Project";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
@@ -56,16 +61,22 @@ import ProjectUtil from "../../../UI/Utils/Project";
  * Runbooks -> a runbook -> Steps picks each step's Runner with it. A
  * JavaScript step that picked none shows "Global Runner" - the Runners
  * OneUptime runs for every project - picked, first, with what it means
- * under it; the project's own Runners follow. A step with nothing to pick
- * gets one sentence that says what to do, never an empty box. What it
- * loads (RunnerChoicesLoader) is read here too: the project's own Runners,
- * the global ones from their own route, and the project's switch.
+ * under it; the project's own Runners follow. In a project with a default
+ * Runner, a step that picked none shows that Runner first, tagged as the
+ * project default, with the Global Runner a choice of its own after it. A
+ * Bash, SSH or kubectl step is shown the Global Runner last, never picked,
+ * saying it runs JavaScript steps only. A step with nothing to pick gets
+ * one sentence that says what to do, never an empty box. What it loads
+ * (RunnerChoicesLoader) is read here too: the project's own Runners - which
+ * is the default - the global ones from their own route, and the
+ * project's switch.
  */
 
 const PROJECT_ID: string = "dddddddd-0000-4000-8000-000000000001";
 
 const BASTION_ID: string = "aaaaaaaa-0000-4000-8000-000000000001";
 const STAGING_ID: string = "aaaaaaaa-0000-4000-8000-000000000002";
+const DEFAULT_ID: string = "aaaaaaaa-0000-4000-8000-000000000003";
 const GONE_ID: string = "cccccccc-0000-4000-8000-000000000001";
 
 const OWN_RUNNER_HELP: string = "The step runs on the Runner you picked.";
@@ -98,6 +109,27 @@ function choices(overrides: Partial<RunnerChoices> = {}): RunnerChoices {
     projectUsesGlobalRunners: true,
     ...overrides,
   };
+}
+
+// The same, with prod-default as the project's default Runner.
+function choicesWithDefault(
+  defaultLiveStatus: RunnerLiveStatus = RunnerLiveStatus.Connected,
+): RunnerChoices {
+  return choices({
+    projectRunners: [
+      {
+        id: BASTION_ID,
+        name: "prod-bastion",
+        liveStatus: RunnerLiveStatus.Connected,
+      },
+      {
+        id: DEFAULT_ID,
+        name: "prod-default",
+        liveStatus: defaultLiveStatus,
+        isProjectDefault: true,
+      },
+    ],
+  });
 }
 
 /*
@@ -246,7 +278,7 @@ describe("a JavaScript step", () => {
     );
   });
 
-  test("on a project that turned global Runners off, with Runners of its own, it waits for a pick", () => {
+  test("on a project that turned global Runners off, with Runners of its own, it waits for a pick - the Global Runner drawn last, not open, saying why", () => {
     renderPicker({
       stepType: RunbookStepType.JavaScript,
       choices: choices({ projectUsesGlobalRunners: false }),
@@ -254,8 +286,13 @@ describe("a JavaScript step", () => {
 
     const options: Array<HTMLElement> = openMenu();
 
-    expect(options).toHaveLength(2);
+    expect(options).toHaveLength(3);
     expect(options[0]).toHaveTextContent("prod-bastion");
+    expect(options[2]).toHaveTextContent(GLOBAL_RUNNER_CHOICE_LABEL);
+    expect(options[2]).toHaveTextContent(
+      GLOBAL_RUNNER_TURNED_OFF_UNAVAILABLE_TEXT,
+    );
+    expect(options[2]).toHaveAttribute("aria-disabled", "true");
     expect(shown()).toBe("");
   });
 
@@ -277,13 +314,26 @@ describe("a JavaScript step", () => {
     expect(help()).toHaveTextContent(OWN_RUNNER_HELP);
   });
 
-  test("negative control: a Bash step, which global Runners never run, keeps the step's own line", () => {
+  test("a Bash step, which global Runners never run, is told so whatever the project's switch, and how to go on", () => {
     renderPicker({
       stepType: RunbookStepType.Bash,
       choices: choices({ projectUsesGlobalRunners: false }),
     });
 
-    expect(help()).toHaveTextContent(OWN_RUNNER_HELP);
+    expect(help()).toHaveTextContent(
+      "Bash steps run on a Runner of your own, inside your network: the Global Runner runs JavaScript steps only. Pick one, or make one the project default under Runbooks › Runners.",
+    );
+    expect(help()).not.toHaveTextContent(OWN_RUNNER_HELP);
+  });
+
+  test("on a server with no global Runner, a JavaScript step that picked none is told to pick one of the project's own", () => {
+    renderPicker({
+      stepType: RunbookStepType.JavaScript,
+      choices: choices({ globalRunners: [] }),
+    });
+
+    expect(shown()).toBe("");
+    expect(help()).toHaveTextContent(STEP_NO_GLOBAL_RUNNER_HELPER_TEXT);
   });
 
   test("on a project that turned global Runners off, with none of its own, it says how to go on", () => {
@@ -323,20 +373,50 @@ describe("Bash, SSH and Kubernetes steps", () => {
     RunbookStepType.SSH,
     RunbookStepType.Kubernetes,
   ]) {
-    test(`a ${stepType} step is offered the project's own Runners only`, () => {
+    /*
+     * The maintainer's "Why can't I select a global runner here when I have
+     * one?": it is there, last, saying it runs JavaScript steps only - and
+     * it cannot be picked.
+     */
+    test(`a ${stepType} step is offered the project's own Runners, and shown the Global Runner last as not open to it`, () => {
       renderPicker({ stepType });
 
       const options: Array<HTMLElement> = openMenu();
 
-      expect(options).toHaveLength(2);
+      expect(options).toHaveLength(3);
       expect(options[0]).toHaveTextContent("prod-bastion · Connected");
+      expect(options[1]).toHaveTextContent("staging-runner · Disconnected");
+      expect(options[2]).toHaveTextContent(GLOBAL_RUNNER_CHOICE_LABEL);
+      expect(options[2]).toHaveTextContent(
+        GLOBAL_RUNNER_STEP_TYPE_UNAVAILABLE_TEXT,
+      );
+      expect(options[2]).not.toHaveTextContent("Connected");
+      expect(options[2]).toHaveAttribute("aria-disabled", "true");
+
+      // Picking it does nothing: the step keeps no Runner.
+      fireEvent.click(options[2]!);
+
+      expect(changes).toEqual([]);
+      expect(shown()).toBe("");
+    });
+
+    test(`a ${stepType} step that picked none says why the Global Runner is not open to it, and the two ways on`, () => {
+      renderPicker({ stepType });
+
+      expect(help()).toHaveTextContent(
+        `${stepType} steps run on a Runner of your own, inside your network: the Global Runner runs JavaScript steps only. Pick one, or make one the project default under Runbooks › Runners.`,
+      );
       expect(
-        options.some((option: HTMLElement) => {
-          return (option.textContent || "").includes(
-            GLOBAL_RUNNER_CHOICE_LABEL,
-          );
-        }),
-      ).toBe(false);
+        within(help()).getByRole("link", { name: "Runbooks › Runners" }),
+      ).toHaveAttribute("target", "_blank");
+      expect(help().firstElementChild).toHaveClass("text-amber-700");
+    });
+
+    test(`a ${stepType} step that picked the Global Runner itself shows it, and is told to pick one of the project's own`, () => {
+      renderPicker({ stepType, value: GLOBAL_RUNNER_CHOICE_ID });
+
+      expect(shown()).toBe(GLOBAL_RUNNER_CHOICE_LABEL);
+      expect(help()).toHaveTextContent(PICKED_GLOBAL_RUNNER_NEEDS_OWN_TEXT);
     });
 
     test(`a ${stepType} step with no Runner of the project's own says it needs one, even with global Runners`, () => {
@@ -345,11 +425,124 @@ describe("Bash, SSH and Kubernetes steps", () => {
       expect(
         screen.getByTestId("runbook-step-0-runner-nothing-to-pick"),
       ).toHaveTextContent(
-        `${stepType} steps run on a Runner of your own, inside your network. Add one under Runbooks › Runners, then pick it here.`,
+        `${stepType} steps run on a Runner of your own, inside your network: the Global Runner runs JavaScript steps only. Add one under Runbooks › Runners, then pick it here.`,
       );
       expect(screen.queryByText(/No Runners/)).toBeNull();
+      expect(screen.queryByRole("combobox")).toBeNull();
     });
   }
+});
+
+describe("a step in a project with a default Runner", () => {
+  test("a JavaScript step that picked none shows the default, tagged, and the step's own line", () => {
+    renderPicker({
+      stepType: RunbookStepType.JavaScript,
+      choices: choicesWithDefault(),
+    });
+
+    expect(shown()).toBe("prod-default · Project default · Connected");
+    expect(help()).toHaveTextContent(OWN_RUNNER_HELP);
+  });
+
+  test("offers the default first, then the Global Runner as a choice of its own, then the rest", () => {
+    renderPicker({
+      stepType: RunbookStepType.JavaScript,
+      choices: choicesWithDefault(),
+    });
+
+    const options: Array<HTMLElement> = openMenu();
+
+    expect(options).toHaveLength(3);
+    expect(options[0]).toHaveTextContent(
+      "prod-default · Project default · Connected",
+    );
+    expect(options[1]).toHaveTextContent(
+      `${GLOBAL_RUNNER_CHOICE_LABEL} · Connected`,
+    );
+    expect(options[1]).toHaveTextContent(GLOBAL_RUNNER_CHOICE_DESCRIPTION);
+    expect(options[2]).toHaveTextContent("prod-bastion · Connected");
+  });
+
+  test("picking the Global Runner stores 'global', and picking the default again stores no Runner", () => {
+    renderPicker({
+      stepType: RunbookStepType.JavaScript,
+      choices: choicesWithDefault(),
+    });
+
+    fireEvent.click(openMenu()[1]!);
+
+    expect(changes).toEqual([GLOBAL_RUNNER_CHOICE_ID]);
+    expect(shown()).toBe(`${GLOBAL_RUNNER_CHOICE_LABEL} · Connected`);
+
+    fireEvent.click(openMenu()[0]!);
+
+    expect(changes).toEqual([GLOBAL_RUNNER_CHOICE_ID, ""]);
+    expect(shown()).toBe("prod-default · Project default · Connected");
+  });
+
+  test("a Bash step that picked none runs on the default; the Global Runner is drawn last, not open", () => {
+    renderPicker({
+      stepType: RunbookStepType.Bash,
+      choices: choicesWithDefault(),
+    });
+
+    expect(shown()).toBe("prod-default · Project default · Connected");
+    expect(help()).toHaveTextContent(OWN_RUNNER_HELP);
+
+    const options: Array<HTMLElement> = openMenu();
+
+    expect(options).toHaveLength(3);
+    expect(options[2]).toHaveTextContent(GLOBAL_RUNNER_CHOICE_LABEL);
+    expect(options[2]).toHaveAttribute("aria-disabled", "true");
+  });
+
+  test("a default that is not connected is shown so, and the step is said to fail if it does not come back", () => {
+    renderPicker({
+      stepType: RunbookStepType.Bash,
+      choices: choicesWithDefault(RunnerLiveStatus.NeverConnected),
+    });
+
+    expect(shown()).toBe("prod-default · Project default · Never connected");
+    expect(
+      screen.getByTestId("runbook-step-0-runner-runner-waiting"),
+    ).toHaveTextContent(
+      "prod-default is not connected right now. The step fails if this Runner does not pick it up within its claim timeout.",
+    );
+  });
+
+  test("negative control: a connected default, or the Global Runner, says nothing of the kind", () => {
+    renderPicker({
+      stepType: RunbookStepType.JavaScript,
+      choices: choicesWithDefault(),
+    });
+
+    expect(
+      screen.queryByTestId("runbook-step-0-runner-runner-waiting"),
+    ).toBeNull();
+  });
+});
+
+describe("a step on one of the project's own Runners that is not connected", () => {
+  test("says the step fails if the Runner does not pick it up", () => {
+    renderPicker({ stepType: RunbookStepType.Bash, value: STAGING_ID });
+
+    expect(
+      screen.getByTestId("runbook-step-0-runner-runner-waiting"),
+    ).toHaveTextContent(
+      "staging-runner is not connected right now. The step fails if this Runner does not pick it up within its claim timeout.",
+    );
+    expect(
+      screen.getByTestId("runbook-step-0-runner-runner-waiting"),
+    ).toHaveClass("text-amber-700");
+  });
+
+  test("negative control: a connected pick says nothing", () => {
+    renderPicker({ stepType: RunbookStepType.Bash, value: BASTION_ID });
+
+    expect(
+      screen.queryByTestId("runbook-step-0-runner-runner-waiting"),
+    ).toBeNull();
+  });
 });
 
 describe("where to add a Runner, when a step has nothing to pick", () => {
@@ -607,6 +800,119 @@ describe("what the picker loads", () => {
     expect(loaded.projectRunners).toHaveLength(1);
     // A project that never touched the switch uses them.
     expect(loaded.projectUsesGlobalRunners).toBe(true);
+  });
+
+  test("only a project default that may be it is marked: the rule the server reads it by", async () => {
+    jest
+      .spyOn(ModelAPI, "getList")
+      .mockImplementation(async (args: unknown): Promise<ListResult<never>> => {
+        const call: ListCall = args as ListCall;
+        listCalls.push(call);
+
+        const data: Array<Runner> = String(
+          call.requestOptions?.overrideRequestUrl || "",
+        ).endsWith(GLOBAL_RUNNERS_ROUTE)
+          ? []
+          : [
+              Object.assign(runnerRow(BASTION_ID, "prod-bastion", true), {
+                isProjectDefault: true,
+              }),
+              // Marked in the database, but it does not run runbooks: passed over.
+              Object.assign(runnerRow(STAGING_ID, "staging-runner", false), {
+                isProjectDefault: true,
+              }),
+            ];
+
+        return {
+          data: data as Array<never>,
+          count: data.length,
+          skip: 0,
+          limit: 10,
+        };
+      });
+    jest.spyOn(ModelAPI, "getItem").mockResolvedValue(new Project() as never);
+
+    const loaded: RunnerChoices = await RunnerChoicesLoader.load(
+      new ObjectID(PROJECT_ID),
+    );
+
+    expect(
+      loaded.projectRunners.map(
+        (runner: { name: string; isProjectDefault?: boolean | undefined }) => {
+          return [runner.name, runner.isProjectDefault === true];
+        },
+      ),
+    ).toEqual([
+      ["prod-bastion", true],
+      ["staging-runner", false],
+    ]);
+
+    // Read with what decides it.
+    const ownRead: ListCall | undefined = listCalls.find((call: ListCall) => {
+      return !call.requestOptions?.overrideRequestUrl;
+    });
+    const select: Record<string, unknown> = (
+      ownRead as unknown as { select: Record<string, unknown> }
+    ).select;
+
+    expect(select["isProjectDefault"]).toBe(true);
+    expect(select["canRunRunbooks"]).toBe(true);
+    expect(select["hostInfo"]).toBe(true);
+  });
+
+  test("the project's default Runner is read on its own, by its id and name, and only one that may be it", async () => {
+    let rows: Array<Runner> = [
+      Object.assign(runnerRow(DEFAULT_ID, "prod-default", true), {
+        isProjectDefault: true,
+      }),
+    ];
+
+    jest
+      .spyOn(ModelAPI, "getList")
+      .mockImplementation(async (args: unknown): Promise<ListResult<never>> => {
+        listCalls.push(args as ListCall);
+
+        return {
+          data: rows as Array<never>,
+          count: rows.length,
+          skip: 0,
+          limit: 1,
+        };
+      });
+
+    expect(
+      await RunnerChoicesLoader.loadProjectDefaultRunner(
+        new ObjectID(PROJECT_ID),
+      ),
+    ).toEqual({ id: DEFAULT_ID, name: "prod-default" });
+
+    const read: { query: Record<string, unknown>; limit: number } =
+      listCalls[0] as unknown as {
+        query: Record<string, unknown>;
+        limit: number;
+      };
+
+    expect(String(read.query["projectId"])).toBe(PROJECT_ID);
+    expect(read.query["isProjectDefault"]).toBe(true);
+    expect(read.limit).toBe(1);
+
+    // None, a row that is not the default, and one that may not be it: no default.
+    for (const next of [
+      [],
+      [runnerRow(DEFAULT_ID, "prod-default", true)],
+      [
+        Object.assign(runnerRow(DEFAULT_ID, "kubernetes-agent/prod", true), {
+          isProjectDefault: true,
+        }),
+      ],
+    ]) {
+      rows = next;
+      expect(
+        await RunnerChoicesLoader.loadProjectDefaultRunner(
+          new ObjectID(PROJECT_ID),
+        ),
+      ).toBeNull();
+    }
   });
 
   test("someone who may not read the project's switch is shown what a project starts with", async () => {

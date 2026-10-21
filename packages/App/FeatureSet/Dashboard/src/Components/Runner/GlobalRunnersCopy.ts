@@ -76,7 +76,7 @@ export const GlobalRunnersCopy: {
     "Runners OneUptime runs for every project. JavaScript steps run on them by default, in a sandbox that reaches the internet only.",
   ),
   globalCardDescriptionWithDefault: translationKey(
-    "Runners OneUptime runs for every project. A JavaScript step that picks Global Runner runs on one, in a sandbox that reaches the internet only.",
+    "Runners OneUptime runs for every project. Steps that pick Global Runner run on them, in a sandbox that reaches the internet only.",
   ),
   globalCardDescriptionWhenOff: translationKey(
     "Runners OneUptime runs for every project. This project does not use them, so steps and code repositories run on yours.",

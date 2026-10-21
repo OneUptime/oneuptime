@@ -274,6 +274,7 @@ export default class RunnerChoicesLoader {
       select: {
         _id: true,
         name: true,
+        isProjectDefault: true,
         canRunRunbooks: true,
         hostInfo: true,
       },
@@ -284,7 +285,11 @@ export default class RunnerChoicesLoader {
 
     const runner: Runner | undefined = result.data[0];
 
-    if (!runner || !canBeProjectDefaultRunner(runner)) {
+    if (
+      !runner ||
+      runner.isProjectDefault !== true ||
+      !canBeProjectDefaultRunner(runner)
+    ) {
       return null;
     }
 

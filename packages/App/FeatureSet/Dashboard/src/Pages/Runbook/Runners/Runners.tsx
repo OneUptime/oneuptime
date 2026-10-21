@@ -112,6 +112,9 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
     { id: string; name: string } | null | undefined
   >(undefined);
 
+  // Whether the project's own Runners table lists any (as last fetched).
+  const [hasProjectRunners, setHasProjectRunners] = useState<boolean>(false);
+
   const [defaultRunnerChange, setDefaultRunnerChange] =
     useState<DefaultRunnerChange | null>(null);
   const [isChangingDefault, setIsChangingDefault] = useState<boolean>(false);
@@ -277,17 +280,8 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
    * A master admin on a server with no global Runner is told where to add
    * them, under the description everyone reads.
    */
-  const customCardDescription: string | ReactElement = hasGlobalRunners ? (
-    /*
-     * Why a team adds one, then what the project default is for: the two
-     * reasons a Runner of its own runs steps.
-     */
-    <span>
-      {translator.translateText(GlobalRunnersCopy.customCardDescription)}{" "}
-      <span data-testid="project-default-runner-hint">
-        {translator.translateText(ProjectDefaultRunnerCopy.customCardSentence)}
-      </span>
-    </span>
+  const baseCardDescription: string | ReactElement = hasGlobalRunners ? (
+    GlobalRunnersCopy.customCardDescription
   ) : UserUtil.isMasterAdmin() ? (
     <span>
       {translator.translateText(GlobalRunnersCopy.onlyCardDescription)}{" "}
@@ -315,6 +309,28 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   ) : (
     GlobalRunnersCopy.onlyCardDescription
   );
+
+  /*
+   * Then, while the project has Runners and none of them is its default,
+   * that one can be made the default - the ⋯ menu's action, said where the
+   * Runners are. With a default, its row says so instead; with no Runner
+   * yet, adding one comes first.
+   */
+  const cardDescription: string | ReactElement =
+    projectDefaultRunner === null && hasProjectRunners ? (
+      <span>
+        {typeof baseCardDescription === "string"
+          ? translator.translateText(baseCardDescription)
+          : baseCardDescription}{" "}
+        <span data-testid="project-default-runner-hint">
+          {translator.translateText(
+            ProjectDefaultRunnerCopy.customCardSentence,
+          )}
+        </span>
+      </span>
+    ) : (
+      baseCardDescription
+    );
 
   return (
     <Fragment>
@@ -350,12 +366,15 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isViewable={true}
         showRefreshButton={true}
         refreshToggle={refreshToggle}
+        onFetchSuccess={(_items: Array<Runner>, totalCount: number): void => {
+          setHasProjectRunners(totalCount > 0);
+        }}
         createEditModalWidth={ModalWidth.Large}
         cardProps={{
           title: hasGlobalRunners
             ? GlobalRunnersCopy.customCardTitle
             : GlobalRunnersCopy.onlyCardTitle,
-          description: customCardDescription,
+          description: cardDescription,
         }}
         selectMoreFields={{
           _id: true,
