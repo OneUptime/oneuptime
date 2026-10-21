@@ -236,7 +236,7 @@ const CollectorConfigs: FunctionComponent<
       {defaultShown && (
         <Modal
           title={DEFAULT_CONFIG_NAMES[defaultShown]}
-          description="To change what some or all of these hosts collect, create a Collector Config: it starts as this config. The default itself follows OneUptime's releases."
+          description="To change what these hosts collect, create a Collector Config: it starts as this config. The default itself follows OneUptime's releases."
           modalWidth={ModalWidth.Large}
           onClose={() => {
             setDefaultShown(null);

@@ -167,7 +167,7 @@ const HostCollectorConfigPickerModal: FunctionComponent<ComponentProps> = (
     <BasicFormModal<ChoiceFormValues>
       title="Change config"
       name="Host > Collector > Change config"
-      description="Automatic runs the first Collector Config that applies to this host, or OneUptime's default, and follows the list as it changes. A picked config stays until you change it here."
+      description="Automatic runs the first Collector Config that applies to this host, or OneUptime's default. A config you pick stays until you change it."
       isLoading={isLoading}
       error={error || undefined}
       submitButtonText="Save"

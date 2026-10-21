@@ -418,7 +418,7 @@ const HostCollectorCard: FunctionComponent<ComponentProps> = (
       {isRetryOpen ? (
         <ConfirmModal
           title="Try the config again?"
-          description="OneUptime sends this host the config that failed once more. Fix what stopped it first: the host goes back to its last working config if it fails again."
+          description="OneUptime sends the failed config to this host again. Fix what stopped it first: if it fails again, the host keeps its last working config."
           submitButtonText="Try again"
           isLoading={isRetrying}
           error={retryError || undefined}
