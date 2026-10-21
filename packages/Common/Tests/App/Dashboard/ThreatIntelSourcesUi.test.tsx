@@ -1,0 +1,598 @@
+import "@testing-library/jest-dom";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import * as React from "react";
+import { MemoryRouter } from "react-router-dom";
+
+/*
+ * A threat-intel feed reads one of three sources: a list of indicators, a
+ * TAXII collection or Google SecOps. The feed form asks for the source
+ * first and then only that source's own fields; the Free Lists card adds a
+ * free blocklist in one click. The feeds table is mocked to capture its
+ * props; the Free Lists card renders for real, against a stubbed API.
+ */
+
+type CapturedField = Record<string, unknown> & {
+  field?: Record<string, boolean>;
+  title: string;
+  stepId?: string;
+  showIf?: (values: Record<string, unknown>) => boolean;
+  required?: boolean | ((values: Record<string, unknown>) => boolean);
+  customValidation?: (values: Record<string, unknown>) => string | null;
+  doNotShowWhenEditing?: boolean;
+  defaultValue?: unknown;
+  radioButtonOptions?: Array<{
+    value: string;
+    title: string;
+    description?: string;
+  }>;
+  dropdownModal?: { query?: Record<string, unknown>; labelField: string };
+  sideLink?: { text: string; url: { toString: () => string } };
+};
+
+type CapturedTableProps = {
+  formFields?: Array<CapturedField>;
+  columns?: Array<{
+    title: string;
+    getElement?: (item: Record<string, unknown>) => React.ReactElement;
+  }>;
+  actionButtons?: Array<{
+    title: string;
+    isVisible?: (item: Record<string, unknown>) => boolean;
+  }>;
+  createInitialValues?: Record<string, unknown>;
+  refreshToggle?: string;
+  onBeforeUpdate?: (item: Record<string, unknown>) => Promise<unknown>;
+  onItemDeleted?: (item: Record<string, unknown>) => void;
+  cardProps?: { title: string; description: string };
+};
+
+let capturedFeedTableProps: CapturedTableProps | null = null;
+
+jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
+  return {
+    __esModule: true,
+    default: (props: CapturedTableProps) => {
+      capturedFeedTableProps = props;
+      return React.createElement("div", { "data-testid": "feeds-table" });
+    },
+  };
+});
+
+jest.mock("../../../UI/Components/ModelTable/AnalyticsModelTable", () => {
+  return {
+    __esModule: true,
+    default: () => {
+      return React.createElement("div", { "data-testid": "indicators-table" });
+    },
+  };
+});
+
+import ThreatIntelPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/ThreatIntel";
+import ThreatIntelRecommendedLists, {
+  buildFeedFromRecommendedList,
+  isRecommendedListAdded,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/ThreatIntelRecommendedLists";
+import {
+  RECOMMENDED_THREAT_INTEL_LIST_TEXTS,
+  THREAT_INTEL_FEED_TYPE_TEXTS,
+  getThreatIntelFeedSource,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/ThreatIntelSourcesCopy";
+import ThreatIntelFeed from "../../../Models/DatabaseModels/ThreatIntelFeed";
+import Project from "../../../Models/DatabaseModels/Project";
+import ProjectUtil from "../../../UI/Utils/Project";
+import PermissionGate from "../../../UI/Utils/PermissionGate";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import ObjectID from "../../../Types/ObjectID";
+import Route from "../../../Types/API/Route";
+import ThreatIntelFeedType, {
+  RECOMMENDED_THREAT_INTEL_LISTS,
+  RecommendedThreatIntelList,
+  THREAT_INTEL_FEED_TYPE_DEFINITIONS,
+  ThreatIntelFeedTypeDefinition,
+} from "../../../Types/SecurityEvent/ThreatIntelFeedType";
+import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
+import BadDataException from "../../../Types/Exception/BadDataException";
+
+const PROJECT_ID: ObjectID = new ObjectID(
+  "11111111-1111-4111-8111-111111111111",
+);
+
+const FEODO: RecommendedThreatIntelList = RECOMMENDED_THREAT_INTEL_LISTS.find(
+  (list: RecommendedThreatIntelList): boolean => {
+    return list.id === "feodo-tracker";
+  },
+)!;
+const TOR: RecommendedThreatIntelList = RECOMMENDED_THREAT_INTEL_LISTS.find(
+  (list: RecommendedThreatIntelList): boolean => {
+    return list.id === "tor-exit-nodes";
+  },
+)!;
+
+type Spy = ReturnType<typeof jest.spyOn>;
+
+let getListSpy: Spy;
+let createSpy: Spy;
+
+function stubFeeds(listUrls: Array<string>): void {
+  getListSpy = jest.spyOn(ModelAPI, "getList").mockResolvedValue({
+    data: listUrls.map((url: string): ThreatIntelFeed => {
+      const feed: ThreatIntelFeed = new ThreatIntelFeed();
+      feed.listUrl = url;
+      return feed;
+    }),
+    count: listUrls.length,
+    skip: 0,
+    limit: 100,
+  } as never);
+}
+
+// The page, once its Free Lists card has read which lists the project has.
+async function renderPage(): Promise<void> {
+  const project: Project = new Project();
+  project.id = PROJECT_ID;
+
+  render(
+    <MemoryRouter>
+      <ThreatIntelPage
+        pageRoute={new Route("/dashboard/security-events/threat-intel")}
+        currentProject={project}
+        hasPaymentMethod={true}
+      />
+    </MemoryRouter>,
+  );
+
+  await waitFor(() => {
+    expect(
+      screen.getByTestId("threat-intel-recommended-lists"),
+    ).toHaveAttribute("data-loaded", "true");
+  });
+}
+
+// The Free Lists card, once it has read which lists the project has.
+async function renderLists(onAdded: () => void = () => {}): Promise<void> {
+  render(
+    <MemoryRouter>
+      <ThreatIntelRecommendedLists onAdded={onAdded} />
+    </MemoryRouter>,
+  );
+
+  await waitFor(() => {
+    expect(
+      screen.getByTestId("threat-intel-recommended-lists"),
+    ).toHaveAttribute("data-loaded", "true");
+  });
+}
+
+function fields(): Array<CapturedField> {
+  return capturedFeedTableProps?.formFields || [];
+}
+
+function byColumn(column: string): CapturedField {
+  const found: CapturedField | undefined = fields().find(
+    (field: CapturedField): boolean => {
+      return Object.keys(field.field || {})[0] === column;
+    },
+  );
+
+  expect(found).toBeDefined();
+
+  return found!;
+}
+
+function isRequired(
+  field: CapturedField,
+  values: Record<string, unknown>,
+): boolean {
+  return typeof field.required === "function"
+    ? field.required(values)
+    : Boolean(field.required);
+}
+
+const LIST: Record<string, unknown> = { feedType: "list" };
+const TAXII: Record<string, unknown> = { feedType: "taxii" };
+const SECOPS: Record<string, unknown> = { feedType: "google-secops" };
+
+beforeEach(() => {
+  capturedFeedTableProps = null;
+  window.localStorage.clear();
+  jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+  jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
+  stubFeeds([]);
+  createSpy = jest.spyOn(ModelAPI, "create").mockResolvedValue({} as never);
+});
+
+afterEach(() => {
+  cleanup();
+  jest.restoreAllMocks();
+  window.localStorage.clear();
+});
+
+describe("a new feed's source", () => {
+  test("is the first question: a list of indicators, a TAXII collection or Google SecOps", async () => {
+    await renderPage();
+
+    const source: CapturedField = byColumn("feedType");
+
+    expect(source.stepId).toBe("source");
+    expect(source.doNotShowWhenEditing).toBe(true);
+    expect(source.defaultValue).toBe("list");
+    expect(capturedFeedTableProps?.createInitialValues).toMatchObject({
+      feedType: "list",
+    });
+    expect(
+      (source.radioButtonOptions || []).map(
+        (option: { value: string; title: string }) => {
+          return [option.value, option.title];
+        },
+      ),
+    ).toEqual([
+      ["list", "List of indicators"],
+      ["taxii", "TAXII collection"],
+      ["google-secops", "Google SecOps"],
+    ]);
+  });
+
+  test("each source asks only for its own fields, and requires them", async () => {
+    await renderPage();
+
+    const sourceFields: Array<string> = [
+      "listUrl",
+      "indicatorConfidence",
+      "apiRootUrl",
+      "collectionId",
+      "securityEventConnection",
+    ];
+
+    const asked: (values: Record<string, unknown>) => {
+      shown: Array<string>;
+      required: Array<string>;
+    } = (values: Record<string, unknown>) => {
+      const own: Array<CapturedField> = sourceFields.map(byColumn);
+
+      return {
+        shown: own
+          .filter((field: CapturedField) => {
+            return !field.showIf || field.showIf(values);
+          })
+          .map((field: CapturedField) => {
+            return Object.keys(field.field || {})[0]!;
+          }),
+        required: own
+          .filter((field: CapturedField) => {
+            return isRequired(field, values);
+          })
+          .map((field: CapturedField) => {
+            return Object.keys(field.field || {})[0]!;
+          }),
+      };
+    };
+
+    expect(asked(LIST)).toEqual({
+      shown: ["listUrl", "indicatorConfidence"],
+      required: ["listUrl"],
+    });
+    expect(asked(TAXII)).toEqual({
+      shown: ["apiRootUrl", "collectionId"],
+      required: ["apiRootUrl", "collectionId"],
+    });
+    expect(asked(SECOPS)).toEqual({
+      shown: ["securityEventConnection"],
+      required: ["securityEventConnection"],
+    });
+  });
+
+  test("a Google SecOps feed picks one of the project's Google SecOps connections, or connects one", async () => {
+    await renderPage();
+
+    const connection: CapturedField = byColumn("securityEventConnection");
+
+    expect(connection.stepId).toBe("google-secops");
+    expect(connection.dropdownModal?.labelField).toBe("name");
+    expect(connection.dropdownModal?.query).toEqual({
+      provider: SecurityEventConnectorProvider.GoogleSecOps,
+    });
+    expect(connection.sideLink?.text).toBe("Connect Google SecOps");
+    expect(connection.sideLink?.url.toString()).toContain("connections");
+  });
+
+  test("a list is read every 15 minutes at most; a TAXII collection every minute", async () => {
+    await renderPage();
+
+    const pollInterval: CapturedField = byColumn("pollIntervalInMinutes");
+
+    expect(
+      pollInterval.customValidation!({ ...LIST, pollIntervalInMinutes: 5 }),
+    ).toBe("A list is read every 15 minutes at most.");
+    expect(
+      pollInterval.customValidation!({ ...LIST, pollIntervalInMinutes: 15 }),
+    ).toBeNull();
+    expect(
+      pollInterval.customValidation!({ ...TAXII, pollIntervalInMinutes: 1 }),
+    ).toBeNull();
+  });
+
+  test("a list's indicators all have the list's confidence: no confidence floor", async () => {
+    await renderPage();
+
+    const floor: CapturedField = byColumn("minimumConfidence");
+
+    expect(floor.showIf!(LIST)).toBe(false);
+    expect(floor.showIf!(TAXII)).toBe(true);
+    expect(floor.showIf!(SECOPS)).toBe(true);
+  });
+
+  test("an edit does not send the source back", async () => {
+    await renderPage();
+
+    const item: Record<string, unknown> = {
+      name: "Tor exit nodes",
+      feedType: "list",
+    };
+
+    await capturedFeedTableProps!.onBeforeUpdate!(item);
+
+    expect("feedType" in item).toBe(false);
+    expect(item["name"]).toBe("Tor exit nodes");
+  });
+});
+
+describe("the feeds table", () => {
+  test("says where each feed's indicators come from", async () => {
+    await renderPage();
+
+    const column:
+      | {
+          title: string;
+          getElement?: (item: Record<string, unknown>) => React.ReactElement;
+        }
+      | undefined = capturedFeedTableProps?.columns?.find(
+      (each: { title: string }) => {
+        return each.title === "Source";
+      },
+    );
+
+    expect(column).toBeDefined();
+
+    for (const [item, text] of [
+      [{ feedType: "list" }, "List of indicators"],
+      [{ feedType: "google-secops" }, "Google SecOps"],
+      [{ feedType: "taxii" }, "TAXII collection"],
+      [{}, "TAXII collection"],
+    ] as Array<[Record<string, unknown>, string]>) {
+      const { unmount } = render(column!.getElement!(item));
+
+      expect(
+        screen.getByTestId("threat-intel-feed-source-cell"),
+      ).toHaveTextContent(text);
+      unmount();
+    }
+  });
+
+  test("offers Update Credentials on a TAXII feed only", async () => {
+    await renderPage();
+
+    const update: { isVisible?: (item: Record<string, unknown>) => boolean } =
+      capturedFeedTableProps!.actionButtons!.find(
+        (button: { title: string }) => {
+          return button.title === "Update Credentials";
+        },
+      )!;
+
+    expect(update.isVisible!({ feedType: "taxii" })).toBe(true);
+    expect(update.isVisible!({})).toBe(true);
+    expect(update.isVisible!({ feedType: "list" })).toBe(false);
+    expect(update.isVisible!({ feedType: "google-secops" })).toBe(false);
+  });
+
+  test("names every source in its description", async () => {
+    await renderPage();
+
+    expect(capturedFeedTableProps?.cardProps?.description).toBe(
+      "Where your indicators come from: lists of indicators, TAXII 2.1 collections and Google SecOps. Matching events get threat.* attributes, and a match opens a case, as a detection rule does.",
+    );
+  });
+});
+
+describe("Free Lists", () => {
+  test("shows each free list with its publisher, schedule, confidence and terms", async () => {
+    await renderLists();
+
+    await waitFor(() => {
+      expect(getListSpy).toHaveBeenCalled();
+    });
+
+    for (const list of RECOMMENDED_THREAT_INTEL_LISTS) {
+      const tile: HTMLElement = screen.getByTestId(
+        `threat-intel-list-${list.id}`,
+      );
+
+      expect(tile).toHaveTextContent(list.title);
+      expect(tile).toHaveTextContent(list.provider);
+      expect(tile).toHaveTextContent(`Confidence ${list.indicatorConfidence}`);
+      expect(
+        screen.getByTestId(`threat-intel-list-add-${list.id}`),
+      ).toBeInTheDocument();
+    }
+
+    expect(
+      screen.getByTestId("threat-intel-list-feodo-tracker"),
+    ).toHaveTextContent("Read every hour");
+    expect(
+      screen.getByTestId("threat-intel-list-emerging-threats-compromised"),
+    ).toHaveTextContent("Read every day");
+
+    // It asked only for the project's list feeds, and only their addresses.
+    const args: Record<string, unknown> = getListSpy.mock
+      .calls[0]![0] as Record<string, unknown>;
+
+    expect(args["query"]).toEqual({ feedType: ThreatIntelFeedType.List });
+    expect(args["select"]).toEqual({ _id: true, listUrl: true });
+  });
+
+  test("a list the project reads already says Added", async () => {
+    stubFeeds([FEODO.url.toUpperCase()]);
+
+    await renderLists();
+
+    expect(
+      await screen.findByTestId("threat-intel-list-added-feodo-tracker"),
+    ).toHaveTextContent("Added");
+    expect(
+      screen.queryByTestId("threat-intel-list-add-feodo-tracker"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("threat-intel-list-add-tor-exit-nodes"),
+    ).toBeInTheDocument();
+  });
+
+  test("Add List creates the list feed, says Added and tells the page", async () => {
+    const onAdded: jest.Mock = jest.fn();
+
+    await renderLists(onAdded);
+
+    await waitFor(() => {
+      expect(getListSpy).toHaveBeenCalled();
+    });
+
+    fireEvent.click(screen.getByTestId("threat-intel-list-add-tor-exit-nodes"));
+
+    await waitFor(() => {
+      expect(createSpy).toHaveBeenCalledTimes(1);
+    });
+
+    const created: ThreatIntelFeed = (
+      createSpy.mock.calls[0]![0] as { model: ThreatIntelFeed }
+    ).model;
+
+    expect(created.feedType).toBe(ThreatIntelFeedType.List);
+    expect(created.listUrl).toBe(TOR.url);
+    expect(created.name).toBe(TOR.title);
+    expect(created.indicatorConfidence).toBe(TOR.indicatorConfidence);
+    expect(created.pollIntervalInMinutes).toBe(TOR.pollIntervalInMinutes);
+    // The Tor exit nodes are worth a look, not a page: a case, no alert.
+    expect(created.shouldCreateCase).toBe(true);
+    expect(created.shouldCreateAlert).toBe(false);
+    expect(onAdded).toHaveBeenCalledTimes(1);
+    expect(
+      await screen.findByTestId("threat-intel-list-added-tor-exit-nodes"),
+    ).toBeInTheDocument();
+  });
+
+  test("a list that could not be added says why, and stays to add", async () => {
+    // Thrown as the call is made: a rejected promise built ahead trips zone.js's unhandled-rejection check.
+    createSpy.mockImplementation((() => {
+      throw new BadDataException("Threat intel list host is not allowed.");
+    }) as never);
+
+    await renderLists();
+
+    await waitFor(() => {
+      expect(getListSpy).toHaveBeenCalled();
+    });
+
+    fireEvent.click(screen.getByTestId("threat-intel-list-add-feodo-tracker"));
+
+    expect(
+      await screen.findByText(
+        /Could not add Feodo Tracker botnet C2 servers: Threat intel list host is not allowed\./,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("threat-intel-list-add-feodo-tracker"),
+    ).toBeInTheDocument();
+  });
+
+  test("someone who may not add feeds sees the lists, and why they cannot add one", async () => {
+    jest.spyOn(PermissionGate, "check").mockReturnValue({
+      isAllowed: false,
+      disabledReason: "You need Create Threat Intel Feed.",
+    } as never);
+
+    await renderLists();
+
+    await waitFor(() => {
+      expect(getListSpy).toHaveBeenCalled();
+    });
+
+    expect(
+      screen.getByTestId("threat-intel-list-add-feodo-tracker"),
+    ).toBeDisabled();
+  });
+
+  test("a feed of a list, as built: every recommended list raises a case, those worth a page an alert", () => {
+    for (const list of RECOMMENDED_THREAT_INTEL_LISTS) {
+      const feed: ThreatIntelFeed = buildFeedFromRecommendedList(list);
+
+      expect(feed.projectId?.toString()).toBe(PROJECT_ID.toString());
+      expect(feed.isEnabled).toBe(true);
+      expect(feed.shouldWriteDetectionFinding).toBe(true);
+      expect(feed.shouldCreateIncident).toBe(false);
+      expect(feed.shouldCreateAlert).toBe(list.raisesAlerts);
+    }
+
+    expect(isRecommendedListAdded(FEODO, [` ${FEODO.url} `])).toBe(true);
+    expect(isRecommendedListAdded(FEODO, [TOR.url])).toBe(false);
+  });
+});
+
+describe("the words the page shows for Common's definitions", () => {
+  test("are the definitions' own, word for word", () => {
+    for (const definition of THREAT_INTEL_FEED_TYPE_DEFINITIONS) {
+      expect(THREAT_INTEL_FEED_TYPE_TEXTS[definition.type]).toEqual({
+        title: definition.title,
+        description: definition.description,
+      });
+    }
+
+    for (const list of RECOMMENDED_THREAT_INTEL_LISTS) {
+      expect(RECOMMENDED_THREAT_INTEL_LIST_TEXTS[list.id]).toEqual({
+        title: list.title,
+        description: list.description,
+      });
+    }
+
+    expect(Object.keys(THREAT_INTEL_FEED_TYPE_TEXTS).sort()).toEqual(
+      THREAT_INTEL_FEED_TYPE_DEFINITIONS.map(
+        (definition: ThreatIntelFeedTypeDefinition): string => {
+          return definition.type;
+        },
+      ).sort(),
+    );
+  });
+
+  test("a feed's source is read from its values, a TAXII collection when it has none", () => {
+    expect(
+      getThreatIntelFeedSource({ feedType: ThreatIntelFeedType.List }),
+    ).toBe(ThreatIntelFeedType.List);
+    expect(getThreatIntelFeedSource({})).toBe(ThreatIntelFeedType.Taxii);
+    expect(
+      getThreatIntelFeedSource({
+        feedType: "rss",
+      } as unknown as ThreatIntelFeed),
+    ).toBe(ThreatIntelFeedType.Taxii);
+  });
+
+  test("every free list is served over https and polled no more often than its provider asks", () => {
+    for (const list of RECOMMENDED_THREAT_INTEL_LISTS) {
+      expect(list.url.startsWith("https://")).toBe(true);
+      expect(list.termsUrl.startsWith("https://")).toBe(true);
+      expect(list.pollIntervalInMinutes).toBeGreaterThanOrEqual(15);
+      expect(list.indicatorConfidence).toBeGreaterThanOrEqual(1);
+      expect(list.indicatorConfidence).toBeLessThanOrEqual(100);
+    }
+  });
+});

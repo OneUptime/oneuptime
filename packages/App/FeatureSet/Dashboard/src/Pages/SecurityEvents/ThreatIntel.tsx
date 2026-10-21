@@ -9,6 +9,11 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import ThreatIntelIndicator from "Common/Models/AnalyticsModels/ThreatIntelIndicator";
+import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventConnection";
+import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
+import ThreatIntelFeedType, {
+  THREAT_INTEL_LIST_MIN_POLL_INTERVAL_IN_MINUTES,
+} from "Common/Types/SecurityEvent/ThreatIntelFeedType";
 import {
   THREAT_INTEL_DEFAULT_POLL_INTERVAL_IN_MINUTES,
   THREAT_INTEL_MINIMUM_CONFIDENCE_MAX,
@@ -50,6 +55,14 @@ import PermissionGate, {
 import ProjectUtil from "Common/UI/Utils/Project";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import SecurityEventsHowItWorksCard from "../../Components/SecurityEvents/HowItWorks/SecurityEventsHowItWorksCard";
+import ThreatIntelRecommendedLists from "../../Components/SecurityEvents/ThreatIntelRecommendedLists";
+import {
+  THREAT_INTEL_FEED_TYPE_TEXTS,
+  getThreatIntelFeedSource,
+  getThreatIntelSourceChoices,
+} from "../../Components/SecurityEvents/ThreatIntelSourcesCopy";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ThreatIntelGuide from "../../Components/SecurityEvents/HowItWorks/ThreatIntelGuide";
 import { guideToMarkdown } from "../../Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
 import React, { FunctionComponent, ReactElement, useState } from "react";
@@ -72,6 +85,21 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
     useState<ThreatIntelFeed | null>(null);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  /*
+   * Bumped whenever the feeds change - one added from Free Lists, or added,
+   * edited or deleted in the table - so the table and the tiles both read
+   * them again.
+   */
+  const [feedsVersion, setFeedsVersion] = useState<number>(0);
+
+  const translator: Translator = useTranslator();
+
+  const onFeedsChanged: () => void = (): void => {
+    setFeedsVersion((version: number): number => {
+      return version + 1;
+    });
+  };
 
   /*
    * Same reseller-telemetry gate as every other Security Events page —
@@ -110,6 +138,11 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
     <div className="space-y-6">
       <SecurityEventsHowItWorksCard guide={ThreatIntelGuide} />
 
+      <ThreatIntelRecommendedLists
+        refreshToggle={String(feedsVersion)}
+        onAdded={onFeedsChanged}
+      />
+
       <ModelTable<ThreatIntelFeed>
         modelType={ThreatIntelFeed}
         query={{
@@ -128,7 +161,23 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Threat Intel Feeds",
           description:
-            "STIX/TAXII 2.1 feed subscriptions. Indicators are polled on an interval, enrich incoming events with threat.* attributes, and matches open deduplicated alerts — the same machinery as Sigma detection rules.",
+            "Where your indicators come from: lists of indicators, TAXII 2.1 collections and Google SecOps. Matching events get threat.* attributes, and a match opens a case, as a detection rule does.",
+        }}
+        refreshToggle={String(feedsVersion)}
+        onCreateSuccess={async (item: ThreatIntelFeed) => {
+          onFeedsChanged();
+          return item;
+        }}
+        onItemDeleted={() => {
+          onFeedsChanged();
+        }}
+        /*
+         * A feed's source is set once, when it is added: the Edit form loads
+         * it to show the source's own fields, and does not send it back.
+         */
+        onBeforeUpdate={async (item: ThreatIntelFeed) => {
+          delete item.feedType;
+          return item;
         }}
         helpContent={{
           title: ThreatIntelGuide.guideTitle,
@@ -142,6 +191,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
            * create form and hides fields whose toggles are actually on.
            */
           isEnabled: true,
+          feedType: ThreatIntelFeedType.List,
           pollIntervalInMinutes: THREAT_INTEL_DEFAULT_POLL_INTERVAL_IN_MINUTES,
           minimumConfidence: 0,
           shouldCreateCase: true,
@@ -150,31 +200,62 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           shouldCreateIncident: false,
         }}
         /*
-         * The feed - where it is and what to call it - how to sign in to
-         * it, then what a match does, as a detection rule asks it. It was
-         * five steps: Basic Info, TAXII Server, Authentication (a token, a
-         * username and a password at once, each "Leave empty for anonymous
-         * access"), Security Cases and On Match. Now sign-in is one choice
-         * (TaxiiSignIn) that shows only its own fields; Enabled is the Edit
-         * form's (a new feed is polled); what a match raises is one choice
-         * (SecurityMatchActionFields); and the description, the poll
+         * Where the indicators come from, then that source's own question -
+         * a list's address, a TAXII collection or a Google SecOps
+         * connection - then, for a TAXII collection, how to sign in to it,
+         * and what a match does, as a detection rule asks it. Only the
+         * source's own step is walked: a list feed is three steps, Source,
+         * List and On Match. The Edit form starts at the feed's name, its
+         * source set once, when it was added. What a match raises is one
+         * choice (SecurityMatchActionFields); the description, the poll
          * interval, the confidence floor and the detection finding wait
          * under More fields, at their defaults.
          */
         formSteps={[
-          { title: "TAXII Server", id: "taxii-server" },
+          { title: "Source", id: "source" },
+          {
+            title: "List",
+            id: "list",
+            showIf: (values: FormValues<ThreatIntelFeed>): boolean => {
+              return (
+                getThreatIntelFeedSource(values) === ThreatIntelFeedType.List
+              );
+            },
+          },
+          {
+            title: "TAXII Server",
+            id: "taxii-server",
+            showIf: (values: FormValues<ThreatIntelFeed>): boolean => {
+              return (
+                getThreatIntelFeedSource(values) === ThreatIntelFeedType.Taxii
+              );
+            },
+          },
+          {
+            title: "Google SecOps",
+            id: "google-secops",
+            showIf: (values: FormValues<ThreatIntelFeed>): boolean => {
+              return (
+                getThreatIntelFeedSource(values) ===
+                ThreatIntelFeedType.GoogleSecOps
+              );
+            },
+          },
           {
             title: TAXII_SIGN_IN_FIELD_TITLE,
             id: "sign-in",
             /*
-             * A new feed's question. An existing feed changes its secrets
-             * with Update Credentials, so its Edit form walks this step
-             * only to show the username it signs in with, when it has one.
+             * A new TAXII feed's question. An existing feed changes its
+             * secrets with Update Credentials, so its Edit form walks this
+             * step only to show the username it signs in with, when it has
+             * one.
              */
             showIf: (values: FormValues<ThreatIntelFeed>): boolean => {
               return (
-                getTaxiiSignIn(values) !== null ||
-                Boolean(values.basicAuthUsername)
+                getThreatIntelFeedSource(values) ===
+                  ThreatIntelFeedType.Taxii &&
+                (getTaxiiSignIn(values) !== null ||
+                  Boolean(values.basicAuthUsername))
               );
             },
           },
@@ -183,35 +264,25 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
         formFields={[
           {
             field: {
-              apiRootUrl: true,
+              feedType: true,
             },
-            title: "TAXII API Root URL",
-            stepId: "taxii-server",
-            description:
-              "The TAXII 2.1 API root, e.g. https://taxii.example.com/api1/. Collections are addressed beneath it.",
-            fieldType: FormFieldSchemaType.Text,
+            title: "Source",
+            stepId: "source",
+            description: "Where this feed's indicators come from.",
+            fieldType: FormFieldSchemaType.RadioButton,
+            radioButtonOptions: getThreatIntelSourceChoices(),
             required: true,
-            placeholder: "https://taxii.example.com/api1/",
-            disableSpellCheck: true,
-          },
-          {
-            field: {
-              collectionId: true,
-            },
-            title: "Collection ID",
-            stepId: "taxii-server",
-            description: "ID of the collection to poll for indicator objects.",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "e.g. 91a7b528-80eb-42ed-a74d-c6fbd5a26116",
-            disableSpellCheck: true,
+            // Set once: a feed of another source is a new feed.
+            doNotShowWhenEditing: true,
+            defaultValue: ThreatIntelFeedType.List,
+            dataTestId: "threat-intel-feed-source",
           },
           {
             field: {
               name: true,
             },
             title: "Name",
-            stepId: "taxii-server",
+            stepId: "source",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "e.g. Corporate MISP",
@@ -224,7 +295,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               isEnabled: true,
             },
             title: "Enabled",
-            stepId: "taxii-server",
+            stepId: "source",
             description: "Disabled feeds are neither polled nor matched.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
@@ -236,7 +307,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               description: true,
             },
             title: "Description",
-            stepId: "taxii-server",
+            stepId: "source",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "What this feed carries and why it is subscribed.",
@@ -247,9 +318,9 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               pollIntervalInMinutes: true,
             },
             title: "Poll Interval (Minutes)",
-            stepId: "taxii-server",
+            stepId: "source",
             description:
-              "How often the collection is polled for new indicators. Default 60.",
+              "How often the source is read for new indicators. Default 60; a list is read every 15 minutes at most.",
             fieldType: FormFieldSchemaType.Number,
             required: true,
             placeholder: "e.g. 60",
@@ -262,6 +333,26 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               minValue: THREAT_INTEL_POLL_INTERVAL_MIN_IN_MINUTES,
               maxValue: THREAT_INTEL_POLL_INTERVAL_MAX_IN_MINUTES,
             },
+            // A list is downloaded whole: the service holds it to 15 minutes too.
+            customValidation: (
+              values: FormValues<ThreatIntelFeed>,
+            ): string | null => {
+              const minutes: number = Number(values.pollIntervalInMinutes);
+
+              return getThreatIntelFeedSource(values) ===
+                ThreatIntelFeedType.List &&
+                Number.isFinite(minutes) &&
+                minutes < THREAT_INTEL_LIST_MIN_POLL_INTERVAL_IN_MINUTES
+                ? translator.translateTemplate(
+                    "A list is read every {{minutes}} minutes at most.",
+                    {
+                      minutes: translator.formatNumber(
+                        THREAT_INTEL_LIST_MIN_POLL_INTERVAL_IN_MINUTES,
+                      ),
+                    },
+                  )
+                : null;
+            },
             collapsibleSection: advancedSection,
           },
           {
@@ -269,7 +360,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               minimumConfidence: true,
             },
             title: "Minimum Confidence",
-            stepId: "taxii-server",
+            stepId: "source",
             description:
               "Skip indicators whose STIX confidence is below this (0-100). 0 ingests everything; indicators that carry no confidence always pass.",
             fieldType: FormFieldSchemaType.Number,
@@ -279,7 +370,135 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               minValue: THREAT_INTEL_MINIMUM_CONFIDENCE_MIN,
               maxValue: THREAT_INTEL_MINIMUM_CONFIDENCE_MAX,
             },
+            // A list's indicators all have the list's confidence.
+            showIf: (values: FormValues<ThreatIntelFeed>): boolean => {
+              return (
+                getThreatIntelFeedSource(values) !== ThreatIntelFeedType.List
+              );
+            },
             collapsibleSection: advancedSection,
+          },
+          {
+            field: {
+              listUrl: true,
+            },
+            title: "List URL",
+            stepId: "list",
+            description:
+              "An https address that downloads a list: one IP address, domain, URL or file hash a line.",
+            fieldType: FormFieldSchemaType.URL,
+            required: (values: FormValues<ThreatIntelFeed>): boolean => {
+              return (
+                getThreatIntelFeedSource(values) === ThreatIntelFeedType.List
+              );
+            },
+            showIf: (values: FormValues<ThreatIntelFeed>): boolean => {
+              return (
+                getThreatIntelFeedSource(values) === ThreatIntelFeedType.List
+              );
+            },
+            placeholder: "https://lists.example.com/blocklist.txt",
+            disableSpellCheck: true,
+          },
+          {
+            field: {
+              indicatorConfidence: true,
+            },
+            title: "Confidence",
+            stepId: "list",
+            description:
+              "How sure the list is, 1 to 100. A match is Critical at 90, High at 70, Medium at 40, Low below. Empty is Medium.",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            placeholder: "e.g. 70",
+            validation: {
+              minValue: 1,
+              maxValue: 100,
+            },
+            showIf: (values: FormValues<ThreatIntelFeed>): boolean => {
+              return (
+                getThreatIntelFeedSource(values) === ThreatIntelFeedType.List
+              );
+            },
+          },
+          {
+            field: {
+              apiRootUrl: true,
+            },
+            title: "TAXII API Root URL",
+            stepId: "taxii-server",
+            description:
+              "The TAXII 2.1 API root, e.g. https://taxii.example.com/api1/. Collections are addressed beneath it.",
+            fieldType: FormFieldSchemaType.Text,
+            required: (values: FormValues<ThreatIntelFeed>): boolean => {
+              return (
+                getThreatIntelFeedSource(values) === ThreatIntelFeedType.Taxii
+              );
+            },
+            showIf: (values: FormValues<ThreatIntelFeed>): boolean => {
+              return (
+                getThreatIntelFeedSource(values) === ThreatIntelFeedType.Taxii
+              );
+            },
+            placeholder: "https://taxii.example.com/api1/",
+            disableSpellCheck: true,
+          },
+          {
+            field: {
+              collectionId: true,
+            },
+            title: "Collection ID",
+            stepId: "taxii-server",
+            description: "ID of the collection to poll for indicator objects.",
+            fieldType: FormFieldSchemaType.Text,
+            required: (values: FormValues<ThreatIntelFeed>): boolean => {
+              return (
+                getThreatIntelFeedSource(values) === ThreatIntelFeedType.Taxii
+              );
+            },
+            showIf: (values: FormValues<ThreatIntelFeed>): boolean => {
+              return (
+                getThreatIntelFeedSource(values) === ThreatIntelFeedType.Taxii
+              );
+            },
+            placeholder: "e.g. 91a7b528-80eb-42ed-a74d-c6fbd5a26116",
+            disableSpellCheck: true,
+          },
+          {
+            field: {
+              securityEventConnection: true,
+            },
+            title: "Google SecOps Connection",
+            stepId: "google-secops",
+            description:
+              "The connection whose key reads the indicators Google SecOps found. Its service account needs the Chronicle API Viewer role.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: SecurityEventConnection,
+              labelField: "name",
+              valueField: "_id",
+              query: { provider: SecurityEventConnectorProvider.GoogleSecOps },
+            },
+            required: (values: FormValues<ThreatIntelFeed>): boolean => {
+              return (
+                getThreatIntelFeedSource(values) ===
+                ThreatIntelFeedType.GoogleSecOps
+              );
+            },
+            showIf: (values: FormValues<ThreatIntelFeed>): boolean => {
+              return (
+                getThreatIntelFeedSource(values) ===
+                ThreatIntelFeedType.GoogleSecOps
+              );
+            },
+            placeholder: "Choose a Google SecOps connection",
+            sideLink: {
+              text: "Connect Google SecOps",
+              url: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.SECURITY_EVENTS_CONNECTIONS] as Route,
+              ),
+              openLinkInNewTab: false,
+            },
           },
           /*
            * How OneUptime signs in: one choice where a token, a username and
@@ -417,6 +636,12 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             title: "Update Credentials",
             buttonStyleType: ButtonStyleType.OUTLINE,
             icon: IconProp.Key,
+            // Only a TAXII feed signs in: a list is public, Google SecOps signs in with its connection.
+            isVisible: (item: ThreatIntelFeed): boolean => {
+              return (
+                getThreatIntelFeedSource(item) === ThreatIntelFeedType.Taxii
+              );
+            },
             disabled: !updateGate.isAllowed,
             tooltip: updateGate.isAllowed
               ? "Replace this feed's API token or basic-auth password. Stored secrets can never be read back, so rotating them needs its own door."
@@ -460,6 +685,23 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             },
             title: "Name",
             type: FieldType.Text,
+          },
+          {
+            field: {
+              feedType: true,
+            },
+            title: "Source",
+            type: FieldType.Text,
+            getElement: (item: ThreatIntelFeed): ReactElement => {
+              return (
+                <span data-testid="threat-intel-feed-source-cell">
+                  {translator.translateText(
+                    THREAT_INTEL_FEED_TYPE_TEXTS[getThreatIntelFeedSource(item)]
+                      .title,
+                  )}
+                </span>
+              );
+            },
           },
           {
             field: {

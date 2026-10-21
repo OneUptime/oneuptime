@@ -5,6 +5,7 @@ import FeedMarkdown, {
 } from "../Markdown/FeedMarkdown";
 import { describeMitreId } from "../../Types/SecurityEvent/MitreAttack";
 import { SecurityEntity } from "../../Types/SecurityCase/SecurityEntity";
+import { isStixIndicatorId } from "../../Types/SecurityEvent/ThreatIntelConstants";
 
 /*
  * The Markdown a security case's feed and its notifications are written in.
@@ -471,8 +472,9 @@ export function threatIntelMatchMarkdown(data: {
     parts.push(mdText`Indicator: ${data.indicatorName}`);
   }
 
-  if (data.stixId) {
-    parts.push(mdText`STIX indicator: ${FeedMarkdown.code(data.stixId)}`);
+  // A list's or Google SecOps's indicators have no STIX id to show.
+  if (isStixIndicatorId(data.stixId)) {
+    parts.push(mdText`STIX indicator: ${FeedMarkdown.code(data.stixId!)}`);
   }
 
   if (data.sampleMessage) {

@@ -145,7 +145,13 @@ describe("ThreatIntelIndicatorService.findActiveIndicatorsByValues", () => {
      */
     expect(query).toContain(") GROUP BY feedId, indicatorValue");
     expect(query).toContain("argMax(stixId, confidence)");
-    expect(query).toContain("max(confidence) AS confidence");
+    /*
+     * Under a name of its own: named "confidence", the argMax beside it
+     * would read the max, and ClickHouse refuses an aggregate inside an
+     * aggregate (ThreatIntelIndicatorQueries).
+     */
+    expect(query).toContain("max(confidence) AS bestConfidence");
+    expect(query).not.toContain("max(confidence) AS confidence");
 
     // The value list rides as a bound array parameter.
     expect(query).toContain("indicatorValue IN");
@@ -161,7 +167,7 @@ describe("ThreatIntelIndicatorService.findActiveIndicatorsByValues", () => {
         stixId: "indicator--0001",
         indicatorType: "domain-name",
         indicatorName: "C2",
-        confidence: "85",
+        bestConfidence: "85",
       },
     ]);
 
@@ -313,7 +319,9 @@ describe("ThreatIntelIndicatorService.findLatestVersionsByStixIds", () => {
     const query: string = capturedQueryText(spy);
 
     expect(query).toContain("GROUP BY stixId, indicatorValue");
-    expect(query).toContain("max(version) AS version");
+    // Under a name of its own, so the argMax(..., version) beside it reads the column.
+    expect(query).toContain("max(version) AS latestVersion");
+    expect(query).not.toContain("max(version) AS version");
     /*
      * max, not argMax: the poller's monotonic-retention clamp needs the
      * highest retention any version ever carried, not the latest
@@ -335,7 +343,7 @@ describe("ThreatIntelIndicatorService.findLatestVersionsByStixIds", () => {
         indicatorType: "domain-name",
         indicatorName: "C2",
         confidence: "85",
-        version: "1756000000000",
+        latestVersion: "1756000000000",
         validFrom: "2026-08-01 00:00:00",
         validUntil: "2026-12-31 00:00:00",
         retentionDate: "2027-01-01",

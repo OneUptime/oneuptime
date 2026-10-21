@@ -28,8 +28,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - A rule asks for its Sigma rule first, and is named after its title;
  *     then what a match does - a case, and one choice of alert, incident,
  *     both or neither - which is saved as the rule's two columns.
- *   - A feed asks where the TAXII server is, then how to sign in to it -
- *     one choice that shows only its own secrets - then what a match does.
+ *   - A feed asks where its indicators come from - a list of indicators,
+ *     a TAXII collection or Google SecOps - then only that source's own
+ *     question: a list's address and how sure it is; where the TAXII
+ *     server is, then how to sign in to it (one choice that shows only its
+ *     own secrets); or which Google SecOps connection reads it. Then what a
+ *     match does.
  *   - Neither choice is ever sent: only the columns it writes.
  */
 
@@ -38,6 +42,8 @@ jest.setTimeout(60000);
 const WAIT: { timeout: number } = { timeout: 20000 };
 
 const mockCreateOrUpdate: MockFunction = getJestMockFunction();
+// What a list read answers: no rows, unless a test hands its dropdown some.
+const mockGetList: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -46,8 +52,8 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       createOrUpdate: (...args: Array<unknown>): unknown => {
         return mockCreateOrUpdate(...args);
       },
-      getList: async (): Promise<unknown> => {
-        return { data: [], count: 0, skip: 0, limit: 10 };
+      getList: (...args: Array<unknown>): unknown => {
+        return mockGetList(...args);
       },
       count: async (): Promise<number> => {
         return 0;
@@ -199,6 +205,10 @@ function savedModel(): Record<string, unknown> {
 
 beforeEach(() => {
   mockTables.length = 0;
+  mockGetList.mockReset();
+  mockGetList.mockImplementation(async (): Promise<unknown> => {
+    return { data: [], count: 0, skip: 0, limit: 10 };
+  });
   mockCreateOrUpdate.mockReset();
   mockCreateOrUpdate.mockImplementation(
     async (request: unknown): Promise<unknown> => {
@@ -278,11 +288,24 @@ describe("creating a detection rule", () => {
 });
 
 describe("creating a threat intel feed", () => {
-  test("Sign-in shows only the chosen secret; On Match saves Both as both columns", async () => {
+  test("a TAXII collection: where the server is, then Sign-in shows only the chosen secret; On Match saves Both as both columns", async () => {
     const dialog: HTMLElement = await openCreate(
       <ThreatIntelPage {...pageProps()} />,
       ThreatIntelFeed,
     );
+
+    // A list of indicators is the first answer; this feed reads a collection.
+    expect(radio(dialog, "List of indicators")).toBeChecked();
+    fireEvent.click(radio(dialog, "TAXII collection"));
+    fireEvent.change(
+      within(dialog).getByPlaceholderText("e.g. Corporate MISP"),
+      {
+        target: { value: "Corporate MISP" },
+      },
+    );
+    await settle();
+
+    await next(dialog);
 
     fireEvent.change(
       within(dialog).getByPlaceholderText("https://taxii.example.com/api1/"),
@@ -293,12 +316,6 @@ describe("creating a threat intel feed", () => {
         "e.g. 91a7b528-80eb-42ed-a74d-c6fbd5a26116",
       ),
       { target: { value: "91a7b528-80eb-42ed-a74d-c6fbd5a26116" } },
-    );
-    fireEvent.change(
-      within(dialog).getByPlaceholderText("e.g. Corporate MISP"),
-      {
-        target: { value: "Corporate MISP" },
-      },
     );
     await settle();
 
@@ -348,9 +365,12 @@ describe("creating a threat intel feed", () => {
     const saved: Record<string, unknown> = savedModel();
 
     expect(saved["name"]).toBe("Corporate MISP");
+    expect(saved["feedType"]).toBe("taxii");
+    expect(saved["apiRootUrl"]).toBe("https://taxii.example.com/api1/");
     // A password field's value, as ModelForm hands it to the API.
     expect(JSON.stringify(saved["apiToken"])).toContain("taxii-secret");
     expect(saved["basicAuthPassword"]).toBeUndefined();
+    expect(saved["listUrl"]).toBeUndefined();
     expect(saved["isEnabled"]).toBeUndefined();
     expect(
       new ThreatIntelFeed().getTableColumnMetadata("isEnabled").defaultValue,
@@ -359,5 +379,163 @@ describe("creating a threat intel feed", () => {
     expect(saved["shouldCreateIncident"]).toBe(true);
     expect(saved["taxiiSignIn"]).toBeUndefined();
     expect(saved["securityMatchRaises"]).toBeUndefined();
+  });
+
+  test("a list of indicators: its address and how sure it is, and never a sign-in", async () => {
+    const dialog: HTMLElement = await openCreate(
+      <ThreatIntelPage {...pageProps()} />,
+      ThreatIntelFeed,
+    );
+
+    fireEvent.change(
+      within(dialog).getByPlaceholderText("e.g. Corporate MISP"),
+      {
+        target: { value: "Our blocklist" },
+      },
+    );
+    await settle();
+
+    await next(dialog);
+
+    // The List step: no TAXII field, no connection.
+    expect(
+      within(dialog).queryByPlaceholderText("https://taxii.example.com/api1/"),
+    ).toBeNull();
+
+    // Its address is required: Next stops on the step until it is given.
+    await next(dialog);
+    expect(
+      within(dialog).getByPlaceholderText(
+        "https://lists.example.com/blocklist.txt",
+      ),
+    ).toBeVisible();
+
+    fireEvent.change(
+      within(dialog).getByPlaceholderText(
+        "https://lists.example.com/blocklist.txt",
+      ),
+      { target: { value: "https://lists.example.com/blocklist.txt" } },
+    );
+    fireEvent.change(within(dialog).getByPlaceholderText("e.g. 70"), {
+      target: { value: "70" },
+    });
+    await settle();
+
+    await next(dialog);
+
+    // Straight to On Match: a list signs in to nothing.
+    await waitFor(() => {
+      expect(radio(dialog, "Create an alert")).toBeChecked();
+    }, WAIT);
+    expect(within(dialog).queryByText("No sign-in")).toBeNull();
+
+    fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(mockCreateOrUpdate).toHaveBeenCalledTimes(1);
+    }, WAIT);
+
+    const saved: Record<string, unknown> = savedModel();
+
+    expect(saved["name"]).toBe("Our blocklist");
+    expect(saved["feedType"]).toBe("list");
+    expect(saved["listUrl"]).toBe("https://lists.example.com/blocklist.txt");
+    expect(saved["indicatorConfidence"]).toBe(70);
+    expect(saved["apiRootUrl"]).toBeUndefined();
+    expect(saved["collectionId"]).toBeUndefined();
+    expect(saved["apiToken"]).toBeUndefined();
+    expect(saved["taxiiSignIn"]).toBeUndefined();
+  });
+
+  test("Google SecOps: one of the project's Google SecOps connections", async () => {
+    const connectionId: string = "44444444-4444-4444-8444-444444444444";
+
+    mockGetList.mockImplementation(
+      async (...args: Array<unknown>): Promise<unknown> => {
+        const request: { modelType: { new (): BaseModel }; query?: unknown } =
+          args[0] as { modelType: { new (): BaseModel }; query?: unknown };
+
+        if (new request.modelType().tableName === "SecurityEventConnection") {
+          return {
+            data: [{ _id: connectionId, name: "Google SecOps (prod)" }],
+            count: 1,
+            skip: 0,
+            limit: 10,
+          };
+        }
+
+        return { data: [], count: 0, skip: 0, limit: 10 };
+      },
+    );
+
+    const dialog: HTMLElement = await openCreate(
+      <ThreatIntelPage {...pageProps()} />,
+      ThreatIntelFeed,
+    );
+
+    fireEvent.click(radio(dialog, "Google SecOps"));
+    fireEvent.change(
+      within(dialog).getByPlaceholderText("e.g. Corporate MISP"),
+      {
+        target: { value: "Google SecOps IOCs" },
+      },
+    );
+    await settle();
+
+    await next(dialog);
+
+    expect(within(dialog).getByText("Connect Google SecOps")).toBeVisible();
+
+    // Only Google SecOps connections were asked for.
+    const asked: Array<unknown> = mockGetList.mock.calls
+      .map((call: Array<unknown>): unknown => {
+        return call[0];
+      })
+      .filter((request: unknown): boolean => {
+        return (
+          new (request as { modelType: { new (): BaseModel } }).modelType()
+            .tableName === "SecurityEventConnection"
+        );
+      });
+
+    expect(asked.length).toBeGreaterThan(0);
+    expect(
+      (asked[0] as { query: Record<string, unknown> }).query,
+    ).toMatchObject({ provider: "google-secops" });
+
+    // The search box opens its menu when it takes focus.
+    fireEvent.focus(
+      within(dialog).getByRole("combobox", {
+        name: /Google SecOps Connection/,
+      }),
+    );
+    await settle();
+    fireEvent.click(
+      within(screen.getByTestId("entity-dropdown-menu")).getByRole("option", {
+        name: "Google SecOps (prod)",
+      }),
+    );
+    await settle();
+
+    await next(dialog);
+
+    await waitFor(() => {
+      expect(radio(dialog, "Create an alert")).toBeChecked();
+    }, WAIT);
+
+    fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(mockCreateOrUpdate).toHaveBeenCalledTimes(1);
+    }, WAIT);
+
+    const saved: Record<string, unknown> = savedModel();
+
+    expect(saved["feedType"]).toBe("google-secops");
+    expect(JSON.stringify(saved["securityEventConnection"])).toContain(
+      connectionId,
+    );
+    expect(saved["listUrl"]).toBeUndefined();
+    expect(saved["apiRootUrl"]).toBeUndefined();
   });
 });

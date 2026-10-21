@@ -2,6 +2,7 @@ import Project from "./Project";
 import User from "./User";
 import AlertSeverity from "./AlertSeverity";
 import IncidentSeverity from "./IncidentSeverity";
+import SecurityEventConnection from "./SecurityEventConnection";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
@@ -20,6 +21,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
+import ThreatIntelFeedType from "../../Types/SecurityEvent/ThreatIntelFeedType";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
@@ -55,13 +57,20 @@ const updatePermissions: Array<Permission> = [
 ];
 
 /*
- * A TAXII 2.1 threat-intelligence feed subscription: one collection on
- * one TAXII server, polled on an interval. STIX indicator objects are
- * parsed into normalized IOC rows (the ThreatIntelIndicator ClickHouse
- * table); a matcher cron then joins recent security events against the
- * active indicators, and matches open deduped alerts and write Threat
- * Intel finding rows — the same downstream machinery as Sigma detection
- * rules.
+ * A threat-intelligence feed subscription, polled on an interval, from one
+ * of three sources (feedType, ThreatIntelFeedType):
+ *
+ *   - a TAXII 2.1 collection: STIX indicator objects;
+ *   - a list at an https address: one indicator a line, such as abuse.ch's
+ *     Feodo Tracker or the Tor exit nodes;
+ *   - Google SecOps: the indicators its threat intelligence found in the
+ *     events it holds, read through a Google SecOps connection.
+ *
+ * Indicators are normalized into IOC rows (the ThreatIntelIndicator
+ * ClickHouse table); a matcher cron then joins recent security events
+ * against the active indicators, and matches open deduped alerts and write
+ * Threat Intel finding rows — the same downstream machinery as Sigma
+ * detection rules.
  */
 @EnableDocumentation()
 @EnableWorkflow({
@@ -87,7 +96,7 @@ const updatePermissions: Array<Permission> = [
   pluralName: "Threat Intel Feeds",
   icon: IconProp.ShieldCheck,
   tableDescription:
-    "STIX/TAXII 2.1 threat-intelligence feeds. Indicators are polled on an interval and matched against incoming security events.",
+    "Threat-intelligence feeds: TAXII 2.1 collections, lists of indicators and Google SecOps. Indicators are polled and matched against security events.",
 })
 @TableAccessControl({
   create: createPermissions,
@@ -192,6 +201,29 @@ export default class ThreatIntelFeed extends BaseModel {
   })
   @TableColumn({
     required: true,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Source",
+    description:
+      "Where the indicators come from: a TAXII 2.1 collection (taxii), a list at an https address (list) or Google SecOps (google-secops).",
+    defaultValue: ThreatIntelFeedType.Taxii,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    default: ThreatIntelFeedType.Taxii,
+  })
+  public feedType?: ThreatIntelFeedType = undefined;
+
+  @ColumnAccessControl({
+    create: createPermissions,
+    read: readPermissions,
+    update: updatePermissions,
+  })
+  @TableColumn({
+    required: false,
     type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
     title: "TAXII API Root URL",
@@ -199,7 +231,7 @@ export default class ThreatIntelFeed extends BaseModel {
       "The TAXII 2.1 API root, e.g. https://taxii.example.com/api1/. Collections are addressed beneath it.",
   })
   @Column({
-    nullable: false,
+    nullable: true,
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
   })
@@ -211,14 +243,101 @@ export default class ThreatIntelFeed extends BaseModel {
     update: updatePermissions,
   })
   @TableColumn({
-    required: true,
+    required: false,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+    title: "List URL",
+    description:
+      "For a list feed: the https address of the list, one IP address, domain, URL or file hash a line.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public listUrl?: string = undefined;
+
+  @ColumnAccessControl({
+    create: createPermissions,
+    read: readPermissions,
+    update: updatePermissions,
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Confidence",
+    description:
+      "For a list feed: how sure the list is, 1 to 100, given to each of its indicators. It sets the severity of a match.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public indicatorConfidence?: number = undefined;
+
+  @ColumnAccessControl({
+    create: createPermissions,
+    read: readPermissions,
+    update: updatePermissions,
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "securityEventConnectionId",
+    type: TableColumnType.Entity,
+    modelType: SecurityEventConnection,
+    title: "Google SecOps Connection",
+    description:
+      "For a Google SecOps feed: the connection whose key reads Google SecOps's indicator matches.",
+  })
+  @ManyToOne(
+    () => {
+      return SecurityEventConnection;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "securityEventConnectionId" })
+  public securityEventConnection?: SecurityEventConnection = undefined;
+
+  @ColumnAccessControl({
+    create: createPermissions,
+    read: readPermissions,
+    update: updatePermissions,
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Google SecOps Connection ID",
+    description:
+      "For a Google SecOps feed: the ID of the connection whose key reads Google SecOps's indicator matches.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public securityEventConnectionId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: createPermissions,
+    read: readPermissions,
+    update: updatePermissions,
+  })
+  @TableColumn({
+    required: false,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Collection ID",
     description: "ID of the TAXII collection to poll for indicator objects.",
   })
   @Column({
-    nullable: false,
+    nullable: true,
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
   })
@@ -560,7 +679,7 @@ export default class ThreatIntelFeed extends BaseModel {
     type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
     description:
-      "Poll cursor: the TAXII added_after timestamp already ingested, as an ISO string.",
+      "Poll cursor: for a TAXII feed the added_after timestamp already ingested, for a list feed the hash of the list last written and when, for a Google SecOps feed the end of the window last read.",
   })
   @Column({
     type: ColumnType.LongText,

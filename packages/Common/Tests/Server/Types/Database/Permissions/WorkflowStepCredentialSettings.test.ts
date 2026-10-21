@@ -15,6 +15,7 @@ import NetworkSnmpCredentialProfile from "../../../../../Models/DatabaseModels/N
 import ProjectCallSMSConfig from "../../../../../Models/DatabaseModels/ProjectCallSMSConfig";
 import ProjectSmtpConfig from "../../../../../Models/DatabaseModels/ProjectSmtpConfig";
 import RunbookCredential from "../../../../../Models/DatabaseModels/RunbookCredential";
+import SecurityEventConnection from "../../../../../Models/DatabaseModels/SecurityEventConnection";
 import StatusPage from "../../../../../Models/DatabaseModels/StatusPage";
 import VideoCallConnection from "../../../../../Models/DatabaseModels/VideoCallConnection";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -305,6 +306,7 @@ describe("a workflow's step naming a setting that holds credentials", () => {
         new ProjectCallSMSConfig().tableName!,
         new ProjectSmtpConfig().tableName!,
         new RunbookCredential().tableName!,
+        new SecurityEventConnection().tableName!,
         new VideoCallConnection().tableName!,
       ].sort(),
     );
@@ -323,6 +325,7 @@ const WORKFLOW_RECORDS_NAMING_CREDENTIAL_SETTINGS: Array<string> = [
   "IncomingCallPolicy.projectCallSMSConfig -> ProjectCallSMSConfig",
   "StatusPage.callSmsConfig -> ProjectCallSMSConfig",
   "StatusPage.smtpConfig -> ProjectSMTPConfig",
+  "ThreatIntelFeed.securityEventConnection -> SecurityEventConnection",
 ];
 
 describe("the workflow records that can name a setting that holds credentials", () => {

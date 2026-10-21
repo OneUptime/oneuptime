@@ -404,11 +404,22 @@ describe("the project's stepped forms", () => {
       "ModelTable: Security Events > Detection Rules",
       ["sigma-rule", "on-match"],
     ],
-    // The same for a feed, with how it signs in a step of its own.
+    /*
+     * The same for a feed: where its indicators come from first, then only
+     * that source's own step (a list's address, a TAXII server or a Google
+     * SecOps connection), how a TAXII collection signs in a step of its own.
+     */
     [
       `${DASHBOARD}/Pages/SecurityEvents/ThreatIntel.tsx`,
       "ModelTable: Security Events > Threat Intel Feeds",
-      ["taxii-server", "sign-in", "on-match"],
+      [
+        "source",
+        "list",
+        "taxii-server",
+        "google-secops",
+        "sign-in",
+        "on-match",
+      ],
     ],
     /*
      * Five steps of fourteen fields once; three questions now - which

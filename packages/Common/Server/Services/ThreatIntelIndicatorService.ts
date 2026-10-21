@@ -73,6 +73,16 @@ export interface StoredIndicatorVersion {
 }
 
 /*
+ * Every aggregate a read here names is aliased apart from the columns it
+ * reads: ClickHouse resolves a name to a SELECT alias before a column, so
+ * `max(confidence) AS confidence` beside `argMax(stixId, confidence)` makes
+ * the second read the first - an aggregate inside an aggregate, which both
+ * analyzers refuse (ILLEGAL_AGGREGATION). An alias may repeat the column its
+ * own function reads (`argMax(feedName, confidence) AS feedName`): nothing
+ * else reads it.
+ */
+
+/*
  * The active-indicator predicate, applied over the argMax-resolved latest
  * version of one full identity: not revoked, and `now` inside the
  * validity window. TTL (retentionDate) is garbage collection only and
@@ -197,7 +207,7 @@ export class ThreatIntelIndicatorService extends AnalyticsDatabaseService<Threat
       argMax(stixId, confidence) AS stixId,
       argMax(indicatorType, confidence) AS indicatorType,
       argMax(indicatorName, confidence) AS indicatorName,
-      max(confidence) AS confidence
+      max(confidence) AS bestConfidence
     FROM (`;
 
     this.appendPerIdentityActiveSubquery(statement, {
@@ -229,7 +239,7 @@ export class ThreatIntelIndicatorService extends AnalyticsDatabaseService<Threat
         stixId: String(row["stixId"] ?? ""),
         indicatorType: String(row["indicatorType"] ?? ""),
         indicatorName: String(row["indicatorName"] ?? ""),
-        confidence: Number(row["confidence"] || 0),
+        confidence: Number(row["bestConfidence"] || 0),
       };
     });
   }
@@ -270,7 +280,7 @@ export class ThreatIntelIndicatorService extends AnalyticsDatabaseService<Threat
       any(i.stixId) AS stixId,
       any(i.indicatorType) AS indicatorType,
       any(i.indicatorName) AS indicatorName,
-      any(i.confidence) AS confidence,
+      any(i.bestConfidence) AS confidence,
       count() AS matchCount,
       any(e.message) AS sampleMessage,
       arrayDistinct(arrayFlatten(groupArray(20)(e.observables))) AS sampleObservables
@@ -282,7 +292,7 @@ export class ThreatIntelIndicatorService extends AnalyticsDatabaseService<Threat
         argMax(stixId, confidence) AS stixId,
         argMax(indicatorType, confidence) AS indicatorType,
         argMax(indicatorName, confidence) AS indicatorName,
-        max(confidence) AS confidence
+        max(confidence) AS bestConfidence
       FROM (`,
     );
 
@@ -348,6 +358,75 @@ export class ThreatIntelIndicatorService extends AnalyticsDatabaseService<Threat
   }
 
   /*
+   * The values of one feed's identity (a list feed's single stixId) that
+   * are active right now, resolved version-aware like every read here. The
+   * list poller reads them before it writes a new copy of the list, to let
+   * go of the values the list no longer has.
+   */
+  public async findActiveValuesForFeed(data: {
+    projectId: ObjectID;
+    feedId: ObjectID;
+    stixId: string;
+    now: Date;
+    limit: number;
+  }): Promise<Array<{ indicatorValue: string; indicatorType: string }>> {
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string =
+      this.database!.getDatasourceOptions().database!;
+
+    const statement: Statement = SQL`SELECT
+      indicatorValue,
+      argMax(indicatorType, version) AS indicatorType,
+      argMax(revoked, version) AS revokedLatest,
+      argMax(validFrom, version) AS validFromLatest,
+      argMax(validUntil, version) AS validUntilLatest
+    FROM `;
+
+    statement.append(`${databaseName}.${this.model.tableName}`);
+
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND feedId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.feedId,
+      }} AND stixId = ${{
+        type: TableColumnType.Text,
+        value: data.stixId,
+      }} GROUP BY indicatorValue`,
+    );
+
+    appendActiveHavingClause(statement, data.now);
+
+    statement.append(
+      SQL` LIMIT ${{
+        type: TableColumnType.Number,
+        value: data.limit,
+      }}`,
+    );
+
+    statement.append(getQuerySettings({ maxExecutionTimeInSeconds: 30 }));
+
+    const result: Results = await this.executeQuery(statement);
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    return (response.data || []).map(
+      (row: JSONObject): { indicatorValue: string; indicatorType: string } => {
+        return {
+          indicatorValue: String(row["indicatorValue"] ?? ""),
+          indicatorType: String(row["indicatorType"] ?? ""),
+        };
+      },
+    );
+  }
+
+  /*
    * The poller's pre-ingest read: the latest stored version of every
    * (stixId, indicatorValue) identity for the given STIX objects in one
    * feed — revoked or not, active or not. The poller uses it to
@@ -379,7 +458,7 @@ export class ThreatIntelIndicatorService extends AnalyticsDatabaseService<Threat
       argMax(indicatorType, version) AS indicatorType,
       argMax(indicatorName, version) AS indicatorName,
       argMax(confidence, version) AS confidence,
-      max(version) AS version,
+      max(version) AS latestVersion,
       argMax(validFrom, version) AS validFrom,
       argMax(validUntil, version) AS validUntil,
       max(retentionDate) AS retentionDate
@@ -415,7 +494,7 @@ export class ThreatIntelIndicatorService extends AnalyticsDatabaseService<Threat
           indicatorType: String(row["indicatorType"] ?? ""),
           indicatorName: String(row["indicatorName"] ?? ""),
           confidence: Number(row["confidence"] || 0),
-          version: Number(row["version"] || 0),
+          version: Number(row["latestVersion"] || 0),
           validFrom: String(row["validFrom"] ?? ""),
           validUntil: String(row["validUntil"] ?? ""),
           retentionDate: String(row["retentionDate"] ?? ""),

@@ -91,6 +91,19 @@ jest.mock("../../../UI/Components/ModelTable/AnalyticsModelTable", () => {
   };
 });
 
+// The Free Lists tiles read which lists the project has: none, here.
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/ThreatIntelRecommendedLists",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return React.createElement("div", { "data-testid": "free-lists" });
+      },
+    };
+  },
+);
+
 import ThreatIntelPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/ThreatIntel";
 import ThreatIntelGuide from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/ThreatIntelGuide";
 import { guideToMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
@@ -158,7 +171,7 @@ describe("Threat Intel page", () => {
     window.localStorage.clear();
   });
 
-  test("leads with the how-it-works card, above the feeds and indicators tables", () => {
+  test("leads with the how-it-works card, then the free lists, above the feeds and indicators tables", () => {
     renderPage();
 
     const card: HTMLElement = screen.getByTestId(
@@ -166,7 +179,13 @@ describe("Threat Intel page", () => {
     );
 
     expect(card).toHaveTextContent(ThreatIntelGuide.title);
-    expect(isBefore(card, screen.getByTestId("feeds-table"))).toBe(true);
+    expect(isBefore(card, screen.getByTestId("free-lists"))).toBe(true);
+    expect(
+      isBefore(
+        screen.getByTestId("free-lists"),
+        screen.getByTestId("feeds-table"),
+      ),
+    ).toBe(true);
     expect(
       isBefore(
         screen.getByTestId("feeds-table"),
@@ -212,7 +231,7 @@ describe("Threat Intel page", () => {
     });
   });
 
-  describe("adding a feed: where it is, how to sign in to it, what a match does", () => {
+  describe("adding a feed: where its indicators come from, how to sign in to it, what a match does", () => {
     type FormField = Record<string, unknown> & {
       field?: Record<string, boolean>;
       title: string;
@@ -273,7 +292,7 @@ describe("Threat Intel page", () => {
     const TOKEN: Record<string, unknown> = { taxiiSignIn: "api-token" };
     const BASIC: Record<string, unknown> = { taxiiSignIn: "basic-auth" };
 
-    test("three steps: the TAXII server, Sign-in, On Match", () => {
+    test("the source, then its own step, then Sign-in for a TAXII collection, then On Match", () => {
       renderPage();
 
       expect(
@@ -283,10 +302,54 @@ describe("Threat Intel page", () => {
           },
         ),
       ).toEqual([
+        ["source", "Source"],
+        ["list", "List"],
         ["taxii-server", "TAXII Server"],
+        ["google-secops", "Google SecOps"],
         ["sign-in", "Sign-in"],
         ["on-match", "On Match"],
       ]);
+    });
+
+    test("each source walks only its own steps", () => {
+      renderPage();
+
+      const walked: (values: Record<string, unknown>) => Array<string> = (
+        values: Record<string, unknown>,
+      ): Array<string> => {
+        return (capturedFeedTableProps?.formSteps || [])
+          .filter(
+            (step: {
+              showIf?: (values: Record<string, unknown>) => boolean;
+            }) => {
+              return !step.showIf || step.showIf(values);
+            },
+          )
+          .map((step: { id: string }) => {
+            return step.id;
+          });
+      };
+
+      expect(walked({ feedType: "list", ...ANONYMOUS })).toEqual([
+        "source",
+        "list",
+        "on-match",
+      ]);
+      expect(walked({ feedType: "taxii", ...ANONYMOUS })).toEqual([
+        "source",
+        "taxii-server",
+        "sign-in",
+        "on-match",
+      ]);
+      expect(walked({ feedType: "google-secops", ...ANONYMOUS })).toEqual([
+        "source",
+        "google-secops",
+        "on-match",
+      ]);
+      // A feed saved before there were sources is a TAXII collection.
+      expect(walked({ apiRootUrl: "https://taxii.example.com/api1/" })).toEqual(
+        ["source", "taxii-server", "on-match"],
+      );
     });
 
     test("Sign-in is one choice of three, a new feed's only, starting on No sign-in", () => {
@@ -361,8 +424,14 @@ describe("Threat Intel page", () => {
       expect(byColumn("basicAuthUsername").showIf!({})).toBe(false);
       expect(signInStep.showIf!({ basicAuthUsername: "svc" })).toBe(true);
       expect(signInStep.showIf!({})).toBe(false);
-      // Creating: the step is always walked.
+      // Creating a TAXII feed: the step is always walked; another source never signs in.
       expect(signInStep.showIf!(ANONYMOUS)).toBe(true);
+      expect(signInStep.showIf!({ ...ANONYMOUS, feedType: "list" })).toBe(
+        false,
+      );
+      expect(
+        signInStep.showIf!({ ...ANONYMOUS, feedType: "google-secops" }),
+      ).toBe(false);
 
       expect(byColumn("apiToken").doNotShowWhenEditing).toBe(true);
       expect(byColumn("basicAuthPassword").doNotShowWhenEditing).toBe(true);
@@ -404,7 +473,7 @@ describe("Threat Intel page", () => {
           column,
           step: field.stepId,
           folded: Boolean(field["collapsibleSection"]),
-        }).toEqual({ column, step: "taxii-server", folded: true });
+        }).toEqual({ column, step: "source", folded: true });
       }
     });
 
