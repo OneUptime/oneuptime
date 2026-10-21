@@ -118,6 +118,26 @@ Every message is one its provider takes, so a page always goes out. Each channel
 
 A longer message, with a long title or a long description a template placed in it, is cut and ends with a note that the full text is in OneUptime: "… (truncated — see OneUptime for the full text)". A WhatsApp message's wording is a fixed template, so there the longest values are cut instead, each ending with "…". The links in a message are never cut.
 
+### What a page's text message says
+
+A text message is sent, and billed, in parts of 160 characters. A page by SMS is written to fit in one part wherever it can, and says only what you need on a locked phone: who sends it, what happened, and the one link to acknowledge the page or pass it on. On a phone it reads:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
+Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+```
+
+It names the severity and what happened (an incident, an alert or an episode of either), its number, the project and the title, in that order. When they do not all fit in one part:
+
+1. The project is left out first.
+2. Then the title is cut, and ends with `...`.
+
+The severity, the number and the link are never cut. A title keeps at least 20 characters: when even that does not fit, as with a very long address or product name, the text takes a second part and says it all.
+
+One character outside the plain alphabet of text messages makes the whole text go out in parts of 70 characters. So curly quotes and dashes are written as `"`, `'` and `-`, `…` as `...`, and letters such as `ç` and `ł` lose their accents; emoji are left out. A title in another script, such as Japanese or Russian, is sent as written, and takes two parts or more.
+
+The other text messages OneUptime sends you, such as a change to an incident you own or the start of your on-call shift, start with `OneUptime:` too and end with `Turn off in User Settings > Notification Settings.`, a sentence that is left out when that is what makes the text fit in one part.
+
 ### When a page is not sent
 
 A page that is not sent says why in the person's **On-Call Logs** (User Settings): its row shows **Error**, and its status message gives the reason. It no longer stays at **Sending**. The message says one of:

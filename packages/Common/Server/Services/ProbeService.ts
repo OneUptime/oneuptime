@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "../../Utils/Sms/NotificationSms";
 import crypto from "crypto";
 import User from "../../Models/DatabaseModels/User";
 import CreateBy from "../Types/Database/CreateBy";
@@ -878,7 +879,9 @@ export class Service extends ProjectReferencesService<Model> {
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. Probe ${probe.name} is ${connectionStatus}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: buildNotificationSms(
+            `Probe ${probe.name} is ${connectionStatus}.`,
+          ),
         };
 
         const callMessage: CallRequestMessage = {

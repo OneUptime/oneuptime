@@ -1,3 +1,4 @@
+import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
@@ -272,7 +273,9 @@ const sendReminderForIncident: SendReminderForIncidentFunction = async (
     };
 
     const sms: SMSMessage = {
-      message: `This is a message from OneUptime. Reminder: Incident ${incidentIdentifier} is still ${currentStateName} and has been open for ${openDuration}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+      message: buildNotificationSms(
+        `Reminder: Incident ${incidentIdentifier} is still ${currentStateName} and has been open for ${openDuration}.`,
+      ),
     };
 
     const callMessage: CallRequestMessage = {
