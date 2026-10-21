@@ -311,7 +311,7 @@ Die Installation ohne Docker ist bereits ein systemd-Dienst, mit einer eigenen U
 
 ## Agent aktualisieren
 
-Der Agent meldet die Collector-Version, die seine Dateien festlegen, als seine **Agent-Version**. Ist sie älter als die Version, die dieses OneUptime-Release festlegt, erscheint daneben ein Warnzeichen, auf der Seite **Übersicht** des vCenter und in der Liste **Alle vCenter**. Wählen Sie es aus, um diese Befehle zu sehen. Ein Agent, der installiert wurde, bevor seine Dateien eine Version meldeten, zeigt keine an, bis er auf diese Weise aktualisiert wurde.
+Der Agent meldet die Collector-Version, die seine Dateien festlegen, als seine **Agent-Version**. Ist sie älter als die Version, die dieses OneUptime-Release festlegt, erscheint daneben ein Warnzeichen auf der Seite **Übersicht** des vCenter. Wählen Sie es aus, um diese Befehle zu sehen. Ein Agent, der installiert wurde, bevor seine Dateien eine Version meldeten, zeigt keine an, bis er auf diese Weise aktualisiert wurde.
 
 Der Collector ist in `docker-compose.yml` festgelegt (oder, ohne Docker, durch das heruntergeladene Release), und seine Konfiguration ist eine Datei daneben; ein Pull allein bringt den Agent daher nicht voran:
 

@@ -228,7 +228,7 @@ Hver gang en varsling sendes videre, blir det registrert. Kjøringens **Tidslinj
 Kortet til hver regel har **Edit rule**, og en **⋯**-meny med de andre handlingene:
 
 - **Edit rule** åpner den samme dialogen på én side, fylt ut med regelen slik den er: mottakerne, ventetiden, og navnet og beskrivelsen under **Flere felt**. Legg til eller fjern mottakere, og klikk på **Lagre endringer**. Tømmer du navnet, får regelen navnet til nivået sitt igjen.
-- **Move up** og **Move down** i **⋯**-menyen til en regel endrer nivået. En regel som har navn etter nivået sitt, beholder et navn som passer til plassen: når **Level 3** flyttes opp forbi **Level 2**, bytter de to navn. Et navn du har valgt selv, for eksempel **Ledere**, forblir det samme uansett hvor regelen flyttes.
+- **Flytt opp** og **Flytt ned** i **⋯**-menyen til en regel endrer nivået. En regel som har navn etter nivået sitt, beholder et navn som passer til plassen: når **Level 3** flyttes opp forbi **Level 2**, bytter de to navn. Et navn du har valgt selv, for eksempel **Ledere**, forblir det samme uansett hvor regelen flyttes.
 - **Delete rule** spør først og sier hvem nivået varsler. Sletter du et nivå, flyttes nivåene under det opp, og regler som har navn etter nivået sitt, får nye navn som passer.
 
 ## Opprett regler med API-et eller Terraform

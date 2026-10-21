@@ -228,7 +228,7 @@ Elke keer dat een oproep wordt doorgegeven, wordt dat vastgelegd. De **Tijdlijn 
 De kaart van elke regel heeft **Edit rule**, en een **⋯**-menu met de andere acties:
 
 - **Edit rule** opent hetzelfde dialoogvenster van één pagina, ingevuld met de regel zoals die is: de ontvangers, de wachttijd, en de naam en beschrijving onder **Meer velden**. Voeg ontvangers toe of verwijder ze en klik op **Wijzigingen opslaan**. Wordt de naam leeggemaakt, dan krijgt de regel weer de naam van zijn niveau.
-- **Move up** en **Move down** in het **⋯**-menu van een regel wijzigen het niveau. Een regel die naar zijn niveau is genoemd, houdt een naam die bij zijn plaats past: wanneer **Level 3** voorbij **Level 2** omhoog gaat, wisselen beide van naam. Een naam die u zelf koos, zoals **Managers**, blijft hetzelfde waar de regel ook heen gaat.
+- **Omhoog** en **Omlaag** in het **⋯**-menu van een regel wijzigen het niveau. Een regel die naar zijn niveau is genoemd, houdt een naam die bij zijn plaats past: wanneer **Level 3** voorbij **Level 2** omhoog gaat, wisselen beide van naam. Een naam die u zelf koos, zoals **Managers**, blijft hetzelfde waar de regel ook heen gaat.
 - **Delete rule** vraagt eerst om bevestiging en zegt wie het niveau oproept. Verwijdert u een niveau, dan schuiven de niveaus eronder omhoog, en regels die naar hun niveau zijn genoemd, worden mee hernoemd.
 
 ## Regels maken met de API of Terraform

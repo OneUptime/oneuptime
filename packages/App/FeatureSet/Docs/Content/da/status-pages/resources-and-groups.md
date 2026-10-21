@@ -152,7 +152,7 @@ For at ændre en gruppe bruger du **Edit Group** i panelets overskrift eller **E
 
 | Hvor | Handlinger |
 | ----- | ------- |
-| Navigatorens rækkemenu | **Edit group**, **Move up**, **Move down**, **Vis ID**, **Delete group** |
+| Navigatorens rækkemenu | **Edit group**, **Flyt op**, **Flyt ned**, **Vis ID**, **Delete group** |
 | Panelets menu **More actions** | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Opdater**, **Delete this group** |
 
 En gruppe, der er gemt uden navn, vises som **Untitled group**, et godt tegn på, at du ville skrive noget.
@@ -195,7 +195,7 @@ Rækkefølgen bestemmer du selv, ikke alfabetet:
 | Hvad | Sådan ændrer du rækkefølgen |
 | ---- | ----------------- |
 | Ressourcer i en gruppe | Træk en række. Panelet siger det: **Drag a row to change the order visitors see**. |
-| Grupper i forhold til hinanden | **Move up** / **Move down** i navigatorens rækkemenu eller **Move group up** / **Move group down** i **More actions**. |
+| Grupper i forhold til hinanden | **Flyt op** / **Flyt ned** i navigatorens rækkemenu eller **Move group up** / **Move group down** i **More actions**. |
 | Ressourcer uden gruppe | De står i **Top of page** og vises altid over alle grupper, så sæt det, som alle tjekker først, dér. |
 
 **To tilfælde, hvor træk er slået fra.** En søgning i feltet **Search in {group}...** slår omrokering fra (panelet siger `N of M shown · drag to reorder is off while filtering`), så ryd søgningen først. Og gittergrupper omrokeres aldrig ved at trække, fordi en monitors plads kommer fra dens række og kolonne.

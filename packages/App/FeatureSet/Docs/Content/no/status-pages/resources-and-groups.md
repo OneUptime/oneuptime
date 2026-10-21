@@ -152,7 +152,7 @@ For å endre en gruppe bruker du **Edit Group** i panelets overskrift, eller **E
 
 | Hvor | Handlinger |
 | ----- | ------- |
-| Navigatorens radmeny | **Edit group**, **Move up**, **Move down**, **Vis ID**, **Delete group** |
+| Navigatorens radmeny | **Edit group**, **Flytt opp**, **Flytt ned**, **Vis ID**, **Delete group** |
 | Panelets meny **More actions** | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Oppdater**, **Delete this group** |
 
 En gruppe som er lagret uten navn, vises som **Untitled group**, et godt tegn på at du mente å skrive noe.
@@ -195,7 +195,7 @@ Rekkefølgen bestemmer du selv, ikke alfabetet:
 | Hva | Slik endrer du rekkefølgen |
 | ---- | ----------------- |
 | Ressurser i en gruppe | Dra en rad. Panelet sier det: **Drag a row to change the order visitors see**. |
-| Grupper i forhold til hverandre | **Move up** / **Move down** i navigatorens radmeny, eller **Move group up** / **Move group down** i **More actions**. |
+| Grupper i forhold til hverandre | **Flytt opp** / **Flytt ned** i navigatorens radmeny, eller **Move group up** / **Move group down** i **More actions**. |
 | Ressurser uten gruppe | De står i **Top of page** og vises alltid over alle grupper, så legg det alle sjekker først, der. |
 
 **To tilfeller der dra er slått av.** Et søk i feltet **Search in {group}...** slår av omorganisering (panelet sier `N of M shown · drag to reorder is off while filtering`), så tøm søket først. Og rutenettgrupper omorganiseres aldri ved å dra, fordi plassen til en monitor kommer fra raden og kolonnen.

@@ -152,7 +152,7 @@ flowchart TB
 
 | 位置 | 操作 |
 | ----- | ------- |
-| 导航器的行菜单 | **Edit group**、**Move up**、**Move down**、**显示 ID**、**Delete group** |
+| 导航器的行菜单 | **Edit group**、**上移**、**下移**、**显示 ID**、**Delete group** |
 | 窗格的 **More actions** 菜单 | **Edit this group**、**Add a sub group**、**Move group up**、**Move group down**、**Show group ID**、**刷新**、**Delete this group** |
 
 没有名称就保存的分组会显示为 **Untitled group**，这很好地提醒您本来想输入点什么。
@@ -195,7 +195,7 @@ flowchart TB
 | 对象 | 如何调整顺序 |
 | ---- | ----------------- |
 | 分组内的资源 | 拖动一行。窗格上也会提示：**Drag a row to change the order visitors see**。 |
-| 分组之间 | 导航器行菜单中的 **Move up** / **Move down**，或 **More actions** 中的 **Move group up** / **Move group down**。 |
+| 分组之间 | 导航器行菜单中的 **上移** / **下移**，或 **More actions** 中的 **Move group up** / **Move group down**。 |
 | 不属于任何分组的资源 | 它们在 **Top of page** 中，始终显示在所有分组之上，所以请把大家最先查看的内容放在这里。 |
 
 **有两种情况无法拖动。** 在 **Search in {group}...** 框中搜索时会关闭排序（窗格会显示 `N of M shown · drag to reorder is off while filtering`），所以请先清除搜索。另外，网格分组从不通过拖动排序，因为监视器的位置由它的行和列决定。
