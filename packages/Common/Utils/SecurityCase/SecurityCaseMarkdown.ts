@@ -436,6 +436,8 @@ export function threatIntelMatchMarkdown(data: {
  * from a person, the group values from events, so each is escaped or code.
  */
 export function detectionOverflowMarkdown(data: {
+  // "rule": a detection rule's run. "feed": a threat-intel feed's check.
+  kind: "rule" | "feed";
   // A detection rule's name, or a threat-intel feed's.
   sourceName: string;
   // The plain sentence the source's last error carries (describeDetectionOverflow).
@@ -446,7 +448,9 @@ export function detectionOverflowMarkdown(data: {
   examples: Array<string>;
 }): MarkdownText {
   const parts: Array<MarkdownValue> = [
-    mdText`**${data.sourceName}** matched more than one run opens cases for, between ${data.windowStart} and ${data.windowEnd}.`,
+    mdText`**${data.sourceName}** matched more than one ${
+      data.kind === "rule" ? "run" : "check"
+    } opens cases for, between ${data.windowStart} and ${data.windowEnd}.`,
     mdText`${data.summary}`,
   ];
 

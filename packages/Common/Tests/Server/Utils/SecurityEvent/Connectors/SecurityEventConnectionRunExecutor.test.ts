@@ -23,6 +23,7 @@ import {
   SecurityEventConnectionRunType,
 } from "../../../../../Types/SecurityEvent/Connectors/SecurityEventConnectionDiagnostics";
 import SecurityEventConnectorProvider from "../../../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
+import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 
 /*
  * The run executor is the admission control and bookkeeping around every
@@ -47,7 +48,7 @@ jest.mock(
       default: {
         findOneBy: jest.fn(),
         findOneById: jest.fn(),
-        findBy: jest.fn(),
+        findAllBy: jest.fn(),
         create: jest.fn(),
         updateOneById: jest.fn(),
         updateOneBy: jest.fn(),
@@ -62,7 +63,7 @@ jest.mock(
       __esModule: true,
       default: {
         findOneBy: jest.fn(),
-        findBy: jest.fn(),
+        findAllBy: jest.fn(),
         updateOneById: jest.fn(),
       },
     };
@@ -164,7 +165,7 @@ beforeEach(() => {
   ).mockImplementation(async () => {
     return run;
   });
-  (SecurityEventConnectionRunService.findBy as jest.Mock).mockResolvedValue([]);
+  (SecurityEventConnectionRunService.findAllBy as jest.Mock).mockResolvedValue([]);
   (SecurityEventConnectionRunService.create as jest.Mock).mockImplementation(
     async (data: { data: SecurityEventConnectionRun }) => {
       data.data.id = RUN;
@@ -180,7 +181,7 @@ beforeEach(() => {
   (SecurityEventConnectionService.findOneBy as jest.Mock).mockResolvedValue(
     connection,
   );
-  (SecurityEventConnectionService.findBy as jest.Mock).mockResolvedValue([]);
+  (SecurityEventConnectionService.findAllBy as jest.Mock).mockResolvedValue([]);
   (SecurityEventConnectionService.updateOneById as jest.Mock).mockResolvedValue(
     undefined,
   );
@@ -770,7 +771,7 @@ describe("enqueueDueConnections", () => {
     const neverPolled: SecurityEventConnection = new SecurityEventConnection();
     neverPolled.id = RUN;
     neverPolled.projectId = PROJECT;
-    (SecurityEventConnectionService.findBy as jest.Mock).mockResolvedValue([
+    (SecurityEventConnectionService.findAllBy as jest.Mock).mockResolvedValue([
       connection,
       recent,
       neverPolled,
@@ -779,7 +780,7 @@ describe("enqueueDueConnections", () => {
       new SecurityEventConnectionRun();
     staleRun.id = USER;
     staleRun.updatedAt = new Date(Date.now() - 25 * 60_000);
-    (SecurityEventConnectionRunService.findBy as jest.Mock).mockResolvedValue([
+    (SecurityEventConnectionRunService.findAllBy as jest.Mock).mockResolvedValue([
       staleRun,
     ]);
     const expireSpy: jest.SpyInstance = jest
@@ -805,7 +806,7 @@ describe("enqueueDueConnections", () => {
       options: { type: "poll" },
       scheduled: true,
     });
-    expect(SecurityEventConnectionService.findBy).toHaveBeenCalledWith(
+    expect(SecurityEventConnectionService.findAllBy).toHaveBeenCalledWith(
       expect.objectContaining({
         query: { isEnabled: true },
         select: {
@@ -814,16 +815,35 @@ describe("enqueueDueConnections", () => {
           pollIntervalInMinutes: true,
           lastPolledAt: true,
         },
+        sort: { _id: SortOrder.Ascending },
         props: { isRoot: true },
       }),
     );
     expect(SecurityEventConnectionService.updateOneById).not.toHaveBeenCalled();
   });
 
+  test("pages through every connection and stale run, with no cap on how many are read", async () => {
+    await SecurityEventConnectionRunExecutor.enqueueDueConnections();
+
+    const connectionArgs: { limit?: unknown; sort?: unknown } = (
+      SecurityEventConnectionService.findAllBy as jest.Mock
+    ).mock.calls[0]?.[0];
+    const staleRunArgs: { limit?: unknown; sort?: unknown } = (
+      SecurityEventConnectionRunService.findAllBy as jest.Mock
+    ).mock.calls[0]?.[0];
+
+    // findAllBy pages through in LIMIT_MAX batches; a limit here would cap it again.
+    expect(connectionArgs.limit).toBeUndefined();
+    expect(staleRunArgs.limit).toBeUndefined();
+    // A stable order, so a page boundary never skips or repeats a row.
+    expect(connectionArgs.sort).toEqual({ _id: SortOrder.Ascending });
+    expect(staleRunArgs.sort).toEqual({ _id: SortOrder.Ascending });
+  });
+
   test("a zero interval is read as the five minute default", async () => {
     connection.pollIntervalInMinutes = 0;
     connection.lastPolledAt = new Date(Date.now() - 2 * 60_000);
-    (SecurityEventConnectionService.findBy as jest.Mock).mockResolvedValue([
+    (SecurityEventConnectionService.findAllBy as jest.Mock).mockResolvedValue([
       connection,
     ]);
     const spy: jest.SpyInstance = jest
@@ -839,13 +859,13 @@ describe("enqueueDueConnections", () => {
     const staleRun: SecurityEventConnectionRun =
       new SecurityEventConnectionRun();
     staleRun.id = USER;
-    (SecurityEventConnectionRunService.findBy as jest.Mock).mockResolvedValue([
+    (SecurityEventConnectionRunService.findAllBy as jest.Mock).mockResolvedValue([
       staleRun,
     ]);
     jest
       .spyOn(SecurityEventConnectionRunExecutor, "expireStaleRun")
       .mockRejectedValue(new Error("Redis unavailable"));
-    (SecurityEventConnectionService.findBy as jest.Mock).mockResolvedValue([
+    (SecurityEventConnectionService.findAllBy as jest.Mock).mockResolvedValue([
       connection,
     ]);
     const spy: jest.SpyInstance = jest
@@ -865,7 +885,7 @@ describe("enqueueDueConnections", () => {
       new SecurityEventConnection();
     nextConnection.id = USER;
     nextConnection.projectId = PROJECT;
-    (SecurityEventConnectionService.findBy as jest.Mock).mockResolvedValue([
+    (SecurityEventConnectionService.findAllBy as jest.Mock).mockResolvedValue([
       connection,
       nextConnection,
     ]);
@@ -893,7 +913,7 @@ describe("enqueueDueConnections", () => {
       new SecurityEventConnection();
     nextConnection.id = USER;
     nextConnection.projectId = PROJECT;
-    (SecurityEventConnectionService.findBy as jest.Mock).mockResolvedValue([
+    (SecurityEventConnectionService.findAllBy as jest.Mock).mockResolvedValue([
       connection,
       nextConnection,
     ]);
@@ -929,7 +949,7 @@ describe("enqueueDueConnections", () => {
       new SecurityEventConnection();
     nextConnection.id = USER;
     nextConnection.projectId = PROJECT;
-    (SecurityEventConnectionService.findBy as jest.Mock).mockResolvedValue([
+    (SecurityEventConnectionService.findAllBy as jest.Mock).mockResolvedValue([
       connection,
       nextConnection,
     ]);
@@ -957,7 +977,7 @@ describe("enqueueDueConnections", () => {
     const withoutProject: SecurityEventConnection =
       new SecurityEventConnection();
     withoutProject.id = USER;
-    (SecurityEventConnectionService.findBy as jest.Mock).mockResolvedValue([
+    (SecurityEventConnectionService.findAllBy as jest.Mock).mockResolvedValue([
       withoutId,
       withoutProject,
     ]);

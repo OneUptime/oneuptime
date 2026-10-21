@@ -585,6 +585,7 @@ export default class DetectionRuleEvaluator {
       fingerprint: `detection-rule:${rule.id!.toString()}:overflow`,
       title: `${ruleName} — more matches than one run opens cases for`,
       description: detectionOverflowMarkdown({
+        kind: "rule",
         sourceName: ruleName,
         summary: data.summary,
         windowStart: OneUptimeDate.getDateAsFormattedString(data.startTime),

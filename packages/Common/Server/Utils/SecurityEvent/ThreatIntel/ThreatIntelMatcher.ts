@@ -612,6 +612,7 @@ export default class ThreatIntelMatcher {
       fingerprint: `threat-intel:${feed.id!.toString()}:overflow`,
       title: `${feedName} — more matches than one check opens cases for`,
       description: detectionOverflowMarkdown({
+        kind: "feed",
         sourceName: feedName,
         summary: data.summary,
         windowStart: OneUptimeDate.getDateAsFormattedString(data.startTime),

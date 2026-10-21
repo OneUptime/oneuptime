@@ -8,11 +8,16 @@ import SecurityEventService, {
 } from "../../../../../Server/Services/SecurityEventService";
 import SecurityEventForwarder, {
   FORWARD_MAX_BACKLOG_IN_HOURS,
-  FORWARD_MAX_EVENTS_PER_WINDOW,
+  FORWARD_MAX_EVENTS_PER_RUN,
   FORWARD_PAGE_SIZE,
   FORWARD_SETTLE_IN_SECONDS,
+  SECURITY_EVENT_FORWARD_PROJECT_WORK,
   SecurityEventForwardResult,
 } from "../../../../../Server/Utils/SecurityEvent/Destinations/SecurityEventForwarder";
+import SecurityProjectWork, {
+  SecurityProjectWorkLease,
+} from "../../../../../Server/Utils/SecurityEvent/SecurityProjectWork";
+import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import {
   SecurityEventSendResult,
   SecurityEventSender,
@@ -502,13 +507,91 @@ describe("SecurityEventForwarder.forwardDestination", () => {
     }
   });
 
-  test("a window holding more than one run sends is cut, and says so", async () => {
-    installService();
+  test("a run that reaches its event budget stops part way through a window, and the next goes on from the event after", async () => {
+    const { updates } = installService();
+    const startAt: Date = OneUptimeDate.addRemoveMinutes(NOW, -4);
+    const total: number = FORWARD_MAX_EVENTS_PER_RUN + 50;
+    installTable(
+      events({
+        count: total,
+        // From the second after the cursor's: the cursor's own second was sent.
+        startAt: OneUptimeDate.addRemoveSeconds(startAt, 1),
+        everySeconds: 0.001,
+      }),
+    );
+    const sender: FakeSender = new FakeSender();
+
+    const first: SecurityEventForwardResult =
+      await SecurityEventForwarder.forwardDestination(
+        destination({ cursor: startAt.toISOString() }),
+        { sender },
+      );
+
+    // Pre-fix the window was cut at 5,000 events and the rest never sent.
+    expect(sender.sent).toHaveLength(FORWARD_MAX_EVENTS_PER_RUN);
+    expect(first.windows).toBe(0);
+    expect(first.partialWindowStart).toBe(startAt.toISOString());
+    expect(first.partialWindowProcessed).toBe(FORWARD_MAX_EVENTS_PER_RUN);
+    // The cursor stays at the window it stopped in.
+    expect(updates[0]!["cursor"]).toBe(startAt.toISOString());
+
+    const second: SecurityEventForwardResult =
+      await SecurityEventForwarder.forwardDestination(
+        destination({
+          cursor: updates[0]!["cursor"] as string,
+          lastSendResult: updates[0]!["lastSendResult"] as JSONObject,
+        }),
+        { sender },
+      );
+
+    // Every event sent once across the two runs: none skipped, none twice.
+    expect(second.sent).toBe(50);
+    expect(sender.sent).toHaveLength(total);
+    expect(new Set(sender.sent).size).toBe(total);
+    expect(second.partialWindowStart).toBe("");
+    expect(updates[1]!["cursor"]).toBe(UNTIL.toISOString());
+  });
+
+  test("a run that runs out of time stops at a page, and the next goes on from there", async () => {
+    const { updates } = installService();
     const startAt: Date = OneUptimeDate.addRemoveMinutes(NOW, -4);
     installTable(
       events({
-        count: FORWARD_MAX_EVENTS_PER_WINDOW + 50,
-        // From the second after the cursor's: the cursor's own second was sent.
+        count: FORWARD_PAGE_SIZE * 3,
+        startAt: OneUptimeDate.addRemoveSeconds(startAt, 1),
+        everySeconds: 0.01,
+      }),
+    );
+    const sender: FakeSender = new FakeSender();
+    let checks: number = 0;
+    const lease: SecurityProjectWorkLease = {
+      hasTimeLeft: (): boolean => {
+        checks++;
+        return checks <= 2;
+      },
+      keep: async (): Promise<boolean> => {
+        return true;
+      },
+    };
+
+    const result: SecurityEventForwardResult =
+      await SecurityEventForwarder.forwardDestination(
+        destination({ cursor: startAt.toISOString() }),
+        { sender, lease },
+      );
+
+    expect(sender.sent).toHaveLength(FORWARD_PAGE_SIZE * 2);
+    expect(result.partialWindowStart).toBe(startAt.toISOString());
+    expect(result.partialWindowProcessed).toBe(FORWARD_PAGE_SIZE * 2);
+    expect(updates[0]!["cursor"]).toBe(startAt.toISOString());
+  });
+
+  test("a run that loses its project's lease stops after the page in hand", async () => {
+    installService();
+    const startAt: Date = OneUptimeDate.addRemoveMinutes(NOW, -4);
+    const { reads } = installTable(
+      events({
+        count: FORWARD_PAGE_SIZE * 3,
         startAt: OneUptimeDate.addRemoveSeconds(startAt, 1),
         everySeconds: 0.01,
       }),
@@ -518,11 +601,22 @@ describe("SecurityEventForwarder.forwardDestination", () => {
     const result: SecurityEventForwardResult =
       await SecurityEventForwarder.forwardDestination(
         destination({ cursor: startAt.toISOString() }),
-        { sender },
+        {
+          sender,
+          lease: {
+            hasTimeLeft: (): boolean => {
+              return true;
+            },
+            keep: async (): Promise<boolean> => {
+              return false;
+            },
+          },
+        },
       );
 
-    expect(result.truncated).toBe(true);
-    expect(sender.sent).toHaveLength(FORWARD_MAX_EVENTS_PER_WINDOW);
+    expect(reads).toHaveLength(1);
+    expect(sender.sent).toHaveLength(FORWARD_PAGE_SIZE);
+    expect(result.partialWindowProcessed).toBe(FORWARD_PAGE_SIZE);
   });
 
   test("pages are read FORWARD_PAGE_SIZE at a time", async () => {
@@ -557,15 +651,17 @@ describe("SecurityEventForwarder.forwardDestination", () => {
   });
 });
 
-describe("SecurityEventForwarder.forwardAllEnabled", () => {
+describe("SecurityEventForwarder.forwardProject", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  test("sends each enabled destination under its own lock, and records a failure on the destination", async () => {
+  test("sends each of the project's enabled destinations under its own lock, and records a failure on the destination", async () => {
     const { updates } = installService();
-    jest
-      .spyOn(SecurityEventDestinationService, "findBy")
+    const findAll: SpyInstance<
+      typeof SecurityEventDestinationService.findAllBy
+    > = jest
+      .spyOn(SecurityEventDestinationService, "findAllBy")
       .mockResolvedValue([
         destination({ cursor: UNTIL.toISOString() }),
       ] as never);
@@ -577,7 +673,7 @@ describe("SecurityEventForwarder.forwardAllEnabled", () => {
       .mockResolvedValue({} as never);
     jest.spyOn(Semaphore, "release").mockResolvedValue(undefined);
 
-    await SecurityEventForwarder.forwardAllEnabled();
+    await SecurityEventForwarder.forwardProject(PROJECT_ID);
 
     expect(lock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -587,12 +683,26 @@ describe("SecurityEventForwarder.forwardAllEnabled", () => {
       }),
     );
     expect(updates[0]!["lastError"]).toBe("The destination no longer exists.");
+    expect(findAll).toHaveBeenCalledWith({
+      query: { projectId: PROJECT_ID, isEnabled: true },
+      // The cursor, and where the last send stopped within its window.
+      select: {
+        _id: true,
+        projectId: true,
+        provider: true,
+        sendScope: true,
+        cursor: true,
+        lastSendResult: true,
+      },
+      sort: { _id: SortOrder.Ascending },
+      props: { isRoot: true },
+    });
   });
 
   test("a destination another worker is sending is left to it", async () => {
     installService();
     jest
-      .spyOn(SecurityEventDestinationService, "findBy")
+      .spyOn(SecurityEventDestinationService, "findAllBy")
       .mockResolvedValue([
         destination({ cursor: UNTIL.toISOString() }),
       ] as never);
@@ -601,8 +711,73 @@ describe("SecurityEventForwarder.forwardAllEnabled", () => {
       typeof SecurityEventForwarder.forwardDestination
     > = jest.spyOn(SecurityEventForwarder, "forwardDestination");
 
-    await SecurityEventForwarder.forwardAllEnabled();
+    await SecurityEventForwarder.forwardProject(PROJECT_ID);
 
     expect(forward).not.toHaveBeenCalled();
+  });
+
+  test("a turn with no time left sends to no further destination", async () => {
+    installService();
+    jest
+      .spyOn(SecurityEventDestinationService, "findAllBy")
+      .mockResolvedValue([
+        destination({ cursor: UNTIL.toISOString() }),
+      ] as never);
+    const lock: SpyInstance<typeof Semaphore.lock> = jest.spyOn(
+      Semaphore,
+      "lock",
+    );
+
+    await SecurityEventForwarder.forwardProject(PROJECT_ID, {
+      hasTimeLeft: (): boolean => {
+        return false;
+      },
+      keep: async (): Promise<boolean> => {
+        return true;
+      },
+    });
+
+    expect(lock).not.toHaveBeenCalled();
+  });
+});
+
+describe("SecurityEventForwarder.enqueueProjectsWithEnabledDestinations", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("queues each project with an enabled destination, read page by page, and sends nothing itself", async () => {
+    const other: SecurityEventDestination = destination();
+    other.projectId = OTHER_PROJECT_ID;
+    const findAll: SpyInstance<
+      typeof SecurityEventDestinationService.findAllBy
+    > = jest
+      .spyOn(SecurityEventDestinationService, "findAllBy")
+      .mockResolvedValue([destination(), other] as never);
+    const enqueue: SpyInstance<typeof SecurityProjectWork.enqueueProjects> =
+      jest.spyOn(SecurityProjectWork, "enqueueProjects").mockResolvedValue(2);
+    const forward: SpyInstance<
+      typeof SecurityEventForwarder.forwardDestination
+    > = jest.spyOn(SecurityEventForwarder, "forwardDestination");
+
+    await expect(
+      SecurityEventForwarder.enqueueProjectsWithEnabledDestinations(),
+    ).resolves.toBe(2);
+
+    expect(enqueue.mock.calls[0]![0]).toBe(SECURITY_EVENT_FORWARD_PROJECT_WORK);
+    expect(
+      (enqueue.mock.calls[0]![1] as Array<ObjectID>).map(
+        (projectId: ObjectID): string => {
+          return projectId.toString();
+        },
+      ),
+    ).toEqual([PROJECT_ID.toString(), OTHER_PROJECT_ID.toString()]);
+    expect(forward).not.toHaveBeenCalled();
+    expect(findAll).toHaveBeenCalledWith({
+      query: { isEnabled: true },
+      select: { _id: true, projectId: true },
+      sort: { _id: SortOrder.Ascending },
+      props: { isRoot: true },
+    });
   });
 });

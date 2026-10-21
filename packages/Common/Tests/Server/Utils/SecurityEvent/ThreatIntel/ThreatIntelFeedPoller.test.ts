@@ -4,7 +4,12 @@ import ThreatIntelFeedPoller, {
   MAX_PAGES_PER_POLL,
   StixIndicatorParseResult,
   StixParseContext,
+  THREAT_INTEL_POLL_PROJECT_WORK,
 } from "../../../../../Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelFeedPoller";
+import SecurityProjectWork, {
+  SecurityProjectWorkLease,
+} from "../../../../../Server/Utils/SecurityEvent/SecurityProjectWork";
+import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import TaxiiClient, {
   TaxiiObjectsPage,
 } from "../../../../../Server/Utils/SecurityEvent/ThreatIntel/TaxiiClient";
@@ -784,7 +789,7 @@ describe("ThreatIntelFeedPoller.pollFeed", () => {
   });
 });
 
-describe("ThreatIntelFeedPoller.pollAllDueFeeds", () => {
+describe("ThreatIntelFeedPoller.pollDueFeedsForProject", () => {
   function stubFeedList(feeds: Array<ThreatIntelFeed>): Spy {
     return getJestSpyOn(ThreatIntelFeedService, "findBy").mockResolvedValue(
       feeds as never,
@@ -804,7 +809,7 @@ describe("ThreatIntelFeedPoller.pollAllDueFeeds", () => {
       "pollFeed",
     ).mockResolvedValue({} as never);
 
-    await ThreatIntelFeedPoller.pollAllDueFeeds();
+    await ThreatIntelFeedPoller.pollDueFeedsForProject(PROJECT_ID);
 
     expect(pollSpy).not.toHaveBeenCalled();
   });
@@ -822,7 +827,7 @@ describe("ThreatIntelFeedPoller.pollAllDueFeeds", () => {
       .mockRejectedValueOnce(new Error("TAXII server exploded") as never)
       .mockResolvedValueOnce({} as never);
 
-    await ThreatIntelFeedPoller.pollAllDueFeeds();
+    await ThreatIntelFeedPoller.pollDueFeedsForProject(PROJECT_ID);
 
     // Both feeds were attempted despite the first one's failure.
     expect(pollSpy).toHaveBeenCalledTimes(2);
@@ -848,7 +853,158 @@ describe("ThreatIntelFeedPoller.pollAllDueFeeds", () => {
     updateSpy.mockRejectedValue(new Error("db down") as never);
 
     await expect(
-      ThreatIntelFeedPoller.pollAllDueFeeds(),
+      ThreatIntelFeedPoller.pollDueFeedsForProject(PROJECT_ID),
     ).resolves.toBeUndefined();
+  });
+
+  function feedWithId(
+    idSuffix: string,
+    options: { lastPolledAt?: Date; pollIntervalInMinutes?: number } = {},
+  ): ThreatIntelFeed {
+    const feed: ThreatIntelFeed = buildFeed(options);
+    feed._id = `66666666-6666-4666-8666-${idSuffix}`;
+    return feed;
+  }
+
+  function polledFeedIds(pollSpy: Spy): Array<string> {
+    return pollSpy.mock.calls.map((call: Array<unknown>): string => {
+      return (call[0] as ThreatIntelFeed).id!.toString();
+    });
+  }
+
+  test("reads the project's enabled feeds page by page, and polls the longest overdue first", async () => {
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const overdueByAMinute: ThreatIntelFeed = feedWithId("666666666661", {
+      lastPolledAt: OneUptimeDate.addRemoveMinutes(now, -61),
+    });
+    const neverPolled: ThreatIntelFeed = feedWithId("666666666662");
+    const overdueByAnHour: ThreatIntelFeed = feedWithId("666666666663", {
+      lastPolledAt: OneUptimeDate.addRemoveMinutes(now, -120),
+    });
+
+    const findAll: Spy = getJestSpyOn(
+      ThreatIntelFeedService,
+      "findAllBy",
+    ).mockResolvedValue([overdueByAMinute, neverPolled, overdueByAnHour] as never);
+    const pollSpy: Spy = getJestSpyOn(
+      ThreatIntelFeedPoller,
+      "pollFeed",
+    ).mockResolvedValue({} as never);
+
+    await ThreatIntelFeedPoller.pollDueFeedsForProject(PROJECT_ID);
+
+    expect(polledFeedIds(pollSpy)).toEqual([
+      neverPolled.id!.toString(),
+      overdueByAnHour.id!.toString(),
+      overdueByAMinute.id!.toString(),
+    ]);
+
+    const args: { query: JSONObject; sort: JSONObject; limit?: unknown } =
+      findAll.mock.calls[0]![0] as {
+        query: JSONObject;
+        sort: JSONObject;
+        limit?: unknown;
+      };
+    expect(args.query).toEqual({ projectId: PROJECT_ID, isEnabled: true });
+    expect(args.sort).toEqual({ _id: SortOrder.Ascending });
+    // findAllBy pages through in LIMIT_MAX batches; a limit would cap it again.
+    expect(args.limit).toBeUndefined();
+  });
+
+  test("a turn that runs out of time, or loses its lease, leaves the rest for the next one", async () => {
+    getJestSpyOn(ThreatIntelFeedService, "findAllBy").mockResolvedValue([
+      feedWithId("666666666664"),
+      feedWithId("666666666665"),
+      feedWithId("666666666666"),
+    ] as never);
+    const pollSpy: Spy = getJestSpyOn(
+      ThreatIntelFeedPoller,
+      "pollFeed",
+    ).mockResolvedValue({} as never);
+
+    let checks: number = 0;
+    const outOfTime: SecurityProjectWorkLease = {
+      hasTimeLeft: (): boolean => {
+        checks++;
+        return checks <= 1;
+      },
+      keep: async (): Promise<boolean> => {
+        return true;
+      },
+    };
+
+    await ThreatIntelFeedPoller.pollDueFeedsForProject(PROJECT_ID, outOfTime);
+    expect(pollSpy).toHaveBeenCalledTimes(1);
+
+    pollSpy.mockClear();
+
+    const lost: SecurityProjectWorkLease = {
+      hasTimeLeft: (): boolean => {
+        return true;
+      },
+      keep: async (): Promise<boolean> => {
+        return false;
+      },
+    };
+
+    await ThreatIntelFeedPoller.pollDueFeedsForProject(PROJECT_ID, lost);
+    // Another worker may hold the project now: the feed in hand, then it lets go.
+    expect(pollSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("ThreatIntelFeedPoller.enqueueProjectsWithDueFeeds", () => {
+  test("queues each project with a feed due, read page by page, and polls none itself", async () => {
+    const otherProject: ObjectID = new ObjectID(
+      "77777777-7777-4777-8777-777777777777",
+    );
+    const waitingProject: ObjectID = new ObjectID(
+      "88888888-8888-4888-8888-888888888888",
+    );
+
+    const due: ThreatIntelFeed = buildFeed();
+    const dueElsewhere: ThreatIntelFeed = buildFeed();
+    dueElsewhere.projectId = otherProject;
+    const waiting: ThreatIntelFeed = buildFeed({
+      lastPolledAt: OneUptimeDate.getCurrentDate(),
+      pollIntervalInMinutes: 60,
+    });
+    waiting.projectId = waitingProject;
+
+    const findAll: Spy = getJestSpyOn(
+      ThreatIntelFeedService,
+      "findAllBy",
+    ).mockResolvedValue([due, dueElsewhere, waiting] as never);
+    const enqueue: Spy = getJestSpyOn(
+      SecurityProjectWork,
+      "enqueueProjects",
+    ).mockResolvedValue(2 as never);
+    const pollSpy: Spy = getJestSpyOn(ThreatIntelFeedPoller, "pollFeed");
+
+    await expect(
+      ThreatIntelFeedPoller.enqueueProjectsWithDueFeeds(),
+    ).resolves.toBe(2);
+
+    expect(enqueue.mock.calls[0]![0]).toBe(THREAT_INTEL_POLL_PROJECT_WORK);
+    expect(
+      (enqueue.mock.calls[0]![1] as Array<ObjectID>)
+        .map((projectId: ObjectID): string => {
+          return projectId.toString();
+        })
+        .sort(),
+    ).toEqual([PROJECT_ID.toString(), otherProject.toString()].sort());
+    expect(pollSpy).not.toHaveBeenCalled();
+
+    expect(findAll).toHaveBeenCalledWith({
+      query: { isEnabled: true },
+      select: {
+        _id: true,
+        projectId: true,
+        pollIntervalInMinutes: true,
+        lastPolledAt: true,
+      },
+      sort: { _id: SortOrder.Ascending },
+      props: { isRoot: true },
+    });
   });
 });
