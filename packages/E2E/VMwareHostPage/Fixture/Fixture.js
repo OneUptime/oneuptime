@@ -13,7 +13,7 @@
  *                old) | no-data (in the inventory, no metrics yet) | gone
  *                (not in the inventory any more)
  *   ?vms=        many (default: seven VMs and a template) | none
- *   ?devices=0   vCenter reports no per-device counters (statistics level 1)
+ *   ?devices=0   vCenter reports no per-device counters
  *   ?alerts=     none (default) | some (CPU and memory saturation on) |
  *                all (every host alert on) | denied (the role may not read
  *                monitors)

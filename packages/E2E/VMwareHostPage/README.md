@@ -36,7 +36,7 @@ The suite reads the page the way a person does:
   (`esxcli`, PowerCLI for the host and for its cluster), with the host's own
   log filter - or, for a vCenter a probe collects, why it has no syslog;
 - the states a host can be in (`?state=not-reporting`, `no-data`, `gone`), a
-  standalone host whose vCenter keeps no per-device counters
+  standalone host whose vCenter reports no per-device counters
   (`?standalone=1&devices=0`), a host without VMs (`?vms=none`), a role that
   may not read monitors (`?alerts=denied`);
 - a phone (390 wide: no part scrolls sideways, each device a short list of its

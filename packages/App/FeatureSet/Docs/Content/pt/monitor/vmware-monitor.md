@@ -260,7 +260,7 @@ Enviadas só para clusters com vSAN, os hosts que eles contêm e as VMs em um da
 | `vcenter.vm.vsan.throughput`        | `By/s`            | Vazão do vSAN da VM, por `direction`                                                                                                            |
 
 > [!NOTE]
-> O estado de energia de uma VM não é uma métrica. O receiver só envia `vcenter.vm.cpu.*` para VMs ligadas, então o OneUptime distingue **Powered on** de **Powered off** pela chegada ou não de dados de CPU na mesma coleta que os dados de memória e disco da VM; a página **Virtual Machines** do vCenter mostra o resultado. Para alertar sobre hosts desligados ou sobre quantas VMs estão rodando, use o atributo `power_state` de `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` ou `vcenter.cluster.vm.count`.
+> O estado de energia de uma VM não é uma métrica. O receiver só envia `vcenter.vm.cpu.*` para VMs ligadas, então o OneUptime distingue **Powered on** de **Powered off** pela chegada ou não de dados de CPU na mesma coleta que os dados de memória e disco da VM; a página **Máquinas virtuais** do vCenter mostra o resultado. Para alertar sobre hosts desligados ou sobre quantas VMs estão rodando, use o atributo `power_state` de `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` ou `vcenter.cluster.vm.count`.
 
 ## Critérios de monitoramento
 

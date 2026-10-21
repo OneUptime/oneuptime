@@ -29,10 +29,9 @@ import {
  * the values under its name - rather than a table that scrolls sideways
  * and squeezes a 40-character device name into a column of letters.
  *
- * A card shows only when the host reported at least one device: the
- * per-device counters need vCenter's statistics level 2 or higher for the
- * real-time interval, and a vCenter that collects less has nothing to put
- * in them.
+ * A card shows only when the host reported at least one device over the
+ * range: a collector that leaves the per-device series out (or a host that
+ * reported none yet) has nothing to put in it.
  */
 
 function formatBytesPerSecond(value: number | null): string {

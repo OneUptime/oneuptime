@@ -178,7 +178,7 @@ SLO 위젯은 [공개 대시보드](/docs/dashboards/sharing)에서 작동합니
 | **Docker Swarm** | **노드**, **서비스** | Docker Swarm 에이전트 |
 | **Podman** | **호스트**, **컨테이너**, **이미지**, **네트워크**, **볼륨** | Podman 에이전트 |
 | **Proxmox** | **노드**, **Guests** | Proxmox 에이전트 |
-| **VMware** | **호스트**, **Virtual Machines** | VMware 에이전트 또는 연결한 vCenter |
+| **VMware** | **호스트**, **가상 머신** | VMware 에이전트 또는 연결한 vCenter |
 | **Ceph** | 상태별로 색칠한 벽으로 보여 주는 **OSDs**와 **Pools** | Ceph 에이전트 |
 | **스토리지 어레이** | **볼륨**과, 상태별로 색칠한 벽으로 보여 주는 **Hardware** | Storage Array 에이전트 |
 

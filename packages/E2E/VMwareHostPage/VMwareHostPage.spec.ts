@@ -801,7 +801,7 @@ test.describe("the states a host can be in", () => {
     await screenshot(page, "state-gone");
   });
 
-  test("a standalone host whose vCenter keeps no per-device counters", async ({
+  test("a standalone host whose vCenter reports no per-device counters", async ({
     page,
   }: {
     page: Page;
