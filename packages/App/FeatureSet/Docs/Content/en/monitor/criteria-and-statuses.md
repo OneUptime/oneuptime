@@ -171,6 +171,15 @@ Every status change is kept on the monitor's **Status Timeline**: when it starte
 
 Changing a monitor's status notifies its owners only when they have turned on **Monitor status changed** in their notification settings: it starts off. A monitor that goes back to its **Default Monitor Status** because no criteria matched notifies nobody. See [What is on for a new member](/docs/notifications/notification-settings#what-is-on-for-a-new-member).
 
+## Archiving a monitor status
+
+Archive a status that your team should stop using, instead of deleting it. Archiving changes no monitor: a monitor in the status stays in it until its status changes, and its status timeline still shows it.
+
+- **Archive** is in the row's **⋯** menu. It asks first, and lists the monitor criteria, templates and status pages set up to use the status: they keep using it until you change them.
+- **Nobody can pick it again.** A criteria, a monitor's status menu, an incident's or a maintenance event's monitor status and a status page's downtime statuses leave it out. The API, Terraform and MCP refuse it.
+- **Archived statuses are listed apart**, in the folded **Archived Monitor Statuses** section under the table. **Unarchive** puts one back as it was.
+- **The built-in statuses can't be archived.** New monitors start in the operational one, and OneUptime treats a monitor in the offline one as down. Their **Archive** is locked, with the reason.
+
 ## Troubleshooting
 
 :::details The site is down, but the monitor stays Operational

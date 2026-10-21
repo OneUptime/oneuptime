@@ -88,6 +88,11 @@ Les moniteurs, les incidents, les alertes, les pages de statut, les SLO et bien 
 | Équipes | `Team` |
 | Rôles personnalisés, et les équipes qui en reçoivent un | `Custom Role`, `Team Custom Role` |
 | Étiquettes | `Label` |
+| États et gravités d'incident | `Incident State`, `Incident Severity` |
+| États et gravités d'alerte | `Alert State`, `Alert Severity` |
+| Statuts de moniteur | `Monitor Status` |
+| États de maintenance planifiée | `Scheduled Maintenance State` |
+| Rôles d'incident | `Incident Role` |
 | Clés API | `API Key` |
 | Clients MCP que les personnes connectent | `MCP Client Authorization` |
 | Éléments d'inventaire | `Inventory Item` |

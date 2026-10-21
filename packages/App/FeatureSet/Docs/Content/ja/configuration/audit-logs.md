@@ -88,6 +88,11 @@ flowchart TB
 | チーム | `Team` |
 | カスタムロールと、それを付与されたチーム | `Custom Role`、`Team Custom Role` |
 | ラベル | `Label` |
+| インシデントの状態と重大度 | `Incident State`、`Incident Severity` |
+| アラートの状態と重大度 | `Alert State`、`Alert Severity` |
+| モニターステータス | `Monitor Status` |
+| 定期メンテナンスの状態 | `Scheduled Maintenance State` |
+| インシデントロール | `Incident Role` |
 | API キー | `API Key` |
 | ユーザーが接続する MCP クライアント | `MCP Client Authorization` |
 | インベントリ項目 | `Inventory Item` |

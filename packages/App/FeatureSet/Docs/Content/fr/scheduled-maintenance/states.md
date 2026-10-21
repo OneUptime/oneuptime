@@ -130,6 +130,15 @@ Gardez vos états sous **Planifié** : chaque nouvel événement commence là, e
 > [!NOTE]
 > Sur OneUptime Cloud, ajouter ou modifier des états de maintenance requiert le forfait **Growth** ou supérieur. Tous les forfaits peuvent les lire, les utiliser et supprimer un état que vous avez ajouté.
 
+## Archiver un état
+
+Archivez un état créé par vous que votre équipe ne doit plus utiliser, au lieu de le supprimer. L'archivage ne modifie aucun événement : un événement dans cet état y reste et avance comme d'habitude, et sa chronologie d'états l'affiche toujours.
+
+- **Archiver** se trouve dans le menu **⋯** de la ligne. Il demande d'abord confirmation et liste les mesures et flux de travail configurés pour utiliser l'état.
+- **Personne ne peut plus le choisir.** L'en-tête de l'événement, **Modifier l'état**, Slack et Microsoft Teams l'excluent, et l'API, Terraform et MCP le refusent. Vous pouvez toujours filtrer les événements par celui-ci.
+- **Les états archivés sont listés à part**, dans la section repliée **États d'événement archivés** sous le tableau. **Désarchiver** en remet un tel qu'il était.
+- **Les quatre états intégrés ne peuvent pas être archivés** : OneUptime y fait passer les événements. Leur **Archiver** est verrouillé, avec la raison.
+
 ## La chronologie d'état
 
 La page **Chronologie d'état** de l'événement est l'historique de chaque état dans lequel il a été. Sa carte, **Chronologie de statut**, les dessine sous forme de chronologie : une bande où chaque état dure ce qu'il a duré, et en dessous chaque changement, le plus récent en premier. **Tableau**, dans l'en-tête de la carte, les liste plutôt en lignes, avec **Statut de la maintenance planifiée**, **Commence le**, **Se termine le**, **Durée**, si les abonnés devaient être prévenus et comment s'est passée leur notification.

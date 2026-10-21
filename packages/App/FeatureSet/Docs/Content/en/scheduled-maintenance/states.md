@@ -130,6 +130,15 @@ Keep your states below **Scheduled**: every new event starts there, and an event
 > [!NOTE]
 > On OneUptime Cloud, adding or changing maintenance states takes the **Growth** plan or above. Every plan can read them, use them and delete a state you added.
 
+## Archiving a state
+
+Archive a state of your own that your team should stop using, instead of deleting it. Archiving changes no event: an event in the state stays in it and moves on as usual, and its state timeline still shows it.
+
+- **Archive** is in the row's **⋯** menu. It asks first, and lists the measurements and workflows set up to use the state.
+- **Nobody can pick it again.** The event's header, **Change State**, Slack and Microsoft Teams leave it out, and the API, Terraform and MCP refuse it. You can still filter events by it.
+- **Archived states are listed apart**, in the folded **Archived Event States** section under the table. **Unarchive** puts one back as it was.
+- **The four built-in states can't be archived**: OneUptime moves events into them. Their **Archive** is locked, with the reason.
+
 ## The state timeline
 
 The event's **State Timeline** page is the record of every state it has been in. Its card, **Status Timeline**, draws them as a timeline: a band with each state as long as it lasted, and under it every change, newest first. **Table**, in the card's header, lists them as rows instead, with **Scheduled Maintenance Status**, **Starts At**, **Ends At**, **Duration**, whether subscribers were to be notified, and how their notification went.

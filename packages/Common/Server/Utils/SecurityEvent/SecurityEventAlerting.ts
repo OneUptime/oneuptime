@@ -227,14 +227,14 @@ export function pickSeverityByPrecedence<
   // Severe sources rank to the project's most severe severity.
   isSevere: boolean;
 }): ObjectID | null {
-  const { severities, explicitSeverityId, severityLabel, isSevere } = data;
+  const { explicitSeverityId, severityLabel, isSevere } = data;
 
-  if (severities.length === 0) {
+  if (data.severities.length === 0) {
     return null;
   }
 
   if (explicitSeverityId) {
-    const explicit: TSeverity | undefined = severities.find(
+    const explicit: TSeverity | undefined = data.severities.find(
       (severity: TSeverity): boolean => {
         return severity.id?.toString() === explicitSeverityId.toString();
       },
@@ -245,17 +245,18 @@ export function pickSeverityByPrecedence<
     }
   }
 
-  const liveSeverities: Array<TSeverity> = severities.filter(
+  // The ones OneUptime picks by itself, by name or by rank: the live ones.
+  const severities: Array<TSeverity> = data.severities.filter(
     (severity: TSeverity): boolean => {
       return severity.isArchived !== true;
     },
   );
 
-  if (liveSeverities.length === 0) {
+  if (severities.length === 0) {
     return null;
   }
 
-  const nameMatch: TSeverity | undefined = liveSeverities.find(
+  const nameMatch: TSeverity | undefined = severities.find(
     (severity: TSeverity): boolean => {
       return (
         (severity.name || "").toLowerCase() === severityLabel.toLowerCase()
@@ -268,8 +269,8 @@ export function pickSeverityByPrecedence<
   }
 
   const chosen: TSeverity = isSevere
-    ? liveSeverities[0]!
-    : liveSeverities[liveSeverities.length - 1]!;
+    ? severities[0]!
+    : severities[severities.length - 1]!;
 
   return chosen.id || null;
 }

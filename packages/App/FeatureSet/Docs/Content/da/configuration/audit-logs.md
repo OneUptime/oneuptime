@@ -88,6 +88,11 @@ Monitorer, hændelser, alarmer, statussider, SLO'er og mange andre ressourcer ha
 | Teams | `Team` |
 | Brugerdefinerede roller, og de teams, der får en | `Custom Role`, `Team Custom Role` |
 | Etiketter | `Label` |
+| Hændelsesstatusser og -alvorsgrader | `Incident State`, `Incident Severity` |
+| Advarselsstatusser og -alvorsgrader | `Alert State`, `Alert Severity` |
+| Monitorstatusser | `Monitor Status` |
+| Statusser for planlagt vedligeholdelse | `Scheduled Maintenance State` |
+| Hændelsesroller | `Incident Role` |
 | API-nøgler | `API Key` |
 | MCP-klienter, som folk forbinder | `MCP Client Authorization` |
 | Inventarelementer | `Inventory Item` |

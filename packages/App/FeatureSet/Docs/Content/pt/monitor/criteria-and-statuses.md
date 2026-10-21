@@ -171,6 +171,15 @@ Toda mudança de status fica na **Linha do tempo de status** do monitor: quando 
 
 Uma mudança de status só avisa os proprietários do monitor se eles tiverem ligado **Status do monitor alterado** nas suas configurações de notificação: começa desligado. Um monitor que volta ao seu **Status Padrão do Monitor** porque nenhum critério correspondeu não avisa ninguém. Veja [O que fica ligado para um novo membro](/docs/notifications/notification-settings#o-que-fica-ativado-para-um-novo-membro).
 
+## Arquivar um status de monitor
+
+Arquive um status que sua equipe não deve mais usar, em vez de excluí-lo. Arquivar não altera nenhum monitor: um monitor nesse status permanece nele até que o status mude, e sua linha do tempo de status ainda o mostra.
+
+- **Arquivar** fica no menu **⋯** da linha. Ele pede confirmação primeiro e lista os critérios de monitor, modelos e páginas de status configurados para usar o status: eles continuam usando-o até que você os altere.
+- **Ninguém pode escolhê-lo novamente.** Um critério, o menu de status de um monitor, o status de monitor de um incidente ou de um evento de manutenção e os status de indisponibilidade de uma página de status o deixam de fora. A API, o Terraform e o MCP o recusam.
+- **Os status arquivados são listados à parte**, na seção recolhida **Status de monitor arquivados** abaixo da tabela. **Desarquivar** devolve um como era.
+- **Os status integrados não podem ser arquivados.** Novos monitores começam no status operacional, e o OneUptime considera fora do ar um monitor no status offline. O **Arquivar** deles fica bloqueado, com o motivo.
+
 ## Solução de problemas
 
 :::details O site está fora do ar, mas o monitor continua Operacional

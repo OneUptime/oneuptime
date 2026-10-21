@@ -88,6 +88,11 @@ flowchart TB
 | 團隊 | `Team` |
 | 自訂角色，以及獲得角色的團隊 | `Custom Role`、`Team Custom Role` |
 | 標籤 | `Label` |
+| 事件狀態和嚴重性 | `Incident State`、`Incident Severity` |
+| 警示狀態和嚴重性 | `Alert State`、`Alert Severity` |
+| 監測器狀態 | `Monitor Status` |
+| 排定維護狀態 | `Scheduled Maintenance State` |
+| 事件角色 | `Incident Role` |
 | API 金鑰 | `API Key` |
 | 人們連接的 MCP 用戶端 | `MCP Client Authorization` |
 | 資產清單項目 | `Inventory Item` |

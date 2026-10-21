@@ -88,6 +88,11 @@ Monitore, Vorfälle, Alarme, Statusseiten, SLOs und viele andere Ressourcen habe
 | Teams | `Team` |
 | Benutzerdefinierte Rollen, und die Teams, die eine erhalten | `Custom Role`, `Team Custom Role` |
 | Beschriftungen | `Label` |
+| Vorfallsstatus und -schweregrade | `Incident State`, `Incident Severity` |
+| Warnungsstatus und -schweregrade | `Alert State`, `Alert Severity` |
+| Monitor-Status | `Monitor Status` |
+| Status geplanter Wartungen | `Scheduled Maintenance State` |
+| Vorfallsrollen | `Incident Role` |
 | API-Schlüssel | `API Key` |
 | MCP-Clients, die Personen verbinden | `MCP Client Authorization` |
 | Inventareinträge | `Inventory Item` |

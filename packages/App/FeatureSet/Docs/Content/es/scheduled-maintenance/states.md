@@ -130,6 +130,15 @@ Mantén tus estados por debajo de **Programado**: cada evento nuevo empieza ahí
 > [!NOTE]
 > En OneUptime Cloud, añadir o cambiar estados de mantenimiento requiere el plan **Growth** o superior. Todos los planes pueden leerlos, usarlos y eliminar un estado que hayas añadido.
 
+## Archivar un estado
+
+Archive un estado propio que su equipo ya no deba usar, en lugar de eliminarlo. Archivar no cambia ningún evento: un evento en ese estado sigue en él y avanza como de costumbre, y su cronología de estados lo sigue mostrando.
+
+- **Archivar** está en el menú **⋯** de la fila. Primero pide confirmación y enumera las mediciones y los flujos de trabajo configurados para usar el estado.
+- **Nadie puede volver a elegirlo.** La cabecera del evento, **Cambiar estado**, Slack y Microsoft Teams lo omiten, y la API, Terraform y MCP lo rechazan. Puede seguir filtrando los eventos por él.
+- **Los estados archivados se listan aparte**, en la sección plegada **Estados de evento archivados** bajo la tabla. **Desarchivar** devuelve uno tal como estaba.
+- **Los cuatro estados integrados no se pueden archivar**: OneUptime mueve los eventos a ellos. Su **Archivar** está bloqueado, con el motivo.
+
 ## La cronología de estados
 
 La página **Cronología de estados** del evento es el registro de cada estado en el que ha estado. Su tarjeta, **Cronología de estados**, los dibuja como una cronología: una banda con cada estado tan largo como duró y, debajo, cada cambio, el más reciente primero. **Tabla**, en la cabecera de la tarjeta, los lista como filas, con **Estado del mantenimiento programado**, **Comienza en**, **Termina en**, **Duración**, si se debía avisar a los suscriptores y cómo fue su notificación.
