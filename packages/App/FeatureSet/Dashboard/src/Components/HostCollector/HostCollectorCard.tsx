@@ -93,17 +93,17 @@ const HostCollectorCard: FunctionComponent<ComponentProps> = (
     ModelAction.Update,
   );
 
-  const configName: string = translator.translateTemplate(
-    getHostCollectorConfigLabel({
+  const configName: string = getHostCollectorConfigLabel(
+    {
       configName: host.collectorConfig?.name,
       osType: host.osType,
-    }),
+    },
+    translator,
   );
 
   const stateText: HostCollectorTranslatableText = describeHostCollectorState({
     host: host,
     configName: configName,
-    versionNumber: host.collectorConfigVersion?.versionNumber,
   });
 
   const error: string | null =
@@ -180,7 +180,7 @@ const HostCollectorCard: FunctionComponent<ComponentProps> = (
     },
     {
       key: "isCollectorConfigPinned",
-      title: "Chosen",
+      title: "Why this config",
       fieldType: FieldType.Element,
       getElement: (): ReactElement => {
         const choice: HostCollectorTranslatableText =
@@ -196,26 +196,21 @@ const HostCollectorCard: FunctionComponent<ComponentProps> = (
       },
     },
     {
+      // The version of the Collector Config it runs: a default has none.
       key: "collectorConfigVersion",
-      title: "Runs",
+      title: "Version",
       fieldType: FieldType.Element,
+      showIf: (): boolean => {
+        return Boolean(configId);
+      },
       getElement: (): ReactElement => {
         const versionNumber: number | undefined =
           host.collectorConfigVersion?.versionNumber;
-        if (versionNumber) {
-          return (
-            <span>
-              {translator.translateTemplate("Version {{number}}", {
-                number: String(versionNumber),
-              })}
-            </span>
-          );
-        }
         return (
-          <span>
-            {configId
-              ? translator.translateText("Not yet")
-              : translator.translateText("OneUptime's default")}
+          <span data-testid="host-collector-config-version">
+            {versionNumber
+              ? translator.formatNumber(versionNumber)
+              : translator.translateText("Not yet")}
           </span>
         );
       },
@@ -252,11 +247,13 @@ const HostCollectorCard: FunctionComponent<ComponentProps> = (
     >
       <div className={CARD_MODEL_DETAIL_BODY_CLASS_NAME}>
         <div
-          className="flex flex-wrap items-center gap-3"
+          className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3"
           data-testid="host-collector-state"
         >
-          <HostCollectorStatePill host={host} />
-          <p className="min-w-0 flex-1 text-sm text-gray-700">
+          <div className="flex-none">
+            <HostCollectorStatePill host={host} />
+          </div>
+          <p className="min-w-0 text-sm text-gray-700 sm:flex-1">
             {translator.translateTemplate(stateText.template, stateText.values)}
           </p>
         </div>

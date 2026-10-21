@@ -139,24 +139,26 @@ const HostCollectorConfigPickerModal: FunctionComponent<ComponentProps> = (
     configs.find((config: HostCollectorConfigChoiceOption): boolean => {
       return config.id === automaticId;
     })?.name ||
-    translator.translateTemplate(
-      getHostCollectorConfigLabel({ osType: props.host.osType }),
-    );
+    getHostCollectorConfigLabel({ osType: props.host.osType }, translator);
 
   const dropdownOptions: Array<DropdownOption> = [
     {
+      // Already in the reader's language, with a config's name in it.
       label: translator.translateTemplate("Automatic: {{config}} for now", {
         config: automaticName,
       }),
       value: AUTOMATIC_HOST_COLLECTOR_CONFIG,
+      isUserContent: true,
     },
     ...getPickableHostCollectorConfigs({
       configs: configs,
       host: choiceHost,
     }).map((config: HostCollectorConfigChoiceOption): DropdownOption => {
+      // A config's name is what someone typed: never looked up.
       return {
         label: config.name,
         value: config.id,
+        isUserContent: true,
       };
     }),
   ];

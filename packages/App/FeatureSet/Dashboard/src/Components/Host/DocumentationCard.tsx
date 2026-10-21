@@ -14,6 +14,8 @@ import {
 export interface ComponentProps {
   title: string;
   description: string;
+  // Only the guide, inside a section that has its own title.
+  isBare?: boolean | undefined;
 }
 
 const HostDocumentationCard: FunctionComponent<ComponentProps> = (
@@ -24,6 +26,7 @@ const HostDocumentationCard: FunctionComponent<ComponentProps> = (
       title={props.title}
       description={props.description}
       icon={IconProp.Server}
+      isBare={props.isBare}
       newKeyName={translationKey("Hosts key")}
       optionsLabel="How do you want to install the collector?"
       options={HOST_INSTALL_METHODS}

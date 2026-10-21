@@ -25,6 +25,7 @@ import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerAction
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import useFirstRecordWatch, {
   FirstRecordWatch,
@@ -578,18 +579,20 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: Host): ReactElement => {
+              // A collector installed by hand: nothing OneUptime manages.
               if (!isHostCollectorManaged(item)) {
-                return <HostCollectorStatePill host={item} />;
+                return <TableEmptyValue screenReaderText="Installed by hand" />;
               }
               return (
                 <div className="min-w-0 space-y-1">
                   <HostCollectorStatePill host={item} />
                   <div className="truncate text-xs text-gray-500">
-                    {translator.translateText(
-                      getHostCollectorConfigLabel({
+                    {getHostCollectorConfigLabel(
+                      {
                         configName: item.collectorConfig?.name,
                         osType: item.osType,
-                      }),
+                      },
+                      translator,
                     )}
                   </div>
                 </div>
@@ -652,7 +655,11 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           title="Add your first host"
           description={FIRST_RUN_GUIDE_DESCRIPTION}
           onHostConnected={() => {
+            // The guide gives way, and the table reads the new host.
             firstRecordWatch.onRecordCreated();
+            setConnectedCount((count: number): number => {
+              return count + 1;
+            });
           }}
         />
       )}

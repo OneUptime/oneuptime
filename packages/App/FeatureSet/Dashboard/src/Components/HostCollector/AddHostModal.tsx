@@ -20,7 +20,7 @@ const AddHostModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title="Add Host"
-      description="Run one command on the host. It installs the OpenTelemetry Collector, and OneUptime keeps its config up to date."
+      description="Run one command on the host. It installs the OpenTelemetry Collector, and OneUptime keeps its config up to date: no config.yaml to write."
       modalWidth={ModalWidth.Large}
       onClose={props.onClose}
       closeButtonText="Done"

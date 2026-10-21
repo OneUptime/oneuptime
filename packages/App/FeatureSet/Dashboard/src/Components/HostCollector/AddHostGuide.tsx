@@ -6,6 +6,7 @@ import React, {
 } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Host from "Common/Models/DatabaseModels/Host";
+import ObjectID from "Common/Types/ObjectID";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import SetupGuideCard, {
@@ -42,6 +43,8 @@ export interface ComponentProps {
    * command stops that one (its Collector page hands it over to OneUptime).
    */
   replaceExisting?: boolean | undefined;
+  // The last step waits for this host only (a host's own page).
+  hostId?: ObjectID | undefined;
   // Without its card and header, in a dialog that has its own (Add Host).
   isBare?: boolean | undefined;
 }
@@ -93,6 +96,7 @@ const AddHostGuide: FunctionComponent<ComponentProps> = (
               content: (
                 <HostConnectionWatch
                   since={since}
+                  hostId={props.hostId}
                   onHostConnected={props.onHostConnected}
                 />
               ),

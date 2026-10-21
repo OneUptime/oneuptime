@@ -48,8 +48,13 @@ export function getHostConnectionWatchStart(since: Date): Date {
 }
 
 export interface ComponentProps {
-  // When the guide opened: a host that reported since then just connected.
+  // When the guide opened: a host that registered since then just connected.
   since: Date;
+  /*
+   * Only this host: on a host's own page, which waits for that host's
+   * collector to be handed over, not for any host of the project.
+   */
+  hostId?: ObjectID | undefined;
   onHostConnected?: ((host: Host) => void) | undefined;
 }
 
@@ -71,6 +76,7 @@ const HostConnectionWatch: FunctionComponent<ComponentProps> = (
         const result: ListResult<Host> = await ModelAPI.getList<Host>({
           modelType: Host,
           query: {
+            ...(props.hostId ? { _id: props.hostId } : {}),
             collectorRegisteredAt: new GreaterThanOrEqual<Date>(
               getHostConnectionWatchStart(props.since),
             ),
@@ -107,7 +113,7 @@ const HostConnectionWatch: FunctionComponent<ComponentProps> = (
       isMounted = false;
       clearInterval(timer);
     };
-  }, [host, props.since]);
+  }, [host, props.since, props.hostId?.toString()]);
 
   if (!host) {
     return (

@@ -348,12 +348,17 @@ jobs:
           # minute with its bundle locally: click-to-sort on the list and table
           # widgets inside OneUptime and on the public page, at a laptop's and
           # a phone's width, Chromium only) joined it the same day: about 4.5
-          # minutes for the two.
+          # minutes for the two. Host Collectors (about 1.5 minutes with its
+          # bundle locally: Add Host's one command and the host connecting,
+          # Collector Configs and their versions, a host's Collector page, at
+          # a laptop's and a phone's width, dark and German, Chromium only)
+          # joined it on 2026-10-21: about 6 minutes for the three.
           - group: 8
             browsers: chromium
             suites: >-
               test-dashboard-time-range-ui
               test-dashboard-widget-sort-ui
+              test-host-collectors-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -532,4 +537,6 @@ jobs:
             output/playwright/dashboard-time-range-ui/test-results
             output/playwright/dashboard-widget-sort-ui/*.png
             output/playwright/dashboard-widget-sort-ui/test-results
+            output/playwright/host-collectors-ui/*.png
+            output/playwright/host-collectors-ui/test-results
           retention-days: 7

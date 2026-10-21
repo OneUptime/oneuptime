@@ -4,7 +4,7 @@ import {
   getHostCollectorOsType,
 } from "Common/Types/HostCollector/HostCollector";
 import Dictionary from "Common/Types/Dictionary";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * What a host's page and the Hosts list say about the collector OneUptime
@@ -196,11 +196,19 @@ export function summarizeCollectorError(
 /*
  * The name of the config a host runs, for its page and the list: a
  * Collector Config's name, or OneUptime's default for its system.
+ *
+ * Only a default's name is looked up in the reader's language. A config's
+ * name is what someone typed: a config named "Web servers" stays "Web
+ * servers" in German, even though the form's placeholder of the same words
+ * is translated.
  */
-export function getHostCollectorConfigLabel(data: {
-  configName?: string | null | undefined;
-  osType?: string | null | undefined;
-}): string {
+export function getHostCollectorConfigLabel(
+  data: {
+    configName?: string | null | undefined;
+    osType?: string | null | undefined;
+  },
+  translator?: Pick<Translator, "translateTemplate"> | undefined,
+): string {
   if (data.configName) {
     return data.configName;
   }
@@ -208,8 +216,10 @@ export function getHostCollectorConfigLabel(data: {
   const osType: HostCollectorOsType | null = getHostCollectorOsType(
     data.osType,
   );
+  const defaultName: string =
+    DEFAULT_CONFIG_NAMES[osType || HostCollectorOsType.Any];
 
-  return DEFAULT_CONFIG_NAMES[osType || HostCollectorOsType.Any];
+  return translator ? translator.translateTemplate(defaultName) : defaultName;
 }
 
 // What the Dashboard calls each of OneUptime's defaults.
@@ -229,7 +239,6 @@ export const DEFAULT_CONFIG_NAMES: Record<HostCollectorOsType, string> = {
 export function describeHostCollectorState(data: {
   host: HostCollectorFields;
   configName: string;
-  versionNumber?: number | null | undefined;
   now?: Date | undefined;
 }): HostCollectorTranslatableText {
   const config: string = data.configName;
@@ -274,16 +283,11 @@ export function describeHostCollectorState(data: {
         values: {},
       };
     default:
-      return data.versionNumber
-        ? {
-            template: translationKey(
-              "Running {{config}}, version {{version}}.",
-            ),
-            values: { config, version: String(data.versionNumber) },
-          }
-        : {
-            template: translationKey("Running {{config}}."),
-            values: { config },
-          };
+      return {
+        template: translationKey(
+          "The collector runs the config OneUptime sent it.",
+        ),
+        values: {},
+      };
   }
 }

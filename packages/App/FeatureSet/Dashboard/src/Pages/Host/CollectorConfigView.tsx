@@ -151,6 +151,15 @@ const CollectorConfigView: FunctionComponent<
     setIsPuttingBack(false);
   };
 
+  const canPutShownVersionBack: boolean = Boolean(
+    shownVersion &&
+      updateGate.isAllowed &&
+      canPutHostCollectorConfigVersionBack({
+        versionConfigHash: shownVersion.configHash,
+        currentConfigHash: current?.configHash,
+      }),
+  );
+
   const renderYaml: (
     yaml: string | undefined,
     testId: string,
@@ -288,7 +297,7 @@ const CollectorConfigView: FunctionComponent<
             required: true,
             dataTestId: "host-collector-config-yaml-editor",
             description: translator.translateTemplate(
-              "Send with the otlphttp exporter to {{url}}/otlp, with the header x-oneuptime-token: {{key}}. Each host fills in its own address and key.",
+              "Send with the otlp_http exporter to {{url}}/otlp, with the header x-oneuptime-token: {{key}}. Each host fills in its own address and key.",
               {
                 url: HOST_COLLECTOR_URL_REFERENCE,
                 key: HOST_COLLECTOR_INGESTION_KEY_REFERENCE,
@@ -310,9 +319,7 @@ const CollectorConfigView: FunctionComponent<
               getElement: (item: HostCollectorConfig): ReactElement => {
                 return (
                   <span data-testid="host-collector-config-version">
-                    {translator.translateTemplate("Version {{number}}", {
-                      number: String(item.currentVersionNumber || 1),
-                    })}
+                    {translator.formatNumber(item.currentVersionNumber || 1)}
                   </span>
                 );
               },
@@ -532,7 +539,7 @@ const CollectorConfigView: FunctionComponent<
                 versionNumber: true,
               },
             },
-            title: "Runs",
+            title: "Version",
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: Host): ReactElement => {
@@ -541,9 +548,7 @@ const CollectorConfigView: FunctionComponent<
               return (
                 <span className="text-sm text-gray-700">
                   {versionNumber
-                    ? translator.translateTemplate("Version {{number}}", {
-                        number: String(versionNumber),
-                      })
+                    ? translator.formatNumber(versionNumber)
                     : translator.translateText("Not yet")}
                   {item.isCollectorConfigPinned ? (
                     <span className="ml-2 text-xs text-gray-500">
@@ -583,11 +588,28 @@ const CollectorConfigView: FunctionComponent<
           title={translator.translateTemplate("Version {{number}}", {
             number: String(shownVersion.versionNumber || 1),
           })}
+          description={translator.translateTemplate(
+            describeHostCollectorConfigVersionChange(shownVersion.changeNote)
+              .template,
+            describeHostCollectorConfigVersionChange(shownVersion.changeNote)
+              .values,
+          )}
           modalWidth={ModalWidth.Large}
           onClose={() => {
             setShownVersion(null);
           }}
           closeButtonText="Close"
+          // An older version can be put back from here, once it has been read.
+          submitButtonText={canPutShownVersionBack ? "Put back" : undefined}
+          onSubmit={
+            canPutShownVersionBack
+              ? () => {
+                  setPutBackError("");
+                  setVersionToPutBack(shownVersion);
+                  setShownVersion(null);
+                }
+              : undefined
+          }
         >
           {renderYaml(
             shownVersion.configYaml,

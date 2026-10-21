@@ -54,10 +54,15 @@ export const HOST_ADD_OPTIONS: Array<SetupGuideOption<HostAddOption>> = [
     label: "macOS",
     description: "Apple silicon and Intel Macs.",
   },
+  /*
+   * A cluster's nodes are hosts too, and the Kubernetes agent monitors them
+   * all: offered apart from the three systems, under its own heading.
+   */
   {
     key: "kubernetes",
     label: "Kubernetes",
     description: "Cluster nodes, with the Kubernetes agent.",
+    group: "In a Kubernetes cluster",
   },
 ];
 

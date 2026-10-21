@@ -27,6 +27,8 @@ import {
   getHostCollectorState,
   isHostCollectorManaged,
 } from "../../../Components/HostCollector/HostCollectorStatus";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import IconProp from "Common/Types/Icon/IconProp";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -160,19 +162,29 @@ const HostCollector: FunctionComponent<
           getHostCollectorOsType(host.osType),
         )}
         replaceExisting={true}
+        hostId={modelId}
         onHostConnected={() => {
           setRefreshToken((token: number): number => {
             return token + 1;
           });
         }}
       />
-      <HostDocumentationCard
+      <FoldedSection
         title="Install the collector yourself"
-        description={translator.translateTemplate(
+        icon={IconProp.Book}
+        summary={translator.translateTemplate(
           "Or keep this host ({{host}}) on a collector you install and configure: the OpenTelemetry Collector with a config.yaml you keep on the host.",
           { host: hostName },
         )}
-      />
+        isElevated={true}
+        dataTestId="host-manual-guide"
+      >
+        <HostDocumentationCard
+          title="Install the collector yourself"
+          description=""
+          isBare={true}
+        />
+      </FoldedSection>
     </Fragment>
   );
 };
